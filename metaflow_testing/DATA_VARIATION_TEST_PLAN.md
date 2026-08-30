@@ -24,7 +24,7 @@
 ## 2. The coverage gap this plan closes
 
 ```
-grep -l "normalize_column_names|column_normalization|schema_config_path" metaflow_testing/*.json
+grep -l "column_normalization|schema_config_path" metaflow_testing/*.json
   -> (no matches)
 ```
 
@@ -63,7 +63,10 @@ raw read
   -> apply_data_standardization_sql   <-- LAST. sees only normalized names.
 ```
 
-So for a source whose CSV header is `Company Name, Region , E-Mail Address, Country-Code`:
+Normalization is opt-in: `column_normalization` is the only switch, and `enabled` defaults to
+false, so the step is a pass-through until a spec sets `"column_normalization": {"enabled": true}`.
+`case` then selects the fold. So for a source whose CSV header is
+`Company Name, Region , E-Mail Address, Country-Code`:
 
 | `column_normalization.case` | Resulting column names |
 |---|---|

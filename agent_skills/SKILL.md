@@ -279,13 +279,24 @@ migration). Dispatched by `cdc/dispatcher.py::register_cdc_strategy`.
 | `FULL_SNAPSHOT_CDC` | yes | yes | `dlt.apply_changes_from_snapshot(..., stored_as_scd_type="1")` — diffs successive full-extract snapshots. `cdc/snapshot.py::register_full_snapshot_cdc`. | `primary_keys` |
 | ~~`FULL_SNAPSHOT_CDC_NO_PK`~~ | — | — | **REMOVED in v1.4.0.** It keyed the diff on a framework-generated `__framework_surrogate_key` (a SHA-256 over the whole payload). Onboarding rejects it by name. Migrate to `FULL_SNAPSHOT_CDC` with a real `primary_keys`, or to `TRUNCATE_AND_LOAD` if the source genuinely has no key. | — |
 
-Common optional `target_config` fields across every CDC-dispatched strategy:
-`sequence_by_column` (falls back to `__framework_ingestion_timestamp_utc` —
-`dlt.apply_changes` always needs *some* sequencer), `columns_to_check`/`columns_to_exclude`
-(comparison-only in v2 — never drops a column from the target table; see
-`cdc/comparison_columns.py`), `cdc_operation_column`/`cdc_operation_mapping.delete_values`
-(marks source rows as deletes for `apply_as_deletes`), and `generate_hash_columns` (default
-`true`).
+Optional `target_config` fields, **each scoped to the strategies named** — the validator
+rejects one used outside its set, so do not treat these as universally available:
+
+| Field | Valid for | Rejected on |
+|---|---|---|
+| `sequence_by_column` | every CDC-dispatched strategy | — (falls back to `__framework_ingestion_timestamp_utc`; `dlt.apply_changes` always needs *some* sequencer) |
+| `generate_hash_columns` (default `true`) | every CDC-dispatched strategy | — |
+| `columns_to_check` | `SCD1`, `SCD2`, `SCD3` | — (accepted but inert elsewhere) |
+| `columns_to_exclude` | `SCD1`, `SCD2`, `SCD3` | **`APPEND`, `TRUNCATE_AND_LOAD`, `FULL_SNAPSHOT_CDC`** — they have no comparison-column concept to exclude from |
+| `cdc_operation_column` / `cdc_operation_mapping.delete_values` | `SCD1`, `SCD2`, `FULL_SNAPSHOT_CDC` | **`SCD3`** — a current/previous pivot has no delete path at all |
+
+`columns_to_check`/`columns_to_exclude` are comparison-only in v2 — neither drops a column from
+the target table; see `cdc/comparison_columns.py`. `cdc_operation_column` marks source rows as
+deletes: `SCD1`/`SCD2` pass it to `apply_changes` as `apply_as_deletes`, while
+`FULL_SNAPSHOT_CDC` filters flagged rows out of the snapshot so the diff deletes them by
+absence — the same end result by a different route. The two enforcing sets are
+`strategies_supporting_comparison_exclusion` and `strategies_supporting_delete_marker` in
+`onboarding/spec_validator.py`.
 
 **Do not emit any of these — they are removed in v1.4.0 and onboarding rejects each by name:**
 `target_config.generate_surrogate_key`, `target_config.surrogate_key_columns`,
@@ -413,6 +424,34 @@ code that builds a SQL expression involving a secret.
 Column-level AES encryption/decryption (`crypto/column_crypto.py`) and PGP (`crypto/pgp.py`,
 via `PGPy` — pure Python, no external `gpg` binary, so it works on serverless) both consume
 already-resolved key material; they never touch `dbutils` themselves.
+
+### 9.1 The encrypt → decrypt type contract (`source_data_type`, v1.4.0)
+
+Encryption replaces a column's physical type with ciphertext binary, so the framework records
+the **pre-encryption** Spark type as the Unity Catalog `original_data_type` column tag. That
+tag is what a downstream `transformation_flows[].source_inputs[].decrypted_columns[].cast_to_type`
+is validated against at decryption time.
+
+`target_config.encrypted_columns[].source_data_type` (optional, added v1.4.0) **declares** what
+that type must be:
+
+```json
+{"column_name": "ssn", "mode": "GCM", "source_data_type": "string",
+ "secret": {"secret_catalog": "poc", "secret_schema": "security", "secret_key": "pii_key"}}
+```
+
+- **Omitting it is safe and is the documented default path** — the type observed at encryption
+  time is used, exactly as pre-v1.4.0. No existing spec needs editing. Emit the key only when
+  the author asks for it; never emit `""`.
+- Declaring it makes a silent source type drift fail *at encryption time*, naming both types,
+  instead of breaking the decrypt side later and far from the cause. Comparison is
+  case-insensitive and whitespace-trimmed; a mismatch raises `CryptoError` rather than picking
+  a winner.
+- Onboarding type-checks it only (non-empty string) — the validator has no Spark session to
+  parse a type string and no source schema to check it against, so the meaningful comparison
+  happens at runtime in `crypto/column_crypto.py::apply_aes_column_encryption`.
+
+Decryption never lives in `target_config`; it belongs to `source_inputs[].decrypted_columns[]`.
 
 ---
 

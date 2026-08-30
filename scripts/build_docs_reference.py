@@ -49,6 +49,7 @@ FLOW_TITLES = {
     "reconciliation": "Reconciliation flows",
     "observability": "Observability",
     "ingestion+transformation": "CDC / load strategy",
+    "other": "Other shared attributes",
 }
 
 FLOW_INTROS = {
@@ -61,6 +62,10 @@ FLOW_INTROS = {
         "Attributes under `target_config` that only apply to particular CDC load strategies. "
         "The Spec Builder shows these on the **Load strategy** step and hides the ones the "
         "selected strategy does not use."
+    ),
+    "other": (
+        "Attributes that belong to no single flow kind — they appear nested inside a block "
+        "(an `encrypted_columns[]` entry, for example) rather than at the top level of a flow."
     ),
 }
 

@@ -1,0 +1,553 @@
+{
+  "$comment": "MACHINE-READABLE ATTRIBUTE DELTA for the NextGen Metadata Framework (Metaflow) onboarding spec, v1.3.0 -> v1.4.0. Intended to be fed directly to an automated agent updating the Databricks App (databricks-app/) or any other spec-authoring surface. Every path below is expressed as it appears in an onboarding spec document, rooted at the spec object; `[]` denotes an array element. This file is hand-authored and is the source of truth for the delta; the enforcing artefacts are onboarding_templates/onboarding_spec.schema.json (structure) and src/NextGen_Metadata_Framework/lakeflow_framework/onboarding/spec_validator.py (semantics, including the rejection messages quoted below verbatim).",
+  "schema_version": "1.0",
+  "framework_version_from": "1.3.0",
+  "framework_version_to": "1.4.0",
+  "release_date": "2026-08-30",
+  "summary": {
+    "added": 1,
+    "modified": 6,
+    "removed": 5,
+    "enum_values_removed": 1,
+    "breaking": true,
+    "migration_required_for": "Any spec declaring a removed attribute, or cdc_load_strategy FULL_SNAPSHOT_CDC_NO_PK. Onboarding REJECTS these rather than ignoring them, so a stale spec fails loudly at onboarding time and never reaches a pipeline run."
+  },
+  "added": [
+    {
+      "path": "ingestion_flows[].target_config.encrypted_columns[].source_data_type",
+      "also_applies_to": [
+        "transformation_flows[].target_config.encrypted_columns[].source_data_type"
+      ],
+      "type": "string",
+      "json_schema_def": "#/$defs/encryptedColumn/properties/source_data_type",
+      "required": false,
+      "default": null,
+      "default_behaviour": "When absent, the framework uses the Spark type it observes for the column at encryption time. This is exactly the pre-v1.4.0 behaviour, so no existing spec needs editing and no spec is invalidated by the addition.",
+      "constraints": {
+        "minLength": 1
+      },
+      "examples": [
+        "string",
+        "decimal(18,2)",
+        "timestamp",
+        "bigint"
+      ],
+      "ui_widget": "text",
+      "ui_placeholder": "string",
+      "ui_position": "Immediately after `mode` and before `secret`, inside the encrypted_columns[] repeat group.",
+      "ui_label": "source_data_type",
+      "description": "The original source data type of the column being encrypted, before AES encryption replaces its physical type with ciphertext binary.",
+      "rationale": "The captured type becomes the Unity Catalog `original_data_type` column tag, which is what a downstream `transformation_flows[].source_inputs[].decrypted_columns[].cast_to_type` is validated against at decryption time. With no declaration, whatever the source happens to deliver today becomes the tag -- so a source column that quietly changes from string to int silently re-tags, and the DECRYPT side starts failing later, far from the cause. With a declaration, the disagreement is caught at encryption time, naming both types.",
+      "validation": {
+        "onboarding": "Type-checked only (non-empty string). The declared value is a Spark type string; the validator has no Spark session to parse it and no source schema to check it against.",
+        "runtime": "crypto/column_crypto.py::apply_aes_column_encryption compares the declared value against the column's actual Spark dtype, case-insensitively and whitespace-trimmed. A mismatch raises CryptoError naming both. It does not pick a winner.",
+        "runtime_error_message": "encrypted_columns source_data_type mismatch for column '<col>': the spec declares source_data_type=<declared> but Spark reports <observed> for this column. Either the source's type changed, or the declaration is stale. Fix: correct source_data_type to <observed>, or remove it to accept whatever the source delivers."
+      },
+      "app_action": "Add a text field to the encrypted_columns[] repeat group. Optional, no default value, blank means omit the key from the serialized spec entirely (do not emit an empty string)."
+    }
+  ],
+  "removed": [
+    {
+      "path": "ingestion_flows[].source_config.normalize_column_names",
+      "also_applies_to": [],
+      "former_type": "boolean",
+      "former_default": false,
+      "disposition": "REJECTED_AT_ONBOARDING",
+      "trigger": "PRESENCE, not truthiness -- `false` is rejected too, because it still describes a feature that no longer exists.",
+      "rejection_message": "source_config.normalize_column_names: removed in v1.4.0 -- column_normalization is now the only switch. Replace normalize_column_names: true with column_normalization: {enabled: true} (add a case key if you were relying on something other than the default 'lower'); delete the key outright if it was false.",
+      "replacement_path": "ingestion_flows[].source_config.column_normalization.enabled",
+      "migration": [
+        {
+          "before": {
+            "normalize_column_names": true
+          },
+          "after": {
+            "column_normalization": {
+              "enabled": true
+            }
+          }
+        },
+        {
+          "before": {
+            "normalize_column_names": false
+          },
+          "after": "delete the key"
+        },
+        {
+          "before": {
+            "normalize_column_names": true,
+            "column_normalization": {
+              "case": "preserve"
+            }
+          },
+          "after": {
+            "column_normalization": {
+              "enabled": true,
+              "case": "preserve"
+            }
+          }
+        }
+      ],
+      "migration_trap": "Before v1.4.0 a column_normalization object that OMITTED `enabled` deferred enablement to this boolean, so {\"case\": \"preserve\"} alone was ON. It now reads as written: OFF. A spec relying on that deferral must add an explicit \"enabled\": true or it silently stops renaming.",
+      "app_action": "Remove the boolean field from the Source step. Remove `normalize_column_names` from the visibility condition on `column_normalization.case` -- it must now depend on `column_normalization.enabled === true` alone. On spec IMPORT, surface the key as a migration warning rather than silently dropping it."
+    },
+    {
+      "path": "ingestion_flows[].target_config.generate_surrogate_key",
+      "also_applies_to": [
+        "transformation_flows[].target_config.generate_surrogate_key"
+      ],
+      "former_type": "boolean",
+      "former_default": "true for FULL_SNAPSHOT_CDC_NO_PK, false otherwise",
+      "disposition": "REJECTED_AT_ONBOARDING",
+      "trigger": "PRESENCE, not truthiness.",
+      "rejection_message": "target_config.generate_surrogate_key: removed in v1.4.0 -- the surrogate-key engine is gone. __framework_surrogate_key is no longer generated for any flow. Declare real primary_keys (SCD1/SCD2/SCD3/FULL_SNAPSHOT_CDC all take them), or use TRUNCATE_AND_LOAD if this source has no key.",
+      "replacement_path": "ingestion_flows[].target_config.primary_keys",
+      "app_action": "Remove the boolean field from the Load strategy step. Remove any derived 'surrogate key' feature chip from template/preset summaries."
+    },
+    {
+      "path": "ingestion_flows[].target_config.surrogate_key_columns",
+      "also_applies_to": [
+        "transformation_flows[].target_config.surrogate_key_columns"
+      ],
+      "former_type": "array<string>",
+      "former_default": "every non-__framework_* column, sorted",
+      "disposition": "REJECTED_AT_ONBOARDING",
+      "trigger": "PRESENCE.",
+      "rejection_message": "target_config.surrogate_key_columns: removed in v1.4.0 with the surrogate-key engine -- it scoped a column that is no longer generated. To control what identifies a row, set primary_keys; to control what is compared for change, set columns_to_check/columns_to_exclude.",
+      "replacement_path": "ingestion_flows[].target_config.primary_keys",
+      "app_action": "Remove the list field from the Load strategy step."
+    },
+    {
+      "path": "ingestion_flows[].target_config.surrogate_key_exclude_columns",
+      "also_applies_to": [
+        "transformation_flows[].target_config.surrogate_key_exclude_columns"
+      ],
+      "former_type": "array<string>",
+      "former_default": [],
+      "disposition": "REJECTED_AT_ONBOARDING",
+      "trigger": "PRESENCE.",
+      "rejection_message": "target_config.surrogate_key_exclude_columns: removed in v1.4.0 with the surrogate-key engine -- it scoped a column that is no longer generated. To control what identifies a row, set primary_keys; to control what is compared for change, set columns_to_check/columns_to_exclude.",
+      "replacement_path": "ingestion_flows[].target_config.columns_to_exclude",
+      "app_action": "Remove the list field from the Load strategy step. Also remove the former cross-field validation rule 'surrogate_key_exclude_columns must not overlap surrogate_key_columns'."
+    },
+    {
+      "path": "reconciliation_flows[].recon_mode",
+      "also_applies_to": [],
+      "former_type": "string (enum)",
+      "former_enum": [
+        "triggered",
+        "continuous"
+      ],
+      "former_default": "triggered",
+      "disposition": "REJECTED_AT_ONBOARDING",
+      "trigger": "PRESENCE. BOTH former values are rejected, including \"triggered\" -- it is removed as an ATTRIBUTE, so a spec asserting the surviving behaviour still names a field that no longer exists.",
+      "rejection_message": "reconciliation_flow[<id>].recon_mode: removed in v1.4.0 -- reconciliation is triggered-only. Every run is a bounded job task: batch reads, and trigger(availableNow=True) for a read_mode 'streaming' side, so the run drains its backlog and finishes. There is no continuous reconciliation mode and no recon_mode widget; delete the key. For continuous coverage, schedule the reconciliation job on the cadence you need.",
+      "replacement_path": null,
+      "replacement_behaviour": "Triggered semantics are now unconditional. To reconcile more often, schedule the reconciliation job more often.",
+      "app_action": "Remove the select field from the Reconciliation identity section. Remove `recon_mode` from every reconciliation template/preset body."
+    },
+    {
+      "path": "reconciliation_flows[].generate_surrogate_key",
+      "also_applies_to": [],
+      "former_type": "boolean",
+      "former_default": false,
+      "disposition": "REJECTED_AT_ONBOARDING",
+      "trigger": "PRESENCE.",
+      "rejection_message": "reconciliation_flow[<id>].generate_surrogate_key: removed in v1.4.0 with the surrogate-key engine. A reconciliation flow matches on its declared match_keys; both sides must carry those columns.",
+      "replacement_path": "reconciliation_flows[].match_keys",
+      "app_action": "Remove the boolean field from the Matching & healing section."
+    }
+  ],
+  "enum_values_removed": [
+    {
+      "path": "ingestion_flows[].target_config.cdc_load_strategy",
+      "also_applies_to": [
+        "transformation_flows[].target_config.cdc_load_strategy"
+      ],
+      "removed_value": "FULL_SNAPSHOT_CDC_NO_PK",
+      "enum_before": [
+        "APPEND",
+        "TRUNCATE_AND_LOAD",
+        "SCD1",
+        "SCD2",
+        "SCD3",
+        "FULL_SNAPSHOT_CDC",
+        "FULL_SNAPSHOT_CDC_NO_PK"
+      ],
+      "enum_after": [
+        "APPEND",
+        "TRUNCATE_AND_LOAD",
+        "SCD1",
+        "SCD2",
+        "SCD3",
+        "FULL_SNAPSHOT_CDC"
+      ],
+      "enum_after_ingestion_only": [
+        "APPEND",
+        "TRUNCATE_AND_LOAD",
+        "SCD1",
+        "SCD2",
+        "FULL_SNAPSHOT_CDC"
+      ],
+      "note_scd3": "SCD3 remains transformation_flows-only; it is a hard error on any ingestion_flows entry. That is unchanged in v1.4.0.",
+      "disposition": "REJECTED_AT_ONBOARDING",
+      "rejection_message": "target_config.cdc_load_strategy: removed in v1.4.0 -- it existed only to consume the surrogate-key engine, hashing every payload column of every row on every run to manufacture a diff key. Use FULL_SNAPSHOT_CDC with target_config.primary_keys (the Databricks-native apply_changes_from_snapshot pattern -- https://docs.databricks.com/aws/en/ldp/cdc), or TRUNCATE_AND_LOAD if this source genuinely has no key to diff on.",
+      "rejection_note": "Checked BEFORE the generic allowed-values test, so the author sees why the strategy was withdrawn and what replaces it, not a generic 'not one of [...]' list.",
+      "migration": [
+        {
+          "situation": "The source has a natural key, it was just never declared (the common case)",
+          "action": "cdc_load_strategy: FULL_SNAPSHOT_CDC + target_config.primary_keys"
+        },
+        {
+          "situation": "The source genuinely has no key",
+          "action": "cdc_load_strategy: TRUNCATE_AND_LOAD"
+        }
+      ],
+      "migration_warning": "Verify the candidate key is actually unique in the snapshot before committing to it (SELECT k, count(*) FROM src GROUP BY k HAVING count(*) > 1). A non-unique key produces a target that looks correct and silently collapses rows.",
+      "behavioural_change": "Under the removed strategy a Day-2 field change was reported as a DELETE of the old row plus an INSERT of a new one (the same entity under two identities, because the whole payload was the key). With a declared primary key that change is reported as the UPDATE it is. Expect the first post-migration snapshot to diff as a full delete-and-reinsert, because the diff key itself changed; correct behaviour thereafter.",
+      "app_action": "Remove the tab/option from the CDC strategy selector. Update the asn1_snapshot ingestion preset and the snapshot transformation preset to FULL_SNAPSHOT_CDC with primary_keys."
+    }
+  ],
+  "modified": [
+    {
+      "path": "ingestion_flows[].target_config.primary_keys",
+      "change": "REQUIRED_SET_WIDENED",
+      "before": "Required for SCD1, SCD2, SCD3, FULL_SNAPSHOT_CDC. Explicitly NOT required for FULL_SNAPSHOT_CDC_NO_PK.",
+      "after": "Required for SCD1, SCD2, SCD3, FULL_SNAPSHOT_CDC -- i.e. every CDC-dispatched strategy, since the keyless variant no longer exists. There is no framework-generated substitute.",
+      "runtime_error_when_missing": "Flow '<flow_id>': FULL_SNAPSHOT_CDC requires target_config.primary_keys -- apply_changes_from_snapshot diffs successive snapshots on a key, and as of v1.4.0 the framework no longer manufactures one. Declare the source's natural key, or switch this flow to TRUNCATE_AND_LOAD if it genuinely has none.",
+      "new_runtime_guard": "A primary_keys entry that never reaches the clean upstream (renamed by column_normalization, projected away by data_standardization_sql) is caught inside the snapshot-input dataset at graph-execution time and reported with the available columns.",
+      "app_action": "The visibility/required predicate for primary_keys must now include FULL_SNAPSHOT_CDC: [\"SCD1\",\"SCD2\",\"SCD3\",\"FULL_SNAPSHOT_CDC\"]."
+    },
+    {
+      "path": "ingestion_flows[].source_config.column_normalization.enabled",
+      "change": "SEMANTICS_CHANGED",
+      "before": "Presence-tested. An object omitting `enabled` deferred enablement to source_config.normalize_column_names, so an object supplying only `case` could be ON.",
+      "after": "Read with .get(\"enabled\", False). Absent object, absent key and explicit false are all OFF. This is the only switch.",
+      "app_action": "The `column_normalization.case` field's visibility condition must depend on `column_normalization.enabled === true` alone."
+    },
+    {
+      "path": "ingestion_flows[].target_config.cdc_operation_column",
+      "also_applies_to": [
+        "ingestion_flows[].target_config.cdc_operation_mapping"
+      ],
+      "change": "APPLICABILITY_PREDICATE_SIMPLIFIED",
+      "before": "Valid for {SCD1, SCD2, FULL_SNAPSHOT_CDC, FULL_SNAPSHOT_CDC_NO_PK}; UI additionally excluded FULL_SNAPSHOT_CDC_NO_PK.",
+      "after": "Valid for {SCD1, SCD2, FULL_SNAPSHOT_CDC}. The former exclusion of the withdrawn strategy is now vacuous and must be deleted rather than left as a live-looking rule.",
+      "app_action": "Set the predicate to the exact set: [\"SCD1\",\"SCD2\",\"FULL_SNAPSHOT_CDC\"]. Do NOT use an isCdc(strategy) helper -- that set includes SCD3, which the validator rejects.",
+      "app_action_superseded": {
+        "was": "Simplify the predicate to isCdc(strategy).",
+        "corrected_on": "2026-08-30",
+        "why": "isCdc(strategy) is {SCD1, SCD2, SCD3, FULL_SNAPSHOT_CDC}, but this attribute's applicability set is {SCD1, SCD2, FULL_SNAPSHOT_CDC} -- exactly what this entry's own `after` field already said. The instruction contradicted the delta it belonged to, and the app implemented the instruction: databricks-app/web/src/Builder.jsx offered cdc_operation_column and cdc_operation_mapping.delete_values on SCD3, producing a spec the builder accepted and onboarding rejected.",
+        "enforced_by": "databricks-app/tests/test_framework_spec_agreement.py::test_builder_never_offers_a_field_onboarding_rejects"
+      }
+    },
+    {
+      "path": "reconciliation_flows[].source_config.task_run_id_column",
+      "also_applies_to": [
+        "reconciliation_flows[].target_configs[].task_run_id_column"
+      ],
+      "change": "SEMANTICS_CHANGED",
+      "before": "Narrowed this side's read only when recon_mode resolved to \"triggered\" AND the task_run_id job parameter was non-empty AND this side declared the column.",
+      "after": "Narrows whenever the task_run_id job parameter is non-empty AND this side declares the column. The recon_mode condition is gone with the attribute. One asymmetry is retained deliberately: in a mixed batch/streaming comparison only the STATIC side is narrowed, because the streaming side's own micro-batch offsets already are the batch boundary.",
+      "app_action": "Description text only -- no field shape change."
+    },
+    {
+      "path": "reconciliation_flows[].source_config.hash_precomputed",
+      "also_applies_to": [
+        "reconciliation_flows[].target_configs[].hash_precomputed"
+      ],
+      "change": "CLARIFIED_NO_BEHAVIOUR_CHANGE",
+      "clarification": "It is an ASSERTION about the dataset, never an instruction to the engine. It does NOT precompute row hashes over match_keys, and it does not expect a third party's own hash column. true = 'this framework already wrote __framework_hash_key/__framework_hash_value onto this table upstream, at CDC-materialization time' -- they are trusted verbatim and match_keys/compare_columns are not hashed at all. false (default) = compute both NOW: __framework_hash_key over match_keys in the DECLARED ORDER, __framework_hash_value over the resolved compare_columns ALPHABETICALLY SORTED.",
+      "hard_error_on_true_when_absent": "hash_precomputed=True but dataset is missing ['__framework_hash_key', '__framework_hash_value'] -- this dataset was not actually produced by a CDC-dispatched flow with generate_hash_columns enabled (see cdc/hashing.py), so its __framework_hash_key/__framework_hash_value cannot be trusted for reconciliation matching",
+      "silent_failure_mode": "The precondition that makes `true` safe is that the upstream flow's primary_keys are this flow's match_keys and its resolved comparison columns are this flow's compare_columns. When they disagree NOTHING ERRORS -- the hashes simply never match and every row reports as drifted.",
+      "app_action": "Description/help text only -- no field shape change. Recommend wording that leads with 'already computed upstream', not 'precompute'."
+    },
+    {
+      "path": "observability[].destination_config.event_log_tables",
+      "change": "CANONICAL_LOCATION_AFFIRMED",
+      "clarification": "For a mode: \"continuous\" destination this is THE place the DLT event-log table list is configured -- on the observability row, part of the onboarding spec, upserted into observability_config. The pipeline-level `dataflow.otel_streaming.event_log_tables` spark configuration remains only as an explicitly subordinate BOOTSTRAP FALLBACK, consulted when the control-table lookup yields nothing. `dataflow.group.id` and `dataflow.control.catalog` correctly stay as pipeline configuration -- they are what let the pipeline find its own rows.",
+      "unchanged_rules": [
+        "Required when mode == \"continuous\".",
+        "Rejected when mode == \"triggered\" (the triggered engine resolves its pipeline from the upstream task run, so the list would be silently ignored)."
+      ],
+      "app_action": "No field shape change."
+    }
+  ],
+  "job_task_parameter_delta": {
+    "$comment": "NOT part of the onboarding spec document -- these are Lakeflow JOB task base_parameters on the observability notebook task (notebooks/08_observability/08_dlt_observability_engine.py). Included because the Databricks App and any job-authoring surface must emit them.",
+    "task": "observability_export",
+    "notebook": "notebooks/08_observability/08_dlt_observability_engine.py",
+    "renamed": [
+      {
+        "from": "run_pipeline_update_run_id",
+        "to": "pipeline_task_run_id",
+        "reason": "The old name baked one convention -- a task literally called `run_pipeline_update` -- into the parameter name, so it read as a lie in every job whose pipeline task is called something else."
+      }
+    ],
+    "now_required": [
+      {
+        "name": "dataflow_group_id",
+        "before": "derived from the upstream pipeline's dataflow.group.id",
+        "after": "REQUIRED task parameter; the derived value is kept as a cross-check and a disagreement raises",
+        "reason": "A derived value cannot detect depends_on pointing at the wrong pipeline_task -- whatever pipeline the task lands on reports its own group id happily, and the export succeeds while describing the wrong dataflow."
+      },
+      {
+        "name": "catalog",
+        "before": "optional, defaulted to \"poc\"",
+        "after": "REQUIRED"
+      },
+      {
+        "name": "env",
+        "before": "optional widget `deployment_environment`",
+        "after": "REQUIRED, renamed to `env`; becomes the OTel deployment.environment resource attribute",
+        "reason": "Optional environment labelling is worse than none: telemetry that omits it is silently merged with every other environment's in the consumer."
+      },
+      {
+        "name": "pipeline_task_run_id",
+        "before": "required (as run_pipeline_update_run_id)",
+        "after": "REQUIRED, renamed"
+      }
+    ],
+    "still_optional": [
+      "service_name",
+      "fail_task_on_dispatch_error",
+      "obs_mode",
+      "narrow_to_task_updates"
+    ],
+    "removed": [
+      "deployment_environment"
+    ],
+    "pipeline_parameters_question": {
+      "question": "Does pipeline_task_run_id need to be declared in pipeline_parameters?",
+      "answer": "NO -- and it must not be.",
+      "reason": "{{tasks.<key>.run_id}} is a Jobs DYNAMIC VALUE REFERENCE, resolved by the Jobs service per JOB RUN at the moment the downstream task is dispatched. A pipeline's pipeline_parameters / configuration: block is resolved by the Pipelines service per PIPELINE UPDATE and is static for that deployment -- there is no job run in scope for a task value to resolve against. Declaring it there cannot work and would at best pin every run to a stale literal.",
+      "rule": "Dynamic, per-run values travel as task parameters. Static, per-deployment values travel as pipeline configuration.",
+      "pipeline_resource_change_required": "NONE"
+    },
+    "example": {
+      "task_key": "observability_export",
+      "depends_on": [
+        {
+          "task_key": "run_pipeline_update"
+        }
+      ],
+      "notebook_task": {
+        "notebook_path": "../notebooks/08_observability/08_dlt_observability_engine.py",
+        "base_parameters": {
+          "dataflow_group_id": "dfg_zip_csv_dataload",
+          "catalog": "metaflow",
+          "env": "dev",
+          "pipeline_task_run_id": "{{tasks.run_pipeline_update.run_id}}"
+        }
+      }
+    },
+    "known_trap": "A mistyped task key does NOT fail loudly on its own. When <key> in {{tasks.<key>.run_id}} does not name a task in the job, the Jobs service substitutes nothing and passes the literal template text through as the parameter value. observability/runtime_params.py checks for exactly that and names it."
+  },
+  "framework_generated_columns_delta": {
+    "removed": [
+      {
+        "column": "__framework_surrogate_key",
+        "note": "No longer generated by any flow. A table materialized before the upgrade still physically carries it: it is NOT dropped, cdc/comparison_columns.py still excludes it from comparison-column resolution, and storage/column_ordering.py no longer front-loads it."
+      }
+    ],
+    "unchanged": [
+      "__framework_hash_key",
+      "__framework_hash_value"
+    ]
+  },
+  "control_table_delta": {
+    "$comment": "01_setup only ever runs CREATE TABLE IF NOT EXISTS, never a migration. An already-provisioned table therefore KEEPS these columns physically; they simply stop being written (they are nullable, so the MERGE inserts NULL). No migration script is required.",
+    "reconciliation_flow_spec": {
+      "columns_removed_from_ddl": [
+        "generate_surrogate_key",
+        "recon_mode"
+      ],
+      "columns_removed_from_upsert_schema": [
+        "generate_surrogate_key"
+      ],
+      "note": "recon_mode was never written by onboarding/metadata_upsert.py in the first place -- it existed in the DDL and was read defensively via getattr by the reconciliation notebook."
+    }
+  },
+  "python_api_delta": {
+    "$comment": "For any caller outside this repository.",
+    "modules_deleted": [
+      "NextGen_Metadata_Framework.lakeflow_framework.crypto.hashing"
+    ],
+    "modules_added": [
+      "NextGen_Metadata_Framework.lakeflow_framework.observability.runtime_params"
+    ],
+    "symbols_removed": [
+      "generate_surrogate_key_hash",
+      "resolve_surrogate_key_columns",
+      "SURROGATE_KEY_COLUMN",
+      "DEFAULT_HASH_EXCLUDED_COLUMNS",
+      "NON_PREFIXED_TECHNICAL_COLUMNS"
+    ],
+    "renamed": [
+      {
+        "from": "dq.quarantine._apply_hash_and_surrogate_key_columns",
+        "to": "dq.quarantine._apply_hash_columns"
+      }
+    ],
+    "signatures_changed": [
+      {
+        "function": "reconciliation.matcher.prepare_dataset_for_matching",
+        "removed_parameters": [
+          "generate_surrogate_key"
+        ],
+        "position": "trailing"
+      },
+      {
+        "function": "reconciliation.appender.run_target_reconciliation",
+        "removed_parameters": [
+          "generate_surrogate_key"
+        ],
+        "position": "positional, between compare_columns and source_hash_precomputed"
+      },
+      {
+        "function": "reconciliation.streaming.run_streaming_target_reconciliation",
+        "removed_parameters": [
+          "generate_surrogate_key",
+          "continuous",
+          "processing_time"
+        ]
+      }
+    ]
+  },
+  "app_update_checklist": [
+    "databricks-app/config/registry/ingestion.json -- drop source_config.normalize_column_names; fix the column_normalization.case visibility condition.",
+    "databricks-app/config/registry/shared.cdc.json -- drop the FULL_SNAPSHOT_CDC_NO_PK tab and the three surrogate_key_* fields; replace the strategy in every applicability list with FULL_SNAPSHOT_CDC; delete now-vacuous `ne` guards against the withdrawn strategy.",
+    "databricks-app/config/registry/shared.target.json -- add source_data_type to the encrypted_columns[] repeat group, after `mode`.",
+    "databricks-app/config/registry/reconciliation.json + fragments.json -- drop recon_mode and generate_surrogate_key; update task_run_id_column help text.",
+    "databricks-app/config/attribute_knowledge.json -- drop the removed attribute entries, add source_data_type, fix the CDC strategy catalogue.",
+    "databricks-app/config/validation/rules.json -- drop FULL_SNAPSHOT_CDC_NO_PK from strategy lists.",
+    "databricks-app/web/src/registry.js + Builder.jsx -- same deltas on the frontend; add FULL_SNAPSHOT_CDC to the primary_keys required-for list.",
+    "databricks-app/templates/**.json + index.json -- update presets; asn1_snapshot and the snapshot transformation preset move to FULL_SNAPSHOT_CDC + primary_keys.",
+    "REBUILD web/dist -- `npm install && npm run build` in databricks-app/web. Databricks Apps does not build at deploy time, so an un-rebuilt bundle keeps offering fields the framework now rejects.",
+    "Spec IMPORT path -- surface a removed attribute as a migration warning rather than silently preserving or dropping it."
+  ],
+  "enforcing_artifacts": {
+    "json_schema": "onboarding_templates/onboarding_spec.schema.json",
+    "validator": "src/NextGen_Metadata_Framework/lakeflow_framework/onboarding/spec_validator.py",
+    "validator_registries": [
+      "REMOVED_SOURCE_CONFIG_KEYS",
+      "REMOVED_TARGET_CONFIG_KEYS",
+      "REMOVED_RECONCILIATION_FLOW_KEYS",
+      "REMOVED_CDC_LOAD_STRATEGIES"
+    ],
+    "validator_helper": "reject_removed_keys(config, path_prefix, errors, removed)",
+    "tests": [
+      "tests/unit/test_removed_attributes_v140.py",
+      "tests/unit/test_observability_runtime_params.py"
+    ],
+    "docs": [
+      "docs/02_ingestion_and_sources.md#column-normalization",
+      "docs/03_transformation_and_cdc.md (sections 2.6, 2.7, 4)",
+      "docs/07_reconciliation_engine.md (sections 5, 9)",
+      "docs/08_observability_and_telemetry.md (sections 1.1.1, 6.1)",
+      "docs/11_hashing_and_determinism.md",
+      "docs/13_known_limitations_and_gotchas.md (C3, D4, D5, R5)"
+    ]
+  },
+  "app_surface_corrections": {
+    "$comment": "Defects found on 2026-08-30 by re-verifying the v1.4.0 app pass against the framework validator itself rather than against this document. Each was a disagreement between what the app offers or ships and what onboarding/spec_validator.py accepts. Listed here so an agent replaying this delta does not reintroduce them.",
+    "verification_method": "databricks-app/tests/test_framework_spec_agreement.py imports the real validate_spec and drives every shipped template and every (strategy x optional attribute) pair through it.",
+    "corrections": [
+      {
+        "id": "APP-C1",
+        "severity": "major",
+        "surface": [
+          "databricks-app/web/src/Builder.jsx",
+          "databricks-app/config/registry/shared.cdc.json"
+        ],
+        "symptom": "cdc_operation_column / cdc_operation_mapping.delete_values were offered on SCD3, which onboarding rejects.",
+        "fix": "New hasDeleteMarker(s) helper = {SCD1, SCD2, FULL_SNAPSHOT_CDC}, replacing isCdc in both field predicates; registry visible_when set to the same list."
+      },
+      {
+        "id": "APP-C2",
+        "severity": "major",
+        "surface": [
+          "databricks-app/config/registry/shared.cdc.json"
+        ],
+        "symptom": "Removing the FULL_SNAPSHOT_CDC_NO_PK guard left a one-argument predicate {\"ne\": [\"target_config.cdc_load_strategy\"]} behind. evaluate_predicate reaches its binary operators behind len(args) >= 2 and otherwise returns False, so both delete-marker fields were invisible for EVERY strategy in the registry-driven surface -- silently, no error.",
+        "fix": "Predicate deleted. A test now rejects any binary operator with fewer than two operands anywhere in config/registry/*.json."
+      },
+      {
+        "id": "APP-C3",
+        "severity": "major",
+        "surface": [
+          "databricks-app/config/validation/rules.json"
+        ],
+        "symptom": "scd_requires_primary_keys still listed only [SCD1, SCD2, SCD3], so a FULL_SNAPSHOT_CDC flow with no primary_keys passed the app's own validator and failed onboarding. This is the app_action of modified[0], which was never applied to rules.json.",
+        "fix": "FULL_SNAPSHOT_CDC added to the rule's strategy list and to its message."
+      },
+      {
+        "id": "APP-C4",
+        "severity": "minor",
+        "surface": [
+          "databricks-app/config/validation/rules.json"
+        ],
+        "symptom": "columns_to_exclude_cdc_only fired only on APPEND and TRUNCATE_AND_LOAD; the framework rejects the attribute on FULL_SNAPSHOT_CDC too.",
+        "fix": "Rule restated as the complement of the strategies that HAVE a comparison concept: nin [SCD1, SCD2, SCD3], so a future strategy cannot fall through it."
+      },
+      {
+        "id": "APP-C5",
+        "severity": "major",
+        "surface": [
+          "databricks-app/web/src/registry.js",
+          "databricks-app/config/registry/shared.target.json"
+        ],
+        "symptom": "sink_config.format offered \"kafka\", but no field existed for kafka_options -- which the framework requires, and which must carry both kafka.bootstrap.servers and topic. A kafka sink could not be authored in the app at all.",
+        "fix": "kafka_options added as a kv field, visible when format == kafka. kafka_secret_options (a map of option name to secret ref) remains unauthorable -- the serializer has no repeat-to-map-of-secretRef shape -- and is now named explicitly in the field's help text as hand-edit-only."
+      },
+      {
+        "id": "APP-C6",
+        "severity": "minor",
+        "surface": [
+          "databricks-app/server/core/predicates.py",
+          "databricks-app/server/core/validator.py"
+        ],
+        "symptom": "Flow rule contexts exposed only `v` (flat scalars), so any rule referencing a kv or repeat path resolved to None whether populated or not -- an `empty` guard on one would fire on a correctly-filled flow.",
+        "fix": "resolve_path_value falls back to context['kvs'] / context['reps']; both flow contexts now carry them."
+      },
+      {
+        "id": "APP-C7",
+        "severity": "minor",
+        "surface": [
+          "databricks-app/templates/reconciliation/blank.json"
+        ],
+        "symptom": "Shipped the builder's decomposed target keys (target_catalog / target_schema / target_table) instead of the canonical three-part `table` the framework reads. It round-trips through the builder, but is rejected if saved as written -- and the two sibling reconciliation templates already used the canonical shape.",
+        "fix": "Rewritten to {type, table}. Every shipped template is now driven through the real validator by a test."
+      },
+      {
+        "id": "APP-C8",
+        "severity": "minor",
+        "surface": [
+          "onboarding_templates/pipeline_onboarding_template.json",
+          "onboarding_templates/pipeline_onboarding_template.yaml"
+        ],
+        "symptom": "reconciliation transform_sql read FROM missing_records -- a view nothing creates. The appender registers the miss set as _reconciliation_unmatched_records (appender.py::UNMATCHED_RECORDS_VIEW_NAME). The app's copy and both full-reference documents were already correct; only this pair was stale.",
+        "fix": "Both files corrected; a test now asserts the app and framework copies are identical."
+      },
+      {
+        "id": "APP-C9",
+        "severity": "minor",
+        "surface": [
+          "agent_skills/SKILL.md"
+        ],
+        "symptom": "Described columns_to_check / columns_to_exclude / cdc_operation_column as 'common optional target_config fields across every CDC-dispatched strategy'. Two of the three are narrower, so an agent following the skill emitted specs onboarding rejects.",
+        "fix": "Replaced with a per-field valid-for / rejected-on table naming the two enforcing sets in spec_validator.py. A new SKILL.md section 9.1 documents encrypted_columns[].source_data_type, the one attribute this delta ADDS, which the skill had not covered."
+      },
+      {
+        "id": "APP-C10",
+        "severity": "minor",
+        "surface": [
+          "databricks-app/web/src/registry.js",
+          "databricks-app/config/registry/shared.target.json"
+        ],
+        "symptom": "Three optional attributes the framework validates were unauthorable in the app: post_export_archive.export_file_name_format, post_export_archive.pgp_encryption.sign_passphrase_secret, and pre_extraction_decryption.passphrase_secret (the PGP private key's own passphrase, which is a different key from secret_passphrase, the ZIP archive's AES password).",
+        "fix": "All three added, with help text spelling out the passphrase_secret / secret_passphrase distinction on both fields."
+      }
+    ]
+  }
+}

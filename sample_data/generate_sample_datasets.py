@@ -101,7 +101,15 @@ def generate_finance_datasets() -> None:
 
 
 def generate_mainframe_snapshot_datasets() -> None:
-    """spec_03 (FULL_SNAPSHOT_CDC) two-day snapshot pair: 1 update, 1 delete, 1 insert vs. day1."""
+    """spec_03 (FULL_SNAPSHOT_CDC) two-day snapshot pair, diffed on customer_name.
+
+    Day-2 vs. Day-1, verified against the committed fixtures: **2 updates** (John Smith
+    ACTIVE->INACTIVE, Fatima Ali Dallas->Fort Worth), 1 delete (Wei Zhang), 1 insert
+    (Noah Kim). Both days hold 10 rows. The two updates are the point of the fixture: with
+    customer_name as the declared key they are UPDATEs in place, where the removed
+    FULL_SNAPSHOT_CDC_NO_PK strategy hashed the whole payload and so reported each as a
+    delete plus an insert -- the same customer under two identities.
+    """
     try:
         day1_rows = [
             {"customer_name": "John Smith", "customer_city": "Chicago", "customer_status": "ACTIVE"},

@@ -1,0 +1,3823 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Metadata-driven ingestion, transformation, reconciliation and observability pipelines on Databricks Lakeflow — architecture, attribute reference, onboarding guides and operational runbooks.">
+      
+      
+        <meta name="author" content="Data Platform Engineering">
+      
+      
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>Ingestion: PGP/ZIP Archives, ASN.1 Distributed Decode, JSON Flattening, SQL Standardization - NextGen Metadata Framework (Metaflow)</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#ingestion-pgpzip-archives-asn1-distributed-decode-json-flattening-sql-standardization" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../../.." title="NextGen Metadata Framework (Metaflow)" class="md-header__button md-logo" aria-label="NextGen Metadata Framework (Metaflow)" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            NextGen Metadata Framework (Metaflow)
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Ingestion: PGP/ZIP Archives, ASN.1 Distributed Decode, JSON Flattening, SQL Standardization
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Spec Builder app
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../onboarding/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Get started
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../01_platform_architecture/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Architecture
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../reference/json/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  JSON reference
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../reference/code/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Code reference
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../faq/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Help
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../architecture_review/00_executive_summary/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Project record
+
+        </a>
+      </li>
+    
+  
+
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../.." title="NextGen Metadata Framework (Metaflow)" class="md-nav__button md-logo" aria-label="NextGen Metadata Framework (Metaflow)" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    NextGen Metadata Framework (Metaflow)
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Spec Builder app
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../../onboarding/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Get started
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_3" id="__nav_3_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Get started
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_2" id="__nav_3_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Step by step
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Step by step
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../onboarding/01_prerequisites/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    1 · Prerequisites
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../onboarding/02_first_pipeline/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    2 · Your first pipeline
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../onboarding/03_spec_builder_app/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    3 · Using the Spec Builder app
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../onboarding/04_deploying/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    4 · Deploying with DABs
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_3" id="__nav_3_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Going further
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Going further
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../09_developer_guide_and_recipes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Developer guide & recipes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Architecture
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../01_platform_architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Platform architecture & core concepts
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_4_2" id="__nav_4_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data plane
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Data plane
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../02_ingestion_and_sources/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Ingestion & source readers
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../03_transformation_and_cdc/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Transformation & CDC
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../07_reconciliation_engine/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reconciliation & self-healing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../06_egress_and_lakeflow_sinks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Egress & Lakeflow sinks
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_4_3" id="__nav_4_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cross-cutting concerns
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Cross-cutting concerns
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../04_data_quality_and_governance/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data quality & governance
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../05_security_and_cryptography/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Security & cryptography
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../08_observability_and_telemetry/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Observability & OpenTelemetry
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4_4" id="__nav_4_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Design guarantees
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Design guarantees
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../11_hashing_and_determinism/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Deterministic hashing standard
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../12_module_permutation_matrix/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Module permutation matrix
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../../reference/json/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    JSON reference
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_5" id="__nav_5_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    JSON reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_5_2" id="__nav_5_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Spec document
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_5_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Spec document
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../reference/json/root/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Spec root
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../reference/json/ingestion/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Ingestion flows
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../reference/json/transformation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Transformation flows
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../reference/json/reconciliation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reconciliation flows
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../reference/json/observability/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Observability
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_5_3" id="__nav_5_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Shared blocks
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_5_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Shared blocks
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../reference/json/ingestion-transformation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CDC / load strategy
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../reference/json/other/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Other shared attributes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../00_master_reference_index/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Full attribute dictionary
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../v1.4.0_attribute_delta/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    v1.4.0 attribute delta
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../../reference/code/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Code reference
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_6" id="__nav_6_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Code reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_6_2" id="__nav_6_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Pipeline engine
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Pipeline engine
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../reference/code/engine/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    engine
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../reference/code/ingestion/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ingestion
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../reference/code/transformation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    transformation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../reference/code/cdc/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    cdc
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../reference/code/reconciliation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    reconciliation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_6_3" id="__nav_6_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Platform services
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Platform services
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../reference/code/control_plane/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    control_plane
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../reference/code/onboarding/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    onboarding
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../reference/code/storage/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    storage
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../reference/code/observability/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    observability
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_6_4" id="__nav_6_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data handling
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Data handling
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../reference/code/crypto/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    crypto
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../reference/code/dq/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    dq
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../reference/code/governance/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    governance
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../reference/code/asn1/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    asn1
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_6_5" id="__nav_6_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Other
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Other
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../reference/code/lakeflow_framework/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    lakeflow_framework
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../reference/code/archive/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    archive
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Help
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Help
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../faq/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    FAQ
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../10_multi_role_faqs/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Multi-role FAQs
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../13_known_limitations_and_gotchas/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Known limitations & gotchas
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+          
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Project record
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_8" id="__nav_8_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_8">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Project record
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8_1" >
+        
+          
+          <label class="md-nav__link" for="__nav_8_1" id="__nav_8_1_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture review (Aug 2026 audit)
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_8_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_8_1">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Architecture review (Aug 2026 audit)
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../architecture_review/00_executive_summary/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Executive summary
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../architecture_review/01_architecture_and_design_principles/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture & design principles
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../architecture_review/02_distributed_processing_and_performance/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Distributed processing & performance
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../architecture_review/03_code_quality_and_antipatterns/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Code quality & antipatterns
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../architecture_review/04_security_governance_and_compliance/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Security, governance & compliance
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../architecture_review/05_observability_dq_and_reconciliation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Observability, DQ & reconciliation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../architecture_review/06_scalability_resiliency_and_migration_roadmap/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Scalability, resiliency & migration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../architecture_review/07_code_structure_extensibility_and_future_proofing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Code structure & future proofing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../architecture_review/08_control_metadata_schema_and_onboarding_audit/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Control metadata & onboarding audit
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-source_zip_handling-decrypt-then-unzip-before-auto-loader-ever-reads" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. source_zip_handling — decrypt, then unzip, before Auto Loader ever reads
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="1. source_zip_handling — decrypt, then unzip, before Auto Loader ever reads">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#11-pre_extraction_decryption-a-type-registry-not-a-schema-field-per-algorithm" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.1 pre_extraction_decryption — a type registry, not a schema field per algorithm
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#12-same-shape-on-autoloader-not-just-asn1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.2 Same shape on autoloader, not just asn1
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-asn1-mapinpandas-compiled-once-per-partition-not-once-per-row" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. ASN.1: mapInPandas, compiled once per partition, not once per row
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2. ASN.1: mapInPandas, compiled once per partition, not once per row">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#20-the-output-schema-comes-from-the-real-asn-file-not-a-hand-authored-field-list" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.0 The output schema comes from the real .asn file, not a hand-authored field list
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#21-the-bug-this-replaced" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.1 The bug this replaced
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#22-the-fix-compile-once-per-partition" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.2 The fix: compile once per partition
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#23-fully-distributed-no-driver-side-collection-at-either-stage" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.3 Fully distributed, no driver-side collection, at either stage
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-file_pattern-and-reader_options-shared-auto-loader-passthrough" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. file_pattern and reader_options — shared Auto Loader passthrough
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-explode_columns-json-structarray-flattening" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. explode_columns — JSON struct/array flattening
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-data_standardization_sql-a-column-expression-allowlist-deliberately-more-restricted-than-transformation_sql" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. data_standardization_sql — a column-expression allowlist, deliberately more restricted than transformation_sql
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="5. data_standardization_sql — a column-expression allowlist, deliberately more restricted than transformation_sql">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#51-the-grammar-and-why-its-this-restricted" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.1 The grammar, and why it's this restricted
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#52-whats-not-caught-until-runtime" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.2 What's not caught until runtime
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+
+<h1 id="ingestion-pgpzip-archives-asn1-distributed-decode-json-flattening-sql-standardization">Ingestion: PGP/ZIP Archives, ASN.1 Distributed Decode, JSON Flattening, SQL Standardization<a class="headerlink" href="#ingestion-pgpzip-archives-asn1-distributed-decode-json-flattening-sql-standardization" title="Permanent link">&para;</a></h1>
+<blockquote>
+<p>See also: <a href="README.md">README.md</a> — the full Metaflow documentation set.</p>
+</blockquote>
+<p>Four <code>source_config</code> capabilities, all shared between <code>autoloader</code> and <code>asn1</code> (except
+where noted): archive-aware landing (<code>source_zip_handling</code>, with a type-registry
+pre-extraction decryption step), Auto Loader file selection/passthrough (<code>file_pattern</code>,
+<code>reader_options</code>), JSON struct/array flattening (<code>explode_columns</code>), and a deliberately
+restricted column-standardization grammar (<code>data_standardization_sql</code>). This doc also
+covers the <code>asn1</code> source's <code>mapInPandas</code> decode rewrite, since it's the other half of "what
+happens to a file between landing and the target table" for that source type.</p>
+<p>Full field reference (types, required/optional, allowed values) lives in
+<a href="../01_control_metadata_schema/#3-source_config-ingestion-flows-only">01_control_metadata_schema.md §3</a> —
+this doc goes deeper on the <em>why</em> and the runtime mechanics behind four of those fields.
+Source: <code>ingestion/readers.py</code>, <code>archive/zip_utils.py</code>, <code>crypto/pgp.py</code>,
+<code>asn1/decoder.py</code>, <code>ingestion/json_flattening.py</code>, <code>ingestion/standardization_sql.py</code>.</p>
+<hr />
+<h2 id="1-source_zip_handling-decrypt-then-unzip-before-auto-loader-ever-reads">1. <code>source_zip_handling</code> — decrypt, then unzip, before Auto Loader ever reads<a class="headerlink" href="#1-source_zip_handling-decrypt-then-unzip-before-auto-loader-ever-reads" title="Permanent link">&para;</a></h2>
+<p>Both <code>autoloader</code> and <code>asn1</code> sources accept an optional <code>source_zip_handling</code> block.
+Enabled, it runs <em>inside</em> <code>read_autoloader_source</code>/<code>read_asn1_source</code> — i.e. at the
+pipeline's actual execution time, not merely graph-definition time — so decrypt → unzip →
+Auto Loader ingest → downstream transforms all happen within one Lakeflow Declarative
+Pipeline update, no separate job task required (<code>ingestion/readers.py::_apply_source_zip_handling</code>).
+<code>zerobus</code> doesn't get this option: it streams an existing Delta table, so there's no
+landing-zone file to unpack.</p>
+<p><code>source_zip_path</code> is a <strong>directory</strong>, never a single file — a real landing zone routinely
+accumulates more than one archive between pipeline updates (one per source extract/drop, or
+several sibling flows sharing one incoming folder). <code>zip_file_pattern</code> (a glob, matched the
+same way <code>file_pattern</code>/<code>cloudFiles.fileNamePattern</code> selects ingested files) selects which
+archive(s) in that directory this update processes — an exact filename (<code>"cdr_batch.zip"</code>)
+matches just one file; a wildcard (<code>"cdr_*.zip"</code>) matches every archive dropped under that
+name pattern. Every match is decrypted/extracted independently, so one corrupt archive
+doesn't block the others in the same update.</p>
+<p><div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nt">"source_zip_handling"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="w">  </span><span class="nt">"enabled"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="w">  </span><span class="nt">"source_zip_path"</span><span class="p">:</span><span class="w"> </span><span class="s2">"/Volumes/{{catalog}}/landing/telecom_cdr_zone/incoming/"</span><span class="p">,</span>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="w">  </span><span class="nt">"zip_file_pattern"</span><span class="p">:</span><span class="w"> </span><span class="s2">"cdr_batch.zip"</span><span class="p">,</span>
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="w">  </span><span class="nt">"target_volume_path"</span><span class="p">:</span><span class="w"> </span><span class="s2">"/Volumes/{{catalog}}/landing/telecom_cdr_zone/extracted/"</span><span class="p">,</span>
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="w">  </span><span class="nt">"pre_extraction_decryption"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="w">    </span><span class="nt">"secret_passphrase"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="w">      </span><span class="nt">"secret_catalog"</span><span class="p">:</span><span class="w"> </span><span class="s2">"{{catalog}}"</span><span class="p">,</span>
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="w">      </span><span class="nt">"secret_schema"</span><span class="p">:</span><span class="w"> </span><span class="s2">"security"</span><span class="p">,</span>
+<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="w">      </span><span class="nt">"secret_key"</span><span class="p">:</span><span class="w"> </span><span class="s2">"cdr_zip_passphrase"</span>
+<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="w">    </span><span class="p">}</span>
+<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a><span class="w">  </span><span class="p">},</span>
+<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a><span class="w">  </span><span class="nt">"delete_source_after_extract"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span>
+<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a><span class="p">}</span>
+</code></pre></div>
+(from <code>test_specs/spec_02_ingest_asn1_encrypted_zip.json</code>, an AES-password-protected ZIP
+with no PGP layer — <code>pre_extraction_decryption.type</code> is omitted since there's no outer
+decryption envelope; the block is present purely to carry <code>secret_passphrase</code>)</p>
+<p><code>enabled</code>/<code>source_zip_path</code>/<code>zip_file_pattern</code>/<code>target_volume_path</code> are required once the
+block is present. <code>pre_extraction_decryption</code> is itself fully optional — absent entirely, or
+present as <code>{}</code>, means a plain, unencrypted, non-password-protected ZIP. Nested inside it,
+<code>secret_passphrase</code> (an ordinary three-level UC secret reference, resolved via
+<code>crypto/secrets.py::resolve_secret_value</code> — see <a href="../16_encryption_and_secrets/">16_encryption_and_secrets.md</a>)
+is the AES-256 passphrase on the ZIP container itself, via <code>pyzipper.AESZipFile</code> in
+<code>archive/zip_utils.py::extract_encrypted_zip</code> — independent of, and combinable with, <code>type</code>
+(§1.1 below), or usable entirely on its own as in the example above. Omit it for a plain,
+unencrypted ZIP. <code>delete_source_after_extract</code> (default <code>true</code>) removes each ZIP once its
+members are extracted, per the framework's landing-file lifecycle policy.</p>
+<p>A real example of why the pattern matters: <code>test_specs/spec_16_bt_uc002_archive_autoloader_egress.json</code>
+has four ingestion flows all landing into the same shared directory
+(<code>/Volumes/BT_Group/landing/uc002_archive_zone/incoming/</code>) but each picking out only its own
+archive by exact filename (<code>"bt_sales_north.zip"</code>, <code>"bt_sales_south.zip"</code>,
+<code>"bt_ref_customers.zip"</code>, <code>"bt_ref_products.zip"</code>) — every flow scans the same directory but
+extracts only what its own pattern matches.</p>
+<p><strong>Idempotent across repeated pipeline updates.</strong> Extraction only needs to run once per
+archive: after the first successful update, <code>delete_source_after_extract</code> has removed each
+matched ZIP, so once the directory has no more files matching <code>zip_file_pattern</code> (or the
+directory itself is gone), a later update treats that as expected steady state (a log line,
+not an error) rather than re-extracting or failing:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>source_zip_handling: no files matching pattern '...' in '...' -- assuming already extracted
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>by a prior pipeline update (delete_source_after_extract) and skipping re-extraction.
+</code></pre></div>
+<h3 id="11-pre_extraction_decryption-a-type-registry-not-a-schema-field-per-algorithm">1.1 <code>pre_extraction_decryption</code> — a type registry, not a schema field per algorithm<a class="headerlink" href="#11-pre_extraction_decryption-a-type-registry-not-a-schema-field-per-algorithm" title="Permanent link">&para;</a></h3>
+<p>The real-world shape this handles: a file is <strong>PGP-encrypted first, then ZIPped</strong> (or the
+reverse in transit — either way, the outermost layer received by the framework is not yet
+a valid ZIP until it's decrypted). <code>pre_extraction_decryption</code>, nested inside
+<code>source_zip_handling</code>, decrypts the whole file to a temporary path <em>before</em> it's ever
+handed to the AES-ZIP-aware extractor. <code>type</code> (which dispatches this outer decryption layer)
+is itself optional within the block — omit it entirely when the file isn't wrapped in an
+outer decryption layer at all, as in the <code>secret_passphrase</code>-only example above:</p>
+<p><div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="nt">"pre_extraction_decryption"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="w">  </span><span class="nt">"type"</span><span class="p">:</span><span class="w"> </span><span class="s2">"pgp"</span><span class="p">,</span>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="w">  </span><span class="nt">"private_key_secret"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="w">    </span><span class="nt">"secret_catalog"</span><span class="p">:</span><span class="w"> </span><span class="s2">"{{catalog}}"</span><span class="p">,</span>
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="w">    </span><span class="nt">"secret_schema"</span><span class="p">:</span><span class="w"> </span><span class="s2">"security"</span><span class="p">,</span>
+<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="w">    </span><span class="nt">"secret_key"</span><span class="p">:</span><span class="w"> </span><span class="s2">"cdr_pgp_private_key"</span>
+<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="w">  </span><span class="p">},</span>
+<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="w">  </span><span class="nt">"secret_passphrase"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a><span class="w">    </span><span class="nt">"secret_catalog"</span><span class="p">:</span><span class="w"> </span><span class="s2">"{{catalog}}"</span><span class="p">,</span>
+<a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a><span class="w">    </span><span class="nt">"secret_schema"</span><span class="p">:</span><span class="w"> </span><span class="s2">"security"</span><span class="p">,</span>
+<a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a><span class="w">    </span><span class="nt">"secret_key"</span><span class="p">:</span><span class="w"> </span><span class="s2">"cdr_zip_passphrase"</span>
+<a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a><span class="w">  </span><span class="p">}</span>
+<a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a><span class="p">}</span>
+</code></pre></div>
+(from <code>onboarding_templates/pipeline_onboarding_template.json</code>'s <code>df_template_asn1_ingest</code>
+flow — PGP-encrypted, then a password-protected ZIP, both layers peeled in one pass: <code>type</code>
+dispatches the outer PGP decrypt, and <code>secret_passphrase</code> — independent of <code>type</code>, just
+co-located in the same block — is the AES password on the ZIP that PGP layer contained)</p>
+<p><code>type</code> dispatches through a small handler registry in <code>ingestion/readers.py</code>:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="n">_PRE_EXTRACTION_DECRYPTION_HANDLERS</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"pgp"</span><span class="p">:</span> <span class="n">_decrypt_pgp</span><span class="p">}</span>
+</code></pre></div>
+<p>kept in sync with <code>onboarding/spec_validator.py::ALLOWED_PRE_EXTRACTION_DECRYPTION_TYPES =
+{"pgp"}</code>. <strong>Adding a future algorithm (e.g. a symmetric AES-file scheme with no ZIP layer at
+all) means registering a new handler function and adding its name to that allowed-values
+set — never restructuring <code>source_zip_handling</code>'s schema or the code path that calls it.</strong>
+An unrecognized <code>type</code> fails fast with a <code>FrameworkConfigError</code> naming the bad value and
+listing the known types, both at onboarding-time validation and, defensively, again at
+runtime dispatch.</p>
+<p><strong>Decrypt-then-unzip order, and why it's fixed, not configurable:</strong> <code>_apply_source_zip_handling</code>
+resolves <code>source_zip_path</code> (the directory) + <code>zip_file_pattern</code> down to a list of matched
+file paths, then hands each one to <code>_extract_one_zip_file</code>, which always decrypts first
+(when <code>pre_extraction_decryption.type</code> is present — the block itself may be present purely
+to carry <code>secret_passphrase</code>, which doesn't trigger this step) and unzips second — never the
+other way around — because a PGP-encrypted payload is opaque ciphertext bytes, not a ZIP container;
+<code>pyzipper.AESZipFile</code> can't open it until it's plaintext. Inside that per-file helper, the
+decrypted bytes are written to <code>f"{source_zip_path}.decrypted"</code> (here <code>source_zip_path</code> is
+the one matched file's own path, not the parent directory), and that path — not the
+original — is what gets passed to <code>extract_encrypted_zip</code>:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="n">decryption_type</span> <span class="o">=</span> <span class="n">pre_extraction_decryption</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"type"</span><span class="p">)</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="n">zip_path_to_extract</span> <span class="o">=</span> <span class="n">source_zip_path</span>
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="k">if</span> <span class="n">decryption_type</span><span class="p">:</span>
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>    <span class="o">...</span>
+<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>    <span class="n">decrypted_bytes</span> <span class="o">=</span> <span class="n">handler</span><span class="p">(</span><span class="n">spark</span><span class="p">,</span> <span class="n">encrypted_bytes</span><span class="p">,</span> <span class="n">pre_extraction_decryption</span><span class="p">)</span>
+<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>    <span class="n">zip_path_to_extract</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">source_zip_path</span><span class="si">}</span><span class="s2">.decrypted"</span>
+<a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">zip_path_to_extract</span><span class="p">,</span> <span class="s2">"wb"</span><span class="p">)</span> <span class="k">as</span> <span class="n">decrypted_file</span><span class="p">:</span>
+<a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a>        <span class="n">decrypted_file</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">decrypted_bytes</span><span class="p">)</span>
+<a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a><span class="o">...</span>
+<a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a><span class="n">extract_encrypted_zip</span><span class="p">(</span><span class="n">spark</span><span class="o">=</span><span class="n">spark</span><span class="p">,</span> <span class="n">source_zip_path</span><span class="o">=</span><span class="n">zip_path_to_extract</span><span class="p">,</span> <span class="o">...</span><span class="p">)</span>
+</code></pre></div>
+<p>Both the intermediate <code>.decrypted</code> file and the original encrypted source file are removed
+in a <code>finally</code> block (the latter gated by <code>delete_source_after_extract</code>, same as the
+no-PGP path) — the decrypted intermediate never lingers on the Volume regardless of
+success or failure downstream.</p>
+<p>The PGP decrypt call itself is <code>crypto/pgp.py::pgp_decrypt(data, private_key_armored,
+passphrase=passphrase)</code>, built on <a href="https://pypi.org/project/pgpy/">PGPy</a> — chosen
+specifically because it's a pure Python wheel with no external <code>gpg</code> binary dependency
+(<code>python-gnupg</code> shells out to a system <code>gpg</code>, not guaranteed present or safely invokable
+across executors on Databricks serverless compute). <code>private_key_secret</code> is always required;
+<code>passphrase_secret</code> is optional and independently configurable — a real, properly-secured
+PGP private key is routinely passphrase-protected (this project's own throwaway test
+keypairs were deliberately generated <em>without</em> one, so both paths need real coverage). Both
+resolve from UC secrets via <code>crypto/secrets.py::resolve_secret_ref</code> immediately before
+decryption. <code>pgp_decrypt</code> checks the key's <code>is_protected</code> flag itself: if the key is
+protected but no <code>passphrase_secret</code> was configured, it raises <code>CryptoError</code> rather than
+silently attempting an unlock. Any failure — bad key, wrong/missing passphrase, wrong
+recipient, corrupt ciphertext — raises <code>CryptoError</code> wrapped in an <code>ArchiveError</code> naming the
+source path and declared <code>type</code>.</p>
+<p><div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="nt">"pre_extraction_decryption"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="w">  </span><span class="nt">"type"</span><span class="p">:</span><span class="w"> </span><span class="s2">"pgp"</span><span class="p">,</span>
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="w">  </span><span class="nt">"private_key_secret"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="nt">"secret_catalog"</span><span class="p">:</span><span class="w"> </span><span class="s2">"{{catalog}}"</span><span class="p">,</span><span class="w"> </span><span class="nt">"secret_schema"</span><span class="p">:</span><span class="w"> </span><span class="s2">"security"</span><span class="p">,</span><span class="w"> </span><span class="nt">"secret_key"</span><span class="p">:</span><span class="w"> </span><span class="s2">"cdr_pgp_private_key"</span><span class="p">},</span>
+<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="w">  </span><span class="nt">"passphrase_secret"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="nt">"secret_catalog"</span><span class="p">:</span><span class="w"> </span><span class="s2">"{{catalog}}"</span><span class="p">,</span><span class="w"> </span><span class="nt">"secret_schema"</span><span class="p">:</span><span class="w"> </span><span class="s2">"security"</span><span class="p">,</span><span class="w"> </span><span class="nt">"secret_key"</span><span class="p">:</span><span class="w"> </span><span class="s2">"cdr_pgp_private_key_passphrase"</span><span class="p">}</span>
+<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="p">}</span>
+</code></pre></div>
+(<code>passphrase_secret</code> omitted entirely for a private key with no passphrase — this is the
+common case in this project's own test keypairs)</p>
+<h3 id="12-same-shape-on-autoloader-not-just-asn1">1.2 Same shape on <code>autoloader</code>, not just <code>asn1</code><a class="headerlink" href="#12-same-shape-on-autoloader-not-just-asn1" title="Permanent link">&para;</a></h3>
+<p><code>source_zip_handling</code> (including <code>pre_extraction_decryption</code>) is valid on <code>autoloader</code>
+sources too. A CSV/JSON batch landed as a PGP-then-ZIP archive gets the identical decrypt →
+extract → Auto-Loader-read pipeline, just with <code>cloudFiles.format</code> set to the tabular
+format instead of <code>binaryFile</code>.</p>
+<hr />
+<h2 id="2-asn1-mapinpandas-compiled-once-per-partition-not-once-per-row">2. ASN.1: <code>mapInPandas</code>, compiled once per partition, not once per row<a class="headerlink" href="#2-asn1-mapinpandas-compiled-once-per-partition-not-once-per-row" title="Permanent link">&para;</a></h2>
+<h3 id="20-the-output-schema-comes-from-the-real-asn-file-not-a-hand-authored-field-list">2.0 The output schema comes from the real <code>.asn</code> file, not a hand-authored field list<a class="headerlink" href="#20-the-output-schema-comes-from-the-real-asn-file-not-a-hand-authored-field-list" title="Permanent link">&para;</a></h3>
+<p><code>asn1_schema_path</code> points directly at a real ASN.1 module definition file — <code>asn1_codec</code>
+(<code>"ber"</code>/<code>"der"</code>) and <code>asn1_pdu_name</code> (the top-level <code>SEQUENCE</code> type to decode each record
+as) are plain sibling <code>source_config</code> fields alongside it. There is no separate
+<code>asn1_schema_json_path</code> wrapper file anymore: <code>asn1/decoder.py::derive_asn1_field_defs</code>
+derives the Spark output field list automatically from <code>asn1_schema_path</code> via
+<code>asn1tools.parse_files</code> introspection, resolving each member's ASN.1 type to a Spark type
+recursively (nested <code>SEQUENCE</code> → <code>struct</code>, <code>SEQUENCE OF</code> → <code>array</code>, <code>ENUMERATED</code> → the
+symbolic member name as a string, <code>CHOICE</code> explicitly unsupported — see
+<a href="../01_control_metadata_schema/#3-source_config-ingestion-flows-only">01_control_metadata_schema.md §3</a>
+for the full mapping table). This also means <code>asn1_schema_path</code> — being a plain field in the
+onboarding spec's own JSON/YAML text — gets the same <code>{{catalog}}</code>/<code>{{env}}</code> substitution as
+<code>path</code>/<code>schema_location</code> always have, eliminating a real bug class the old external-JSON-file
+design suffered from live (see <a href="../13_asn1_dq_quarantine/">13_asn1_dq_quarantine.md</a>'s "Real
+bug found via live deployment" note).</p>
+<h3 id="21-the-bug-this-replaced">2.1 The bug this replaced<a class="headerlink" href="#21-the-bug-this-replaced" title="Permanent link">&para;</a></h3>
+<p>The original <code>asn1</code> decode step was a plain row UDF (<code>F.udf</code>) that called
+<code>asn1tools.compile_files(...)</code> — which parses the <code>.asn</code> module text and builds an
+in-memory codec — <strong>inside</strong> the per-row decode function. Spark has no way to know that
+call is expensive and safely reusable across rows; it just sees "a Python function," so it
+re-ran the full ASN.1 module compilation on every single row of every batch. For a CDR
+stream processing millions of records, that's millions of redundant schema compilations
+doing the exact same work over and over.</p>
+<h3 id="22-the-fix-compile-once-per-partition">2.2 The fix: compile once per partition<a class="headerlink" href="#22-the-fix-compile-once-per-partition" title="Permanent link">&para;</a></h3>
+<p><code>asn1/decoder.py::make_partition_decoder</code> builds a <code>mapInPandas</code> partition function
+instead. Spark invokes the returned generator exactly once per partition, handing it an
+iterator over that partition's pandas micro-batches — <code>asn1tools.compile_files(...)</code> runs
+once, <em>before</em> the <code>for batch in batches</code> loop, and the one resulting compiled schema
+object is reused for every row of every batch in that partition:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">_decode_partition</span><span class="p">(</span><span class="n">batches</span><span class="p">:</span> <span class="n">Iterator</span><span class="p">[</span><span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Iterator</span><span class="p">[</span><span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">]:</span>
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>    <span class="n">compiled</span> <span class="o">=</span> <span class="n">asn1tools</span><span class="o">.</span><span class="n">compile_files</span><span class="p">(</span><span class="n">module_files</span><span class="p">,</span> <span class="n">codec</span><span class="p">)</span>
+<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>    <span class="k">for</span> <span class="n">batch</span> <span class="ow">in</span> <span class="n">batches</span><span class="p">:</span>
+<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>        <span class="o">...</span>
+<a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>        <span class="n">decoded</span> <span class="o">=</span> <span class="n">compiled</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="n">pdu_name</span><span class="p">,</span> <span class="n">raw_bytes</span><span class="p">)</span>
+<a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a>        <span class="o">...</span>
+<a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a>        <span class="k">yield</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="o">.</span><span class="n">from_records</span><span class="p">(</span><span class="n">records</span><span class="p">,</span> <span class="n">columns</span><span class="o">=</span><span class="n">output_columns</span><span class="p">)</span>
+</code></pre></div>
+<p>That cuts compilation from O(rows) to O(partitions) — a constant, small cost per partition
+regardless of how many CDR records land in it. <code>make_partition_decoder</code> is also returned as
+a plain, independently callable function specifically so a unit test can invoke it directly
+against a handful of synthetic pandas DataFrames (no live Spark session needed) and
+monkeypatch <code>asn1tools.compile_files</code> with a call-counting stub to <em>prove</em> the
+once-per-partition behavior, rather than just asserting it by inspection.</p>
+<p>Per-row decode failures (a malformed record, a codec mismatch) are still isolated per row —
+caught and written to <code>_asn1_decode_error</code> (<code>f"{type(decode_exc).__name__}: {decode_exc}"</code>)
+rather than raised, so one bad record in a partition doesn't fail the whole micro-batch.
+Only a genuinely unloadable schema config (missing file, bad JSON, unsupported
+<code>spark_type</code>) raises <code>Asn1DecodeError</code> — see <a href="../13_asn1_dq_quarantine/">13_asn1_dq_quarantine.md</a>
+for a worked example of routing <code>_asn1_decode_error IS NOT NULL</code> rows to quarantine.</p>
+<h3 id="23-fully-distributed-no-driver-side-collection-at-either-stage">2.3 Fully distributed, no driver-side collection, at either stage<a class="headerlink" href="#23-fully-distributed-no-driver-side-collection-at-either-stage" title="Permanent link">&para;</a></h3>
+<p>Both halves of ASN.1 ingestion avoid the driver entirely, and the module docstring in
+<code>asn1/decoder.py</code> says so explicitly:</p>
+<blockquote>
+<p><strong>Distributed by construction, end to end.</strong> File discovery/reading happens via Auto
+Loader's <code>cloudFiles</code> source (<code>ingestion/readers.py::read_asn1_source</code>), which lists and
+reads files across executors natively — never collects file content to the driver. The
+decode step below runs via <code>DataFrame.mapInPandas</code>, which Spark also executes entirely on
+executors, one partition at a time, with no driver-side collection at any point.</p>
+</blockquote>
+<p>Concretely: <code>read_asn1_source</code> opens a <code>cloudFiles</code>/<code>binaryFile</code> streaming reader over
+<code>source_config["path"]</code> — Auto Loader's file listing and content reads both happen on
+executors, the same as any other Auto Loader source — and hands the resulting raw-bytes
+DataFrame straight to <code>decode_asn1_binary_stream(raw_df, ...)</code>, which attaches the
+<code>mapInPandas</code> transform and returns a lazy DataFrame. Nothing in either step calls
+<code>.collect()</code>, <code>.toPandas()</code>, or any other driver-materializing action; the decoded output
+only actually executes when Lakeflow's own streaming engine pulls a micro-batch through the
+graph.</p>
+<p>One supporting detail: <code>mapInPandas</code> reconstructs the DataFrame from scratch across the
+Python/Arrow boundary, which silently drops Auto Loader's hidden <code>_metadata</code> pseudo-column
+if it was never materialized as a real column first. <code>decode_asn1_binary_stream</code> calls
+<code>_materialize_hidden_metadata_column</code> before decoding specifically so downstream
+<code>ingestion/technical_metadata.py::attach_technical_metadata</code> (which reads
+<code>_metadata.file_name</code> etc.) doesn't silently degrade every ASN.1-sourced row's
+<code>__framework_source_file_name</code>/<code>__framework_source_file_size</code> to <code>NULL</code>.</p>
+<hr />
+<h2 id="3-file_pattern-and-reader_options-shared-auto-loader-passthrough">3. <code>file_pattern</code> and <code>reader_options</code> — shared Auto Loader passthrough<a class="headerlink" href="#3-file_pattern-and-reader_options-shared-auto-loader-passthrough" title="Permanent link">&para;</a></h2>
+<p>Both <code>autoloader</code> and <code>asn1</code> (which is itself a <code>cloudFiles.format("binaryFile")</code> reader
+under the hood) route through the same helper,
+<code>ingestion/readers.py::_apply_common_autoloader_options</code>. Both fields pass through to
+<a href="https://docs.databricks.com/aws/en/ingestion/cloud-object-storage/auto-loader/">Auto Loader</a>
+itself, which does the actual file listing/reading:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">_apply_common_autoloader_options</span><span class="p">(</span><span class="n">reader</span><span class="p">,</span> <span class="n">source_config</span><span class="p">):</span>
+<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>    <span class="n">file_pattern</span> <span class="o">=</span> <span class="n">source_config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"file_pattern"</span><span class="p">)</span>
+<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>    <span class="k">if</span> <span class="n">file_pattern</span><span class="p">:</span>
+<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a>        <span class="n">reader</span> <span class="o">=</span> <span class="n">reader</span><span class="o">.</span><span class="n">option</span><span class="p">(</span><span class="s2">"cloudFiles.fileNamePattern"</span><span class="p">,</span> <span class="n">file_pattern</span><span class="p">)</span>
+<a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a>    <span class="k">for</span> <span class="n">option_key</span><span class="p">,</span> <span class="n">option_value</span> <span class="ow">in</span> <span class="n">source_config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"reader_options"</span><span class="p">,</span> <span class="p">{})</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+<a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a>        <span class="n">reader</span> <span class="o">=</span> <span class="n">reader</span><span class="o">.</span><span class="n">option</span><span class="p">(</span><span class="n">option_key</span><span class="p">,</span> <span class="n">option_value</span><span class="p">)</span>
+<a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a>    <span class="k">return</span> <span class="n">reader</span>
+</code></pre></div>
+<ul>
+<li><strong><code>file_pattern</code></strong> maps directly onto Auto Loader's <code>cloudFiles.fileNamePattern</code> — a
+  glob/regex restricting which files in <code>path</code> are picked up, e.g. <code>"orc_*"</code> (from
+  <code>onboarding_templates/pipeline_onboarding_template.json</code>'s <code>df_template_ingest</code> flow) to
+  ingest only a specific file-naming convention out of a landing zone that may hold other
+  files too.</li>
+<li><strong><code>reader_options</code></strong> is an arbitrary string→string passthrough applied one
+  <code>.option(key, value)</code> call at a time, in iteration order — every value the underlying
+  Spark reader accepts (delimiter, header, quote, <code>cloudFiles.inferColumnTypes</code>, etc.) is
+  fair game, with no framework-side allowlist:</li>
+</ul>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="nt">"reader_options"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="w">  </span><span class="nt">"header"</span><span class="p">:</span><span class="w"> </span><span class="s2">"true"</span><span class="p">,</span>
+<a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="w">  </span><span class="nt">"cloudFiles.inferColumnTypes"</span><span class="p">:</span><span class="w"> </span><span class="s2">"true"</span>
+<a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a><span class="p">}</span>
+</code></pre></div>
+<p>Both are applied <em>after</em> <code>_apply_landing_retention_policy</code> and evolution-mode options in
+<code>read_autoloader_source</code>/<code>read_asn1_source</code>, but before <code>.load(path)</code> — plain reader
+configuration, no DataFrame-level transform involved, so there's nothing to reorder or
+worry about relative to <code>source_zip_handling</code> (which runs earlier, before the reader is
+even constructed, since it operates on files at rest rather than the streaming read).</p>
+<hr />
+<h2 id="4-explode_columns-json-structarray-flattening">4. <code>explode_columns</code> — JSON struct/array flattening<a class="headerlink" href="#4-explode_columns-json-structarray-flattening" title="Permanent link">&para;</a></h2>
+<p>Applied by the caller (the engine's ingestion staging step) as a post-read DataFrame
+transform, not a reader option — <code>ingestion/json_flattening.py::apply_explode_columns</code>.
+Driven by whether <code>explode_columns</code> is populated, plus one opt-in escape hatch:</p>
+<p><strong>Empty or absent → schema-preserving pass-through by default.</strong> The DataFrame is returned
+unchanged — no struct/array column is touched unless it's named in <code>explode_columns</code>. Set
+<code>source_config.auto_flatten_all: true</code> to opt into the old "just flatten this whole JSON
+document" behavior instead: <code>_flatten_all</code> repeatedly scans the DataFrame's schema for any
+remaining <code>StructType</code>/<code>ArrayType</code> column, flattens/explodes it, and loops (up to
+<code>_MAX_FLATTEN_PASSES = 10</code>, a defensive bound not expected to matter for any real-world JSON
+nesting depth) until no nested column remains. <code>auto_flatten_all</code> is ignored once
+<code>explode_columns</code> is populated — it only governs the empty/absent case, and it defaults to
+<code>false</code> precisely because recursive flattening on an un-configured source can silently
+explode row counts (cartesian growth from exploding every array) and distort the target
+schema. Prefer naming columns explicitly in <code>explode_columns</code> over <code>auto_flatten_all</code>
+wherever the nested shape is known ahead of time.</p>
+<p><strong>Populated → scope to exactly the named top-level columns.</strong> Each entry must resolve, on
+the <em>actual</em> DataFrame at runtime, to a struct or array type — checked here rather than at
+onboarding time, since onboarding validation only confirms the field is a list of strings
+(<code>check_list_of_str</code>) and has no access to the source's real runtime schema. An unresolvable
+or wrong-type name raises <code>FrameworkConfigError</code>, naming the column and its actual type.</p>
+<p><div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="nt">"explode_columns"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">"event_payload"</span><span class="p">]</span>
+</code></pre></div>
+(from <code>onboarding_templates/pipeline_onboarding_template.json</code>'s <code>df_template_json_ingest</code>
+flow — flattens/explodes only <code>event_payload</code>, leaving every other top-level column
+untouched)</p>
+<p><strong>Struct flattening</strong> replaces a struct column with one new top-level column per sub-field,
+named <code>&lt;column&gt;_&lt;subfield&gt;</code> (so <code>address</code> with sub-field <code>city</code> becomes <code>address_city</code>).
+<strong>Array exploding</strong> uses <code>explode_outer</code> (not <code>explode</code>) specifically so a row with a
+null/empty array survives with a null element rather than being silently dropped —
+exploding here is a shape transform for JSON ingestion, not an implicit row filter.</p>
+<p><strong>Array-of-struct in one entry.</strong> Naming a column whose type is <code>array&lt;struct&lt;...&gt;&gt;</code> first
+explodes the array (one row per element), then immediately flattens the resulting struct
+element too — so a single <code>explode_columns</code> entry like <code>"line_items"</code> fully de-nests a
+<code>array&lt;struct&lt;sku, qty, price&gt;&gt;</code> column into top-level <code>line_items_sku</code>/<code>line_items_qty</code>/
+<code>line_items_price</code> columns in one step, without a second entry or a second field naming the
+post-explosion struct.</p>
+<hr />
+<h2 id="5-data_standardization_sql-a-column-expression-allowlist-deliberately-more-restricted-than-transformation_sql">5. <code>data_standardization_sql</code> — a column-expression allowlist, deliberately more restricted than <code>transformation_sql</code><a class="headerlink" href="#5-data_standardization_sql-a-column-expression-allowlist-deliberately-more-restricted-than-transformation_sql" title="Permanent link">&para;</a></h2>
+<p><code>data_standardization_sql</code> (ingestion <code>source_config</code>, and the equivalent field on
+reconciliation dataset configs) is validated by
+<code>onboarding/spec_validator.py::_validate_data_standardization_sql</code> and applied at runtime
+by <code>ingestion/standardization_sql.py::apply_data_standardization_sql</code>. Each entry is one
+column expression, applied via <code>withColumn(alias, F.expr(expression))</code> — replacing an
+existing column of that name, or adding a new one:</p>
+<p><div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="nt">"data_standardization_sql"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="w">  </span><span class="s2">"trim(region) AS region"</span><span class="p">,</span>
+<a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="w">  </span><span class="s2">"upper(country_code) AS country_code"</span>
+<a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a><span class="p">]</span>
+</code></pre></div>
+(from <code>onboarding_templates/pipeline_onboarding_template.json</code>'s <code>df_template_ingest</code> flow)</p>
+<h3 id="51-the-grammar-and-why-its-this-restricted">5.1 The grammar, and why it's this restricted<a class="headerlink" href="#51-the-grammar-and-why-its-this-restricted" title="Permanent link">&para;</a></h3>
+<p>Every expression <strong>must</strong> end with an explicit <code>AS &lt;column_name&gt;</code> clause — the runtime uses
+that alias to know which output column to write to, rather than trying to re-derive a name
+from the expression text:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="n">_ALIAS_PATTERN</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s2">"\bAS\s+`?([A-Za-z_][A-Za-z0-9_]*)`?\s*$"</span><span class="p">,</span> <span class="n">re</span><span class="o">.</span><span class="n">IGNORECASE</span><span class="p">)</span>
+</code></pre></div>
+<p>The validator rejects, outright, any expression containing a bare occurrence of
+<code>SELECT</code>/<code>FROM</code>/<code>JOIN</code>/<code>UNION</code>/<code>WHERE</code>/<code>INSERT</code>/<code>UPDATE</code>/<code>DELETE</code>/<code>MERGE</code>/<code>DROP</code>/<code>ALTER</code>/
+<code>CREATE</code>/<code>GRANT</code>/<code>REVOKE</code> (case-insensitive, word-boundary matched), or a <code>;</code> anywhere in the
+string:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="n">_FORBIDDEN_STANDARDIZATION_KEYWORDS</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span>
+<a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>    <span class="sa">r</span><span class="s2">"\b(SELECT|FROM|JOIN|UNION|WHERE|INSERT|UPDATE|DELETE|MERGE|DROP|ALTER|CREATE|GRANT|REVOKE)\b"</span><span class="p">,</span>
+<a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a>    <span class="n">re</span><span class="o">.</span><span class="n">IGNORECASE</span><span class="p">,</span>
+<a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a><span class="p">)</span>
+</code></pre></div>
+<p>This is deliberately more conservative than <code>transformation_sql</code>, which is a full SQL
+statement — supports <code>UNION</code>/<code>UNION ALL</code>, joins across multiple <code>source_inputs</code>, arbitrary
+<code>WHERE</code> clauses — and is validated by actually running Spark's <code>EXPLAIN</code> against it
+(<code>onboarding/spec_validator.py::_validate_sql_syntax</code>) to catch a real syntax error before
+onboarding, not merely to check its shape.</p>
+<p><code>data_standardization_sql</code> doesn't get that treatment because it isn't meant to be a
+general SQL surface at all: it's a fixed, narrow per-column normalization step
+(<code>trim(...)</code>, <code>upper(...)</code>, <code>substring(...)</code>, a bare column rename) applied identically to
+every ingested row, one <code>withColumn</code> at a time, with no join and no row filtering in scope.
+The keyword blocklist is a <strong>defense against a disguised full statement</strong> smuggled into
+what's supposed to be a single expression — e.g. a value like
+<code>"(SELECT secret_col FROM other_table) AS x"</code> or a stacked <code>"col; DROP TABLE x"</code> would, if
+accepted, execute far more than a column-level transform inside <code>F.expr(...)</code>. Rejecting
+any bare keyword occurrence is intentionally conservative — it will reject a handful of
+legitimate edge cases (e.g. a column named <code>fromage</code> no longer trips it since matching is
+word-boundary bound, but a genuine need to reference a <em>literal string</em> containing one of
+these words as a substring would) in exchange for never accepting a disguised statement;
+the validator's own comment states this trade-off explicitly.</p>
+<p>A <code>;</code> is rejected unconditionally too — "exactly one column expression per entry," so even
+a harmless-looking <code>"trim(x) AS x;"</code> is a validation error, not silently stripped.</p>
+<h3 id="52-whats-not-caught-until-runtime">5.2 What's <em>not</em> caught until runtime<a class="headerlink" href="#52-whats-not-caught-until-runtime" title="Permanent link">&para;</a></h3>
+<p>Spark's lazy analysis means a <strong>semantic</strong> error — e.g. an expression referencing a column
+that doesn't actually exist on the DataFrame — is not guaranteed to surface at onboarding
+time; it appears once the DataFrame is actually executed inside the pipeline, as a plain,
+clearly-attributable Spark error naming the bad reference. Only the <em>grammar</em> (single
+expression, no forbidden keywords, resolvable <code>AS &lt;column_name&gt;</code>) is enforced up front by
+the validator. A malformed expression that fails immediately in <code>F.expr(...)</code>/<code>withColumn</code>
+at runtime is wrapped and re-raised as <code>FrameworkConfigError</code>, naming the offending
+expression.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["navigation.instant", "navigation.tracking", "navigation.tabs", "navigation.sections", "navigation.top", "navigation.indexes", "toc.follow", "search.suggest", "search.highlight", "content.code.copy", "content.tabs.link"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+    
+  </body>
+</html>

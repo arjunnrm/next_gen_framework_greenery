@@ -6,6 +6,489 @@ deliberately **not** the semantic version — that lives here and in `enhancemen
 
 ---
 
+## Spec Builder ↔ framework agreement: ten corrections — 2026-08-30
+
+v1.4.0 propagated a breaking spec change into the Databricks App by working through a hand-written
+checklist. This release checks the result the only way that proves anything: by driving the app's
+own output through `onboarding/spec_validator.py` and comparing. Ten disagreements surfaced between
+what the Spec Builder offers or ships and what onboarding actually accepts.
+
+**One of them was written into the checklist itself.** The attribute delta's entry for
+`cdc_operation_column` stated the correct applicability in its `after` field —
+`{SCD1, SCD2, FULL_SNAPSHOT_CDC}` — and then told the app to *"simplify the predicate to
+`isCdc(strategy)`"*, which is `{SCD1, SCD2, SCD3, FULL_SNAPSHOT_CDC}`. The app implemented the
+instruction rather than the fact, so the builder offered a delete-marker field on SCD3 and
+onboarding rejected every spec that used it. Reading a checklist back to itself cannot find that;
+running its output through the validator finds it immediately.
+
+### What was wrong
+
+**Builder offered fields onboarding rejects.** `cdc_operation_column` and
+`cdc_operation_mapping.delete_values` on SCD3 — a current/previous pivot with no delete path at
+all. Fixed with a `hasDeleteMarker` helper in place of `isCdc`, in both the frontend and the
+server-side registry.
+
+**A malformed predicate silently hid two fields entirely.** Removing the
+`FULL_SNAPSHOT_CDC_NO_PK` guard deleted the operand and left the operator behind:
+`{"ne": ["target_config.cdc_load_strategy"]}`. `evaluate_predicate` reaches its binary operators
+behind a `len(args) >= 2` check and otherwise returns `False`, so that predicate was false for
+every input and the delete-marker fields were invisible for every strategy — no error, no warning.
+A new test now rejects any binary operator with fewer than two operands anywhere in the registry.
+
+**The app's validation rules had drifted from the framework's.** `primary_keys` was not required
+for `FULL_SNAPSHOT_CDC` (it has been required by every CDC strategy since v1.4.0), and
+`columns_to_exclude` was rejected on two of the three strategies that reject it. Both corrected;
+the second is now stated as the complement of the comparison-capable strategies so a future
+strategy cannot fall through it. Two rules added: `cdc_operation_column_scope` and
+`kafka_sink_requires_options`.
+
+**Kafka sinks could not be authored at all.** `sink_config.format` offered `"kafka"`, but nothing
+in the app could set `kafka_options` — which the framework requires, and which must carry both
+`kafka.bootstrap.servers` and `topic`. Added as a `kv` field. Fixing it exposed a second bug: flow
+validation-rule contexts exposed only flat scalars, so *any* rule referencing a `kv` or `repeat`
+path resolved to nothing whether it was filled in or not. Three more framework-supported attributes
+were added while there: `export_file_name_format`, `sign_passphrase_secret`, and
+`pre_extraction_decryption.passphrase_secret` — the PGP private key's passphrase, which sits beside
+`secret_passphrase`, the ZIP archive's password, and differs from it by word order alone. Both now
+say which is which.
+
+**Two templates shipped specs that could not onboard.** `reconciliation/blank.json` carried the
+builder's decomposed target keys instead of the canonical three-part `table`; and the framework's
+own `pipeline_onboarding_template.{json,yaml}` pointed `transform_sql` at `missing_records`, a view
+nothing creates — the appender registers the miss set as `_reconciliation_unmatched_records`. The
+app's copy of that template was already correct, so the two copies had silently forked.
+
+**The agent skill overstated CDC field applicability**, describing `columns_to_exclude` and
+`cdc_operation_column` as available on every CDC-dispatched strategy when both are narrower. It now
+carries a per-field valid-for/rejected-on table naming the enforcing sets in `spec_validator.py`,
+plus a new section on `encrypted_columns[].source_data_type` — the one attribute v1.4.0 *added*,
+which the skill had not mentioned.
+
+### What stops it recurring
+
+`databricks-app/tests/test_framework_spec_agreement.py` imports the real `validate_spec` and, on
+every run, drives every shipped template and every (strategy × attribute) pair through it. Each of
+its assertions was re-run against the pre-fix input first, to prove it fails rather than passing
+vacuously.
+
+The wrong instruction in `docs/v1.4.0_json_attribute_delta.json` is corrected in place, with the
+original preserved beside it under `app_action_superseded` so the contradiction stays visible. All
+ten corrections are recorded there under `app_surface_corrections`, machine-readably, for any agent
+replaying that delta.
+
+**No framework source changed** — no validator, no schema, no DDL. Every defect was a *description*
+of the framework disagreeing with the framework. `pytest tests/unit` is byte-identical to the
+v1.4.0 baseline (502 passed, 8 pre-existing failures, 113 Spark-fixture errors); the app suite went
+from 62 to 113 passing. `web/dist/` was rebuilt.
+
+### Deployed and verified on `dev_metaflow` — 2026-08-30
+
+After the corrections above: pre-flight (0 active runs, all 49 pipelines terminal) → `bundle
+validate` OK → `bundle deploy` (**1164 files, 88 resources, 0 failed**, wheel
+`0.0.1788077685776` built and published by the deploy itself) → app deployed → control-table
+setup → **`framework_config_onboarding_job`: 43/43 specs onboarded, 0 failures.**
+
+That closes the bulk-onboarding regression check v1.4.0 listed as blocking a live-verified claim.
+It is the strongest live evidence yet for the v1.4.0 removals — every spec in the corpus went
+through the real `validate_spec` on serverless compute, and a single surviving removed attribute
+anywhere would have failed its spec by name. **No Lakeflow pipeline was run**, so the
+pipeline-level gap (TC-CDC-007 in particular) is narrowed, not closed.
+
+**One trap found and worth knowing: `bundle deploy` does not deploy the app.** It syncs the
+source and reports success, but creates no app deployment — after a clean deploy, the newest
+deployment was still the previous day's, with no warning anywhere, and the running app kept
+serving the pre-correction bundle. `databricks bundle run metaflow_onboarding_app` is a required
+second step; the check that proves it landed is comparing the deployed asset hash against the
+local `web/dist`. This compounds the existing "rebuild `web/dist`" rule: rebuilding is necessary
+but not sufficient.
+
+Control-table structure is unchanged by design — `recon_mode` and `generate_surrogate_key` remain
+physically present on `reconciliation_flow_spec`, since `01_setup` only issues
+`CREATE TABLE IF NOT EXISTS`. No `ALTER TABLE … DROP COLUMN` was issued.
+
+### One thing left for a human to decide
+
+`databricks-app/web/dist/` is not tracked by git and never has been. `.gitignore` says it should
+be — a global `dist/` followed by `!databricks-app/web/dist/**` — but git never descends into an
+excluded directory, so a negation for files beneath one can never match. `git ls-files` on that
+path returns nothing, while the v1.4.0 log and a test docstring both describe it as committed
+output. On a fresh clone there is no bundle, and DABs `sync` honours `.gitignore`, so a deploy from
+a clean checkout would ship an app with no frontend. The `.gitignore` is corrected here (unignoring
+the directory before its contents, verified with `git check-ignore`), but **the bundle has not been
+added** — committing ~315 KB of generated output per frontend change is a repo-policy call, and
+Databricks Apps does not build at deploy time, so the alternative is a documented pre-deploy build
+step. Either is defensible; a negation that silently does nothing is not.
+
+Full detail: [`enhancement_logs/v1.4.01_enhancement_log.md`](enhancement_logs/v1.4.01_enhancement_log.md).
+
+---
+
+## Load-strategy guidance: when to use each, and what it risks — 2026-08-30
+
+The six `cdc_load_strategy` values were documented by *behaviour* — what each one does — but never
+by *judgement*: which to pick, and what each one costs when it is the wrong pick. Both silent
+data-loss paths in the framework live in this choice, and neither was stated anywhere an author
+configuring a spec would see it.
+
+### Changes
+
+**1. Curated attribute prose (`databricks-app/config/attribute_knowledge.curated.json`).** The
+hand-written layer grew from 17 to 23 entries. `target_config.cdc_load_strategy` now carries a
+per-strategy use-when tip and seven symptom/cause/fix entries; six CDC attributes that previously
+had only registry-derived text got real prose: `sequence_by_column`, `columns_to_check`,
+`columns_to_exclude`, `cdc_operation_column`, `empty_target_if_source_empty`,
+`generate_hash_columns`. This layer feeds both the app's attribute inspector and the generated
+JSON reference, so the two cannot drift.
+
+The two failure modes now stated explicitly wherever the attribute appears:
+
+* **`TRUNCATE_AND_LOAD` blanks a populated target** when its source returns zero rows. The
+  `empty_target_if_source_empty` guard has had no runtime effect since it was withdrawn on
+  2026-08-29.
+* **`FULL_SNAPSHOT_CDC` pointed at an incremental feed deletes every key not in the current
+  batch.** Nothing validates that the source is actually complete.
+
+Also newly documented: the fallback sequencer (`__framework_ingestion_timestamp_utc`) is
+`current_timestamp()` evaluated once per batch, so two versions of a key inside one batch tie
+non-deterministically — and on SCD2 a tie corrupts history order, not just the surviving value.
+
+**2. `docs/03_transformation_and_cdc.md` gains §2.0 "Choosing one".** A three-question decision
+table (keyed on the *source*, not the target), a use-when / avoid-when / worst-failure-mode table
+for all six strategies, and the shared-behaviour paragraph for the four merging strategies. The
+section intro said "7 built-in" strategies; there are 6 since `FULL_SNAPSHOT_CDC_NO_PK` was
+removed in v1.4.0.
+
+**3. `FULL_SNAPSHOT_CDC` was unselectable in the server-driven form.**
+`config/registry/shared.cdc.json` carried five strategy tabs, not six — the strategy existed in
+`web/src/registry.js` but had never been added to the server registry copy, and
+`target_config.primary_keys` was hidden for it despite being required. Both fixed.
+
+**4. Stale help text corrected.** `empty_target_if_source_empty` described itself as working
+("false, the default and the safe choice, leaves the target untouched") in both `Builder.jsx` and
+the server registry. It now says it is withdrawn, why an in-graph guard cannot work, and where to
+enforce the policy instead.
+
+**5. Generated references regenerated.** `docs/reference/json/` was stale against the knowledge
+base: it still documented `generate_surrogate_key` and `recon_mode`, and its CDC strategy table
+still listed `FULL_SNAPSHOT_CDC_NO_PK` — all three removed in v1.4.0. Regenerating dropped them
+and added the missing `other.md` page (already present in `mkdocs.yml` nav but never generated);
+`scripts/build_docs_reference.py` gained the title and intro that page needed. The embedded app
+wiki was rebuilt to match — 124 pages, 166 attribute deep links.
+
+### Note for the next regeneration
+
+`attribute_knowledge.json` is normally produced end to end by
+`databricks-app/scripts/build_attribute_knowledge.py`, whose first stage shells out to `node` to
+dump `registry.js`. Node is not installed on this machine, so the curated overlay was applied
+directly, replicating that script's merge exactly (curated wins field-by-field). Re-running the
+real generator where node is available should be a no-op for these entries — worth confirming once.
+
+---
+
+## Spec Builder app — embedded docs become the full framework wiki — 2026-08-30
+
+The app's `/docs` route served a single hand-written page covering only the attribute reference.
+It now serves the complete MkDocs wiki — **124 pages**: architecture, per-subsystem functional
+docs, onboarding, both generated references (JSON attributes and code), the FAQs, known
+limitations, the architecture review, and the archive — with Material's tabbed navigation and
+full-text search over all of it.
+
+### Why the old page had to go rather than be extended
+
+It duplicated `docs/` by hand, so it could only ever drift, and it violated the app's own
+zero-hardcoding principle: 21 section headings and their anchors were literal HTML. Extending it
+to cover the whole framework would have meant hand-maintaining a second copy of every document.
+The wiki was already being built from `docs/` by `mkdocs.yml` — the app simply was not serving it.
+
+### Changes
+
+**1. `/docs` serves the built wiki.** `scripts/build_app_docs.py` (new) runs `mkdocs build` and
+syncs the output into `databricks-app/docs_site/`. It has to live inside `databricks-app/` because
+Databricks Apps upload only `source_code_path` — the same reason `web/dist/` is a committed build
+artifact. `server/app.py` needed no change; it already mounted `/docs` on that directory.
+
+**2. Previously excluded material is now navigable.** `archive/` (68 pages) and
+`architecture_review/` (9 pages) were in `exclude_docs`, which made the wiki an incomplete account
+of the framework. Both now build under a **Project record** tab. The archive is reached through a
+generated landing page (`docs/archive/index.md`) grouped into superseded guides and the test-case
+catalogue, each carrying a banner stating the content is unmaintained — available for provenance,
+impossible to mistake for current behaviour.
+
+**3. Attribute deep links now target an attribute's own heading.** Previously every
+`#anchor` pointed into the one hand-written page. `config/docs_index.json` (generated) maps all
+**166** attribute paths to `reference/json/<flow>/#<attribute>`, using the same slug rule and the
+same `attribute_knowledge.json` source that renders those pages — so a link cannot outlive the
+heading it targets. `/api/docs/resolve` prefers it; `docs.json`'s hand-maintained `anchors` map
+remains the fallback. The index also reaches the frontend via `/api/config`, so the attribute
+inspector links without a round trip.
+
+**4. Three dead anchors in `docs.json` fixed.** `#4-target-config--cdc-reference`,
+`#6-governance--tagging` and `#11-template-variables--parameter-substitution` used a double dash
+where MkDocs renders one, so those five entries silently landed readers at the top of the page.
+
+**5. A back-link to the builder.** A root-relative `Spec Builder app` nav tab returns the reader
+to the app from any depth in the wiki.
+
+### Fixed alongside
+
+**Duplicate class members in `web/src/Builder.jsx`.** `componentDidMount` and `docsBase` were each
+defined twice; JS silently keeps the later definition, so the earlier pair was dead code and the
+Vite build warned on every run. The dead `docsBase` also hardcoded `http://localhost:8000/`, which
+would have been wrong in a deployed app had it ever been the live one.
+
+### Verification
+
+- `pytest databricks-app/tests/` — **62 passed**. Three tests asserted the old single-page
+  contract (its title, its 21 anchors, resolution into the master index) and now assert the wiki
+  contract instead: that each audience section is reachable, that Material's nav renders, and that
+  a resolved deep link's anchor actually exists on the page it names.
+- New `test_every_indexed_attribute_deep_link_resolves` walks all 166 generated links and fails on
+  any anchor the wiki does not have — the guard that `docs_index.json` was regenerated after a
+  heading change.
+- Checked live against the running app: 166 indexed attributes + 16 `docs.json` anchors + 21
+  `docs.json` pages — **0 dead links**.
+- `scripts/build_app_docs.py --check` fails on stale committed output, for CI.
+
+*Impact:* run `python scripts/build_app_docs.py` after editing anything under `docs/`; the built
+wiki and `docs_index.json` are committed artifacts. `mkdocs.yml` no longer excludes `archive/` or
+`architecture_review/`, and link-anchor validation is now on (`validation.links.anchors: warn`),
+which surfaces pre-existing broken anchors in the doc sources — those are reported, not yet fixed.
+
+---
+
+## v1.4.0 — Attribute deprecations, Databricks-native snapshot CDC, observability parameter contract — 2026-08-30
+
+Five spec attributes and one CDC strategy removed, one added; the reconciliation engine narrowed
+to a single execution model; the triggered observability engine given an explicit, validated
+four-parameter contract; and the bundle's artifact path reverted to the DABs standard.
+
+Full engineering record — per-enhancement previous-vs-current state, impacted assets, verification
+status and defects found during implementation — in
+[`enhancement_logs/v1.4.00_enhancement_log.md`](enhancement_logs/v1.4.00_enhancement_log.md).
+Attribute-level delta for automated app updates:
+[`docs/v1.4.0_json_attribute_delta.json`](docs/v1.4.0_json_attribute_delta.json).
+
+**Every removed attribute is REJECTED at onboarding, never ignored.** That is the load-bearing
+decision in this release. An ignored key lets the spec onboard, writes the control-table row and
+runs the pipeline — while quietly doing something other than what the document says. For
+`normalize_column_names` and `generate_surrogate_key` specifically, ignoring would flip a
+data-shaping behaviour from ON to OFF with no signal at all.
+
+### ⚠️ Breaking Changes
+
+**1. Artifact packaging reverts to the standard workspace path.** `workspace.artifact_path` is
+removed from the `dev_metaflow` target; both targets now use the DABs standard
+`${workspace.root_path}/artifacts`. The path it replaced was
+`/Volumes/metaflow/framework/wheels/${workspace.current_user.short_name}` — a *dynamic*,
+per-target, per-user UC Volume path.
+
+Three reasons, in order of how often they bit:
+
+1. **Deployment conflicts.** A per-user path forks the artifact location by whoever ran the
+   deploy, so two engineers deploying the same target published to two different places and each
+   rewrote `../dist/*.whl` to their own. One location per target is what makes a deploy
+   reproducible.
+2. **Volume provisioning is not free.** The `dev` target cannot have a Volume artifact_path at
+   all — its metastore is at its volume ceiling (52 estimated vs. a limit of 50) and its
+   `metaflow` catalog is at 51 schemas. Two targets diverging on where artifacts live is exactly
+   the drift the `artifacts` block exists to prevent.
+3. **It did not buy what it was adopted for.** The hoped-for benefit was that a UC Volume never
+   prunes, so an in-flight Lakeflow update could keep installing an older wheel across a redeploy.
+   Verified false on 2026-08-30: DABs prunes superseded artifacts from `<artifact_path>/.internal/`
+   on a UC Volume exactly as it does in the workspace (`.internal/` went from two wheels to one
+   across a deploy).
+
+*Impact:* the operational rule is now the only mitigation for the in-flight-update hazard, and it
+is unchanged — **never `bundle deploy` while a test wave or pipeline is running**
+(`metaflow_testing/TESTING_PLAN.md` §0). Wheels published by the older manual
+`scripts/build_and_upload_wheel.py` still sit in the Volume root outside `.internal/`; DABs never
+managed or pruned those, so any pipeline still pinned to one keeps working.
+
+**2. `source_config.normalize_column_names` removed.** `source_config.column_normalization`
+`{enabled, case}` is the only switch; `enabled` defaults to `false`.
+
+*Why:* it was a second way to say what `column_normalization.enabled` already said. Carrying both
+meant `ingestion/column_normalization.py` owned a three-level precedence ladder, a
+present-vs-truthy distinction on `enabled`, and a contradiction warning — roughly forty lines whose
+only job was deciding which of two synonyms won.
+
+*Impact, and one subtle case:* before v1.4.0, a `column_normalization` object that omitted
+`enabled` deferred enablement to the legacy boolean, so `{"case": "preserve"}` on its own was
+**on**. It now reads as written: **off**. A spec relying on that deferral must add the explicit
+`"enabled": true`.
+
+| Before | After |
+|---|---|
+| `{"normalize_column_names": true}` | `{"column_normalization": {"enabled": true}}` |
+| `{"normalize_column_names": false}` | delete the key |
+| `{"normalize_column_names": true, "column_normalization": {"case": "preserve"}}` | `{"column_normalization": {"enabled": true, "case": "preserve"}}` |
+| `{"column_normalization": {"enabled": true, ...}}` | **no change** |
+
+**3. The surrogate-key engine is removed in full.** Deleted: the module
+`src/.../crypto/hashing.py`, the `__framework_surrogate_key` column, and four spec attributes —
+`target_config.generate_surrogate_key`, `target_config.surrogate_key_columns`,
+`target_config.surrogate_key_exclude_columns`, `reconciliation_flows[].generate_surrogate_key`.
+
+**4. `cdc_load_strategy: "FULL_SNAPSHOT_CDC_NO_PK"` is removed.** Full-snapshot ingestion now
+relies strictly on the Databricks-native CDC pattern —
+[`apply_changes_from_snapshot`](https://docs.databricks.com/aws/en/ldp/cdc) over a real
+`target_config.primary_keys`.
+
+*Why (3 and 4 together):* `apply_changes_from_snapshot` requires `keys`. With no natural key the
+framework manufactured one — a SHA-256 over *every payload column of every row*, recomputed on
+every run and forced on even against an explicit `generate_surrogate_key: false`. It cost a
+full-width hash per row per snapshot; it made row identity depend on the exclusion list staying
+correct (a single volatile column leaking into the basis re-keyed the entire table, and
+`apply_changes_from_snapshot` then read that as a delete-and-reinsert of everything — a defect this
+framework actually shipped and had to fix); and it did not model the data, since two rows identical
+in every column were one row to the hash and a Day-2 field change was reported as a delete plus an
+insert rather than the update it was.
+
+*Migration:*
+
+| Situation | Replacement |
+|---|---|
+| The source has a natural key, it was just never declared (the common case) | `FULL_SNAPSHOT_CDC` + `primary_keys`. An update is now reported as an update. |
+| The source genuinely has no key | `TRUNCATE_AND_LOAD` — an honest full refresh instead of a synthetic diff. |
+
+> Verify the candidate key is actually unique in the snapshot before committing to it
+> (`SELECT k, count(*) FROM src GROUP BY k HAVING count(*) > 1`). A non-unique key produces a
+> target that looks fine and silently collapses rows.
+
+Legacy columns are left alone: a table materialized before the upgrade still physically carries
+`__framework_surrogate_key`. It is not dropped, `cdc/comparison_columns.py` still excludes it from
+comparison resolution, and `storage/column_ordering.py` no longer front-loads it.
+
+**5. `reconciliation_flows[].recon_mode` removed — reconciliation is triggered-only.** Both former
+values are rejected, `"triggered"` included: it is removed as an *attribute*, so a spec asserting
+the surviving behaviour still names a field that does not exist. Also removed: the `recon_mode`
+widget on `05_reconciliation_engine.py`, and the `continuous` / `processing_time` parameters on
+`reconciliation/streaming.py::run_streaming_target_reconciliation`.
+
+*Why:* `"continuous"` wrapped a standing stream around a **batch-shaped** unit of work.
+`run_target_reconciliation` writes one `reconciliation_run_log` row per invocation and checks a
+batch fingerprint for idempotency, so a never-ending query produced a log row per micro-batch whose
+fingerprint could never repeat, and counts describing an arbitrary slice of wall clock rather than
+a comparison anyone asked for. It also never ran where this framework runs — a standing trigger on
+serverless job compute raises `INFINITE_STREAMING_TRIGGER_NOT_SUPPORTED`.
+
+*Impact:* every run is now bounded — batch reads, and `trigger(availableNow=True)` for a
+`read_mode: "streaming"` side, draining the backlog and stopping. **To reconcile more often,
+schedule the job more often.** One consequence is a simplification: `task_run_id` narrowing of a
+side declaring `task_run_id_column` is now unconditional, where it used to be gated on the mode.
+
+**6. Python API signature changes** (breaking for any direct caller):
+
+| Function | Change |
+|---|---|
+| `reconciliation/matcher.py::prepare_dataset_for_matching` | trailing `generate_surrogate_key` parameter removed |
+| `reconciliation/appender.py::run_target_reconciliation` | positional `generate_surrogate_key` removed (it sat between `compare_columns` and `source_hash_precomputed`) |
+| `reconciliation/streaming.py::run_streaming_target_reconciliation` | `generate_surrogate_key`, `continuous`, `processing_time` removed |
+| `dq/quarantine.py::_apply_hash_and_surrogate_key_columns` | renamed `_apply_hash_columns` |
+| `crypto/hashing.py` | module deleted (`generate_surrogate_key_hash`, `resolve_surrogate_key_columns`, `SURROGATE_KEY_COLUMN`, `DEFAULT_HASH_EXCLUDED_COLUMNS`) |
+
+**7. Observability: `run_pipeline_update_run_id` renamed to `pipeline_task_run_id`, and three more
+parameters are now required.** The old name baked one convention — a task literally called
+`run_pipeline_update` — into the parameter name, so it read as a lie in every job whose pipeline
+task is called something else.
+
+The triggered engine now requires **four** task parameters: `dataflow_group_id`, `catalog`, `env`,
+`pipeline_task_run_id`. Two of these changed status:
+
+- **`dataflow_group_id` was derived; it is now declared**, with the derived value kept as a
+  *cross-check*. A derived value cannot detect the most likely wiring mistake there is —
+  `depends_on` pointing at the wrong `pipeline_task`, or a copy-pasted observability block still
+  pointing at the job it came from — because whatever pipeline the task lands on reports *its*
+  group id happily, and the export succeeds while describing the wrong dataflow. A disagreement now
+  raises and names both. A pipeline that declares no `dataflow.group.id` at all is **not** an
+  error; the cross-check logs at INFO and the declared value stands.
+- **`env` replaces the optional `deployment_environment` widget.** Optional environment labelling is
+  worse than none: telemetry that omits it is silently merged with every other environment's in the
+  consumer, and nobody notices until a prod alert fires on dev data.
+
+*Impact:* every job wiring an `observability_export` task must add `dataflow_group_id`, `env`, and
+rename the run-id parameter. Both in-repo jobs (`resources/dlt_observability_job.yml`,
+`resources/metaflow_test_obs_003_vol_export_job.yml`) are updated.
+
+### ✨ Added
+
+| # | Change |
+|---|---|
+| 1 | **`target_config.encrypted_columns[].source_data_type`** — the declared original Spark type of a column being encrypted (`"string"`, `"decimal(18,2)"`, `"timestamp"`, …). Encryption replaces a column's physical type with ciphertext binary, so the pre-encryption type is recorded as the Unity Catalog `original_data_type` tag, which is what a downstream `decrypted_columns[].cast_to_type` is validated against. **Optional and safely defaulted:** omitting it uses the type Spark reports at encryption time — the pre-v1.4.0 behaviour — so no existing spec needs editing. Declaring it turns a silent source type change into a loud `CryptoError` at encryption time (declared vs. observed compared case-insensitively) instead of silently re-tagging and breaking the decrypt side later. |
+| 2 | **`observability/runtime_params.py`** — the triggered engine's whole parameter contract, validated in one call before a `WorkspaceClient` is constructed and before any API call, table read or dispatch. Reports **every** missing parameter at once rather than one per redeploy, and catches the failure mode a mistyped task key actually produces: the Jobs service substitutes nothing and passes the literal `{{tasks.<typo>.run_id}}` text through, which without this check surfaces later as a confusing "must be numeric" complaint about a value nobody typed. |
+| 3 | **Key-presence guard on snapshot CDC.** A `primary_keys` entry that never reaches the clean upstream (renamed by `column_normalization`, projected away by `data_standardization_sql`) is now caught inside the snapshot-input dataset — where `source_view` first has a schema — and reported with the available columns and the two usual causes, instead of surfacing as a generic missing-key error from `apply_changes_from_snapshot`. |
+
+### 🏛️ Design decisions recorded
+
+**`pipeline_task_run_id` is a task parameter and must NOT be declared in `pipeline_parameters`.**
+`{{tasks.<key>.run_id}}` is a Jobs *dynamic value reference*, resolved by the Jobs service per
+**job run** at the moment the downstream task is dispatched. A pipeline's `configuration:` block is
+resolved by the Pipelines service per **pipeline update** and is static for that deployment — there
+is no job run in scope for a task value to resolve against, so declaring it there cannot work and
+would at best pin every run to a stale literal. The general rule: *dynamic, per-run values travel as
+task parameters; static, per-deployment values travel as pipeline configuration.* Nothing about a
+pipeline resource changes to support the observability task. Written up in
+[`docs/08_observability_and_telemetry.md`](docs/08_observability_and_telemetry.md) §1.1.1.
+
+**A continuous destination's event-log tables belong in the observability block, not in pipeline
+settings.** `destination_config.event_log_tables` on the `mode: "continuous"` row is canonical:
+(1) a continuous export fans one streaming read out to N destinations, and two destinations
+covering different subsets of the estate is a normal shape that a single pipeline-level list cannot
+express; (2) adding a newly-onboarded pipeline's event log must be a control-table upsert, not a
+bundle deploy — and this repo's own rule is never to deploy while a pipeline is running, which is
+the state a continuous export is always in; (3) the mode, destination type, credentials, retry
+policy and source tables are all attributes of the same destination. The pipeline-level
+`dataflow.otel_streaming.event_log_tables` remains as an explicitly subordinate **bootstrap
+fallback**. `dataflow.group.id` and `dataflow.control.catalog` correctly stay on the pipeline —
+they are what let it find its own rows. Written up in
+[`docs/08_observability_and_telemetry.md`](docs/08_observability_and_telemetry.md) §6.1.
+
+**`hash_precomputed` is an assertion, not an instruction.** It does not precompute row hashes over
+`match_keys`, and it does not expect a third party's own hash column. `true` declares that *this
+framework* already wrote `__framework_hash_key`/`__framework_hash_value` onto the table upstream, at
+CDC-materialization time, and they are trusted verbatim — `match_keys`/`compare_columns` are not
+hashed at all. `false` (the default) computes both **now**: `__framework_hash_key` over `match_keys`
+in the declared order, `__framework_hash_value` over the resolved `compare_columns` alphabetically
+sorted. A `true` on a dataset lacking the columns is a hard `FrameworkConfigError`, not a silent
+recompute. The precondition that makes the trust safe — and which fails **silently** when violated —
+is that the upstream flow's `primary_keys` are this flow's `match_keys` and its comparison columns
+are this flow's `compare_columns`; when they disagree nothing errors, the hashes simply never match
+and every row reports as drifted. Full mechanics and a best-practice table in
+[`docs/07_reconciliation_engine.md`](docs/07_reconciliation_engine.md) §9.
+
+### 🧪 Test scenario rewritten
+
+**TC-CDC-007** was "Full Snapshot Diffing *Without PK*" — the only scenario whose entire subject was
+the removed strategy. Its fixture (`sample_mainframe_customer_master_day1/day2.csv`:
+`customer_name`, `customer_city`, `customer_status`) has `customer_name` unique across all 10 rows,
+so it is now the declared key. That makes the Day-2 assertion **stronger**: a changed
+`customer_status` is now verified as an `UPDATE` in place, where the payload hash reported it as a
+delete plus an insert — the same entity under two identities. Resource filenames keep their `_nopk`
+suffix so existing bundle references and run history stay valid.
+
+### ✅ Verification
+
+- `pytest tests/unit` — **502 passed**. The 8 pre-existing failures
+  (`test_config_validation_negative_spec.py`, `test_optional_fields_df_customer_ingest_spec.py`) are
+  unrelated: they read `test_specs/*.json`, a directory that is not in the repo. The 113 errors are
+  the Databricks-Connect `spark` fixture requiring workspace auth, unavailable locally.
+- **34 new unit tests**, both pure-Python (no Spark):
+  `tests/unit/test_removed_attributes_v140.py` (18) asserts each removed attribute is *rejected*
+  with a migration message rather than ignored, that presence rather than truthiness is the trigger,
+  and that `source_data_type` is accepted, optional and type-checked;
+  `tests/unit/test_observability_runtime_params.py` (16) covers the four-parameter contract, the
+  report-everything-at-once behaviour, the unresolved-`{{tasks…}}` literal, and the
+  `dataflow_group_id` cross-check including the not-an-error `None` case.
+- `pytest databricks-app/tests` — **61 passed** (was 60; one added). The new test asserts the removed
+  attributes are absent from the **built** `web/dist` bundle, not just from `registry.js` — closing
+  the gap where an un-rebuilt frontend would keep offering fields the framework now rejects.
+- `npm run build` in `databricks-app/web` re-run; `dist/assets/` regenerated and verified to contain
+  zero occurrences of the removed attribute names.
+- `python scripts/build_docs_reference.py` re-run — `docs/reference/json/` and `docs/reference/code/`
+  regenerated from `registry.js` and the source AST.
+
+---
+
 ## Source control — initial GitHub publish — 2026-08-30
 
 Scope: repository plumbing only. **No framework, pipeline, app or control-table behaviour changed.**

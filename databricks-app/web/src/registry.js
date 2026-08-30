@@ -41,6 +41,12 @@ var CDC = [
 ];
 function isCdc(s){return ["SCD1","SCD2","SCD3","FULL_SNAPSHOT_CDC"].indexOf(s)>-1}
 function isAppendish(s){return s==="APPEND"||s==="TRUNCATE_AND_LOAD"}
+// Strategies that have a delete path at all, and so accept cdc_operation_column /
+// cdc_operation_mapping.delete_values. NOT every CDC strategy: SCD3 is a current/previous
+// pivot with no delete semantics, and spec_validator.py's
+// `strategies_supporting_delete_marker` rejects the pair outright on it. Offering the field
+// there produced a spec the builder accepted and onboarding refused.
+function hasDeleteMarker(s){return ["SCD1","SCD2","FULL_SNAPSHOT_CDC"].indexOf(s)>-1}
 // Compression codecs each telemetry file format actually supports. SNAPPY is a
 // Parquet-internal block codec, so it is offered only for PARQUET; the text
 // formats take an external gzip wrapper or nothing.
@@ -139,13 +145,16 @@ function TARGET_SECTIONS(kind){
     {id:"sink",title:"Target · sink config",doc:"#10-sink-config-target_configsink_config",w:sinky,sub:"Required when target_type is sink or external_sink. sink exports only; external_sink writes a governed table and exports.",fields:flat([
       S("target_config.sink_config.format","sink_config.format",["delta","kafka","pgp_zip"],{req:1,d:"delta",i:"Export format. pgp_zip uses the framework's custom PySpark DataSource."}),
       T("target_config.sink_config.path","sink_config.path",{req:1,w:function(v){var f=v("target_config.sink_config.format");return f!=="kafka"},ph:"/Volumes/{{catalog}}/egress/example/",i:"Output directory. Required for delta and pgp_zip."}),
+      KV("target_config.sink_config.kafka_options","sink_config.kafka_options",{span:2,req:1,w:function(v){return v("target_config.sink_config.format")==="kafka"},i:"Connection options for a kafka sink — the same flat options a Spark Structured Streaming Kafka writer takes. Onboarding requires both kafka.bootstrap.servers and topic. A kafka sink has no filesystem path. Prefer databricks.serviceCredential over an inline credential. sink_config.kafka_secret_options (option name → UC secret ref, for an option whose literal value must embed a resolved secret such as kafka.sasl.jaas.config) is supported by the framework but cannot be authored here — add it by hand to the exported JSON.",hint:"kafka.bootstrap.servers and topic are both mandatory"}),
       S("target_config.sink_config.write_mode","sink_config.write_mode",["","append","overwrite"],{i:"Delta write mode. Currently accepted but inert — @dlt.append_flow always appends."}),
       B("target_config.sink_config.post_export_archive.enabled","post_export_archive.enabled",{w:function(v){return v("target_config.sink_config.format")==="pgp_zip"},i:"Enable post-write archiving for pgp_zip exports."}),
       T("target_config.sink_config.post_export_archive.output_zip_path","post_export_archive.output_zip_path",{req:1,ind:1,w:function(v){return v("target_config.sink_config.post_export_archive.enabled")===true},ph:"/Volumes/{{catalog}}/egress/zips/",i:"Where the final ZIP is written."}),
+      T("target_config.sink_config.post_export_archive.export_file_name_format","post_export_archive.export_file_name_format",{ind:1,w:function(v){return v("target_config.sink_config.post_export_archive.enabled")===true},ph:"export_{batch_id}_{timestamp}.zip",i:"str.format()-style template for the exported archive's own file name. Placeholders: {batch_id}, {timestamp}. Omit for the framework default."}),
       SK("target_config.sink_config.post_export_archive.secret","post_export_archive.secret",0).map(function(f){return Object.assign({},f,{w:function(v){return v("target_config.sink_config.post_export_archive.enabled")===true}})}),
       B("target_config.sink_config.post_export_archive.pgp_encryption.enabled","pgp_encryption.enabled",{ind:1,w:function(v){return v("target_config.sink_config.post_export_archive.enabled")===true},i:"PGP-encrypt the output archive."}),
       SK("target_config.sink_config.post_export_archive.pgp_encryption.recipient_public_key_secret","pgp_encryption.recipient_public_key_secret",1).map(function(f){return Object.assign({},f,{w:function(v){return v("target_config.sink_config.post_export_archive.pgp_encryption.enabled")===true}})}),
-      SK("target_config.sink_config.post_export_archive.pgp_encryption.sign_with_private_key_secret","pgp_encryption.sign_with_private_key_secret",0).map(function(f){return Object.assign({},f,{w:function(v){return v("target_config.sink_config.post_export_archive.pgp_encryption.enabled")===true}})})
+      SK("target_config.sink_config.post_export_archive.pgp_encryption.sign_with_private_key_secret","pgp_encryption.sign_with_private_key_secret",0).map(function(f){return Object.assign({},f,{w:function(v){return v("target_config.sink_config.post_export_archive.pgp_encryption.enabled")===true}})}),
+      SK("target_config.sink_config.post_export_archive.pgp_encryption.sign_passphrase_secret","pgp_encryption.sign_passphrase_secret",0).map(function(f){return Object.assign({},f,{reason:"sign_with_private_key_secret is not set",w:function(v){return !!v("target_config.sink_config.post_export_archive.pgp_encryption.sign_with_private_key_secret.secret_key")}})})
     ])},
     {id:"dq",title:"Data quality",doc:"#11-dq-config",sub:"Rules become pipeline expectations. quarantine is a framework extension that routes rows to a sibling table.",fields:[
       REP("dq_config.rules","dq_config.rules[]",[
@@ -240,7 +249,8 @@ function ING_SECTIONS(){
       N("source_config.source_zip_handling.delete_source_after_extract.days","delete_source_after_extract.days",{req:1,ind:2,w:function(v){return v("source_config.source_zip_handling.delete_source_after_extract.action")==="delete_after_x_days"},ph:"7",i:"Age in days after which a successfully-extracted archive is swept."}),
       S("source_config.source_zip_handling.pre_extraction_decryption.type","pre_extraction_decryption.type",["","pgp"],{ind:1,w:function(v){return v("source_config.source_zip_handling.enabled")===true},i:"Outer decryption layer applied before extraction. Only pgp is supported."}),
       SK("source_config.source_zip_handling.pre_extraction_decryption.private_key_secret","pre_extraction_decryption.private_key_secret",1).map(function(f){return Object.assign({},f,{w:function(v){return v("source_config.source_zip_handling.pre_extraction_decryption.type")==="pgp"}})}),
-      SK("source_config.source_zip_handling.pre_extraction_decryption.secret_passphrase","pre_extraction_decryption.secret_passphrase",0).map(function(f){return Object.assign({},f,{reason:"pre_extraction_decryption.type is not set",w:function(v){return !!v("source_config.source_zip_handling.pre_extraction_decryption.type")}})})
+      SK("source_config.source_zip_handling.pre_extraction_decryption.passphrase_secret","pre_extraction_decryption.passphrase_secret",0).map(function(f){return Object.assign({},f,{reason:"pre_extraction_decryption.type is not pgp",i:"Passphrase protecting the PGP PRIVATE KEY above. Optional — only when the key itself is passphrase-protected. Not the ZIP's password: that is secret_passphrase, below.",w:function(v){return v("source_config.source_zip_handling.pre_extraction_decryption.type")==="pgp"}})}),
+      SK("source_config.source_zip_handling.pre_extraction_decryption.secret_passphrase","pre_extraction_decryption.secret_passphrase",0).map(function(f){return Object.assign({},f,{reason:"pre_extraction_decryption.type is not set",i:"AES password on the ZIP ARCHIVE itself, resolved by pyzipper at extraction time. Independent of, and combinable with, the PGP layer above. Not the PGP key's passphrase: that is passphrase_secret.",w:function(v){return !!v("source_config.source_zip_handling.pre_extraction_decryption.type")}})})
     ])},
     TARGET_SECTIONS("ingestion")
   ]);
@@ -484,6 +494,7 @@ export {
   CDC,
   isCdc,
   isAppendish,
+  hasDeleteMarker,
   TARGET_TYPES,
   MODES,
   ENC_FIELDS,

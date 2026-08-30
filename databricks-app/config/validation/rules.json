@@ -86,7 +86,8 @@
               [
                 "SCD1",
                 "SCD2",
-                "SCD3"
+                "SCD3",
+                "FULL_SNAPSHOT_CDC"
               ]
             ]
           },
@@ -97,7 +98,7 @@
           }
         ]
       },
-      "message": "primary_keys is required when cdc_load_strategy is SCD1, SCD2, or SCD3.",
+      "message": "primary_keys is required when cdc_load_strategy is SCD1, SCD2, SCD3 or FULL_SNAPSHOT_CDC. As of v1.4.0 every CDC-dispatched strategy needs a real key -- the keyless snapshot variant was withdrawn with the surrogate-key engine, and the framework no longer manufactures one. Use TRUNCATE_AND_LOAD if the source has no key.",
       "field_path": "target_config.primary_keys"
     },
     {
@@ -157,17 +158,18 @@
             ]
           },
           {
-            "in": [
+            "nin": [
               "target_config.cdc_load_strategy",
               [
-                "APPEND",
-                "TRUNCATE_AND_LOAD"
+                "SCD1",
+                "SCD2",
+                "SCD3"
               ]
             ]
           }
         ]
       },
-      "message": "columns_to_exclude is only meaningful for SCD1, SCD2, and SCD3 strategies.",
+      "message": "columns_to_exclude is only meaningful for SCD1, SCD2 and SCD3 -- a validation error on APPEND, TRUNCATE_AND_LOAD and FULL_SNAPSHOT_CDC, none of which have a comparison-column concept to exclude from.",
       "field_path": "target_config.columns_to_exclude"
     },
     {
@@ -265,6 +267,41 @@
       "field_path": "target_config.cdc_operation_column"
     },
     {
+      "id": "cdc_operation_column_scope",
+      "severity": "error",
+      "scope": "flow",
+      "when": {
+        "and": [
+          {
+            "or": [
+              {
+                "nonempty": [
+                  "target_config.cdc_operation_column"
+                ]
+              },
+              {
+                "nonempty": [
+                  "target_config.cdc_operation_mapping.delete_values"
+                ]
+              }
+            ]
+          },
+          {
+            "nin": [
+              "target_config.cdc_load_strategy",
+              [
+                "SCD1",
+                "SCD2",
+                "FULL_SNAPSHOT_CDC"
+              ]
+            ]
+          }
+        ]
+      },
+      "message": "cdc_operation_column / cdc_operation_mapping.delete_values are only meaningful for SCD1, SCD2 and FULL_SNAPSHOT_CDC. SCD3 is a current/previous pivot with no delete path, and onboarding rejects the pair on it.",
+      "field_path": "target_config.cdc_operation_column"
+    },
+    {
       "id": "sink_requires_sink_config",
       "severity": "error",
       "scope": "flow",
@@ -319,6 +356,28 @@
       },
       "message": "target_config.sink_config.path is required for non-Kafka sink exports.",
       "field_path": "target_config.sink_config.path"
+    },
+    {
+      "id": "kafka_sink_requires_options",
+      "severity": "error",
+      "scope": "flow",
+      "when": {
+        "and": [
+          {
+            "eq": [
+              "target_config.sink_config.format",
+              "kafka"
+            ]
+          },
+          {
+            "empty": [
+              "target_config.sink_config.kafka_options"
+            ]
+          }
+        ]
+      },
+      "message": "sink_config.kafka_options is required for a kafka sink and must include both 'kafka.bootstrap.servers' and 'topic' -- the same options a Spark Structured Streaming Kafka writer takes. A kafka sink has no filesystem path.",
+      "field_path": "target_config.sink_config.kafka_options"
     },
     {
       "id": "watermark_pair",

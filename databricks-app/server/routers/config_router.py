@@ -118,6 +118,9 @@ def get_resolved_config(
         "registry": reg.registries,
         "phases": reg.phases,
         "docs_map": reg.docs,
+        # Per-attribute wiki anchors, so the attribute inspector can link straight
+        # to an attribute's own heading without a round trip to /api/docs/resolve.
+        "docs_index": reg.docs_index,
         "templates": templates,
         "theme": reg.theme
     }

@@ -1,0 +1,702 @@
+{
+  "_generated_by": "scripts/build_app_docs.py",
+  "base_url": "/docs/",
+  "attributes": {
+    "@dataflow_group_id": {
+      "page": "reference/json/root/",
+      "anchor": "#dataflow-group-id"
+    },
+    "@observability": {
+      "page": "reference/json/observability/",
+      "anchor": "#observability"
+    },
+    "@observability[].auth.credentials": {
+      "page": "reference/json/observability/",
+      "anchor": "#observabilityauthcredentials"
+    },
+    "@observability[].auth.type": {
+      "page": "reference/json/observability/",
+      "anchor": "#observabilityauthtype"
+    },
+    "@observability[].destination_config.compression": {
+      "page": "reference/json/observability/",
+      "anchor": "#observabilitydestination-configcompression"
+    },
+    "@observability[].destination_config.endpoint": {
+      "page": "reference/json/observability/",
+      "anchor": "#observabilitydestination-configendpoint"
+    },
+    "@observability[].destination_config.event_log_tables": {
+      "page": "reference/json/observability/",
+      "anchor": "#observabilitydestination-configevent-log-tables"
+    },
+    "@observability[].destination_config.file_format": {
+      "page": "reference/json/observability/",
+      "anchor": "#observabilitydestination-configfile-format"
+    },
+    "@observability[].destination_config.protocol": {
+      "page": "reference/json/observability/",
+      "anchor": "#observabilitydestination-configprotocol"
+    },
+    "@observability[].destination_config.resource_attributes": {
+      "page": "reference/json/observability/",
+      "anchor": "#observabilitydestination-configresource-attributes"
+    },
+    "@observability[].destination_config.volume_path": {
+      "page": "reference/json/observability/",
+      "anchor": "#observabilitydestination-configvolume-path"
+    },
+    "@observability[].enabled": {
+      "page": "reference/json/observability/",
+      "anchor": "#observabilityenabled"
+    },
+    "@observability[].id": {
+      "page": "reference/json/observability/",
+      "anchor": "#observabilityid"
+    },
+    "@observability[].mode": {
+      "page": "reference/json/observability/",
+      "anchor": "#observabilitymode"
+    },
+    "@observability[].retry.backoff_multiplier": {
+      "page": "reference/json/observability/",
+      "anchor": "#observabilityretrybackoff-multiplier"
+    },
+    "@observability[].retry.max_attempts": {
+      "page": "reference/json/observability/",
+      "anchor": "#observabilityretrymax-attempts"
+    },
+    "@observability[].timeout_ms": {
+      "page": "reference/json/observability/",
+      "anchor": "#observabilitytimeout-ms"
+    },
+    "@observability[].type": {
+      "page": "reference/json/observability/",
+      "anchor": "#observabilitytype"
+    },
+    "@observability_enabled": {
+      "page": "reference/json/observability/",
+      "anchor": "#observability-enabled"
+    },
+    "@pipeline_parameters": {
+      "page": "reference/json/root/",
+      "anchor": "#pipeline-parameters"
+    },
+    "@spark_config": {
+      "page": "reference/json/root/",
+      "anchor": "#spark-config"
+    },
+    "compare_columns": {
+      "page": "reference/json/reconciliation/",
+      "anchor": "#compare-columns"
+    },
+    "dataflow_id": {
+      "page": "reference/json/ingestion/",
+      "anchor": "#dataflow-id"
+    },
+    "decrypted_columns": {
+      "page": "reference/json/transformation/",
+      "anchor": "#decrypted-columns"
+    },
+    "decrypted_columns[].cast_to_type": {
+      "page": "reference/json/transformation/",
+      "anchor": "#decrypted-columnscast-to-type"
+    },
+    "decrypted_columns[].column_name": {
+      "page": "reference/json/transformation/",
+      "anchor": "#decrypted-columnscolumn-name"
+    },
+    "decrypted_columns[].input_name": {
+      "page": "reference/json/transformation/",
+      "anchor": "#decrypted-columnsinput-name"
+    },
+    "decrypted_columns[].mode": {
+      "page": "reference/json/transformation/",
+      "anchor": "#decrypted-columnsmode"
+    },
+    "decrypted_columns[].output_column": {
+      "page": "reference/json/transformation/",
+      "anchor": "#decrypted-columnsoutput-column"
+    },
+    "decrypted_columns[].secret.secret_catalog": {
+      "page": "reference/json/transformation/",
+      "anchor": "#decrypted-columnssecretsecret-catalog"
+    },
+    "decrypted_columns[].secret.secret_key": {
+      "page": "reference/json/transformation/",
+      "anchor": "#decrypted-columnssecretsecret-key"
+    },
+    "decrypted_columns[].secret.secret_schema": {
+      "page": "reference/json/transformation/",
+      "anchor": "#decrypted-columnssecretsecret-schema"
+    },
+    "dq_config.quarantine_table": {
+      "page": "reference/json/ingestion/",
+      "anchor": "#dq-configquarantine-table"
+    },
+    "dq_config.record_id_column": {
+      "page": "reference/json/ingestion/",
+      "anchor": "#dq-configrecord-id-column"
+    },
+    "dq_config.rules": {
+      "page": "reference/json/ingestion/",
+      "anchor": "#dq-configrules"
+    },
+    "dq_config.rules[].action": {
+      "page": "reference/json/ingestion/",
+      "anchor": "#dq-configrulesaction"
+    },
+    "dq_config.rules[].expression": {
+      "page": "reference/json/ingestion/",
+      "anchor": "#dq-configrulesexpression"
+    },
+    "dq_config.rules[].rule_id": {
+      "page": "reference/json/ingestion/",
+      "anchor": "#dq-configrulesrule-id"
+    },
+    "error_handling.on_failure": {
+      "page": "reference/json/reconciliation/",
+      "anchor": "#error-handlingon-failure"
+    },
+    "flow_step_id": {
+      "page": "reference/json/transformation/",
+      "anchor": "#flow-step-id"
+    },
+    "governance_tags.column_tags": {
+      "page": "reference/json/ingestion/",
+      "anchor": "#governance-tagscolumn-tags"
+    },
+    "governance_tags.column_tags[].column": {
+      "page": "reference/json/ingestion/",
+      "anchor": "#governance-tagscolumn-tagscolumn"
+    },
+    "governance_tags.column_tags[].tags": {
+      "page": "reference/json/ingestion/",
+      "anchor": "#governance-tagscolumn-tagstags"
+    },
+    "governance_tags.table_tags": {
+      "page": "reference/json/ingestion/",
+      "anchor": "#governance-tagstable-tags"
+    },
+    "logging_config.mismatch_log_capture": {
+      "page": "reference/json/reconciliation/",
+      "anchor": "#logging-configmismatch-log-capture"
+    },
+    "logging_config.run_log_capture": {
+      "page": "reference/json/reconciliation/",
+      "anchor": "#logging-configrun-log-capture"
+    },
+    "match_keys": {
+      "page": "reference/json/reconciliation/",
+      "anchor": "#match-keys"
+    },
+    "reconciliation_id": {
+      "page": "reference/json/reconciliation/",
+      "anchor": "#reconciliation-id"
+    },
+    "source_config.asn1_codec": {
+      "page": "reference/json/ingestion/",
+      "anchor": "#source-configasn1-codec"
+    },
+    "source_config.asn1_pdu_name": {
+      "page": "reference/json/ingestion/",
+      "anchor": "#source-configasn1-pdu-name"
+    },
+    "source_config.asn1_schema_path": {
+      "page": "reference/json/ingestion/",
+      "anchor": "#source-configasn1-schema-path"
+    },
+    "source_config.auto_flatten_all": {
+      "page": "reference/json/ingestion/",
+      "anchor": "#source-configauto-flatten-all"
+    },
+    "source_config.capture_technical_metadata": {
+      "page": "reference/json/ingestion/",
+      "anchor": "#source-configcapture-technical-metadata"
+    },
+    "source_config.column_normalization.case": {
+      "page": "reference/json/ingestion/",
+      "anchor": "#source-configcolumn-normalizationcase"
+    },
+    "source_config.column_normalization.enabled": {
+      "page": "reference/json/ingestion/",
+      "anchor": "#source-configcolumn-normalizationenabled"
+    },
+    "source_config.data_standardization_sql": {
+      "page": "reference/json/ingestion/",
+      "anchor": "#source-configdata-standardization-sql"
+    },
+    "source_config.dedup_watermark.delay_threshold": {
+      "page": "reference/json/ingestion/",
+      "anchor": "#source-configdedup-watermarkdelay-threshold"
+    },
+    "source_config.dedup_watermark.event_time_column": {
+      "page": "reference/json/ingestion/",
+      "anchor": "#source-configdedup-watermarkevent-time-column"
+    },
+    "source_config.explode_columns": {
+      "page": "reference/json/ingestion/",
+      "anchor": "#source-configexplode-columns"
+    },
+    "source_config.explode_mode": {
+      "page": "reference/json/ingestion/",
+      "anchor": "#source-configexplode-mode"
+    },
+    "source_config.file_pattern": {
+      "page": "reference/json/ingestion/",
+      "anchor": "#source-configfile-pattern"
+    },
+    "source_config.filter_condition": {
+      "page": "reference/json/reconciliation/",
+      "anchor": "#source-configfilter-condition"
+    },
+    "source_config.format": {
+      "page": "reference/json/ingestion/",
+      "anchor": "#source-configformat"
+    },
+    "source_config.hash_precomputed": {
+      "page": "reference/json/reconciliation/",
+      "anchor": "#source-confighash-precomputed"
+    },
+    "source_config.json_string_columns": {
+      "page": "reference/json/ingestion/",
+      "anchor": "#source-configjson-string-columns"
+    },
+    "source_config.landing_retention_policy.archive_path": {
+      "page": "reference/json/ingestion/",
+      "anchor": "#source-configlanding-retention-policyarchive-path"
+    },
+    "source_config.landing_retention_policy.clean_source": {
+      "page": "reference/json/ingestion/",
+      "anchor": "#source-configlanding-retention-policyclean-source"
+    },
+    "source_config.landing_retention_policy.retention_days": {
+      "page": "reference/json/ingestion/",
+      "anchor": "#source-configlanding-retention-policyretention-days"
+    },
+    "source_config.max_bytes_per_trigger": {
+      "page": "reference/json/ingestion/",
+      "anchor": "#source-configmax-bytes-per-trigger"
+    },
+    "source_config.path": {
+      "page": "reference/json/ingestion/",
+      "anchor": "#source-configpath"
+    },
+    "source_config.read_mode": {
+      "page": "reference/json/reconciliation/",
+      "anchor": "#source-configread-mode"
+    },
+    "source_config.reader_options": {
+      "page": "reference/json/ingestion/",
+      "anchor": "#source-configreader-options"
+    },
+    "source_config.remove_dups": {
+      "page": "reference/json/ingestion/",
+      "anchor": "#source-configremove-dups"
+    },
+    "source_config.schema_config_path": {
+      "page": "reference/json/ingestion/",
+      "anchor": "#source-configschema-config-path"
+    },
+    "source_config.schema_evolution_mode": {
+      "page": "reference/json/ingestion/",
+      "anchor": "#source-configschema-evolution-mode"
+    },
+    "source_config.schema_location": {
+      "page": "reference/json/ingestion/",
+      "anchor": "#source-configschema-location"
+    },
+    "source_config.source_catalog": {
+      "page": "reference/json/ingestion/",
+      "anchor": "#source-configsource-catalog"
+    },
+    "source_config.source_schema": {
+      "page": "reference/json/ingestion/",
+      "anchor": "#source-configsource-schema"
+    },
+    "source_config.source_table": {
+      "page": "reference/json/ingestion/",
+      "anchor": "#source-configsource-table"
+    },
+    "source_config.source_zip_handling.delete_source_after_extract.action": {
+      "page": "reference/json/ingestion/",
+      "anchor": "#source-configsource-zip-handlingdelete-source-after-extractaction"
+    },
+    "source_config.source_zip_handling.delete_source_after_extract.days": {
+      "page": "reference/json/ingestion/",
+      "anchor": "#source-configsource-zip-handlingdelete-source-after-extractdays"
+    },
+    "source_config.source_zip_handling.enabled": {
+      "page": "reference/json/ingestion/",
+      "anchor": "#source-configsource-zip-handlingenabled"
+    },
+    "source_config.source_zip_handling.pre_extraction_decryption.passphrase_secret.secret_catalog": {
+      "page": "reference/json/ingestion/",
+      "anchor": "#source-configsource-zip-handlingpre-extraction-decryptionpassphrase-secretsecret-catalog"
+    },
+    "source_config.source_zip_handling.pre_extraction_decryption.passphrase_secret.secret_key": {
+      "page": "reference/json/ingestion/",
+      "anchor": "#source-configsource-zip-handlingpre-extraction-decryptionpassphrase-secretsecret-key"
+    },
+    "source_config.source_zip_handling.pre_extraction_decryption.passphrase_secret.secret_schema": {
+      "page": "reference/json/ingestion/",
+      "anchor": "#source-configsource-zip-handlingpre-extraction-decryptionpassphrase-secretsecret-schema"
+    },
+    "source_config.source_zip_handling.pre_extraction_decryption.private_key_secret.secret_catalog": {
+      "page": "reference/json/ingestion/",
+      "anchor": "#source-configsource-zip-handlingpre-extraction-decryptionprivate-key-secretsecret-catalog"
+    },
+    "source_config.source_zip_handling.pre_extraction_decryption.private_key_secret.secret_key": {
+      "page": "reference/json/ingestion/",
+      "anchor": "#source-configsource-zip-handlingpre-extraction-decryptionprivate-key-secretsecret-key"
+    },
+    "source_config.source_zip_handling.pre_extraction_decryption.private_key_secret.secret_schema": {
+      "page": "reference/json/ingestion/",
+      "anchor": "#source-configsource-zip-handlingpre-extraction-decryptionprivate-key-secretsecret-schema"
+    },
+    "source_config.source_zip_handling.pre_extraction_decryption.secret_passphrase.secret_catalog": {
+      "page": "reference/json/ingestion/",
+      "anchor": "#source-configsource-zip-handlingpre-extraction-decryptionsecret-passphrasesecret-catalog"
+    },
+    "source_config.source_zip_handling.pre_extraction_decryption.secret_passphrase.secret_key": {
+      "page": "reference/json/ingestion/",
+      "anchor": "#source-configsource-zip-handlingpre-extraction-decryptionsecret-passphrasesecret-key"
+    },
+    "source_config.source_zip_handling.pre_extraction_decryption.secret_passphrase.secret_schema": {
+      "page": "reference/json/ingestion/",
+      "anchor": "#source-configsource-zip-handlingpre-extraction-decryptionsecret-passphrasesecret-schema"
+    },
+    "source_config.source_zip_handling.pre_extraction_decryption.type": {
+      "page": "reference/json/ingestion/",
+      "anchor": "#source-configsource-zip-handlingpre-extraction-decryptiontype"
+    },
+    "source_config.source_zip_handling.source_zip_path": {
+      "page": "reference/json/ingestion/",
+      "anchor": "#source-configsource-zip-handlingsource-zip-path"
+    },
+    "source_config.source_zip_handling.target_volume_path": {
+      "page": "reference/json/ingestion/",
+      "anchor": "#source-configsource-zip-handlingtarget-volume-path"
+    },
+    "source_config.source_zip_handling.zip_file_pattern": {
+      "page": "reference/json/ingestion/",
+      "anchor": "#source-configsource-zip-handlingzip-file-pattern"
+    },
+    "source_config.starting_version": {
+      "page": "reference/json/ingestion/",
+      "anchor": "#source-configstarting-version"
+    },
+    "source_config.table": {
+      "page": "reference/json/reconciliation/",
+      "anchor": "#source-configtable"
+    },
+    "source_config.task_run_id_column": {
+      "page": "reference/json/reconciliation/",
+      "anchor": "#source-configtask-run-id-column"
+    },
+    "source_config.type": {
+      "page": "reference/json/reconciliation/",
+      "anchor": "#source-configtype"
+    },
+    "source_database": {
+      "page": "reference/json/ingestion/",
+      "anchor": "#source-database"
+    },
+    "source_description": {
+      "page": "reference/json/ingestion/",
+      "anchor": "#source-description"
+    },
+    "source_inputs": {
+      "page": "reference/json/transformation/",
+      "anchor": "#source-inputs"
+    },
+    "source_inputs[].input_name": {
+      "page": "reference/json/transformation/",
+      "anchor": "#source-inputsinput-name"
+    },
+    "source_inputs[].is_streaming": {
+      "page": "reference/json/transformation/",
+      "anchor": "#source-inputsis-streaming"
+    },
+    "source_inputs[].table": {
+      "page": "reference/json/transformation/",
+      "anchor": "#source-inputstable"
+    },
+    "source_inputs[].watermark.delay_threshold": {
+      "page": "reference/json/transformation/",
+      "anchor": "#source-inputswatermarkdelay-threshold"
+    },
+    "source_inputs[].watermark.event_time_column": {
+      "page": "reference/json/transformation/",
+      "anchor": "#source-inputswatermarkevent-time-column"
+    },
+    "source_system": {
+      "page": "reference/json/ingestion/",
+      "anchor": "#source-system"
+    },
+    "source_table_name": {
+      "page": "reference/json/ingestion/",
+      "anchor": "#source-table-name"
+    },
+    "source_type": {
+      "page": "reference/json/ingestion/",
+      "anchor": "#source-type"
+    },
+    "target_catalog": {
+      "page": "reference/json/ingestion/",
+      "anchor": "#target-catalog"
+    },
+    "target_config.auto_ttl.expire_in_days": {
+      "page": "reference/json/ingestion/",
+      "anchor": "#target-configauto-ttlexpire-in-days"
+    },
+    "target_config.auto_ttl.timestamp_column": {
+      "page": "reference/json/ingestion/",
+      "anchor": "#target-configauto-ttltimestamp-column"
+    },
+    "target_config.capture_technical_metadata": {
+      "page": "reference/json/transformation/",
+      "anchor": "#target-configcapture-technical-metadata"
+    },
+    "target_config.cdc_load_strategy": {
+      "page": "reference/json/ingestion-transformation/",
+      "anchor": "#target-configcdc-load-strategy"
+    },
+    "target_config.cdc_operation_column": {
+      "page": "reference/json/ingestion-transformation/",
+      "anchor": "#target-configcdc-operation-column"
+    },
+    "target_config.cdc_operation_mapping.delete_values": {
+      "page": "reference/json/ingestion-transformation/",
+      "anchor": "#target-configcdc-operation-mappingdelete-values"
+    },
+    "target_config.columns_to_check": {
+      "page": "reference/json/ingestion-transformation/",
+      "anchor": "#target-configcolumns-to-check"
+    },
+    "target_config.columns_to_exclude": {
+      "page": "reference/json/ingestion-transformation/",
+      "anchor": "#target-configcolumns-to-exclude"
+    },
+    "target_config.empty_target_if_source_empty": {
+      "page": "reference/json/ingestion-transformation/",
+      "anchor": "#target-configempty-target-if-source-empty"
+    },
+    "target_config.encrypted_columns": {
+      "page": "reference/json/ingestion/",
+      "anchor": "#target-configencrypted-columns"
+    },
+    "target_config.encrypted_columns[].column_name": {
+      "page": "reference/json/ingestion/",
+      "anchor": "#target-configencrypted-columnscolumn-name"
+    },
+    "target_config.encrypted_columns[].mode": {
+      "page": "reference/json/ingestion/",
+      "anchor": "#target-configencrypted-columnsmode"
+    },
+    "target_config.encrypted_columns[].output_column": {
+      "page": "reference/json/ingestion/",
+      "anchor": "#target-configencrypted-columnsoutput-column"
+    },
+    "target_config.encrypted_columns[].secret.secret_catalog": {
+      "page": "reference/json/ingestion/",
+      "anchor": "#target-configencrypted-columnssecretsecret-catalog"
+    },
+    "target_config.encrypted_columns[].secret.secret_key": {
+      "page": "reference/json/ingestion/",
+      "anchor": "#target-configencrypted-columnssecretsecret-key"
+    },
+    "target_config.encrypted_columns[].secret.secret_schema": {
+      "page": "reference/json/ingestion/",
+      "anchor": "#target-configencrypted-columnssecretsecret-schema"
+    },
+    "target_config.encrypted_columns[].source_data_type": {
+      "page": "reference/json/ingestion/",
+      "anchor": "#target-configencrypted-columnssource-data-type"
+    },
+    "target_config.generate_hash_columns": {
+      "page": "reference/json/ingestion-transformation/",
+      "anchor": "#target-configgenerate-hash-columns"
+    },
+    "target_config.liquid_clustering_columns": {
+      "page": "reference/json/ingestion/",
+      "anchor": "#target-configliquid-clustering-columns"
+    },
+    "target_config.partition_columns": {
+      "page": "reference/json/ingestion/",
+      "anchor": "#target-configpartition-columns"
+    },
+    "target_config.partition_mode": {
+      "page": "reference/json/ingestion/",
+      "anchor": "#target-configpartition-mode"
+    },
+    "target_config.primary_keys": {
+      "page": "reference/json/ingestion-transformation/",
+      "anchor": "#target-configprimary-keys"
+    },
+    "target_config.sequence_by_column": {
+      "page": "reference/json/ingestion-transformation/",
+      "anchor": "#target-configsequence-by-column"
+    },
+    "target_config.sink_config.format": {
+      "page": "reference/json/ingestion/",
+      "anchor": "#target-configsink-configformat"
+    },
+    "target_config.sink_config.kafka_options": {
+      "page": "reference/json/ingestion/",
+      "anchor": "#target-configsink-configkafka-options"
+    },
+    "target_config.sink_config.path": {
+      "page": "reference/json/ingestion/",
+      "anchor": "#target-configsink-configpath"
+    },
+    "target_config.sink_config.post_export_archive.enabled": {
+      "page": "reference/json/ingestion/",
+      "anchor": "#target-configsink-configpost-export-archiveenabled"
+    },
+    "target_config.sink_config.post_export_archive.export_file_name_format": {
+      "page": "reference/json/ingestion/",
+      "anchor": "#target-configsink-configpost-export-archiveexport-file-name-format"
+    },
+    "target_config.sink_config.post_export_archive.output_zip_path": {
+      "page": "reference/json/ingestion/",
+      "anchor": "#target-configsink-configpost-export-archiveoutput-zip-path"
+    },
+    "target_config.sink_config.post_export_archive.pgp_encryption.enabled": {
+      "page": "reference/json/ingestion/",
+      "anchor": "#target-configsink-configpost-export-archivepgp-encryptionenabled"
+    },
+    "target_config.sink_config.post_export_archive.pgp_encryption.recipient_public_key_secret.secret_catalog": {
+      "page": "reference/json/ingestion/",
+      "anchor": "#target-configsink-configpost-export-archivepgp-encryptionrecipient-public-key-secretsecret-catalog"
+    },
+    "target_config.sink_config.post_export_archive.pgp_encryption.recipient_public_key_secret.secret_key": {
+      "page": "reference/json/ingestion/",
+      "anchor": "#target-configsink-configpost-export-archivepgp-encryptionrecipient-public-key-secretsecret-key"
+    },
+    "target_config.sink_config.post_export_archive.pgp_encryption.recipient_public_key_secret.secret_schema": {
+      "page": "reference/json/ingestion/",
+      "anchor": "#target-configsink-configpost-export-archivepgp-encryptionrecipient-public-key-secretsecret-schema"
+    },
+    "target_config.sink_config.post_export_archive.pgp_encryption.sign_passphrase_secret.secret_catalog": {
+      "page": "reference/json/ingestion/",
+      "anchor": "#target-configsink-configpost-export-archivepgp-encryptionsign-passphrase-secretsecret-catalog"
+    },
+    "target_config.sink_config.post_export_archive.pgp_encryption.sign_passphrase_secret.secret_key": {
+      "page": "reference/json/ingestion/",
+      "anchor": "#target-configsink-configpost-export-archivepgp-encryptionsign-passphrase-secretsecret-key"
+    },
+    "target_config.sink_config.post_export_archive.pgp_encryption.sign_passphrase_secret.secret_schema": {
+      "page": "reference/json/ingestion/",
+      "anchor": "#target-configsink-configpost-export-archivepgp-encryptionsign-passphrase-secretsecret-schema"
+    },
+    "target_config.sink_config.post_export_archive.pgp_encryption.sign_with_private_key_secret.secret_catalog": {
+      "page": "reference/json/ingestion/",
+      "anchor": "#target-configsink-configpost-export-archivepgp-encryptionsign-with-private-key-secretsecret-catalog"
+    },
+    "target_config.sink_config.post_export_archive.pgp_encryption.sign_with_private_key_secret.secret_key": {
+      "page": "reference/json/ingestion/",
+      "anchor": "#target-configsink-configpost-export-archivepgp-encryptionsign-with-private-key-secretsecret-key"
+    },
+    "target_config.sink_config.post_export_archive.pgp_encryption.sign_with_private_key_secret.secret_schema": {
+      "page": "reference/json/ingestion/",
+      "anchor": "#target-configsink-configpost-export-archivepgp-encryptionsign-with-private-key-secretsecret-schema"
+    },
+    "target_config.sink_config.post_export_archive.secret.secret_catalog": {
+      "page": "reference/json/ingestion/",
+      "anchor": "#target-configsink-configpost-export-archivesecretsecret-catalog"
+    },
+    "target_config.sink_config.post_export_archive.secret.secret_key": {
+      "page": "reference/json/ingestion/",
+      "anchor": "#target-configsink-configpost-export-archivesecretsecret-key"
+    },
+    "target_config.sink_config.post_export_archive.secret.secret_schema": {
+      "page": "reference/json/ingestion/",
+      "anchor": "#target-configsink-configpost-export-archivesecretsecret-schema"
+    },
+    "target_config.sink_config.write_mode": {
+      "page": "reference/json/ingestion/",
+      "anchor": "#target-configsink-configwrite-mode"
+    },
+    "target_config.storage_format": {
+      "page": "reference/json/ingestion/",
+      "anchor": "#target-configstorage-format"
+    },
+    "target_config.table_properties": {
+      "page": "reference/json/ingestion/",
+      "anchor": "#target-configtable-properties"
+    },
+    "target_configs": {
+      "page": "reference/json/reconciliation/",
+      "anchor": "#target-configs"
+    },
+    "target_configs[].append_target_table": {
+      "page": "reference/json/reconciliation/",
+      "anchor": "#target-configsappend-target-table"
+    },
+    "target_configs[].comparison_direction": {
+      "page": "reference/json/reconciliation/",
+      "anchor": "#target-configscomparison-direction"
+    },
+    "target_configs[].data_standardization_sql": {
+      "page": "reference/json/reconciliation/",
+      "anchor": "#target-configsdata-standardization-sql"
+    },
+    "target_configs[].filter_condition": {
+      "page": "reference/json/reconciliation/",
+      "anchor": "#target-configsfilter-condition"
+    },
+    "target_configs[].hash_precomputed": {
+      "page": "reference/json/reconciliation/",
+      "anchor": "#target-configshash-precomputed"
+    },
+    "target_configs[].read_mode": {
+      "page": "reference/json/reconciliation/",
+      "anchor": "#target-configsread-mode"
+    },
+    "target_configs[].target_catalog": {
+      "page": "reference/json/reconciliation/",
+      "anchor": "#target-configstarget-catalog"
+    },
+    "target_configs[].target_id": {
+      "page": "reference/json/reconciliation/",
+      "anchor": "#target-configstarget-id"
+    },
+    "target_configs[].target_schema": {
+      "page": "reference/json/reconciliation/",
+      "anchor": "#target-configstarget-schema"
+    },
+    "target_configs[].target_table": {
+      "page": "reference/json/reconciliation/",
+      "anchor": "#target-configstarget-table"
+    },
+    "target_configs[].task_run_id_column": {
+      "page": "reference/json/reconciliation/",
+      "anchor": "#target-configstask-run-id-column"
+    },
+    "target_schema": {
+      "page": "reference/json/ingestion/",
+      "anchor": "#target-schema"
+    },
+    "target_table": {
+      "page": "reference/json/ingestion/",
+      "anchor": "#target-table"
+    },
+    "target_type": {
+      "page": "reference/json/ingestion/",
+      "anchor": "#target-type"
+    },
+    "transform_sql": {
+      "page": "reference/json/reconciliation/",
+      "anchor": "#transform-sql"
+    },
+    "transformation_sql": {
+      "page": "reference/json/transformation/",
+      "anchor": "#transformation-sql"
+    },
+    "two_tier_verification": {
+      "page": "reference/json/reconciliation/",
+      "anchor": "#two-tier-verification"
+    }
+  }
+}

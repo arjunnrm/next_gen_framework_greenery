@@ -13,26 +13,83 @@
     "observability": "08_observability_and_telemetry/",
     "developer_guide": "09_developer_guide_and_recipes/",
     "hashing": "11_hashing_and_determinism/",
-    "matrix": "12_module_permutation_matrix/"
+    "matrix": "12_module_permutation_matrix/",
+    "home": "",
+    "faq": "faq/",
+    "multi_role_faq": "10_multi_role_faqs/",
+    "known_limitations": "13_known_limitations_and_gotchas/",
+    "onboarding": "onboarding/",
+    "json_reference": "reference/json/",
+    "code_reference": "reference/code/",
+    "architecture_review": "architecture_review/00_executive_summary/",
+    "archive": "archive/"
   },
   "default_page": "attribute_reference",
   "anchors": {
-    "dataflow_group_id": { "page": "attribute_reference", "anchor": "#1-top-level-spec-schema" },
-    "spark_config": { "page": "attribute_reference", "anchor": "#1-top-level-spec-schema" },
-    "pipeline_parameters": { "page": "attribute_reference", "anchor": "#11-template-variables--parameter-substitution" },
-    "source_config.remove_dups": { "page": "attribute_reference", "anchor": "#3-source-config-reference" },
-    "source_config.explode_columns": { "page": "attribute_reference", "anchor": "#3-source-config-reference" },
-    "source_config.landing_retention_policy": { "page": "attribute_reference", "anchor": "#3-source-config-reference" },
-    "source_config.source_zip_handling": { "page": "attribute_reference", "anchor": "#3-source-config-reference" },
-    "target_config.cdc_load_strategy": { "page": "attribute_reference", "anchor": "#12-cdc-load-strategies-quick-reference" },
-    "target_config.storage_format": { "page": "attribute_reference", "anchor": "#4-target-config--cdc-reference" },
-    "target_config.encrypted_columns": { "page": "attribute_reference", "anchor": "#4-target-config--cdc-reference" },
-    "target_config.sink_config": { "page": "attribute_reference", "anchor": "#4-target-config--cdc-reference" },
-    "dq_config.rules": { "page": "attribute_reference", "anchor": "#5-data-quality-config" },
-    "governance_tags": { "page": "attribute_reference", "anchor": "#6-governance--tagging" },
-    "transformation_flows": { "page": "attribute_reference", "anchor": "#7-transformation-flow-schema" },
-    "reconciliation_flows": { "page": "attribute_reference", "anchor": "#8-reconciliation-flow-schema" },
-    "observability": { "page": "attribute_reference", "anchor": "#9-observability-config-schema" }
+    "dataflow_group_id": {
+      "page": "attribute_reference",
+      "anchor": "#1-top-level-spec-schema"
+    },
+    "spark_config": {
+      "page": "attribute_reference",
+      "anchor": "#1-top-level-spec-schema"
+    },
+    "pipeline_parameters": {
+      "page": "attribute_reference",
+      "anchor": "#11-template-variables-parameter-substitution"
+    },
+    "source_config.remove_dups": {
+      "page": "attribute_reference",
+      "anchor": "#3-source-config-reference"
+    },
+    "source_config.explode_columns": {
+      "page": "attribute_reference",
+      "anchor": "#3-source-config-reference"
+    },
+    "source_config.landing_retention_policy": {
+      "page": "attribute_reference",
+      "anchor": "#3-source-config-reference"
+    },
+    "source_config.source_zip_handling": {
+      "page": "attribute_reference",
+      "anchor": "#3-source-config-reference"
+    },
+    "target_config.cdc_load_strategy": {
+      "page": "attribute_reference",
+      "anchor": "#12-cdc-load-strategies-quick-reference"
+    },
+    "target_config.storage_format": {
+      "page": "attribute_reference",
+      "anchor": "#4-target-config-cdc-reference"
+    },
+    "target_config.encrypted_columns": {
+      "page": "attribute_reference",
+      "anchor": "#4-target-config-cdc-reference"
+    },
+    "target_config.sink_config": {
+      "page": "attribute_reference",
+      "anchor": "#4-target-config-cdc-reference"
+    },
+    "dq_config.rules": {
+      "page": "attribute_reference",
+      "anchor": "#5-data-quality-config"
+    },
+    "governance_tags": {
+      "page": "attribute_reference",
+      "anchor": "#6-governance-tagging"
+    },
+    "transformation_flows": {
+      "page": "attribute_reference",
+      "anchor": "#7-transformation-flow-schema"
+    },
+    "reconciliation_flows": {
+      "page": "attribute_reference",
+      "anchor": "#8-reconciliation-flow-schema"
+    },
+    "observability": {
+      "page": "attribute_reference",
+      "anchor": "#9-observability-config-schema"
+    }
   },
   "fallback_anchor_from_section": true
 }

@@ -59,6 +59,16 @@ def resolve_path_value(path: str, context: Dict[str, Any]) -> Any:
         if path in v:
             return v[path]
 
+    # kv and repeat widgets do not live in `v` -- they are stored under their own maps, keyed
+    # by the same dotted path. Without this a rule referencing one (e.g.
+    # sink_config.kafka_options) resolves to None whether it is filled in or not, so an
+    # `empty` guard fires on a correctly-populated flow. Checked before the root fallback so a
+    # flow-scoped kv always wins over a same-named root scalar.
+    for bucket in ("kvs", "reps"):
+        holder = context.get(bucket)
+        if isinstance(holder, dict) and path in holder:
+            return holder[path]
+
     # Check root as fallback if not in current scope
     if "root" in context:
         root_v = context["root"].get("v", context["root"])

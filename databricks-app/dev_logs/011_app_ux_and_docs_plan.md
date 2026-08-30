@@ -330,3 +330,33 @@ builds.
   plus a traversal-rejection case.
 * `databricks bundle validate -t dev_metaflow` before any deploy.
 * `RELEASE_NOTES.md` entry per wave.
+
+---
+
+## ⚠️ v1.4.0 update — read before acting on anything above
+
+> Appended 2026-08-30. **The plan text above is left exactly as written**; it is a historical
+> record of what was true at Onboarding App v1.5.0. Several attributes it names no longer
+> exist in the framework, so parts of it are now unimplementable as literally specified.
+
+Removed in v1.4.0 — **rejected at onboarding, not ignored**, so any of these still present in
+`registry.js` or in a stored spec is a hard failure, not a hidden field:
+
+| Referenced above | Where | Status in v1.4.0 |
+|---|---|---|
+| `FULL_SNAPSHOT_CDC_NO_PK` | the "completely missing from the app" defect, §"What I found" | **Strategy removed.** Snapshot CDC is now `FULL_SNAPSHOT_CDC` + real `target_config.primary_keys`, dispatched to the Databricks-native `dlt.apply_changes_from_snapshot`. A keyless source belongs on `TRUNCATE_AND_LOAD`. `ALLOWED_INGESTION_CDC_STRATEGIES` therefore has **five** entries, not six |
+| `generate_surrogate_key` | the `isCdc()` consequence list | **Removed.** The whole surrogate-key engine is gone (`crypto/hashing.py` deleted, `__framework_surrogate_key` no longer generated) |
+| `target_config.surrogate_key_columns` | trap table `D4` | **Removed** along with `surrogate_key_exclude_columns` and `reconciliation_flows[].generate_surrogate_key`. Trap `D4` no longer applies |
+| `reconciliation_flows[].recon_mode` | trap table `R5` | **Removed** (both values). Reconciliation is triggered-only — batch reads, `trigger(availableNow=True)` on a streaming side, every run drains and stops. To reconcile more often, schedule the job more often. Trap `R5` no longer applies |
+
+Still valid, but note the surrounding detail has moved on:
+
+* The **underlying defect is real and still worth fixing** — `FULL_SNAPSHOT_CDC` was, and as of
+  this note may still be, absent from `registry.js`'s `CDC` array and from `isCdc()`. Wave 1
+  should add `FULL_SNAPSHOT_CDC` (with `primary_keys` **required**) and drop
+  `FULL_SNAPSHOT_CDC_NO_PK` entirely rather than add both.
+* `target_config.encrypted_columns` gained an optional `source_data_type` — the column's original
+  Spark type before encryption (`"string"`, `"decimal(18,2)"`). Any attribute-help work (W4)
+  should cover it.
+* The `219 attributes` count and the tier-1 `~45` scope are both pre-v1.4.0 figures; re-derive
+  them from `spec_validator.py` before committing to either.

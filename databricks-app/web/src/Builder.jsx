@@ -3,13 +3,23 @@ import Shell from "./Shell.jsx";
 import { api } from "./api.js";
 import {
   flat, F, T, N, S, B, L, Q, KV, REP, SK,
-  LABEL_PREFIXES, shortLabel, CDC, isCdc, isAppendish, TARGET_TYPES, MODES,
+  LABEL_PREFIXES, shortLabel, CDC, isCdc, isAppendish, hasDeleteMarker, TARGET_TYPES, MODES,
   ENC_FIELDS, DEC_FIELDS, ROOT_SECTIONS, OBS_SECTIONS, TARGET_SECTIONS,
   ING_SECTIONS, TRN_SECTIONS, REC_SECTIONS, RECON_DATASET,
   PRESETS, PHASES, filled, STAGES, newFlow, defaultsFor, repeatList, itemLabel, repeatDefaults
 } from "./registry.js";
 
 /* eslint-disable */
+// Builder flow kind -> the wiki's JSON reference page for that part of the spec.
+// Page slugs come from scripts/build_docs_reference.py's flow names.
+const DOC_PAGE_BY_KIND = {
+  root: "root",
+  ing: "ingestion",
+  trn: "transformation",
+  rec: "reconciliation",
+  obs: "observability"
+};
+
 // The authoring engine. Everything above the "Databricks integration" marker is
 // the reference builder's logic, unchanged. Below it: config loading, the access
 // preflight, save-to-Volume / save-to-Workspace, and the real job run.
@@ -26,13 +36,6 @@ export default class Builder extends React.Component {
     volPath:"/Volumes/main/metaflow/onboarding_specs/", savedTo:"", cloneFrom:""
   };
 
-  componentDidMount(){
-    var t=null;
-    try{ t=window.localStorage.getItem("mfl.theme"); }catch(e){}
-    if(t==="light"||t==="dark") this.setState({theme:t});
-    this.applyTheme(t==="light"?"light":"dark");
-    this.trackHeader();
-  }
   trackHeader(){
     var self=this;
     var apply=function(){
@@ -53,8 +56,6 @@ export default class Builder extends React.Component {
   applyTheme(t){
     try{ document.documentElement.setAttribute("data-mfl",t); }catch(e){}
   }
-
-  docsBase(){ return this.props.docsBaseUrl || "http://localhost:8000/attribute-reference/"; }
 
   cur(){
     var s=this.state;
@@ -307,9 +308,9 @@ export default class Builder extends React.Component {
       T("target_config.sequence_by_column","target_config.sequence_by_column",{w:function(v){return isCdc(st(v))},ph:"__framework_ingestion_timestamp_utc",i:"Ordering column for CDC. Falls back to the framework ingestion timestamp — but if capture_technical_metadata is false you must set this explicitly or the pipeline fails."}),
       L("target_config.columns_to_check","target_config.columns_to_check",{w:function(v){return ["SCD1","SCD2","SCD3"].indexOf(st(v))>-1},req:0,i:"Limits which columns trigger a new history version (SCD2) or a current/previous pivot (SCD3). Never include encrypted columns — AES-GCM's random IV causes spurious changes every run."}),
       L("target_config.columns_to_exclude","target_config.columns_to_exclude",{w:function(v){return ["SCD1","SCD2","SCD3"].indexOf(st(v))>-1},i:"Excludes columns from the target schema (except_column_list) and from comparison. Validation error with APPEND, TRUNCATE_AND_LOAD or FULL_SNAPSHOT_CDC."}),
-      T("target_config.cdc_operation_column","target_config.cdc_operation_column",{w:function(v){return isCdc(st(v))},ph:"op",i:"Column carrying insert/update/delete indicators. Optional regardless of primary_keys. Applicable to FULL_SNAPSHOT_CDC — snapshot diffing derives deletes from the snapshot itself."}),
-      L("target_config.cdc_operation_mapping.delete_values","cdc_operation_mapping.delete_values",{req:1,ind:1,w:function(v){var c=v("target_config.cdc_operation_column");return isCdc(st(v))&&!!(c&&String(c).trim())},ph:"D",i:"Values in cdc_operation_column meaning this row is a delete."}),
-      B("target_config.empty_target_if_source_empty","target_config.empty_target_if_source_empty",{w:function(v){return st(v)==="TRUNCATE_AND_LOAD"},i:"Governs a TRUNCATE_AND_LOAD run whose source recomputes to zero rows. false (the default, and the safe choice) leaves the target untouched; true truncates it to empty, the pre-v1.3.0 behaviour.",hint:"default false — an empty source leaves the target untouched"}),
+      T("target_config.cdc_operation_column","target_config.cdc_operation_column",{w:function(v){return hasDeleteMarker(st(v))},ph:"op",i:"Column carrying insert/update/delete indicators. Optional regardless of primary_keys. SCD1/SCD2 pass it to apply_changes as apply_as_deletes; FULL_SNAPSHOT_CDC filters flagged rows out of the snapshot so the diff deletes them by absence. A validation error on SCD3, which has no delete path at all."}),
+      L("target_config.cdc_operation_mapping.delete_values","cdc_operation_mapping.delete_values",{req:1,ind:1,w:function(v){var c=v("target_config.cdc_operation_column");return hasDeleteMarker(st(v))&&!!(c&&String(c).trim())},ph:"D",i:"Values in cdc_operation_column meaning this row is a delete."}),
+      B("target_config.empty_target_if_source_empty","target_config.empty_target_if_source_empty",{w:function(v){return st(v)==="TRUNCATE_AND_LOAD"},i:"WITHDRAWN — this field currently has no runtime effect. It was meant to stop a zero-row TRUNCATE_AND_LOAD source from blanking the target, but preserving the contents makes the target read itself, which Lakeflow rejects as a graph cycle. It still validates so existing specs stay valid; nothing reads it. Enforce the policy outside the graph, with a post-update task comparing the target's row count across updates.",hint:"withdrawn 2026-08-29 — no runtime effect; an empty source blanks the target either way"}),
       B("target_config.generate_hash_columns","target_config.generate_hash_columns",{d:true,w:function(v){return isCdc(st(v))},i:"Adds __framework_hash_key (SHA-256 of primary keys) and __framework_hash_value (SHA-256 of comparison columns). Never added for APPEND or TRUNCATE_AND_LOAD."})
     ]);
   }
@@ -774,7 +775,7 @@ export default class Builder extends React.Component {
         return self.renderField(g);
       }).filter(function(x){return x});
       return {id:sec.id,num:String(si+1).padStart(2,"0"),title:sec.title,sub:sec.sub,
-        doc:self.docsBase()+(sec.doc||""),docLabel:sec.doc?"docs":"",
+        doc:self.sectionDocUrl(sec,s.kind),docLabel:"docs",
         count:sec.tabs?"":(fields.length+(fields.length===1?" attribute":" attributes")),isTabs:!!sec.tabs&&!sec.sectionInert,
         titleOp:sec.sectionInert?"0.55":"1",
         flex:sec.half?"1 1 400px":"1 1 100%",minw:sec.half?"340px":"0",
@@ -1183,8 +1184,8 @@ export default class Builder extends React.Component {
       infoInertReason:(s.info&&s.info.inertReason)||"",
       infoCurrent:(s.info&&s.info.current)||"",
       infoCurrentShown:!!(s.info&&s.info.current),
-      infoDoc:this.docsBase()+((s.info&&s.info.f&&s.info.f.__doc)||""),
-      infoDocShown:!!(s.info&&s.info.f&&s.info.f.__doc),
+      infoDoc:(infoF&&this.attrDocUrl(infoF.p))||this.flowDocUrl(s.kind),
+      infoDocShown:true,
       // Allowed values as individual chips, each with the note the registry carries
       // for it where one exists (CDC strategies are the richest case).
       infoEnum:(function(){
@@ -1263,6 +1264,34 @@ export default class Builder extends React.Component {
     var cfg=this.state.cfg;
     if(cfg&&cfg.docs&&cfg.docs.base_url) return cfg.docs.base_url+(cfg.docs.attribute_reference_page||"");
     return this.props.docsBaseUrl || "/docs/attribute-reference/";
+  }
+
+  // ── Wiki deep links ──────────────────────────────────────────────────────────
+  // /docs serves the whole MkDocs wiki, so a doc link is a page plus an anchor
+  // rather than an anchor on one long page. config.docs_index maps every attribute
+  // path to its own heading and is generated by scripts/build_app_docs.py, so these
+  // links cannot drift from the wiki. Sections fall back to their flow's reference
+  // page, which always exists.
+  wikiRoot(){
+    var cfg=this.state.cfg;
+    return (cfg&&cfg.docs&&cfg.docs.base_url) || "/docs/";
+  }
+  attrDocUrl(path){
+    if(!path) return null;
+    var cfg=this.state.cfg, idx=(cfg&&cfg.docs_index)||{};
+    var e=idx[path]||idx["@"+path]||idx[String(path).replace(/^@/,"")];
+    return e?(this.wikiRoot()+e.page+e.anchor):null;
+  }
+  flowDocUrl(kind){
+    return this.wikiRoot()+"reference/json/"+(DOC_PAGE_BY_KIND[kind]||"root")+"/";
+  }
+  sectionDocUrl(sec,kind){
+    var fs=(sec&&sec.fields)||[];
+    for(var i=0;i<fs.length;i++){
+      var u=this.attrDocUrl(fs[i].p);
+      if(u) return u;
+    }
+    return this.flowDocUrl(kind);
   }
 
   loadConfig(){

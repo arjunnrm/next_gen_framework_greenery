@@ -7,7 +7,7 @@
 One entry per `transformation_flows[]` element — SQL plus a CDC load strategy.
 
 
-!!! info "62 attributes"
+!!! info "68 attributes"
     Every attribute below is also available in the Spec Builder's attribute
     inspector — click the **i** beside any field to see this same content
     without leaving the form.
@@ -55,17 +55,23 @@ One entry per `transformation_flows[]` element — SQL plus a CDC load strategy.
 | [`target_config.encrypted_columns[].secret.secret_catalog`](#target-configencrypted-columnssecretsecret-catalog) | string | **yes** | — |
 | [`target_config.encrypted_columns[].secret.secret_key`](#target-configencrypted-columnssecretsecret-key) | string | **yes** | — |
 | [`target_config.encrypted_columns[].secret.secret_schema`](#target-configencrypted-columnssecretsecret-schema) | string | **yes** | — |
+| [`target_config.encrypted_columns[].source_data_type`](#target-configencrypted-columnssource-data-type) | string | no | — |
 | [`target_config.liquid_clustering_columns`](#target-configliquid-clustering-columns) | array<string> | no | — |
 | [`target_config.partition_columns`](#target-configpartition-columns) | array<string> | no | — |
 | [`target_config.partition_mode`](#target-configpartition-mode) | string (enum) | no | — |
 | [`target_config.sink_config.format`](#target-configsink-configformat) | string (enum) | **yes** | — |
+| [`target_config.sink_config.kafka_options`](#target-configsink-configkafka-options) | object<string,string> | **yes** | — |
 | [`target_config.sink_config.path`](#target-configsink-configpath) | string | **yes** | — |
 | [`target_config.sink_config.post_export_archive.enabled`](#target-configsink-configpost-export-archiveenabled) | boolean | no | — |
+| [`target_config.sink_config.post_export_archive.export_file_name_format`](#target-configsink-configpost-export-archiveexport-file-name-format) | string | no | — |
 | [`target_config.sink_config.post_export_archive.output_zip_path`](#target-configsink-configpost-export-archiveoutput-zip-path) | string | **yes** | — |
 | [`target_config.sink_config.post_export_archive.pgp_encryption.enabled`](#target-configsink-configpost-export-archivepgp-encryptionenabled) | boolean | no | — |
 | [`target_config.sink_config.post_export_archive.pgp_encryption.recipient_public_key_secret.secret_catalog`](#target-configsink-configpost-export-archivepgp-encryptionrecipient-public-key-secretsecret-catalog) | string | **yes** | — |
 | [`target_config.sink_config.post_export_archive.pgp_encryption.recipient_public_key_secret.secret_key`](#target-configsink-configpost-export-archivepgp-encryptionrecipient-public-key-secretsecret-key) | string | **yes** | — |
 | [`target_config.sink_config.post_export_archive.pgp_encryption.recipient_public_key_secret.secret_schema`](#target-configsink-configpost-export-archivepgp-encryptionrecipient-public-key-secretsecret-schema) | string | **yes** | — |
+| [`target_config.sink_config.post_export_archive.pgp_encryption.sign_passphrase_secret.secret_catalog`](#target-configsink-configpost-export-archivepgp-encryptionsign-passphrase-secretsecret-catalog) | string | no | — |
+| [`target_config.sink_config.post_export_archive.pgp_encryption.sign_passphrase_secret.secret_key`](#target-configsink-configpost-export-archivepgp-encryptionsign-passphrase-secretsecret-key) | string | no | — |
+| [`target_config.sink_config.post_export_archive.pgp_encryption.sign_passphrase_secret.secret_schema`](#target-configsink-configpost-export-archivepgp-encryptionsign-passphrase-secretsecret-schema) | string | no | — |
 | [`target_config.sink_config.post_export_archive.pgp_encryption.sign_with_private_key_secret.secret_catalog`](#target-configsink-configpost-export-archivepgp-encryptionsign-with-private-key-secretsecret-catalog) | string | no | — |
 | [`target_config.sink_config.post_export_archive.pgp_encryption.sign_with_private_key_secret.secret_key`](#target-configsink-configpost-export-archivepgp-encryptionsign-with-private-key-secretsecret-key) | string | no | — |
 | [`target_config.sink_config.post_export_archive.pgp_encryption.sign_with_private_key_secret.secret_schema`](#target-configsink-configpost-export-archivepgp-encryptionsign-with-private-key-secretsecret-schema) | string | no | — |
@@ -1081,6 +1087,26 @@ Unity Catalog secret schema.
 
 ---
 
+### `target_config.encrypted_columns[].source_data_type` { #target-configencrypted-columnssource-data-type }
+
+Optional.
+
+
+Optional. The column's original Spark type before encryption replaces it with ciphertext binary (string, decimal(18,2), timestamp, ...). Becomes the Unity Catalog original_data_type tag that a downstream decrypted_columns.cast_to_type is checked against. Leave blank to use the type observed at encryption time; declare it to make a silent source type change fail loudly instead.
+
+
+**Type** `string` · **Required** no · **Section** Target · encrypted columns
+
+
+```json
+{
+  "source_data_type": "string"
+}
+```
+
+
+---
+
 ### `target_config.liquid_clustering_columns` { #target-configliquid-clustering-columns }
 
 Clustering keys for Delta liquid clustering.
@@ -1220,6 +1246,43 @@ sink exports only; external_sink writes a governed table and also exports.
 
 ---
 
+### `target_config.sink_config.kafka_options` { #target-configsink-configkafka-options }
+
+Connection options for a kafka sink — the same flat options a Spark Structured Streaming Kafka writer takes.
+
+
+Connection options for a kafka sink — the same flat options a Spark Structured Streaming Kafka writer takes. Onboarding requires both kafka.bootstrap.servers and topic. A kafka sink has no filesystem path. Prefer databricks.serviceCredential over an inline credential. sink_config.kafka_secret_options (option name → UC secret ref, for an option whose literal value must embed a resolved secret such as kafka.sasl.jaas.config) is supported by the framework but cannot be authored here — add it by hand to the exported JSON.
+
+
+**Type** `object<string,string>` · **Required** yes · **Section** Target · sink config
+
+
+```json
+{
+  "target_config": {
+    "sink_config": {
+      "kafka_options": {
+        "option_name": "value"
+      }
+    }
+  }
+}
+```
+
+
+!!! tip "Best practice"
+
+    - kafka.bootstrap.servers and topic are both mandatory
+    - Required — onboarding rejects the flow if this is missing.
+    - Only applies to some configurations; the form hides it when it is not relevant.
+    - Keys are written verbatim — a typo becomes a silently ignored option, not an error.
+
+
+**Databricks documentation:** [sinks](https://docs.databricks.com/delta-live-tables/sinks.html)
+
+
+---
+
 ### `target_config.sink_config.path` { #target-configsink-configpath }
 
 Output directory.
@@ -1278,6 +1341,40 @@ Enable post-write archiving for pgp_zip exports.
 
     - Only applies to some configurations; the form hides it when it is not relevant.
     - Omitting the attribute is not the same as setting it false — check the default above.
+
+
+**Databricks documentation:** [sinks](https://docs.databricks.com/delta-live-tables/sinks.html)
+
+
+---
+
+### `target_config.sink_config.post_export_archive.export_file_name_format` { #target-configsink-configpost-export-archiveexport-file-name-format }
+
+str.format()-style template for the exported archive's own file name.
+
+
+str.format()-style template for the exported archive's own file name. Placeholders: {batch_id}, {timestamp}. Omit for the framework default.
+
+
+**Type** `string` · **Required** no · **Section** Target · sink config
+
+
+```json
+{
+  "target_config": {
+    "sink_config": {
+      "post_export_archive": {
+        "export_file_name_format": "export_{batch_id}_{timestamp}.zip"
+      }
+    }
+  }
+}
+```
+
+
+!!! tip "Best practice"
+
+    - Only applies to some configurations; the form hides it when it is not relevant.
 
 
 **Databricks documentation:** [sinks](https://docs.databricks.com/delta-live-tables/sinks.html)
@@ -1454,6 +1551,114 @@ Unity Catalog secret schema.
 !!! tip "Best practice"
 
     - Required — onboarding rejects the flow if this is missing.
+    - Only applies to some configurations; the form hides it when it is not relevant.
+
+
+**Databricks documentation:** [secrets](https://docs.databricks.com/security/secrets/index.html) · [uc privileges](https://docs.databricks.com/data-governance/unity-catalog/manage-privileges/privileges.html)
+
+
+---
+
+### `target_config.sink_config.post_export_archive.pgp_encryption.sign_passphrase_secret.secret_catalog` { #target-configsink-configpost-export-archivepgp-encryptionsign-passphrase-secretsecret-catalog }
+
+Unity Catalog secret catalog holding the key.
+
+
+**Type** `string` · **Required** no · **Section** Target · sink config
+
+
+```json
+{
+  "target_config": {
+    "sink_config": {
+      "post_export_archive": {
+        "pgp_encryption": {
+          "sign_passphrase_secret": {
+            "secret_catalog": "{{catalog}}"
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+
+!!! tip "Best practice"
+
+    - Only applies to some configurations; the form hides it when it is not relevant.
+
+
+**Databricks documentation:** [secrets](https://docs.databricks.com/security/secrets/index.html) · [uc privileges](https://docs.databricks.com/data-governance/unity-catalog/manage-privileges/privileges.html)
+
+
+---
+
+### `target_config.sink_config.post_export_archive.pgp_encryption.sign_passphrase_secret.secret_key` { #target-configsink-configpost-export-archivepgp-encryptionsign-passphrase-secretsecret-key }
+
+UC secret key name.
+
+
+UC secret key name. AES keys must be exactly 16, 24 or 32 bytes.
+
+
+**Type** `string` · **Required** no · **Section** Target · sink config
+
+
+```json
+{
+  "target_config": {
+    "sink_config": {
+      "post_export_archive": {
+        "pgp_encryption": {
+          "sign_passphrase_secret": {
+            "secret_key": "pii_encryption_key"
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+
+!!! tip "Best practice"
+
+    - Only applies to some configurations; the form hides it when it is not relevant.
+
+
+**Databricks documentation:** [secrets](https://docs.databricks.com/security/secrets/index.html) · [uc privileges](https://docs.databricks.com/data-governance/unity-catalog/manage-privileges/privileges.html)
+
+
+---
+
+### `target_config.sink_config.post_export_archive.pgp_encryption.sign_passphrase_secret.secret_schema` { #target-configsink-configpost-export-archivepgp-encryptionsign-passphrase-secretsecret-schema }
+
+Unity Catalog secret schema.
+
+
+**Type** `string` · **Required** no · **Section** Target · sink config
+
+
+```json
+{
+  "target_config": {
+    "sink_config": {
+      "post_export_archive": {
+        "pgp_encryption": {
+          "sign_passphrase_secret": {
+            "secret_schema": "security"
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+
+!!! tip "Best practice"
+
     - Only applies to some configurations; the form hides it when it is not relevant.
 
 

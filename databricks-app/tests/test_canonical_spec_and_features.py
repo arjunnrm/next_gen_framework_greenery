@@ -193,13 +193,29 @@ def test_save_destinations_api():
     assert res2.status_code in (200, 500)
 
 
-def test_docs_site_anchors():
-    """Verify docs site serves with all 21 registry section anchors."""
-    res = client.get("/docs/")
-    assert res.status_code == 200
-    html = res.text
-    assert "#1-top-level-spec-schema" in html
-    assert "#8-target-config-shared-by-ingestion--transformation" in html
-    assert "#19-observability" in html
-    assert "#21-framework-generated-columns" in html
+def test_docs_site_serves_whole_wiki():
+    """/docs is the full framework wiki, not just the attribute reference.
+
+    One page per audience journey has to be reachable — architecture, the FAQs,
+    the generated JSON and code references, and the archive — otherwise the app
+    is shipping onboarding docs only.
+    """
+    assert client.get("/docs/").status_code == 200
+
+    for page in [
+        "01_platform_architecture",          # architecture
+        "faq",                               # help
+        "10_multi_role_faqs",                # functional / per-role
+        "13_known_limitations_and_gotchas",  # gotchas
+        "onboarding",                        # get started
+        "reference/json/ingestion",          # generated JSON reference
+        "reference/code/engine",             # generated code reference
+        "architecture_review/00_executive_summary",
+        "archive",                           # superseded material, labelled
+    ]:
+        res = client.get(f"/docs/{page}/")
+        assert res.status_code == 200, f"/docs/{page}/ -> {res.status_code}"
+
+    # Full-text search over the whole wiki, not per-page anchors.
+    assert client.get("/docs/search/search_index.json").status_code == 200
 

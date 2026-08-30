@@ -213,6 +213,8 @@ class SpecValidator:
         v_dict = flow_doc.get("v", {})
         context = {
             "v": v_dict,
+            "kvs": flow_doc.get("kvs", {}),
+            "reps": flow_doc.get("reps", {}),
             "root": root_doc,
             "@__flow_kind": flow_kind
         }
@@ -271,6 +273,8 @@ class SpecValidator:
         v_dict = flow_doc.get("v", {})
         context = {
             "v": v_dict,
+            "kvs": flow_doc.get("kvs", {}),
+            "reps": flow_doc.get("reps", {}),
             "root": root_doc,
             "@__flow_kind": flow_kind
         }

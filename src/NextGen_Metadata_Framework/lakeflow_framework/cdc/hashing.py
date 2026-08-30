@@ -131,8 +131,10 @@ consolidation exists to eliminate. Migration consequences, all one-time:
 * **SCD1/SCD2/SCD3:** the first update after the upgrade sees every row as changed (its newly
   computed ``__framework_hash_value`` differs from the stored one) and emits a full set of
   updates. For SCD2 that is one extra version of every row.
-* **FULL_SNAPSHOT_CDC_NO_PK:** the diff key itself changes, so the first post-upgrade snapshot
-  looks like a complete delete-and-reinsert.
+* **Former FULL_SNAPSHOT_CDC_NO_PK flows:** that strategy is removed in v1.4.0 and its
+  surrogate diff key with it. Migrating one to ``FULL_SNAPSHOT_CDC`` with real ``primary_keys``
+  re-keys the target by definition, so the first post-migration snapshot looks like a complete
+  delete-and-reinsert -- one time, expected.
 * **Reconciliation with ``hash_precomputed: true``:** the target's stored hashes were computed
   with the old construction while the source is hashed inline with the new one, so *everything*
   reports as drift. Either re-materialize the target through its own pipeline before the first

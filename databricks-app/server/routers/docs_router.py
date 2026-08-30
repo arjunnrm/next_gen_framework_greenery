@@ -27,6 +27,14 @@ def resolve_doc_link(
 
     anchors = docs_map.get("anchors", {})
 
+    # 0. Generated per-attribute index (scripts/build_app_docs.py). Covers every
+    #    attribute in the knowledge base and lands on that attribute's own heading
+    #    in the wiki rather than the section it happens to sit in.
+    index = getattr(reg, "docs_index", {}) or {}
+    if path in index:
+        entry = index[path]
+        return {"url": f"{base_url}/{entry.get('page', '')}{entry.get('anchor', '')}"}
+
     # 1. Exact match
     if path in anchors:
         entry = anchors[path]

@@ -11,15 +11,17 @@
 # MAGIC `[1, 2, 3]`) in the landing Volume. This job's own pipeline run therefore only ever sees
 # MAGIC the Day-1 full snapshot -- the Day-2 extract (`inventory_snapshot_day2.csv`: key `1`
 # MAGIC removed, key `3` modified, key `4` added) is deliberately **not** landed by this notebook;
-# MAGIC it is copied in manually as a second step, per `docs/45_tc_cdc_006.md`, to prove
-# MAGIC `apply_changes_from_snapshot` insert/update/delete diffing across two separate pipeline
-# MAGIC updates.
+# MAGIC it is copied in manually as a second step, per
+# MAGIC `docs/archive/legacy_docs/45_tc_cdc_006.md`, to prove `apply_changes_from_snapshot`
+# MAGIC insert/update/delete diffing across two separate pipeline updates.
 # MAGIC
 # MAGIC Uses 2 new, hand-authored fixtures under
-# MAGIC `sample_data/metaflow_testing/inventory_usecase/` -- no existing seeded fixture carries a
-# MAGIC natural-key full-snapshot pair shaped for `FULL_SNAPSHOT_CDC` (the closest existing pair,
-# MAGIC `sample_mainframe_customer_master_day1/2.csv`, is deliberately key-less -- it is reused by
-# MAGIC TC-CDC-007's `FULL_SNAPSHOT_CDC_NO_PK` scenario instead).
+# MAGIC `sample_data/metaflow_testing/inventory_usecase/` -- a compact, integer-keyed
+# MAGIC (`item_id`) full-snapshot pair whose Day-2 file is a textbook one-delete/one-update/
+# MAGIC one-insert diff. The other `FULL_SNAPSHOT_CDC` pair in the repo,
+# MAGIC `sample_mainframe_customer_master_day1/2.csv`, is deliberately left to TC-CDC-007: it is
+# MAGIC keyed on a wide string column (`customer_name`) over 10 rows, which exercises a different
+# MAGIC shape of the same strategy rather than duplicating this one.
 # MAGIC
 # MAGIC Run once per environment before onboarding `metaflow_testing/024_cdc_006_snapshot_pk.json`.
 
@@ -89,9 +91,10 @@ logger.info(
 # MAGIC ## Done
 # MAGIC
 # MAGIC `metaflow_testing/024_cdc_006_snapshot_pk.json` can now be onboarded and its pipeline run
-# MAGIC for the Day-1 baseline (3 rows, keys `[1, 2, 3]`). See `docs/45_tc_cdc_006.md` for the
-# MAGIC manual Day-2 step (copying `inventory_snapshot_day2.csv` into this same landing Volume and
-# MAGIC re-running the pipeline) that this notebook deliberately does not automate.
+# MAGIC for the Day-1 baseline (3 rows, keys `[1, 2, 3]`). See
+# MAGIC `docs/archive/legacy_docs/45_tc_cdc_006.md` for the manual Day-2 step (copying
+# MAGIC `inventory_snapshot_day2.csv` into this same landing Volume and re-running the pipeline)
+# MAGIC that this notebook deliberately does not automate.
 # MAGIC
 # MAGIC Re-running this notebook on its own is safe and idempotent: it only ever re-copies the
 # MAGIC Day-1 file (Auto Loader tracks already-ingested files via its own checkpoint, so

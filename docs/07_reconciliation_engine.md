@@ -136,7 +136,7 @@ Field names below are verified against `onboarding/spec_validator.py::_validate_
 | `task_run_id_column` | `string` | none | **New in v1.3.0.** The column on this side carrying the producing pipeline/job run id. See [§5.2](#52-task_run_id_column-and-what-task_run_id-actually-filters). |
 | `filter_condition` | `string` | none | Applied after the read (and after `task_run_id_column` narrowing, if any) — supports `${param}` substitution. |
 | `data_standardization_sql` | `string` | none | Applied last, after `filter_condition`. |
-| `hash_precomputed` | `boolean` | `false` | `true` means this side already carries `__framework_hash_key`/`__framework_hash_value` (e.g. a CDC-dispatched table materialized with `generate_hash_columns` enabled) — they are trusted as-is, never recomputed. Only valid when `type == "table"` — validated both at onboarding and again at runtime (`matcher.py::prepare_dataset_for_matching` raises `FrameworkConfigError` if the columns are actually missing). **See the migration caveat in [§9](#9-hash_precomputed-and-the-v130-hashing-change).** |
+| `hash_precomputed` | `boolean` | `false` | **An assertion, not an instruction — it never precomputes anything.** `true` declares this side ALREADY carries `__framework_hash_key`/`__framework_hash_value` from an upstream CDC-dispatched flow with `generate_hash_columns` enabled; they are trusted verbatim and `match_keys`/`compare_columns` are not hashed at all. `false` computes both here and now. Only valid when `type == "table"` — validated at onboarding and again at runtime (`matcher.py::prepare_dataset_for_matching` raises `FrameworkConfigError` if the columns are actually missing). **Full mechanics, the precondition that makes the trust safe, and the migration caveat: [§9](#9-hash_precomputed-exact-mechanics).** |
 
 ### 3.3 Target-only fields
 
@@ -417,6 +417,6 @@ When discrepancies are detected (Phase 2 only — a Phase 1 early-out writes not
 
 ## 11. Related Documentation
 
-- [`11_hashing_and_determinism.md`](11_hashing_and_determinism.md) — the canonical `__framework_hash_key`/`__framework_hash_value` construction shared by ingestion, CDC/transformation, and this reconciliation engine, plus the v1.3.0 breaking-change migration checklist referenced in [§9](#9-hash_precomputed-and-the-v130-hashing-change).
+- [`11_hashing_and_determinism.md`](11_hashing_and_determinism.md) — the canonical `__framework_hash_key`/`__framework_hash_value` construction shared by ingestion, CDC/transformation, and this reconciliation engine, plus the v1.3.0 breaking-change migration checklist referenced in [§9](#9-hash_precomputed-exact-mechanics).
 - [`03_transformation_and_cdc.md`](03_transformation_and_cdc.md) — how `__framework_hash_key`/`__framework_hash_value` are computed at CDC-materialization time on the target side of a comparison (what makes `hash_precomputed: true` possible at all).
 - [`00_master_reference_index.md`](00_master_reference_index.md) §8 — the full reconciliation flow field reference.

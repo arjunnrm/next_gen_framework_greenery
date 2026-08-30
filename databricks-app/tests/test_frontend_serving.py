@@ -51,6 +51,11 @@ def test_spa_deep_link_falls_back_to_shell():
 
 
 def test_serve_docs_site():
+    """The wiki is served by MkDocs Material and carries its nav and search."""
     res_docs = client.get("/docs/")
     assert res_docs.status_code == 200
-    assert "Metaflow Framework Documentation" in res_docs.text
+    assert "NextGen Metadata Framework" in res_docs.text
+    # Material renders one tab per top-level nav section; their presence is what
+    # makes /docs browsable rather than a single page.
+    for tab in ["Get started", "Architecture", "JSON reference", "Help"]:
+        assert tab in res_docs.text, f"nav tab missing: {tab}"

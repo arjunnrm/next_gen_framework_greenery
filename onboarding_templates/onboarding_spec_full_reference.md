@@ -122,8 +122,8 @@ demoed it on `asn1`; v2 made it valid for `autoloader` too — see
 | `cdc_operation_column` | `"op"` | |
 | `cdc_operation_mapping.delete_values` | `["D"]` | |
 | `generate_hash_columns` | `true` | |
-| `generate_surrogate_key` | `false` | |
-| `encrypted_columns[0]` | `{"column_name": "pii_column", "output_column": "pii_column", "mode": "GCM", "secret": {...}}` | output-column encryption |
+| `encrypted_columns[0]` | `{"column_name": "pii_column", "output_column": "pii_column", "mode": "GCM", "source_data_type": "string", "secret": {...}}` | output-column encryption |
+| `encrypted_columns[0].source_data_type` | `"string"` | **new in v1.4.0**, optional — the column's original Spark type *before* encryption (`"string"`, `"decimal(18,2)"`, …). Omitted, the framework falls back to whatever type Spark observes at encryption time; declared, a silent source type change fails loudly at encryption time instead of being absorbed |
 
 **`dq_config.rules`** — all four `ALLOWED_DQ_ACTIONS` values in one flow (the baseline
 template spreads these across different flows; here they're together):
@@ -154,7 +154,6 @@ Exercises every `zerobus`-specific `source_config` field and pairs `cdc_load_str
 | `target_config.auto_ttl.timestamp_column` | `"event_ts"` |
 | `target_config.auto_ttl.expire_in_days` | `90` |
 | `target_config.generate_hash_columns` | `false` (APPEND never gets hash columns regardless — see [17 §4.5](../docs/17_onboarding_template_reference.md#45-__framework_hash_key--__framework_hash_value--and-the-ingestion-timestamp)) |
-| `target_config.generate_surrogate_key` | `true` |
 
 `starting_version`/`max_bytes_per_trigger` are worth flagging explicitly: `spec_validator.py`
 never calls `check_int`/`check_string` on either one for `source_type == "zerobus"` — they
@@ -180,10 +179,10 @@ hard-errors otherwise; see [17 §4.2](../docs/17_onboarding_template_reference.m
 | `source_config.source_zip_handling.pre_extraction_decryption.passphrase_secret` | secret ref — same optional field demonstrated again here |
 | `target_config.storage_format` | `"iceberg"` |
 | `target_config.table_properties.enable_iceberg_read_uniformity` | `true` |
-| `target_config.cdc_load_strategy` | `"FULL_SNAPSHOT_CDC_NO_PK"` |
+| `target_config.cdc_load_strategy` | `"FULL_SNAPSHOT_CDC"` |
+| `target_config.primary_keys` | `["callReferenceId"]` — **required** as of v1.4.0: snapshot CDC is `dlt.apply_changes_from_snapshot`, which has no keyless mode. A source with no usable key belongs on `TRUNCATE_AND_LOAD` instead |
 | `target_config.cdc_operation_column` | `"recordStatus"` |
 | `target_config.cdc_operation_mapping.delete_values` | `["DELETED", "PURGED"]` — 2 values, vs. the baseline template's 1 |
-| `target_config.generate_surrogate_key` | `true` |
 | `target_config.generate_hash_columns` | `true` |
 
 ---
@@ -205,8 +204,8 @@ distinguishing field(s) — see the JSON itself for the full object.
 | `ts_ref_scd1_no_sequence` | `streaming_table` | `SCD1` | `primary_keys` only — `sequence_by_column` omitted entirely, falling back to `__framework_ingestion_timestamp_utc` (see [17 §4.5](../docs/17_onboarding_template_reference.md#45-__framework_hash_key--__framework_hash_value--and-the-ingestion-timestamp)) |
 | `ts_ref_scd2` | `streaming_table` | `SCD2` | `source_inputs[0].decrypted_columns[0].mode: "ECB"` and `target_config.encrypted_columns[0].mode: "CBC"` — the two `ALLOWED_AES_MODES` values neither the baseline template nor any other flow in this file uses (both default elsewhere to `"GCM"`); `columns_to_check` + `columns_to_exclude` together |
 | `ts_ref_scd3` | `streaming_table` | `SCD3` | Transformation-only strategy (ingestion hard-rejects it — §2 never uses it); `primary_keys`, `sequence_by_column`, `columns_to_check` |
-| `ts_ref_full_snapshot_cdc` | `streaming_table` | `FULL_SNAPSHOT_CDC` | `primary_keys` + `cdc_operation_column`/`cdc_operation_mapping` (2 delete values) |
-| `ts_ref_full_snapshot_cdc_no_pk` | `streaming_table` | `FULL_SNAPSHOT_CDC_NO_PK` | `generate_surrogate_key: true`, no `primary_keys` needed |
+| `ts_ref_full_snapshot_cdc` | `streaming_table` | `FULL_SNAPSHOT_CDC` | `primary_keys: ["customer_id"]` + `cdc_operation_column`/`cdc_operation_mapping` (2 delete values) |
+| `ts_ref_full_snapshot_cdc_minimal` | `streaming_table` | `FULL_SNAPSHOT_CDC` | The minimal snapshot shape — `primary_keys: ["region"]` and nothing else; no `cdc_operation_column`, so deletes are inferred purely from rows missing from the next snapshot |
 | `ts_ref_external_sink_delta` | `external_sink` | `SCD1` | `sink_config.format: "delta"` + `write_mode` (dead field, see below) + `post_export_archive.enabled: false` — the structurally-accepted-but-inert path for a non-`pgp_zip` format |
 | `ts_ref_external_sink_kafka` | `external_sink` | `APPEND` | `sink_config.format: "kafka"` with `kafka_options` (`kafka.bootstrap.servers`, `topic`, `databricks.serviceCredential`) and `kafka_secret_options` (`kafka.sasl.jaas.config` → secret ref) — **the baseline template has no Kafka example at all** |
 | `ts_ref_pure_sink_pgp_zip` | `sink` | `APPEND` | `sink_config.format: "pgp_zip"` with **every** `post_export_archive` field: `output_zip_path`, `export_file_name_format` (a `str.format()` template — new vs. baseline), `secret` (AES ZIP password), and `pgp_encryption` with all three of `recipient_public_key_secret`, `sign_with_private_key_secret`, **and** `sign_passphrase_secret` together (new — the baseline template signs without a passphrase) |
@@ -219,6 +218,16 @@ the table:
   `spec_validator.py` (`ALLOWED_SINK_WRITE_MODES = {"overwrite", "append"}` exists) but
   **never read** by the engine's `"delta"` sink branch; `@dlt.append_flow` is always
   append-only. Included here purely for field-catalog completeness — omit it in a real spec.
+* **The two snapshot flows** — v1.4.0 removed `FULL_SNAPSHOT_CDC_NO_PK`, so the flow that
+  demonstrated it became an ordinary `FULL_SNAPSHOT_CDC` flow. Both are kept, because they are
+  still two distinct permutations worth cataloguing: `ts_ref_full_snapshot_cdc` is the full form
+  (declared key **plus** a `cdc_operation_column` delete marker), and
+  `ts_ref_full_snapshot_cdc_minimal` is the minimal one (declared key and nothing else). The
+  second was renamed rather than deleted, since collapsing it onto the first's `flow_step_id`,
+  `target_table` and `source_inputs[0].input_name` would have made the file invalid —
+  `input_name` must be unique across the **whole** spec, not merely within one flow, and that
+  is one of the cross-array-element constraints JSON Schema cannot express (see the schema's own
+  `$comment`, gap 1).
 * **`target_config.capture_technical_metadata`** (`ts_ref_append_full`) — the one
   `target_config` field the baseline template never demonstrates at all. Conventionally
   used only by transformation flows (ingestion flows host the equivalent on
@@ -232,6 +241,11 @@ the table:
 > **v1.3.0:** reconciliation is restricted to Delta **tables** only. All three
 > `target_configs[]` entries now use `type: "table"`; the previous `file` and `sink`
 > examples were converted to read-back tables, which is the documented migration path.
+>
+> **v1.4.0:** `recon_mode` is gone (both `"triggered"` and `"continuous"`). Reconciliation
+> is triggered-only: every side is read as a batch, a streaming side runs under
+> `trigger(availableNow=True)`, and each run drains what is there and stops. To reconcile
+> more often, schedule the job more often — there is no standing-stream mode to opt into.
 
 Full narrative: [`docs/07_reconciliation.md`](../docs/07_reconciliation.md). Field
 reference: [17 §5](../docs/17_onboarding_template_reference.md#5-reconciliation_flows).
@@ -248,18 +262,19 @@ reference: [17 §5](../docs/17_onboarding_template_reference.md#5-reconciliation
 | `data_standardization_sql` | `["trim(status_code) AS status_code"]` |
 | `hash_precomputed` | `false` |
 
-**`target_configs[]`** — 3 entries, one per `ALLOWED_RECON_DATASET_TYPES` value, something
-neither the baseline template nor any single flow needs to do since one flow's
+**`target_configs[]`** — 3 entries, all `type: "table"` (the only remaining
+`ALLOWED_RECON_DATASET_TYPES` value), differing in every *other* per-target field, which is
+something neither the baseline template nor any single flow needs to do since one flow's
 `target_configs` is a list of independently-shaped targets:
 
-| `target_id` | `type` | Distinguishing fields |
+| `target_id` | `read_mode` | Distinguishing fields |
 |---|---|---|
-| `ref_table_target` | `"table"` | `hash_precomputed: true` (reuses `__framework_hash_key`/`__framework_hash_value` instead of recomputing — only legal when `type == "table"`), `comparison_direction: "both"`, `append_target_table` |
-| `ref_file_target` | `"file"` | `path` + `format: "parquet"`, `read_mode: "streaming"`, its own `filter_condition`/`data_standardization_sql`, `comparison_direction: "source_to_target"`, `append_target_table` — **the baseline template only ever uses `type: "table"`; this is the first `"file"` example in the repo's templates** |
-| `ref_sink_readback_target` | `"sink"` | `path` + `format: "delta"` reading back what a `target_type: "sink"` flow previously wrote (`type: "sink"` here means "read the sink's own output," unrelated to constructing a `dlt.create_sink` — see [17 §5.2](../docs/17_onboarding_template_reference.md#52-source_config--each-target_configs-entry--shared-dataset-shape)); `comparison_direction: "target_to_source"` — the one direction where `append_target_table` is correctly **omitted**, since it's only required when the direction is `"source_to_target"` or `"both"` |
+| `ref_table_target` | `"batch"` | `hash_precomputed: true` (reuses `__framework_hash_key`/`__framework_hash_value` instead of recomputing — only legal when `type == "table"`), `comparison_direction: "both"`, `append_target_table` |
+| `ref_file_readback_target` | `"streaming"` | The migration shape for what used to be a `type: "file"` target — a `target_type: "sink"`/file export read back into a Delta table. Its own `filter_condition`/`data_standardization_sql`, `comparison_direction: "source_to_target"`, `append_target_table`. `read_mode: "streaming"` still runs under `trigger(availableNow=True)` and stops (see the v1.4.0 note above) |
+| `ref_sink_readback_target` | `"batch"` | Reads back into a table what a `target_type: "sink"` flow previously wrote (see [17 §5.2](../docs/17_onboarding_template_reference.md#52-source_config--each-target_configs-entry--shared-dataset-shape)); `comparison_direction: "target_to_source"` — the one direction where `append_target_table` is correctly **omitted**, since it's only required when the direction is `"source_to_target"` or `"both"` |
 
 Flow-level fields: `match_keys: ["customer_id"]`, `compare_columns: ["amount",
-"status_code"]`, `generate_surrogate_key: true`, `transform_sql` (reads `FROM
+"status_code"]`, `transform_sql` (reads `FROM
 _reconciliation_unmatched_records`, per [17 §5.4](../docs/17_onboarding_template_reference.md#54-transform_sql)),
 `error_handling.on_failure: "fail"`.
 
@@ -292,7 +307,9 @@ file actually cover field X" lookup; every row was cross-checked line-by-line ag
 | `auto_ttl` (both sub-fields, on `APPEND`) | `df_ref_zerobus_full`, `ts_ref_append_full` |
 | `encrypted_columns`/`decrypted_columns` mode `GCM` | `df_ref_autoloader_full`, `ts_ref_append_full` |
 | `encrypted_columns`/`decrypted_columns` mode `CBC`/`ECB` | `ts_ref_scd2` |
-| `SCD1`/`SCD2`/`SCD3`/`FULL_SNAPSHOT_CDC`/`FULL_SNAPSHOT_CDC_NO_PK`/`APPEND`/`TRUNCATE_AND_LOAD` | every `cdc_load_strategy` value appears at least once across §2–§3 |
+| `encrypted_columns[].source_data_type` (**new in v1.4.0**, optional) | every `encrypted_columns[]` entry in this file: `df_ref_autoloader_full`, `ts_ref_append_full`, `ts_ref_scd2` |
+| `SCD1`/`SCD2`/`SCD3`/`FULL_SNAPSHOT_CDC`/`APPEND`/`TRUNCATE_AND_LOAD` | every `cdc_load_strategy` value appears at least once across §2–§3 (`FULL_SNAPSHOT_CDC_NO_PK` was removed in v1.4.0 — keyless snapshot sources go to `TRUNCATE_AND_LOAD`) |
+| `target_config.primary_keys` — **required** by `SCD1`/`SCD2`/`SCD3`/`FULL_SNAPSHOT_CDC` as of v1.4.0 | every CDC flow in §2–§3 |
 | `target_config.capture_technical_metadata` | `ts_ref_append_full` |
 | `sink_config.format: "delta"` | `ts_ref_external_sink_delta` |
 | `sink_config.format: "kafka"` + `kafka_options` + `kafka_secret_options` | `ts_ref_external_sink_kafka` |
@@ -310,14 +327,12 @@ file actually cover field X" lookup; every row was cross-checked line-by-line ag
 | `source_config.json_string_columns` (E03 — JSON-string → struct before flatten) | `df_ref_autoloader_full` |
 | `source_config.explode_columns: []` present-but-empty = auto-flatten all (E03) | see §2.1 note; absent key stays pass-through |
 | `source_config.remove_dups` + `dedup_watermark` (E04) | `df_ref_autoloader_full` |
-| `source_config.column_normalization.{enabled,case}` (E05) | `df_ref_autoloader_full` |
+| `source_config.column_normalization.{enabled,case}` (E05 — as of v1.4.0 the **only** normalization switch; `enabled` defaults to `false`, and the legacy `source_config.normalize_column_names` boolean is rejected at onboarding) | `df_ref_autoloader_full` |
 | `source_config.landing_retention_policy.{clean_source,archive_path,retention_days}` (E01) | `df_ref_autoloader_full` |
 | `source_zip_handling.delete_source_after_extract` nested object (E02) | both zip-handling blocks |
 | `target_config.partition_columns: []` = explicitly unpartitioned (E06) | §2–§3 target configs |
 | `target_config.liquid_clustering_columns` (max 3 — E07) | §2–§3 target configs |
 | `target_config.empty_target_if_source_empty` (E09 — `TRUNCATE_AND_LOAD` only) | the `TRUNCATE_AND_LOAD` transformation flow |
-| `target_config.surrogate_key_columns` / `surrogate_key_exclude_columns` (E10) | `df_ref_asn1_full` (`FULL_SNAPSHOT_CDC_NO_PK`) |
-| `reconciliation` `recon_mode` — both values (E12) | `recon_ref_full_reference` (`triggered`), `recon_ref_warn_minimal` (`continuous`) |
 | `reconciliation` `two_tier_verification` — both values (E12) | `recon_ref_full_reference` (`true`), `recon_ref_warn_minimal` (`false`) |
 | `reconciliation` `logging_config.{run_log_capture,mismatch_log_capture}` (E12) | both reconciliation flows |
 | `observability[]` `mode` — both values (E13) | `dest_ref_triggered_volume` (`triggered`), `dest_ref_continuous_otlp` (`continuous`) |

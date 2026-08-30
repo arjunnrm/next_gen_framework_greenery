@@ -1,6 +1,7 @@
 .databricks/
 build/
 dist/
+!databricks-app/web/dist/
 !databricks-app/web/dist/**
 !databricks-app/static/**
 __pycache__/

@@ -7,7 +7,7 @@
 One entry per `reconciliation_flows[]` element — comparing a baseline against targets.
 
 
-!!! info "29 attributes"
+!!! info "27 attributes"
     Every attribute below is also available in the Spec Builder's attribute
     inspector — click the **i** beside any field to see this same content
     without leaving the form.
@@ -19,11 +19,9 @@ One entry per `reconciliation_flows[]` element — comparing a baseline against 
 |---|---|---|---|
 | [`compare_columns`](#compare-columns) | array<string> | no | — |
 | [`error_handling.on_failure`](#error-handlingon-failure) | string (enum) | no | — |
-| [`generate_surrogate_key`](#generate-surrogate-key) | boolean | no | — |
 | [`logging_config.mismatch_log_capture`](#logging-configmismatch-log-capture) | boolean | no | — |
 | [`logging_config.run_log_capture`](#logging-configrun-log-capture) | boolean | no | — |
 | [`match_keys`](#match-keys) | array<string> | **yes** | — |
-| [`recon_mode`](#recon-mode) | string (enum) | no | — |
 | [`reconciliation_id`](#reconciliation-id) | string | **yes** | — |
 | [`source_config.data_standardization_sql`](#source-configdata-standardization-sql) | array<string> | no | — |
 | [`source_config.filter_condition`](#source-configfilter-condition) | string (SQL) | no | — |
@@ -97,28 +95,6 @@ fail raises an error, warn logs and continues.
 !!! tip "Best practice"
 
     - Allowed values: fail, warn.
-
-
----
-
-### `generate_surrogate_key` { #generate-surrogate-key }
-
-Generate __framework_surrogate_key for records.
-
-
-**Type** `boolean` · **Required** no · **Section** Matching & healing
-
-
-```json
-{
-  "generate_surrogate_key": true
-}
-```
-
-
-!!! tip "Best practice"
-
-    - Omitting the attribute is not the same as setting it false — check the default above.
 
 
 ---
@@ -198,31 +174,6 @@ Columns identifying the same logical record across datasets.
 
     - Required — onboarding rejects the flow if this is missing.
     - Entered as a comma-separated list; written to the spec as a JSON array of strings.
-
-
----
-
-### `recon_mode` { #recon-mode }
-
-triggered reads task_run_id as a dynamic job parameter and bounds the reconciliation to one pipeline run.
-
-
-triggered reads task_run_id as a dynamic job parameter and bounds the reconciliation to one pipeline run. continuous runs as a decoupled streaming process.
-
-
-**Type** `string (enum)` · **Required** no · **Section** Reconciliation identity
-
-
-```json
-{
-  "recon_mode": "triggered"
-}
-```
-
-
-!!! tip "Best practice"
-
-    - Allowed values: triggered, continuous.
 
 
 ---
@@ -389,7 +340,10 @@ Three-part fully-qualified table name.
 
 ### `source_config.task_run_id_column` { #source-configtask-run-id-column }
 
-When recon_mode is triggered and the task_run_id job parameter is set, narrows this side's read to that run's rows.
+When the task_run_id job parameter is set, narrows this side's read to that run's rows.
+
+
+When the task_run_id job parameter is set, narrows this side's read to that run's rows. Reconciliation is triggered-only as of v1.4.0.
 
 
 **Type** `string` · **Required** no · **Section** Source dataset
@@ -714,7 +668,10 @@ Target table name. Composed into the three-part table name on save.
 
 ### `target_configs[].task_run_id_column` { #target-configstask-run-id-column }
 
-When recon_mode is triggered and the task_run_id job parameter is set, narrows this side's read to that run's rows.
+When the task_run_id job parameter is set, narrows this side's read to that run's rows.
+
+
+When the task_run_id job parameter is set, narrows this side's read to that run's rows. Reconciliation is triggered-only as of v1.4.0.
 
 
 **Type** `string` · **Required** no · **Section** Target dataset

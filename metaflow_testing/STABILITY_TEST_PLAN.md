@@ -23,7 +23,7 @@
 | Pipeline | `configuration: {"pipelines.maxFlowRetryAttempts": "0"}` | **5** for triggered pipelines | With the default, a flow that fails transiently is retried up to 5 times and the update still reports **SUCCESS**. That is precisely the instability this plan exists to measure, silently erased. |
 | Job task | `max_retries: 0` on every task | 0 (but set it explicitly) | Same reason one level up: a seed/onboard task that succeeds only on attempt 2 is a finding, not a pass. |
 | Pipeline | `development: true` | — | Already set on every test pipeline. Also suppresses automatic update restart. |
-| Pipeline | `continuous: false` | — | Triggered updates only. The one continuous case (D5) is a documented expected-failure. |
+| Pipeline | `continuous: false` | — | Triggered updates only, everywhere — including reconciliation, which is triggered-only by design (D5). |
 
 Retries are not attempted for ad-hoc editor updates or Validate updates in any case, so this
 setting only bites on the job-driven updates this plan actually runs — which is all of them.
@@ -93,7 +93,7 @@ passphrase. Not a fifth data schema — it holds no tables.
 | `asn1_schema/telecom_cdr.asn` / `telecom_cdr_v2.asn` | E5 — schema-version change |
 | `finance_usecase/pgp_test_keypair_{private,public}.asc` | Suite B (PGP source decrypt) |
 | `finance_egress_usecase/pgp_egress_keypair_{private,public}.asc` | Suite C (PGP export) |
-| `inventory_usecase/inventory_snapshot_day{1,2}.csv` | Suite G (FULL_SNAPSHOT_CDC / NO_PK) |
+| `inventory_usecase/inventory_snapshot_day{1,2}.csv`, `sample_data/sample_mainframe_customer_master_day{1,2}.csv` | Suite G (`FULL_SNAPSHOT_CDC`) |
 | `crm_usecase/customer_scd1_day{1,2}.csv`, `hr_usecase/dim_employee_day{1,2}.csv` | CDC suites |
 | `excalibur_usecase/{autoload_batch1,zerobus_source_bus_batch1}.csv` | Suite D (recon) |
 | `master_usecase/companies_batch1.csv` | Standardization / normalization suites |
@@ -127,7 +127,7 @@ Everything else in this plan reuses bytes already in the repo.
 
 | Id | Invariant | How it is checked |
 |---|---|---|
-| **I1** | `__framework_hash_key` / `__framework_surrogate_key` for an unchanged row is **byte-identical** across N1→N5 | Store N1's key set; `EXCEPT` against each later run |
+| **I1** | `__framework_hash_key` / `__framework_hash_value` for an unchanged row is **byte-identical** across N1→N5 | Store N1's key set; `EXCEPT` against each later run |
 | **I2** | No duplicate business key in the target (or a documented reason there is one) | `GROUP BY <pk> HAVING count(*) > 1` |
 | **I3** | Quarantine row count exactly matches the rows violating the DQ rule — no more, no fewer | Count against the rule expression run directly on the source |
 | **I4** | `config.reconciliation_run_log` shows `SKIPPED_ALREADY_PROCESSED` on N2, never a second append | Query the run log by `reconciliation_id` |
@@ -209,7 +209,7 @@ entry with `read_mode: "batch"`, and `append_target_table` pointing at a Delta t
 | **D2** | **Append-only invariant.** Downstream pipeline reads `bronze.<tc>_bus` as a streaming source while recon appends corrections into it | The historical SCN-002 defect was a seeder MERGE with `whenMatchedUpdate()` poisoning an append-only stream with `DELTA_SOURCE_TABLE_IGNORE_CHANGES`. Assert the **recon appender only INSERTs** and the downstream stream survives all 4 runs without a full refresh |
 | **D3** | Re-run, unchanged source (**N2**) | `SKIPPED_ALREADY_PROCESSED` via the fingerprint; **zero** duplicate correction rows. This is invariant I4 |
 | **D4** | Four incremental batches, self-healing convergence | `missing_in_target_count` must strictly decrease and reach 0. Plot it per run — a non-monotonic series is the finding |
-| **D5** | `recon_mode: "continuous"` (**expected failure**) | `INFINITE_STREAMING_TRIGGER_NOT_SUPPORTED` on serverless job compute — already documented. Assert the *documented* failure, don't chase it. Invert the assertion |
+| **D5** | **Every run terminates.** A `read_mode: "streaming"` side over the 4-run protocol | Reconciliation is triggered-only: a streaming side runs under `trigger(availableNow=True)`, so each run drains its backlog and **stops**. Assert the task reaches a terminal state unaided, that its checkpoint advances, and that run *k+1* starts where run *k* stopped — no re-reading, no standing query |
 | **D6** | `two_tier_verification` true vs false on identical data | Phase-1 fingerprint early-out must produce an **identical** `reconciliation_run_log` classification to the full Phase-2 join. Any divergence is a real correctness bug in the XOR fold |
 | **D7** | `comparison_direction` all three values on the same pair | `target_to_source` must **never** append or mutate — audit-only by design. Assert the target table is byte-identical before/after |
 
@@ -222,7 +222,7 @@ entry with `read_mode: "batch"`, and `append_target_table` pointing at a Delta t
 | **E1** | BER decode of 3 GSM CDRs with `file_pattern: "*.ber"` | Regression for the fixed `cloudFiles.fileNamePattern` → `pathGlobFilter` defect. This is the only spec in the corpus that sets `file_pattern`, so it is the only guard on that regression |
 | **E2** | `asn1_codec: "der"` against the same PDU | Codec selection is honoured; decode succeeds or fails cleanly |
 | **E3** | A deliberately truncated `.ber` alongside valid ones | `_asn1_decode_error` populated → DQ rule `_asn1_decode_error IS NULL` routes it to `_quarantine`, valid rows still land. **Note:** this spec's DQ rules reference `_asn1_decode_error` (single underscore) — confirm against the `__framework_` rename whether that column name is still current |
-| **E4** | **4-run decode determinism** | Re-land the same 3 files; assert every decoded field value **and** every `__framework_surrogate_key` is identical. `mapInPandas` compiles the schema once per partition — a partition-count change must not change output |
+| **E4** | **4-run decode determinism** | Re-land the same 3 files; assert every decoded field value **and** every `__framework_hash_value` is identical. `mapInPandas` compiles the schema once per partition — a partition-count change must not change output |
 | **E5** | `telecom_cdr.asn` vs `telecom_cdr_v2.asn` on the same source | Field list is derived from the `.asn` by introspection. A v2 module with an added field: does it widen the target schema or fail? |
 | **E6** | ASN.1 files delivered **inside a ZIP** | `_validate_source_zip_handling` is shared by `autoloader` **and** `asn1`, so this is legal and has zero coverage. Combines Suite A and Suite E |
 
@@ -254,27 +254,32 @@ entry with `read_mode: "batch"`, and `append_target_table` pointing at a Delta t
 
 ---
 
-### 5.2 Suite G — `FULL_SNAPSHOT_CDC_NO_PK`, the user's worked example · P0
+### 5.2 Suite G — `FULL_SNAPSHOT_CDC`, the user's worked example · P0
 
 Run **5 times**, not 4. This suite is the template for what "deep dive on one functionality"
 means in this plan.
 
+Snapshot CDC has exactly one shape: a real `target_config.primary_keys` handed to Databricks'
+own `dlt.apply_changes_from_snapshot`. A source with genuinely no key is not a snapshot case at
+all — it is `TRUNCATE_AND_LOAD`, and G2 covers that fork explicitly.
+
 | Run | Action | Prediction (from `cdc/snapshot.py` + the documented carried limitation) |
 |---|---|---|
-| **N1** | Land `inventory_snapshot_day1.csv` | Target = day-1 rows. `__framework_surrogate_key` present on every row (forced on for `_NO_PK`, overriding an explicit `generate_surrogate_key: false` with a WARNING — assert that warning appears) |
-| **N2** | Re-run, no new file | **No-op.** Identical row count, identical surrogate keys (I1) |
+| **N1** | Land `inventory_snapshot_day1.csv` | Target = day-1 rows, one row per `item_id`. Assert the key is unique (I2) |
+| **N2** | Re-run, no new file | **No-op.** Identical row count, identical key set (I1) |
 | **N3** | Land `inventory_snapshot_day2.csv` (a key removed, a key changed, a key added) | **Predicted: the removed key is NOT deleted.** `apply_changes_from_snapshot` reads the source dataset's *current contents*; over a streaming Auto Loader upstream those **accumulate**, so the dataset holds day1 ∪ day2. Assert accumulation explicitly rather than asserting the diff that the docs say cannot work |
 | **N4** | Re-run, no new file | Still a no-op; the day-1 ∪ day-2 state is stable |
 | **N5** | `--full-refresh` | **The interesting one.** Does the target converge, or reproduce the accumulated state? Records whether the table's contents depend on arrival history |
 
 | TC | Variant | Purpose |
 |---|---|---|
-| **G1** | `FULL_SNAPSHOT_CDC_NO_PK` over the 5-run protocol above | The baseline behaviour study |
-| **G2** | `FULL_SNAPSHOT_CDC` **with** `primary_keys`, same 5 runs, same fixtures | Isolates exactly what the surrogate key changes vs a natural key |
-| **G3** | `_NO_PK` with `cdc_operation_column` + `delete_values` | Explicit delete markers are filtered **before** the snapshot comparison. Do explicit deletes work where implicit ones cannot? |
-| **G4** | `_NO_PK` with `surrogate_key_columns` pinned to a subset | Key computed over chosen columns, not all payload columns — changes what counts as "the same row" |
-| **G5** | `_NO_PK` where day-2 changes only a column **excluded** from the surrogate key | The row must be treated as **unchanged**. This is the sharpest test of `surrogate_key_exclude_columns` |
-| **G6** | `_NO_PK` fed by a **batch** (`materialized_view`) target instead of `streaming_table` | `is_streaming = (target_type == "streaming_table")`. A non-streaming upstream may not accumulate — this is the plausible route to the day-1/day-2 diffing the docs say is unsupported. **Highest-value experiment in this suite.** |
+| **G1** | `FULL_SNAPSHOT_CDC`, `primary_keys: ["item_id"]`, over the 5-run protocol above | The baseline behaviour study |
+| **G2** | The same source with **no usable key**, run as `TRUNCATE_AND_LOAD` instead, same 5 runs | The supported route for a keyless full dump. Isolates exactly what a declared key buys over a full recompute — and what it costs |
+| **G3** | `FULL_SNAPSHOT_CDC` with `cdc_operation_column` + `delete_values` | Explicit delete markers are filtered **before** the snapshot comparison (`cdc/snapshot.py` drops them from the snapshot-input dataset). Do explicit deletes work where implicit ones cannot? |
+| **G4** | `sample_mainframe_customer_master_day{1,2}.csv` with `primary_keys: ["customer_name"]` (TC-CDC-007's shape) | **Update-in-place proof.** Day-2 changes `customer_status` on one customer and `customer_city` on another. Each must stay **one** row that simply takes its new values — never a delete plus a re-insert under a new identity — while the dropped customer is deleted and the new one inserted. 10 rows on both days |
+| **G5** | A **composite** `primary_keys` (two columns) where day-2 changes only a non-key column | Same assertion as G4 one level harder: key ordering is spec order, and a multi-column key must still resolve to a single updated row, not a second one |
+| **G6** | `FULL_SNAPSHOT_CDC` fed by a **batch** (`materialized_view`) target instead of `streaming_table` | `is_streaming = (target_type == "streaming_table")`. A non-streaming upstream may not accumulate — this is the plausible route to the day-1/day-2 diffing the docs say is unsupported. **Highest-value experiment in this suite.** |
+| **G7** | `primary_keys` naming a column the clean upstream does not carry — renamed by `column_normalization`, or dropped by a `data_standardization_sql` projection (**negative**) | `CdcStrategyError` from the snapshot-input dataset's own key guard, naming both the missing key and the available columns. Invert the assertion |
 
 ---
 
@@ -286,7 +291,7 @@ Same run protocol applies. Condensed to scenario names; each expands to a TC row
 |---|---|---|
 | **CDC strategies** | `APPEND` re-delivery · `TRUNCATE_AND_LOAD` full recompute (note E09 is **withdrawn** — `empty_target_if_source_empty` is accepted but inert; assert it has no effect) · `SCD1` day1→day2 in-place update · `SCD2` history rows + current flag across 4 runs · `SCD3` (transformation flows only — rejected on ingestion flows) | P0 |
 | **Data quality** | `warn` (rows land, expectation recorded) · `drop` (rows silently removed) · `fail` (**expected failure**, invert assertion) · `quarantine` (companion table, `__framework_dq_*` columns) · a rule referencing a **normalized** column name | P0 |
-| **Column handling** | `column_normalization` `lower` / `preserve` / `upper` · collision detection on the lowercased projection (**negative**) · legacy `normalize_column_names` boolean vs the new object (precedence: an object omitting `enabled` must **not** silently disable) · `data_standardization_sql` written against raw names (**negative**, fails at runtime not onboarding) | P0 |
+| **Column handling** | `column_normalization` `lower` / `preserve` / `upper` · collision detection on the lowercased projection (**negative**) · an object omitting `enabled` must resolve to **off** (`enabled` defaults to false — `column_normalization` is the only switch) · a spec still carrying the removed `normalize_column_names` boolean (**negative** — onboarding must reject it with the migration message, not ignore it) · `data_standardization_sql` written against raw names (**negative**, fails at runtime not onboarding) | P0 |
 | **JSON handling** | `json_string_columns` with `schema_ddl` · without `schema_ddl` (requires a streaming source) · `explode_columns` on a real array · present-but-empty `explode_columns` = auto-flatten-all · absent = schema-preserving passthrough | P1 |
 | **Dedup** | `remove_dups` off · on without watermark · on with `dedup_watermark` · duplicate arriving in a **later** batch (across-run dedup, the hard case) | P1 |
 | **Security** | AES `GCM` / `CBC` / `ECB` column encryption · deterministic hashing (same input → same digest across all 4 runs, invariant I1) · redaction · secret resolution failure (**negative**) | P1 |
@@ -308,7 +313,7 @@ Same run protocol applies. Condensed to scenario names; each expands to a TC row
 | **W0** | Provision: 4 schemas, 4 volumes, secret scope, control tables. Upload shared refs (`.asn`, PGP keys). Deploy bundle **once**. | `bundle validate` OK; control tables present; wheel resolvable from the Volume |
 | **W1** | Onboarding suite + Suite F (schema/projection) | F1's prediction confirmed or refuted — this decides whether the rest of the plan needs a projection workaround |
 | **W2** | Suite A (plain ZIP) → Suite B (encrypted ZIP) | B3's double-layer path works, or is a documented gap |
-| **W3** | Suite G (snapshot CDC, 5 runs × 6 variants) + remaining CDC strategies | G6 answers whether day-1/day-2 diffing is reachable at all |
+| **W3** | Suite G (snapshot CDC, 5 runs × 7 variants) + remaining CDC strategies | G6 answers whether day-1/day-2 diffing is reachable at all |
 | **W4** | Suite E (ASN.1) + DQ + column handling | — |
 | **W5** | Suite D (streaming recon) — **serialised**, never concurrent, since D2 has a downstream stream reading a table another test writes | D2's append-only invariant holds across all 4 runs |
 | **W6** | Suite C (PGP export) + sinks + observability | C5 round-trip equality |
@@ -323,7 +328,7 @@ Each wave: concurrency ≤ 3, no deploys mid-wave, results written to §8 before
 Stating these **before** execution so the run confirms or refutes rather than rationalises:
 
 1. **F1** — `schema_config` with 4 of 50 columns will land all 50. No ingestion-time projection exists.
-2. **G1/N3** — `FULL_SNAPSHOT_CDC_NO_PK` will accumulate day1 ∪ day2 and will not delete the removed key.
+2. **G1/N3** — `FULL_SNAPSHOT_CDC` over a streaming Auto Loader upstream will accumulate day1 ∪ day2 and will not delete the removed key. Declaring a key does not fix the accumulation; it only decides what "the same row" means once the snapshot is read.
 3. **G6** — a non-streaming (`materialized_view`) target may not accumulate, and is the plausible route to real snapshot diffing.
 4. **N4 (all suites)** — a same-filename overwrite will be **ignored** by Auto Loader; corrected data never lands unless `cloudFiles.allowOverwrites` is set.
 5. **A5** — with `pipelines.maxFlowRetryAttempts: 0`, a corrupt archive will fail the whole update rather than being skipped.

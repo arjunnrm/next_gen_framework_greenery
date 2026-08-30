@@ -71,7 +71,7 @@
       }
     },
     {
-      "reconciliation_id": "recon_004_continuous",
+      "reconciliation_id": "recon_004_streaming",
       "source_config": {
         "type": "table",
         "table": "{{catalog}}.bronze_excalibur.autoload_bronze",
@@ -80,7 +80,7 @@
       },
       "target_configs": [
         {
-          "target_id": "zerobus_bronze_target_continuous",
+          "target_id": "zerobus_bronze_target_streaming",
           "type": "table",
           "table": "{{catalog}}.bronze_excalibur.zerobus_bronze",
           "read_mode": "streaming",

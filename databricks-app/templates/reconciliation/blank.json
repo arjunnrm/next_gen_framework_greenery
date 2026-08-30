@@ -8,9 +8,8 @@
   "target_configs": [
     {
       "target_id": "target_1",
-      "target_catalog": "{{catalog}}",
-      "target_schema": "bronze_example",
-      "target_table": "target_table",
+      "type": "table",
+      "table": "{{catalog}}.bronze_example.target_table",
       "comparison_direction": "both",
       "append_target_table": "{{catalog}}.bronze_example.healed_table"
     }

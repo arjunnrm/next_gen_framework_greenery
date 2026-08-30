@@ -88,7 +88,7 @@
       "strategy": "FULL_SNAPSHOT_CDC",
       "badge": "snapshot diff",
       "desc": "Full extract each run, diffed against the previous one on a declared key to derive inserts, updates and deletes.",
-      "requires": "primary_keys"
+      "requires": "primary_keys required"
     }
   ],
   "attributes": {
@@ -2310,6 +2310,90 @@
         "generated": true
       }
     },
+    "source_config.source_zip_handling.pre_extraction_decryption.passphrase_secret.secret_catalog": {
+      "purpose": "Passphrase protecting the PGP PRIVATE KEY above.",
+      "why": "Passphrase protecting the PGP PRIVATE KEY above. Optional — only when the key itself is passphrase-protected. Not the ZIP's password: that is secret_passphrase, below.",
+      "samples": [
+        {
+          "language": "json",
+          "code": "{\n  \"source_config\": {\n    \"source_zip_handling\": {\n      \"pre_extraction_decryption\": {\n        \"passphrase_secret\": {\n          \"secret_catalog\": \"{{catalog}}\"\n        }\n      }\n    }\n  }\n}"
+        }
+      ],
+      "tips": [
+        "Only applies to some configurations; the form hides it when it is not relevant."
+      ],
+      "errors": [],
+      "refs": [
+        "secrets",
+        "uc_privileges"
+      ],
+      "_meta": {
+        "type": "string",
+        "required": false,
+        "flows": [
+          "ingestion"
+        ],
+        "section": "Source · ZIP handling",
+        "doc": "#7-source-zip-handling",
+        "generated": true
+      }
+    },
+    "source_config.source_zip_handling.pre_extraction_decryption.passphrase_secret.secret_key": {
+      "purpose": "Passphrase protecting the PGP PRIVATE KEY above.",
+      "why": "Passphrase protecting the PGP PRIVATE KEY above. Optional — only when the key itself is passphrase-protected. Not the ZIP's password: that is secret_passphrase, below.",
+      "samples": [
+        {
+          "language": "json",
+          "code": "{\n  \"source_config\": {\n    \"source_zip_handling\": {\n      \"pre_extraction_decryption\": {\n        \"passphrase_secret\": {\n          \"secret_key\": \"pii_encryption_key\"\n        }\n      }\n    }\n  }\n}"
+        }
+      ],
+      "tips": [
+        "Only applies to some configurations; the form hides it when it is not relevant."
+      ],
+      "errors": [],
+      "refs": [
+        "secrets",
+        "uc_privileges"
+      ],
+      "_meta": {
+        "type": "string",
+        "required": false,
+        "flows": [
+          "ingestion"
+        ],
+        "section": "Source · ZIP handling",
+        "doc": "#7-source-zip-handling",
+        "generated": true
+      }
+    },
+    "source_config.source_zip_handling.pre_extraction_decryption.passphrase_secret.secret_schema": {
+      "purpose": "Passphrase protecting the PGP PRIVATE KEY above.",
+      "why": "Passphrase protecting the PGP PRIVATE KEY above. Optional — only when the key itself is passphrase-protected. Not the ZIP's password: that is secret_passphrase, below.",
+      "samples": [
+        {
+          "language": "json",
+          "code": "{\n  \"source_config\": {\n    \"source_zip_handling\": {\n      \"pre_extraction_decryption\": {\n        \"passphrase_secret\": {\n          \"secret_schema\": \"security\"\n        }\n      }\n    }\n  }\n}"
+        }
+      ],
+      "tips": [
+        "Only applies to some configurations; the form hides it when it is not relevant."
+      ],
+      "errors": [],
+      "refs": [
+        "secrets",
+        "uc_privileges"
+      ],
+      "_meta": {
+        "type": "string",
+        "required": false,
+        "flows": [
+          "ingestion"
+        ],
+        "section": "Source · ZIP handling",
+        "doc": "#7-source-zip-handling",
+        "generated": true
+      }
+    },
     "source_config.source_zip_handling.pre_extraction_decryption.private_key_secret.secret_catalog": {
       "purpose": "Unity Catalog secret catalog holding the key.",
       "why": "",
@@ -2398,8 +2482,8 @@
       }
     },
     "source_config.source_zip_handling.pre_extraction_decryption.secret_passphrase.secret_catalog": {
-      "purpose": "Unity Catalog secret catalog holding the key.",
-      "why": "",
+      "purpose": "AES password on the ZIP ARCHIVE itself, resolved by pyzipper at extraction time.",
+      "why": "AES password on the ZIP ARCHIVE itself, resolved by pyzipper at extraction time. Independent of, and combinable with, the PGP layer above. Not the PGP key's passphrase: that is passphrase_secret.",
       "samples": [
         {
           "language": "json",
@@ -2426,8 +2510,8 @@
       }
     },
     "source_config.source_zip_handling.pre_extraction_decryption.secret_passphrase.secret_key": {
-      "purpose": "UC secret key name.",
-      "why": "UC secret key name. AES keys must be exactly 16, 24 or 32 bytes.",
+      "purpose": "AES password on the ZIP ARCHIVE itself, resolved by pyzipper at extraction time.",
+      "why": "AES password on the ZIP ARCHIVE itself, resolved by pyzipper at extraction time. Independent of, and combinable with, the PGP layer above. Not the PGP key's passphrase: that is passphrase_secret.",
       "samples": [
         {
           "language": "json",
@@ -2454,8 +2538,8 @@
       }
     },
     "source_config.source_zip_handling.pre_extraction_decryption.secret_passphrase.secret_schema": {
-      "purpose": "Unity Catalog secret schema.",
-      "why": "",
+      "purpose": "AES password on the ZIP ARCHIVE itself, resolved by pyzipper at extraction time.",
+      "why": "AES password on the ZIP ARCHIVE itself, resolved by pyzipper at extraction time. Independent of, and combinable with, the PGP layer above. Not the PGP key's passphrase: that is passphrase_secret.",
       "samples": [
         {
           "language": "json",
@@ -2659,8 +2743,8 @@
       }
     },
     "source_config.task_run_id_column": {
-      "purpose": "When the task_run_id job parameter is set, narrows this side's read to that run's rows. Reconciliation is triggered-only as of v1.4.0.",
-      "why": "",
+      "purpose": "When the task_run_id job parameter is set, narrows this side's read to that run's rows.",
+      "why": "When the task_run_id job parameter is set, narrows this side's read to that run's rows. Reconciliation is triggered-only as of v1.4.0.",
       "samples": [
         {
           "language": "json",
@@ -3093,7 +3177,7 @@
     },
     "target_config.cdc_load_strategy": {
       "purpose": "How rows are merged into the target table.",
-      "why": "This single choice decides which other target_config attributes are meaningful; the strategy tabs re-scope the form around it.",
+      "why": "This single choice decides which other target_config attributes are meaningful; the strategy tabs re-scope the form around it. Two families: APPEND and TRUNCATE_AND_LOAD need no key and skip the CDC dispatcher entirely, while SCD1, SCD2, SCD3 and FULL_SNAPSHOT_CDC all merge on primary_keys. Choose by asking three things about the SOURCE, in order -- does each row have a business key, does the source deliver every live row on every run, and how much history the business actually needs.",
       "samples": [
         {
           "language": "json",
@@ -3101,11 +3185,43 @@
         }
       ],
       "tips": [
+        "APPEND -- immutable events, telemetry, audit logs. No key, no merge, no deduplication: a replayed file appends every row a second time and nothing detects it.",
+        "TRUNCATE_AND_LOAD -- small reference and lookup tables replaced wholesale each run. Cost scales with table size, not with how much changed.",
+        "SCD1 -- current-state entity tables. Deletes never propagate unless you set cdc_operation_column together with cdc_operation_mapping.delete_values.",
+        "SCD2 -- full version history for audit and point-in-time joins. Scope columns_to_check, or one volatile source column versions every row on every run.",
+        "SCD3 -- current and previous side by side, transformation flows only. It stores complete SCD2 history in a hidden table to expose two states; if you are paying that cost anyway, SCD2 gives you strictly more.",
+        "FULL_SNAPSHOT_CDC -- full extracts from a source that has a real key, where rows that disappear must disappear downstream. A key absent from the snapshot is DELETED. Never point it at an incremental feed.",
         "APPEND and TRUNCATE_AND_LOAD are the only strategies where partitioning, liquid clustering and auto TTL take effect.",
-        "SCD3 is transformation-only — it is not available to ingestion flows.",
+        "The other four enable Change Data Feed on the target and add the framework hash columns, which is what makes per-run insert/update/delete counts possible.",
+        "SCD3 is transformation-only -- it is not available to ingestion flows.",
         "Never include encrypted columns in columns_to_check: AES-GCM uses a random IV, so the ciphertext differs every run and every row looks changed."
       ],
       "errors": [
+        {
+          "symptom": "A TRUNCATE_AND_LOAD target was emptied overnight",
+          "cause": "The source recomputed to zero rows. A short or missed delivery is indistinguishable from a genuinely empty extract, and empty_target_if_source_empty has had no runtime effect since it was withdrawn on 2026-08-29.",
+          "fix": "Compare the target's row count across updates in a post-update job task, outside the pipeline graph. The in-graph guard cannot work -- preserving the contents means the target reads itself, which Lakeflow rejects as a cycle."
+        },
+        {
+          "symptom": "Almost every row vanished from a FULL_SNAPSHOT_CDC target",
+          "cause": "The source is an incremental feed, not a full snapshot. apply_changes_from_snapshot deletes any key absent from the incoming snapshot, and nothing validates that the source is actually complete.",
+          "fix": "Switch to SCD1, which merges without deleting. Reserve FULL_SNAPSHOT_CDC for sources that deliver every live row on every run."
+        },
+        {
+          "symptom": "A FULL_SNAPSHOT_CDC target never deletes anything, and updated keys appear twice",
+          "cause": "The upstream is streaming (Auto Loader), so each new extract is appended to the snapshot input rather than replacing it -- after a second delivery the input holds Day-1 union Day-2.",
+          "fix": "Overwrite the landing directory in place so each run sees exactly one snapshot. Multi-snapshot diffing over an append-only landing zone is a known limitation."
+        },
+        {
+          "symptom": "Rows deleted at source are still present in an SCD1 or SCD2 target",
+          "cause": "No cdc_operation_column is configured, so apply_changes has no delete signal.",
+          "fix": "Set cdc_operation_column and cdc_operation_mapping.delete_values, or accept that the target only ever grows."
+        },
+        {
+          "symptom": "The same key resolves to a different version on different runs",
+          "cause": "sequence_by_column was omitted, so rows sequence by __framework_ingestion_timestamp_utc -- one value per batch. Two versions of a key inside one batch tie, and the winner is not deterministic.",
+          "fix": "Declare a real sequence_by_column from the source."
+        },
         {
           "symptom": "A new history row appears on every run with no real change",
           "cause": "columns_to_check includes an encrypted or non-deterministic column.",
@@ -3114,7 +3230,7 @@
         {
           "symptom": "partition_columns appears to be ignored",
           "cause": "Partitioning is silently skipped for CDC-dispatched strategies.",
-          "fix": "Expected behaviour — use APPEND/TRUNCATE_AND_LOAD, or accept an unpartitioned CDC target."
+          "fix": "Expected behaviour -- use APPEND/TRUNCATE_AND_LOAD, or accept an unpartitioned CDC target."
         }
       ],
       "refs": [
@@ -3132,8 +3248,8 @@
       }
     },
     "target_config.cdc_operation_column": {
-      "purpose": "Column carrying insert/update/delete indicators.",
-      "why": "Column carrying insert/update/delete indicators. Optional regardless of primary_keys. Applicable to FULL_SNAPSHOT_CDC — snapshot diffing derives deletes from the snapshot itself.",
+      "purpose": "Column carrying the source's insert/update/delete indicator.",
+      "why": "Without it, SCD1 and SCD2 have no delete signal at all and their targets only ever grow. Optional regardless of primary_keys -- a source can have a real key and no delete marker.",
       "samples": [
         {
           "language": "json",
@@ -3141,7 +3257,10 @@
         }
       ],
       "tips": [
-        "Only applies to some configurations; the form hides it when it is not relevant."
+        "Requires cdc_operation_mapping.delete_values alongside it; the validator rejects one without the other.",
+        "SCD1 removes the row outright. SCD2 closes the current version and keeps the history.",
+        "On FULL_SNAPSHOT_CDC, flagged rows are filtered out of the snapshot before the diff, which deletes them by absence -- the same end result by a different route.",
+        "A validation error on SCD3, which has no delete path at all."
       ],
       "errors": [],
       "refs": [
@@ -3156,7 +3275,7 @@
         ],
         "section": "Load strategy",
         "doc": "#8-target-config-shared-by-ingestion--transformation",
-        "generated": true
+        "generated": false
       }
     },
     "target_config.cdc_operation_mapping.delete_values": {
@@ -3190,8 +3309,8 @@
       }
     },
     "target_config.columns_to_check": {
-      "purpose": "Limits which columns trigger a new history version (SCD2) or a current/previous pivot (SCD3).",
-      "why": "Limits which columns trigger a new history version (SCD2) or a current/previous pivot (SCD3). Never include encrypted columns — AES-GCM's random IV causes spurious changes every run.",
+      "purpose": "Limits which columns count as a change.",
+      "why": "It means something different per strategy: SCD2 tracks history only on these columns, SCD3 pivots exactly these into current_/previous_ pairs, and SCD1 uses them only to narrow the change-detection hash -- the merge itself is unaffected, so an unchanged row still costs a write.",
       "samples": [
         {
           "language": "json",
@@ -3199,8 +3318,11 @@
         }
       ],
       "tips": [
-        "Only applies to some configurations; the form hides it when it is not relevant.",
-        "Entered as a comma-separated list; written to the spec as a JSON array of strings."
+        "Required for SCD3 -- registration fails without it.",
+        "Leave it empty on SCD2 and every column counts, so one volatile source column (a load timestamp, a batch id) versions every row on every run.",
+        "Framework technical columns are excluded from comparison automatically. Columns the SOURCE stamps are not -- exclude those yourself.",
+        "Never include encrypted columns: AES-GCM's random IV makes the ciphertext differ every run.",
+        "Rejected on APPEND, TRUNCATE_AND_LOAD and FULL_SNAPSHOT_CDC."
       ],
       "errors": [],
       "refs": [
@@ -3214,12 +3336,12 @@
         ],
         "section": "Load strategy",
         "doc": "#8-target-config-shared-by-ingestion--transformation",
-        "generated": true
+        "generated": false
       }
     },
     "target_config.columns_to_exclude": {
-      "purpose": "Excludes columns from the target schema (except_column_list) and from comparison.",
-      "why": "Excludes columns from the target schema (except_column_list) and from comparison. Validation error with APPEND, TRUNCATE_AND_LOAD or FULL_SNAPSHOT_CDC.",
+      "purpose": "Columns that should not participate in change comparison.",
+      "why": "Aimed at technical columns a source stamps on every row -- load timestamps, batch ids, checksums -- which would otherwise make every row look changed on every run.",
       "samples": [
         {
           "language": "json",
@@ -3227,8 +3349,9 @@
         }
       ],
       "tips": [
-        "Only applies to some configurations; the form hides it when it is not relevant.",
-        "Entered as a comma-separated list; written to the spec as a JSON array of strings."
+        "SCD1, SCD2 and SCD3 only; a validation error on APPEND, TRUNCATE_AND_LOAD and FULL_SNAPSHOT_CDC.",
+        "primary_keys and the framework's own technical columns are excluded automatically -- you do not need to list them.",
+        "Whether the listed columns are also dropped from the target's schema is currently inconsistent between the validator and the SCD registrar. Do not rely on this field to shape the target schema; use it for comparison scoping only."
       ],
       "errors": [],
       "refs": [],
@@ -3240,12 +3363,12 @@
         ],
         "section": "Load strategy",
         "doc": "#8-target-config-shared-by-ingestion--transformation",
-        "generated": true
+        "generated": false
       }
     },
     "target_config.empty_target_if_source_empty": {
-      "purpose": "Governs a TRUNCATE_AND_LOAD run whose source recomputes to zero rows.",
-      "why": "Governs a TRUNCATE_AND_LOAD run whose source recomputes to zero rows. false (the default, and the safe choice) leaves the target untouched; true truncates it to empty, the pre-v1.3.0 behaviour.",
+      "purpose": "Whether a zero-row TRUNCATE_AND_LOAD source is allowed to blank the target.",
+      "why": "WITHDRAWN -- this field currently has no runtime effect. It still validates so existing specs stay valid, but nothing reads it, and a zero-row source blanks the target either way.",
       "samples": [
         {
           "language": "json",
@@ -3253,11 +3376,19 @@
         }
       ],
       "tips": [
-        "default false — an empty source leaves the target untouched",
-        "Only applies to some configurations; the form hides it when it is not relevant.",
-        "Omitting the attribute is not the same as setting it false — check the default above."
+        "Withdrawn on 2026-08-29. Setting it true or false changes nothing today.",
+        "The guard cannot run inside the pipeline graph: preserving the contents means the target reads itself, which Lakeflow rejects with a cycle error before any flow runs.",
+        "Its emptiness test was also unusable in-graph, because an upstream produced by the same update legitimately holds no data yet -- 'empty' and 'not built yet' are indistinguishable there.",
+        "Enforce the policy outside the graph instead: a post-update task comparing the target's row count across updates.",
+        "A validation error on any strategy other than TRUNCATE_AND_LOAD."
       ],
-      "errors": [],
+      "errors": [
+        {
+          "symptom": "The target was blanked even though this is set to false",
+          "cause": "The guard is withdrawn and unwired; the value is not read at runtime.",
+          "fix": "Treat every TRUNCATE_AND_LOAD target as unprotected against an empty source and add a row-count check in a post-update job task."
+        }
+      ],
       "refs": [],
       "_meta": {
         "type": "boolean",
@@ -3267,7 +3398,7 @@
         ],
         "section": "Load strategy",
         "doc": "#8-target-config-shared-by-ingestion--transformation",
-        "generated": true
+        "generated": false
       }
     },
     "target_config.encrypted_columns": {
@@ -3295,16 +3426,6 @@
         "doc": "#9-encrypted-columns-target_configencrypted_columns",
         "generated": true
       }
-    },
-    "source_data_type": {
-      "purpose": "Declares the original Spark type of an encrypted column.",
-      "why": "Encryption replaces a column's physical type with ciphertext binary, so the pre-encryption type is recorded as the Unity Catalog original_data_type tag -- which is what a downstream source_inputs[].decrypted_columns[].cast_to_type is validated against. Optional and safely defaulted: omit it and the framework uses the type Spark reports at encryption time (the pre-v1.4.0 behaviour). Declare it and a source column that quietly changes type fails loudly at encryption time, naming declared and observed, instead of silently re-tagging and breaking the decrypt side later.",
-      "examples": [
-        {
-          "title": "Declare the pre-encryption type",
-          "code": "{\n  \"target_config\": {\n    \"encrypted_columns\": [\n      {\n        \"column_name\": \"ssn\",\n        \"mode\": \"GCM\",\n        \"source_data_type\": \"string\"\n      }\n    ]\n  }\n}"
-        }
-      ]
     },
     "target_config.encrypted_columns[].column_name": {
       "purpose": "Plaintext column on this flow's DataFrame to encrypt.",
@@ -3469,9 +3590,33 @@
         "generated": true
       }
     },
+    "target_config.encrypted_columns[].source_data_type": {
+      "purpose": "Optional.",
+      "why": "Optional. The column's original Spark type before encryption replaces it with ciphertext binary (string, decimal(18,2), timestamp, ...). Becomes the Unity Catalog original_data_type tag that a downstream decrypted_columns.cast_to_type is checked against. Leave blank to use the type observed at encryption time; declare it to make a silent source type change fail loudly instead.",
+      "samples": [
+        {
+          "language": "json",
+          "code": "{\n  \"source_data_type\": \"string\"\n}"
+        }
+      ],
+      "tips": [],
+      "errors": [],
+      "refs": [],
+      "_meta": {
+        "type": "string",
+        "required": false,
+        "flows": [
+          "ingestion",
+          "transformation"
+        ],
+        "section": "Target · encrypted columns",
+        "doc": "#9-encrypted-columns-target_configencrypted_columns",
+        "generated": true
+      }
+    },
     "target_config.generate_hash_columns": {
-      "purpose": "Adds __framework_hash_key (SHA-256 of primary keys) and __framework_hash_value (SHA-256 of comparison columns).",
-      "why": "Adds __framework_hash_key (SHA-256 of primary keys) and __framework_hash_value (SHA-256 of comparison columns). Never added for APPEND or TRUNCATE_AND_LOAD.",
+      "purpose": "Adds __framework_hash_key and __framework_hash_value to a CDC target.",
+      "why": "Two SHA-256 columns -- one over the ordered primary keys, one over the resolved comparison columns -- that let reconciliation match rows and detect drift without comparing every column on both sides.",
       "samples": [
         {
           "language": "json",
@@ -3479,8 +3624,9 @@
         }
       ],
       "tips": [
-        "Only applies to some configurations; the form hides it when it is not relevant.",
-        "Omitting the attribute is not the same as setting it false — check the default above."
+        "Defaults to true for every CDC-dispatched strategy. Never added for APPEND or TRUNCATE_AND_LOAD, which have no comparison concept.",
+        "The value hash follows columns_to_check and columns_to_exclude, so changing either re-hashes every row and the next run reports everything as changed -- once, expected.",
+        "Reconciliation flows using hash_precomputed: true depend on these columns existing on the target."
       ],
       "errors": [],
       "refs": [],
@@ -3492,7 +3638,7 @@
         ],
         "section": "Load strategy",
         "doc": "#8-target-config-shared-by-ingestion--transformation",
-        "generated": true
+        "generated": false
       }
     },
     "target_config.liquid_clustering_columns": {
@@ -3610,7 +3756,9 @@
       ],
       "tips": [
         "Use the natural business key, not a surrogate generated downstream.",
-        "FULL_SNAPSHOT_CDC requires one too, as of v1.4.0 — the keyless variant was withdrawn along with the surrogate-key engine that stood in for the missing key."
+        "FULL_SNAPSHOT_CDC requires one too, as of v1.4.0 -- the keyless variant was withdrawn along with the surrogate-key engine that stood in for the missing key.",
+        "On FULL_SNAPSHOT_CDC this is the diff key: a key present in the target but absent from the incoming snapshot is deleted.",
+        "A key that never reaches the clean upstream -- renamed by column_normalization, projected away by data_standardization_sql -- is only caught once the graph executes."
       ],
       "errors": [
         {
@@ -3634,8 +3782,8 @@
       }
     },
     "target_config.sequence_by_column": {
-      "purpose": "Ordering column for CDC.",
-      "why": "Ordering column for CDC. Falls back to the framework ingestion timestamp — but if capture_technical_metadata is false you must set this explicitly or the pipeline fails.",
+      "purpose": "Ordering column that decides which version of a key wins.",
+      "why": "apply_changes always needs a sequencer. Omit this and the framework sequences by __framework_ingestion_timestamp_utc, which is current_timestamp() evaluated once per batch -- monotonic and correct across runs, but tied within a single one.",
       "samples": [
         {
           "language": "json",
@@ -3643,9 +3791,18 @@
         }
       ],
       "tips": [
-        "Only applies to some configurations; the form hides it when it is not relevant."
+        "Declare a real source timestamp or version column whenever the feed carries one.",
+        "Ties resolve non-deterministically. If the same key can appear twice in one batch, the fallback is not enough -- and on SCD2 a tie corrupts history order, not just the winner.",
+        "Ignored entirely by FULL_SNAPSHOT_CDC: apply_changes_from_snapshot has no sequence_by parameter, so a value here passes validation and is then silently discarded.",
+        "Setting capture_technical_metadata to false removes the fallback column, which makes this field mandatory."
       ],
-      "errors": [],
+      "errors": [
+        {
+          "symptom": "Pipeline fails naming a missing __framework_ingestion_timestamp_utc column",
+          "cause": "capture_technical_metadata is false and sequence_by_column was left unset, so the fallback sequencer does not exist on the flow.",
+          "fix": "Set sequence_by_column explicitly, or leave capture_technical_metadata at its default."
+        }
+      ],
       "refs": [
         "apply_changes"
       ],
@@ -3657,7 +3814,7 @@
         ],
         "section": "Load strategy",
         "doc": "#8-target-config-shared-by-ingestion--transformation",
-        "generated": true
+        "generated": false
       }
     },
     "target_config.sink_config.format": {
@@ -3693,6 +3850,37 @@
         "section": "Target · sink config",
         "doc": "#10-sink-config-target_configsink_config",
         "generated": false
+      }
+    },
+    "target_config.sink_config.kafka_options": {
+      "purpose": "Connection options for a kafka sink — the same flat options a Spark Structured Streaming Kafka writer takes.",
+      "why": "Connection options for a kafka sink — the same flat options a Spark Structured Streaming Kafka writer takes. Onboarding requires both kafka.bootstrap.servers and topic. A kafka sink has no filesystem path. Prefer databricks.serviceCredential over an inline credential. sink_config.kafka_secret_options (option name → UC secret ref, for an option whose literal value must embed a resolved secret such as kafka.sasl.jaas.config) is supported by the framework but cannot be authored here — add it by hand to the exported JSON.",
+      "samples": [
+        {
+          "language": "json",
+          "code": "{\n  \"target_config\": {\n    \"sink_config\": {\n      \"kafka_options\": {\n        \"option_name\": \"value\"\n      }\n    }\n  }\n}"
+        }
+      ],
+      "tips": [
+        "kafka.bootstrap.servers and topic are both mandatory",
+        "Required — onboarding rejects the flow if this is missing.",
+        "Only applies to some configurations; the form hides it when it is not relevant.",
+        "Keys are written verbatim — a typo becomes a silently ignored option, not an error."
+      ],
+      "errors": [],
+      "refs": [
+        "sinks"
+      ],
+      "_meta": {
+        "type": "object<string,string>",
+        "required": true,
+        "flows": [
+          "ingestion",
+          "transformation"
+        ],
+        "section": "Target · sink config",
+        "doc": "#10-sink-config-target_configsink_config",
+        "generated": true
       }
     },
     "target_config.sink_config.path": {
@@ -3743,6 +3931,34 @@
       ],
       "_meta": {
         "type": "boolean",
+        "required": false,
+        "flows": [
+          "ingestion",
+          "transformation"
+        ],
+        "section": "Target · sink config",
+        "doc": "#10-sink-config-target_configsink_config",
+        "generated": true
+      }
+    },
+    "target_config.sink_config.post_export_archive.export_file_name_format": {
+      "purpose": "str.format()-style template for the exported archive's own file name.",
+      "why": "str.format()-style template for the exported archive's own file name. Placeholders: {batch_id}, {timestamp}. Omit for the framework default.",
+      "samples": [
+        {
+          "language": "json",
+          "code": "{\n  \"target_config\": {\n    \"sink_config\": {\n      \"post_export_archive\": {\n        \"export_file_name_format\": \"export_{batch_id}_{timestamp}.zip\"\n      }\n    }\n  }\n}"
+        }
+      ],
+      "tips": [
+        "Only applies to some configurations; the form hides it when it is not relevant."
+      ],
+      "errors": [],
+      "refs": [
+        "sinks"
+      ],
+      "_meta": {
+        "type": "string",
         "required": false,
         "flows": [
           "ingestion",
@@ -3892,6 +4108,93 @@
       "_meta": {
         "type": "string",
         "required": true,
+        "flows": [
+          "ingestion",
+          "transformation"
+        ],
+        "section": "Target · sink config",
+        "doc": "#10-sink-config-target_configsink_config",
+        "generated": true
+      }
+    },
+    "target_config.sink_config.post_export_archive.pgp_encryption.sign_passphrase_secret.secret_catalog": {
+      "purpose": "Unity Catalog secret catalog holding the key.",
+      "why": "",
+      "samples": [
+        {
+          "language": "json",
+          "code": "{\n  \"target_config\": {\n    \"sink_config\": {\n      \"post_export_archive\": {\n        \"pgp_encryption\": {\n          \"sign_passphrase_secret\": {\n            \"secret_catalog\": \"{{catalog}}\"\n          }\n        }\n      }\n    }\n  }\n}"
+        }
+      ],
+      "tips": [
+        "Only applies to some configurations; the form hides it when it is not relevant."
+      ],
+      "errors": [],
+      "refs": [
+        "secrets",
+        "uc_privileges"
+      ],
+      "_meta": {
+        "type": "string",
+        "required": false,
+        "flows": [
+          "ingestion",
+          "transformation"
+        ],
+        "section": "Target · sink config",
+        "doc": "#10-sink-config-target_configsink_config",
+        "generated": true
+      }
+    },
+    "target_config.sink_config.post_export_archive.pgp_encryption.sign_passphrase_secret.secret_key": {
+      "purpose": "UC secret key name.",
+      "why": "UC secret key name. AES keys must be exactly 16, 24 or 32 bytes.",
+      "samples": [
+        {
+          "language": "json",
+          "code": "{\n  \"target_config\": {\n    \"sink_config\": {\n      \"post_export_archive\": {\n        \"pgp_encryption\": {\n          \"sign_passphrase_secret\": {\n            \"secret_key\": \"pii_encryption_key\"\n          }\n        }\n      }\n    }\n  }\n}"
+        }
+      ],
+      "tips": [
+        "Only applies to some configurations; the form hides it when it is not relevant."
+      ],
+      "errors": [],
+      "refs": [
+        "secrets",
+        "uc_privileges"
+      ],
+      "_meta": {
+        "type": "string",
+        "required": false,
+        "flows": [
+          "ingestion",
+          "transformation"
+        ],
+        "section": "Target · sink config",
+        "doc": "#10-sink-config-target_configsink_config",
+        "generated": true
+      }
+    },
+    "target_config.sink_config.post_export_archive.pgp_encryption.sign_passphrase_secret.secret_schema": {
+      "purpose": "Unity Catalog secret schema.",
+      "why": "",
+      "samples": [
+        {
+          "language": "json",
+          "code": "{\n  \"target_config\": {\n    \"sink_config\": {\n      \"post_export_archive\": {\n        \"pgp_encryption\": {\n          \"sign_passphrase_secret\": {\n            \"secret_schema\": \"security\"\n          }\n        }\n      }\n    }\n  }\n}"
+        }
+      ],
+      "tips": [
+        "Only applies to some configurations; the form hides it when it is not relevant."
+      ],
+      "errors": [],
+      "refs": [
+        "secrets",
+        "uc_privileges"
+      ],
+      "_meta": {
+        "type": "string",
+        "required": false,
         "flows": [
           "ingestion",
           "transformation"
@@ -4452,8 +4755,8 @@
       }
     },
     "target_configs[].task_run_id_column": {
-      "purpose": "When the task_run_id job parameter is set, narrows this side's read to that run's rows. Reconciliation is triggered-only as of v1.4.0.",
-      "why": "",
+      "purpose": "When the task_run_id job parameter is set, narrows this side's read to that run's rows.",
+      "why": "When the task_run_id job parameter is set, narrows this side's read to that run's rows. Reconciliation is triggered-only as of v1.4.0.",
       "samples": [
         {
           "language": "json",

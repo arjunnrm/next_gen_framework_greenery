@@ -275,6 +275,27 @@
         "description": "Output directory. Required for delta and pgp_zip."
       },
       {
+        "path": "target_config.sink_config.kafka_options",
+        "label": "sink_config.kafka_options",
+        "widget": "kv",
+        "type": "object<string,scalar>",
+        "span": 2,
+        "required": true,
+        "visible_when": {
+          "eq": [
+            "target_config.sink_config.format",
+            "kafka"
+          ]
+        },
+        "keys": [
+          "kafka.bootstrap.servers",
+          "topic",
+          "databricks.serviceCredential"
+        ],
+        "hint": "kafka.bootstrap.servers and topic are both mandatory",
+        "description": "Connection options for a kafka sink -- the same flat options a Spark Structured Streaming Kafka writer takes. Onboarding requires both 'kafka.bootstrap.servers' and 'topic'. A kafka sink has no filesystem path. Prefer 'databricks.serviceCredential' over an inline credential. NOTE: sink_config.kafka_secret_options -- a map of option name to Unity Catalog secret reference, for the rarer option whose literal value must embed a resolved secret (e.g. kafka.sasl.jaas.config) -- is supported by the framework but cannot be authored here; add it by hand to the exported JSON."
+      },
+      {
         "path": "target_config.sink_config.write_mode",
         "label": "sink_config.write_mode",
         "widget": "select",
@@ -315,6 +336,21 @@
         },
         "placeholder": "/Volumes/{{catalog}}/egress/zips/",
         "description": "Where the final ZIP is written."
+      },
+      {
+        "path": "target_config.sink_config.post_export_archive.export_file_name_format",
+        "label": "post_export_archive.export_file_name_format",
+        "widget": "text",
+        "type": "string",
+        "indent": 1,
+        "visible_when": {
+          "eq": [
+            "target_config.sink_config.post_export_archive.enabled",
+            true
+          ]
+        },
+        "placeholder": "export_{batch_id}_{timestamp}.zip",
+        "description": "str.format()-style template for the exported archive's own file name. Placeholders: {batch_id}, {timestamp}. Omit for the framework default."
       },
       {
         "$fragment": "secret_ref",
@@ -385,6 +421,28 @@
               "eq": [
                 "target_config.sink_config.post_export_archive.pgp_encryption.enabled",
                 true
+              ]
+            }
+          ]
+        }
+      },
+      {
+        "$fragment": "secret_ref",
+        "prefix": "target_config.sink_config.post_export_archive.pgp_encryption.sign_passphrase_secret",
+        "params": {
+          "required": false
+        },
+        "visible_when": {
+          "and": [
+            {
+              "eq": [
+                "target_config.sink_config.post_export_archive.pgp_encryption.enabled",
+                true
+              ]
+            },
+            {
+              "nonempty": [
+                "target_config.sink_config.post_export_archive.pgp_encryption.sign_with_private_key_secret.secret_key"
               ]
             }
           ]

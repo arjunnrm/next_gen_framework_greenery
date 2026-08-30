@@ -42,7 +42,41 @@ A transformation flow consumes one or more upstream Delta tables or views, appli
 
 ## 2. Complete CDC Load Strategies Guide
 
-Metaflow provides 7 built-in CDC and merge strategies configured via `target_config.cdc_load_strategy`:
+Metaflow provides 6 built-in load and merge strategies configured via `target_config.cdc_load_strategy`. They fall into two families: `APPEND` and `TRUNCATE_AND_LOAD` need no key and skip the CDC dispatcher entirely; `SCD1`, `SCD2`, `SCD3` and `FULL_SNAPSHOT_CDC` all merge on `primary_keys`.
+
+### 2.0 Choosing one
+
+Three questions, in order. Answer them about the **source**, not the target.
+
+| | Question | Answer | Strategy |
+|---|---|---|---|
+| **Q1** | Does each row have a business identity you can key on? | No — immutable events, telemetry, audit trails | `APPEND` |
+| | | No — but it is a small reference table to replace wholesale | `TRUNCATE_AND_LOAD` |
+| | | Yes — a real natural key exists | *go to Q2* |
+| **Q2** | Does the source deliver **every** live row, **every** run? | Yes, a full dump — and vanished rows must vanish downstream | `FULL_SNAPSHOT_CDC` |
+| | | Yes, a full dump — but small, and nobody needs to know what changed | `TRUNCATE_AND_LOAD` |
+| | | No, incremental — only what changed since last time | *go to Q3* |
+| **Q3** | How much history does the business need? | None — current state only | `SCD1` |
+| | | All of it — audit, point-in-time | `SCD2` |
+| | | Current and previous only (transformation flows only) | `SCD3` |
+
+**Use when / avoid when / worst failure mode:**
+
+| Strategy | Use when | Avoid when | Worst failure mode |
+|---|---|---|---|
+| `APPEND` | Immutable events, telemetry, audit logs, raw Bronze landing | The source can redeliver rows; consumers expect one row per entity | **Silent duplicates** — a replayed file appends everything again and nothing detects it |
+| `TRUNCATE_AND_LOAD` | Small reference/lookup dimensions; source has no key at all | The table is large; downstream reads it as a streaming table | **Silent table wipe** — a zero-record extract blanks a populated target (see 2.2) |
+| `SCD1` | Current-state entity tables; incremental keyed feeds | History is required; the source is a full dump whose deletes must propagate | **Stale deleted rows** — without `cdc_operation_column`, removed rows live forever |
+| `SCD2` | Regulatory audit, point-in-time joins, historical dimensions | Only current state is queried; tracked attributes churn every run | **Version explosion** — an unscoped `columns_to_check` versions every row on every run |
+| `SCD3` | The business explicitly wants current vs previous side by side | More than one prior state may be needed; the flow is an ingestion flow | **Slow recompute** — the target rebuilds from the whole history table each run |
+| `FULL_SNAPSHOT_CDC` | Full extracts from a keyed source where deletes must propagate | The source is incremental; the landing zone accumulates files | **Silent mass delete** — every key absent from the snapshot is removed |
+
+> [!WARNING]
+> **The two silent-data-loss paths.** `TRUNCATE_AND_LOAD` will blank a populated target when its source returns zero rows, and the `empty_target_if_source_empty` guard has had no runtime effect since it was withdrawn on 2026-08-29 (§2.2). `FULL_SNAPSHOT_CDC` pointed at an *incremental* feed deletes every key not present in the current batch — nothing validates that the source is actually complete. Both report the pipeline update as successful.
+
+**What the four merging strategies share.** `primary_keys` is mandatory and validated twice (at onboarding, then again at registration) · `delta.enableChangeDataFeed` is set to `true`, which is what makes the per-run insert/update/delete counts in `capture_all_scd_change_counts` possible · `__framework_hash_key` and `__framework_hash_value` are added by default via `generate_hash_columns` · **`partition_columns` and `liquid_clustering_columns` are inert** — `apply_changes`/`apply_changes_from_snapshot` do not accept them, and setting either is silently ignored rather than rejected (§3).
+
+**Sequencing.** `sequence_by_column` is optional on `SCD1`/`SCD2`/`SCD3`; omitting it falls back to `__framework_ingestion_timestamp_utc`, which is `current_timestamp()` evaluated **once per batch**. That is monotonic and correct across runs, but two versions of the same key *inside one batch* tie, and the winner is non-deterministic — on `SCD2` a tie corrupts history order, not just the surviving value. On `FULL_SNAPSHOT_CDC` the field passes validation and is then never read: `apply_changes_from_snapshot` has no `sequence_by` parameter.
 
 ### 2.1 `APPEND`
 - **Use Case**: Immutable event logs, telemetry streams, audit trails.

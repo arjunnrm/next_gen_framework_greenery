@@ -664,20 +664,20 @@
       "governance_tags": {}
     },
     {
-      "flow_step_id": "ts_ref_full_snapshot_cdc",
+      "flow_step_id": "ts_ref_full_snapshot_cdc_minimal",
       "dataflow_id": "df_ref_autoloader_full",
       "target_catalog": "{{catalog}}",
       "target_schema": "ref_silver",
-      "target_table": "ref_full_snapshot_cdc",
+      "target_table": "ref_full_snapshot_cdc_minimal",
       "target_type": "streaming_table",
       "source_inputs": [
         {
-          "input_name": "ref_full_snapshot_cdc_src",
+          "input_name": "ref_full_snapshot_cdc_minimal_src",
           "table": "{{catalog}}.ref_bronze.ref_autoloader_full",
           "is_streaming": false
         }
       ],
-      "transformation_sql": "SELECT region, amount FROM ref_full_snapshot_cdc_src",
+      "transformation_sql": "SELECT region, amount FROM ref_full_snapshot_cdc_minimal_src",
       "target_config": {
         "cdc_load_strategy": "FULL_SNAPSHOT_CDC",
         "primary_keys": [

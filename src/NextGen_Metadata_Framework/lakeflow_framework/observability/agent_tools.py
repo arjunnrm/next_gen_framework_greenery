@@ -266,7 +266,7 @@ _FAILURE_MATRIX: List[Dict[str, str]] = [
     {
         "pattern": r"is not a pipeline_task run",
         "category": "task_wiring",
-        "likely_cause": "The observability task's run_pipeline_update_run_id widget was pointed at a task that "
+        "likely_cause": "The observability task's pipeline_task_run_id parameter was pointed at a task that "
         "isn't the pipeline_task -- e.g. a notebook task's run_id was passed instead.",
         "remediation": "In the job's task graph, confirm the observability task's base_parameters reads "
         "'{{tasks.<pipeline_task_key>.run_id}}' where <pipeline_task_key> is literally the task_key of the "

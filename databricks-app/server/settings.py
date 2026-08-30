@@ -12,7 +12,7 @@ from pydantic import BaseModel, Field
 
 class AppInfo(BaseModel):
     title: str = "Metaflow Onboarding"
-    framework_version: str = "1.3.0"
+    framework_version: str = "1.4.0"
     environment_label: str = "dev"
     support_contact: str = "data-platform@example.com"
 

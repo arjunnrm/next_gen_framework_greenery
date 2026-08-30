@@ -14,6 +14,7 @@ A single-artifact Databricks App for authoring, validating, persisting, and onbo
   - **Save Spec**: Export directly as a download to your laptop (JSON or YAML) or save directly to a Unity Catalog Volume or Workspace path with overwrite protection.
   - **Start from Template**: 18+ pre-built reference templates covering every pipeline architecture.
   - **Confirm & Onboard**: Validate in-app and deploy directly to Databricks execution jobs with live stage progress tracking and direct run links.
+- **Embedded Framework Wiki**: `/docs` serves the complete documentation set (124 pages) — platform architecture, per-subsystem functional docs, onboarding walkthrough, the generated JSON attribute and code references, FAQs, known limitations, the architecture review and the archive — with tabbed navigation and full-text search. Every attribute's **docs** link deep-links to that attribute's own heading in the wiki, resolved through the generated `config/docs_index.json`.
 - **Offline / Local Laptop Development**: Built-in mock mode (`METAFLOW_FAKE_DBX=1`) allows complete local development and testing without requiring live Databricks credentials.
 
 ---
@@ -88,8 +89,8 @@ metaflow-onboarding-app/
 │       ├── index.html
 │       ├── styles.css
 │       └── app.js
-├── docs_site/                      # Embedded documentation browser
-│   └── index.html
+├── docs_site/                      # Full MkDocs wiki (GENERATED — do not edit)
+│   └── ...                         # 124 pages; built by scripts/build_app_docs.py
 ├── tests/                          # Automated Pytest Test Suite
 │   ├── fixtures/predicates.json    # Predicate DSL test corpus
 │   ├── test_predicates.py          # DSL evaluator tests
@@ -111,6 +112,14 @@ metaflow-onboarding-app/
 ```bash
 $env:PYTHONPATH="metaflow-onboarding-app"
 .\.venv\Scripts\python.exe -m pytest metaflow-onboarding-app/tests/ -v
+```
+
+### Rebuilding the Embedded Wiki
+`docs_site/` and `config/docs_index.json` are generated. After editing anything under the repo's
+`docs/` directory, regenerate and re-verify the deep links:
+```bash
+python scripts/build_app_docs.py           # rebuild + sync + reindex
+python scripts/build_app_docs.py --check   # CI: fail if the committed output is stale
 ```
 
 ### Running the App Locally (Offline / Laptop Mode)
