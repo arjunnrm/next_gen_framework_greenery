@@ -6,6 +6,50 @@ deliberately **not** the semantic version — that lives here and in `enhancemen
 
 ---
 
+## Source control — initial GitHub publish — 2026-08-30
+
+Scope: repository plumbing only. **No framework, pipeline, app or control-table behaviour changed.**
+
+The project is now tracked in git and published to
+`github.com/Madhan-RAGHU/NextGen_Metadata_Framework` (private) on branch `main`,
+which local `main` tracks. 984 files / 8.4 MB across three commits.
+
+### 🔒 Security
+
+**Databricks PAT redacted before the first commit.** A live-format token
+(`dapi…`, 32 hex) had been pasted where a *profile name* was expected in
+`metaflow_testing/TESTING_PLAN.md` §0 and `metaflow_testing/TESTING_STATUS.md` §0.
+Both now read `` `<redacted-profile>` ``. The token never entered git history.
+It should still be rotated in the workspace — it predates this commit and may
+survive in local backups or shell history.
+
+### 🔧 Changed
+
+**`.gitignore`** gained two entries:
+
+| Entry | Reason |
+|---|---|
+| `databricks-app/web/nul.css` | `nul` is a Windows reserved device name — git cannot index the file at all (`error: unable to index file`), which aborted staging outright. A 129-line orphan CSS bundle, referenced by nothing; left untouched on disk. |
+| `.pytest_cache/` | Local test-run cache, not source. |
+
+**Known gitignore quirk (not fixed here).** `dist/` excludes the directory, so the
+later `!databricks-app/web/dist/**` and `!databricks-app/static/**` negations cannot
+re-include anything — git will not re-include a file whose parent directory is
+excluded. Built app assets under those paths are therefore **not** tracked. If the
+deployed app needs them in the repo, the ignore rule must be narrowed (e.g. `/dist/`)
+rather than negated.
+
+### 📝 Notes
+
+- Remote `main` already held one unrelated commit (`6140f3f Create test`, a blank
+  placeholder). It was merged with `--allow-unrelated-histories` and the placeholder
+  removed in a follow-up commit, so nothing on GitHub was force-discarded.
+- Two remotes — `metaflow` and `metaflow_v2` — point at the *same* URL, and there is
+  no `origin`. `main` tracks `metaflow`. Worth pruning the duplicate.
+- Commit identity is repo-local: `Madhan-RAGHU <madhan@nrmanalytix.com>`.
+
+---
+
 ## Onboarding App v1.6.0 + Documentation wiki — 2026-08-30
 
 Scope: the **Databricks App** (`databricks-app/`) and the **documentation tree** (`docs/`). No
