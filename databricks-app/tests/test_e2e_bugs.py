@@ -72,7 +72,13 @@ def test_render_endpoint_canonical_spec():
 
 
 def test_workspace_and_volume_write_endpoints():
-    """Verify write endpoint handles both workspace and volume storage roots."""
+    """Verify write endpoint handles both workspace and volume storage roots.
+
+    This used to accept `status_code in (200, 500)`, which is not an assertion about
+    saving at all — it passed just as happily when every save failed, and did, for both
+    roots. A write test has to insist on success and then read the bytes back; see
+    tests/test_storage_roundtrip.py for the full round trip.
+    """
     # Test Workspace
     res_ws = client.post("/api/workspace/write", json={
         "root_id": "ws_specs",
@@ -80,7 +86,7 @@ def test_workspace_and_volume_write_endpoints():
         "content": json.dumps({"dataflow_group_id": "dfg_ws_test"}),
         "overwrite": True,
     })
-    assert res_ws.status_code in (200, 500)
+    assert res_ws.status_code == 200, res_ws.text
 
     # Test Volume
     res_vol = client.post("/api/workspace/write", json={
@@ -89,7 +95,7 @@ def test_workspace_and_volume_write_endpoints():
         "content": json.dumps({"dataflow_group_id": "dfg_vol_test"}),
         "overwrite": True,
     })
-    assert res_vol.status_code in (200, 500)
+    assert res_vol.status_code == 200, res_vol.text
 
 
 def test_workspace_write_traversal_prevention():

@@ -76,6 +76,21 @@ variables:
     description: The catalog to use
   schema:
     description: The schema to use
+  spec_schema:
+    description: >-
+      Schema holding the UC Volume that the Metaflow Onboarding App reads and writes
+      authored onboarding specs to. Defaults to `config`, the framework's existing
+      configuration schema, deliberately: creating a NEW schema per target is what the
+      `dev` target cannot afford (its catalog is at 51 schemas and its metastore at its
+      50-Volume ceiling — see the artifact_path note above). Override per target if the
+      specs should live elsewhere.
+    default: config
+  spec_volume:
+    description: >-
+      Volume under ${var.catalog}.${var.spec_schema} holding authored onboarding specs.
+      resources/metaflow_onboarding_specs_volume.yml creates it; the app resource grants
+      its service principal WRITE_VOLUME on it at deploy time.
+    default: onboarding_specs
   dataflow_group_id:
     description: >-
       The metadata-driven dataflow_group_id the sample Lakeflow pipeline resource

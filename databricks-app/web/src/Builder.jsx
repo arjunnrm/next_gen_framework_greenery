@@ -538,15 +538,22 @@ export default class Builder extends React.Component {
     catch(e){
       // Saved specs may be YAML. Rather than ship a YAML parser, ask the server —
       // /api/spec/import already deserialises both formats.
+      //
+      // /import answers with the server's *internal* SpecDoc shape, which loadSpec
+      // cannot read: it wants the canonical document (dataflow_group_id,
+      // ingestion_flows, ...). So round it back through /render to get canonical JSON
+      // text. The previous version re-ran JSON.parse on the original YAML instead,
+      // which throws for the same reason it threw the first time — so every YAML spec
+      // opened from a Volume or Workspace failed, and blamed the server for it.
       var self=this;
       this.setState({openBusy:true});
-      api.importSpec({content:text,format:"yaml"}).then(function(){
-        // The server returns its own SpecDoc shape; re-render the canonical form
-        // from the same payload so the builder loads the shape it understands.
-        try { self.loadSpec(JSON.parse(text),label); }
-        catch(e2){ self.setState({openBusy:false,openErr:"Could not parse "+label+" as JSON. YAML import needs the server; it returned no canonical form."}); }
+      api.importSpec({content:text,format:"yaml"}).then(function(r){
+        return api.render(r.spec,"json");
+      }).then(function(out){
+        self.setState({openBusy:false});
+        self.loadSpec(JSON.parse(out.content),label);
       }).catch(function(er){
-        self.setState({openBusy:false,openErr:(er.code||"ERROR")+": "+er.message});
+        self.setState({openBusy:false,openErr:(er.code||"ERROR")+": "+(er.message||("Could not parse "+label+" as JSON or YAML."))});
       });
       return;
     }
@@ -1244,12 +1251,75 @@ export default class Builder extends React.Component {
       runPct:Math.round(((Math.max(s.runStep,0)+(s.runDone?1:0))/STAGES.length)*100)+"%",
       runStages:runStages, runLog:logLines.join("\n")||"waiting…",
       runFinished:s.runDone,
-      jobRunUrl:(self.props.workspaceUrl||"https://adb-1234567890123456.7.azuredatabricks.net")+"/jobs/482913/runs/"+(s.runNonce||"1"),
-      jobRunLabel:"Open job run 482913 in Databricks ↗",
+      jobRunUrl:self._jobRunUrl(s.runNonce||"1"),
+      jobRunLabel:"Open job run in Databricks ↗",
       jobRunSub:"Pipeline metaflow_"+((s.root.v["@dataflow_group_id"]||"spec").replace(/[^a-z0-9_]+/gi,"_"))+" · run "+(s.runNonce||"1")
     };
   }
   // ───────────────────────────── Databricks integration ─────────────────────────────
+
+  normalizeJobRunUrl(url, runId, jobId){
+    var s=this.state, cfg=s.cfg||{};
+    var ws=cfg.workspace||{};
+    var host = "";
+    if (url && typeof url === "string" && (url.startsWith("http://") || url.startsWith("https://"))) {
+      try {
+        var parsed = new URL(url);
+        host = parsed.origin;
+      } catch(e) {
+        host = ws.host || (typeof window !== "undefined" && window.location ? window.location.origin : "");
+      }
+    } else {
+      host = ws.host || (typeof window !== "undefined" && window.location ? window.location.origin : "");
+    }
+    host = (host || "").replace(/\/+$/, "");
+
+    var orgId = "";
+    if (url && typeof url === "string") {
+      var oMatch = url.match(/[?&]o=(\d+)/);
+      if (oMatch) orgId = oMatch[1];
+    }
+    if (!orgId && typeof window !== "undefined" && window.location && window.location.search) {
+      try {
+        orgId = new URLSearchParams(window.location.search).get("o") || "";
+      } catch(e) {}
+    }
+    if (!orgId && ws.org_id) {
+      orgId = String(ws.org_id);
+    }
+
+    var effectiveJid = jobId || s.paramJobId || (s.lastRunParams && s.lastRunParams.job_id) || (cfg.actions && cfg.actions.onboard && cfg.actions.onboard.job_id) || cfg.onboarding_job_id || "";
+    var effectiveRid = runId || s.runNonce || "1";
+
+    var oParam = orgId ? ("/?o=" + orgId) : "/";
+
+    if (!url || typeof url !== "string" || url.indexOf("jobs//runs") > -1 || url.indexOf("/#job//run") > -1 || url.indexOf("{job_id}") > -1) {
+      if (effectiveJid) {
+        return host + oParam + "#job/" + effectiveJid + "/run/" + effectiveRid;
+      }
+      return host + oParam + "#job/run/" + effectiveRid;
+    }
+    var m = url.match(/\/jobs\/(\d+)?\/runs\/(\d+)/);
+    if (m) {
+      var j = m[1] || effectiveJid;
+      var r = m[2] || effectiveRid;
+      if (j) {
+        return host + oParam + "#job/" + j + "/run/" + r;
+      }
+      return host + oParam + "#job/run/" + r;
+    }
+    if (url.indexOf("#job/") > -1) {
+      return url;
+    }
+    if (effectiveJid) {
+      return host + oParam + "#job/" + effectiveJid + "/run/" + effectiveRid;
+    }
+    return host + oParam + "#job/run/" + effectiveRid;
+  }
+
+  _jobRunUrl(runNonce, overrideJobId){
+    return this.normalizeJobRunUrl(null, runNonce, overrideJobId);
+  }
 
   componentDidMount(){
     var t=null;
@@ -1301,14 +1371,14 @@ export default class Builder extends React.Component {
       var vol=roots.filter(function(r){return r.kind==="volume"})[0];
       var ws=roots.filter(function(r){return r.kind==="workspace"})[0];
       self.setState({
-        cfg:cfg.app||cfg,
+        cfg:Object.assign({},cfg.app||cfg,{workspace:cfg.workspace||{}}),
         docs:cfg.docs,
         // Templates are discovered server-side from templates/; knowledge backs the
         // attribute inspector. Both arrive with the single config fetch.
         discovered:cfg.templates||[],
         knowledge:(cfg.attribute_knowledge)||((cfg.app||{}).attribute_knowledge)||null,
         roots:roots,
-        volPath:(vol&&vol.path)||self.state.volPath||"/Volumes/main/metaflow/onboarding_specs/",
+        volPath:(vol&&vol.path ? vol.path.replace("{{catalog}}", (cfg.template_variables&&cfg.template_variables.catalog&&cfg.template_variables.catalog.default)||"metaflow") : (self.state.volPath||"/Volumes/metaflow/geneva_admin/onboarding_specs/")),
         wsPath:(ws&&ws.path)||self.state.wsPath
       },function(){ self.refreshAccess(); });
     }).catch(function(e){
@@ -1356,19 +1426,245 @@ export default class Builder extends React.Component {
       });
   }
 
-  startRun(){
+  openRunPrompt(){
+    var s=this.state, spec=this.spec();
+    var cfg=s.cfg||{};
+    var tv=cfg.template_variables||{};
+    var defaultCat=(tv.catalog&&tv.catalog.default)||"metaflow";
+    var defaultGid=spec.dataflow_group_id||(s.root&&s.root.v&&s.root.v["@dataflow_group_id"])||"dfg_sample";
+    var defaultJobId=(cfg.actions&&cfg.actions.onboard&&cfg.actions.onboard.job_id)||cfg.onboarding_job_id||"";
+    this.setState({
+      showParamModal:true,
+      promptSaving:false,
+      promptMsg:"",
+      promptErr:false,
+      saveFmtChoice:s.saveFmtChoice||s.fmt||"json",
+      paramCatalog:s.paramCatalog||defaultCat,
+      paramEnv:"DEV",
+      paramGroupId:defaultGid,
+      paramActionType:s.paramActionType||"CREATE",
+      paramJobId:(s.paramJobId!==undefined&&s.paramJobId!=="")?s.paramJobId:(defaultJobId?String(defaultJobId):""),
+    });
+  }
+
+  doSaveAloneInPrompt(){
+    var self=this, s=this.state, spec=this.spec();
+    var dir=(s.dest==="volume"?(s.volPath||""):(s.wsPath||"")).trim().replace(/\/+$/,"");
+    var gid=(spec.dataflow_group_id||"onboarding").trim();
+    var fmtChoice=s.saveFmtChoice||s.fmt||"json";
+
+    if(s.dest==="local"){
+      this.download();
+      this.setState({promptMsg:"Downloaded "+gid+"."+s.fmt+" locally",promptErr:false});
+      return;
+    }
+    var root=this.currentRoot();
+    if(!root){ this.setState({promptMsg:"No "+s.dest+" root configured in config/index.json.",promptErr:true}); return; }
+    if(!dir){ this.setState({promptMsg:"Enter a target "+(s.dest==="volume"?"Volume directory":"workspace folder")+" first.",promptErr:true}); return; }
+
+    var jsonBody=JSON.stringify(spec,null,2);
+    var yamlBody=this.yaml(spec,0);
+
+    if(fmtChoice==="both"){
+      var jsonPath=dir+"/"+gid+".json";
+      var yamlPath=dir+"/"+gid+".yaml";
+      this.setState({promptSaving:true,promptMsg:"Writing "+gid+".json and "+gid+".yaml …",promptErr:false});
+      api.write({root_id:root.id,path:jsonPath,content:jsonBody,format:"json",overwrite:true})
+        .then(function(rJson){
+          api.write({root_id:root.id,path:yamlPath,content:yamlBody,format:"yaml",overwrite:true})
+            .then(function(rYaml){
+              self.setState({
+                promptSaving:false,
+                promptMsg:"✅ Saved both "+rJson.path+" and "+rYaml.path,
+                promptErr:false,
+                savedTo:"Saved "+rJson.path+" & "+rYaml.path,
+                saveErr:false
+              });
+            })
+            .catch(function(e){
+              self.setState({promptSaving:false,promptMsg:"Saved JSON, but YAML failed: "+(e.code||"ERROR")+": "+e.message,promptErr:true});
+            });
+        })
+        .catch(function(e){
+          self.setState({promptSaving:false,promptMsg:(e.code||"ERROR")+": "+e.message+(e.detail?" — "+e.detail:""),promptErr:true});
+        });
+    } else {
+      var singleFmt=fmtChoice==="yaml"?"yaml":"json";
+      var singleBody=singleFmt==="yaml"?yamlBody:jsonBody;
+      var singlePath=dir+"/"+gid+"."+singleFmt;
+      this.setState({promptSaving:true,promptMsg:"Writing spec to "+singlePath+" …",promptErr:false});
+      api.write({root_id:root.id,path:singlePath,content:singleBody,format:singleFmt,overwrite:true})
+        .then(function(r){
+          self.setState({
+            promptSaving:false,
+            promptMsg:"✅ Spec successfully saved to "+r.path+" ("+r.bytes+" bytes)",
+            promptErr:false,
+            savedTo:"Saved "+r.path+" · "+r.bytes+" bytes",
+            saveErr:false
+          });
+        })
+        .catch(function(e){
+          self.setState({
+            promptSaving:false,
+            promptMsg:(e.code||"ERROR")+": "+e.message+(e.detail?" — "+e.detail:""),
+            promptErr:true
+          });
+        });
+    }
+  }
+
+  confirmSaveAndRun(){
+    var self=this, s=this.state, spec=this.spec();
+    var cat=(this.state.paramCatalog||"metaflow").trim();
+    var env="DEV";
+    var gid=(this.state.paramGroupId||"dfg_sample").trim();
+    var act=this.state.paramActionType||"CREATE";
+    var jid=this.state.paramJobId?parseInt(this.state.paramJobId):undefined;
+    var dir=(s.dest==="volume"?(s.volPath||""):(s.wsPath||"")).trim().replace(/\/+$/,"");
+    var fmtChoice=s.saveFmtChoice||s.fmt||"json";
+
+    var root=this.currentRoot();
+    if(!dir){
+      this.setState({promptMsg:"Please provide a valid destination folder.",promptErr:true});
+      return;
+    }
+
+    var jsonBody=JSON.stringify(spec,null,2);
+    var yamlBody=this.yaml(spec,0);
+    this.setState({promptSaving:true,promptMsg:"Saving spec before running job…",promptErr:false});
+
+    // Step 1: Save file(s) to selected destination (Volume or Workspace)
+    if(fmtChoice==="both"){
+      var jsonPath=dir+"/"+gid+".json";
+      var yamlPath=dir+"/"+gid+".yaml";
+      api.write({root_id:root.id,path:jsonPath,content:jsonBody,format:"json",overwrite:true})
+        .then(function(rJson){
+          api.write({root_id:root.id,path:yamlPath,content:yamlBody,format:"yaml",overwrite:true})
+            .then(function(rYaml){
+              self._dispatchOnboardRun(rJson.path, cat, env, gid, act, jid);
+            })
+            .catch(function(e){
+              // If YAML failed but JSON succeeded, proceed with JSON
+              self._dispatchOnboardRun(rJson.path, cat, env, gid, act, jid);
+            });
+        })
+        .catch(function(e){
+          self.setState({
+            promptSaving:false,
+            promptMsg:"Save failed before running: "+(e.code||"ERROR")+": "+e.message+(e.detail?" — "+e.detail:""),
+            promptErr:true
+          });
+        });
+    } else {
+      var singleFmt=fmtChoice==="yaml"?"yaml":"json";
+      var singleBody=singleFmt==="yaml"?yamlBody:jsonBody;
+      var singlePath=dir+"/"+gid+"."+singleFmt;
+      api.write({root_id:root.id,path:singlePath,content:singleBody,format:singleFmt,overwrite:true})
+        .then(function(writeRes){
+          self._dispatchOnboardRun(writeRes.path, cat, env, gid, act, jid);
+        })
+        .catch(function(e){
+          self.setState({
+            promptSaving:false,
+            promptMsg:"Save failed before running: "+(e.code||"ERROR")+": "+e.message+(e.detail?" — "+e.detail:""),
+            promptErr:true
+          });
+        });
+    }
+  }
+
+  _dispatchOnboardRun(savedPath, cat, env, gid, act, jid){
     var self=this;
-    this.setState({run:true,runStep:-1,runDone:false,dbx:null,dbxErr:"",runNonce:String(Math.floor(Math.random()*900)+100)},function(){
-      api.runAction("onboard",{spec:self.spec(),format:self.state.fmt,confirmed:true}).then(function(r){
-        self.setState({dbx:{runId:r.run_id,jobId:r.job_id,url:r.run_url,stages:r.stages||STAGES,current:0,state:"RUNNING",log:r.log_tail||"",done:false,startedAt:Date.now()}});
+    var cfg=self.state.cfg||{};
+    var effectiveJobId = jid || (cfg.actions&&cfg.actions.onboard&&cfg.actions.onboard.job_id) || cfg.onboarding_job_id || undefined;
+    var fileName = savedPath.split("/").pop();
+
+    var runParams = {
+      catalog: cat,
+      env: env,
+      environment: env,
+      dataflow_group_id: gid,
+      action_type: act,
+      spec_path: savedPath,
+      spec_file_path: savedPath,
+      job_id: effectiveJobId
+    };
+
+    var defaultStages = [
+      "Upload & stage spec (" + fileName + ")",
+      "Validate spec against UC schema & constraints",
+      "Upsert control table metadata for " + gid,
+      "Register datasets & Delta tables in catalog '" + cat + "'",
+      "Apply governance tags & lineage",
+      "Onboarding completed successfully"
+    ];
+
+    self.setState({
+      showParamModal:false,
+      promptSaving:false,
+      savedTo:"Saved "+savedPath,
+      run:true,
+      runStep:-1,
+      runDone:false,
+      lastRunParams: runParams,
+      dbx:null,
+      dbxErr:"",
+      runNonce:String(Math.floor(Math.random()*900)+100)
+    },function(){
+      // Trigger Databricks onboarding job with OBO client pointing to saved spec path
+      var jobParamsToSend = {
+        spec_file_path: savedPath,
+        catalog: cat,
+        env: env,
+        action_type: act
+      };
+      api.runAction("onboard",{
+        spec:self.spec(),
+        format:self.state.fmt,
+        confirmed:true,
+        spec_path:savedPath,
+        spec_file_path:savedPath,
+        params: runParams,
+        job_parameters: jobParamsToSend,
+        job_id: effectiveJobId
+      }).then(function(r){
+        self.setState({
+          dbx:{
+            runId:r.run_id,
+            jobId:r.job_id || effectiveJobId,
+            url:r.run_url,
+            stages:defaultStages,
+            current:0,
+            state:"RUNNING",
+            log:r.log_tail||"",
+            done:false,
+            startedAt:Date.now()
+          }
+        });
         self.pollRun(r.run_id);
       }).catch(function(e){
-        // No workspace reachable (local dev, or the action is disabled): fall back
-        // to the reference walkthrough so the panel still demonstrates the stages.
-        self.setState({dbxErr:(e.code||"ERROR")+": "+e.message});
-        setTimeout(function(){ self.tick(); },350);
+        var errMsg = (e.code||"ERROR")+": "+e.message+(e.detail?(" — "+e.detail):"");
+        self.setState({
+          dbxErr: errMsg,
+          dbx: {
+            runId: "FAILED",
+            jobId: effectiveJobId,
+            url: "",
+            stages: defaultStages,
+            current: 0,
+            state: "FAILED",
+            result: "FAILED",
+            log: "❌ Databricks Job Trigger Failed:\n" + errMsg,
+            done: true,
+            startedAt: Date.now()
+          }
+        });
       });
     });
+  }
+
+  startRun(){
+    this.openRunPrompt();
   }
 
   pollRun(runId){
@@ -1379,7 +1675,7 @@ export default class Builder extends React.Component {
       var terminal=["SUCCESS","FAILED","CANCELED","TIMEDOUT","SKIPPED"].indexOf(st.result||st.state)>-1;
       self.setState({dbx:Object.assign({},self.state.dbx,{
         state:st.state||"RUNNING",result:st.result,current:st.current_stage||0,
-        stages:st.stages||(self.state.dbx&&self.state.dbx.stages)||STAGES,
+        stages:(self.state.dbx&&self.state.dbx.stages)||STAGES,
         log:st.log_tail||"",url:st.run_url||(self.state.dbx&&self.state.dbx.url),done:terminal
       })});
       if(!terminal){
@@ -1428,30 +1724,51 @@ export default class Builder extends React.Component {
     });
     V.recheckAccess=function(){ self.refreshAccess(); };
 
-    V.startRun=function(){ self.startRun(); };
+    V.startRun=function(){ self.openRunPrompt(); };
+    V.showParamModal=!!s.showParamModal;
+    V.closeParamModal=function(){ self.setState({showParamModal:false}); };
+    V.saveFmtChoice=s.saveFmtChoice||s.fmt||"json";
+    V.onSaveFmtChoice=function(fmt){ self.setState({saveFmtChoice:fmt}); };
+    V.paramCatalog=s.paramCatalog||"";
+    V.onParamCatalog=function(e){ self.setState({paramCatalog:e.target.value}); };
+    V.paramEnv="DEV";
+    V.paramGroupId=s.paramGroupId||"";
+    V.onParamGroupId=function(e){ self.setState({paramGroupId:e.target.value}); };
+    V.paramActionType=s.paramActionType||"CREATE";
+    V.onParamActionType=function(e){ self.setState({paramActionType:e.target.value}); };
+    V.paramJobId=s.paramJobId||"";
+    V.onParamJobId=function(e){ self.setState({paramJobId:e.target.value}); };
+    V.promptSaving=!!s.promptSaving;
+    V.promptMsg=s.promptMsg||"";
+    V.promptErr=!!s.promptErr;
+    V.doSaveAloneInPrompt=function(){ self.doSaveAloneInPrompt(); };
+    V.confirmSaveAndRun=function(){ self.confirmSaveAndRun(); };
+    V.runParams=s.lastRunParams||null;
+
     var d=s.dbx;
     if(d){
       var stages=d.stages||STAGES;
+      var isFailed = d.done && (d.result==="FAILED" || d.state==="FAILED");
       V.runId=d.runId?("run-"+d.runId):V.runId;
-      V.runState=d.done?(d.result||"COMPLETED"):(d.state||"RUNNING");
-      V.runStateFg=d.done?((d.result&&d.result!=="SUCCESS")?"var(--req)":"var(--ok)"):"var(--ac)";
+      V.runState=d.done?(d.result||d.state||"COMPLETED"):(d.state||"RUNNING");
+      V.runStateFg=d.done?((d.result&&d.result!=="SUCCESS")||isFailed?"var(--req)":"var(--ok)"):"var(--ac)";
       V.runStages=stages.map(function(st,i){
-        var done=i<d.current||d.done, active=i===d.current&&!d.done;
-        return {label:st,bg:active?"var(--sel)":"transparent",
-          fg:done?"var(--tx4)":(active?"var(--tx)":"var(--dim3)"),
-          ring:done?"var(--ok)":(active?"var(--actrack)":"var(--bd6)"),
-          top:active?"var(--ac)":(done?"var(--ok)":"var(--bd6)"),
+        var done=i<d.current||(d.done&&!isFailed), active=i===d.current&&!d.done;
+        return {label:st,bg:active?"var(--sel)":(isFailed&&i===0?"var(--reqfill)":"transparent"),
+          fg:done?"var(--tx4)":(active?"var(--tx)":(isFailed&&i===0?"var(--req)":"var(--dim3)")),
+          ring:done?"var(--ok)":(active?"var(--actrack)":(isFailed&&i===0?"var(--req)":"var(--bd6)")),
+          top:active?"var(--ac)":(done?"var(--ok)":(isFailed&&i===0?"var(--req)":"var(--bd6)")),
           anim:active?"spin .8s linear infinite":"none",
-          time:done?"done":(active?"running":"queued")};
+          time:done?"done":(active?"running":(isFailed&&i===0?"failed":"queued"))};
       });
-      V.runPct=Math.round(((d.done?stages.length:d.current)/Math.max(stages.length,1))*100)+"%";
+      V.runPct=isFailed?"100%":Math.round(((d.done?stages.length:d.current)/Math.max(stages.length,1))*100)+"%";
       V.runLog=(d.log||"")+(s.dbxErr?("\n"+s.dbxErr):"")||"waiting…";
-      V.runFinished=!!d.done;
-      V.jobRunUrl=d.url||V.jobRunUrl;
-      V.jobRunLabel="Open job run "+(d.runId||"")+" in Databricks ↗";
-      V.jobRunSub=d.url||"";
+      var resolvedUrl = isFailed ? "" : self.normalizeJobRunUrl(d.url, d.runId, d.jobId || (s.lastRunParams&&s.lastRunParams.job_id));
+      V.jobRunUrl=resolvedUrl;
+      V.jobRunLabel=isFailed?"Action Failed — Check Error Details in Log":"Open job run "+(d.runId||"")+" in Databricks ↗";
+      V.jobRunSub=resolvedUrl;
     } else if(s.dbxErr){
-      V.runLog=V.runLog+"\n"+s.dbxErr+"\n(walkthrough mode — no workspace action was triggered)";
+      V.runLog=V.runLog+"\n"+s.dbxErr;
     }
     return V;
   }

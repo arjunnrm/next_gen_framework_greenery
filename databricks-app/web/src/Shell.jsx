@@ -38,38 +38,13 @@ export default function Shell({ V }) {
           <div onClick={V.toggleTheme} title="Switch theme" style={sx("width:32px;height:31px;border-radius:7px;border:1px solid var(--bd);background:var(--btn);cursor:pointer;display:flex;align-items:center;justify-content:center;font:500 13px Inter;color:var(--tx2)")}>{V.themeIcon}</div>
           <div onClick={V.togglePreview} style={sx(`padding:7px 10px;white-space:nowrap;border-radius:7px;border:1px solid var(--bd);background:${V.previewBg};cursor:pointer;font:600 11.5px Inter;color:${V.previewFg}`)}>{V.previewLabel}</div>
         </div>
-        <div onClick={V.startRun} style={sx("flex:none;padding:7px 13px;border-radius:7px;border:1px solid var(--bda);background:var(--acbtn);cursor:pointer;font:600 12px Inter;color:var(--ac);white-space:nowrap")}>Onboard &amp; run</div>
-        <div style={sx("position:relative;flex:none")}>
-          <div style={sx("display:flex;align-items:stretch;border:1px solid var(--acbd);border-radius:7px;overflow:hidden")}>
-            <div onClick={V.save} style={sx("padding:7px 13px;background:var(--acfill);cursor:pointer;font:600 12px Inter;color:var(--ac2);white-space:nowrap")}>Save .{V.fmt}</div>
-            <div onClick={V.toggleFmt} style={sx("padding:7px 9px;background:var(--btn);cursor:pointer;font:600 11px Inter;color:var(--dim2);border-left:1px solid var(--bda2)")}>switch</div>
-            <div onClick={V.toggleSaveMenu} style={sx("padding:7px 9px;background:var(--btn);cursor:pointer;font:600 11px Inter;color:var(--dim2);border-left:1px solid var(--bda2)")}>▾</div>
-          </div>
-          {V.saveOpen && (
-            <div style={sx("position:absolute;top:38px;right:0;width:322px;z-index:40;background:var(--panel);border:1px solid var(--bd4);border-radius:11px;padding:14px 15px 15px;box-shadow:0 14px 34px rgba(0,0,0,.3)")}>
-              <div style={sx("font:600 10px Inter;letter-spacing:.08em;text-transform:uppercase;color:var(--dim3);margin-bottom:10px")}>Export destination</div>
-              <div style={sx("display:flex;flex-direction:column;gap:7px;margin-bottom:13px")}>
-                {V.destOptions.map((d, i) => (
-                  <div key={i} onClick={d.go} style={sx(`display:flex;gap:10px;align-items:flex-start;padding:10px 11px;border-radius:9px;cursor:pointer;background:${d.bg};border:1px solid ${d.bd}`)}>
-                    <span style={sx(`flex:none;width:12px;height:12px;margin-top:2px;border-radius:50%;border:1.5px solid ${d.ring};background:${d.dot};box-sizing:border-box`)}></span>
-                    <span style={sx("flex:1;min-width:0")}>
-                      <span style={sx("display:block;font:600 11.5px Inter;color:var(--tx)")}>{d.label}</span>
-                      <span style={sx("display:block;font:400 10.5px/1.45 Inter;color:var(--dim2);margin-top:2px")}>{d.desc}</span>
-                    </span>
-                  </div>
-                ))}
-              </div>
-              {V.isRemote && (
-                <div style={sx("margin-bottom:13px")}>
-                  <div style={sx("font:600 10.5px Inter;color:var(--dim3);margin-bottom:5px")}>{V.pathLabel}</div>
-                  <input value={V.wsPath} onChange={V.onWsPath} placeholder={V.pathPlaceholder} style={sx("width:100%;box-sizing:border-box;height:32px;padding:0 9px;background:var(--input);border:1px solid var(--bdi);border-radius:7px;color:var(--tx);font:400 11px JetBrains Mono,monospace")} />
-                  <div style={sx("font:400 10px/1.5 Inter;color:var(--dim3);margin-top:5px;overflow-wrap:anywhere")}>{V.hasTarget ? "Writes " + V.wsTarget : ""}</div>
-                </div>
-              )}
-              <div onClick={V.save} style={sx("padding:9px 12px;border-radius:8px;border:1px solid var(--acbd);background:var(--acfill);cursor:pointer;text-align:center;font:600 11.5px Inter;color:var(--ac2)")}>{V.saveActionLabel}</div>
-              <div style={sx(`font:400 10.5px/1.4 Inter;color:${V.savedToFg};margin-top:9px;min-height:14px;overflow-wrap:anywhere`)}>{V.savedTo}</div>
-            </div>
-          )}
+        <div onClick={V.startRun} style={sx("flex:none;padding:7px 16px;border-radius:7px;border:1px solid var(--acbd);background:var(--ac);cursor:pointer;font:700 12.5px Inter;color:#fff;box-shadow:0 2px 10px rgba(0,0,0,.25);display:flex;align-items:center;gap:6px;white-space:nowrap")}>
+          <span>🚀</span>
+          <span>Save / Onboard</span>
+        </div>
+        <div style={sx("display:flex;align-items:stretch;border:1px solid var(--acbd);border-radius:7px;overflow:hidden;flex:none")}>
+          <div onClick={V.save} style={sx("padding:7px 12px;background:var(--acfill);cursor:pointer;font:600 12px Inter;color:var(--ac2);white-space:nowrap")}>Save .{V.fmt}</div>
+          <div onClick={V.toggleFmt} title="Switch between JSON and YAML" style={sx("padding:7px 10px;background:var(--btn);cursor:pointer;font:600 11px Inter;color:var(--dim2);border-left:1px solid var(--bda2)")}>switch</div>
         </div>
       </header>
 
@@ -648,23 +623,257 @@ export default function Shell({ V }) {
         </div>
       )}
 
+      {V.showParamModal && (
+        <div style={sx("position:fixed;inset:0;z-index:70;background:var(--ovl);display:flex;align-items:center;justify-content:center;padding:24px")}>
+          <div style={sx("width:640px;max-width:94vw;max-height:90vh;display:flex;flex-direction:column;background:var(--panel);border:1px solid var(--bd4);border-radius:14px;overflow:hidden;box-shadow:0 24px 60px rgba(0,0,0,.5)")}>
+            <div style={sx("display:flex;align-items:center;gap:11px;padding:16px 20px;border-bottom:1px solid var(--bd2);background:var(--panel2);flex:none")}>
+              <span style={sx("font:700 14.5px Inter;color:var(--tx);letter-spacing:-.01em")}>🚀 Save / Onboard Pipeline</span>
+              <span style={sx("font:600 10.5px Inter;padding:2px 8px;border-radius:6px;background:var(--acfill);color:var(--ac2);border:1px solid var(--acbd)")}>DEV</span>
+              <span style={sx("flex:1")}></span>
+              <div onClick={V.closeParamModal} style={sx("width:28px;height:28px;border-radius:7px;border:1px solid var(--bdi);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--dim2);font:600 14px Inter")}>×</div>
+            </div>
+
+            <div style={sx("padding:20px 22px;overflow-y:auto;display:flex;flex-direction:column;gap:18px")}>
+              
+              <div style={sx("padding:14px 16px;border-radius:11px;background:var(--panel2);border:1px solid var(--acbd);box-shadow:0 2px 10px rgba(0,0,0,.15)")}>
+                <div style={sx("display:flex;align-items:center;justify-content:space-between;margin-bottom:10px")}>
+                  <div style={sx("font:700 12px Inter;letter-spacing:.04em;text-transform:uppercase;color:var(--ac2);display:flex;align-items:center;gap:6px")}>
+                    <span>📂</span>
+                    <span>Export Destination &amp; Storage Path</span>
+                  </div>
+                  <span style={sx("font:500 10.5px Inter;color:var(--dim2)")}>Where the authored spec is saved</span>
+                </div>
+
+                <div style={sx("display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:12px")}>
+                  {V.destOptions.filter(d => d.label.indexOf("locally") === -1).map((d, i) => (
+                    <div key={i} onClick={d.go} style={sx(`display:flex;gap:9px;align-items:flex-start;padding:9px 11px;border-radius:8px;cursor:pointer;background:${d.bg};border:1px solid ${d.bd};transition:all .15s`)}>
+                      <span style={sx(`flex:none;width:12px;height:12px;margin-top:2px;border-radius:50%;border:1.5px solid ${d.ring};background:${d.dot};box-sizing:border-box`)}></span>
+                      <span style={sx("flex:1;min-width:0")}>
+                        <span style={sx("display:block;font:600 11.5px Inter;color:var(--tx)")}>{d.label}</span>
+                        <span style={sx("display:block;font:400 10px/1.4 Inter;color:var(--dim2);margin-top:1px")}>{d.desc}</span>
+                      </span>
+                    </div>
+                  ))}
+                </div>
+
+                <div style={sx("margin-bottom:12px")}>
+                  <div style={sx("font:600 11px Inter;color:var(--tx);margin-bottom:5px")}>{V.pathLabel}</div>
+                  <input
+                    value={V.wsPath}
+                    onChange={V.onWsPath}
+                    placeholder={V.pathPlaceholder}
+                    style={sx("width:100%;box-sizing:border-box;height:34px;padding:0 10px;background:var(--input);border:1px solid var(--bdi);border-radius:7px;color:var(--tx);font:400 11px JetBrains Mono,monospace")}
+                  />
+                </div>
+
+                <div>
+                  <div style={sx("font:600 11px Inter;color:var(--tx);margin-bottom:6px")}>Spec File Format</div>
+                  <div style={sx("display:flex;gap:8px;align-items:center")}>
+                    {[
+                      { id: "json", label: "JSON (.json)" },
+                      { id: "yaml", label: "YAML (.yaml)" },
+                      { id: "both", label: "Both (.json & .yaml)" }
+                    ].map(f => {
+                      const on = (V.saveFmtChoice || "json") === f.id;
+                      return (
+                        <div
+                          key={f.id}
+                          onClick={() => V.onSaveFmtChoice(f.id)}
+                          style={sx(`padding:6px 12px;border-radius:7px;cursor:pointer;font:600 11px Inter;transition:all .15s;background:${on ? "var(--acfill)" : "var(--input)"};color:${on ? "var(--ac2)" : "var(--dim2)"};border:1px solid ${on ? "var(--acbd)" : "var(--bdi)"}`)}
+                        >
+                          {f.label}
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <div style={sx("font:400 10.5px Inter;color:var(--dim);margin-top:6px;overflow-wrap:anywhere")}>
+                    {V.hasTarget ? (
+                      <span>
+                        Target: <strong style={sx("color:var(--tx2);font-family:JetBrains Mono,monospace")}>
+                          {V.saveFmtChoice === "both"
+                            ? (V.wsTarget.replace(/\.[a-z]+$/i, ".json") + " & " + V.wsTarget.replace(/\.[a-z]+$/i, ".yaml"))
+                            : (V.wsTarget.replace(/\.[a-z]+$/i, "." + (V.saveFmtChoice || "json")))}
+                        </strong>
+                      </span>
+                    ) : ""}
+                  </div>
+                </div>
+              </div>
+
+              <div style={sx("display:grid;grid-template-columns:1fr 1fr;gap:14px")}>
+                <div>
+                  <div style={sx("font:600 11.5px Inter;color:var(--tx);margin-bottom:6px")}>Target Catalog <span style={sx("color:var(--req)")}>*</span></div>
+                  <input
+                    value={V.paramCatalog}
+                    onChange={V.onParamCatalog}
+                    placeholder="metaflow"
+                    style={sx("width:100%;box-sizing:border-box;height:34px;padding:0 10px;background:var(--input);border:1px solid var(--bdi);border-radius:7px;color:var(--tx);font:500 12px JetBrains Mono,monospace")}
+                  />
+                  <div style={sx("font:400 10px Inter;color:var(--dim3);margin-top:4px")}>Target Unity Catalog name</div>
+                </div>
+
+                <div>
+                  <div style={sx("font:600 11.5px Inter;color:var(--tx);margin-bottom:6px")}>Environment Tier</div>
+                  <div style={sx("width:100%;box-sizing:border-box;height:34px;padding:0 12px;background:var(--input);border:1px solid var(--bdi);border-radius:7px;color:var(--tx);font:600 12px JetBrains Mono,monospace;display:flex;align-items:center;justify-content:space-between")}>
+                    <span>DEV</span>
+                    <span style={sx("font:500 10px Inter;color:var(--dim3)")}>Active Target</span>
+                  </div>
+                  <div style={sx("font:400 10px Inter;color:var(--dim3);margin-top:4px")}>Deploying to DEV environment</div>
+                </div>
+              </div>
+
+              <div style={sx("display:grid;grid-template-columns:1fr;gap:14px")}>
+                <div>
+                  <div style={sx("font:600 11.5px Inter;color:var(--tx);margin-bottom:6px")}>Dataflow Group ID <span style={sx("color:var(--req)")}>*</span></div>
+                  <input
+                    value={V.paramGroupId}
+                    onChange={V.onParamGroupId}
+                    placeholder="dfg_name"
+                    style={sx("width:100%;box-sizing:border-box;height:34px;padding:0 10px;background:var(--input);border:1px solid var(--bdi);border-radius:7px;color:var(--tx);font:500 12px JetBrains Mono,monospace")}
+                  />
+                  <div style={sx("font:400 10px Inter;color:var(--dim3);margin-top:4px")}>Unique pipeline identifier in the control plane</div>
+                </div>
+              </div>
+
+              <div>
+                <div style={sx("font:600 11.5px Inter;color:var(--tx);margin-bottom:8px")}>Onboarding Action Mode</div>
+                <div style={sx("display:flex;flex-direction:column;gap:8px")}>
+                  {[
+                    {
+                      id: "CREATE",
+                      title: "CREATE — Full Pipeline Onboarding",
+                      badge: "Standard",
+                      desc: "Registers control-table metadata, creates target Delta tables in Unity Catalog, applies tags, and deploys the Lakeflow pipeline DAG."
+                    },
+                    {
+                      id: "UPDATE",
+                      title: "UPDATE — Metadata & Flow Evolution",
+                      badge: "Evolution",
+                      desc: "Modifies existing pipeline definitions, schemas, or transformations without resetting state tables or lineage audit logs."
+                    },
+                    {
+                      id: "VALIDATE_ONLY",
+                      title: "VALIDATE_ONLY — Dry-Run Preflight Check",
+                      badge: "Dry-Run",
+                      desc: "Validates the spec against UC schemas, volume constraints, and control-table rules without making any real modifications."
+                    }
+                  ].map(opt => {
+                    const active = V.paramActionType === opt.id;
+                    return (
+                      <div
+                        key={opt.id}
+                        onClick={() => V.onParamActionType({ target: { value: opt.id } })}
+                        style={sx(`display:flex;gap:11px;align-items:flex-start;padding:10px 12px;border-radius:8px;cursor:pointer;background:${active ? "var(--sel)" : "var(--input)"};border:1px solid ${active ? "var(--bda)" : "var(--bdi)"};transition:all .15s`)}
+                      >
+                        <span style={sx(`flex:none;width:13px;height:13px;margin-top:2px;border-radius:50%;border:1.5px solid ${active ? "var(--ac)" : "var(--bd5)"};background:${active ? "var(--ac)" : "transparent"};box-sizing:border-box`)}></span>
+                        <div style={sx("flex:1;min-width:0")}>
+                          <div style={sx("display:flex;align-items:center;gap:8px")}>
+                            <span style={sx(`font:600 11.5px Inter;color:${active ? "var(--tx)" : "var(--tx2)"}`)}>{opt.title}</span>
+                            <span style={sx(`font:500 9.5px Inter;padding:1px 6px;border-radius:4px;background:${active ? "var(--acfill)" : "var(--panel3)"};color:${active ? "var(--ac2)" : "var(--dim2)"}`)}>{opt.badge}</span>
+                          </div>
+                          <div style={sx("font:400 10.5px/1.4 Inter;color:var(--dim2);margin-top:3px")}>{opt.desc}</div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div>
+                <div style={sx("font:600 11px Inter;color:var(--dim2);margin-bottom:5px")}>Databricks Job ID (Optional override)</div>
+                <input
+                  value={V.paramJobId}
+                  onChange={V.onParamJobId}
+                  placeholder="Auto-detected from deployment"
+                  style={sx("width:100%;box-sizing:border-box;height:32px;padding:0 10px;background:var(--input);border:1px solid var(--bdi);border-radius:7px;color:var(--tx);font:400 11px JetBrains Mono,monospace")}
+                />
+                <div style={sx("font:400 9.5px Inter;color:var(--dim3);margin-top:3px")}>Leave empty to use the deployed onboarding job (${"{resources.jobs.onboarding_job.id}"})</div>
+              </div>
+
+              {V.promptMsg && (
+                <div style={sx(`padding:10px 12px;border-radius:8px;font:500 11px/1.4 Inter;background:${V.promptErr ? "var(--reqfill)" : "var(--acfill)"};color:${V.promptErr ? "var(--req)" : "var(--ac2)"};border:1px solid ${V.promptErr ? "var(--reqbd)" : "var(--acbd)"}`)}>
+                  {V.promptMsg}
+                </div>
+              )}
+            </div>
+
+            <div style={sx("display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 20px;border-top:1px solid var(--bd2);background:var(--panel2);flex:none")}>
+              <div
+                onClick={V.doSaveAloneInPrompt}
+                style={sx("display:flex;align-items:center;gap:6px;padding:8px 14px;border-radius:8px;border:1px solid var(--bd);background:var(--btn);cursor:pointer;font:600 11.5px Inter;color:var(--tx2)")}
+                title="Save the spec file to the selected storage path without executing the Databricks job"
+              >
+                <span>💾</span>
+                <span>Save Spec to Path</span>
+              </div>
+
+              <div style={sx("display:flex;align-items:center;gap:10px")}>
+                <div onClick={V.closeParamModal} style={sx("padding:8px 14px;border-radius:8px;border:1px solid var(--bd);background:var(--btn);cursor:pointer;font:600 11.5px Inter;color:var(--dim2)")}>
+                  Cancel
+                </div>
+                <div
+                  onClick={V.confirmSaveAndRun}
+                  style={sx(`display:flex;align-items:center;gap:7px;padding:9px 18px;border-radius:8px;border:1px solid var(--acbd);background:var(--ac);cursor:pointer;font:600 12px Inter;color:#fff;box-shadow:0 2px 10px rgba(0,0,0,.25);opacity:${V.promptSaving ? 0.7 : 1}`)}
+                >
+                  <span>🚀</span>
+                  <span>{V.promptSaving ? "Saving & Triggering…" : "Save & Run Onboarding Job ↗"}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {V.run && (
         <div style={sx("position:fixed;inset:0;z-index:70;background:var(--ovl);display:flex;align-items:center;justify-content:center;padding:40px")}>
           <div style={sx("width:660px;background:var(--panel);border:1px solid var(--bd4);border-radius:14px;overflow:hidden")}>
             <div style={sx("display:flex;align-items:center;gap:11px;padding:16px 20px;border-bottom:1px solid var(--bd2)")}>
-              <span style={sx("font:600 13.5px Inter")}>Onboarding &amp; execution</span>
+              <span style={sx("font:700 14px Inter;color:var(--tx)")}>🚀 Pipeline Onboarding Execution</span>
               <span style={sx("font:500 11px JetBrains Mono,monospace;color:var(--dim2)")}>{V.runId}</span>
               <span style={sx("flex:1")}></span>
               <span style={sx(`font:600 10.5px Inter;letter-spacing:.05em;color:${V.runStateFg}`)}>{V.runState}</span>
               <div onClick={V.closeRun} style={sx("width:26px;height:26px;border-radius:7px;border:1px solid var(--bdi);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--dim2)")}>×</div>
             </div>
+
+            {/* Parameter & Context Summary Card */}
+            {V.runParams && (
+              <div style={sx("display:grid;grid-template-columns:repeat(auto-fit, minmax(130px, 1fr));gap:9px 14px;padding:12px 20px;background:var(--panel2);border-bottom:1px solid var(--bd2);box-sizing:border-box")}>
+                <div>
+                  <span style={sx("color:var(--dim3);display:block;font:600 9.5px Inter;text-transform:uppercase;letter-spacing:.04em")}>Target Catalog</span>
+                  <span style={sx("color:var(--tx);font:600 11.5px JetBrains Mono,monospace")}>{V.runParams.catalog}</span>
+                </div>
+                <div>
+                  <span style={sx("color:var(--dim3);display:block;font:600 9.5px Inter;text-transform:uppercase;letter-spacing:.04em")}>Environment</span>
+                  <span style={sx("color:var(--tx);font:600 11.5px JetBrains Mono,monospace")}>{V.runParams.env}</span>
+                </div>
+                <div>
+                  <span style={sx("color:var(--dim3);display:block;font:600 9.5px Inter;text-transform:uppercase;letter-spacing:.04em")}>Dataflow Group</span>
+                  <span style={sx("color:var(--tx);font:600 11.5px JetBrains Mono,monospace")}>{V.runParams.dataflow_group_id}</span>
+                </div>
+                <div>
+                  <span style={sx("color:var(--dim3);display:block;font:600 9.5px Inter;text-transform:uppercase;letter-spacing:.04em")}>Action Mode</span>
+                  <span style={sx("color:var(--ac2);font:700 11.5px JetBrains Mono,monospace")}>{V.runParams.action_type}</span>
+                </div>
+                {V.runParams.job_id && (
+                  <div>
+                    <span style={sx("color:var(--dim3);display:block;font:600 9.5px Inter;text-transform:uppercase;letter-spacing:.04em")}>Databricks Job ID</span>
+                    <span style={sx("color:var(--tx);font:600 11.5px JetBrains Mono,monospace")}>{V.runParams.job_id}</span>
+                  </div>
+                )}
+                <div style={sx("grid-column:1/-1;margin-top:2px")}>
+                  <span style={sx("color:var(--dim3);display:block;font:600 9.5px Inter;text-transform:uppercase;letter-spacing:.04em")}>Spec Path</span>
+                  <span style={sx("color:var(--tx2);font:500 11px JetBrains Mono,monospace;word-break:break-all")}>{V.runParams.spec_path}</span>
+                </div>
+              </div>
+            )}
+
             <div style={sx("padding:18px 20px 6px")}>
               <div style={sx("height:5px;border-radius:3px;background:var(--bd3);overflow:hidden;margin-bottom:18px")}>
                 <div style={sx(`height:100%;width:${V.runPct};background:var(--ac);transition:width .3s`)}></div>
               </div>
-              <div style={sx("display:flex;flex-direction:column;gap:2px")}>
+              <div style={sx("display:flex;flex-direction:column;gap:4px")}>
                 {V.runStages.map((st, i) => (
-                  <div key={i} style={sx(`display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:8px;background:${st.bg}`)}>
+                  <div key={i} style={sx(`display:flex;align-items:center;gap:12px;padding:9px 12px;border-radius:8px;background:${st.bg};border:1px solid ${st.bg === "transparent" ? "transparent" : "var(--bda)"}`)}>
                     <span style={sx(`flex:none;width:16px;height:16px;border-radius:50%;border:2px solid ${st.ring};border-top-color:${st.top};animation:${st.anim};box-sizing:border-box`)}></span>
                     <span style={sx(`flex:1;font:500 12px Inter;color:${st.fg}`)}>{st.label}</span>
                     <span style={sx("font:500 10.5px JetBrains Mono,monospace;color:var(--dim3)")}>{st.time}</span>
@@ -673,10 +882,10 @@ export default function Shell({ V }) {
               </div>
             </div>
             {V.runFinished && (
-              <a href={V.jobRunUrl} target="_blank" rel="noreferrer" style={sx("display:flex;align-items:center;gap:12px;margin:16px 20px 0;padding:13px 15px;border-radius:10px;border:1px solid var(--acbd);background:var(--acfill)")}>
+              <a href={V.jobRunUrl} target="_blank" rel="noreferrer" style={sx("display:flex;align-items:center;gap:12px;margin:16px 20px 0;padding:13px 15px;border-radius:10px;border:1px solid var(--acbd);background:var(--acfill);text-decoration:none")}>
                 <span style={sx("flex:1;min-width:0")}>
-                  <span style={sx("display:block;font:600 12px Inter;color:var(--ac2)")}>{V.jobRunLabel}</span>
-                  <span style={sx("display:block;font:400 10.5px JetBrains Mono,monospace;color:var(--dim2);margin-top:3px;overflow-wrap:anywhere")}>{V.jobRunSub}</span>
+                  <span style={sx("display:block;font:700 12.5px Inter;color:var(--ac2)")}>{V.jobRunLabel}</span>
+                  <span style={sx("display:block;font:400 11px JetBrains Mono,monospace;color:var(--dim2);margin-top:3px;overflow-wrap:anywhere")}>{V.jobRunSub}</span>
                 </span>
               </a>
             )}

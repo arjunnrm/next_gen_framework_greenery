@@ -92,23 +92,32 @@ class AccessChecker:
                 "remediation": f"Root '{root_id}' is configured as read-only in config/index.json."
             })
         else:
-            probe_name = f".metaflow_access_probe_{uuid.uuid4().hex[:6]}"
+            # The probe goes through FileManager rather than calling the SDK directly, so
+            # it exercises exactly the code path a real save uses. Calling the SDK here
+            # separately is how this check came to report "can write" from a call shaped
+            # differently from the one that actually failed. The `.json` suffix is
+            # required: the write path rejects extensions outside allowed_extensions.
+            probe_name = f".metaflow_access_probe_{uuid.uuid4().hex[:6]}.json"
             probe_path = resolved_root_path + probe_name
             can_write_ok = False
             error_msg = ""
             try:
-                if root.kind == "volume":
-                    self.client.files.upload(probe_path, b"", overwrite=True)
-                else:
-                    self.client.workspace.import_(probe_path, content=b"", overwrite=True)
+                self.file_manager.write_file(
+                    root_id=root_id,
+                    path=probe_path,
+                    content="{}",
+                    overwrite=True,
+                    template_vars=template_vars,
+                )
                 can_write_ok = True
             except Exception as ex:
                 error_msg = str(ex)
             finally:
                 if can_write_ok:
+                    # Clean up both kinds. Only Volumes were cleaned before, so every
+                    # workspace preflight left a probe file behind in the specs folder.
                     try:
-                        if root.kind == "volume":
-                            self.client.files.delete(probe_path)
+                        self.file_manager.delete_file(root_id, probe_path, template_vars)
                     except Exception:
                         pass
 

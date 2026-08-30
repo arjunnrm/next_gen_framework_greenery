@@ -26,47 +26,84 @@ from server.settings import AppSettings
 router = APIRouter(prefix="/api/workspace", tags=["Workspace"])
 
 
+def _parse_template_vars(raw: Optional[str]) -> Optional[Dict[str, str]]:
+    """Decode the optional `template_vars` query parameter.
+
+    /write has always accepted template variables in its JSON body; /list and /read are
+    GETs and had no way to receive them, so a caller working in a non-default catalog
+    could write to one directory and then be unable to list or read it back. Accepting a
+    small JSON object here closes that asymmetry.
+    """
+    if not raw:
+        return None
+    try:
+        parsed = json.loads(raw)
+    except Exception as ex:
+        raise AppException(
+            code="VALIDATION_FAILED",
+            message=f"'template_vars' must be a JSON object: {ex}",
+            status_code=400,
+        )
+    if not isinstance(parsed, dict):
+        raise AppException(
+            code="VALIDATION_FAILED",
+            message="'template_vars' must be a JSON object of name -> value.",
+            status_code=400,
+        )
+    return {str(k): str(v) for k, v in parsed.items()}
+
+
 @router.get("/access")
 def get_access_report(
     root_id: Optional[str] = Query(None),
+    template_vars: Optional[str] = Query(None),
     settings: AppSettings = Depends(get_app_settings),
     client: Any = Depends(get_dbx_client),
     user: str = Depends(get_user_identity)
 ) -> Dict[str, Any]:
     """Run non-destructive permission preflight checks."""
     checker = AccessChecker(settings, client, user_email=user)
-    return checker.run_checks(root_id=root_id)
+    return checker.run_checks(root_id=root_id, template_vars=_parse_template_vars(template_vars))
 
 
 @router.get("/list")
 def list_workspace_files(
     root_id: Optional[str] = Query(None),
     prefix: str = Query(""),
+    template_vars: Optional[str] = Query(None),
     settings: AppSettings = Depends(get_app_settings),
     client: Any = Depends(get_dbx_client)
 ) -> Dict[str, Any]:
     """List spec files in Volume or Workspace storage."""
     file_mgr = FileManager(settings, client)
     r_id = root_id or settings.spec_storage.default_root
-    entries = file_mgr.list_files(r_id, prefix=prefix)
-    return {"entries": entries}
+    tvars = _parse_template_vars(template_vars)
+    entries = file_mgr.list_files(r_id, prefix=prefix, template_vars=tvars)
+    root = file_mgr._get_root(r_id)
+    return {
+        "entries": entries,
+        "root_id": r_id,
+        "root_path": file_mgr.resolve_root_path(root, tvars),
+    }
 
 
 @router.get("/read")
 def read_workspace_file(
     path: str = Query(...),
     root_id: Optional[str] = Query(None),
+    template_vars: Optional[str] = Query(None),
     settings: AppSettings = Depends(get_app_settings),
     client: Any = Depends(get_dbx_client)
 ) -> Dict[str, Any]:
     """Read a spec file from storage root."""
     file_mgr = FileManager(settings, client)
     r_id = root_id or settings.spec_storage.default_root
-    content, fmt, etag = file_mgr.read_file(r_id, path)
+    content, fmt, etag = file_mgr.read_file(r_id, path, template_vars=_parse_template_vars(template_vars))
     return {
         "content": content,
         "format": fmt,
-        "etag": etag
+        "etag": etag,
+        "path": path
     }
 
 
