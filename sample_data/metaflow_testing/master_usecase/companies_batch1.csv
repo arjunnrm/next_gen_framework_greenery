@@ -1,0 +1,4 @@
+company_id,company_name,region,email,updated_at
+CO001,Acme Corp LLC,"  us-east  "," invalid-email@test.com  ",2026-08-28T09:00:00
+CO002,Globex Trading Co,eu-west,"CONTACT@GLOBEX.COM ",2026-08-28T09:05:00
+CO003,"  Northwind Traders  ",ap-south,"  Support@Northwind.example  ",2026-08-28T09:10:00

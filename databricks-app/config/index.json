@@ -1,0 +1,127 @@
+{
+  "schema_version": "1.0",
+  "app": {
+    "title": "Metaflow Onboarding",
+    "framework_version": "1.3.0",
+    "environment_label": "dev",
+    "support_contact": "data-platform@example.com"
+  },
+  "auth": {
+    "mode": "obo",
+    "fallback_to_sp": true
+  },
+  "workspace": {
+    "host": "https://dbc-2f6b7d4f-8c5b.cloud.databricks.com",
+    "run_url_template": "{host}/#job/{job_id}/run/{run_id}",
+    "pipeline_url_template": "{host}/pipelines/{pipeline_id}"
+  },
+  "template_variables": {
+    "catalog": {
+      "label": "Catalog",
+      "default": "metaflow",
+      "required": true
+    },
+    "env": {
+      "label": "Environment",
+      "default": "dev",
+      "required": true
+    }
+  },
+  "spec_storage": {
+    "roots": [
+      {
+        "id": "vol_specs",
+        "label": "Volume \u00b7 onboarding specs",
+        "kind": "volume",
+        "path": "/Volumes/{{catalog}}/metaflow/onboarding_specs/",
+        "read": true,
+        "write": true
+      },
+      {
+        "id": "ws_specs",
+        "label": "Workspace \u00b7 specs",
+        "kind": "workspace",
+        "path": "/Workspace/Shared/metaflow/specs/",
+        "read": true,
+        "write": true
+      }
+    ],
+    "default_root": "vol_specs",
+    "allowed_extensions": [
+      ".json",
+      ".yaml",
+      ".yml"
+    ],
+    "filename_template": "{dataflow_group_id}_{timestamp}.json"
+  },
+  "actions": {
+    "validate": {
+      "enabled": true,
+      "label": "Validate spec",
+      "mode": "local",
+      "job_id": 123456789012345,
+      "confirm": false,
+      "parameter_map": {
+        "spec_path": "$spec_path",
+        "mode": "validate_only",
+        "environment": "$env",
+        "catalog": "$catalog"
+      },
+      "stages": [
+        "Upload spec",
+        "Resolve template variables",
+        "Schema validation",
+        "Cross-field validation",
+        "Report"
+      ],
+      "poll_interval_ms": 2000,
+      "timeout_ms": 600000
+    },
+    "onboard": {
+      "enabled": true,
+      "label": "Onboard pipeline",
+      "mode": "job",
+      "job_id": 987654321098765,
+      "confirm": true,
+      "confirm_text": "This upserts control-table rows for {dataflow_group_id} in {environment_label}.",
+      "requires": [
+        "validate_passed"
+      ],
+      "parameter_map": {
+        "spec_path": "$spec_path",
+        "dataflow_group_id": "$dataflow_group_id",
+        "environment": "$env",
+        "catalog": "$catalog"
+      },
+      "stages": [
+        "Upload spec",
+        "Validate spec",
+        "Upsert control tables",
+        "Register datasets",
+        "Apply governance tags",
+        "Done"
+      ],
+      "poll_interval_ms": 3000,
+      "timeout_ms": 1800000
+    }
+  },
+  "docs": {
+    "mode": "embedded",
+    "base_url": "/docs/",
+    "external_base_url": "https://docs.internal.example.com/metaflow/",
+    "attribute_reference_page": "",
+    "open_in": "panel"
+  },
+  "features": {
+    "load_existing_spec": true,
+    "export_download": true,
+    "export_to_workspace": true,
+    "control_table_browse": false,
+    "yaml_output": true,
+    "diff_before_onboard": true
+  },
+  "limits": {
+    "max_flows_per_kind": 50,
+    "max_spec_bytes": 2097152
+  }
+}

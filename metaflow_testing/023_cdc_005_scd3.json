@@ -1,0 +1,51 @@
+{
+  "dataflow_group_id": "dfg_cdc_005_scd3_subscription",
+  "pipeline_parameters": {},
+  "ingestion_flows": [
+    {
+      "dataflow_id": "df_cdc_005_subscription_events_ingest",
+      "source_system": "subscription_billing_system",
+      "source_database": "sub_events",
+      "source_table_name": "subscription_status_events",
+      "source_description": "TC-CDC-005: streaming Auto Loader ingestion of subscription status-change events for sub_id S100, landed across 3 separate batches (TRIAL -> ACTIVE -> CHURNED), feeding a downstream SCD3 transformation flow that tracks only the current/previous status",
+      "source_type": "autoloader",
+      "target_catalog": "{{catalog}}",
+      "target_schema": "bronze_sub",
+      "target_table": "subscription_status_events_raw",
+      "target_type": "streaming_table",
+      "source_config": {
+        "path": "/Volumes/{{catalog}}/sub/landing_sub/incoming/",
+        "format": "csv",
+        "schema_location": "/Volumes/{{catalog}}/sub/_schemas/subscription_status_events_raw/",
+        "reader_options": {"header": "true", "cloudFiles.inferColumnTypes": "true"},
+        "capture_technical_metadata": true
+      },
+      "target_config": {"cdc_load_strategy": "APPEND", "storage_format": "delta"},
+      "dq_config": {"rules": []},
+      "governance_tags": {}
+    }
+  ],
+  "transformation_flows": [
+    {
+      "flow_step_id": "ts_cdc_005_scd3_subscription",
+      "dataflow_id": "df_cdc_005_subscription_events_ingest",
+      "target_catalog": "{{catalog}}",
+      "target_schema": "silver_sub",
+      "target_table": "dim_subscription_scd3",
+      "target_type": "streaming_table",
+      "source_inputs": [
+        {"input_name": "subscription_events_src", "table": "{{catalog}}.bronze_sub.subscription_status_events_raw", "is_streaming": true}
+      ],
+      "transformation_sql": "SELECT sub_id, customer_id, plan_name, status, event_ts FROM subscription_events_src",
+      "target_config": {
+        "cdc_load_strategy": "SCD3",
+        "primary_keys": ["sub_id"],
+        "sequence_by_column": "event_ts",
+        "columns_to_check": ["status"]
+      },
+      "dq_config": {},
+      "governance_tags": {}
+    }
+  ],
+  "reconciliation_flows": []
+}

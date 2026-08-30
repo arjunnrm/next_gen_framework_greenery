@@ -1,0 +1,6 @@
+txn_id,account_id,amount,currency,txn_date,merchant
+FTX-1001,ACC-4001,120.50,USD,2026-08-20,Northwind Traders
+FTX-1002,ACC-4002,75.25,USD,2026-08-21,Contoso Retail
+FTX-1003,ACC-4003,300.00,EUR,2026-08-22,Fabrikam Logistics
+FTX-1004,ACC-4001,45.10,USD,2026-08-23,Northwind Traders
+FTX-1005,ACC-4004,999.99,GBP,2026-08-24,Tailspin Toys

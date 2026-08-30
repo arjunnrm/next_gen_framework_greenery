@@ -1,0 +1,5 @@
+event_id,account_id,account_name,ssn,email,balance,status,contact_channel,op,event_ts
+E006,A001,Acme Corp,111-11-1111,acme@example.com,15000.00,ACTIVE,EMAIL,U,2026-02-01T00:00:00
+E007,A002,Beta LLC,222-22-2222,beta@example.com,5000.00,ACTIVE,EMAIL,D,2026-02-01T00:00:00
+E008,A003,Gamma Inc,333-33-3333,gamma@example.com,7500.00,ACTIVE,EMAIL,U,2026-02-01T00:00:00
+E009,A006,Zeta Partners,666-66-6666,zeta@example.com,2000.00,ACTIVE,EMAIL,I,2026-02-01T00:00:00

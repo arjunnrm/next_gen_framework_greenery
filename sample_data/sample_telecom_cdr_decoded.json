@@ -1,0 +1,10 @@
+{"imsi": "310150123456789", "msisdn": "14155550101", "regionCode": "US-CA", "callDurationSeconds": 125, "cellId": "CELL-0001", "_asn1_decode_error": null}
+{"imsi": "310150123456790", "msisdn": "14155550102", "regionCode": "US-CA", "callDurationSeconds": 340, "cellId": "CELL-0002", "_asn1_decode_error": null}
+{"imsi": "310150123456791", "msisdn": "14155550103", "regionCode": "US-NY", "callDurationSeconds": 58, "cellId": "CELL-0003", "_asn1_decode_error": null}
+{"imsi": null, "msisdn": "14155550104", "regionCode": "US-NY", "callDurationSeconds": 200, "cellId": "CELL-0004", "_asn1_decode_error": null}
+{"imsi": "310150123456793", "msisdn": "14155550105", "regionCode": "US-TX", "callDurationSeconds": -15, "cellId": "CELL-0005", "_asn1_decode_error": null}
+{"imsi": "310150123456794", "msisdn": "14155550106", "regionCode": "US-TX", "callDurationSeconds": 410, "cellId": "CELL-0006", "_asn1_decode_error": null}
+{"imsi": "310150123456795", "msisdn": "14155550107", "regionCode": "US-FL", "callDurationSeconds": 95, "cellId": "CELL-0007", "_asn1_decode_error": null}
+{"imsi": "310150123456796", "msisdn": "14155550108", "regionCode": "US-FL", "callDurationSeconds": 272, "cellId": "CELL-0008", "_asn1_decode_error": null}
+{"imsi": "310150123456797", "msisdn": "14155550109", "regionCode": "US-WA", "callDurationSeconds": 18, "cellId": "CELL-0009", "_asn1_decode_error": null}
+{"imsi": "310150123456798", "msisdn": "14155550110", "regionCode": "US-WA", "callDurationSeconds": 530, "cellId": "CELL-0010", "_asn1_decode_error": null}

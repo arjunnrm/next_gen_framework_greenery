@@ -1,0 +1,37 @@
+{
+  "dataflow_group_id": "dfg_metaflow_ing_002_zip_retention",
+  "pipeline_parameters": {},
+  "ingestion_flows": [
+    {
+      "dataflow_id": "df_ing_002_zip_retention_orders_ingest",
+      "source_system": "sales_orders_extract",
+      "source_database": "sales_zip_extract",
+      "source_table_name": "orders_batch",
+      "source_description": "TC-ING-002: ZIP source purge retention policy -- orders_batch_01.zip is extracted then purged (deleted) from the incoming Volume via source_zip_handling.delete_source_after_extract",
+      "source_type": "autoloader",
+      "target_catalog": "{{catalog}}",
+      "target_schema": "bronze_sales",
+      "target_table": "orders_raw",
+      "target_type": "streaming_table",
+      "source_config": {
+        "path": "/Volumes/{{catalog}}/sales/landing_zip/extracted/orders/",
+        "format": "csv",
+        "schema_location": "/Volumes/{{catalog}}/sales/_schemas/orders/",
+        "reader_options": {"header": "true", "cloudFiles.inferColumnTypes": "true"},
+        "capture_technical_metadata": true,
+        "source_zip_handling": {
+          "enabled": true,
+          "source_zip_path": "/Volumes/{{catalog}}/sales/landing_zip/incoming/",
+          "zip_file_pattern": "orders_batch_01.zip",
+          "target_volume_path": "/Volumes/{{catalog}}/sales/landing_zip/extracted/orders/",
+          "delete_source_after_extract": true
+        }
+      },
+      "target_config": {"cdc_load_strategy": "APPEND", "storage_format": "delta"},
+      "dq_config": {"rules": []},
+      "governance_tags": {}
+    }
+  ],
+  "transformation_flows": [],
+  "reconciliation_flows": []
+}

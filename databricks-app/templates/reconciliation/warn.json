@@ -1,0 +1,27 @@
+{
+  "reconciliation_id": "recon_template_warn_example",
+  "source_config": {
+    "type": "table",
+    "table": "{{catalog}}.bronze_example.example_secondary_baseline"
+  },
+  "target_configs": [
+    {
+      "target_id": "secondary",
+      "type": "table",
+      "table": "{{catalog}}.bronze_example.example_secondary_final",
+      "comparison_direction": "source_to_target",
+      "append_target_table": "{{catalog}}.bronze_example.example_secondary_cdc"
+    }
+  ],
+  "match_keys": [
+    "example_id"
+  ],
+  "error_handling": {
+    "on_failure": "warn"
+  },
+  "two_tier_verification": true,
+  "logging_config": {
+    "run_log_capture": true,
+    "mismatch_log_capture": false
+  }
+}

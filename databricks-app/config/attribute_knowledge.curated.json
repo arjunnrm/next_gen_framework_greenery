@@ -1,0 +1,433 @@
+{
+  "schema_version": "1.0",
+  "_comment": "Hand-written inspector prose. Layered over the generated entries by scripts/build_attribute_knowledge.py; every field set here wins.",
+  "attributes": {
+    "@dataflow_group_id": {
+      "purpose": "The primary key for this whole onboarding document. Every flow in the spec is upserted into the framework control tables under this one identifier.",
+      "why": "Re-running onboarding with the same group id updates the existing rows in place. Changing it creates a second, independent set of control-table rows — the original flows keep running.",
+      "samples": [
+        {
+          "language": "json",
+          "code": "\"dataflow_group_id\": \"dfg_finance_txn_ingest\""
+        }
+      ],
+      "tips": [
+        "Treat it as immutable once a pipeline is live.",
+        "Use a stable business-domain name, not an environment name — the same group id should exist in dev and prod."
+      ],
+      "errors": [
+        {
+          "symptom": "Duplicate pipelines appear after onboarding",
+          "cause": "The group id was changed between runs, so the old rows were never superseded.",
+          "fix": "Restore the original id, or delete the orphaned control-table rows for the abandoned id."
+        }
+      ],
+      "refs": []
+    },
+    "source_config.path": {
+      "purpose": "The Unity Catalog Volume directory Auto Loader watches for new files.",
+      "why": "Auto Loader lists and streams from this directory; it is the physical entry point of the flow.",
+      "samples": [
+        {
+          "language": "json",
+          "code": "\"path\": \"/Volumes/{{catalog}}/landing/orders/{{env}}/incoming/\""
+        }
+      ],
+      "tips": [
+        "Always end with a trailing slash — a path that looks like a file makes Auto Loader watch the parent directory.",
+        "Point at a dedicated incoming/ directory. Mixing archived and incoming files in one directory makes retention rules dangerous.",
+        "When source_zip_handling is enabled this must be the extraction target, not the directory holding the archives."
+      ],
+      "errors": [
+        {
+          "symptom": "Update succeeds and reports SUCCESS but writes zero rows",
+          "cause": "The path does not match where the files actually land — most often source_zip_handling.target_volume_path points somewhere else.",
+          "fix": "Confirm the extraction target and this path are the same directory. The onboarding validator does not cross-check them."
+        },
+        {
+          "symptom": "PERMISSION_DENIED on the Volume",
+          "cause": "The pipeline's run-as identity lacks READ VOLUME.",
+          "fix": "GRANT READ VOLUME ON VOLUME <catalog>.<schema>.<volume> TO <principal>."
+        }
+      ],
+      "refs": [
+        "auto_loader",
+        "uc_volumes"
+      ]
+    },
+    "source_config.format": {
+      "purpose": "How Auto Loader parses each file it picks up.",
+      "why": "Chooses the reader and therefore which other source_config options apply.",
+      "samples": [
+        {
+          "language": "json",
+          "code": "\"format\": \"csv\",\n\"reader_options\": { \"header\": \"true\", \"delimiter\": \",\" }"
+        }
+      ],
+      "tips": [
+        "csv and json need reader_options to behave predictably; parquet carries its own schema.",
+        "For json, decide explode behaviour deliberately — an absent explode_columns preserves nesting."
+      ],
+      "errors": [
+        {
+          "symptom": "Every column arrives as a string",
+          "cause": "cloudFiles.inferColumnTypes is not set for csv.",
+          "fix": "Add \"cloudFiles.inferColumnTypes\": \"true\" to reader_options, or declare a schema_config."
+        }
+      ],
+      "refs": [
+        "auto_loader_options"
+      ]
+    },
+    "source_config.schema_location": {
+      "purpose": "Where Auto Loader persists the inferred schema and its evolution history.",
+      "why": "Without a durable schema location, Auto Loader cannot detect that a column is new, so schema evolution and the rescue column stop working.",
+      "samples": [
+        {
+          "language": "json",
+          "code": "\"schema_location\": \"/Volumes/{{catalog}}/landing/_schemas/orders/\""
+        }
+      ],
+      "tips": [
+        "Give every flow its own schema location. Sharing one between flows corrupts both schemas.",
+        "Never point it inside the directory being ingested — the checkpoint files become input files."
+      ],
+      "errors": [
+        {
+          "symptom": "Pipeline reprocesses everything after a redeploy",
+          "cause": "The schema location moved, so the stream lost its checkpoint identity.",
+          "fix": "Restore the original path, or accept a one-time full reprocess."
+        }
+      ],
+      "refs": [
+        "auto_loader_schema"
+      ]
+    },
+    "source_config.capture_technical_metadata": {
+      "purpose": "Adds the framework's file-provenance columns and gates the ingestion timestamp.",
+      "why": "Populates __framework_source_file_name, _size, _modification_time and _metadata_headers, and switches on __framework_ingestion_timestamp_utc.",
+      "samples": [
+        {
+          "language": "json",
+          "code": "\"capture_technical_metadata\": true"
+        }
+      ],
+      "tips": [
+        "Leave it on unless you have a strong column-count reason not to — it is the only record of which file a row came from."
+      ],
+      "errors": [
+        {
+          "symptom": "CDC pipeline fails at startup complaining about sequence_by_column",
+          "cause": "This was set false, so __framework_ingestion_timestamp_utc does not exist, and the CDC default sequencing column is missing.",
+          "fix": "Either re-enable this, or set target_config.sequence_by_column to a real column explicitly."
+        }
+      ],
+      "refs": []
+    },
+    "target_config.cdc_load_strategy": {
+      "purpose": "How rows are merged into the target table.",
+      "why": "This single choice decides which other target_config attributes are meaningful; the strategy tabs re-scope the form around it.",
+      "samples": [
+        {
+          "language": "json",
+          "code": "\"target_config\": {\n  \"cdc_load_strategy\": \"SCD2\",\n  \"primary_keys\": [\"customer_id\"],\n  \"sequence_by_column\": \"updated_at\",\n  \"columns_to_check\": [\"status\", \"tier\"]\n}"
+        }
+      ],
+      "tips": [
+        "APPEND and TRUNCATE_AND_LOAD are the only strategies where partitioning, liquid clustering and auto TTL take effect.",
+        "SCD3 is transformation-only — it is not available to ingestion flows.",
+        "Never include encrypted columns in columns_to_check: AES-GCM uses a random IV, so the ciphertext differs every run and every row looks changed."
+      ],
+      "errors": [
+        {
+          "symptom": "A new history row appears on every run with no real change",
+          "cause": "columns_to_check includes an encrypted or non-deterministic column.",
+          "fix": "Restrict columns_to_check to stable business columns."
+        },
+        {
+          "symptom": "partition_columns appears to be ignored",
+          "cause": "Partitioning is silently skipped for CDC-dispatched strategies.",
+          "fix": "Expected behaviour — use APPEND/TRUNCATE_AND_LOAD, or accept an unpartitioned CDC target."
+        }
+      ],
+      "refs": [
+        "apply_changes"
+      ]
+    },
+    "target_config.primary_keys": {
+      "purpose": "The business key apply_changes uses to match an incoming row to an existing one.",
+      "why": "Without it, CDC cannot tell an update from an insert.",
+      "samples": [
+        {
+          "language": "json",
+          "code": "\"primary_keys\": [\"customer_id\", \"region\"]"
+        }
+      ],
+      "tips": [
+        "Use the natural business key, not a surrogate generated downstream.",
+        "FULL_SNAPSHOT_CDC requires one too, as of v1.4.0 — the keyless variant was withdrawn along with the surrogate-key engine that stood in for the missing key."
+      ],
+      "errors": [
+        {
+          "symptom": "Rows duplicate instead of updating",
+          "cause": "The declared key is not actually unique in the source.",
+          "fix": "Add the missing key column, or deduplicate upstream with source_config.remove_dups."
+        }
+      ],
+      "refs": [
+        "apply_changes"
+      ]
+    },
+    "target_config.partition_columns": {
+      "purpose": "Physical Hive-style partitioning of the target table.",
+      "why": "Splits the table into directories by column value. Effective only for APPEND and TRUNCATE_AND_LOAD.",
+      "samples": [
+        {
+          "language": "json",
+          "code": "\"partition_columns\": [\"ingest_date\"]\n\n// explicitly unpartitioned:\n\"partition_columns\": []"
+        }
+      ],
+      "tips": [
+        "Databricks guidance: do not partition tables under roughly 1 TB. Use liquid clustering instead.",
+        "An empty array is a deliberate, documented statement that the table is unpartitioned — it is not an error.",
+        "Partition on a low-cardinality column. Partitioning on an id produces millions of tiny files."
+      ],
+      "errors": [
+        {
+          "symptom": "Queries got slower after partitioning",
+          "cause": "Over-partitioning created many small files.",
+          "fix": "Drop the partitioning and switch to liquid_clustering_columns."
+        }
+      ],
+      "refs": [
+        "partitioning",
+        "liquid_clustering"
+      ]
+    },
+    "target_config.liquid_clustering_columns": {
+      "purpose": "Clustering keys for Delta liquid clustering.",
+      "why": "Gives data skipping without the file-count problems of partitioning, and can be changed later without rewriting the table.",
+      "samples": [
+        {
+          "language": "json",
+          "code": "\"liquid_clustering_columns\": [\"customer_id\", \"order_date\"]"
+        }
+      ],
+      "tips": [
+        "Maximum of three columns — enforced at onboarding and again at runtime.",
+        "Prefer this over partition_columns for anything under about 1 TB.",
+        "Choose the columns your queries actually filter on."
+      ],
+      "errors": [
+        {
+          "symptom": "Onboarding rejects the flow",
+          "cause": "More than three columns were listed.",
+          "fix": "Reduce to the three most selective predicates."
+        }
+      ],
+      "refs": [
+        "liquid_clustering"
+      ]
+    },
+    "target_config.auto_ttl.timestamp_column": {
+      "purpose": "The column whose value decides how old a row is, for automatic expiry.",
+      "why": "auto TTL deletes rows whose timestamp is older than expire_in_days.",
+      "samples": [
+        {
+          "language": "json",
+          "code": "\"auto_ttl\": { \"timestamp_column\": \"updated_at\", \"expire_in_days\": 90 }"
+        }
+      ],
+      "tips": [
+        "Must be DATE, TIMESTAMP or TIMESTAMP_NTZ.",
+        "Valid only for APPEND and TRUNCATE_AND_LOAD — a hard error on CDC strategies.",
+        "Deletion is permanent. Confirm your retention policy before enabling it."
+      ],
+      "errors": [
+        {
+          "symptom": "Onboarding fails with a hard error on a CDC flow",
+          "cause": "auto TTL is incompatible with CDC-dispatched strategies.",
+          "fix": "Remove the auto_ttl block, or move expiry into a separate maintenance job."
+        }
+      ],
+      "refs": []
+    },
+    "target_config.table_properties": {
+      "purpose": "Delta table properties applied to the target.",
+      "why": "Controls log retention, VACUUM safety windows, and Iceberg read compatibility.",
+      "samples": [
+        {
+          "language": "json",
+          "code": "\"table_properties\": {\n  \"log_retention_duration\": \"interval 30 days\",\n  \"enable_iceberg_read_uniformity\": \"true\"\n}"
+        }
+      ],
+      "tips": [
+        "enable_iceberg_read_uniformity turns on Delta UniForm so Iceberg readers can read a Delta table — valid for any target_type, unlike storage_format: iceberg.",
+        "Setting deleted_file_retention_duration below your longest-running query risks VACUUM removing files still being read."
+      ],
+      "errors": [
+        {
+          "symptom": "FileNotFoundException in a long query",
+          "cause": "VACUUM removed files while the query was running.",
+          "fix": "Raise deleted_file_retention_duration above your longest query duration."
+        }
+      ],
+      "refs": [
+        "table_properties",
+        "uniform"
+      ]
+    },
+    "dq_config.rules": {
+      "purpose": "Data-quality expectations evaluated on every row.",
+      "why": "Each rule becomes a pipeline expectation; the action decides what happens to a failing row.",
+      "samples": [
+        {
+          "language": "json",
+          "code": "\"rules\": [\n  { \"rule_id\": \"order_id_not_null\", \"expression\": \"order_id IS NOT NULL\", \"action\": \"drop\" },\n  { \"rule_id\": \"amount_non_negative\", \"expression\": \"amount >= 0\", \"action\": \"quarantine\" }\n]"
+        }
+      ],
+      "tips": [
+        "warn keeps the row and records the violation; drop discards it; fail stops the update; quarantine routes it to a sibling table.",
+        "quarantine is a framework extension, not native pipeline behaviour — it needs dq_config.quarantine_table set.",
+        "Give each rule a stable rule_id: it is what appears in __framework_dq_failed_rule_ids."
+      ],
+      "errors": [
+        {
+          "symptom": "quarantine rows go nowhere",
+          "cause": "quarantine_table was not configured.",
+          "fix": "Set dq_config.quarantine_table, and record_id_column so rows can be traced back."
+        },
+        {
+          "symptom": "The whole update fails on one bad row",
+          "cause": "A rule uses action: fail.",
+          "fix": "Downgrade to drop or quarantine unless the condition really is unrecoverable."
+        }
+      ],
+      "refs": [
+        "dlt_expectations"
+      ]
+    },
+    "governance_tags.column_tags": {
+      "purpose": "Unity Catalog tags applied to individual columns after deployment.",
+      "why": "Drives discovery and classification. Applied via ALTER TABLE SET TAGS once the table exists.",
+      "samples": [
+        {
+          "language": "json",
+          "code": "\"column_tags\": [\n  { \"column_name\": \"email\", \"tag_key\": \"pii\", \"tag_value\": \"true\" }\n]"
+        }
+      ],
+      "tips": [
+        "This framework applies tags only. It does not create masking policies or row filters — tagging a column does not protect it.",
+        "Tags are applied post-deployment, so they appear after the first successful update, not at onboarding time."
+      ],
+      "errors": [
+        {
+          "symptom": "Tags never appear",
+          "cause": "The run-as principal lacks APPLY TAG on the target.",
+          "fix": "GRANT APPLY TAG ON TABLE ... TO <principal>."
+        }
+      ],
+      "refs": [
+        "uc_tags"
+      ]
+    },
+    "source_config.source_zip_handling.target_volume_path": {
+      "purpose": "The directory archive members are extracted into before ingestion reads them.",
+      "why": "Extraction and ingestion are two separate steps; this is the handover point between them.",
+      "samples": [
+        {
+          "language": "json",
+          "code": "\"source_zip_handling\": {\n  \"enabled\": true,\n  \"source_zip_path\": \"/Volumes/{{catalog}}/landing/cdr/incoming/\",\n  \"target_volume_path\": \"/Volumes/{{catalog}}/landing/cdr/extracted/\"\n}\n// source_config.path must equal target_volume_path"
+        }
+      ],
+      "tips": [
+        "This must match source_config.path exactly. Nothing validates that they agree."
+      ],
+      "errors": [
+        {
+          "symptom": "Extraction succeeds, ingestion reads zero rows, update reports SUCCESS",
+          "cause": "This path and source_config.path point at different directories, so the reader watches an empty directory.",
+          "fix": "Make the two identical. This is the single most common silent misconfiguration in ZIP flows."
+        }
+      ],
+      "refs": [
+        "uc_volumes"
+      ]
+    },
+    "source_config.source_zip_handling.pre_extraction_decryption.type": {
+      "purpose": "Decryption applied to the archive before it is unzipped.",
+      "why": "Encrypted archives must be decrypted as a distinct outer layer before any member can be read.",
+      "samples": [
+        {
+          "language": "json",
+          "code": "\"pre_extraction_decryption\": {\n  \"type\": \"pgp\",\n  \"private_key_secret\": { \"secret_catalog\": \"{{catalog}}\", \"secret_schema\": \"security\", \"secret_key\": \"pgp_private_key\" }\n}"
+        }
+      ],
+      "tips": [
+        "Only pgp is supported.",
+        "Choosing a type is what reveals the secret fields below — they stay hidden until then.",
+        "Secrets are referenced by catalog/schema/key. Never paste key material into the spec."
+      ],
+      "errors": [
+        {
+          "symptom": "Decryption fails with no obvious cause",
+          "cause": "The passphrase secret is missing while the private key requires one.",
+          "fix": "Populate secret_passphrase as well as private_key_secret."
+        }
+      ],
+      "refs": [
+        "secrets"
+      ]
+    },
+    "target_config.sink_config.format": {
+      "purpose": "The export format for a sink or external_sink target.",
+      "why": "sink exports only; external_sink writes a governed table and also exports.",
+      "samples": [
+        {
+          "language": "json",
+          "code": "\"sink_config\": { \"format\": \"pgp_zip\", \"path\": \"/Volumes/{{catalog}}/egress/orders/\" }"
+        }
+      ],
+      "tips": [
+        "pgp_zip uses the framework's own PySpark DataSource, not a built-in writer.",
+        "kafka takes connection options instead of a path."
+      ],
+      "errors": [
+        {
+          "symptom": "Onboarding rejects a missing path",
+          "cause": "delta and pgp_zip both require sink_config.path.",
+          "fix": "Supply an output directory, or switch the format to kafka."
+        }
+      ],
+      "refs": [
+        "sinks"
+      ]
+    },
+    "target_type": {
+      "purpose": "The kind of Lakeflow dataset registered for this flow.",
+      "why": "Decides whether the target is incrementally maintained, fully recomputed, or export-only.",
+      "samples": [
+        {
+          "language": "json",
+          "code": "\"target_type\": \"streaming_table\""
+        }
+      ],
+      "tips": [
+        "streaming_table is the default for incremental ingestion.",
+        "materialized_view fully recomputes — pair it with TRUNCATE_AND_LOAD, not a CDC strategy.",
+        "storage_format: iceberg is only valid for batch_table; elsewhere use the enable_iceberg_read_uniformity table property."
+      ],
+      "errors": [
+        {
+          "symptom": "Onboarding rejects storage_format: iceberg",
+          "cause": "Iceberg storage is restricted to batch_table.",
+          "fix": "Keep delta and add enable_iceberg_read_uniformity to table_properties."
+        }
+      ],
+      "refs": [
+        "streaming_tables",
+        "materialized_views"
+      ]
+    }
+  }
+}

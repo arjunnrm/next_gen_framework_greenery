@@ -1,0 +1,27 @@
+# TC-ING-004: "ASN.1 Binary Telecom CDR Decoding" -- decodes real BER-encoded GSM
+# call-detail-record files (source_type: "asn1") against sample_data/asn1_schema/gsm_cdr.asn
+# (imsi, imei, callDurationSeconds, cellId, roamingFlag) into metaflow.bronze_telecom.cdr_stream_raw.
+# See metaflow_testing/013_ing_004_asn1_decode.json.
+
+resources:
+  pipelines:
+    metaflow_test_ing_004_asn1_decode_pipeline:
+      name: metaflow_test_ing_004_asn1_decode_pipeline_${bundle.target}
+      catalog: metaflow
+      schema: bronze_telecom
+      serverless: true
+      photon: true
+      development: true
+      continuous: false
+
+      libraries:
+        - notebook:
+            path: ../notebooks/03_engine/03_lakeflow_declarative_pipeline.py
+
+      environment:
+        dependencies:
+          - ../dist/*.whl
+
+      configuration:
+        dataflow.group.id: dfg_ing_004_asn1_decode
+        dataflow.control.catalog: metaflow

@@ -1,0 +1,28 @@
+{
+  "dataflow_group_id": "dfg_metaflow_002_zerobus_bronze",
+  "pipeline_parameters": {},
+  "ingestion_flows": [
+    {
+      "dataflow_id": "df_excalibur_zerobus_ingest",
+      "source_system": "excalibur_customer_bus",
+      "source_database": "Excalibur_usecase",
+      "source_table_name": "zerobus_source_bus",
+      "source_description": "Metaflow test 002: stream customer records from a Zerobus-style source Delta table into a Bronze table",
+      "source_type": "zerobus",
+      "target_catalog": "{{catalog}}",
+      "target_schema": "bronze_excalibur",
+      "target_table": "zerobus_bronze",
+      "target_type": "streaming_table",
+      "source_config": {
+        "source_catalog": "{{catalog}}",
+        "source_schema": "Excalibur_usecase",
+        "source_table": "zerobus_source_bus"
+      },
+      "target_config": {"cdc_load_strategy": "APPEND", "storage_format": "delta"},
+      "dq_config": {"rules": []},
+      "governance_tags": {}
+    }
+  ],
+  "transformation_flows": [],
+  "reconciliation_flows": []
+}

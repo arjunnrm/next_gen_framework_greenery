@@ -1,0 +1,818 @@
+[
+  {
+    "id": "identity",
+    "title": "Flow identity",
+    "subtitle": "Identity and descriptive metadata. Everything but dataflow_id is carried to the control table without validation.",
+    "doc": "#2-ingestion-flow-schema",
+    "fields": [
+      {
+        "path": "dataflow_id",
+        "label": "dataflow_id",
+        "widget": "text",
+        "type": "string",
+        "required": true,
+        "placeholder": "df_template_ingest",
+        "description": "Unique ID for this ingestion flow. Referenced by transformation flows."
+      },
+      {
+        "path": "source_system",
+        "label": "source_system",
+        "widget": "text",
+        "type": "string",
+        "placeholder": "example_source_system",
+        "description": "Descriptive metadata — never validated."
+      },
+      {
+        "path": "source_database",
+        "label": "source_database",
+        "widget": "text",
+        "type": "string",
+        "placeholder": "example_landing_db",
+        "description": "Descriptive metadata."
+      },
+      {
+        "path": "source_table_name",
+        "label": "source_table_name",
+        "widget": "text",
+        "type": "string",
+        "placeholder": "example_raw_table",
+        "description": "Descriptive metadata."
+      },
+      {
+        "path": "source_description",
+        "label": "source_description",
+        "widget": "sql",
+        "type": "string",
+        "span": 2,
+        "placeholder": "Bronze ingestion from a Volume in the {{env}} environment",
+        "description": "Becomes target Delta table's COMMENT. Supports {{catalog}} and {{env}}."
+      }
+    ]
+  },
+  {
+    "id": "dataset",
+    "title": "Target dataset",
+    "subtitle": "Where the flow lands in Unity Catalog and what kind of Lakeflow dataset is registered.",
+    "doc": "#13-target-types-quick-reference",
+    "fields": [
+      {
+        "path": "target_catalog",
+        "label": "target_catalog",
+        "widget": "text",
+        "type": "string",
+        "required": true,
+        "placeholder": "{{catalog}}",
+        "description": "Unity Catalog catalog for the target table."
+      },
+      {
+        "path": "target_schema",
+        "label": "target_schema",
+        "widget": "text",
+        "type": "string",
+        "required": true,
+        "placeholder": "bronze_example",
+        "description": "Schema for the target table."
+      },
+      {
+        "path": "target_table",
+        "label": "target_table",
+        "widget": "text",
+        "type": "string",
+        "required": true,
+        "placeholder": "example_raw",
+        "description": "Target Delta table name."
+      },
+      {
+        "path": "target_type",
+        "label": "target_type",
+        "widget": "select",
+        "type": "string",
+        "required": true,
+        "default": "streaming_table",
+        "options": [
+          "streaming_table",
+          "materialized_view",
+          "batch_table",
+          "external_sink",
+          "sink"
+        ],
+        "description": "streaming_table for incremental, materialized_view for full recompute, batch_table for batch (supporting iceberg), external_sink for table plus export, sink for export only."
+      }
+    ]
+  },
+  {
+    "id": "srctype",
+    "title": "Source type",
+    "subtitle": "Picking a source type decides which source_config fields apply — only those are shown below.",
+    "doc": "#3-source-config-reference",
+    "fields": [
+      {
+        "path": "source_type",
+        "label": "source_type",
+        "widget": "select",
+        "type": "string",
+        "required": true,
+        "default": "autoloader",
+        "options": [
+          "autoloader",
+          "zerobus",
+          "asn1"
+        ],
+        "description": "autoloader reads files from a Volume, zerobus streams an existing Delta table, asn1 decodes binary CDR files."
+      }
+    ]
+  },
+  {
+    "id": "src_auto",
+    "title": "Source · autoloader",
+    "subtitle": "Fields specific to source_type autoloader.",
+    "doc": "#3-source-config-reference",
+    "visible_when": {
+      "eq": [
+        "source_type",
+        "autoloader"
+      ]
+    },
+    "fields": [
+      {
+        "path": "source_config.path",
+        "label": "source_config.path",
+        "widget": "text",
+        "type": "string",
+        "span": 2,
+        "required": true,
+        "placeholder": "/Volumes/{{catalog}}/landing/zone/incoming/",
+        "description": "Landing directory Auto Loader monitors for new files."
+      },
+      {
+        "path": "source_config.format",
+        "label": "source_config.format",
+        "widget": "select",
+        "type": "string",
+        "required": true,
+        "default": "csv",
+        "options": [
+          "csv",
+          "json",
+          "parquet",
+          "avro",
+          "text",
+          "orc",
+          "binaryFile"
+        ],
+        "description": "File format of incoming data. Maps to cloudFiles.format."
+      },
+      {
+        "path": "source_config.schema_location",
+        "label": "source_config.schema_location",
+        "widget": "text",
+        "type": "string",
+        "placeholder": "/Volumes/{{catalog}}/landing/_schemas/<table>/",
+        "description": "Where Auto Loader stores inferred schema. If omitted, convention-based default is derived."
+      }
+    ]
+  },
+  {
+    "id": "src_zb",
+    "title": "Source · zerobus",
+    "subtitle": "Fields specific to source_type zerobus — a streaming read of an existing Delta table.",
+    "doc": "#3-source-config-reference",
+    "visible_when": {
+      "eq": [
+        "source_type",
+        "zerobus"
+      ]
+    },
+    "fields": [
+      {
+        "path": "source_config.source_catalog",
+        "label": "source_config.source_catalog",
+        "widget": "text",
+        "type": "string",
+        "required": true,
+        "placeholder": "example_source_catalog",
+        "description": "Catalog of the existing Delta table to stream from."
+      },
+      {
+        "path": "source_config.source_schema",
+        "label": "source_config.source_schema",
+        "widget": "text",
+        "type": "string",
+        "required": true,
+        "placeholder": "example_source_schema",
+        "description": "Schema of the source table."
+      },
+      {
+        "path": "source_config.source_table",
+        "label": "source_config.source_table",
+        "widget": "text",
+        "type": "string",
+        "required": true,
+        "placeholder": "example_source_zerobus_table",
+        "description": "Table name of the source."
+      },
+      {
+        "path": "source_config.starting_version",
+        "label": "source_config.starting_version",
+        "widget": "number",
+        "type": "integer",
+        "placeholder": "0",
+        "description": "Maps to reader option startingVersion."
+      },
+      {
+        "path": "source_config.max_bytes_per_trigger",
+        "label": "source_config.max_bytes_per_trigger",
+        "widget": "text",
+        "type": "string",
+        "placeholder": "1g",
+        "description": "Throttles how much data each micro-batch reads. Maps to maxBytesPerTrigger."
+      }
+    ]
+  },
+  {
+    "id": "src_asn1",
+    "title": "Source · ASN.1",
+    "subtitle": "Fields specific to source_type asn1. Spark schema is derived from .asn module.",
+    "doc": "#3-source-config-reference",
+    "visible_when": {
+      "eq": [
+        "source_type",
+        "asn1"
+      ]
+    },
+    "fields": [
+      {
+        "path": "source_config.asn1_schema_path",
+        "label": "source_config.asn1_schema_path",
+        "widget": "text",
+        "type": "string",
+        "required": true,
+        "placeholder": "/Volumes/{{catalog}}/landing/_asn1_schemas/cdr.asn",
+        "description": "ASN.1 module definition file. Must be a real .asn file."
+      },
+      {
+        "path": "source_config.asn1_codec",
+        "label": "source_config.asn1_codec",
+        "widget": "select",
+        "type": "string",
+        "required": true,
+        "default": "ber",
+        "options": [
+          "ber",
+          "der"
+        ],
+        "description": "Which ASN.1 encoding to decode."
+      },
+      {
+        "path": "source_config.asn1_pdu_name",
+        "label": "source_config.asn1_pdu_name",
+        "widget": "text",
+        "type": "string",
+        "required": true,
+        "placeholder": "CallDetailRecord",
+        "description": "The top-level SEQUENCE type in .asn file to decode each record as."
+      }
+    ]
+  },
+  {
+    "id": "src_common",
+    "title": "Source · reader options",
+    "subtitle": "Valid for every source type.",
+    "doc": "#3-source-config-reference",
+    "fields": [
+      {
+        "path": "source_config.capture_technical_metadata",
+        "label": "source_config.capture_technical_metadata",
+        "widget": "boolean",
+        "type": "boolean",
+        "default": true,
+        "description": "Adds __framework_source_file_name/_size/_modification_time/_metadata_headers and gates __framework_ingestion_timestamp_utc."
+      },
+      {
+        "path": "source_config.schema_evolution_mode",
+        "label": "source_config.schema_evolution_mode",
+        "widget": "select",
+        "type": "string",
+        "options": [
+          "",
+          "addNewColumns",
+          "addNewColumnsWithTypeWidening",
+          "rescue",
+          "failOnNewColumns",
+          "none"
+        ],
+        "description": "Maps to cloudFiles.schemaEvolutionMode. rescue sends new or mismatched columns to _rescued_data."
+      },
+      {
+        "path": "source_config.file_pattern",
+        "label": "source_config.file_pattern",
+        "widget": "text",
+        "type": "string",
+        "placeholder": "orc_*",
+        "description": "Glob or regex filtering which files are picked up. Maps to cloudFiles.fileNamePattern."
+      },
+      {
+        "path": "source_config.remove_dups",
+        "label": "source_config.remove_dups",
+        "widget": "boolean",
+        "type": "boolean",
+        "default": false,
+        "hint": "set the watermark below to bound state",
+        "description": "Full-row dropDuplicates over every column except __framework_* columns and _rescued_data / _metadata. Without a watermark this holds unbounded dedup state."
+      },
+      {
+        "path": "source_config.dedup_watermark.event_time_column",
+        "label": "dedup_watermark.event_time_column",
+        "widget": "text",
+        "type": "string",
+        "indent": 1,
+        "visible_when": {
+          "eq": [
+            "source_config.remove_dups",
+            true
+          ]
+        },
+        "placeholder": "updated_at",
+        "description": "Bounds dedup state on a streaming source. A TIMESTAMP column on the ingested DataFrame."
+      },
+      {
+        "path": "source_config.dedup_watermark.delay_threshold",
+        "label": "dedup_watermark.delay_threshold",
+        "widget": "text",
+        "type": "string",
+        "indent": 1,
+        "visible_when": {
+          "eq": [
+            "source_config.remove_dups",
+            true
+          ]
+        },
+        "placeholder": "2 hours",
+        "description": "Spark interval string paired with dedup_watermark.event_time_column."
+      },
+      {
+        "path": "source_config.schema_config_path",
+        "label": "source_config.schema_config_path",
+        "widget": "text",
+        "type": "string",
+        "placeholder": "/Volumes/.../schema_config.json",
+        "description": "External JSON/YAML declaring explicit casts, nullability, UC column comments and renames. Resolves directories to latest modified file."
+      },
+      {
+        "path": "source_config.reader_options",
+        "label": "source_config.reader_options",
+        "widget": "kv",
+        "type": "object<string,scalar>",
+        "span": 2,
+        "description": "Passthrough to the Spark reader — one .option(key, value) per entry."
+      }
+    ]
+  },
+  {
+    "id": "src_norm",
+    "title": "Source · column normalization",
+    "subtitle": "column_normalization is the only switch (the legacy normalize_column_names boolean was removed in v1.4.0).",
+    "doc": "#3-source-config-reference",
+    "fields": [
+      {
+        "path": "source_config.column_normalization.enabled",
+        "label": "column_normalization.enabled",
+        "widget": "boolean",
+        "type": "boolean",
+        "description": "Switch for column normalization. Off unless set to true. The legacy source_config.normalize_column_names boolean was removed in v1.4.0 and is now rejected by onboarding validation."
+      },
+      {
+        "path": "source_config.column_normalization.case",
+        "label": "column_normalization.case",
+        "widget": "select",
+        "type": "string",
+        "default": "lower",
+        "options": [
+          "lower",
+          "preserve",
+          "upper"
+        ],
+        "visible_when": {
+          "eq": [
+            "source_config.column_normalization.enabled",
+            true
+          ]
+        },
+        "description": "Case applied to normalized column names. lower matches pre-v1.3.0 behaviour; preserve keeps source casing; upper uppercases."
+      }
+    ]
+  },
+  {
+    "id": "src_nested",
+    "title": "Source · nested data & standardization",
+    "subtitle": "Flattening applies to nested formats only. data_standardization_sql runs after explode_columns.",
+    "doc": "#3-source-config-reference",
+    "fields": [
+      {
+        "path": "source_config.explode_mode",
+        "label": "explode_columns mode",
+        "widget": "select",
+        "type": "string",
+        "default": "absent",
+        "options": [
+          "absent",
+          "empty",
+          "named"
+        ],
+        "emit": "never",
+        "visible_when": {
+          "or": [
+            {
+              "eq": [
+                "source_type",
+                "asn1"
+              ]
+            },
+            {
+              "and": [
+                {
+                  "eq": [
+                    "source_type",
+                    "autoloader"
+                  ]
+                },
+                {
+                  "in": [
+                    "source_config.format",
+                    [
+                      "json",
+                      "parquet"
+                    ]
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        "reason": "available only for json and parquet formats (and asn1 sources)",
+        "hint": "the absent / explicitly-empty distinction is load-bearing",
+        "description": "How explode_columns is written. absent omits key entirely (schema-preserving pass-through). empty writes explode_columns: [] (auto-flattens every nested struct and explodes arrays). named writes listed columns."
+      },
+      {
+        "path": "source_config.explode_columns",
+        "label": "source_config.explode_columns",
+        "widget": "list",
+        "type": "array<string>",
+        "absent_vs_empty": true,
+        "visible_when": {
+          "and": [
+            {
+              "or": [
+                {
+                  "eq": [
+                    "source_type",
+                    "asn1"
+                  ]
+                },
+                {
+                  "and": [
+                    {
+                      "eq": [
+                        "source_type",
+                        "autoloader"
+                      ]
+                    },
+                    {
+                      "in": [
+                        "source_config.format",
+                        [
+                          "json",
+                          "parquet"
+                        ]
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "eq": [
+                "source_config.explode_mode",
+                "named"
+              ]
+            }
+          ]
+        },
+        "description": "Only the named top-level columns are processed. A column that is neither struct nor array at runtime is an error."
+      },
+      {
+        "path": "source_config.auto_flatten_all",
+        "label": "source_config.auto_flatten_all",
+        "widget": "boolean",
+        "type": "boolean",
+        "default": false,
+        "visible_when": {
+          "and": [
+            {
+              "or": [
+                {
+                  "eq": [
+                    "source_type",
+                    "asn1"
+                  ]
+                },
+                {
+                  "and": [
+                    {
+                      "eq": [
+                        "source_type",
+                        "autoloader"
+                      ]
+                    },
+                    {
+                      "in": [
+                        "source_config.format",
+                        [
+                          "json",
+                          "parquet"
+                        ]
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "ne": [
+                "source_config.explode_mode",
+                "named"
+              ]
+            }
+          ]
+        },
+        "reason": "overridden while explode_columns names specific columns",
+        "hint": "same effect as the empty explode_columns mode",
+        "description": "Recursively flattens all nested structs and explodes all arrays regardless of explode_columns. Takes effect while explode_columns is absent or empty."
+      },
+      {
+        "path": "source_config.json_string_columns",
+        "label": "source_config.json_string_columns",
+        "widget": "list",
+        "type": "array<string>",
+        "span": 2,
+        "default": [],
+        "visible_when": {
+          "and": [
+            {
+              "eq": [
+                "source_type",
+                "autoloader"
+              ]
+            },
+            {
+              "in": [
+                "source_config.format",
+                [
+                  "json",
+                  "parquet"
+                ]
+              ]
+            }
+          ]
+        },
+        "reason": "available only for json and parquet formats",
+        "hint": "name, or {column, schema_ddl} for an explicit schema",
+        "description": "STRING columns holding a JSON document, parsed with from_json / schema_of_json before flattening. Each entry is a column name or {\"column\": \"col\", \"schema_ddl\": \"struct<...>\"}."
+      },
+      {
+        "path": "source_config.data_standardization_sql",
+        "label": "source_config.data_standardization_sql",
+        "widget": "list",
+        "type": "array<string>",
+        "span": 2,
+        "placeholder": "trim(region) AS region, upper(country_code) AS country_code",
+        "description": "Per-column expressions, each ending AS <column>. Restricted grammar: no SELECT/FROM/JOIN/UNION/WHERE/DML/DDL and no semicolons."
+      }
+    ]
+  },
+  {
+    "id": "retention",
+    "title": "Source · landing retention",
+    "subtitle": "What happens to landing-zone files after ingestion. Maps to cloudFiles.cleanSource.",
+    "doc": "#3-source-config-reference",
+    "fields": [
+      {
+        "path": "source_config.landing_retention_policy.clean_source",
+        "label": "landing_retention_policy.clean_source",
+        "widget": "select",
+        "type": "string",
+        "default": "off",
+        "options": [
+          "off",
+          "archive",
+          "delete"
+        ],
+        "description": "off leaves files in place, archive moves them, delete removes them."
+      },
+      {
+        "path": "source_config.landing_retention_policy.archive_path",
+        "label": "landing_retention_policy.archive_path",
+        "widget": "text",
+        "type": "string",
+        "visible_when": {
+          "eq": [
+            "source_config.landing_retention_policy.clean_source",
+            "archive"
+          ]
+        },
+        "placeholder": "/Volumes/{{catalog}}/landing/_archive/zone/",
+        "hint": "missing path degrades archive to off — not a validation error",
+        "description": "Where archived files are moved. archive with a missing or empty archive_path degrades to off with a runtime warning."
+      },
+      {
+        "path": "source_config.landing_retention_policy.retention_days",
+        "label": "landing_retention_policy.retention_days",
+        "widget": "number",
+        "type": "integer",
+        "default": 7,
+        "visible_when": {
+          "ne": [
+            "source_config.landing_retention_policy.clean_source",
+            "off"
+          ]
+        },
+        "placeholder": "7",
+        "description": "Maps to cloudFiles.cleanSource.retentionDuration as N days. Minimum 0; defaults to 7."
+      }
+    ]
+  },
+  {
+    "id": "zip",
+    "title": "Source · ZIP handling",
+    "subtitle": "Extracts and optionally PGP-decrypts a ZIP into source_config.path before the reader runs.",
+    "doc": "#3-source-config-reference",
+    "visible_when": {
+      "in": [
+        "source_type",
+        [
+          "autoloader",
+          "asn1"
+        ]
+      ]
+    },
+    "fields": [
+      {
+        "path": "source_config.source_zip_handling.enabled",
+        "label": "source_zip_handling.enabled",
+        "widget": "boolean",
+        "type": "boolean",
+        "default": false,
+        "span": 2,
+        "description": "Master switch for in-flight ZIP extraction."
+      },
+      {
+        "path": "source_config.source_zip_handling.source_zip_path",
+        "label": "source_zip_handling.source_zip_path",
+        "widget": "text",
+        "type": "string",
+        "indent": 1,
+        "required": true,
+        "visible_when": {
+          "eq": [
+            "source_config.source_zip_handling.enabled",
+            true
+          ]
+        },
+        "placeholder": "/Volumes/{{catalog}}/landing/zone/incoming/",
+        "description": "Directory where ZIP files are found — never a single file."
+      },
+      {
+        "path": "source_config.source_zip_handling.zip_file_pattern",
+        "label": "source_zip_handling.zip_file_pattern",
+        "widget": "text",
+        "type": "string",
+        "indent": 1,
+        "required": true,
+        "visible_when": {
+          "eq": [
+            "source_config.source_zip_handling.enabled",
+            true
+          ]
+        },
+        "placeholder": "*.zip",
+        "description": "Which ZIP files to pick up (case-sensitive fnmatchcase)."
+      },
+      {
+        "path": "source_config.source_zip_handling.target_volume_path",
+        "label": "source_zip_handling.target_volume_path",
+        "widget": "text",
+        "type": "string",
+        "indent": 1,
+        "required": true,
+        "visible_when": {
+          "eq": [
+            "source_config.source_zip_handling.enabled",
+            true
+          ]
+        },
+        "placeholder": "/Volumes/{{catalog}}/landing/zone/extracted/",
+        "description": "Where extracted files are written. Usually matches source_config.path."
+      },
+      {
+        "path": "source_config.source_zip_handling.delete_source_after_extract.action",
+        "label": "delete_source_after_extract.action",
+        "widget": "select",
+        "type": "string",
+        "indent": 1,
+        "visible_when": {
+          "eq": [
+            "source_config.source_zip_handling.enabled",
+            true
+          ]
+        },
+        "options": [
+          "",
+          "delete_now",
+          "delete_after_x_days"
+        ],
+        "hint": "replaces legacy boolean — both accepted",
+        "description": "What happens to ZIP after extraction. delete_now deletes immediately; delete_after_x_days runs age-based sweep."
+      },
+      {
+        "path": "source_config.source_zip_handling.delete_source_after_extract.days",
+        "label": "delete_source_after_extract.days",
+        "widget": "number",
+        "type": "integer",
+        "indent": 2,
+        "required": true,
+        "visible_when": {
+          "and": [
+            {
+              "eq": [
+                "source_config.source_zip_handling.enabled",
+                true
+              ]
+            },
+            {
+              "eq": [
+                "source_config.source_zip_handling.delete_source_after_extract.action",
+                "delete_after_x_days"
+              ]
+            }
+          ]
+        },
+        "placeholder": "7",
+        "description": "Age in days after which a successfully-extracted archive is swept."
+      },
+      {
+        "path": "source_config.source_zip_handling.pre_extraction_decryption.type",
+        "label": "pre_extraction_decryption.type",
+        "widget": "select",
+        "type": "string",
+        "indent": 1,
+        "visible_when": {
+          "eq": [
+            "source_config.source_zip_handling.enabled",
+            true
+          ]
+        },
+        "options": [
+          "",
+          "pgp"
+        ],
+        "description": "Outer decryption layer applied before extraction. Only pgp is supported."
+      },
+      {
+        "$fragment": "secret_ref",
+        "prefix": "source_config.source_zip_handling.pre_extraction_decryption.private_key_secret",
+        "params": {
+          "required": true
+        },
+        "visible_when": {
+          "and": [
+            {
+              "eq": [
+                "source_config.source_zip_handling.enabled",
+                true
+              ]
+            },
+            {
+              "eq": [
+                "source_config.source_zip_handling.pre_extraction_decryption.type",
+                "pgp"
+              ]
+            }
+          ]
+        }
+      },
+      {
+        "$fragment": "secret_ref",
+        "prefix": "source_config.source_zip_handling.pre_extraction_decryption.secret_passphrase",
+        "params": {
+          "required": false
+        },
+        "visible_when": {
+          "eq": [
+            "source_config.source_zip_handling.enabled",
+            true
+          ]
+        }
+      }
+    ]
+  }
+]

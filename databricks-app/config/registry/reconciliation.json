@@ -1,0 +1,250 @@
+[
+  {
+    "id": "identity",
+    "title": "Reconciliation identity",
+    "subtitle": "Cross-dataset comparison and self-healing configuration.",
+    "doc": "#8-reconciliation-flow-schema",
+    "fields": [
+      {
+        "path": "reconciliation_id",
+        "label": "reconciliation_id",
+        "widget": "text",
+        "type": "string",
+        "required": true,
+        "placeholder": "recon_template_example",
+        "description": "Unique ID for this reconciliation flow."
+      },
+      {
+        "path": "two_tier_verification",
+        "label": "two_tier_verification",
+        "widget": "boolean",
+        "type": "boolean",
+        "default": true,
+        "hint": "phase 1 fingerprint, phase 2 full join",
+        "description": "Runs a cheap Phase 1 per-side fingerprint (row_count plus XOR-fold of framework hash columns) first, only falling through to full join on mismatch."
+      },
+      {
+        "path": "logging_config.run_log_capture",
+        "label": "logging_config.run_log_capture",
+        "widget": "boolean",
+        "type": "boolean",
+        "default": true,
+        "description": "Per-flow gate on run-log writes. Overridable at runtime by recon_run_log_capture parameter."
+      },
+      {
+        "path": "logging_config.mismatch_log_capture",
+        "label": "logging_config.mismatch_log_capture",
+        "widget": "boolean",
+        "type": "boolean",
+        "default": true,
+        "description": "Per-flow gate on mismatch-log writes. Overridable at runtime by recon_mismatch_log parameter."
+      },
+      {
+        "path": "error_handling.on_failure",
+        "label": "error_handling.on_failure",
+        "widget": "select",
+        "type": "string",
+        "options": [
+          "",
+          "fail",
+          "warn"
+        ],
+        "description": "fail raises an error, warn logs and continues."
+      }
+    ]
+  },
+  {
+    "id": "rsource",
+    "title": "Source dataset",
+    "subtitle": "source_config — the baseline dataset to compare from.",
+    "doc": "#8-reconciliation-flow-schema",
+    "layout": {
+      "half": true,
+      "columns": 1
+    },
+    "fields": [
+      {
+        "$fragment": "recon_dataset",
+        "prefix": "source_config"
+      }
+    ]
+  },
+  {
+    "id": "rtargets",
+    "title": "Target dataset",
+    "subtitle": "One reconciliation flow compares one source against one target table, resolved from catalog, schema and table.",
+    "doc": "#8-reconciliation-flow-schema",
+    "layout": {
+      "half": true,
+      "columns": 1
+    },
+    "fields": [
+      {
+        "path": "target_configs",
+        "label": "target_configs[]",
+        "widget": "repeat",
+        "type": "array<object>",
+        "span": 2,
+        "repeat": {
+          "add_label": "+ add target",
+          "min_rows": 1,
+          "max_rows": 1,
+          "single": true,
+          "row_title_from": "target_id"
+        },
+        "description": "Target comparison dataset.",
+        "fields": [
+          {
+            "path": "target_id",
+            "label": "target_id",
+            "widget": "text",
+            "type": "string",
+            "span": 2,
+            "required": true,
+            "placeholder": "primary_product_table",
+            "description": "Identifies this target in run and mismatch logs."
+          },
+          {
+            "path": "target_catalog",
+            "label": "target_catalog",
+            "widget": "text",
+            "type": "string",
+            "required": true,
+            "emit": "never",
+            "placeholder": "{{catalog}}",
+            "description": "Unity Catalog catalog of the target table. Composed into three-part table name on save."
+          },
+          {
+            "path": "target_schema",
+            "label": "target_schema",
+            "widget": "text",
+            "type": "string",
+            "required": true,
+            "emit": "never",
+            "placeholder": "bronze_example",
+            "description": "Schema of the target table. Composed into three-part table name on save."
+          },
+          {
+            "path": "target_table",
+            "label": "target_table",
+            "widget": "text",
+            "type": "string",
+            "required": true,
+            "emit": "never",
+            "placeholder": "example_raw_final",
+            "description": "Target table name. Composed into three-part table name on save."
+          },
+          {
+            "path": "read_mode",
+            "label": "read_mode",
+            "widget": "select",
+            "type": "string",
+            "default": "batch",
+            "options": [
+              "batch",
+              "streaming"
+            ],
+            "description": "At most one side of a given target's comparison may be streaming."
+          },
+          {
+            "path": "task_run_id_column",
+            "label": "task_run_id_column",
+            "widget": "text",
+            "type": "string",
+            "placeholder": "__framework_pipeline_run_id",
+            "description": "When the task_run_id parameter is set, narrows this side's read to that run's rows. Reconciliation is triggered-only as of v1.4.0."
+          },
+          {
+            "path": "filter_condition",
+            "label": "filter_condition",
+            "widget": "sql",
+            "type": "string",
+            "span": 2,
+            "placeholder": "load_date = '${run_date}'",
+            "description": "Boolean SQL condition applied after read. Supports ${param} substitution."
+          },
+          {
+            "path": "data_standardization_sql",
+            "label": "data_standardization_sql",
+            "widget": "list",
+            "type": "array<string>",
+            "span": 2,
+            "placeholder": "trim(status) AS status",
+            "description": "Column-level cleanup before matching. Same restricted grammar as ingestion."
+          },
+          {
+            "path": "hash_precomputed",
+            "label": "hash_precomputed",
+            "widget": "boolean",
+            "type": "boolean",
+            "default": false,
+            "description": "Reuse existing __framework_hash_key and __framework_hash_value instead of recomputing."
+          },
+          {
+            "path": "comparison_direction",
+            "label": "comparison_direction",
+            "widget": "select",
+            "type": "string",
+            "default": "both",
+            "options": [
+              "both",
+              "source_to_target",
+              "target_to_source"
+            ],
+            "description": "source_to_target self-heals missing records, target_to_source audits orphaned records, both does each."
+          },
+          {
+            "path": "append_target_table",
+            "label": "append_target_table",
+            "widget": "text",
+            "type": "string",
+            "span": 2,
+            "required": true,
+            "visible_when": {
+              "ne": [
+                "comparison_direction",
+                "target_to_source"
+              ]
+            },
+            "placeholder": "{{catalog}}.bronze_example.example_raw_cdc",
+            "description": "Where self-healed records are appended. Required when direction includes source-to-target."
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "matching",
+    "title": "Matching & healing",
+    "subtitle": "How records are paired, which columns are compared, and how missing rows are reshaped before append.",
+    "doc": "#8-reconciliation-flow-schema",
+    "fields": [
+      {
+        "path": "match_keys",
+        "label": "match_keys",
+        "widget": "list",
+        "type": "array<string>",
+        "required": true,
+        "placeholder": "example_id",
+        "description": "Columns identifying the same logical record across datasets."
+      },
+      {
+        "path": "compare_columns",
+        "label": "compare_columns",
+        "widget": "list",
+        "type": "array<string>",
+        "placeholder": "amount, status",
+        "description": "Columns compared for drift after key matching. Defaults to all columns."
+      },
+      {
+        "path": "transform_sql",
+        "label": "transform_sql",
+        "widget": "sql",
+        "type": "string",
+        "span": 2,
+        "placeholder": "SELECT example_id, amount, status FROM _reconciliation_unmatched_records",
+        "description": "Reshapes missing records before append when schemas differ. Must read FROM _reconciliation_unmatched_records."
+      }
+    ]
+  }
+]

@@ -1,0 +1,40 @@
+{
+  "$comment": "Worked example schema_config file for ingestion/schema_config.py -- referenced from an onboarding spec's source_config.schema_config_path. See docs/28_ingestion_schema_config.md for the full field-by-field guide, including how schema_config_path resolves a directory to its 'latest' file. Every source_name below matches a raw column exactly as it arrives from the source (before source_config.column_normalization, if also enabled, ever runs -- see that doc for the exact ordering).",
+  "columns": [
+    {
+      "source_name": "CustomerID",
+      "target_name": "customer_id",
+      "data_type": "STRING",
+      "nullable": false,
+      "comment": "Unique customer identifier from the source CRM system -- primary key."
+    },
+    {
+      "source_name": "Full Name",
+      "target_name": "customer_name",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Customer's full legal name as recorded at signup."
+    },
+    {
+      "source_name": "SignupDate",
+      "target_name": "signup_date",
+      "data_type": "DATE",
+      "nullable": false,
+      "comment": "Date the customer account was created."
+    },
+    {
+      "source_name": "Country_Code",
+      "target_name": "country_code",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "ISO 3166-1 alpha-2 country code."
+    },
+    {
+      "source_name": "LifetimeValue",
+      "target_name": "lifetime_value_usd",
+      "data_type": "DECIMAL(12,2)",
+      "nullable": true,
+      "comment": "Cumulative customer lifetime value in USD, as computed by the source system."
+    }
+  ]
+}

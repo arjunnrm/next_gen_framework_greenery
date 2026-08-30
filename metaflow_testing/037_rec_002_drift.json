@@ -1,0 +1,97 @@
+{
+  "dataflow_group_id": "dfg_rec_002_drift",
+  "pipeline_parameters": {},
+  "ingestion_flows": [
+    {
+      "dataflow_id": "df_rec_002_customer_baseline_ingest",
+      "source_system": "crm_customer_baseline_extract",
+      "source_database": "crm",
+      "source_table_name": "customer_baseline",
+      "source_description": "TC-REC-002: baseline customer extract landed via Auto Loader -- reconciliation's source-side dataset, compared against the CDC-fed customer_cdc target below to detect attribute VALUE_DRIFT (status) on shared key C001",
+      "source_type": "autoloader",
+      "target_catalog": "{{catalog}}",
+      "target_schema": "silver_crm",
+      "target_table": "customer_baseline",
+      "target_type": "streaming_table",
+      "source_config": {
+        "path": "/Volumes/{{catalog}}/crm/landing_customer_drift/baseline/",
+        "format": "csv",
+        "schema_location": "/Volumes/{{catalog}}/crm/_schemas/customer_baseline/",
+        "reader_options": {
+          "header": "true",
+          "cloudFiles.inferColumnTypes": "true"
+        },
+        "capture_technical_metadata": true
+      },
+      "target_config": {
+        "cdc_load_strategy": "APPEND",
+        "storage_format": "delta"
+      },
+      "dq_config": {
+        "rules": []
+      },
+      "governance_tags": {}
+    },
+    {
+      "dataflow_id": "df_rec_002_customer_cdc_ingest",
+      "source_system": "crm_customer_cdc_feed",
+      "source_database": "crm",
+      "source_table_name": "customer_cdc",
+      "source_description": "TC-REC-002: CDC-fed customer extract landed via Auto Loader -- reconciliation's target-side dataset, deliberately carrying a drifted status value for shared key C001 against the baseline above",
+      "source_type": "autoloader",
+      "target_catalog": "{{catalog}}",
+      "target_schema": "silver_crm",
+      "target_table": "customer_cdc",
+      "target_type": "streaming_table",
+      "source_config": {
+        "path": "/Volumes/{{catalog}}/crm/landing_customer_drift/cdc/",
+        "format": "csv",
+        "schema_location": "/Volumes/{{catalog}}/crm/_schemas/customer_cdc/",
+        "reader_options": {
+          "header": "true",
+          "cloudFiles.inferColumnTypes": "true"
+        },
+        "capture_technical_metadata": true
+      },
+      "target_config": {
+        "cdc_load_strategy": "APPEND",
+        "storage_format": "delta"
+      },
+      "dq_config": {
+        "rules": []
+      },
+      "governance_tags": {}
+    }
+  ],
+  "transformation_flows": [],
+  "reconciliation_flows": [
+    {
+      "reconciliation_id": "recon_rec_002_customer_drift",
+      "source_config": {
+        "type": "table",
+        "table": "{{catalog}}.silver_crm.customer_baseline",
+        "read_mode": "batch",
+        "hash_precomputed": false
+      },
+      "target_configs": [
+        {
+          "target_id": "customer_cdc_target",
+          "type": "table",
+          "table": "{{catalog}}.silver_crm.customer_cdc",
+          "read_mode": "batch",
+          "hash_precomputed": false,
+          "comparison_direction": "target_to_source"
+        }
+      ],
+      "match_keys": [
+        "customer_id"
+      ],
+      "compare_columns": [
+        "status"
+      ],
+      "error_handling": {
+        "on_failure": "warn"
+      }
+    }
+  ]
+}

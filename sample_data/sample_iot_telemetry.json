@@ -1,0 +1,10 @@
+{"device_id": "dev-001", "country": "US", "event_ts": "2026-08-23T10:05:00Z", "usage_bytes": 2000000000}
+{"device_id": "dev-001", "country": "US", "event_ts": "2026-08-23T10:15:00Z", "usage_bytes": 2200000000}
+{"device_id": "dev-001", "country": "US", "event_ts": "2026-08-23T10:25:00Z", "usage_bytes": 1500000000}
+{"device_id": "dev-002", "country": "US", "event_ts": "2026-08-23T10:10:00Z", "usage_bytes": 500000000}
+{"device_id": "dev-002", "country": "US", "event_ts": "2026-08-23T10:40:00Z", "usage_bytes": 300000000}
+{"device_id": "dev-003", "country": "DE", "event_ts": "2026-08-23T10:05:00Z", "usage_bytes": 6000000000}
+{"device_id": null, "country": "US", "event_ts": "2026-08-23T10:20:00Z", "usage_bytes": 100000000}
+{"device_id": "dev-005", "country": "US", "event_ts": "2026-08-23T10:12:00Z", "usage_bytes": 700000000}
+{"device_id": "dev-006", "country": "US", "event_ts": "2026-08-23T10:50:00Z", "usage_bytes": 900000000}
+{"device_id": "dev-006", "country": "US", "event_ts": "2026-08-23T11:05:00Z", "usage_bytes": 950000000}

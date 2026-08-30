@@ -1,0 +1,61 @@
+# Wraps metaflow_test_trf_003_decrypt_transform_pipeline:
+#
+#   setup_control_tables -> seed_trf_003_decrypt_transform_data -> onboard_trf_003 -> run_pipeline_task
+#
+# seed_trf_003_decrypt_transform_data (notebooks/00_seed_sample_data/
+# 03_seed_trf_003_decrypt_transform_data.py) lands a 5-row patient visits CSV fixture
+# (sample_data/metaflow_testing/health_usecase/patient_visits_batch1.csv) whose plaintext
+# billing_amount values sum to exactly 1256.00 -- the number
+# metaflow.silver_health.patient_billing_summary must reproduce after a full
+# encrypt-then-decrypt round trip. Before this job's run_pipeline_task can succeed, the UC
+# secret {{catalog}}.security.pii_encryption_key must already be provisioned -- this is the
+# exact same key docs/05_deployment_guide.md's prerequisites section already documents
+# provisioning for this project's other encryption scenarios; it is never (re-)provisioned by
+# this bundle. See docs/49_tc_trf_003.md for the exact `databricks secrets put-secret` command.
+
+resources:
+  jobs:
+    metaflow_test_trf_003_decrypt_transform_job:
+      name: Metaflow Test TRF-003 - In-DAG Column Decryption for Business Computations
+
+      tasks:
+        - task_key: setup_control_tables
+          notebook_task:
+            notebook_path: ../notebooks/01_setup/01_setup_control_tables.py
+            base_parameters:
+              catalog: metaflow
+          environment_key: framework_env
+
+        - task_key: seed_trf_003_decrypt_transform_data
+          depends_on:
+            - task_key: setup_control_tables
+          notebook_task:
+            notebook_path: ../notebooks/00_seed_sample_data/03_seed_trf_003_decrypt_transform_data.py
+            base_parameters:
+              catalog: metaflow
+          environment_key: framework_env
+
+        - task_key: onboard_trf_003
+          depends_on:
+            - task_key: seed_trf_003_decrypt_transform_data
+          notebook_task:
+            notebook_path: ../notebooks/02_onboarding/02_onboarding_engine.py
+            base_parameters:
+              spec_file_path: "${workspace.file_path}/metaflow_testing/028_trf_003_decrypt_transform.json"
+              catalog: metaflow
+              env: dev
+              action_type: CREATE
+          environment_key: framework_env
+
+        - task_key: run_pipeline_task
+          depends_on:
+            - task_key: onboard_trf_003
+          pipeline_task:
+            pipeline_id: ${resources.pipelines.metaflow_test_trf_003_decrypt_transform_pipeline.id}
+
+      environments:
+        - environment_key: framework_env
+          spec:
+            environment_version: "4"
+            dependencies:
+              - ../dist/*.whl

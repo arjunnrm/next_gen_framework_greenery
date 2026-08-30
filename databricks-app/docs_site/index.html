@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Metaflow Framework Documentation (v1.3.0)</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📖</text></svg>" />
+  <style>
+    :root {
+      --bg: #0c0f14;
+      --card-bg: #12161f;
+      --panel: #10151c;
+      --border: #212836;
+      --text: #e7eaf0;
+      --text-muted: #8b95a5;
+      --accent: #5eb0ef;
+      --accent-hover: #9fd2f7;
+      --code-bg: #0d1219;
+      --tag-req: #f0a35e;
+      --tag-ok: #57c98a;
+    }
+    :root[data-theme="light"] {
+      --bg: #f5f7f9;
+      --card-bg: #ffffff;
+      --panel: #f8fafc;
+      --border: #e2e7ed;
+      --text: #161b22;
+      --text-muted: #5a6472;
+      --accent: #1571b8;
+      --accent-hover: #0f5a95;
+      --code-bg: #eef1f5;
+      --tag-req: #a85f18;
+      --tag-ok: #1d8a5a;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      display: flex;
+      height: 100vh;
+      overflow: hidden;
+    }
+    nav {
+      width: 300px;
+      flex-shrink: 0;
+      background: var(--panel);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+    }
+    .nav-header {
+      padding: 18px 20px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .nav-header h2 {
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+    }
+    .theme-toggle {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 4px 8px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 12px;
+    }
+    .search-box {
+      padding: 12px 20px;
+      border-bottom: 1px solid var(--border);
+    }
+    .search-box input {
+      width: 100%;
+      padding: 8px 12px;
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+      font-size: 12px;
+      outline: none;
+    }
+    .nav-links {
+      flex: 1;
+      overflow-y: auto;
+      padding: 14px 12px 40px;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .nav-link {
+      display: block;
+      padding: 7px 12px;
+      border-radius: 6px;
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 13px;
+      transition: all 0.15s ease;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .nav-link:hover, .nav-link.active {
+      background: var(--card-bg);
+      color: var(--accent);
+    }
+    main {
+      flex: 1;
+      overflow-y: auto;
+      padding: 36px 48px 120px;
+    }
+    .doc-container {
+      max-width: 960px;
+      margin: 0 auto;
+    }
+    h1 { font-size: 26px; font-weight: 700; margin-bottom: 16px; color: var(--text); }
+    h2 { font-size: 18px; font-weight: 600; margin-top: 36px; margin-bottom: 14px; padding-bottom: 8px; border-bottom: 1px solid var(--border); color: var(--text); }
+    h3 { font-size: 15px; font-weight: 600; margin-top: 24px; margin-bottom: 10px; color: var(--accent); }
+    p { margin-bottom: 14px; font-size: 14px; color: var(--text); }
+    blockquote {
+      background: var(--card-bg);
+      border-left: 4px solid var(--accent);
+      padding: 12px 18px;
+      margin-bottom: 20px;
+      border-radius: 0 6px 6px 0;
+      color: var(--text-muted);
+      font-size: 13px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 18px 0 28px;
+      font-size: 13px;
+      background: var(--card-bg);
+      border-radius: 8px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+    }
+    th, td {
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--border);
+      text-align: left;
+    }
+    th {
+      background: var(--panel);
+      font-weight: 600;
+      color: var(--text-muted);
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    code {
+      font-family: "JetBrains Mono", "Cascadia Code", monospace;
+      background: var(--code-bg);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 12px;
+      color: var(--accent);
+    }
+    pre {
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      padding: 14px;
+      border-radius: 8px;
+      overflow-x: auto;
+      margin-bottom: 20px;
+      font-family: monospace;
+      font-size: 12px;
+    }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { color: var(--accent-hover); text-decoration: underline; }
+    .badge-req { color: var(--tag-req); font-weight: 700; font-size: 11px; }
+    .badge-ok { color: var(--tag-ok); font-weight: 600; font-size: 11px; }
+  </style>
+</head>
+<body>
+  <nav>
+    <div class="nav-header">
+      <h2>Metaflow Docs (v1.3.0)</h2>
+      <button class="theme-toggle" id="theme_btn">☾</button>
+    </div>
+    <div class="search-box">
+      <input type="text" id="doc_search" placeholder="Search documentation..." />
+    </div>
+    <div class="nav-links" id="nav_container">
+      <a href="#1-top-level-spec-schema" class="nav-link">1. Top-Level Spec Schema</a>
+      <a href="#2-ingestion-flow-schema" class="nav-link">2. Ingestion Flow Schema</a>
+      <a href="#3-source-config-reference" class="nav-link">3. Source Config Reference</a>
+      <a href="#4-source-config--autoloader-specific" class="nav-link">4. Auto Loader Source</a>
+      <a href="#5-source-config--zerobus-specific" class="nav-link">5. Zerobus Source</a>
+      <a href="#6-source-config--asn1-specific" class="nav-link">6. ASN.1 Source</a>
+      <a href="#7-source-zip-handling" class="nav-link">7. Source ZIP Handling</a>
+      <a href="#8-target-config-shared-by-ingestion--transformation" class="nav-link">8. Target Config & CDC</a>
+      <a href="#9-encrypted-columns-target_configencrypted_columns" class="nav-link">9. Column-Level Encryption</a>
+      <a href="#10-sink-config-target_configsink_config" class="nav-link">10. Sinks & Egress</a>
+      <a href="#11-dq-config" class="nav-link">11. Data Quality & Quarantine</a>
+      <a href="#12-governance-tags" class="nav-link">12. Governance & Tags</a>
+      <a href="#13-transformation-flow-fields" class="nav-link">13. Transformation Flows</a>
+      <a href="#14-source-inputs-transformation_flowssource_inputs" class="nav-link">14. Source Inputs & Watermarks</a>
+      <a href="#15-decrypted-columns-source_inputsdecrypted_columns" class="nav-link">15. Column-Level Decryption</a>
+      <a href="#16-reconciliation-flow-fields" class="nav-link">16. Reconciliation Flows</a>
+      <a href="#17-reconciliation-dataset-config-shared-source--target" class="nav-link">17. Reconciliation Datasets</a>
+      <a href="#18-reconciliation-target-only-fields" class="nav-link">18. Reconciliation Targets & Healing</a>
+      <a href="#19-observability" class="nav-link">19. Observability & Telemetry</a>
+      <a href="#20-template-variables" class="nav-link">20. Template Variables</a>
+      <a href="#21-framework-generated-columns" class="nav-link">21. Framework Columns</a>
+    </div>
+  </nav>
+
+  <main>
+    <div class="doc-container">
+      <h1>Metaflow Framework — Master Reference Index & Attribute Dictionary (v1.3.0)</h1>
+      <blockquote>
+        <strong>Authoritative Source of Truth:</strong> Single comprehensive lookup dictionary indexing every configuration attribute, CDC strategy, target type, technical concept, and framework-generated column across the NextGen Metadata Framework.
+      </blockquote>
+
+      <!-- Section 1 -->
+      <h2 id="1-top-level-spec-schema">1. Top-Level Spec Schema</h2>
+      <p>The root structure of an onboarding JSON/YAML specification file:</p>
+      <table>
+        <thead>
+          <tr>
+            <th>Attribute</th>
+            <th>Type</th>
+            <th>Required</th>
+            <th>Default</th>
+            <th>Description</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>dataflow_group_id</code></td>
+            <td>string</td>
+            <td><span class="badge-req">Yes</span></td>
+            <td>—</td>
+            <td>Unique identifier for this pipeline group. All control-table rows in this spec are upserted under this ID.</td>
+          </tr>
+          <tr>
+            <td><code>pipeline_parameters</code></td>
+            <td>object</td>
+            <td>No</td>
+            <td><code>{}</code></td>
+            <td>String to value map substituted into <code>${param}</code> placeholders in transformation_sql, filter_condition and transform_sql. Strings are single-quoted automatically.</td>
+          </tr>
+          <tr>
+            <td><code>spark_config</code></td>
+            <td>object</td>
+            <td>No</td>
+            <td><code>{}</code></td>
+            <td>Group-scoped Spark configuration. Keys must start with <code>spark.</code>; values may be string, number or boolean. Pipeline and runtime values strictly override framework defaults.</td>
+          </tr>
+          <tr>
+            <td><code>ingestion_flows</code></td>
+            <td>array</td>
+            <td>At least 1 flow array non-empty</td>
+            <td><code>[]</code></td>
+            <td>Bronze-layer ingestion definitions.</td>
+          </tr>
+          <tr>
+            <td><code>transformation_flows</code></td>
+            <td>array</td>
+            <td>At least 1 flow array non-empty</td>
+            <td><code>[]</code></td>
+            <td>Silver/Gold transformation definitions.</td>
+          </tr>
+          <tr>
+            <td><code>reconciliation_flows</code></td>
+            <td>array</td>
+            <td>At least 1 flow array non-empty</td>
+            <td><code>[]</code></td>
+            <td>Cross-dataset comparison and self-healing definitions.</td>
+          </tr>
+          <tr>
+            <td><code>observability</code></td>
+            <td>array</td>
+            <td>No</td>
+            <td><code>[]</code></td>
+            <td>Telemetry export destinations (Volume & OTLP). Does not count toward the non-empty flow requirement.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- Section 2 -->
+      <h2 id="2-ingestion-flow-schema">2. Ingestion Flow Schema</h2>
+      <p>Attributes inside <code>ingestion_flows[]</code>:</p>
+      <table>
+        <thead>
+          <tr>
+            <th>Attribute</th>
+            <th>Type</th>
+            <th>Required</th>
+            <th>Default</th>
+            <th>Description</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>dataflow_id</code></td>
+            <td>string</td>
+            <td><span class="badge-req">Yes</span></td>
+            <td>—</td>
+            <td>Unique flow identifier. Referenced by transformation flows as upstream dependency.</td>
+          </tr>
+          <tr>
+            <td><code>source_system</code></td>
+            <td>string</td>
+            <td>No</td>
+            <td>—</td>
+            <td>Descriptive metadata stored in control tables.</td>
+          </tr>
+          <tr>
+            <td><code>source_database</code></td>
+            <td>string</td>
+            <td>No</td>
+            <td>—</td>
+            <td>Descriptive landing database name.</td>
+          </tr>
+          <tr>
+            <td><code>source_table_name</code></td>
+            <td>string</td>
+            <td>No</td>
+            <td>—</td>
+            <td>Descriptive source table name.</td>
+          </tr>
+          <tr>
+            <td><code>source_description</code></td>
+            <td>string</td>
+            <td>No</td>
+            <td>—</td>
+            <td>Becomes the target Delta table's COMMENT. Supports <code>{{catalog}}</code> and <code>{{env}}</code>.</td>
+          </tr>
+          <tr>
+            <td><code>source_type</code></td>
+            <td>string</td>
+            <td><span class="badge-req">Yes</span></td>
+            <td><code>autoloader</code></td>
+            <td>Ingestion reader engine: <code>autoloader</code>, <code>zerobus</code>, or <code>asn1</code>.</td>
+          </tr>
+          <tr>
+            <td><code>target_catalog</code></td>
+            <td>string</td>
+            <td><span class="badge-req">Yes</span></td>
+            <td><code>{{catalog}}</code></td>
+            <td>Unity Catalog catalog name for the target table.</td>
+          </tr>
+          <tr>
+            <td><code>target_schema</code></td>
+            <td>string</td>
+            <td><span class="badge-req">Yes</span></td>
+            <td>—</td>
+            <td>Schema / database for the target table.</td>
+          </tr>
+          <tr>
+            <td><code>target_table</code></td>
+            <td>string</td>
+            <td><span class="badge-req">Yes</span></td>
+            <td>—</td>
+            <td>Target Delta table name.</td>
+          </tr>
+          <tr>
+            <td><code>target_type</code></td>
+            <td>string</td>
+            <td><span class="badge-req">Yes</span></td>
+            <td><code>streaming_table</code></td>
+            <td><code>streaming_table</code>, <code>materialized_view</code>, <code>batch_table</code>, <code>external_sink</code>, or <code>sink</code>.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- Section 3 & 4 -->
+      <h2 id="3-source-config-reference">3. Source Config Reference</h2>
+      <p>Common and specific attributes inside <code>source_config</code>:</p>
+      <table>
+        <thead>
+          <tr>
+            <th>Attribute</th>
+            <th>Type</th>
+            <th>Required</th>
+            <th>Description</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>source_config.path</code></td>
+            <td>string</td>
+            <td><span class="badge-req">Yes (Auto Loader/ASN.1)</span></td>
+            <td>Landing directory in Unity Catalog Volume monitored for new incoming files.</td>
+          </tr>
+          <tr>
+            <td><code>source_config.format</code></td>
+            <td>string</td>
+            <td><span class="badge-req">Yes (Auto Loader)</span></td>
+            <td>File format: <code>csv</code>, <code>json</code>, <code>parquet</code>, <code>avro</code>, <code>text</code>, <code>orc</code>, <code>binaryFile</code>.</td>
+          </tr>
+          <tr>
+            <td><code>source_config.schema_location</code></td>
+            <td>string</td>
+            <td>No</td>
+            <td>Auto Loader schema inference and evolution checkpoint directory.</td>
+          </tr>
+          <tr>
+            <td><code>source_config.capture_technical_metadata</code></td>
+            <td>boolean</td>
+            <td>No (default true)</td>
+            <td>Captures <code>__framework_source_file_name</code>, <code>_size</code>, <code>_modification_time</code>, <code>_metadata_headers</code> and gates <code>__framework_ingestion_timestamp_utc</code>.</td>
+          </tr>
+          <tr>
+            <td><code>source_config.remove_dups</code></td>
+            <td>boolean</td>
+            <td>No (default false)</td>
+            <td>Full-row <code>dropDuplicates</code> over non-framework columns. When streaming, bound with <code>dedup_watermark</code>.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2 id="4-source-config--autoloader-specific">4. Auto Loader Source</h2>
+      <p>Auto Loader monitors a Unity Catalog Volume landing directory for incremental file ingestion.</p>
+
+      <h2 id="5-source-config--zerobus-specific">5. Zerobus Source</h2>
+      <p>Zerobus provides streaming ingestion from an existing Delta table using <code>source_catalog</code>, <code>source_schema</code>, <code>source_table</code>, <code>starting_version</code>, and <code>max_bytes_per_trigger</code>.</p>
+
+      <h2 id="6-source-config--asn1-specific">6. ASN.1 Source</h2>
+      <p>ASN.1 decodes binary BER/DER telecom Call Detail Records (CDRs) using <code>asn1_schema_path</code>, <code>asn1_codec</code> (<code>ber</code>/<code>der</code>), and <code>asn1_pdu_name</code>.</p>
+
+      <h2 id="7-source-zip-handling">7. Source ZIP Handling</h2>
+      <p>Extracts and optionally PGP-decrypts password-protected ZIP archives at rest before ingestion.</p>
+
+      <!-- Section 8 -->
+      <h2 id="8-target-config-shared-by-ingestion--transformation">8. Target Config & Load Strategies</h2>
+      <p><code>target_config.cdc_load_strategy</code> controls data loading and merging into target tables:</p>
+      <table>
+        <thead>
+          <tr>
+            <th>Strategy</th>
+            <th>Type</th>
+            <th>Required Parameters</th>
+            <th>Description</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>APPEND</code></td>
+            <td>Append-only</td>
+            <td>None</td>
+            <td>Immutable facts, events, and logs. High-performance append without merge diff.</td>
+          </tr>
+          <tr>
+            <td><code>TRUNCATE_AND_LOAD</code></td>
+            <td>Full replace</td>
+            <td>None</td>
+            <td>Full extract each run. Small lookup tables recomputed entirely.</td>
+          </tr>
+          <tr>
+            <td><code>SCD1</code></td>
+            <td>Overwrite current</td>
+            <td><code>primary_keys</code></td>
+            <td>Entity state where only the latest attribute values matter.</td>
+          </tr>
+          <tr>
+            <td><code>SCD2</code></td>
+            <td>Full history</td>
+            <td><code>primary_keys</code></td>
+            <td>Track full history with effective/expiration timestamp intervals and active flags.</td>
+          </tr>
+          <tr>
+            <td><code>SCD3</code></td>
+            <td>Current + Previous</td>
+            <td><code>primary_keys</code>, <code>columns_to_check</code></td>
+            <td>Transformation flows only. Stores current value and previous value in dedicated columns.</td>
+          </tr>
+          <tr>
+            <td><code>FULL_SNAPSHOT_CDC_NO_PK</code></td>
+            <td>Snapshot diff</td>
+            <td><code>generate_surrogate_key: true</code></td>
+            <td>Diffs full snapshot extracts using a framework-generated surrogate key.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- Section 9 & 10 -->
+      <h2 id="9-encrypted-columns-target_configencrypted_columns">9. Column-Level AES-GCM Encryption</h2>
+      <p><code>target_config.encrypted_columns[]</code> encrypts sensitive PII columns in place using AES-GCM with keys fetched securely from Unity Catalog secrets.</p>
+
+      <h2 id="10-sink-config-target_configsink_config">10. Sinks & Egress</h2>
+      <p>When <code>target_type</code> is <code>sink</code> or <code>external_sink</code>, exports data to external storage, Kafka, or PGP-encrypted ZIP archives.</p>
+
+      <!-- Section 11 & 12 -->
+      <h2 id="11-dq-config">11. Data Quality & Quarantine</h2>
+      <p>Data quality rules with actions <code>warn</code>, <code>drop</code>, <code>fail</code>, or <code>quarantine</code> (routes non-compliant rows to a quarantine table).</p>
+
+      <h2 id="12-governance-tags">12. Governance & Tags</h2>
+      <p>Applies Unity Catalog column tags (e.g. <code>mask: PII</code>) and table tags (e.g. <code>row_filter: region</code>) post-deployment via ALTER TABLE.</p>
+
+      <!-- Section 13, 14, 15 -->
+      <h2 id="13-transformation-flow-fields">13. Transformation Flows</h2>
+      <p>Silver and Gold transformations with <code>flow_step_id</code>, <code>dataflow_id</code>, <code>transformation_sql</code>, and <code>source_inputs[]</code>.</p>
+
+      <h2 id="14-source-inputs-transformation_flowssource_inputs">14. Source Inputs & Watermarks</h2>
+      <p>Declares upstream tables. Supports stream-stream joins with <code>watermark.event_time_column</code> and <code>watermark.delay_threshold</code>.</p>
+
+      <h2 id="15-decrypted-columns-source_inputsdecrypted_columns">15. Column-Level Decryption</h2>
+      <p><code>source_inputs[].decrypted_columns[]</code> decodes AES-GCM encrypted columns before <code>transformation_sql</code> runs.</p>
+
+      <!-- Section 16, 17, 18 -->
+      <h2 id="16-reconciliation-flow-fields">16. Reconciliation Flows</h2>
+      <p>Automated two-tier verification (Phase 1 bit_xor hash fingerprint + Phase 2 full join) and self-healing.</p>
+
+      <h2 id="17-reconciliation-dataset-config-shared-source--target">17. Reconciliation Datasets</h2>
+      <p>Source dataset baseline definition supporting filter conditions and data standardization expressions.</p>
+
+      <h2 id="18-reconciliation-target-only-fields">18. Reconciliation Targets & Healing</h2>
+      <p>Target table comparison with <code>comparison_direction</code> (<code>both</code>, <code>source_to_target</code>, <code>target_to_source</code>) and <code>append_target_table</code> for self-healing.</p>
+
+      <!-- Section 19, 20, 21 -->
+      <h2 id="19-observability">19. Observability & Telemetry</h2>
+      <p>Telemetry export to Unity Catalog Volumes (<code>DATABRICKS_VOLUME</code>) or OpenTelemetry collectors (<code>OTLP_CONSUMER</code>) in triggered or continuous mode.</p>
+
+      <h2 id="20-template-variables">20. Template Variables</h2>
+      <p><code>{{catalog}}</code> and <code>{{env}}</code> resolve before parsing. <code>${param}</code> substitutes at execution time inside SQL expressions.</p>
+
+      <h2 id="21-framework-generated-columns">21. Framework-Generated Columns</h2>
+      <p>Standardized lineage and audit columns: <code>__framework_ingestion_timestamp_utc</code>, <code>__framework_source_file_name</code>, <code>__framework_hash_key</code>, <code>__framework_hash_value</code>, <code>__framework_surrogate_key</code>, <code>__framework_dq_failed_rule_ids</code>, <code>__framework_pipeline_run_id</code>, etc.</p>
+    </div>
+  </main>
+
+  <script>
+    const themeBtn = document.getElementById("theme_btn");
+    let currentTheme = localStorage.getItem("mfl.theme") || "dark";
+    document.documentElement.setAttribute("data-theme", currentTheme);
+    themeBtn.textContent = currentTheme === "dark" ? "☾" : "☀";
+
+    themeBtn.addEventListener("click", () => {
+      currentTheme = currentTheme === "dark" ? "light" : "dark";
+      document.documentElement.setAttribute("data-theme", currentTheme);
+      themeBtn.textContent = currentTheme === "dark" ? "☾" : "☀";
+      localStorage.setItem("mfl.theme", currentTheme);
+    });
+
+    const searchInput = document.getElementById("doc_search");
+    const navLinks = document.querySelectorAll(".nav-link");
+    searchInput.addEventListener("input", (e) => {
+      const q = e.target.value.toLowerCase();
+      navLinks.forEach((link) => {
+        const text = link.textContent.toLowerCase();
+        link.style.display = text.includes(q) ? "block" : "none";
+      });
+    });
+  </script>
+</body>
+</html>

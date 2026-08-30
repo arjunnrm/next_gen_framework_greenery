@@ -1,0 +1,41 @@
+{
+  "dataflow_group_id": "dfg_cdc_007_snapshot_nopk",
+  "pipeline_parameters": {},
+  "ingestion_flows": [
+    {
+      "dataflow_id": "df_cdc_007_mainframe_accounts_ingest",
+      "source_system": "legacy_mainframe_extract",
+      "source_database": "Legacy_mainframe",
+      "source_table_name": "customer_master",
+      "source_description": "TC-CDC-007 (rewritten for v1.4.0): batch Auto Loader legacy mainframe full-extract feed with cdc_load_strategy FULL_SNAPSHOT_CDC diffed on primary_keys=[customer_name]. The removed FULL_SNAPSHOT_CDC_NO_PK strategy hashed the whole payload into __framework_surrogate_key, which made a Day-2 status change look like a delete-of-the-old-row plus insert-of-a-new-row -- the same row twice, under two identities. With customer_name as the declared key that same change is what it actually is: an UPDATE in place. Verifies exactly that -- a changed status updates the existing row, a genuinely new customer is inserted, and a customer absent from the latest extract is removed.",
+      "source_type": "autoloader",
+      "target_catalog": "{{catalog}}",
+      "target_schema": "silver_legacy",
+      "target_table": "mainframe_accounts_cdc",
+      "target_type": "streaming_table",
+      "source_config": {
+        "path": "/Volumes/{{catalog}}/legacy/landing_mainframe/",
+        "format": "csv",
+        "schema_location": "/Volumes/{{catalog}}/legacy/_schemas/mainframe_accounts_cdc/",
+        "reader_options": {
+          "header": "true",
+          "cloudFiles.inferColumnTypes": "true"
+        },
+        "capture_technical_metadata": true
+      },
+      "target_config": {
+        "cdc_load_strategy": "FULL_SNAPSHOT_CDC",
+        "primary_keys": [
+          "customer_name"
+        ],
+        "storage_format": "delta"
+      },
+      "dq_config": {
+        "rules": []
+      },
+      "governance_tags": {}
+    }
+  ],
+  "transformation_flows": [],
+  "reconciliation_flows": []
+}

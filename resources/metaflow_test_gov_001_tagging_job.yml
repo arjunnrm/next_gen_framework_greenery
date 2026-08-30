@@ -1,0 +1,66 @@
+# Metaflow test scenario TC-GOV-001: "Post-Deployment UC Table & Column Tag Application".
+#
+# Re-onboards a new ingestion_flow (df_gov_001_tagging_customer_raw, its own new
+# dataflow_group_id "dfg_metaflow_gov_001_tagging") that targets scenario 100's ALREADY
+# DEPLOYED {{catalog}}.bronze_test.customer_raw table (metaflow_test_100_zipcsv_pipeline /
+# metaflow_test_100_job must have run at least once already so that table physically exists --
+# see docs/57_tc_gov_001.md) -- carrying only new governance_tags. No new Lakeflow pipeline is
+# built or run here: this job onboards the spec (a pure control-table upsert), then calls
+# notebooks/04_governance/04_apply_governance_and_egress.py directly against this scenario's own
+# dataflow_group_id, which issues `ALTER TABLE ... SET TAGS` / `ALTER TABLE ... ALTER COLUMN ...
+# SET TAGS` DDL straight against the already-materialized table -- exactly the "tags are applied
+# post-deployment, against a real table, independent of which pipeline last wrote it" design
+# documented in docs/06_governance_integration.md.
+#
+#   setup_control_tables -> onboard_gov_001 -> apply_governance_gov_001
+#
+# Using a dedicated dataflow_group_id (rather than reusing scenario 100's own
+# "dfg_zip_csv_dataload") is deliberate: it keeps this new ingestion_flow row out of scenario
+# 100's own pipeline graph entirely (that pipeline's `dataflow.group.id` configuration is
+# "dfg_zip_csv_dataload", so it never sees this row) -- this control-table row exists purely so
+# `apply_all_governance_tags` has a `governance_tags_json` to read and a target table to tag, not
+# to register a second, competing DLT node for the same physical table.
+
+resources:
+  jobs:
+    metaflow_test_gov_001_tagging_job:
+      name: Metaflow Test GOV-001 - UC Table & Column Tag Application
+
+      tasks:
+        - task_key: setup_control_tables
+          notebook_task:
+            notebook_path: ../notebooks/01_setup/01_setup_control_tables.py
+            base_parameters:
+              catalog: metaflow
+          environment_key: framework_env
+
+        - task_key: onboard_gov_001
+          depends_on:
+            - task_key: setup_control_tables
+          notebook_task:
+            notebook_path: ../notebooks/02_onboarding/02_onboarding_engine.py
+            base_parameters:
+              spec_file_path: "${workspace.file_path}/metaflow_testing/036_gov_001_tagging.json"
+              catalog: metaflow
+              env: dev
+              action_type: CREATE
+          environment_key: framework_env
+
+        - task_key: apply_governance_gov_001
+          depends_on:
+            - task_key: onboard_gov_001
+          notebook_task:
+            notebook_path: ../notebooks/04_governance/04_apply_governance_and_egress.py
+            base_parameters:
+              catalog: metaflow
+              dataflow_group_id: dfg_metaflow_gov_001_tagging
+              apply_abac: "true"
+              capture_cdc_change_counts: "false"
+          environment_key: framework_env
+
+      environments:
+        - environment_key: framework_env
+          spec:
+            environment_version: "4"
+            dependencies:
+              - ../dist/*.whl

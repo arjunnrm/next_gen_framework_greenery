@@ -1,0 +1,33 @@
+# Metaflow test scenario TC-TRF-003: "In-DAG Column Decryption for Business Computations" --
+# one ingestion flow AES-GCM-encrypts billing_amount into Bronze
+# (metaflow.bronze_health.patient_visits_raw) via target_config.encrypted_columns, keyed off the
+# {{catalog}}.security.pii_encryption_key UC secret this project already provisions (see
+# docs/05_deployment_guide.md). One transformation flow decrypts it in-memory via
+# source_inputs[].decrypted_columns (transformation/inputs.py::register_transformation_inputs),
+# immediately ahead of a sum(billing_amount) aggregate published as a materialized view
+# (metaflow.silver_health.patient_billing_summary) -- proving decryption happens genuinely inside
+# the pipeline's own DAG, before any business computation, never as a separate post-processing
+# step. See docs/49_tc_trf_003.md.
+
+resources:
+  pipelines:
+    metaflow_test_trf_003_decrypt_transform_pipeline:
+      name: metaflow_test_trf_003_decrypt_transform_pipeline_${bundle.target}
+      catalog: metaflow
+      schema: bronze_health
+      serverless: true
+      photon: true
+      development: true
+      continuous: false
+
+      libraries:
+        - notebook:
+            path: ../notebooks/03_engine/03_lakeflow_declarative_pipeline.py
+
+      environment:
+        dependencies:
+          - ../dist/*.whl
+
+      configuration:
+        dataflow.group.id: dfg_trf_003_decrypt_transform
+        dataflow.control.catalog: metaflow

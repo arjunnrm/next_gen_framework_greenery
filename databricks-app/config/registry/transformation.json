@@ -1,0 +1,247 @@
+[
+  {
+    "id": "identity",
+    "title": "Flow identity",
+    "subtitle": "Silver and Gold transformation step. dataflow_id is a dependency label only.",
+    "doc": "#7-transformation-flow-schema",
+    "fields": [
+      {
+        "path": "flow_step_id",
+        "label": "flow_step_id",
+        "widget": "text",
+        "type": "string",
+        "required": true,
+        "placeholder": "ts_template_scd1_example",
+        "description": "Unique ID for this transformation step."
+      },
+      {
+        "path": "dataflow_id",
+        "label": "dataflow_id",
+        "widget": "text",
+        "type": "string",
+        "required": true,
+        "suggest": {
+          "from": "@ingestion_flows[].dataflow_id"
+        },
+        "placeholder": "df_template_ingest",
+        "description": "Which ingestion flow this logically follows."
+      }
+    ]
+  },
+  {
+    "id": "dataset",
+    "title": "Target dataset",
+    "subtitle": "Where this transformation step lands in Unity Catalog.",
+    "doc": "#13-target-types-quick-reference",
+    "fields": [
+      {
+        "path": "target_catalog",
+        "label": "target_catalog",
+        "widget": "text",
+        "type": "string",
+        "required": true,
+        "placeholder": "{{catalog}}",
+        "description": "Unity Catalog catalog for the target table."
+      },
+      {
+        "path": "target_schema",
+        "label": "target_schema",
+        "widget": "text",
+        "type": "string",
+        "required": true,
+        "placeholder": "silver_example",
+        "description": "Schema for the target table."
+      },
+      {
+        "path": "target_table",
+        "label": "target_table",
+        "widget": "text",
+        "type": "string",
+        "required": true,
+        "placeholder": "example_dim_scd1",
+        "description": "Target Delta table name."
+      },
+      {
+        "path": "target_type",
+        "label": "target_type",
+        "widget": "select",
+        "type": "string",
+        "required": true,
+        "default": "streaming_table",
+        "options": ["streaming_table", "materialized_view", "batch_table", "external_sink", "sink"],
+        "description": "Output dataset type."
+      }
+    ]
+  },
+  {
+    "id": "inputs",
+    "title": "Source inputs",
+    "subtitle": "Upstream tables. input_name must be unique across the entire spec and is what transformation_sql joins on.",
+    "doc": "#7-transformation-flow-schema",
+    "fields": [
+      {
+        "path": "source_inputs",
+        "label": "source_inputs[]",
+        "widget": "repeat",
+        "type": "array<object>",
+        "span": 2,
+        "repeat": {
+          "add_label": "+ add input",
+          "min_rows": 1,
+          "max_rows": 20,
+          "single": false,
+          "row_title_from": "input_name"
+        },
+        "description": "Upstream tables or views consumed by this transformation.",
+        "fields": [
+          {
+            "path": "input_name",
+            "label": "input_name",
+            "widget": "text",
+            "type": "string",
+            "required": true,
+            "unique_within": "spec",
+            "placeholder": "example_raw_input",
+            "description": "Must be unique across entire spec. Referenced in transformation_sql FROM/JOIN."
+          },
+          {
+            "path": "table",
+            "label": "table",
+            "widget": "text",
+            "type": "string",
+            "required": true,
+            "placeholder": "{{catalog}}.bronze_example.example_raw",
+            "description": "Fully-qualified upstream table (catalog.schema.table)."
+          },
+          {
+            "path": "is_streaming",
+            "label": "is_streaming",
+            "widget": "boolean",
+            "type": "boolean",
+            "default": false,
+            "description": "true reads with spark.readStream.table, false with spark.read.table."
+          },
+          {
+            "path": "watermark.event_time_column",
+            "label": "watermark.event_time_column",
+            "widget": "text",
+            "type": "string",
+            "visible_when": {
+              "eq": ["is_streaming", true]
+            },
+            "placeholder": "updated_at",
+            "description": "Event-time column for watermarking. Required when streaming and joined with another stream."
+          },
+          {
+            "path": "watermark.delay_threshold",
+            "label": "watermark.delay_threshold",
+            "widget": "text",
+            "type": "string",
+            "visible_when": {
+              "eq": ["is_streaming", true]
+            },
+            "placeholder": "10 minutes",
+            "description": "Maximum allowed event lateness. Required when streaming and joined with another stream."
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "decrypt",
+    "title": "Decrypted columns",
+    "subtitle": "The only valid place to decrypt — never in target_config. Runs before transformation_sql.",
+    "doc": "#5-security-and-cryptography",
+    "fields": [
+      {
+        "path": "decrypted_columns",
+        "label": "source_inputs[].decrypted_columns[]",
+        "widget": "repeat",
+        "type": "array<object>",
+        "span": 2,
+        "emit_path": "source_inputs[?input_name=$input_name].decrypted_columns[]",
+        "emit_transform": "group_into_parent",
+        "repeat": {
+          "add_label": "+ decrypt a column",
+          "min_rows": 0,
+          "max_rows": 50,
+          "single": false,
+          "row_title_from": "column_name"
+        },
+        "description": "Columns to decrypt on input before running transformation SQL.",
+        "fields": [
+          {
+            "path": "input_name",
+            "label": "applies to input_name",
+            "widget": "text",
+            "type": "string",
+            "required": true,
+            "suggest": {
+              "from": "source_inputs[].input_name"
+            },
+            "placeholder": "example_raw_input",
+            "description": "Which source_inputs[] entry this decryption belongs to."
+          },
+          {
+            "path": "column_name",
+            "label": "column_name",
+            "widget": "text",
+            "type": "string",
+            "required": true,
+            "placeholder": "pii_column",
+            "description": "Source ciphertext column on the input table."
+          },
+          {
+            "path": "output_column",
+            "label": "output_column",
+            "widget": "text",
+            "type": "string",
+            "placeholder": "pii_column_plain",
+            "description": "Output plaintext column. Use different name to keep both ciphertext and plaintext."
+          },
+          {
+            "path": "mode",
+            "label": "mode",
+            "widget": "select",
+            "type": "string",
+            "default": "GCM",
+            "options": ["GCM", "CBC", "ECB"],
+            "description": "Must match mode column was encrypted with."
+          },
+          {
+            "path": "cast_to_type",
+            "label": "cast_to_type",
+            "widget": "text",
+            "type": "string",
+            "required": true,
+            "placeholder": "string",
+            "description": "Spark SQL type to cast decrypted value to. Cross-validated against original_data_type tag."
+          },
+          {
+            "$fragment": "secret_ref",
+            "prefix": "secret",
+            "params": { "required": true }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "sql",
+    "title": "Transformation SQL",
+    "subtitle": "Native Spark SQL query defining the transformation logic.",
+    "doc": "#7-transformation-flow-schema",
+    "fields": [
+      {
+        "path": "transformation_sql",
+        "label": "transformation_sql",
+        "widget": "sql",
+        "type": "string",
+        "span": 2,
+        "required": true,
+        "placeholder": "SELECT example_id, region, amount FROM example_raw_input WHERE amount > ${min_amount}",
+        "description": "The SQL transform query. Reads from input_name values declared in source_inputs."
+      }
+    ]
+  }
+]

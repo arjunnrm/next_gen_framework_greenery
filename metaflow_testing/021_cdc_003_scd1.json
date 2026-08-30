@@ -1,0 +1,37 @@
+{
+  "dataflow_group_id": "dfg_cdc_003_scd1",
+  "pipeline_parameters": {},
+  "ingestion_flows": [
+    {
+      "dataflow_id": "df_cdc_003_customer_scd1_ingest",
+      "source_system": "crm_customer_master",
+      "source_database": "crm",
+      "source_table_name": "dim_customer",
+      "source_description": "TC-CDC-003: batch Auto Loader customer tier feed with cdc_load_strategy SCD1 -- verifies the latest tier value overwrites the previous one in place (no history kept) and that a row carrying the configured delete operation code (cdc_op = DELETED) is physically removed from the target via apply_as_deletes, rather than upserted",
+      "source_type": "autoloader",
+      "target_catalog": "{{catalog}}",
+      "target_schema": "silver_crm",
+      "target_table": "dim_customer_scd1",
+      "target_type": "streaming_table",
+      "source_config": {
+        "path": "/Volumes/{{catalog}}/crm/landing_customer/incoming/",
+        "format": "csv",
+        "schema_location": "/Volumes/{{catalog}}/crm/_schemas/dim_customer_scd1/",
+        "reader_options": {"header": "true", "cloudFiles.inferColumnTypes": "true"},
+        "capture_technical_metadata": true
+      },
+      "target_config": {
+        "cdc_load_strategy": "SCD1",
+        "primary_keys": ["customer_id"],
+        "sequence_by_column": "updated_at",
+        "cdc_operation_column": "cdc_op",
+        "cdc_operation_mapping": {"delete_values": ["DELETED"]},
+        "storage_format": "delta"
+      },
+      "dq_config": {"rules": []},
+      "governance_tags": {}
+    }
+  ],
+  "transformation_flows": [],
+  "reconciliation_flows": []
+}

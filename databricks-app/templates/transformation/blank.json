@@ -1,0 +1,19 @@
+{
+  "flow_step_id": "ts_new_transformation",
+  "dataflow_id": "df_new_ingestion",
+  "target_catalog": "{{catalog}}",
+  "target_schema": "silver_example",
+  "target_table": "new_table_silver",
+  "target_type": "streaming_table",
+  "source_inputs": [
+    {
+      "input_name": "new_input_src",
+      "table": "{{catalog}}.bronze_example.new_table_raw",
+      "is_streaming": true
+    }
+  ],
+  "transformation_sql": "SELECT * FROM new_input_src",
+  "target_config": {
+    "cdc_load_strategy": "APPEND"
+  }
+}

@@ -1,0 +1,11 @@
+txn_id,account_id,amount,currency,txn_date,merchant
+TXN-2001,ACC-5001,150.00,USD,2026-08-20,Northwind Traders
+TXN-2002,ACC-5002,89.50,USD,2026-08-21,Contoso Retail
+TXN-2003,ACC-5003,-25.00,EUR,2026-08-21,Fabrikam Logistics
+TXN-2004,ACC-5001,42.75,USD,2026-08-22,Tailspin Toys
+TXN-2005,ACC-5004,0.00,USD,2026-08-22,Wingtip Toys
+TXN-2006,ACC-5002,310.20,GBP,2026-08-23,Adventure Works
+TXN-2007,ACC-5005,17.65,USD,2026-08-23,Northwind Traders
+TXN-2008,ACC-5003,220.00,EUR,2026-08-24,Contoso Retail
+TXN-2009,ACC-5001,99.99,USD,2026-08-24,Fabrikam Logistics
+TXN-2010,ACC-5004,63.40,USD,2026-08-25,Tailspin Toys

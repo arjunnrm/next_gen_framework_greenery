@@ -1,0 +1,210 @@
+{
+  "path": "target_config.cdc_load_strategy",
+  "default": "APPEND",
+  "tabs": [
+    {
+      "value": "APPEND",
+      "label": "append-only feed",
+      "description": "Immutable facts — events, logs, CDRs. No merge, no per-row diff.",
+      "meta": "no required parameters"
+    },
+    {
+      "value": "TRUNCATE_AND_LOAD",
+      "label": "full replace",
+      "description": "Full extract each run, small enough to recompute entirely.",
+      "meta": "no required parameters"
+    },
+    {
+      "value": "SCD1",
+      "label": "overwrite current",
+      "description": "Entity state where only the current value matters.",
+      "meta": "primary_keys required"
+    },
+    {
+      "value": "SCD2",
+      "label": "full history",
+      "description": "Entity state where full history matters.",
+      "meta": "primary_keys required"
+    },
+    {
+      "value": "SCD3",
+      "label": "current + previous",
+      "description": "Only current and previous value matter. Transformation flows only.",
+      "meta": "primary_keys + columns_to_check",
+      "visible_when": {
+        "eq": [
+          "@__flow_kind",
+          "transformation"
+        ]
+      }
+    }
+  ],
+  "fields": [
+    {
+      "path": "target_config.primary_keys",
+      "label": "target_config.primary_keys",
+      "widget": "list",
+      "type": "array<string>",
+      "required": true,
+      "visible_when": {
+        "in": [
+          "target_config.cdc_load_strategy",
+          [
+            "SCD1",
+            "SCD2",
+            "SCD3"
+          ]
+        ]
+      },
+      "description": "Business key(s) used by apply_changes / apply_changes_from_snapshot. Required by every CDC strategy as of v1.4.0."
+    },
+    {
+      "path": "target_config.sequence_by_column",
+      "label": "target_config.sequence_by_column",
+      "widget": "text",
+      "type": "string",
+      "visible_when": {
+        "in": [
+          "target_config.cdc_load_strategy",
+          [
+            "SCD1",
+            "SCD2",
+            "SCD3",
+            "FULL_SNAPSHOT_CDC"
+          ]
+        ]
+      },
+      "placeholder": "__framework_ingestion_timestamp_utc",
+      "description": "Ordering column for CDC. Falls back to framework ingestion timestamp."
+    },
+    {
+      "path": "target_config.columns_to_check",
+      "label": "target_config.columns_to_check",
+      "widget": "list",
+      "type": "array<string>",
+      "visible_when": {
+        "in": [
+          "target_config.cdc_load_strategy",
+          [
+            "SCD1",
+            "SCD2",
+            "SCD3"
+          ]
+        ]
+      },
+      "description": "Limits which columns trigger a new history version (SCD2) or a current/previous pivot (SCD3). Never include encrypted columns."
+    },
+    {
+      "path": "target_config.columns_to_exclude",
+      "label": "target_config.columns_to_exclude",
+      "widget": "list",
+      "type": "array<string>",
+      "visible_when": {
+        "in": [
+          "target_config.cdc_load_strategy",
+          [
+            "SCD1",
+            "SCD2",
+            "SCD3"
+          ]
+        ]
+      },
+      "description": "Excludes columns from the target schema (except_column_list) and from comparison. Validation error with APPEND, TRUNCATE_AND_LOAD or FULL_SNAPSHOT_CDC."
+    },
+    {
+      "path": "target_config.cdc_operation_column",
+      "label": "target_config.cdc_operation_column",
+      "widget": "text",
+      "type": "string",
+      "visible_when": {
+        "and": [
+          {
+            "in": [
+              "target_config.cdc_load_strategy",
+              [
+                "SCD1",
+                "SCD2",
+                "SCD3"
+              ]
+            ]
+          },
+          {
+            "ne": [
+              "target_config.cdc_load_strategy"
+            ]
+          }
+        ]
+      },
+      "placeholder": "op",
+      "description": "Column carrying insert/update/delete indicators. Optional regardless of primary_keys. Not applicable to FULL_SNAPSHOT_CDC."
+    },
+    {
+      "path": "target_config.cdc_operation_mapping.delete_values",
+      "label": "cdc_operation_mapping.delete_values",
+      "widget": "list",
+      "type": "array<string>",
+      "indent": 1,
+      "required": true,
+      "visible_when": {
+        "and": [
+          {
+            "in": [
+              "target_config.cdc_load_strategy",
+              [
+                "SCD1",
+                "SCD2",
+                "SCD3"
+              ]
+            ]
+          },
+          {
+            "ne": [
+              "target_config.cdc_load_strategy"
+            ]
+          },
+          {
+            "nonempty": [
+              "target_config.cdc_operation_column"
+            ]
+          }
+        ]
+      },
+      "placeholder": "D",
+      "description": "Values in cdc_operation_column meaning this row is a delete."
+    },
+    {
+      "path": "target_config.empty_target_if_source_empty",
+      "label": "target_config.empty_target_if_source_empty",
+      "widget": "boolean",
+      "type": "boolean",
+      "default": false,
+      "visible_when": {
+        "eq": [
+          "target_config.cdc_load_strategy",
+          "TRUNCATE_AND_LOAD"
+        ]
+      },
+      "hint": "default false — an empty source leaves the target untouched",
+      "description": "Governs a TRUNCATE_AND_LOAD run whose source recomputes to zero rows. false (default, safe) leaves the target untouched; true truncates it to empty."
+    },
+    {
+      "path": "target_config.generate_hash_columns",
+      "label": "target_config.generate_hash_columns",
+      "widget": "boolean",
+      "type": "boolean",
+      "default": true,
+      "visible_when": {
+        "in": [
+          "target_config.cdc_load_strategy",
+          [
+            "SCD1",
+            "SCD2",
+            "SCD3",
+            "FULL_SNAPSHOT_CDC"
+          ]
+        ]
+      },
+      "description": "Adds __framework_hash_key (SHA-256 of primary keys) and __framework_hash_value (SHA-256 of comparison columns). Never added for APPEND or TRUNCATE_AND_LOAD."
+    }
+  ]
+}

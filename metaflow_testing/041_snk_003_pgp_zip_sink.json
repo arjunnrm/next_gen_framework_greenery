@@ -1,0 +1,50 @@
+{
+  "dataflow_group_id": "dfg_snk_003_pgp_zip_sink",
+  "pipeline_parameters": {},
+  "ingestion_flows": [
+    {
+      "dataflow_id": "df_finance_settlements_ingest",
+      "source_system": "finance_settlements_partner",
+      "source_database": "finance_settlements_feed",
+      "source_table_name": "monthly_settlements",
+      "source_description": "TC-SNK-003: small monthly financial settlements batch, Auto Loader-ingested into metaflow.silver_finance.monthly_settlements (target_type external_sink) and, inside the SAME Lakeflow Declarative Pipeline update, additionally exported as a PGP-encrypted ZIP archive via a genuine dlt.create_sink(format=\"pgp_zip\") + @dlt.append_flow -- the recipient's PGP public key is resolved from the {{catalog}}.security.pgp_public_key_finance_egress_test UC secret at graph-definition time, never stored in this spec.",
+      "source_type": "autoloader",
+      "target_catalog": "{{catalog}}",
+      "target_schema": "silver_finance",
+      "target_table": "monthly_settlements",
+      "target_type": "external_sink",
+      "source_config": {
+        "path": "/Volumes/{{catalog}}/finance/landing_settlements/incoming/",
+        "format": "csv",
+        "schema_location": "/Volumes/{{catalog}}/finance/_schemas/monthly_settlements/",
+        "reader_options": {"header": "true", "cloudFiles.inferColumnTypes": "true"},
+        "capture_technical_metadata": true
+      },
+      "target_config": {
+        "cdc_load_strategy": "APPEND",
+        "storage_format": "delta",
+        "sink_config": {
+          "path": "/Volumes/{{catalog}}/finance_egress/secure_drops/_staging/",
+          "format": "pgp_zip",
+          "post_export_archive": {
+            "enabled": true,
+            "output_zip_path": "/Volumes/{{catalog}}/finance_egress/secure_drops/output/",
+            "export_file_name_format": "monthly_settlements_{batch_id}",
+            "pgp_encryption": {
+              "enabled": true,
+              "recipient_public_key_secret": {
+                "secret_catalog": "{{catalog}}",
+                "secret_schema": "security",
+                "secret_key": "pgp_public_key_finance_egress_test"
+              }
+            }
+          }
+        }
+      },
+      "dq_config": {"rules": []},
+      "governance_tags": {}
+    }
+  ],
+  "transformation_flows": [],
+  "reconciliation_flows": []
+}

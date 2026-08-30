@@ -1,0 +1,150 @@
+site_name: NextGen Metadata Framework (Metaflow)
+site_description: >-
+  Metadata-driven ingestion, transformation, reconciliation and observability
+  pipelines on Databricks Lakeflow — architecture, attribute reference, onboarding
+  guides and operational runbooks.
+site_author: Data Platform Engineering
+
+docs_dir: docs
+site_dir: site
+
+# ── Theme ────────────────────────────────────────────────────────────────────
+# Material is optional. If it is not installed, `mkdocs build` falls back with a
+# clear error naming the missing package; install with:
+#   pip install mkdocs mkdocs-material
+theme:
+  name: material
+  features:
+    - navigation.instant
+    - navigation.tracking
+    - navigation.tabs
+    - navigation.sections
+    - navigation.top
+    - navigation.indexes
+    - toc.follow
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+    - content.tabs.link
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - def_list
+  - footnotes
+  - md_in_html
+  - tables
+  - toc:
+      permalink: true
+      toc_depth: 3
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+
+plugins:
+  - search
+
+# Legacy and point-in-time material is kept on disk for provenance but excluded
+# from the built site and its navigation. `archive/` is superseded content;
+# `architecture_review/` is a dated audit, not living documentation.
+exclude_docs: |
+  archive/
+  architecture_review/
+  CODEBASE_CLEANUP_MANIFEST.md
+  README.md
+
+# ── Navigation ───────────────────────────────────────────────────────────────
+# One tab per audience journey: arrive, learn the platform, author a spec,
+# operate it, look something up.
+nav:
+  - Home: index.md
+
+  - Get started:
+      - Overview: onboarding/index.md
+      - Step by step:
+          - 1 · Prerequisites: onboarding/01_prerequisites.md
+          - 2 · Your first pipeline: onboarding/02_first_pipeline.md
+          - 3 · Using the Spec Builder app: onboarding/03_spec_builder_app.md
+          - 4 · Deploying with DABs: onboarding/04_deploying.md
+      - Going further:
+          - Developer guide & recipes: 09_developer_guide_and_recipes.md
+
+  - Architecture:
+      - Platform architecture & core concepts: 01_platform_architecture.md
+      - Data plane:
+          - Ingestion & source readers: 02_ingestion_and_sources.md
+          - Transformation & CDC: 03_transformation_and_cdc.md
+          - Reconciliation & self-healing: 07_reconciliation_engine.md
+          - Egress & Lakeflow sinks: 06_egress_and_lakeflow_sinks.md
+      - Cross-cutting concerns:
+          - Data quality & governance: 04_data_quality_and_governance.md
+          - Security & cryptography: 05_security_and_cryptography.md
+          - Observability & OpenTelemetry: 08_observability_and_telemetry.md
+      - Design guarantees:
+          - Deterministic hashing standard: 11_hashing_and_determinism.md
+          - Module permutation matrix: 12_module_permutation_matrix.md
+
+  - JSON reference:
+      - Overview: reference/json/index.md
+      - Spec document:
+          - Spec root: reference/json/root.md
+          - Ingestion flows: reference/json/ingestion.md
+          - Transformation flows: reference/json/transformation.md
+          - Reconciliation flows: reference/json/reconciliation.md
+          - Observability: reference/json/observability.md
+      - Shared blocks:
+          - CDC / load strategy: reference/json/ingestion-transformation.md
+      - Full attribute dictionary: 00_master_reference_index.md
+
+  - Code reference:
+      - Overview: reference/code/index.md
+      - Pipeline engine:
+          - engine: reference/code/engine.md
+          - ingestion: reference/code/ingestion.md
+          - transformation: reference/code/transformation.md
+          - cdc: reference/code/cdc.md
+          - reconciliation: reference/code/reconciliation.md
+      - Platform services:
+          - control_plane: reference/code/control_plane.md
+          - onboarding: reference/code/onboarding.md
+          - storage: reference/code/storage.md
+          - observability: reference/code/observability.md
+      - Data handling:
+          - crypto: reference/code/crypto.md
+          - dq: reference/code/dq.md
+          - governance: reference/code/governance.md
+          - asn1: reference/code/asn1.md
+      - Other:
+          - lakeflow_framework: reference/code/lakeflow_framework.md
+          - archive: reference/code/archive.md
+
+  - Help:
+      - FAQ: faq.md
+      - Multi-role FAQs: 10_multi_role_faqs.md
+      - Known limitations & gotchas: 13_known_limitations_and_gotchas.md
+
+extra:
+  generator: false

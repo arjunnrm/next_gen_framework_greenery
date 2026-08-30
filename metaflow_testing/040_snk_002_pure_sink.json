@@ -1,0 +1,56 @@
+{
+  "dataflow_group_id": "dfg_snk_002_pure_sink",
+  "pipeline_parameters": {},
+  "ingestion_flows": [
+    {
+      "dataflow_id": "df_snk_002_iot_sensor_ingest",
+      "source_system": "iot_partner_feed",
+      "source_database": "iot_snk002",
+      "source_table_name": "sensor_readings",
+      "source_description": "TC-SNK-002: batch Auto Loader IoT sensor readings feed, ingested to a genuine bronze streaming table that this same spec's transformation_flow (target_type: 'sink') reads and exports directly to a partner egress Volume via dlt.create_sink + @dlt.append_flow, with NO queryable table ever registered for the sink itself -- see engine/sink_registration.py::register_sink_target. Distinct from target_type 'external_sink' (TC-SNK-001), which DOES materialize a real table alongside its export.",
+      "source_type": "autoloader",
+      "target_catalog": "{{catalog}}",
+      "target_schema": "bronze_iot_snk002",
+      "target_table": "sensor_readings_raw",
+      "target_type": "streaming_table",
+      "source_config": {
+        "path": "/Volumes/{{catalog}}/iot_snk002/landing_sensor/incoming/",
+        "format": "csv",
+        "schema_location": "/Volumes/{{catalog}}/iot_snk002/_schemas/sensor_readings_raw/",
+        "reader_options": {"header": "true", "cloudFiles.inferColumnTypes": "true"},
+        "capture_technical_metadata": true
+      },
+      "target_config": {"cdc_load_strategy": "APPEND", "storage_format": "delta"},
+      "dq_config": {"rules": []},
+      "governance_tags": {}
+    }
+  ],
+  "transformation_flows": [
+    {
+      "flow_step_id": "ts_snk_002_pure_sink_export",
+      "dataflow_id": "df_snk_002_iot_sensor_ingest",
+      "target_catalog": "{{catalog}}",
+      "target_schema": "egress_iot",
+      "target_table": "partner_drops_sink",
+      "target_type": "sink",
+      "source_inputs": [
+        {
+          "input_name": "sensor_readings_for_sink",
+          "table": "{{catalog}}.bronze_iot_snk002.sensor_readings_raw",
+          "is_streaming": true
+        }
+      ],
+      "transformation_sql": "SELECT device_id, sensor_type, reading_value, event_ts, region FROM sensor_readings_for_sink",
+      "target_config": {
+        "cdc_load_strategy": "APPEND",
+        "sink_config": {
+          "format": "delta",
+          "path": "/Volumes/{{catalog}}/egress_iot/partner_drops/"
+        }
+      },
+      "dq_config": {"rules": []},
+      "governance_tags": {}
+    }
+  ],
+  "reconciliation_flows": []
+}

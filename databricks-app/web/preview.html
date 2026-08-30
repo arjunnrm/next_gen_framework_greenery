@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Metaflow Onboarding — no-build preview</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  <script type="importmap">
+  {
+    "imports": {
+      "react": "https://esm.sh/react@18.3.1",
+      "react-dom": "https://esm.sh/react-dom@18.3.1",
+      "react-dom/client": "https://esm.sh/react-dom@18.3.1/client"
+    }
+  }
+  </script>
+  <script src="https://unpkg.com/@babel/standalone@7.25.6/babel.min.js"></script>
+</head>
+<body>
+  <div id="root"></div>
+  <!--
+    Runs the real src/ tree with no toolchain: fetches each module, transpiles JSX
+    in the browser, and rewires relative imports to blob URLs. `npm run build` is
+    still the production path — this page exists so the UI can be reviewed without
+    installing anything.
+  -->
+  <script>
+  (async function () {
+    const cache = new Map();
+    const REL = /(?:from|import)\s*["'](\.[^"']+)["']/g;
+
+    function load(url) {
+      if (cache.has(url)) return cache.get(url);
+      const p = (async () => {
+        const res = await fetch(url);
+        if (!res.ok) throw new Error("cannot load " + url + " (" + res.status + ")");
+        const code = await res.text();
+        if (url.endsWith(".css")) {
+          const style = document.createElement("style");
+          style.textContent = code;
+          document.head.appendChild(style);
+          return URL.createObjectURL(new Blob(["export default null;"], { type: "text/javascript" }));
+        }
+        let out = Babel.transform(code, { presets: [["react", { runtime: "classic" }]], filename: url }).code;
+        const specs = [...new Set([...out.matchAll(REL)].map((m) => m[1]))];
+        for (const spec of specs) {
+          const child = await load(new URL(spec, url).href);
+          out = out.split('"' + spec + '"').join('"' + child + '"').split("'" + spec + "'").join('"' + child + '"');
+        }
+        return URL.createObjectURL(new Blob([out], { type: "text/javascript" }));
+      })();
+      cache.set(url, p);
+      return p;
+    }
+
+    try {
+      await import(await load(new URL("./src/main.jsx", location.href).href));
+    } catch (e) {
+      document.getElementById("root").innerHTML =
+        '<pre style="padding:24px;font:12px/1.6 ui-monospace,monospace;color:#f0a35e;white-space:pre-wrap">' +
+        String(e && e.stack || e) + "</pre>";
+    }
+  })();
+  </script>
+</body>
+</html>

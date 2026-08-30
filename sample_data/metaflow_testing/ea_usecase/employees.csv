@@ -1,0 +1,6 @@
+employee_id,dept_id,employee_name,role
+E001,D001,Ava Thompson,Engineer
+E002,D001,Noah Martinez,Senior Engineer
+E003,D002,Liam Chen,Analyst
+E004,D003,Emma Wilson,Marketing Lead
+E005,D004,Olivia Brown,Ops Manager

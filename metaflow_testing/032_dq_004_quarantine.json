@@ -1,0 +1,51 @@
+{
+  "dataflow_group_id": "dfg_dq_004_quarantine",
+  "pipeline_parameters": {},
+  "ingestion_flows": [
+    {
+      "dataflow_id": "df_dq_004_customer_quarantine_ingest",
+      "source_system": "crm_customer_feed",
+      "source_database": "test",
+      "source_table_name": "customer",
+      "source_description": "TC-DQ-004: batch Auto Loader customer feed with two dq_config quarantine rules (Country IS NOT NULL, Email format RLIKE) -- proves 'quarantine' reroutes failing rows to a companion customer_raw_quarantine table enriched with __framework_dq_failed_rule_ids/__framework_record_id, while passing rows still land in the main table (scaled down from TESTING_PLAN.md's 85/10/5 to a minimal 8/1/1)",
+      "source_type": "autoloader",
+      "target_catalog": "{{catalog}}",
+      "target_schema": "bronze_test",
+      "target_table": "customer_raw",
+      "target_type": "streaming_table",
+      "source_config": {
+        "path": "/Volumes/{{catalog}}/test/landing_dq_quarantine/",
+        "format": "csv",
+        "schema_location": "/Volumes/{{catalog}}/test/_schemas/customer_quarantine/",
+        "reader_options": {
+          "header": "true",
+          "cloudFiles.inferColumnTypes": "true"
+        },
+        "capture_technical_metadata": true
+      },
+      "target_config": {
+        "cdc_load_strategy": "APPEND",
+        "storage_format": "delta"
+      },
+      "dq_config": {
+        "rules": [
+          {
+            "rule_id": "dq_customer_country_not_null",
+            "expression": "Country IS NOT NULL",
+            "action": "quarantine"
+          },
+          {
+            "rule_id": "dq_customer_email_format_valid",
+            "expression": "Email IS NOT NULL AND Email RLIKE '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$'",
+            "action": "quarantine"
+          }
+        ],
+        "quarantine_table": "customer_raw_quarantine",
+        "record_id_column": "CustomerID"
+      },
+      "governance_tags": {}
+    }
+  ],
+  "transformation_flows": [],
+  "reconciliation_flows": []
+}

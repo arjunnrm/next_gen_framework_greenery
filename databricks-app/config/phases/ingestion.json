@@ -1,0 +1,33 @@
+{
+  "flow_kind": "ingestion",
+  "label": "Ingestion flow",
+  "collection": "ingestion_flows",
+  "id_field": "dataflow_id",
+  "phases": [
+    {
+      "id": "identity",
+      "label": "Identity",
+      "sections": ["identity", "dataset"]
+    },
+    {
+      "id": "source",
+      "label": "Source",
+      "sections": ["srctype", "src_auto", "src_zb", "src_asn1", "zip"]
+    },
+    {
+      "id": "reader",
+      "label": "Reader",
+      "sections": ["src_common", "src_norm", "src_nested", "retention"]
+    },
+    {
+      "id": "load",
+      "label": "Load strategy",
+      "sections": ["cdc", "storage"]
+    },
+    {
+      "id": "protect",
+      "label": "Protect",
+      "sections": ["enc", "sink", "dq", "gov"]
+    }
+  ]
+}

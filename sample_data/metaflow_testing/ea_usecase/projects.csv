@@ -1,0 +1,5 @@
+project_id,dept_id,project_name,budget
+P001,D001,Platform Migration,250000
+P002,D001,API Gateway,120000
+P003,D002,Ledger Automation,180000
+P004,D003,Brand Refresh,90000

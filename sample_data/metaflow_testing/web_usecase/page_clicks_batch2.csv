@@ -1,0 +1,7 @@
+click_id,user_id,event_timestamp,page_url,referrer_url,device_type
+CLK00009,U1005,2026-08-28T10:20:00Z,/home,direct,tablet
+CLK00010,U1005,2026-08-28T10:20:00Z,/home,direct,tablet
+CLK00011,U1001,2026-08-28T10:21:30Z,/products,/home,desktop
+CLK00012,U1002,2026-08-28T10:16:40Z,/cart,/products,mobile
+CLK00013,U1006,2026-08-28T10:22:00Z,/products/widget-9,google,mobile
+CLK00014,U1003,2026-08-28T10:23:10Z,/checkout,/products,mobile

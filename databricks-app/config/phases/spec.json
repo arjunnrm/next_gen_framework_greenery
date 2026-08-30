@@ -1,0 +1,18 @@
+{
+  "flow_kind": "spec",
+  "label": "Spec overview",
+  "collection": "spec",
+  "id_field": "dataflow_group_id",
+  "phases": [
+    {
+      "id": "spec_root",
+      "label": "Spec root",
+      "sections": ["root", "tmplvars"]
+    },
+    {
+      "id": "observability",
+      "label": "Observability",
+      "sections": ["obsmaster", "obs", "fwcols"]
+    }
+  ]
+}

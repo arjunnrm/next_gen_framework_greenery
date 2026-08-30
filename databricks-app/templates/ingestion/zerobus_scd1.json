@@ -1,0 +1,47 @@
+{
+  "dataflow_id": "df_template_zerobus_ingest",
+  "source_system": "example_zerobus_direct_write",
+  "source_database": "example_events_db",
+  "source_table_name": "example_zerobus_events",
+  "source_description": "Template: streaming read of an existing Delta table landed by Zerobus direct-write, SCD1 with an optional sequence column, delete-marking, hash columns, and a wide-source comparison exclusion",
+  "source_type": "zerobus",
+  "target_catalog": "{{catalog}}",
+  "target_schema": "bronze_example",
+  "target_table": "example_zerobus_events",
+  "target_type": "streaming_table",
+  "source_config": {
+    "source_catalog": "example_source_catalog",
+    "source_schema": "example_source_schema",
+    "source_table": "example_source_zerobus_table",
+    "starting_version": 0,
+    "max_bytes_per_trigger": "1g",
+    "capture_technical_metadata": true
+  },
+  "target_config": {
+    "cdc_load_strategy": "SCD1",
+    "primary_keys": [
+      "event_id"
+    ],
+    "cdc_operation_column": "op",
+    "cdc_operation_mapping": {
+      "delete_values": [
+        "D"
+      ]
+    },
+    "columns_to_exclude": [
+      "batch_load_ts",
+      "source_extract_filename"
+    ],
+    "generate_hash_columns": true
+  },
+  "dq_config": {
+    "rules": [
+      {
+        "rule_id": "dq_example_event_status_known_value",
+        "expression": "event_status IN ('OPEN', 'CLOSED')",
+        "action": "fail"
+      }
+    ]
+  },
+  "governance_tags": {}
+}

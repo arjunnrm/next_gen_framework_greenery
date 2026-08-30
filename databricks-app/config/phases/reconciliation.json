@@ -1,0 +1,23 @@
+{
+  "flow_kind": "reconciliation",
+  "label": "Reconciliation flow",
+  "collection": "reconciliation_flows",
+  "id_field": "reconciliation_id",
+  "phases": [
+    {
+      "id": "identity",
+      "label": "Identity",
+      "sections": ["identity"]
+    },
+    {
+      "id": "datasets",
+      "label": "Datasets",
+      "sections": ["rsource", "rtargets"]
+    },
+    {
+      "id": "matching",
+      "label": "Matching",
+      "sections": ["matching"]
+    }
+  ]
+}

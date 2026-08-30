@@ -1,0 +1,2 @@
+sub_id,customer_id,status,plan_name,event_ts
+S100,CUST5001,CHURNED,PRO_MONTHLY,2026-08-20T09:00:00Z

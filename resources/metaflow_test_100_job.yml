@@ -1,0 +1,44 @@
+# Wraps metaflow_test_100_zipcsv_pipeline:
+#
+#   setup_control_tables -> onboard_100 -> run_pipeline_update
+#
+# Self-contained and idempotent (control-table upsert + CREATE ... IF NOT EXISTS schema
+# provisioning), so this job can be re-run on its own at any time.
+
+resources:
+  jobs:
+    metaflow_test_100_job:
+      name: Metaflow Test 100 - ZIP CSV Onboarding
+
+      tasks:
+        - task_key: setup_control_tables
+          notebook_task:
+            notebook_path: ../notebooks/01_setup/01_setup_control_tables.py
+            base_parameters:
+              catalog: metaflow
+          environment_key: framework_env
+
+        - task_key: onboard_100
+          depends_on:
+            - task_key: setup_control_tables
+          notebook_task:
+            notebook_path: ../notebooks/02_onboarding/02_onboarding_engine.py
+            base_parameters:
+              spec_file_path: "${workspace.file_path}/metaflow_testing/100_zipcsv_onbaording.json"
+              catalog: metaflow
+              env: dev
+              action_type: CREATE
+          environment_key: framework_env
+
+        - task_key: run_pipeline_update
+          depends_on:
+            - task_key: onboard_100
+          pipeline_task:
+            pipeline_id: ${resources.pipelines.metaflow_test_100_zipcsv_pipeline.id}
+
+      environments:
+        - environment_key: framework_env
+          spec:
+            environment_version: "4"
+            dependencies:
+              - ../dist/*.whl

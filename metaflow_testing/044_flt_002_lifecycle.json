@@ -1,0 +1,34 @@
+{
+  "dataflow_group_id": "dfg_flt_002_lifecycle",
+  "pipeline_parameters": {},
+  "ingestion_flows": [
+    {
+      "dataflow_id": "df_flt_002_customer_lifecycle_ingest",
+      "source_system": "crm_customer_master",
+      "source_database": "crm_landing",
+      "source_table_name": "dim_customer_lifecycle",
+      "source_description": "TC-FLT-002: Continuous Day-1 to Day-2 incremental ingestion cycle -- Day-1 seed load of 10 customers, Day-2 drop of 3 attribute updates plus 2 brand-new customers into the same Auto Loader landing path across two separate triggered pipeline updates, verifying the SCD1 target seamlessly upserts existing rows and inserts new ones (final row count = day1_count + new_count, not day1+day2, since updates overwrite in SCD1).",
+      "source_type": "autoloader",
+      "target_catalog": "{{catalog}}",
+      "target_schema": "silver_crm",
+      "target_table": "dim_customer_lifecycle",
+      "target_type": "streaming_table",
+      "source_config": {
+        "path": "/Volumes/{{catalog}}/crm/landing_lifecycle/incoming/",
+        "format": "csv",
+        "schema_location": "/Volumes/{{catalog}}/crm/_schemas/dim_customer_lifecycle/",
+        "reader_options": {"header": "true", "cloudFiles.inferColumnTypes": "true"},
+        "capture_technical_metadata": true
+      },
+      "target_config": {
+        "cdc_load_strategy": "SCD1",
+        "primary_keys": ["customer_id"],
+        "sequence_by_column": "updated_at"
+      },
+      "dq_config": {"rules": []},
+      "governance_tags": {}
+    }
+  ],
+  "transformation_flows": [],
+  "reconciliation_flows": []
+}

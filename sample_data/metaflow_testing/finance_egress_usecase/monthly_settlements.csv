@@ -1,0 +1,6 @@
+settlement_id,account_id,settlement_amount,currency,settlement_date,counterparty
+STL-9001,ACC-4001,1250.75,USD,2026-07-31,Northwind Traders
+STL-9002,ACC-4002,980.40,USD,2026-07-31,Contoso Retail
+STL-9003,ACC-4003,2100.00,EUR,2026-07-31,Fabrikam Logistics
+STL-9004,ACC-4001,455.20,USD,2026-07-31,Northwind Traders
+STL-9005,ACC-4004,3200.00,GBP,2026-07-31,Tailspin Toys

@@ -1,0 +1,11 @@
+CustomerID,CustomerName,Country,Email
+CUST001,Alice Smith,US,alice@example.com
+CUST002,Bob Jones,CA,bob@example.com
+CUST003,Carla Diaz,UK,carla@example.com
+CUST004,David Lee,US,david@example.com
+CUST005,Elena Petrova,DE,elena@example.com
+CUST006,Farid Khan,,farid@example.com
+CUST007,Grace Kim,FR,grace_at_example_dot_com
+CUST008,Hassan Ali,AU,hassan@example.com
+CUST009,Irene Novak,IN,irene@example.com
+CUST010,Jamal Brown,US,jamal@example.com

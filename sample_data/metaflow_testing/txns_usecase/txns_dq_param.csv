@@ -1,0 +1,9 @@
+txn_id,account_id,txn_amount,currency,txn_date,merchant
+TXN-P001,ACC-P01,1200.00,USD,2026-01-15,Northwind Traders
+TXN-P002,ACC-P02,75000.00,USD,2026-02-01,Contoso Retail
+TXN-P003,ACC-P03,4500.00,USD,2025-11-20,Fabrikam Logistics
+TXN-P004,ACC-P04,50000.00,USD,2026-01-01,Tailspin Toys
+TXN-P005,ACC-P05,99999.99,EUR,2025-12-31,Wingtip Toys
+TXN-P006,ACC-P06,320.50,USD,2026-03-10,Adventure Works
+TXN-P007,ACC-P07,62000.00,GBP,2026-04-05,Northwind Traders
+TXN-P008,ACC-P08,8800.25,USD,2026-05-12,Contoso Retail

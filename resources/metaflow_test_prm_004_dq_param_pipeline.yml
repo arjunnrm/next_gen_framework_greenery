@@ -1,0 +1,35 @@
+# TC-PRM-004: "Parameterized DQ Rule Expressions" -- tests whether ${param} placeholders
+# inside a dq_config rule expression get substituted from pipeline_parameters the same way
+# transformation_sql/reconciliation filter_condition do. Real gap found while building this
+# test case: they do not -- substitute_dynamic_parameters/substitute_path_parameters are never
+# called against dq_config anywhere in the framework (confirmed by grepping
+# onboarding/spec_validator.py, transformation/parameters.py, dq/quarantine.py,
+# dq/expectations.py), and docs/17_onboarding_template_reference.md's own prose confirms
+# dq_config is "Not wired into" ${param} substitution. So metaflow_testing/046_prm_004_dq_param.json
+# uses literal values (50000 / '2026-01-01') in its dq_config.rules[].expression instead of
+# ${max_allowed_txn_limit}/${cutoff_date}, while still declaring pipeline_parameters with those
+# same values for structural fidelity to TESTING_PLAN.md's TC-PRM-004. See
+# metaflow_testing/046_prm_004_dq_param.json and docs/68_tc_prm_004.md.
+
+resources:
+  pipelines:
+    metaflow_test_prm_004_dq_param_pipeline:
+      name: metaflow_test_prm_004_dq_param_pipeline_${bundle.target}
+      catalog: metaflow
+      schema: bronze_txns
+      serverless: true
+      photon: true
+      development: true
+      continuous: false
+
+      libraries:
+        - notebook:
+            path: ../notebooks/03_engine/03_lakeflow_declarative_pipeline.py
+
+      environment:
+        dependencies:
+          - ../dist/*.whl
+
+      configuration:
+        dataflow.group.id: dfg_prm_004_dq_param
+        dataflow.control.catalog: metaflow

@@ -1,0 +1,31 @@
+# TC-ING-007: "Inline Data Standardization SQL" -- Auto Loader ingestion of a dirty companies
+# CSV feed where source_config.data_standardization_sql applies two column-expression-only
+# entries -- "TRIM(UPPER(region)) AS region" and "LOWER(TRIM(email)) AS email" -- normalizing
+# whitespace and casing on the region/email columns before the row reaches the Bronze table.
+# See ingestion/standardization_sql.py (runtime withColumn application) and
+# onboarding/spec_validator.py::_validate_data_standardization_sql (the restricted grammar this
+# feature enforces -- one column expression per entry, no SELECT/FROM/JOIN/etc, no ';') --
+# see metaflow_testing/016_ing_007_standardize.json.
+
+resources:
+  pipelines:
+    metaflow_test_ing_007_standardize_pipeline:
+      name: metaflow_test_ing_007_standardize_pipeline_${bundle.target}
+      catalog: metaflow
+      schema: bronze_master
+      serverless: true
+      photon: true
+      development: true
+      continuous: false
+
+      libraries:
+        - notebook:
+            path: ../notebooks/03_engine/03_lakeflow_declarative_pipeline.py
+
+      environment:
+        dependencies:
+          - ../dist/*.whl
+
+      configuration:
+        dataflow.group.id: dfg_metaflow_ing_007_standardize
+        dataflow.control.catalog: metaflow

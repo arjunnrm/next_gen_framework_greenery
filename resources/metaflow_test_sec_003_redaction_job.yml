@@ -1,0 +1,77 @@
+# Wraps metaflow_test_sec_003_redaction_pipeline:
+#
+#   setup_control_tables -> seed_sec_003_redaction_data -> onboard_sec_003 -> run_pipeline
+#
+# Self-contained and idempotent (control-table upsert + CREATE ... IF NOT EXISTS schema/volume
+# provisioning + idempotent fixture copy), so this job can be re-run on its own at any time.
+#
+# Requires TWO Unity Catalog secrets to already exist before run_pipeline can succeed, both
+# REUSED verbatim from earlier scenarios in this project, not newly provisioned by this job:
+#   * {{catalog}}.security.pii_encryption_key       -- see docs/05_deployment_guide.md Sec.0
+#     (every encryption scenario in this project already depends on this one).
+#   * {{catalog}}.security.pgp_public_key_finance_egress_test -- provisioned by
+#     metaflow_test_snk_003_pgp_zip_sink_job (see docs/63_tc_snk_003.md) from the disposable
+#     test keypair at sample_data/metaflow_testing/finance_egress_usecase/
+#     pgp_egress_keypair_public.asc. If TC-SNK-003 hasn't been run against this workspace yet,
+#     provision it yourself first -- see docs/56_tc_sec_003.md's "Configuration" section for the
+#     exact command.
+#
+# No separate observability job task -- per this project's established, real convention across
+# every already-built TC-* scenario (including the methodologically closest one, TC-SNK-003 --
+# see docs/63_tc_snk_003.md's own "Known gaps" section), structured JSON logging
+# (observability/structured_logger.py's logged_operation context manager) fires automatically as
+# a side effect of run_pipeline itself; no separate task is needed to "activate" it, and this is
+# in fact the exact log surface docs/56_tc_sec_003.md's own verification steps inspect.
+#
+# IMPORTANT: per docs/56_tc_sec_003.md, `run_pipeline` is expected to SUCCEED (encryption and PGP
+# export are both functionally correct), but this test case's real assertion -- that the resolved
+# pii_encryption_key value never appears in a Spark query plan/driver log -- is expected to FAIL
+# against the framework as it exists today. See that doc's "Expected results" section before
+# treating a clean job run as this test having passed.
+
+resources:
+  jobs:
+    metaflow_test_sec_003_redaction_job:
+      name: Metaflow Test SEC-003 - Secret Masking & Redaction in Telemetry
+
+      tasks:
+        - task_key: setup_control_tables
+          notebook_task:
+            notebook_path: ../notebooks/01_setup/01_setup_control_tables.py
+            base_parameters:
+              catalog: metaflow
+          environment_key: framework_env
+
+        - task_key: seed_sec_003_redaction_data
+          depends_on:
+            - task_key: setup_control_tables
+          notebook_task:
+            notebook_path: ../notebooks/00_seed_sample_data/03_seed_sec_003_redaction_data.py
+            base_parameters:
+              catalog: metaflow
+          environment_key: framework_env
+
+        - task_key: onboard_sec_003
+          depends_on:
+            - task_key: seed_sec_003_redaction_data
+          notebook_task:
+            notebook_path: ../notebooks/02_onboarding/02_onboarding_engine.py
+            base_parameters:
+              spec_file_path: "${workspace.file_path}/metaflow_testing/035_sec_003_redaction.json"
+              catalog: metaflow
+              env: dev
+              action_type: CREATE
+          environment_key: framework_env
+
+        - task_key: run_pipeline
+          depends_on:
+            - task_key: onboard_sec_003
+          pipeline_task:
+            pipeline_id: ${resources.pipelines.metaflow_test_sec_003_redaction_pipeline.id}
+
+      environments:
+        - environment_key: framework_env
+          spec:
+            environment_version: "4"
+            dependencies:
+              - ../dist/*.whl

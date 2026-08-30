@@ -1,0 +1,40 @@
+{
+  "dataflow_group_id": "dfg_metaflow_ing_006_json_explode",
+  "pipeline_parameters": {},
+  "ingestion_flows": [
+    {
+      "dataflow_id": "df_ing_006_json_explode",
+      "source_system": "iot_platform",
+      "source_database": "iot",
+      "source_table_name": "device_metrics_feed",
+      "source_description": "Metaflow test TC-ING-006: nested JSON device telemetry (a 'metrics' array of sensor/val pairs per device) exploded via explode_columns into discrete rows Exercises v1.3.0 E03 JSON-string parity: `metrics` arrives as a STRING (Auto Loader cloudFiles.inferColumnTypes defaults to false), is parsed to array<struct> by json_string_columns, then exploded+flattened by explode_columns.",
+      "source_type": "autoloader",
+      "target_catalog": "{{catalog}}",
+      "target_schema": "bronze_iot",
+      "target_table": "sensor_telemetry_flat",
+      "target_type": "streaming_table",
+      "source_config": {
+        "path": "/Volumes/{{catalog}}/iot/landing_json/",
+        "format": "json",
+        "schema_location": "/Volumes/{{catalog}}/iot/_schemas/sensor_telemetry_flat/",
+        "json_string_columns": [
+          {
+            "column": "metrics",
+            "schema_ddl": "array<struct<sensor:string,val:double>>"
+          }
+        ],
+        "explode_columns": [
+          "metrics"
+        ],
+        "capture_technical_metadata": true
+      },
+      "target_config": {
+        "cdc_load_strategy": "APPEND"
+      },
+      "dq_config": {},
+      "governance_tags": {}
+    }
+  ],
+  "transformation_flows": [],
+  "reconciliation_flows": []
+}

@@ -1,0 +1,520 @@
+[
+  {
+    "id": "cdc",
+    "title": "Load strategy",
+    "kind": "tabs",
+    "tabs_ref": "shared.cdc.json",
+    "doc": "#4-target-config--cdc-reference",
+    "subtitle": "target_config.cdc_load_strategy decides how data is merged into the target. Pick a tab — only that strategy's parameters are shown.",
+    "fields": []
+  },
+  {
+    "id": "storage",
+    "title": "Target · storage & table",
+    "subtitle": "Physical layout of the target table.",
+    "doc": "#4-target-config--cdc-reference",
+    "fields": [
+      {
+        "path": "target_config.storage_format",
+        "label": "target_config.storage_format",
+        "widget": "select",
+        "type": "string",
+        "default": "delta",
+        "options": [
+          "delta",
+          "iceberg"
+        ],
+        "hint": "iceberg: batch_table only · Iceberg reads elsewhere via UniForm table property",
+        "description": "Target table format. iceberg is only valid when target_type is batch_table — for every other target type, leave this on delta and add table property enable_iceberg_read_uniformity: true instead."
+      },
+      {
+        "path": "target_config.capture_technical_metadata",
+        "label": "target_config.capture_technical_metadata",
+        "widget": "boolean",
+        "type": "boolean",
+        "default": true,
+        "visible_when": {
+          "eq": [
+            "@__flow_kind",
+            "transformation"
+          ]
+        },
+        "description": "Transformation flows only. Gates __framework_ingestion_timestamp_utc."
+      },
+      {
+        "path": "target_config.partition_mode",
+        "label": "partition_columns mode",
+        "widget": "select",
+        "type": "string",
+        "default": "absent",
+        "options": [
+          "absent",
+          "unpartitioned",
+          "named"
+        ],
+        "emit": "never",
+        "visible_when": {
+          "in": [
+            "target_config.cdc_load_strategy",
+            [
+              "APPEND",
+              "TRUNCATE_AND_LOAD"
+            ]
+          ]
+        },
+        "hint": "[] means explicitly unpartitioned, never an error",
+        "description": "absent omits partition_columns entirely. unpartitioned writes partition_columns: [] — an explicit declaration that table is not partitioned. named writes columns you list."
+      },
+      {
+        "path": "target_config.partition_columns",
+        "label": "target_config.partition_columns",
+        "widget": "list",
+        "type": "array<string>",
+        "visible_when": {
+          "and": [
+            {
+              "in": [
+                "target_config.cdc_load_strategy",
+                [
+                  "APPEND",
+                  "TRUNCATE_AND_LOAD"
+                ]
+              ]
+            },
+            {
+              "eq": [
+                "target_config.partition_mode",
+                "named"
+              ]
+            }
+          ]
+        },
+        "hint": "partition only above ~1 TB (Databricks guidance)",
+        "description": "Physical partitioning. Only effective for APPEND and TRUNCATE_AND_LOAD — silently ignored for CDC-dispatched strategies."
+      },
+      {
+        "path": "target_config.liquid_clustering_columns",
+        "label": "target_config.liquid_clustering_columns",
+        "widget": "list",
+        "type": "array<string>",
+        "max_items": 3,
+        "visible_when": {
+          "in": [
+            "target_config.cdc_load_strategy",
+            [
+              "APPEND",
+              "TRUNCATE_AND_LOAD"
+            ]
+          ]
+        },
+        "hint": "maximum 3 columns",
+        "description": "Liquid clustering keys. Only effective for APPEND and TRUNCATE_AND_LOAD. Maximum of 3 columns."
+      },
+      {
+        "path": "target_config.table_properties",
+        "label": "target_config.table_properties",
+        "widget": "kv",
+        "type": "object<string,scalar>",
+        "span": 2,
+        "keys": [
+          "log_retention_duration",
+          "deleted_file_retention_duration",
+          "enable_iceberg_read_uniformity"
+        ],
+        "hint": "log_retention_duration · deleted_file_retention_duration · enable_iceberg_read_uniformity",
+        "description": "Delta table properties, added as key-value pairs. Documented keys: log_retention_duration, deleted_file_retention_duration, enable_iceberg_read_uniformity."
+      },
+      {
+        "path": "target_config.auto_ttl.timestamp_column",
+        "label": "auto_ttl.timestamp_column",
+        "widget": "text",
+        "type": "string",
+        "visible_when": {
+          "in": [
+            "target_config.cdc_load_strategy",
+            [
+              "APPEND",
+              "TRUNCATE_AND_LOAD"
+            ]
+          ]
+        },
+        "placeholder": "updated_at",
+        "description": "Row age reference column (DATE/TIMESTAMP/TIMESTAMP_NTZ). Only valid for APPEND and TRUNCATE_AND_LOAD."
+      },
+      {
+        "path": "target_config.auto_ttl.expire_in_days",
+        "label": "auto_ttl.expire_in_days",
+        "widget": "number",
+        "type": "integer",
+        "visible_when": {
+          "in": [
+            "target_config.cdc_load_strategy",
+            [
+              "APPEND",
+              "TRUNCATE_AND_LOAD"
+            ]
+          ]
+        },
+        "placeholder": "90",
+        "description": "Rows older than this many days are auto-deleted."
+      }
+    ]
+  },
+  {
+    "id": "enc",
+    "title": "Target · encrypted columns",
+    "subtitle": "Each entry encrypts one output column with AES cipher (GCM, CBC, ECB).",
+    "doc": "#5-security-and-cryptography",
+    "fields": [
+      {
+        "path": "target_config.encrypted_columns",
+        "label": "target_config.encrypted_columns[]",
+        "widget": "repeat",
+        "type": "array<object>",
+        "span": 2,
+        "repeat": {
+          "add_label": "+ encrypt a column",
+          "min_rows": 0,
+          "max_rows": 50,
+          "single": false,
+          "row_title_from": "column_name"
+        },
+        "description": "Columns to encrypt with AES. The framework records the pre-encryption Spark type as the original_data_type tag -- declare source_data_type to pin what that type must be.",
+        "fields": [
+          {
+            "path": "column_name",
+            "label": "column_name",
+            "widget": "text",
+            "type": "string",
+            "required": true,
+            "placeholder": "pii_column",
+            "description": "Plaintext column on this flow's DataFrame to encrypt."
+          },
+          {
+            "path": "output_column",
+            "label": "output_column",
+            "widget": "text",
+            "type": "string",
+            "placeholder": "pii_column",
+            "description": "Output column name. Defaults to column_name — set the same name to encrypt in place."
+          },
+          {
+            "path": "mode",
+            "label": "mode",
+            "widget": "select",
+            "type": "string",
+            "default": "GCM",
+            "options": [
+              "GCM",
+              "CBC",
+              "ECB"
+            ],
+            "description": "AES cipher mode. GCM is recommended — it adds a random IV."
+          },
+          {
+            "path": "source_data_type",
+            "label": "source_data_type",
+            "widget": "text",
+            "type": "string",
+            "placeholder": "string",
+            "description": "Optional. The column's original Spark type before encryption replaces it with ciphertext binary (e.g. string, decimal(18,2), timestamp). Becomes the Unity Catalog original_data_type tag that a downstream decrypted_columns.cast_to_type is checked against. Leave blank to use the type observed at encryption time; declare it to make a silent source type change fail loudly instead."
+          },
+          {
+            "$fragment": "secret_ref",
+            "prefix": "secret",
+            "params": {
+              "required": true
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "sink",
+    "title": "Target · sink config",
+    "subtitle": "Required when target_type is sink or external_sink. sink exports only; external_sink writes a governed table and exports.",
+    "doc": "#6-egress-and-lakeflow-sinks",
+    "visible_when": {
+      "in": [
+        "target_type",
+        [
+          "sink",
+          "external_sink"
+        ]
+      ]
+    },
+    "fields": [
+      {
+        "path": "target_config.sink_config.format",
+        "label": "sink_config.format",
+        "widget": "select",
+        "type": "string",
+        "required": true,
+        "default": "delta",
+        "options": [
+          "delta",
+          "kafka",
+          "pgp_zip"
+        ],
+        "description": "Export format. pgp_zip uses the framework's custom PySpark DataSource."
+      },
+      {
+        "path": "target_config.sink_config.path",
+        "label": "sink_config.path",
+        "widget": "text",
+        "type": "string",
+        "required": true,
+        "visible_when": {
+          "ne": [
+            "target_config.sink_config.format",
+            "kafka"
+          ]
+        },
+        "placeholder": "/Volumes/{{catalog}}/egress/example/",
+        "description": "Output directory. Required for delta and pgp_zip."
+      },
+      {
+        "path": "target_config.sink_config.write_mode",
+        "label": "sink_config.write_mode",
+        "widget": "select",
+        "type": "string",
+        "options": [
+          "",
+          "append",
+          "overwrite"
+        ],
+        "description": "Delta write mode. Currently accepted but inert — @dlt.append_flow always appends."
+      },
+      {
+        "path": "target_config.sink_config.post_export_archive.enabled",
+        "label": "post_export_archive.enabled",
+        "widget": "boolean",
+        "type": "boolean",
+        "default": false,
+        "visible_when": {
+          "eq": [
+            "target_config.sink_config.format",
+            "pgp_zip"
+          ]
+        },
+        "description": "Enable post-write archiving for pgp_zip exports."
+      },
+      {
+        "path": "target_config.sink_config.post_export_archive.output_zip_path",
+        "label": "post_export_archive.output_zip_path",
+        "widget": "text",
+        "type": "string",
+        "indent": 1,
+        "required": true,
+        "visible_when": {
+          "eq": [
+            "target_config.sink_config.post_export_archive.enabled",
+            true
+          ]
+        },
+        "placeholder": "/Volumes/{{catalog}}/egress/zips/",
+        "description": "Where the final ZIP is written."
+      },
+      {
+        "$fragment": "secret_ref",
+        "prefix": "target_config.sink_config.post_export_archive.secret",
+        "params": {
+          "required": false
+        },
+        "visible_when": {
+          "eq": [
+            "target_config.sink_config.post_export_archive.enabled",
+            true
+          ]
+        }
+      },
+      {
+        "path": "target_config.sink_config.post_export_archive.pgp_encryption.enabled",
+        "label": "pgp_encryption.enabled",
+        "widget": "boolean",
+        "type": "boolean",
+        "indent": 1,
+        "default": false,
+        "visible_when": {
+          "eq": [
+            "target_config.sink_config.post_export_archive.enabled",
+            true
+          ]
+        },
+        "description": "PGP-encrypt the output archive."
+      },
+      {
+        "$fragment": "secret_ref",
+        "prefix": "target_config.sink_config.post_export_archive.pgp_encryption.recipient_public_key_secret",
+        "params": {
+          "required": true
+        },
+        "visible_when": {
+          "and": [
+            {
+              "eq": [
+                "target_config.sink_config.post_export_archive.enabled",
+                true
+              ]
+            },
+            {
+              "eq": [
+                "target_config.sink_config.post_export_archive.pgp_encryption.enabled",
+                true
+              ]
+            }
+          ]
+        }
+      },
+      {
+        "$fragment": "secret_ref",
+        "prefix": "target_config.sink_config.post_export_archive.pgp_encryption.sign_with_private_key_secret",
+        "params": {
+          "required": false
+        },
+        "visible_when": {
+          "and": [
+            {
+              "eq": [
+                "target_config.sink_config.post_export_archive.enabled",
+                true
+              ]
+            },
+            {
+              "eq": [
+                "target_config.sink_config.post_export_archive.pgp_encryption.enabled",
+                true
+              ]
+            }
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "id": "dq",
+    "title": "Data quality",
+    "subtitle": "Rules become pipeline expectations. quarantine is a framework extension routing failed rows to a companion table.",
+    "doc": "#5-data-quality-config",
+    "fields": [
+      {
+        "path": "dq_config.rules",
+        "label": "dq_config.rules[]",
+        "widget": "repeat",
+        "type": "array<object>",
+        "span": 2,
+        "repeat": {
+          "add_label": "+ add rule",
+          "min_rows": 0,
+          "max_rows": 50,
+          "single": false,
+          "row_title_from": "rule_id"
+        },
+        "description": "Expectation definitions.",
+        "fields": [
+          {
+            "path": "rule_id",
+            "label": "rule_id",
+            "widget": "text",
+            "type": "string",
+            "required": true,
+            "placeholder": "dq_amount_non_negative",
+            "description": "Unique rule identifier."
+          },
+          {
+            "path": "action",
+            "label": "action",
+            "widget": "select",
+            "type": "string",
+            "required": true,
+            "default": "warn",
+            "options": [
+              "warn",
+              "drop",
+              "fail",
+              "quarantine"
+            ],
+            "description": "warn logs and keeps the row, drop silently removes it, fail aborts the pipeline, quarantine routes it to the quarantine table."
+          },
+          {
+            "path": "expression",
+            "label": "expression",
+            "widget": "sql",
+            "type": "string",
+            "span": 2,
+            "required": true,
+            "placeholder": "amount >= 0",
+            "description": "Boolean Spark SQL expression evaluated per row."
+          }
+        ]
+      },
+      {
+        "path": "dq_config.quarantine_table",
+        "label": "dq_config.quarantine_table",
+        "widget": "text",
+        "type": "string",
+        "placeholder": "<target_table>_quarantine",
+        "description": "Quarantine table name. Only created when at least one rule uses action quarantine."
+      },
+      {
+        "path": "dq_config.record_id_column",
+        "label": "dq_config.record_id_column",
+        "widget": "text",
+        "type": "string",
+        "placeholder": "example_id",
+        "description": "Surfaced as __framework_record_id on quarantined rows for traceability."
+      }
+    ]
+  },
+  {
+    "id": "gov",
+    "title": "Governance tags",
+    "subtitle": "Applied post-deployment via ALTER TABLE SET TAGS.",
+    "doc": "#6-governance--tagging",
+    "fields": [
+      {
+        "path": "governance_tags.column_tags",
+        "label": "governance_tags.column_tags[]",
+        "widget": "repeat",
+        "type": "array<object>",
+        "span": 2,
+        "repeat": {
+          "add_label": "+ tag a column",
+          "min_rows": 0,
+          "max_rows": 50,
+          "single": false,
+          "row_title_from": "column"
+        },
+        "description": "Column governance tags.",
+        "fields": [
+          {
+            "path": "column",
+            "label": "column",
+            "widget": "text",
+            "type": "string",
+            "required": true,
+            "placeholder": "pii_column",
+            "description": "Column to tag."
+          },
+          {
+            "path": "tags",
+            "label": "tags",
+            "widget": "kv",
+            "type": "object<string,scalar>",
+            "required": true,
+            "description": "Key-value tags, e.g. mask: PII, classification: restricted."
+          }
+        ]
+      },
+      {
+        "path": "governance_tags.table_tags",
+        "label": "governance_tags.table_tags",
+        "widget": "kv",
+        "type": "object<string,scalar>",
+        "span": 2,
+        "description": "Table-level tags, e.g. row_filter: region_restricted, domain: finance."
+      }
+    ]
+  }
+]

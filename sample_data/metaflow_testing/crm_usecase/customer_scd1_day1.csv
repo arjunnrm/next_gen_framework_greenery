@@ -1,0 +1,2 @@
+customer_id,tier,cdc_op,updated_at
+C001,SILVER,UPSERT,2026-08-28T09:00:00.000+0000

@@ -1,0 +1,234 @@
+[
+  {
+    "id": "obsmaster",
+    "title": "Observability",
+    "subtitle": "Telemetry export for the whole spec, configured independently of any flow. Enable it first, then add destinations.",
+    "doc": "#9-observability-config-schema",
+    "fields": [
+      {
+        "path": "@observability_enabled",
+        "label": "observability",
+        "widget": "boolean",
+        "type": "boolean",
+        "span": 2,
+        "default": false,
+        "emit": "never",
+        "hint": "turn on to configure destinations",
+        "description": "Master switch. When off, the observability array is omitted from the spec entirely and no telemetry is exported."
+      }
+    ]
+  },
+  {
+    "id": "obs",
+    "title": "Destinations",
+    "subtitle": "Each destination exports telemetry independently. Does not count toward the at-least-one-flow-array requirement.",
+    "doc": "#9-observability-config-schema",
+    "visible_when": {
+      "eq": ["@observability_enabled", true]
+    },
+    "fields": [
+      {
+        "path": "@observability",
+        "label": "observability[]",
+        "widget": "repeat",
+        "type": "array<object>",
+        "span": 2,
+        "repeat": {
+          "add_label": "+ add destination",
+          "min_rows": 0,
+          "max_rows": 20,
+          "single": false,
+          "row_title_from": "id"
+        },
+        "description": "Array of telemetry export destination configurations.",
+        "fields": [
+          {
+            "path": "id",
+            "label": "id",
+            "widget": "text",
+            "type": "string",
+            "required": true,
+            "placeholder": "dest-otlp-example",
+            "description": "Unique destination identifier."
+          },
+          {
+            "path": "enabled",
+            "label": "enabled",
+            "widget": "boolean",
+            "type": "boolean",
+            "default": true,
+            "description": "Master enable switch for this destination. A disabled destination is dropped entirely by the config loader."
+          },
+          {
+            "path": "type",
+            "label": "type",
+            "widget": "select",
+            "type": "string",
+            "required": true,
+            "default": "DATABRICKS_VOLUME",
+            "options": ["DATABRICKS_VOLUME", "OTLP_CONSUMER"],
+            "description": "Where telemetry is exported."
+          },
+          {
+            "path": "mode",
+            "label": "mode",
+            "widget": "select",
+            "type": "string",
+            "default": "triggered",
+            "options": ["triggered", "continuous"],
+            "description": "triggered extracts event log once after a run; continuous streams every configured event-log table as an always-on process."
+          },
+          {
+            "path": "destination_config.event_log_tables",
+            "label": "destination_config.event_log_tables",
+            "widget": "list",
+            "type": "array<string>",
+            "span": 2,
+            "required": true,
+            "visible_when": {
+              "eq": ["mode", "continuous"]
+            },
+            "placeholder": "{{catalog}}.silver_example.event_log",
+            "hint": "continuous mode only",
+            "description": "Fully-qualified catalog.schema.event_log_table names streamed together in continuous mode."
+          },
+          {
+            "path": "destination_config.volume_path",
+            "label": "destination_config.volume_path",
+            "widget": "text",
+            "type": "string",
+            "span": 2,
+            "required": true,
+            "visible_when": {
+              "ne": ["type", "OTLP_CONSUMER"]
+            },
+            "placeholder": "/Volumes/{{catalog}}/observability/app_logs/",
+            "description": "Unity Catalog Volume directory telemetry files are written to."
+          },
+          {
+            "path": "destination_config.compression",
+            "label": "destination_config.compression",
+            "widget": "select",
+            "type": "string",
+            "options": ["", "GZIP", "SNAPPY", "NONE"],
+            "options_when": [
+              {
+                "when": { "eq": ["type", "OTLP_CONSUMER"] },
+                "options": ["", "gzip", "none"]
+              }
+            ],
+            "description": "Compression applied to exported telemetry files or OTLP requests."
+          },
+          {
+            "path": "destination_config.file_format",
+            "label": "destination_config.file_format",
+            "widget": "select",
+            "type": "string",
+            "visible_when": {
+              "ne": ["type", "OTLP_CONSUMER"]
+            },
+            "options": ["", "JSONL", "JSON", "PARQUET"],
+            "description": "On-disk format of exported telemetry files."
+          },
+          {
+            "path": "destination_config.endpoint",
+            "label": "destination_config.endpoint",
+            "widget": "text",
+            "type": "string",
+            "span": 2,
+            "required": true,
+            "visible_when": {
+              "eq": ["type", "OTLP_CONSUMER"]
+            },
+            "placeholder": "https://otel-collector.internal.net:4318/v1/logs",
+            "description": "OTLP collector URL. Volume exports need no endpoint — only a Volume path."
+          },
+          {
+            "path": "destination_config.protocol",
+            "label": "destination_config.protocol",
+            "widget": "select",
+            "type": "string",
+            "visible_when": {
+              "eq": ["type", "OTLP_CONSUMER"]
+            },
+            "options": ["", "OTLP_HTTP_JSON", "OTLP_HTTP_PROTOBUF", "OTLP_GRPC"],
+            "description": "Wire protocol used to talk to the collector."
+          },
+          {
+            "path": "destination_config.resource_attributes",
+            "label": "destination_config.resource_attributes",
+            "widget": "kv",
+            "type": "object<string,scalar>",
+            "span": 2,
+            "visible_when": {
+              "eq": ["type", "OTLP_CONSUMER"]
+            },
+            "description": "OpenTelemetry resource attributes attached to every exported record, e.g. service.name, deployment.environment."
+          },
+          {
+            "path": "auth.type",
+            "label": "auth.type",
+            "widget": "select",
+            "type": "string",
+            "visible_when": {
+              "eq": ["type", "OTLP_CONSUMER"]
+            },
+            "options": ["", "BEARER_TOKEN", "API_KEY", "BASIC_AUTH", "NONE"],
+            "description": "Authentication scheme. Network destinations only — Volume exports authenticate through Unity Catalog."
+          },
+          {
+            "path": "auth.credentials",
+            "label": "auth.credentials",
+            "widget": "kv",
+            "type": "object<string,scalar>",
+            "visible_when": {
+              "eq": ["type", "OTLP_CONSUMER"]
+            },
+            "description": "Credential map. Values must be env:<VAR> or secret:<scope>:<key> references — a literal secret is rejected."
+          },
+          {
+            "path": "retry.max_attempts",
+            "label": "retry.max_attempts",
+            "widget": "number",
+            "type": "integer",
+            "visible_when": {
+              "eq": ["type", "OTLP_CONSUMER"]
+            },
+            "placeholder": "3",
+            "description": "How many times a failed network export is retried. Minimum 1. OTLP_CONSUMER only."
+          },
+          {
+            "path": "retry.backoff_multiplier",
+            "label": "retry.backoff_multiplier",
+            "widget": "number",
+            "type": "number",
+            "visible_when": {
+              "eq": ["type", "OTLP_CONSUMER"]
+            },
+            "placeholder": "2.0",
+            "description": "Exponential backoff multiplier between retries. Must be greater than 1. OTLP_CONSUMER only."
+          },
+          {
+            "path": "timeout_ms",
+            "label": "timeout_ms",
+            "widget": "number",
+            "type": "integer",
+            "visible_when": {
+              "eq": ["type", "OTLP_CONSUMER"]
+            },
+            "placeholder": "5000",
+            "description": "Request timeout in milliseconds. Not applicable to Volume exports."
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "fwcols",
+    "title": "Framework-generated columns",
+    "kind": "note",
+    "subtitle": "__framework_ingestion_timestamp_utc, __framework_source_file_name/_size/_modification_time/_metadata_headers, __framework_hash_key, __framework_hash_value, __framework_dq_failed_rule_ids, __framework_dq_failure_reasons, __framework_dq_quarantine_flag, __framework_pipeline_run_id, __framework_record_id, __framework_quarantine_validated_at.",
+    "doc": "#10-framework-generated-columns",
+    "fields": []
+  }
+]

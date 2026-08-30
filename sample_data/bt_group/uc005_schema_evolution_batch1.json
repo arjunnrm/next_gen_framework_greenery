@@ -1,0 +1,4 @@
+{"device_id": "DEV-01", "event_ts": "2026-08-20T09:00:00.000Z", "reading": 21.5, "unit": "C"}
+{"device_id": "DEV-02", "event_ts": "2026-08-20T09:01:00.000Z", "reading": 19.8, "unit": "C"}
+{"device_id": "DEV-03", "event_ts": "2026-08-20T09:02:00.000Z", "reading": 22.1, "unit": "C"}
+{"device_id": "DEV-01", "event_ts": "2026-08-20T09:05:00.000Z", "reading": 21.7, "unit": "C"}

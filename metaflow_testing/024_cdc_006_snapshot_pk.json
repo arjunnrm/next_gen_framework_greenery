@@ -1,0 +1,34 @@
+{
+  "dataflow_group_id": "dfg_cdc_006_snapshot_pk",
+  "pipeline_parameters": {},
+  "ingestion_flows": [
+    {
+      "dataflow_id": "df_cdc_006_inventory_snapshot_ingest",
+      "source_system": "warehouse_inventory_extract",
+      "source_database": "Inventory_usecase",
+      "source_table_name": "inventory_master",
+      "source_description": "TC-CDC-006: batch Auto Loader full-extract inventory dump feed with cdc_load_strategy FULL_SNAPSHOT_CDC -- verifies a source with a natural business key (item_id) has successive full dumps diffed by apply_changes_from_snapshot, so a key absent from the latest dump is deleted, a changed key is updated in place, and a brand-new key is inserted",
+      "source_type": "autoloader",
+      "target_catalog": "{{catalog}}",
+      "target_schema": "silver_inventory",
+      "target_table": "inventory_snapshot_cdc",
+      "target_type": "streaming_table",
+      "source_config": {
+        "path": "/Volumes/{{catalog}}/inventory/landing_dumps/",
+        "format": "csv",
+        "schema_location": "/Volumes/{{catalog}}/inventory/_schemas/inventory_snapshot_cdc/",
+        "reader_options": {"header": "true", "cloudFiles.inferColumnTypes": "true"},
+        "capture_technical_metadata": true
+      },
+      "target_config": {
+        "cdc_load_strategy": "FULL_SNAPSHOT_CDC",
+        "primary_keys": ["item_id"],
+        "storage_format": "delta"
+      },
+      "dq_config": {"rules": []},
+      "governance_tags": {}
+    }
+  ],
+  "transformation_flows": [],
+  "reconciliation_flows": []
+}

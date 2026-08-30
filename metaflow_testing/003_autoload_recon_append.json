@@ -1,0 +1,70 @@
+{
+  "dataflow_group_id": "dfg_metaflow_003_autoload_recon",
+  "pipeline_parameters": {},
+  "ingestion_flows": [
+    {
+      "dataflow_id": "df_excalibur_autoload_ingest",
+      "source_system": "excalibur_customer_extract",
+      "source_database": "Excalibur_usecase",
+      "source_table_name": "autoload_batch",
+      "source_description": "Metaflow test 003: batch Auto Loader customer extract, later reconciled against the Zerobus bronze table",
+      "source_type": "autoloader",
+      "target_catalog": "{{catalog}}",
+      "target_schema": "bronze_excalibur",
+      "target_table": "autoload_bronze",
+      "target_type": "streaming_table",
+      "source_config": {
+        "path": "/Volumes/{{catalog}}/Excalibur_usecase/landing_autoload/incoming/",
+        "format": "csv",
+        "schema_location": "/Volumes/{{catalog}}/Excalibur_usecase/_schemas/autoload/",
+        "reader_options": {
+          "header": "true",
+          "cloudFiles.inferColumnTypes": "true"
+        },
+        "capture_technical_metadata": true
+      },
+      "target_config": {
+        "cdc_load_strategy": "APPEND",
+        "storage_format": "delta"
+      },
+      "dq_config": {
+        "rules": []
+      },
+      "governance_tags": {}
+    }
+  ],
+  "transformation_flows": [],
+  "reconciliation_flows": [
+    {
+      "reconciliation_id": "recon_excalibur_autoload_vs_zerobus",
+      "source_config": {
+        "type": "table",
+        "table": "{{catalog}}.bronze_excalibur.autoload_bronze",
+        "read_mode": "batch",
+        "hash_precomputed": false
+      },
+      "target_configs": [
+        {
+          "target_id": "zerobus_bronze_target",
+          "type": "table",
+          "table": "{{catalog}}.bronze_excalibur.zerobus_bronze",
+          "read_mode": "batch",
+          "hash_precomputed": false,
+          "comparison_direction": "source_to_target",
+          "append_target_table": "{{catalog}}.Excalibur_usecase.zerobus_source_bus"
+        }
+      ],
+      "match_keys": [
+        "customer_id"
+      ],
+      "compare_columns": [
+        "customer_name",
+        "status"
+      ],
+      "transform_sql": "SELECT customer_id, customer_name, status, current_timestamp() AS updated_at FROM _reconciliation_unmatched_records",
+      "error_handling": {
+        "on_failure": "warn"
+      }
+    }
+  ]
+}

@@ -1,0 +1,36 @@
+{
+  "dataflow_group_id": "dfg_sec_002_hashing",
+  "pipeline_parameters": {},
+  "ingestion_flows": [
+    {
+      "dataflow_id": "df_sec_002_accounts_hashed_ingest",
+      "source_system": "core_banking_accounts",
+      "source_database": "banking",
+      "source_table_name": "accounts",
+      "source_description": "TC-SEC-002: batch Auto Loader accounts feed with a composite primary key (region, account_id) -- verifies cdc_load_strategy SCD1 (a CDC-dispatched strategy) triggers dq/quarantine.py::_apply_hash_columns to add a deterministic __framework_hash_key = sha2(concat_ws('||', region, account_id), 256), plus a __framework_hash_value over the resolved comparison-column set, to every row of the target table, per cdc/hashing.py::compute_hash_columns",
+      "source_type": "autoloader",
+      "target_catalog": "{{catalog}}",
+      "target_schema": "silver_accounts",
+      "target_table": "accounts_hashed",
+      "target_type": "streaming_table",
+      "source_config": {
+        "path": "/Volumes/{{catalog}}/sec_accounts/landing_accounts/incoming/",
+        "format": "csv",
+        "schema_location": "/Volumes/{{catalog}}/sec_accounts/_schemas/accounts_hashed/",
+        "reader_options": {"header": "true", "cloudFiles.inferColumnTypes": "true"},
+        "capture_technical_metadata": true
+      },
+      "target_config": {
+        "cdc_load_strategy": "SCD1",
+        "primary_keys": ["region", "account_id"],
+        "sequence_by_column": "updated_at",
+        "generate_hash_columns": true,
+        "storage_format": "delta"
+      },
+      "dq_config": {"rules": []},
+      "governance_tags": {}
+    }
+  ],
+  "transformation_flows": [],
+  "reconciliation_flows": []
+}

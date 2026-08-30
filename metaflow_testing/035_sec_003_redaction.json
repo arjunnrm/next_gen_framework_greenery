@@ -1,0 +1,54 @@
+{
+  "dataflow_group_id": "dfg_sec_003_redaction",
+  "pipeline_parameters": {},
+  "ingestion_flows": [
+    {
+      "dataflow_id": "df_sec_003_secrets_audit_ingest",
+      "source_system": "secrets_vault_audit_feed",
+      "source_database": "sec",
+      "source_table_name": "secrets_audit",
+      "source_description": "TC-SEC-003: batch Auto Loader feed of a credential-vault access-audit log (who accessed which stored secret, and when), materialized as a real queryable table AND additionally PGP-exported in the SAME pipeline update (target_type: external_sink). secret_value is AES-GCM encrypted at rest via target_config.encrypted_columns -- keyed off the SAME {{catalog}}.security.pii_encryption_key UC secret TC-SEC-001/TC-TRF-003 already reuse -- before the target table is ever materialized, and sink_config.post_export_archive.pgp_encryption re-exports that already-ciphertext row set as a PGP-encrypted ZIP, keyed off the SAME {{catalog}}.security.pgp_public_key_finance_egress_test UC secret TC-SNK-003 already provisions. Both call sites resolve their key via dbutils.secrets.get() at graph-definition time -- see docs/56_tc_sec_003.md for why this test is expected to currently surface (not silently pass around) a known, unresolved plaintext-key-in-Spark-query-plan exposure on the AES leg specifically.",
+      "source_type": "autoloader",
+      "target_catalog": "{{catalog}}",
+      "target_schema": "bronze_sec",
+      "target_table": "secrets_audit_raw",
+      "target_type": "external_sink",
+      "source_config": {
+        "path": "/Volumes/{{catalog}}/sec/landing_audit/incoming/",
+        "format": "csv",
+        "schema_location": "/Volumes/{{catalog}}/sec/_schemas/secrets_audit_raw/",
+        "reader_options": {"header": "true", "cloudFiles.inferColumnTypes": "true"},
+        "capture_technical_metadata": true
+      },
+      "target_config": {
+        "cdc_load_strategy": "APPEND",
+        "storage_format": "delta",
+        "encrypted_columns": [
+          {
+            "column_name": "secret_value",
+            "output_column": "secret_value",
+            "mode": "GCM",
+            "secret": {"secret_catalog": "{{catalog}}", "secret_schema": "security", "secret_key": "pii_encryption_key"}
+          }
+        ],
+        "sink_config": {
+          "path": "/Volumes/{{catalog}}/egress_sec/audit_zips/_staging/",
+          "format": "pgp_zip",
+          "post_export_archive": {
+            "enabled": true,
+            "output_zip_path": "/Volumes/{{catalog}}/egress_sec/audit_zips_export/",
+            "export_file_name_format": "secrets_audit_{batch_id}",
+            "pgp_encryption": {
+              "enabled": true,
+              "recipient_public_key_secret": {"secret_catalog": "{{catalog}}", "secret_schema": "security", "secret_key": "pgp_public_key_finance_egress_test"}
+            }
+          }
+        }
+      },
+      "dq_config": {"rules": []},
+      "governance_tags": {}
+    }
+  ],
+  "transformation_flows": [],
+  "reconciliation_flows": []
+}

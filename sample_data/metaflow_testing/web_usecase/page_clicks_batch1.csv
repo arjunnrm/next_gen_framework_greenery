@@ -1,0 +1,9 @@
+click_id,user_id,event_timestamp,page_url,referrer_url,device_type
+CLK00001,U1001,2026-08-28T10:15:22Z,/home,direct,desktop
+CLK00002,U1002,2026-08-28T10:15:25Z,/products,google,mobile
+CLK00003,U1001,2026-08-28T10:16:05Z,/products/widget-42,/home,desktop
+CLK00004,U1003,2026-08-28T10:16:10Z,/home,facebook,mobile
+CLK00005,U1002,2026-08-28T10:16:40Z,/cart,/products,mobile
+CLK00006,U1002,2026-08-28T10:16:40Z,/cart,/products,mobile
+CLK00007,U1004,2026-08-28T10:17:15Z,/home,direct,desktop
+CLK00008,U1003,2026-08-28T10:17:50Z,/checkout,/cart,mobile

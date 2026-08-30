@@ -1,0 +1,31 @@
+# TC-ING-009: "Schema Evolution & Malformed Column Rescue" -- Auto Loader ingestion of a CSV
+# drift feed with source_config.schema_evolution_mode: "rescue" (see
+# ingestion/readers.py::read_autoloader_source, which maps this straight onto Auto Loader's
+# own cloudFiles.schemaEvolutionMode option). Day-1 lands [id, name]; a day-2 batch adds an
+# unannounced "unannounced_flag" column and one row with a non-numeric value in the typed
+# "id" column -- "rescue" mode captures both into _rescued_data instead of failing the stream
+# or evolving the schema out from under downstream consumers. See
+# metaflow_testing/018_ing_009_rescue_schema.json.
+
+resources:
+  pipelines:
+    metaflow_test_ing_009_rescue_schema_pipeline:
+      name: metaflow_test_ing_009_rescue_schema_pipeline_${bundle.target}
+      catalog: metaflow
+      schema: bronze_ops
+      serverless: true
+      photon: true
+      development: true
+      continuous: false
+
+      libraries:
+        - notebook:
+            path: ../notebooks/03_engine/03_lakeflow_declarative_pipeline.py
+
+      environment:
+        dependencies:
+          - ../dist/*.whl
+
+      configuration:
+        dataflow.group.id: dfg_ing_009_rescue_schema
+        dataflow.control.catalog: metaflow

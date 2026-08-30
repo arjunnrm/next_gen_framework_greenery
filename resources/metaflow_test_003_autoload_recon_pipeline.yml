@@ -1,0 +1,30 @@
+# Metaflow test scenario 003: "Autoload batch data + reconciliation" -- loads a batch CSV into
+# a Bronze table via autoloader, then (via the standalone 05_reconciliation_engine.py job task,
+# not this pipeline -- reconciliation is not a Lakeflow Declarative Pipeline flow type) compares
+# it against scenario 002's Zerobus bronze table and appends any records missing from that
+# comparison back into the *Zerobus source bus table itself* (not just its bronze copy), so the
+# next Zerobus stream read of that bus picks them up as if they had arrived normally -- see
+# metaflow_testing/003_autoload_recon_append.json's reconciliation_flows[].append_target_table.
+
+resources:
+  pipelines:
+    metaflow_test_003_autoload_recon_pipeline:
+      name: metaflow_test_003_autoload_recon_pipeline_${bundle.target}
+      catalog: metaflow
+      schema: bronze_excalibur
+      serverless: true
+      photon: true
+      development: true
+      continuous: false
+
+      libraries:
+        - notebook:
+            path: ../notebooks/03_engine/03_lakeflow_declarative_pipeline.py
+
+      environment:
+        dependencies:
+          - ../dist/*.whl
+
+      configuration:
+        dataflow.group.id: dfg_metaflow_003_autoload_recon
+        dataflow.control.catalog: metaflow

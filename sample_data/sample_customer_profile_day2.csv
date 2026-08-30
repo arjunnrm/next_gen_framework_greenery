@@ -1,0 +1,7 @@
+customer_id,customer_name,email,city,country,tier,updated_at
+C001,Alice Smith,alice@example.com,New York,US,PLATINUM,2026-02-01T00:00:00
+C002,Bob Jones,bob@example.com,Vancouver,CA,SILVER,2026-02-01T00:00:00
+C003,Carla Diaz,carla.diaz@example.com,Madrid,ES,GOLD,2026-02-01T00:00:00
+C004,David Lee,david@example.com,Seoul,KR,BRONZE,2026-01-01T00:00:00
+C005,Elena Petrova,elena@example.com,Moscow,RU,SILVER,2026-01-01T00:00:00
+C006,Frank Nguyen,frank@example.com,Hanoi,VN,BRONZE,2026-02-01T00:00:00

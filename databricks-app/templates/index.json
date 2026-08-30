@@ -1,0 +1,177 @@
+{
+  "schema_version": "1.0",
+  "templates": [
+    {
+      "id": "full_reference_spec",
+      "label": "Full reference spec (v1.4.0)",
+      "description": "The complete onboarding template: every flow kind, every optional block.",
+      "scope": "spec",
+      "file": "pipeline_onboarding_template.json",
+      "framework_version": "1.4.0",
+      "tags": [
+        "reference",
+        "all-flows"
+      ],
+      "doc": "#1-top-level-spec-schema",
+      "pinned": true
+    },
+    {
+      "id": "autoloader_csv_append",
+      "label": "autoloader · csv · APPEND",
+      "description": "Volume ingestion with regex file selection, rescue schema evolution, archive retention, quarantine, encryption and standardization.",
+      "scope": "ingestion",
+      "file": "ingestion/autoloader_csv_append.json",
+      "tags": [
+        "autoloader",
+        "csv",
+        "APPEND"
+      ],
+      "pinned": true
+    },
+    {
+      "id": "zerobus_scd1",
+      "label": "zerobus · SCD1",
+      "description": "Streaming read of a Delta table landed by Zerobus direct-write, with delete-marking, hash columns and wide-source exclusions.",
+      "scope": "ingestion",
+      "file": "ingestion/zerobus_scd1.json",
+      "tags": [
+        "zerobus",
+        "SCD1"
+      ]
+    },
+    {
+      "id": "asn1_snapshot",
+      "label": "asn1 · PGP ZIP · FULL_SNAPSHOT_CDC",
+      "description": "Binary BER/DER CDR ingestion, PGP-decrypted then unzipped, snapshot diff on the CDR's own callReferenceId.",
+      "scope": "ingestion",
+      "file": "ingestion/asn1_snapshot.json",
+      "tags": [
+        "asn1",
+        "pgp",
+        "FULL_SNAPSHOT_CDC"
+      ]
+    },
+    {
+      "id": "json_explode",
+      "label": "autoloader · json · explode_columns",
+      "description": "JSON ingestion that flattens only the named nested column and leaves everything else as-is.",
+      "scope": "ingestion",
+      "file": "ingestion/json_explode.json",
+      "tags": [
+        "json",
+        "explode_columns"
+      ]
+    },
+    {
+      "id": "blank_ingestion",
+      "label": "Blank ingestion flow",
+      "description": "Nothing filled in — cascade from source_type.",
+      "scope": "ingestion",
+      "file": "ingestion/blank.json",
+      "tags": [
+        "blank"
+      ]
+    },
+    {
+      "id": "append_transform",
+      "label": "APPEND · filtered select",
+      "description": "Streaming input, parameterised WHERE, partitioned APPEND target.",
+      "scope": "transformation",
+      "file": "transformation/append.json",
+      "tags": [
+        "transformation",
+        "APPEND"
+      ],
+      "pinned": true
+    },
+    {
+      "id": "scd1_wide_transform",
+      "label": "SCD1 · wide source",
+      "description": "Delete-marking, hash columns, and five audit columns excluded from schema and comparison.",
+      "scope": "transformation",
+      "file": "transformation/scd1_wide.json",
+      "tags": [
+        "transformation",
+        "SCD1"
+      ]
+    },
+    {
+      "id": "scd2_crypto_transform",
+      "label": "SCD2 · decrypt then re-encrypt",
+      "description": "History on one compared column, PII decrypted on read and re-encrypted on write.",
+      "scope": "transformation",
+      "file": "transformation/scd2_crypto.json",
+      "tags": [
+        "transformation",
+        "SCD2",
+        "encryption"
+      ]
+    },
+    {
+      "id": "scd3_transform",
+      "label": "SCD3 · current + previous",
+      "description": "Transformation-only strategy pivoting one status column.",
+      "scope": "transformation",
+      "file": "transformation/scd3.json",
+      "tags": [
+        "transformation",
+        "SCD3"
+      ]
+    },
+    {
+      "id": "external_sink_transform",
+      "label": "external_sink · pgp_zip export",
+      "description": "Governed table plus a signed, password-protected PGP ZIP export.",
+      "scope": "transformation",
+      "file": "transformation/external_sink.json",
+      "tags": [
+        "transformation",
+        "external_sink",
+        "pgp_zip"
+      ]
+    },
+    {
+      "id": "blank_transformation",
+      "label": "Blank transformation flow",
+      "description": "Nothing filled in — cascade from target_type and load strategy.",
+      "scope": "transformation",
+      "file": "transformation/blank.json",
+      "tags": [
+        "blank"
+      ]
+    },
+    {
+      "id": "recon_full_healing",
+      "label": "Table vs table · self-healing",
+      "description": "Filtered baseline compared both ways, unmatched rows reshaped and appended, failure raises.",
+      "scope": "reconciliation",
+      "file": "reconciliation/full.json",
+      "tags": [
+        "reconciliation",
+        "self-healing"
+      ],
+      "pinned": true
+    },
+    {
+      "id": "recon_warn_only",
+      "label": "Minimal · warn on failure",
+      "description": "Baseline compared source-to-target only, failures logged and the run continues.",
+      "scope": "reconciliation",
+      "file": "reconciliation/warn.json",
+      "tags": [
+        "reconciliation",
+        "warn"
+      ]
+    },
+    {
+      "id": "blank_reconciliation",
+      "label": "Blank reconciliation flow",
+      "description": "Nothing filled in.",
+      "scope": "reconciliation",
+      "file": "reconciliation/blank.json",
+      "tags": [
+        "blank"
+      ]
+    }
+  ]
+}

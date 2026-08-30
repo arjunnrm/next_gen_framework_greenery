@@ -1,0 +1,109 @@
+{
+  "dataflow_group_id": "dfg_rec_003_precomputed_hash",
+  "pipeline_parameters": {},
+  "ingestion_flows": [
+    {
+      "dataflow_id": "df_rec_003_orders_src_ingest",
+      "source_system": "sales_order_baseline",
+      "source_database": "sales_landing",
+      "source_table_name": "orders_src",
+      "source_description": "TC-REC-003: batch Auto Loader baseline orders feed -- cdc_load_strategy SCD1 (a CDC-dispatched strategy) with generate_hash_columns triggers dq/quarantine.py::_apply_hash_columns, giving every row of {{catalog}}.silver_sales.orders_src a real __framework_hash_key = sha2(concat_ws('||', order_id), 256) and a __framework_hash_value over every other applicable column, for reconciliation's hash_precomputed: true matcher path to reuse directly",
+      "source_type": "autoloader",
+      "target_catalog": "{{catalog}}",
+      "target_schema": "silver_sales",
+      "target_table": "orders_src",
+      "target_type": "streaming_table",
+      "source_config": {
+        "path": "/Volumes/{{catalog}}/rec_orders_usecase/landing_orders_src/incoming/",
+        "format": "csv",
+        "schema_location": "/Volumes/{{catalog}}/rec_orders_usecase/_schemas/orders_src/",
+        "reader_options": {
+          "header": "true",
+          "cloudFiles.inferColumnTypes": "true"
+        },
+        "capture_technical_metadata": true
+      },
+      "target_config": {
+        "cdc_load_strategy": "SCD1",
+        "primary_keys": [
+          "order_id"
+        ],
+        "sequence_by_column": "order_date",
+        "generate_hash_columns": true,
+        "storage_format": "delta"
+      },
+      "dq_config": {
+        "rules": []
+      },
+      "governance_tags": {}
+    },
+    {
+      "dataflow_id": "df_rec_003_orders_tgt_ingest",
+      "source_system": "sales_order_downstream",
+      "source_database": "sales_landing",
+      "source_table_name": "orders_tgt",
+      "source_description": "TC-REC-003: batch Auto Loader downstream orders feed -- an independently-landed copy of the same order population (deliberately carrying 1 value-drifted row, 1 row missing vs. the baseline, and 1 extra row absent from the baseline) -- same SCD1 + generate_hash_columns setup as orders_src, so {{catalog}}.silver_sales.orders_tgt also ends up with its own real __framework_hash_key/__framework_hash_value for the reconciliation flow below to consume via hash_precomputed: true rather than recompute",
+      "source_type": "autoloader",
+      "target_catalog": "{{catalog}}",
+      "target_schema": "silver_sales",
+      "target_table": "orders_tgt",
+      "target_type": "streaming_table",
+      "source_config": {
+        "path": "/Volumes/{{catalog}}/rec_orders_usecase/landing_orders_tgt/incoming/",
+        "format": "csv",
+        "schema_location": "/Volumes/{{catalog}}/rec_orders_usecase/_schemas/orders_tgt/",
+        "reader_options": {
+          "header": "true",
+          "cloudFiles.inferColumnTypes": "true"
+        },
+        "capture_technical_metadata": true
+      },
+      "target_config": {
+        "cdc_load_strategy": "SCD1",
+        "primary_keys": [
+          "order_id"
+        ],
+        "sequence_by_column": "order_date",
+        "generate_hash_columns": true,
+        "storage_format": "delta"
+      },
+      "dq_config": {
+        "rules": []
+      },
+      "governance_tags": {}
+    }
+  ],
+  "transformation_flows": [],
+  "reconciliation_flows": [
+    {
+      "reconciliation_id": "recon_rec_003_orders_precomputed_hash",
+      "source_config": {
+        "type": "table",
+        "table": "{{catalog}}.silver_sales.orders_src",
+        "read_mode": "batch",
+        "hash_precomputed": true
+      },
+      "target_configs": [
+        {
+          "target_id": "orders_tgt",
+          "type": "table",
+          "table": "{{catalog}}.silver_sales.orders_tgt",
+          "read_mode": "batch",
+          "hash_precomputed": true,
+          "comparison_direction": "both",
+          "append_target_table": "{{catalog}}.silver_sales.orders_tgt"
+        }
+      ],
+      "match_keys": [
+        "order_id"
+      ],
+      "compare_columns": [
+        "status",
+        "amount"
+      ],
+      "error_handling": {
+        "on_failure": "warn"
+      }
+    }
+  ]
+}

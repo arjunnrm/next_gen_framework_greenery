@@ -1,0 +1,31 @@
+{
+  "dataflow_id": "df_template_json_ingest",
+  "source_system": "example_events_api",
+  "source_table_name": "example_events_json",
+  "source_description": "Template: JSON ingestion demonstrating explode_columns -- flatten only the named nested columns, leave everything else as-is",
+  "source_type": "autoloader",
+  "target_catalog": "{{catalog}}",
+  "target_schema": "bronze_example",
+  "target_table": "example_events_json",
+  "target_type": "streaming_table",
+  "source_config": {
+    "path": "/Volumes/{{catalog}}/landing/example_json_zone/incoming/",
+    "format": "json",
+    "schema_location": "/Volumes/{{catalog}}/landing/_schemas/example_events_json/",
+    "explode_columns": [],
+    "capture_technical_metadata": true,
+    "json_string_columns": [
+      "payload_json"
+    ],
+    "remove_dups": true,
+    "dedup_watermark": {
+      "event_time_column": "event_timestamp",
+      "delay_threshold": "30 minutes"
+    }
+  },
+  "target_config": {
+    "cdc_load_strategy": "APPEND"
+  },
+  "dq_config": {},
+  "governance_tags": {}
+}

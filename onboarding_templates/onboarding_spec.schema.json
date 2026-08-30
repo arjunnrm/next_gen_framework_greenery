@@ -1,0 +1,2051 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:nextgen-metadata-framework:onboarding-spec-schema",
+  "title": "NextGen Metadata Framework onboarding spec (v2)",
+  "description": "Mirrors src/NextGen_Metadata_Framework/lakeflow_framework/onboarding/spec_validator.py as closely as JSON Schema (Draft 2020-12) allows. See onboarding_templates/onboarding_spec_full_reference.md for a field-by-field walkthrough and onboarding_templates/onboarding_spec_full_reference.json for a fully-populated example that validates against this schema.",
+  "$comment": "Known gaps this schema CANNOT express (spec_validator.py enforces all of these at onboarding time; a schema-valid document can still fail real validation for one of these reasons): (1) transformation_flows[].source_inputs[].input_name must be unique across the WHOLE spec, not just within one flow -- a cross-array-element uniqueness constraint JSON Schema has no keyword for. (2) transformation_sql / reconciliation transform_sql are syntax- and plan-validated live via `EXPLAIN <sql>` against a real Spark session -- this schema only checks they are non-empty strings. (3) decrypted_columns[].cast_to_type is cross-checked at RUNTIME (not onboarding time) against a Unity Catalog `original_data_type` column tag captured when the column was encrypted -- not checkable from the spec document alone. The same is true of encrypted_columns[].source_data_type, which is compared at encryption time against the type Spark actually reports for the column; this schema can only check it is a non-empty string. (4) source_config.schema_location, when omitted for source_type in {autoloader, asn1}, is auto-derived from target_catalog/target_table by the loader before this required-field check ever runs -- so an onboarding attempt with schema_location omitted is NOT actually an error in practice, even though this schema (matching the validator's own literal required-field check on the object as originally supplied) marks it required. (5) data_standardization_sql entries are checked against a forbidden-keyword regex (no bare SELECT/FROM/JOIN/UNION/WHERE/INSERT/UPDATE/DELETE/MERGE/DROP/ALTER/CREATE/GRANT/REVOKE, no ';') and must end in `AS <column>` -- expressible only as a loose pattern here, not the exact semantic check. (6) sink_config.write_mode is accepted by the validator (any key validates as long as the parent is an object) but is dead code -- never read by the engine; kept here as a documented-but-inert enum for fidelity with the ALLOWED_SINK_WRITE_MODES constant that exists in spec_validator.py. (7) This schema requires source_config on every ingestion_flows entry (per its source_type), but _validate_ingestion_source_config actually no-ops and reports nothing when source_config itself is entirely absent (None) -- so a spec omitting source_config outright currently passes real onboarding validation even though it is schema-invalid here; this schema intentionally takes the stricter, more useful stance for a spec author. (8) reconciliation_flows[].target_configs[].target_id must be unique within its own flow (_validate_reconciliation_target_configs) -- the same class of cross-array-element uniqueness constraint as (1), which JSON Schema has no keyword for. (9) source_zip_handling.delete_source_after_extract's object form accepts `days` alongside `action: 'delete_now'` here (it is simply an unused property), but _validate_delete_source_after_extract rejects that combination -- a `days` that would be silently inert reads as a working configuration and is not one. (10) source_config.dedup_watermark validates on its own here, but the validator rejects it unless remove_dups is also true: on its own it configures nothing, and accepting it silently would let an author believe dedup was enabled when it was not. (11) source_config.json_string_columns[].column must be unique across the array (the second entry would silently overwrite the first's parse) -- the same cross-array-element uniqueness class as (1). (12) The v1.4.0 REMOVED attributes -- source_config.normalize_column_names, target_config.generate_surrogate_key/surrogate_key_columns/surrogate_key_exclude_columns, reconciliation_flows[].recon_mode/generate_surrogate_key -- are absent from this schema but are not rejected by it, because every object carrying them sets additionalProperties: true (deliberately, so a forward-compatible spec is not broken by an older schema copy). spec_validator.py rejects each one by name with a migration message; a document still carrying them is schema-valid here and will still fail onboarding. (13) source_config.landing_retention_policy is rejected outright for source_type 'zerobus' (a Delta-table stream has no landing zone to clean); expressible as a conditional here but deliberately left to the validator so the reason travels with the error message. (14) observability[].destination_config.event_log_tables is rejected on a 'triggered' destination (the triggered engine resolves its pipeline from the upstream task run, so the list would be silently ignored) -- this schema only enforces the converse, that a 'continuous' destination must supply it.",
+  "type": "object",
+  "required": [
+    "dataflow_group_id"
+  ],
+  "properties": {
+    "dataflow_group_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "pipeline_parameters": {
+      "type": "object",
+      "description": "Runtime parameters substituted into ${param} placeholders. Values may be any JSON type -- rendered via str() at substitution time (strings are single-quoted; everything else is not).",
+      "additionalProperties": true
+    },
+    "spark_config": {
+      "type": "object",
+      "description": "Group-scoped Spark configuration applied to the pipeline session before any flow is registered. Precedence, lowest to highest: engine/spark_config.py's FRAMEWORK_SPARK_DEFAULTS < this block < the pipeline resource's own `configuration: dataflow.spark.conf` JSON object. Values are rendered with str() (booleans as lowercase true/false) before spark.conf.set. Distinct from pipeline_parameters, which is ${param} string substitution, not Spark configuration.",
+      "additionalProperties": {
+        "type": [
+          "string",
+          "number",
+          "boolean"
+        ]
+      }
+    },
+    "ingestion_flows": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/ingestionFlow"
+      }
+    },
+    "transformation_flows": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/transformationFlow"
+      }
+    },
+    "reconciliation_flows": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/reconciliationFlow"
+      }
+    },
+    "observability": {
+      "type": "array",
+      "description": "Telemetry destinations for the DLT observability engine, scoped to this dataflow_group_id (see docs/25_dlt_observability_module.md). Upserted into observability_config by onboarding/metadata_upsert.py::upsert_observability_config alongside every other control table from this same spec -- no separate observability config file.",
+      "items": {
+        "$ref": "#/$defs/observabilityDestination"
+      }
+    }
+  },
+  "additionalProperties": true,
+  "anyOf": [
+    {
+      "required": [
+        "ingestion_flows"
+      ],
+      "properties": {
+        "ingestion_flows": {
+          "type": "array",
+          "minItems": 1
+        }
+      }
+    },
+    {
+      "required": [
+        "transformation_flows"
+      ],
+      "properties": {
+        "transformation_flows": {
+          "type": "array",
+          "minItems": 1
+        }
+      }
+    },
+    {
+      "required": [
+        "reconciliation_flows"
+      ],
+      "properties": {
+        "reconciliation_flows": {
+          "type": "array",
+          "minItems": 1
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "secretRef": {
+      "type": "object",
+      "description": "Unity Catalog three-level secret reference, resolved via dbutils.secrets.get(catalog=, schema=, key=). Used identically for every encryption/decryption key, ZIP password, PGP key, and Kafka sink credential in the framework.",
+      "required": [
+        "secret_catalog",
+        "secret_schema",
+        "secret_key"
+      ],
+      "properties": {
+        "secret_catalog": {
+          "type": "string",
+          "minLength": 1
+        },
+        "secret_schema": {
+          "type": "string",
+          "minLength": 1
+        },
+        "secret_key": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "additionalProperties": true
+    },
+    "dqRule": {
+      "type": "object",
+      "required": [
+        "rule_id",
+        "expression",
+        "action"
+      ],
+      "properties": {
+        "rule_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "expression": {
+          "type": "string",
+          "minLength": 1,
+          "description": "A boolean Spark SQL expression."
+        },
+        "action": {
+          "enum": [
+            "warn",
+            "drop",
+            "fail",
+            "quarantine"
+          ]
+        }
+      },
+      "additionalProperties": true
+    },
+    "dqConfig": {
+      "type": "object",
+      "properties": {
+        "rules": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/dqRule"
+          }
+        },
+        "quarantine_table": {
+          "type": "string",
+          "description": "Default: '<target_table>_quarantine'. Only ever materialized when >=1 rule has action=quarantine."
+        },
+        "record_id_column": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": true
+    },
+    "columnTagEntry": {
+      "type": "object",
+      "required": [
+        "column",
+        "tags"
+      ],
+      "properties": {
+        "column": {
+          "type": "string",
+          "minLength": 1
+        },
+        "tags": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "minProperties": 1
+        }
+      },
+      "additionalProperties": true
+    },
+    "governanceTags": {
+      "type": "object",
+      "description": "Tags-only model -- applies key/value Unity Catalog tags; does not create/administer the mask/row-filter policy a tag activates.",
+      "properties": {
+        "column_tags": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/columnTagEntry"
+          }
+        },
+        "table_tags": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": true
+    },
+    "tableProperties": {
+      "type": "object",
+      "properties": {
+        "log_retention_duration": {
+          "type": "string",
+          "description": "e.g. 'interval 30 days' -- delta.logRetentionDuration."
+        },
+        "deleted_file_retention_duration": {
+          "type": "string",
+          "description": "e.g. 'interval 30 days' -- delta.deletedFileRetentionDuration."
+        },
+        "enable_iceberg_read_uniformity": {
+          "type": "boolean",
+          "description": "delta.universalFormat.enabledFormats=iceberg -- valid for ANY target_type, unlike storage_format:'iceberg' which is batch_table-only."
+        }
+      },
+      "additionalProperties": true
+    },
+    "autoTtl": {
+      "type": "object",
+      "description": "Opt-in and individually forgiving: supplying only one of the two sub-fields (or neither) is not an error -- Auto TTL is simply not applied. Only takes effect for cdc_load_strategy in {APPEND, TRUNCATE_AND_LOAD} -- a fully-populated block on any other strategy is a hard onboarding error (see the parent targetConfig's allOf rule).",
+      "properties": {
+        "timestamp_column": {
+          "type": "string"
+        },
+        "expire_in_days": {
+          "type": "integer",
+          "minimum": 1
+        }
+      },
+      "additionalProperties": true
+    },
+    "encryptedColumn": {
+      "type": "object",
+      "description": "target_config.encrypted_columns[] -- SQL OUTPUT column encryption only.",
+      "required": [
+        "column_name",
+        "secret"
+      ],
+      "properties": {
+        "column_name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "output_column": {
+          "type": "string",
+          "description": "Default: same as column_name."
+        },
+        "mode": {
+          "enum": [
+            "GCM",
+            "CBC",
+            "ECB"
+          ],
+          "description": "Default: GCM."
+        },
+        "source_data_type": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Optional (v1.4.0). The original source data type of column_name, before encryption replaces it with ciphertext binary -- e.g. 'string', 'decimal(18,2)', 'timestamp'. Captured as the Unity Catalog original_data_type column tag, which is what a downstream source_inputs[].decrypted_columns[].cast_to_type is validated against. OMITTING IT IS SAFE: the framework falls back to the type Spark reports for the column at encryption time, which is the pre-v1.4.0 behaviour. Declaring it turns a silent source type change into a loud failure at encryption time (declared vs observed are compared case-insensitively; a mismatch raises)."
+        },
+        "secret": {
+          "$ref": "#/$defs/secretRef"
+        }
+      },
+      "additionalProperties": true
+    },
+    "decryptedColumn": {
+      "type": "object",
+      "description": "source_inputs[].decrypted_columns[] -- the ONLY valid place to decrypt a SOURCE column.",
+      "required": [
+        "column_name",
+        "cast_to_type",
+        "secret"
+      ],
+      "properties": {
+        "column_name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "output_column": {
+          "type": "string",
+          "description": "Default: same as column_name."
+        },
+        "mode": {
+          "enum": [
+            "GCM",
+            "CBC",
+            "ECB"
+          ],
+          "description": "Default: GCM. Must match the mode the column was originally encrypted with."
+        },
+        "cast_to_type": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Required -- decryption may change the physical column type. Any Spark SQL type name."
+        },
+        "secret": {
+          "$ref": "#/$defs/secretRef"
+        }
+      },
+      "additionalProperties": true
+    },
+    "cdcOperationMapping": {
+      "type": "object",
+      "required": [
+        "delete_values"
+      ],
+      "properties": {
+        "delete_values": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1
+        }
+      },
+      "additionalProperties": true
+    },
+    "landingRetentionPolicy": {
+      "type": "object",
+      "description": "Auto Loader landing-zone cleanup (cloudFiles.cleanSource) for source_type in {autoloader, asn1} only -- a zerobus flow streams an existing Delta table and has no landing zone, so a policy there is a hard onboarding error. archive_path is NEVER required: see its own description. See ingestion/readers.py::resolve_landing_retention_policy.",
+      "properties": {
+        "clean_source": {
+          "enum": [
+            "archive",
+            "delete",
+            "off"
+          ],
+          "default": "off",
+          "description": "Default: 'off'. Maps to cloudFiles.cleanSource. Auto Loader file ingestion only -- never applied to the source_zip_handling pre-extraction path."
+        },
+        "archive_path": {
+          "type": "string",
+          "description": "Optional even for clean_source == 'archive'. An empty/absent archive_path with clean_source == 'archive' degrades to 'off' (no retention or cleanup action at all) with a WARNING log -- it is never an error. Ignored entirely for clean_source == 'delete'."
+        },
+        "retention_days": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 7,
+          "description": "Default: 7. 0 is valid and distinct from omitting the field: it means NO age threshold at all -- a file becomes eligible for archive/delete as soon as Auto Loader has committed it (cloudFiles.cleanSource.retentionDuration = '0 days'). Omitting the field means 7 days, not 0."
+        }
+      },
+      "additionalProperties": true
+    },
+    "preExtractionDecryption": {
+      "type": "object",
+      "description": "Fully optional at every level -- absent, or {}, means a plain, unencrypted, non-password-protected ZIP. 'type' (an outer whole-file decryption layer, e.g. PGP) and 'secret_passphrase' (the ZIP archive's own AES password) are independently optional and combinable: decrypt the envelope via 'type', then extract the password-protected ZIP it contained via 'secret_passphrase'.",
+      "properties": {
+        "type": {
+          "enum": [
+            "pgp"
+          ],
+          "description": "Type-dispatched registry -- {'pgp'} is the only currently-registered algorithm. Omit entirely when there's no outer decryption layer."
+        },
+        "private_key_secret": {
+          "$ref": "#/$defs/secretRef",
+          "description": "Required when type == 'pgp'."
+        },
+        "passphrase_secret": {
+          "$ref": "#/$defs/secretRef",
+          "description": "Optional, only meaningful when type == 'pgp' -- only when the private key itself is passphrase-protected."
+        },
+        "secret_passphrase": {
+          "$ref": "#/$defs/secretRef",
+          "description": "AES password on the ZIP archive itself -- independent of 'type'. Omit for a plain, unprotected ZIP."
+        }
+      },
+      "additionalProperties": true
+    },
+    "sourceZipHandling": {
+      "type": "object",
+      "description": "Shared by source_type in {autoloader, asn1} -- not applicable to zerobus (no landing-zone file to unzip). source_zip_path is a landing DIRECTORY, never a single file.",
+      "required": [
+        "enabled"
+      ],
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "source_zip_path": {
+          "type": "string",
+          "description": "Required when enabled."
+        },
+        "zip_file_pattern": {
+          "type": "string",
+          "description": "Required when enabled. A glob, e.g. 'orders_*.zip'."
+        },
+        "target_volume_path": {
+          "type": "string",
+          "description": "Required when enabled."
+        },
+        "delete_source_after_extract": {
+          "description": "Default: {\"action\": \"delete_now\"}. Accepts the legacy plain boolean (true == delete_now, false == never) for backward compatibility. delete_after_x_days does not delete an archive as part of extracting it -- it runs an age-based sweep of source_zip_path at extraction time, removing every archive matching zip_file_pattern whose modification time is older than `days` days, except any archive whose extraction failed in that same run (so a failed extraction is never swept out from under a retry).",
+          "oneOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "object",
+              "required": [
+                "action"
+              ],
+              "additionalProperties": false,
+              "properties": {
+                "action": {
+                  "enum": [
+                    "delete_now",
+                    "delete_after_x_days"
+                  ]
+                },
+                "days": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              },
+              "allOf": [
+                {
+                  "if": {
+                    "properties": {
+                      "action": {
+                        "const": "delete_after_x_days"
+                      }
+                    },
+                    "required": [
+                      "action"
+                    ]
+                  },
+                  "then": {
+                    "required": [
+                      "days"
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        "pre_extraction_decryption": {
+          "$ref": "#/$defs/preExtractionDecryption",
+          "description": "Optional -- absent or {} means a plain, unencrypted ZIP. See preExtractionDecryption."
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "enabled": {
+                "const": true
+              }
+            },
+            "required": [
+              "enabled"
+            ]
+          },
+          "then": {
+            "required": [
+              "source_zip_path",
+              "zip_file_pattern",
+              "target_volume_path"
+            ]
+          }
+        }
+      ],
+      "additionalProperties": true
+    },
+    "pgpEncryption": {
+      "type": "object",
+      "required": [
+        "enabled"
+      ],
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "recipient_public_key_secret": {
+          "$ref": "#/$defs/secretRef",
+          "description": "Required when enabled == true."
+        },
+        "sign_with_private_key_secret": {
+          "$ref": "#/$defs/secretRef"
+        },
+        "sign_passphrase_secret": {
+          "$ref": "#/$defs/secretRef",
+          "description": "Only meaningful alongside sign_with_private_key_secret."
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "enabled": {
+                "const": true
+              }
+            },
+            "required": [
+              "enabled"
+            ]
+          },
+          "then": {
+            "required": [
+              "recipient_public_key_secret"
+            ]
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "sign_passphrase_secret"
+            ]
+          },
+          "then": {
+            "required": [
+              "sign_with_private_key_secret"
+            ]
+          },
+          "$comment": "_validate_sink_config hard-errors when sign_passphrase_secret is set without sign_with_private_key_secret -- 'only meaningful alongside a signing key'."
+        }
+      ],
+      "additionalProperties": true
+    },
+    "postExportArchive": {
+      "type": "object",
+      "required": [
+        "enabled"
+      ],
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Must be true for sink_config.format == 'pgp_zip' -- archiving IS what that sink format does."
+        },
+        "output_zip_path": {
+          "type": "string",
+          "description": "Required when enabled. One finished archive file per micro-batch."
+        },
+        "export_file_name_format": {
+          "type": "string",
+          "description": "Optional str.format()-style template for the exported archive's own file name, e.g. '{timestamp}_{batch_id}_export.zip'."
+        },
+        "secret": {
+          "$ref": "#/$defs/secretRef",
+          "description": "Optional AES password on the ZIP itself -- independent of, and combinable with, pgp_encryption."
+        },
+        "pgp_encryption": {
+          "$ref": "#/$defs/pgpEncryption"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "enabled": {
+                "const": true
+              }
+            },
+            "required": [
+              "enabled"
+            ]
+          },
+          "then": {
+            "required": [
+              "output_zip_path"
+            ]
+          }
+        }
+      ],
+      "additionalProperties": true
+    },
+    "sinkConfig": {
+      "type": "object",
+      "description": "Required on target_config when the flow's target_type is 'sink' or 'external_sink'.",
+      "required": [
+        "format"
+      ],
+      "properties": {
+        "format": {
+          "enum": [
+            "delta",
+            "kafka",
+            "pgp_zip"
+          ]
+        },
+        "path": {
+          "type": "string",
+          "description": "Required for 'delta'/'pgp_zip'. Unused for 'kafka'."
+        },
+        "kafka_options": {
+          "type": "object",
+          "required": [
+            "kafka.bootstrap.servers",
+            "topic"
+          ],
+          "properties": {
+            "kafka.bootstrap.servers": {
+              "type": "string",
+              "minLength": 1
+            },
+            "topic": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Required for 'kafka'. _validate_sink_config hard-errors if either 'kafka.bootstrap.servers' or 'topic' is missing/falsy -- expressed here as a real required-keys constraint, not just descriptive text."
+        },
+        "kafka_secret_options": {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/secretRef"
+          },
+          "description": "Framework-specific: a connector option whose literal value must embed a resolved secret."
+        },
+        "write_mode": {
+          "enum": [
+            "overwrite",
+            "append"
+          ],
+          "$comment": "Dead field: validates fine (ALLOWED_SINK_WRITE_MODES exists in spec_validator.py) but is never read by the engine's 'delta' sink branch. @dlt.append_flow is always append-only. Kept here only for fidelity with the validator's own constant; omit it in real specs."
+        },
+        "post_export_archive": {
+          "$ref": "#/$defs/postExportArchive",
+          "description": "Required (and enabled must be true) when format == 'pgp_zip'. Structurally accepted, but unused, for 'delta'/'kafka' if a spec author supplies it anyway."
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "format": {
+                "const": "kafka"
+              }
+            },
+            "required": [
+              "format"
+            ]
+          },
+          "then": {
+            "required": [
+              "kafka_options"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "format": {
+                "enum": [
+                  "delta",
+                  "pgp_zip"
+                ]
+              }
+            },
+            "required": [
+              "format"
+            ]
+          },
+          "then": {
+            "required": [
+              "path"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "format": {
+                "const": "pgp_zip"
+              }
+            },
+            "required": [
+              "format"
+            ]
+          },
+          "then": {
+            "required": [
+              "post_export_archive"
+            ],
+            "properties": {
+              "post_export_archive": {
+                "required": [
+                  "enabled"
+                ],
+                "properties": {
+                  "enabled": {
+                    "const": true
+                  }
+                }
+              }
+            }
+          }
+        }
+      ],
+      "additionalProperties": true
+    },
+    "targetConfig": {
+      "type": "object",
+      "description": "Shared, field-for-field identical shape between ingestion_flows[] and transformation_flows[]. Every CDC-related field lives directly inside target_config -- there is no separate cdc_config sibling.",
+      "required": [
+        "cdc_load_strategy"
+      ],
+      "properties": {
+        "storage_format": {
+          "enum": [
+            "delta",
+            "iceberg"
+          ],
+          "description": "Default: 'delta'. 'iceberg' only valid when the enclosing flow's target_type == 'batch_table' (enforced at the flow level, not here)."
+        },
+        "partition_columns": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Only takes effect for cdc_load_strategy in {APPEND, TRUNCATE_AND_LOAD}. An explicitly empty array ([]) is valid and means NO partitioning -- it is never an error and is behaviourally identical to omitting the field."
+        },
+        "liquid_clustering_columns": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 3,
+          "description": "At most 3 columns (Delta Liquid Clustering's own limit). Same APPEND/TRUNCATE_AND_LOAD-only caveat as partition_columns. An explicitly empty array is valid and means no clustering."
+        },
+        "table_properties": {
+          "$ref": "#/$defs/tableProperties"
+        },
+        "cdc_load_strategy": {
+          "enum": [
+            "APPEND",
+            "TRUNCATE_AND_LOAD",
+            "SCD1",
+            "SCD2",
+            "SCD3",
+            "FULL_SNAPSHOT_CDC"
+          ],
+          "description": "Superset of both flow kinds' allowed values. SCD3 is transformation_flows-only -- a hard error on any ingestion_flows entry (enforced at the ingestionFlow level, not here). FULL_SNAPSHOT_CDC_NO_PK was REMOVED in v1.4.0 with the surrogate-key engine: snapshot CDC now requires real primary_keys (the Databricks-native apply_changes_from_snapshot pattern, https://docs.databricks.com/aws/en/ldp/cdc), or TRUNCATE_AND_LOAD for a source with no key."
+        },
+        "auto_ttl": {
+          "$ref": "#/$defs/autoTtl"
+        },
+        "encrypted_columns": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/encryptedColumn"
+          }
+        },
+        "primary_keys": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Required for cdc_load_strategy in {SCD1, SCD2, SCD3, FULL_SNAPSHOT_CDC}."
+        },
+        "sequence_by_column": {
+          "type": "string",
+          "description": "Optional for SCD1/SCD2/SCD3 -- falls back to __framework_ingestion_timestamp_utc."
+        },
+        "columns_to_check": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Comparison-scoping; empty/absent = compare every applicable column. Never include an encrypted (GCM) column here."
+        },
+        "columns_to_exclude": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Only meaningful for cdc_load_strategy in {SCD1, SCD2, SCD3} -- flagged as a hard error otherwise."
+        },
+        "cdc_operation_column": {
+          "type": "string",
+          "description": "Only meaningful for cdc_load_strategy in {SCD1, SCD2, FULL_SNAPSHOT_CDC}. Required together with cdc_operation_mapping."
+        },
+        "cdc_operation_mapping": {
+          "$ref": "#/$defs/cdcOperationMapping"
+        },
+        "generate_hash_columns": {
+          "type": "boolean",
+          "description": "Default: true for any CDC-dispatched strategy."
+        },
+        "empty_target_if_source_empty": {
+          "type": "boolean",
+          "default": false,
+          "description": "TRUNCATE_AND_LOAD only. Default: false -- a zero-record source NEVER blanks the target; the previously-materialized contents are preserved and the run logs why. Set true to allow an empty source to truncate the target to empty (the pre-v1.3.0 unconditional behaviour)."
+        },
+        "capture_technical_metadata": {
+          "type": "boolean",
+          "description": "Conventionally transformation_flows-only (ingestion carries the equivalent field on source_config instead); not actually restricted by the validator."
+        },
+        "sink_config": {
+          "$ref": "#/$defs/sinkConfig"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "cdc_load_strategy": {
+                "enum": [
+                  "SCD1",
+                  "SCD2",
+                  "SCD3",
+                  "FULL_SNAPSHOT_CDC"
+                ]
+              }
+            },
+            "required": [
+              "cdc_load_strategy"
+            ]
+          },
+          "then": {
+            "required": [
+              "primary_keys"
+            ]
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "columns_to_exclude"
+            ]
+          },
+          "then": {
+            "properties": {
+              "cdc_load_strategy": {
+                "enum": [
+                  "SCD1",
+                  "SCD2",
+                  "SCD3"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "anyOf": [
+              {
+                "required": [
+                  "cdc_operation_column"
+                ]
+              },
+              {
+                "required": [
+                  "cdc_operation_mapping"
+                ]
+              }
+            ]
+          },
+          "then": {
+            "required": [
+              "cdc_operation_column",
+              "cdc_operation_mapping"
+            ],
+            "properties": {
+              "cdc_load_strategy": {
+                "enum": [
+                  "SCD1",
+                  "SCD2",
+                  "FULL_SNAPSHOT_CDC"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "auto_ttl": {
+                "required": [
+                  "timestamp_column",
+                  "expire_in_days"
+                ]
+              }
+            },
+            "required": [
+              "auto_ttl"
+            ]
+          },
+          "then": {
+            "properties": {
+              "cdc_load_strategy": {
+                "enum": [
+                  "APPEND",
+                  "TRUNCATE_AND_LOAD"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "empty_target_if_source_empty"
+            ]
+          },
+          "then": {
+            "properties": {
+              "cdc_load_strategy": {
+                "const": "TRUNCATE_AND_LOAD"
+              }
+            }
+          }
+        }
+      ],
+      "additionalProperties": true
+    },
+    "watermark": {
+      "type": "object",
+      "required": [
+        "event_time_column",
+        "delay_threshold"
+      ],
+      "properties": {
+        "event_time_column": {
+          "type": "string",
+          "minLength": 1
+        },
+        "delay_threshold": {
+          "type": "string",
+          "minLength": 1,
+          "description": "e.g. '10 minutes'."
+        }
+      },
+      "additionalProperties": true
+    },
+    "sourceInput": {
+      "type": "object",
+      "required": [
+        "input_name",
+        "table"
+      ],
+      "properties": {
+        "input_name": {
+          "type": "string",
+          "minLength": 1,
+          "$comment": "Must be unique across EVERY transformation_flows entry in the whole spec, not just within one flow -- a cross-array constraint this schema cannot express; see the top-level $comment."
+        },
+        "table": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Fully-qualified catalog.schema.table -- any table, not restricted to this spec's own ingestion_flows output."
+        },
+        "is_streaming": {
+          "type": "boolean",
+          "description": "Default: false."
+        },
+        "watermark": {
+          "$ref": "#/$defs/watermark",
+          "description": "Required when this streaming input is range-joined against another stream."
+        },
+        "decrypted_columns": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/decryptedColumn"
+          }
+        }
+      },
+      "additionalProperties": true
+    },
+    "dataStandardizationSql": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "pattern": "^(?!.*\\b(?i:SELECT|FROM|JOIN|UNION|WHERE|INSERT|UPDATE|DELETE|MERGE|DROP|ALTER|CREATE|GRANT|REVOKE)\\b)(?!.*;).+$",
+        "description": "A single column-expression string ending 'AS <column_name>' (e.g. \"trim(customer_name) AS customer_name\") -- never a full SELECT/FROM/JOIN/UNION or any DDL/DML statement, and never containing ';'."
+      }
+    },
+    "ingestionSourceConfig": {
+      "type": "object",
+      "description": "Shape depends on the sibling source_type -- see the ingestionFlow-level allOf for the per-source_type required fields.",
+      "properties": {
+        "capture_technical_metadata": {
+          "type": "boolean",
+          "description": "Default: true."
+        },
+        "schema_evolution_mode": {
+          "enum": [
+            "addNewColumns",
+            "addNewColumnsWithTypeWidening",
+            "rescue",
+            "failOnNewColumns",
+            "none"
+          ]
+        },
+        "file_pattern": {
+          "type": "string"
+        },
+        "reader_options": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "explode_columns": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "PRESENT but EMPTY ([]) means auto-flatten ALL nested JSON columns (equivalent to auto_flatten_all: true). ABSENT (or null) means schema-preserving pass-through -- nothing is exploded or flattened. A populated list scopes struct-flatten/array-explode to exactly those top-level columns. This absent-vs-empty distinction is load-bearing: it is what prevents silent cartesian row explosion on un-configured sources."
+        },
+        "json_string_columns": {
+          "type": "array",
+          "description": "Columns holding a JSON document as a STRING. Each is parsed with from_json into a struct immediately before explode_columns/auto-flatten runs, so a Parquet (or CSV/Delta) source with embedded JSON text gets the same struct-flatten/array-explode treatment as a native JSON source. Supply schema_ddl whenever possible -- without it the framework falls back to Databricks' inferring from_json, which requires a streaming source with a checkpoint. See ingestion/json_flattening.py.",
+          "items": {
+            "oneOf": [
+              {
+                "type": "string",
+                "minLength": 1
+              },
+              {
+                "type": "object",
+                "required": [
+                  "column"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "column": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "schema_ddl": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "Spark DDL, e.g. 'struct<order_id:string,total:double>' or 'array<struct<sku:string,qty:int>>'."
+                  }
+                }
+              }
+            ]
+          }
+        },
+        "auto_flatten_all": {
+          "type": "boolean",
+          "default": false,
+          "description": "Default: false. Opt-in -- only takes effect when explode_columns is empty/absent, in which case it switches from the default schema-preserving pass-through to recursively flattening every struct column and exploding every array column found anywhere in the schema. Ignored once explode_columns is populated. An explicitly-empty explode_columns ([]) already implies this. See ingestion/json_flattening.py."
+        },
+        "remove_dups": {
+          "type": "boolean",
+          "default": false,
+          "description": "Default: false. When true, apply full-row deduplication across the streaming dataset via dropDuplicates over every column EXCEPT the __framework_* technical columns and _rescued_data/_metadata/_object_metadata/_asn1_decode_error. Runs after explode/auto-flatten and before data_standardization_sql. WARNING: on a streaming source with no dedup_watermark this keeps unbounded state -- see ingestion/dedup.py."
+        },
+        "dedup_watermark": {
+          "type": "object",
+          "required": [
+            "event_time_column",
+            "delay_threshold"
+          ],
+          "additionalProperties": false,
+          "description": "Only meaningful alongside remove_dups: true on a streaming source. Bounds dedup state via withWatermark(...).dropDuplicatesWithinWatermark(...). Omit to accept unbounded dedup state.",
+          "properties": {
+            "event_time_column": {
+              "type": "string",
+              "minLength": 1,
+              "description": "A TIMESTAMP column on the ingested DataFrame."
+            },
+            "delay_threshold": {
+              "type": "string",
+              "minLength": 1,
+              "description": "A Spark interval string, e.g. '2 hours', '30 minutes'."
+            }
+          }
+        },
+        "data_standardization_sql": {
+          "$ref": "#/$defs/dataStandardizationSql"
+        },
+        "landing_retention_policy": {
+          "$ref": "#/$defs/landingRetentionPolicy"
+        },
+        "path": {
+          "type": "string",
+          "description": "autoloader/asn1 only."
+        },
+        "format": {
+          "type": "string",
+          "description": "autoloader only -- any cloudFiles.format value ('csv', 'parquet', 'json', 'avro', 'text', ...), not itself enum-restricted."
+        },
+        "schema_location": {
+          "type": "string",
+          "description": "autoloader/asn1 only. Auto-derived from target_catalog/target_table when omitted -- see the top-level $comment."
+        },
+        "source_zip_handling": {
+          "$ref": "#/$defs/sourceZipHandling",
+          "description": "autoloader/asn1 only."
+        },
+        "source_catalog": {
+          "type": "string",
+          "description": "zerobus only."
+        },
+        "source_schema": {
+          "type": "string",
+          "description": "zerobus only."
+        },
+        "source_table": {
+          "type": "string",
+          "description": "zerobus only."
+        },
+        "starting_version": {
+          "type": "integer",
+          "description": "zerobus only."
+        },
+        "max_bytes_per_trigger": {
+          "type": "string",
+          "description": "zerobus only, e.g. '1g'."
+        },
+        "asn1_schema_path": {
+          "type": "string",
+          "description": "asn1 only -- a real .asn module file."
+        },
+        "asn1_codec": {
+          "enum": [
+            "ber",
+            "der"
+          ],
+          "description": "asn1 only."
+        },
+        "asn1_pdu_name": {
+          "type": "string",
+          "description": "asn1 only -- the top-level SEQUENCE type to decode each record as."
+        },
+        "column_normalization": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "Bronze/raw column-name normalization with configurable case folding. The ONLY switch as of v1.4.0 -- the legacy boolean source_config.normalize_column_names is REMOVED and is rejected by onboarding validation with a migration message, not ignored. `enabled` defaults to false. The character normalization (trim, replace [^A-Za-z0-9_] with _, collapse repeated _, strip edge _) is ALWAYS applied deterministically -- only the case fold is configurable -- and collision detection is ALWAYS performed on the lowercased form, since Unity Catalog resolves column names case-insensitively. See ingestion/column_normalization.py.",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "default": false
+            },
+            "case": {
+              "enum": [
+                "lower",
+                "preserve",
+                "upper"
+              ],
+              "default": "lower"
+            }
+          }
+        },
+        "schema_config_path": {
+          "type": "string",
+          "description": "Path to an external JSON/YAML schema_config file (or a directory, resolved to its latest file) -- explicit type mapping, nullability documentation, Unity Catalog column comments, and source-to-target renames. See docs/28_ingestion_schema_config.md and ingestion/schema_config.py."
+        }
+      },
+      "additionalProperties": true
+    },
+    "ingestionFlow": {
+      "type": "object",
+      "required": [
+        "dataflow_id",
+        "source_type",
+        "target_catalog",
+        "target_schema",
+        "target_table",
+        "target_type"
+      ],
+      "properties": {
+        "dataflow_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_system": {
+          "type": "string",
+          "description": "Free text, unvalidated."
+        },
+        "source_database": {
+          "type": "string",
+          "description": "Free text, unvalidated."
+        },
+        "source_table_name": {
+          "type": "string",
+          "description": "Free text, unvalidated."
+        },
+        "source_description": {
+          "type": "string",
+          "description": "Free text, unvalidated -- becomes the target Delta table's COMMENT."
+        },
+        "source_type": {
+          "enum": [
+            "autoloader",
+            "zerobus",
+            "asn1"
+          ]
+        },
+        "target_catalog": {
+          "type": "string",
+          "minLength": 1
+        },
+        "target_schema": {
+          "type": "string",
+          "minLength": 1
+        },
+        "target_table": {
+          "type": "string",
+          "minLength": 1
+        },
+        "target_type": {
+          "enum": [
+            "streaming_table",
+            "materialized_view",
+            "batch_table",
+            "external_sink",
+            "sink"
+          ]
+        },
+        "source_config": {
+          "$ref": "#/$defs/ingestionSourceConfig"
+        },
+        "target_config": {
+          "$ref": "#/$defs/targetConfig"
+        },
+        "dq_config": {
+          "$ref": "#/$defs/dqConfig"
+        },
+        "governance_tags": {
+          "$ref": "#/$defs/governanceTags"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "source_type": {
+                "const": "autoloader"
+              }
+            },
+            "required": [
+              "source_type"
+            ]
+          },
+          "then": {
+            "properties": {
+              "source_config": {
+                "required": [
+                  "path",
+                  "format",
+                  "schema_location"
+                ]
+              }
+            },
+            "required": [
+              "source_config"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "source_type": {
+                "const": "zerobus"
+              }
+            },
+            "required": [
+              "source_type"
+            ]
+          },
+          "then": {
+            "properties": {
+              "source_config": {
+                "required": [
+                  "source_catalog",
+                  "source_schema",
+                  "source_table"
+                ]
+              }
+            },
+            "required": [
+              "source_config"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "source_type": {
+                "const": "asn1"
+              }
+            },
+            "required": [
+              "source_type"
+            ]
+          },
+          "then": {
+            "properties": {
+              "source_config": {
+                "required": [
+                  "path",
+                  "schema_location",
+                  "asn1_schema_path",
+                  "asn1_codec",
+                  "asn1_pdu_name"
+                ]
+              }
+            },
+            "required": [
+              "source_config"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "target_type": {
+                "enum": [
+                  "sink",
+                  "external_sink"
+                ]
+              }
+            },
+            "required": [
+              "target_type"
+            ]
+          },
+          "then": {
+            "properties": {
+              "target_config": {
+                "required": [
+                  "sink_config"
+                ]
+              }
+            },
+            "required": [
+              "target_config"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "target_config": {
+                "properties": {
+                  "cdc_load_strategy": {
+                    "const": "SCD3"
+                  }
+                },
+                "required": [
+                  "cdc_load_strategy"
+                ]
+              }
+            },
+            "required": [
+              "target_config"
+            ]
+          },
+          "then": false,
+          "$comment": "SCD3 is transformation_flows-only -- always a hard error on an ingestion_flows entry."
+        },
+        {
+          "if": {
+            "properties": {
+              "target_config": {
+                "properties": {
+                  "storage_format": {
+                    "const": "iceberg"
+                  }
+                },
+                "required": [
+                  "storage_format"
+                ]
+              }
+            },
+            "required": [
+              "target_config"
+            ]
+          },
+          "then": {
+            "properties": {
+              "target_type": {
+                "const": "batch_table"
+              }
+            }
+          }
+        }
+      ],
+      "additionalProperties": true
+    },
+    "transformationFlow": {
+      "type": "object",
+      "required": [
+        "flow_step_id",
+        "dataflow_id",
+        "target_catalog",
+        "target_schema",
+        "target_table",
+        "target_type",
+        "transformation_sql"
+      ],
+      "properties": {
+        "flow_step_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "dataflow_id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Dependency-ordering label only -- the real data dependency is source_inputs[].table."
+        },
+        "target_catalog": {
+          "type": "string",
+          "minLength": 1
+        },
+        "target_schema": {
+          "type": "string",
+          "minLength": 1
+        },
+        "target_table": {
+          "type": "string",
+          "minLength": 1
+        },
+        "target_type": {
+          "enum": [
+            "streaming_table",
+            "materialized_view",
+            "batch_table",
+            "external_sink",
+            "sink"
+          ]
+        },
+        "transformation_sql": {
+          "type": "string",
+          "minLength": 1,
+          "$comment": "Syntax/plan-validated live via EXPLAIN against a real Spark session -- this schema only checks it is a non-empty string."
+        },
+        "source_inputs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/sourceInput"
+          }
+        },
+        "target_config": {
+          "$ref": "#/$defs/targetConfig"
+        },
+        "dq_config": {
+          "$ref": "#/$defs/dqConfig"
+        },
+        "governance_tags": {
+          "$ref": "#/$defs/governanceTags"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "target_type": {
+                "enum": [
+                  "sink",
+                  "external_sink"
+                ]
+              }
+            },
+            "required": [
+              "target_type"
+            ]
+          },
+          "then": {
+            "properties": {
+              "target_config": {
+                "required": [
+                  "sink_config"
+                ]
+              }
+            },
+            "required": [
+              "target_config"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "target_config": {
+                "properties": {
+                  "storage_format": {
+                    "const": "iceberg"
+                  }
+                },
+                "required": [
+                  "storage_format"
+                ]
+              }
+            },
+            "required": [
+              "target_config"
+            ]
+          },
+          "then": {
+            "properties": {
+              "target_type": {
+                "const": "batch_table"
+              }
+            }
+          }
+        }
+      ],
+      "additionalProperties": true
+    },
+    "reconciliationDatasetConfig": {
+      "type": "object",
+      "description": "Shared shape for reconciliation source_config and each target_configs[] entry.",
+      "properties": {
+        "type": {
+          "enum": [
+            "table"
+          ],
+          "description": "Default: 'table'. Reconciliation is supported for Delta tables ONLY as of v1.3.0 -- read a file/sink location into a Delta table first, then reconcile against that table."
+        },
+        "table": {
+          "type": "string",
+          "description": "Required when type == 'table' (or type omitted, defaulting to 'table')."
+        },
+        "read_mode": {
+          "enum": [
+            "batch",
+            "streaming"
+          ],
+          "description": "Default: 'batch'. Independent per side."
+        },
+        "task_run_id_column": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Optional. The column on this side carrying the producing pipeline/job run id. When the task_run_id job parameter is set, this side's read is narrowed to that run's rows. Reconciliation is triggered-only as of v1.4.0 (recon_mode is removed), so this narrowing is unconditional whenever both are configured. The framework's own materialized tables carry __framework_pipeline_run_id, which is the usual value. Absent means task_run_id stays correlation-only (the pre-v1.3.0 behaviour)."
+        },
+        "filter_condition": {
+          "type": "string",
+          "description": "${param}-substituted Spark SQL predicate, applied via .filter() right after read -- and after any task_run_id_column narrowing, so it can narrow further."
+        },
+        "data_standardization_sql": {
+          "$ref": "#/$defs/dataStandardizationSql"
+        },
+        "hash_precomputed": {
+          "type": "boolean",
+          "description": "Default: false. Only valid when type == 'table'."
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "not": {
+              "required": [
+                "type"
+              ]
+            }
+          },
+          "then": {
+            "required": [
+              "table"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "table"
+              }
+            },
+            "required": [
+              "type"
+            ]
+          },
+          "then": {
+            "required": [
+              "table"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "hash_precomputed": {
+                "const": true
+              }
+            },
+            "required": [
+              "hash_precomputed"
+            ]
+          },
+          "then": {
+            "anyOf": [
+              {
+                "not": {
+                  "required": [
+                    "type"
+                  ]
+                }
+              },
+              {
+                "properties": {
+                  "type": {
+                    "const": "table"
+                  }
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "additionalProperties": true
+    },
+    "reconciliationTargetConfig": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/reconciliationDatasetConfig"
+        },
+        {
+          "type": "object",
+          "required": [
+            "target_id"
+          ],
+          "properties": {
+            "target_id": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Unique within this reconciliation flow."
+            },
+            "comparison_direction": {
+              "enum": [
+                "source_to_target",
+                "target_to_source",
+                "both"
+              ],
+              "description": "Default: 'both'."
+            },
+            "append_target_table": {
+              "type": "string",
+              "description": "Required when comparison_direction is 'source_to_target' or 'both' (i.e. whenever it is not exactly 'target_to_source')."
+            }
+          },
+          "allOf": [
+            {
+              "if": {
+                "not": {
+                  "properties": {
+                    "comparison_direction": {
+                      "const": "target_to_source"
+                    }
+                  },
+                  "required": [
+                    "comparison_direction"
+                  ]
+                }
+              },
+              "then": {
+                "required": [
+                  "append_target_table"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "reconciliationErrorHandling": {
+      "type": "object",
+      "properties": {
+        "on_failure": {
+          "enum": [
+            "fail",
+            "warn"
+          ],
+          "description": "Default: 'fail'. Evaluated per target."
+        }
+      },
+      "additionalProperties": true
+    },
+    "reconciliationFlow": {
+      "type": "object",
+      "required": [
+        "reconciliation_id",
+        "source_config",
+        "target_configs",
+        "match_keys"
+      ],
+      "properties": {
+        "reconciliation_id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Also the key for reconciliation_run_log restartability."
+        },
+        "two_tier_verification": {
+          "type": "boolean",
+          "default": true,
+          "description": "Default: true. Phase 1 compares a cheap per-side (row_count, bit_xor of __framework_hash_key, bit_xor of __framework_hash_value) fingerprint and short-circuits the whole comparison when both sides match; Phase 2 (the full hash-key join and column-level discrepancy mapping) runs only when Phase 1 reports a difference. Set false to always run Phase 2 -- see reconciliation/matcher.py for the XOR-fold's documented pair-cancellation property."
+        },
+        "logging_config": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "Per-flow log-write gates. Overridden at run time by the recon_run_log_capture / recon_mismatch_log job parameters -- see notebooks/05_reconciliation/05_reconciliation_engine.py. reconciliation_result is always written regardless.",
+          "properties": {
+            "run_log_capture": {
+              "type": "boolean",
+              "default": true
+            },
+            "mismatch_log_capture": {
+              "type": "boolean",
+              "default": true
+            }
+          }
+        },
+        "source_config": {
+          "$ref": "#/$defs/reconciliationDatasetConfig"
+        },
+        "target_configs": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/reconciliationTargetConfig"
+          },
+          "description": "A LIST, not a single object -- one flow can compare its source against multiple, independently-configured targets."
+        },
+        "match_keys": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1
+        },
+        "compare_columns": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Empty/omitted forces hash-equality to always pass (key-presence-only matching)."
+        },
+        "transform_sql": {
+          "type": "string",
+          "$comment": "Must read FROM _reconciliation_unmatched_records. ${param}-substituted then syntax/plan-validated live via EXPLAIN, same as transformation_sql."
+        },
+        "error_handling": {
+          "$ref": "#/$defs/reconciliationErrorHandling"
+        }
+      },
+      "additionalProperties": true
+    },
+    "observabilityDestination": {
+      "type": "object",
+      "required": [
+        "id",
+        "type",
+        "destination_config"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Unique destination_id, e.g. 'dest-dbx-prod-volume'."
+        },
+        "enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Active/inactive flag. Defaults to true when omitted."
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "DATABRICKS_VOLUME",
+            "OTLP_CONSUMER"
+          ]
+        },
+        "mode": {
+          "type": "string",
+          "enum": [
+            "triggered",
+            "continuous"
+          ],
+          "default": "triggered",
+          "description": "'triggered' (default): served by notebooks/08_observability/08_dlt_observability_engine.py, the bounded post-update export for one pipeline. 'continuous': served by notebooks/06_observability_streaming/06_event_log_otel_streaming_pipeline.py, the always-on export streaming N event-log tables. A destination is served by exactly one of the two."
+        },
+        "destination_config": {
+          "type": "object"
+        },
+        "auth": {
+          "$ref": "#/$defs/observabilityAuth"
+        },
+        "retry": {
+          "$ref": "#/$defs/observabilityRetry"
+        },
+        "timeout_ms": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "OTLP_CONSUMER only. Merged into retry_config_json.timeout_ms by upsert_observability_config."
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "DATABRICKS_VOLUME"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "destination_config": {
+                "type": "object",
+                "required": [
+                  "volume_path"
+                ],
+                "properties": {
+                  "volume_path": {
+                    "type": "string",
+                    "pattern": "^/Volumes/"
+                  },
+                  "compression": {
+                    "$ref": "#/$defs/observabilityCompression"
+                  },
+                  "file_format": {
+                    "type": "string",
+                    "enum": [
+                      "JSONL",
+                      "JSON"
+                    ],
+                    "default": "JSONL"
+                  },
+                  "event_log_tables": {
+                    "$ref": "#/$defs/observabilityEventLogTables"
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "OTLP_CONSUMER"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "destination_config": {
+                "type": "object",
+                "required": [
+                  "endpoint"
+                ],
+                "properties": {
+                  "endpoint": {
+                    "type": "string",
+                    "format": "uri",
+                    "pattern": "^https?://"
+                  },
+                  "protocol": {
+                    "type": "string",
+                    "enum": [
+                      "OTLP_HTTP_JSON",
+                      "OTLP_HTTP_PROTO",
+                      "OTLP_GRPC"
+                    ],
+                    "default": "OTLP_HTTP_JSON",
+                    "$comment": "Only OTLP_HTTP_JSON is implemented by destination_dispatcher.py today -- see docs/25_dlt_observability_module.md Extending section."
+                  },
+                  "compression": {
+                    "$ref": "#/$defs/observabilityCompression"
+                  },
+                  "resource_attributes": {
+                    "type": "object",
+                    "additionalProperties": {
+                      "type": "string"
+                    },
+                    "description": "Extra/override OTel resource attributes merged in by destination_dispatcher.py::merge_resource_attributes immediately before dispatch."
+                  },
+                  "event_log_tables": {
+                    "$ref": "#/$defs/observabilityEventLogTables"
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "mode": {
+                "const": "continuous"
+              }
+            },
+            "required": [
+              "mode"
+            ]
+          },
+          "then": {
+            "properties": {
+              "destination_config": {
+                "required": [
+                  "event_log_tables"
+                ]
+              }
+            }
+          }
+        }
+      ]
+    },
+    "observabilityEventLogTables": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "pattern": "^[^.]+\\.[^.]+\\.[^.]+$"
+      },
+      "description": "Continuous mode only, and REQUIRED there. Fully-qualified catalog.schema.event_log_table names -- each a real Unity Catalog Delta table one source pipeline publishes its own event log to. Streamed and unioned by the continuous observability pipeline."
+    },
+    "observabilityCompression": {
+      "type": "string",
+      "enum": [
+        "GZIP",
+        "gzip",
+        "none",
+        ""
+      ],
+      "default": "none"
+    },
+    "observabilityCredentialRef": {
+      "type": "string",
+      "pattern": "^(env:[A-Za-z_][A-Za-z0-9_]*|secret:[^:]+:[^:]+)$",
+      "description": "'env:<VAR_NAME>' or 'secret:<scope>:<key>' -- see destination_dispatcher.py::resolve_credential. Literal secret values never validate against this pattern."
+    },
+    "observabilityAuth": {
+      "type": "object",
+      "required": [
+        "type"
+      ],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "BEARER_TOKEN",
+            "API_KEY",
+            "BASIC_AUTH",
+            "NONE"
+          ]
+        },
+        "credentials": {
+          "type": "object"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "BEARER_TOKEN"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "credentials": {
+                "type": "object",
+                "required": [
+                  "token"
+                ],
+                "properties": {
+                  "token": {
+                    "$ref": "#/$defs/observabilityCredentialRef"
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "API_KEY"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "credentials": {
+                "type": "object",
+                "required": [
+                  "header_name",
+                  "api_key"
+                ],
+                "properties": {
+                  "header_name": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "api_key": {
+                    "$ref": "#/$defs/observabilityCredentialRef"
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "BASIC_AUTH"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "credentials": {
+                "type": "object",
+                "required": [
+                  "username",
+                  "password"
+                ],
+                "properties": {
+                  "username": {
+                    "$ref": "#/$defs/observabilityCredentialRef"
+                  },
+                  "password": {
+                    "$ref": "#/$defs/observabilityCredentialRef"
+                  }
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "observabilityRetry": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "max_attempts": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10,
+          "default": 3
+        },
+        "backoff_multiplier": {
+          "type": "number",
+          "exclusiveMinimum": 1,
+          "default": 2.0
+        }
+      }
+    }
+  }
+}

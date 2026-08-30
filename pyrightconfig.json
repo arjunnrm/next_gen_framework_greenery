@@ -1,0 +1,13 @@
+{
+  "include": [
+    "src",
+    "metaflow-onboarding-app"
+  ],
+  "extraPaths": [
+    "src",
+    "lib",
+    "resources",
+    "metaflow-onboarding-app"
+  ],
+  "typeCheckingMode": "off"
+}

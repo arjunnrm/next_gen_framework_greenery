@@ -1,0 +1,6 @@
+employee_id,project_id,hours_allocated
+E001,P001,120
+E002,P001,80
+E002,P002,60
+E003,P003,100
+E004,P004,90

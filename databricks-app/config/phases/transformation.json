@@ -1,0 +1,33 @@
+{
+  "flow_kind": "transformation",
+  "label": "Transformation flow",
+  "collection": "transformation_flows",
+  "id_field": "flow_step_id",
+  "phases": [
+    {
+      "id": "identity",
+      "label": "Identity",
+      "sections": ["identity", "dataset"]
+    },
+    {
+      "id": "inputs",
+      "label": "Inputs",
+      "sections": ["inputs", "decrypt"]
+    },
+    {
+      "id": "transform",
+      "label": "Transform",
+      "sections": ["sql"]
+    },
+    {
+      "id": "load",
+      "label": "Load strategy",
+      "sections": ["cdc", "storage"]
+    },
+    {
+      "id": "protect",
+      "label": "Protect",
+      "sections": ["enc", "sink", "dq", "gov"]
+    }
+  ]
+}

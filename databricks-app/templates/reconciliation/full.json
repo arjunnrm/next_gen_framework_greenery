@@ -1,0 +1,40 @@
+{
+  "reconciliation_id": "recon_template_example",
+  "source_config": {
+    "type": "table",
+    "table": "{{catalog}}.bronze_example.example_volume_baseline",
+    "read_mode": "batch",
+    "filter_condition": "load_date = '${run_date}'",
+    "data_standardization_sql": [
+      "trim(status) AS status"
+    ],
+    "hash_precomputed": false
+  },
+  "target_configs": [
+    {
+      "target_id": "primary_product_table",
+      "type": "table",
+      "table": "{{catalog}}.bronze_example.example_raw_final",
+      "read_mode": "batch",
+      "hash_precomputed": true,
+      "comparison_direction": "both",
+      "append_target_table": "{{catalog}}.bronze_example.example_raw_cdc"
+    }
+  ],
+  "match_keys": [
+    "example_id"
+  ],
+  "compare_columns": [
+    "amount",
+    "status"
+  ],
+  "transform_sql": "SELECT example_id, amount, status FROM _reconciliation_unmatched_records",
+  "error_handling": {
+    "on_failure": "fail"
+  },
+  "two_tier_verification": true,
+  "logging_config": {
+    "run_log_capture": true,
+    "mismatch_log_capture": true
+  }
+}

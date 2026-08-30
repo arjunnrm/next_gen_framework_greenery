@@ -1,0 +1,118 @@
+# This is a Declarative Automation Bundle definition for NextGen_Metadata_Framework.
+# See https://docs.databricks.com/dev-tools/bundles/index.html for documentation.
+bundle:
+  name: NextGen_Metadata_Framework
+  uuid: 26d61e73-4b1b-4755-9b83-f912bf3e623f
+
+include:
+  - resources/*.yml
+
+# The framework wheel (a `.whl` -- a ZIP distribution) is built AND published by
+# `bundle deploy` itself. There is no separate upload step, and no pinned-path variable to keep
+# in sync.
+#
+#   artifacts.framework_wheel   builds the wheel via scripts/bump_and_build.py
+#   workspace.artifact_path     NOT SET on any target. Every target uses the DABs standard
+#                               artifact path, `${workspace.root_path}/artifacts`.
+#   resources/*.yml             reference `- ../dist/*.whl`; DABs rewrites that at deploy time
+#                               to the uploaded artifact path, for both job `environments` and
+#                               pipeline `environment.dependencies`.
+#
+# Why this replaced the previous hand-run `scripts/build_and_upload_wheel.py` + pinned
+# `framework_wheel_path` variable: the pin and the upload were two separate manual steps, and
+# they drifted. On 2026-08-30 the variable pointed at a wheel that had been built locally but
+# never uploaded, so all 86 resources referenced a file that did not exist in the Volume. The
+# bundle building and publishing the wheel in one step makes that class of drift impossible.
+#
+# WHY NO UC-VOLUME artifact_path (reverted 2026-08-30). `dev_metaflow` briefly pointed
+# `workspace.artifact_path` at `/Volumes/metaflow/framework/wheels/`
+# `${workspace.current_user.short_name}` -- a *dynamic*, per-target, per-user Volume path. It is
+# gone, and this bundle now falls back strictly to the standard workspace artifact path on every
+# target. Three reasons, in order of how often they bite:
+#
+#   1. Deployment conflicts. A per-user, per-target Volume path forks the artifact location by
+#      whoever ran the deploy, so two engineers deploying the same target publish to two
+#      different places and each rewrites `../dist/*.whl` to their own. The standard path is one
+#      location per target, which is the property that makes a deploy reproducible.
+#   2. Volume provisioning is not free. The `dev` target cannot have a Volume artifact_path at
+#      all -- its metastore is at its volume ceiling ("Cannot create 1 Volume(s) ... estimated
+#      count: 52, limit: 50") and its `metaflow` catalog is at 51 schemas. Two targets diverging
+#      on where artifacts live is exactly the drift this block exists to prevent.
+#   3. It did not buy what it was adopted for. The hoped-for benefit was that a UC Volume never
+#      prunes, so an in-flight Lakeflow update could keep installing an older wheel across a
+#      redeploy. Verified false on 2026-08-30: DABs prunes superseded artifacts from
+#      `<artifact_path>/.internal/` on a UC Volume exactly as it does in the workspace
+#      (`.internal/` went from two wheels to one across a deploy).
+#
+# CAVEAT -- deploying during a running update is unsafe, and always was. A deploy issued while a
+# Lakeflow update is installing the previous wheel can kill it with ENVIRONMENT_PIP_INSTALL_ERROR,
+# as seen on 2026-08-29 for TC-ING-004/TC-ING-005. Unique per-deploy filenames prevent a wheel
+# being overwritten IN PLACE, but not removed. Because point 3 above shows the Volume never fixed
+# this, the operational rule is the only mitigation and it is unchanged: never `bundle deploy`
+# while a test wave or pipeline is running (metaflow_testing/TESTING_PLAN.md section 0).
+#
+# Wheels published by the older manual script live directly in the Volume root, OUTSIDE
+# `.internal/`, so DABs does not manage or prune them; they remain installable for any pipeline
+# still pinned to one.
+#
+#   databricks bundle deploy --target <target> -p <profile>
+
+artifacts:
+  framework_wheel:
+    type: whl
+    path: .
+    # scripts/bump_and_build.py -- NOT a bare `uv build --wheel`. It archives any wheel already
+    # in dist/ (so the `../dist/*.whl` glob in resources/*.yml only ever matches ONE file) and
+    # stamps pyproject.toml's patch version to UTC epoch-millis, so every deploy produces a
+    # uniquely-named wheel. That uniqueness is what stops a redeploy replacing the exact file a
+    # running pipeline is installing. `dynamic_version: true` is deliberately NOT used instead:
+    # it is applied to job `environments` but NOT to pipeline `environment.dependencies`, so
+    # pipelines would have kept resolving a stable filename that each deploy overwrote in place.
+    build: python scripts/bump_and_build.py
+
+# Variable declarations. These variables are assigned in the dev/prod targets below.
+variables:
+  catalog:
+    description: The catalog to use
+  schema:
+    description: The schema to use
+  dataflow_group_id:
+    description: >-
+      The metadata-driven dataflow_group_id the sample Lakeflow pipeline resource
+      (resources/lakeflow_metadata_pipeline.yml) is configured to run. Defaults to the
+      unified dual-engine demo (spec_06); override with
+      `databricks bundle deploy --var="dataflow_group_id=dfg_finance_txn_ingest"` to point
+      the pipeline at a different test_specs/*.json scenario after onboarding it.
+    default: dfg_iot_telemetry_unified
+
+targets:
+  dev:
+    # The default target uses 'mode: development' to create a development copy.
+    # - Deployed resources get prefixed with '[dev my_user_name]'
+    # - Any job schedules and triggers are paused by default.
+    # See also https://docs.databricks.com/dev-tools/bundles/deployment-modes.html.
+    mode: development
+    workspace:
+      host: https://dbc-0f3a637e-dc15.cloud.databricks.com
+      # NO artifact_path -- the standard `${workspace.root_path}/artifacts` path. Same as
+      # dev_metaflow below; see the `artifacts` block above for why neither target sets one.
+    variables:
+      catalog: poc
+      schema: dev
+  dev_metaflow:
+    # The default target uses 'mode: development' to create a development copy.
+    # - Deployed resources get prefixed with '[dev my_user_name]'
+    # - Any job schedules and triggers are paused by default.
+    # See also https://docs.databricks.com/dev-tools/bundles/deployment-modes.html.
+    mode: development
+    default: true
+    workspace:
+      host: https://dbc-2f6b7d4f-8c5b.cloud.databricks.com
+      profile: dev_metaflow
+      # NO artifact_path -- the standard `${workspace.root_path}/artifacts` path. The UC-Volume
+      # artifact_path this target used to carry was reverted on 2026-08-30; see the `artifacts`
+      # block above for the three reasons.
+
+    variables:
+      catalog: metaflow
+      schema: dev      

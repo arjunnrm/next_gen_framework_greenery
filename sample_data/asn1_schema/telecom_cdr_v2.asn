@@ -1,0 +1,15 @@
+TelecomCDRv2 DEFINITIONS ::= BEGIN
+
+-- ASN.1 (X.680) identifiers allow letters, digits, and hyphens, but NOT underscores --
+-- camelCase, not snake_case (see the identical note in telecom_cdr.asn for how this was
+-- discovered).
+CallDetailRecordV2 ::= SEQUENCE {
+    recordId                IA5String,
+    imsi                    IA5String,
+    msisdn                  IA5String,
+    regionCode              IA5String,
+    callDurationSeconds     INTEGER,
+    cellId                  IA5String
+}
+
+END

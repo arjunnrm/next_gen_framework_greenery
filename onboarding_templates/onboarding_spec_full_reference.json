@@ -1,0 +1,970 @@
+{
+  "dataflow_group_id": "dfg_full_reference_example",
+  "pipeline_parameters": {
+    "filter_country": "US",
+    "min_amount": 0,
+    "run_date": "2026-01-01",
+    "enable_strict_mode": true
+  },
+  "spark_config": {
+    "spark.sql.shuffle.partitions": "auto",
+    "spark.databricks.delta.optimizeWrite.enabled": "true"
+  },
+  "ingestion_flows": [
+    {
+      "dataflow_id": "df_ref_autoloader_full",
+      "source_system": "reference_source_system",
+      "source_database": "reference_landing_db",
+      "source_table_name": "reference_raw_table",
+      "source_description": "Full-reference: Auto Loader ingestion (source_type=autoloader) exercising every documented source_config field (including source_zip_handling with pre_extraction_decryption.passphrase_secret) and every target_config field valid for cdc_load_strategy=SCD2, in the {{env}} environment",
+      "source_type": "autoloader",
+      "target_catalog": "{{catalog}}",
+      "target_schema": "ref_bronze",
+      "target_table": "ref_autoloader_full",
+      "target_type": "streaming_table",
+      "source_config": {
+        "path": "/Volumes/{{catalog}}/landing/ref_autoloader_zone/incoming/",
+        "format": "csv",
+        "schema_location": "/Volumes/{{catalog}}/landing/_schemas/ref_autoloader_full/",
+        "schema_evolution_mode": "addNewColumnsWithTypeWidening",
+        "file_pattern": "customer_*.csv",
+        "reader_options": {
+          "header": "true",
+          "delimiter": "|",
+          "cloudFiles.inferColumnTypes": "true"
+        },
+        "explode_columns": [
+          "event_payload"
+        ],
+        "data_standardization_sql": [
+          "trim(region) AS region",
+          "upper(country_code) AS country_code"
+        ],
+        "landing_retention_policy": {
+          "clean_source": "archive",
+          "archive_path": "/Volumes/{{catalog}}/landing/_archive/ref_autoloader_zone/",
+          "retention_days": 14
+        },
+        "capture_technical_metadata": true,
+        "source_zip_handling": {
+          "enabled": true,
+          "source_zip_path": "/Volumes/{{catalog}}/landing/ref_autoloader_zone/{{env}}/incoming_zips/",
+          "zip_file_pattern": "ref_customer_batch_*.zip",
+          "target_volume_path": "/Volumes/{{catalog}}/landing/ref_autoloader_zone/incoming/",
+          "delete_source_after_extract": false,
+          "pre_extraction_decryption": {
+            "type": "pgp",
+            "private_key_secret": {
+              "secret_catalog": "{{catalog}}",
+              "secret_schema": "security",
+              "secret_key": "ref_pgp_private_key"
+            },
+            "passphrase_secret": {
+              "secret_catalog": "{{catalog}}",
+              "secret_schema": "security",
+              "secret_key": "ref_pgp_private_key_passphrase"
+            },
+            "secret_passphrase": {
+              "secret_catalog": "{{catalog}}",
+              "secret_schema": "security",
+              "secret_key": "ref_zip_passphrase"
+            }
+          }
+        },
+        "json_string_columns": [
+          {
+            "column": "payload_json",
+            "schema_ddl": "struct<order_id:string,amount:double>"
+          }
+        ],
+        "remove_dups": true,
+        "dedup_watermark": {
+          "event_time_column": "event_ts",
+          "delay_threshold": "30 minutes"
+        },
+        "column_normalization": {
+          "enabled": true,
+          "case": "lower"
+        }
+      },
+      "target_config": {
+        "storage_format": "delta",
+        "partition_columns": [
+          "region"
+        ],
+        "liquid_clustering_columns": [
+          "customer_id"
+        ],
+        "table_properties": {
+          "log_retention_duration": "interval 30 days",
+          "deleted_file_retention_duration": "interval 30 days",
+          "enable_iceberg_read_uniformity": true
+        },
+        "cdc_load_strategy": "SCD2",
+        "primary_keys": [
+          "customer_id"
+        ],
+        "sequence_by_column": "updated_at",
+        "columns_to_check": [
+          "status_code",
+          "amount"
+        ],
+        "columns_to_exclude": [
+          "batch_load_ts",
+          "source_extract_filename",
+          "etl_run_id"
+        ],
+        "cdc_operation_column": "op",
+        "cdc_operation_mapping": {
+          "delete_values": [
+            "D"
+          ]
+        },
+        "generate_hash_columns": true,
+        "encrypted_columns": [
+          {
+            "column_name": "pii_column",
+            "output_column": "pii_column",
+            "mode": "GCM",
+            "source_data_type": "string",
+            "secret": {
+              "secret_catalog": "{{catalog}}",
+              "secret_schema": "security",
+              "secret_key": "ref_pii_encryption_key"
+            }
+          }
+        ]
+      },
+      "dq_config": {
+        "rules": [
+          {
+            "rule_id": "dq_ref_customer_id_not_null",
+            "expression": "customer_id IS NOT NULL",
+            "action": "drop"
+          },
+          {
+            "rule_id": "dq_ref_amount_non_negative",
+            "expression": "amount >= 0",
+            "action": "quarantine"
+          },
+          {
+            "rule_id": "dq_ref_status_known_value",
+            "expression": "status_code IN ('OPEN', 'CLOSED', 'PENDING')",
+            "action": "fail"
+          },
+          {
+            "rule_id": "dq_ref_region_populated",
+            "expression": "region IS NOT NULL",
+            "action": "warn"
+          }
+        ],
+        "quarantine_table": "ref_autoloader_full_quarantine",
+        "record_id_column": "customer_id"
+      },
+      "governance_tags": {
+        "column_tags": [
+          {
+            "column": "pii_column",
+            "tags": {
+              "mask": "PII",
+              "classification": "restricted"
+            }
+          },
+          {
+            "column": "account_number",
+            "tags": {
+              "mask": "PII"
+            }
+          }
+        ],
+        "table_tags": {
+          "row_filter": "region_restricted",
+          "domain": "reference",
+          "owner": "data-platform-team"
+        }
+      }
+    },
+    {
+      "dataflow_id": "df_ref_zerobus_full",
+      "source_system": "reference_zerobus_direct_write",
+      "source_database": "reference_events_db",
+      "source_table_name": "reference_zerobus_events",
+      "source_description": "Full-reference: Zerobus direct-write streaming ingestion (source_type=zerobus) with cdc_load_strategy=APPEND, demonstrating auto_ttl and the other APPEND/TRUNCATE_AND_LOAD-only target_config fields",
+      "source_type": "zerobus",
+      "target_catalog": "{{catalog}}",
+      "target_schema": "ref_bronze",
+      "target_table": "ref_zerobus_full",
+      "target_type": "streaming_table",
+      "source_config": {
+        "source_catalog": "reference_source_catalog",
+        "source_schema": "reference_source_schema",
+        "source_table": "reference_source_zerobus_table",
+        "starting_version": 0,
+        "max_bytes_per_trigger": "1g",
+        "capture_technical_metadata": true
+      },
+      "target_config": {
+        "cdc_load_strategy": "APPEND",
+        "storage_format": "delta",
+        "partition_columns": [
+          "event_type"
+        ],
+        "liquid_clustering_columns": [
+          "event_id"
+        ],
+        "table_properties": {
+          "log_retention_duration": "interval 14 days",
+          "deleted_file_retention_duration": "interval 14 days"
+        },
+        "auto_ttl": {
+          "timestamp_column": "event_ts",
+          "expire_in_days": 90
+        },
+        "generate_hash_columns": false
+      },
+      "dq_config": {
+        "rules": [
+          {
+            "rule_id": "dq_ref_event_status_known_value",
+            "expression": "event_status IN ('OPEN', 'CLOSED')",
+            "action": "warn"
+          }
+        ]
+      },
+      "governance_tags": {}
+    },
+    {
+      "dataflow_id": "df_ref_asn1_full",
+      "source_system": "reference_telecom_switch",
+      "source_database": "reference_cdr_landing",
+      "source_table_name": "reference_asn1_cdr",
+      "source_description": "Full-reference: binary ASN.1 (DER) CDR ingestion (source_type=asn1) into a batch_table target with storage_format=iceberg -- the only target_type where iceberg is valid -- plus source_zip_handling.pre_extraction_decryption.passphrase_secret",
+      "source_type": "asn1",
+      "target_catalog": "{{catalog}}",
+      "target_schema": "ref_bronze",
+      "target_table": "ref_asn1_full",
+      "target_type": "batch_table",
+      "source_config": {
+        "path": "/Volumes/{{catalog}}/landing/ref_asn1_zone/extracted/",
+        "schema_location": "/Volumes/{{catalog}}/landing/_schemas/ref_asn1_full/",
+        "asn1_schema_path": "/Volumes/{{catalog}}/landing/_asn1_schemas/ref_cdr.asn",
+        "asn1_codec": "der",
+        "asn1_pdu_name": "ReferenceCallDetailRecord",
+        "capture_technical_metadata": true,
+        "source_zip_handling": {
+          "enabled": true,
+          "source_zip_path": "/Volumes/{{catalog}}/landing/ref_asn1_zone/{{env}}/incoming/",
+          "zip_file_pattern": "ref_cdr_batch_*.zip",
+          "target_volume_path": "/Volumes/{{catalog}}/landing/ref_asn1_zone/extracted/",
+          "delete_source_after_extract": true,
+          "pre_extraction_decryption": {
+            "type": "pgp",
+            "private_key_secret": {
+              "secret_catalog": "{{catalog}}",
+              "secret_schema": "security",
+              "secret_key": "ref_cdr_pgp_private_key"
+            },
+            "passphrase_secret": {
+              "secret_catalog": "{{catalog}}",
+              "secret_schema": "security",
+              "secret_key": "ref_cdr_pgp_private_key_passphrase"
+            },
+            "secret_passphrase": {
+              "secret_catalog": "{{catalog}}",
+              "secret_schema": "security",
+              "secret_key": "ref_cdr_zip_passphrase"
+            }
+          }
+        }
+      },
+      "target_config": {
+        "storage_format": "iceberg",
+        "table_properties": {
+          "enable_iceberg_read_uniformity": true
+        },
+        "cdc_load_strategy": "FULL_SNAPSHOT_CDC",
+        "primary_keys": [
+          "callReferenceId"
+        ],
+        "cdc_operation_column": "recordStatus",
+        "cdc_operation_mapping": {
+          "delete_values": [
+            "DELETED",
+            "PURGED"
+          ]
+        },
+        "generate_hash_columns": true
+      },
+      "dq_config": {
+        "rules": [
+          {
+            "rule_id": "dq_ref_call_duration_non_negative",
+            "expression": "callDurationSeconds >= 0",
+            "action": "warn"
+          }
+        ]
+      },
+      "governance_tags": {}
+    }
+  ],
+  "transformation_flows": [
+    {
+      "flow_step_id": "ts_ref_append_full",
+      "dataflow_id": "df_ref_autoloader_full",
+      "target_catalog": "{{catalog}}",
+      "target_schema": "ref_silver",
+      "target_table": "ref_append_full",
+      "target_type": "streaming_table",
+      "source_inputs": [
+        {
+          "input_name": "ref_append_full_primary",
+          "table": "{{catalog}}.ref_bronze.ref_autoloader_full",
+          "is_streaming": true,
+          "watermark": {
+            "event_time_column": "updated_at",
+            "delay_threshold": "10 minutes"
+          },
+          "decrypted_columns": [
+            {
+              "column_name": "pii_column",
+              "output_column": "pii_column_plain",
+              "mode": "GCM",
+              "cast_to_type": "string",
+              "secret": {
+                "secret_catalog": "{{catalog}}",
+                "secret_schema": "security",
+                "secret_key": "ref_pii_encryption_key"
+              }
+            }
+          ]
+        },
+        {
+          "input_name": "ref_append_full_secondary",
+          "table": "{{catalog}}.ref_bronze.ref_zerobus_full",
+          "is_streaming": true,
+          "watermark": {
+            "event_time_column": "event_ts",
+            "delay_threshold": "10 minutes"
+          }
+        }
+      ],
+      "transformation_sql": "SELECT p.customer_id, p.region, p.amount, p.updated_at, p.pii_column_plain, s.event_id FROM ref_append_full_primary p JOIN ref_append_full_secondary s ON p.customer_id = s.customer_id AND s.event_ts BETWEEN p.updated_at - INTERVAL 10 MINUTES AND p.updated_at + INTERVAL 10 MINUTES WHERE p.region = ${filter_country}",
+      "target_config": {
+        "cdc_load_strategy": "APPEND",
+        "storage_format": "delta",
+        "partition_columns": [
+          "region"
+        ],
+        "liquid_clustering_columns": [
+          "customer_id"
+        ],
+        "table_properties": {
+          "log_retention_duration": "interval 30 days",
+          "deleted_file_retention_duration": "interval 30 days",
+          "enable_iceberg_read_uniformity": true
+        },
+        "auto_ttl": {
+          "timestamp_column": "updated_at",
+          "expire_in_days": 90
+        },
+        "encrypted_columns": [
+          {
+            "column_name": "pii_column_plain",
+            "output_column": "pii_column",
+            "mode": "GCM",
+            "source_data_type": "string",
+            "secret": {
+              "secret_catalog": "{{catalog}}",
+              "secret_schema": "security",
+              "secret_key": "ref_pii_encryption_key"
+            }
+          }
+        ],
+        "generate_hash_columns": false,
+        "capture_technical_metadata": true
+      },
+      "dq_config": {
+        "rules": [
+          {
+            "rule_id": "dq_ref_ts_customer_id_not_null",
+            "expression": "customer_id IS NOT NULL",
+            "action": "drop"
+          },
+          {
+            "rule_id": "dq_ref_ts_amount_non_negative",
+            "expression": "amount >= 0",
+            "action": "quarantine"
+          },
+          {
+            "rule_id": "dq_ref_ts_region_known_value",
+            "expression": "region IN ('US', 'CA', 'MX')",
+            "action": "fail"
+          },
+          {
+            "rule_id": "dq_ref_ts_event_id_populated",
+            "expression": "event_id IS NOT NULL",
+            "action": "warn"
+          }
+        ],
+        "quarantine_table": "ref_append_full_quarantine",
+        "record_id_column": "customer_id"
+      },
+      "governance_tags": {
+        "column_tags": [
+          {
+            "column": "pii_column",
+            "tags": {
+              "mask": "PII",
+              "classification": "restricted"
+            }
+          }
+        ],
+        "table_tags": {
+          "row_filter": "region_restricted",
+          "domain": "reference"
+        }
+      }
+    },
+    {
+      "flow_step_id": "ts_ref_truncate_and_load",
+      "dataflow_id": "df_ref_autoloader_full",
+      "target_catalog": "{{catalog}}",
+      "target_schema": "ref_silver",
+      "target_table": "ref_truncate_and_load",
+      "target_type": "materialized_view",
+      "source_inputs": [
+        {
+          "input_name": "ref_truncate_and_load_src",
+          "table": "{{catalog}}.ref_bronze.ref_autoloader_full",
+          "is_streaming": false
+        }
+      ],
+      "transformation_sql": "SELECT region, COUNT(*) AS reference_count FROM ref_truncate_and_load_src GROUP BY region",
+      "target_config": {
+        "cdc_load_strategy": "TRUNCATE_AND_LOAD",
+        "partition_columns": [
+          "region"
+        ],
+        "liquid_clustering_columns": [
+          "region"
+        ],
+        "empty_target_if_source_empty": true
+      },
+      "dq_config": {},
+      "governance_tags": {}
+    },
+    {
+      "flow_step_id": "ts_ref_batch_table_iceberg",
+      "dataflow_id": "df_ref_asn1_full",
+      "target_catalog": "{{catalog}}",
+      "target_schema": "ref_silver",
+      "target_table": "ref_batch_table_iceberg",
+      "target_type": "batch_table",
+      "source_inputs": [
+        {
+          "input_name": "ref_batch_table_iceberg_src",
+          "table": "{{catalog}}.ref_bronze.ref_asn1_full",
+          "is_streaming": false
+        }
+      ],
+      "transformation_sql": "SELECT imsi, callDurationSeconds FROM ref_batch_table_iceberg_src",
+      "target_config": {
+        "cdc_load_strategy": "TRUNCATE_AND_LOAD",
+        "storage_format": "iceberg",
+        "table_properties": {
+          "enable_iceberg_read_uniformity": true
+        }
+      },
+      "dq_config": {},
+      "governance_tags": {}
+    },
+    {
+      "flow_step_id": "ts_ref_scd1",
+      "dataflow_id": "df_ref_autoloader_full",
+      "target_catalog": "{{catalog}}",
+      "target_schema": "ref_silver",
+      "target_table": "ref_scd1",
+      "target_type": "streaming_table",
+      "source_inputs": [
+        {
+          "input_name": "ref_scd1_src",
+          "table": "{{catalog}}.ref_bronze.ref_autoloader_full",
+          "is_streaming": true
+        }
+      ],
+      "transformation_sql": "SELECT customer_id, region, amount, updated_at, op FROM ref_scd1_src",
+      "target_config": {
+        "cdc_load_strategy": "SCD1",
+        "primary_keys": [
+          "customer_id"
+        ],
+        "sequence_by_column": "updated_at",
+        "cdc_operation_column": "op",
+        "cdc_operation_mapping": {
+          "delete_values": [
+            "D"
+          ]
+        },
+        "columns_to_exclude": [
+          "batch_load_ts",
+          "source_extract_filename",
+          "etl_run_id"
+        ],
+        "generate_hash_columns": true
+      },
+      "dq_config": {},
+      "governance_tags": {}
+    },
+    {
+      "flow_step_id": "ts_ref_scd1_no_sequence",
+      "dataflow_id": "df_ref_autoloader_full",
+      "target_catalog": "{{catalog}}",
+      "target_schema": "ref_silver",
+      "target_table": "ref_scd1_no_sequence",
+      "target_type": "streaming_table",
+      "source_inputs": [
+        {
+          "input_name": "ref_scd1_no_sequence_src",
+          "table": "{{catalog}}.ref_bronze.ref_autoloader_full",
+          "is_streaming": true
+        }
+      ],
+      "transformation_sql": "SELECT customer_id, region, amount FROM ref_scd1_no_sequence_src",
+      "target_config": {
+        "cdc_load_strategy": "SCD1",
+        "primary_keys": [
+          "customer_id"
+        ]
+      },
+      "dq_config": {},
+      "governance_tags": {}
+    },
+    {
+      "flow_step_id": "ts_ref_scd2",
+      "dataflow_id": "df_ref_autoloader_full",
+      "target_catalog": "{{catalog}}",
+      "target_schema": "ref_silver",
+      "target_table": "ref_scd2",
+      "target_type": "streaming_table",
+      "source_inputs": [
+        {
+          "input_name": "ref_scd2_src",
+          "table": "{{catalog}}.ref_bronze.ref_autoloader_full",
+          "is_streaming": true,
+          "decrypted_columns": [
+            {
+              "column_name": "pii_column",
+              "output_column": "pii_column_plain",
+              "mode": "ECB",
+              "cast_to_type": "string",
+              "secret": {
+                "secret_catalog": "{{catalog}}",
+                "secret_schema": "security",
+                "secret_key": "ref_pii_encryption_key"
+              }
+            }
+          ]
+        }
+      ],
+      "transformation_sql": "SELECT customer_id, region, amount, status_code, updated_at, pii_column_plain FROM ref_scd2_src WHERE region = ${filter_country}",
+      "target_config": {
+        "cdc_load_strategy": "SCD2",
+        "primary_keys": [
+          "customer_id"
+        ],
+        "sequence_by_column": "updated_at",
+        "columns_to_check": [
+          "amount",
+          "status_code"
+        ],
+        "columns_to_exclude": [
+          "batch_load_ts"
+        ],
+        "cdc_operation_column": "op",
+        "cdc_operation_mapping": {
+          "delete_values": [
+            "D"
+          ]
+        },
+        "generate_hash_columns": true,
+        "encrypted_columns": [
+          {
+            "column_name": "pii_column_plain",
+            "output_column": "pii_column",
+            "mode": "CBC",
+            "source_data_type": "string",
+            "secret": {
+              "secret_catalog": "{{catalog}}",
+              "secret_schema": "security",
+              "secret_key": "ref_pii_encryption_key"
+            }
+          }
+        ]
+      },
+      "dq_config": {},
+      "governance_tags": {}
+    },
+    {
+      "flow_step_id": "ts_ref_scd3",
+      "dataflow_id": "df_ref_autoloader_full",
+      "target_catalog": "{{catalog}}",
+      "target_schema": "ref_silver",
+      "target_table": "ref_scd3",
+      "target_type": "streaming_table",
+      "source_inputs": [
+        {
+          "input_name": "ref_scd3_src",
+          "table": "{{catalog}}.ref_bronze.ref_autoloader_full",
+          "is_streaming": true
+        }
+      ],
+      "transformation_sql": "SELECT customer_id, status_code, updated_at FROM ref_scd3_src",
+      "target_config": {
+        "cdc_load_strategy": "SCD3",
+        "primary_keys": [
+          "customer_id"
+        ],
+        "sequence_by_column": "updated_at",
+        "columns_to_check": [
+          "status_code"
+        ]
+      },
+      "dq_config": {},
+      "governance_tags": {}
+    },
+    {
+      "flow_step_id": "ts_ref_full_snapshot_cdc",
+      "dataflow_id": "df_ref_autoloader_full",
+      "target_catalog": "{{catalog}}",
+      "target_schema": "ref_silver",
+      "target_table": "ref_full_snapshot_cdc",
+      "target_type": "streaming_table",
+      "source_inputs": [
+        {
+          "input_name": "ref_full_snapshot_cdc_src",
+          "table": "{{catalog}}.ref_bronze.ref_autoloader_full",
+          "is_streaming": false
+        }
+      ],
+      "transformation_sql": "SELECT customer_id, region, amount, op FROM ref_full_snapshot_cdc_src",
+      "target_config": {
+        "cdc_load_strategy": "FULL_SNAPSHOT_CDC",
+        "primary_keys": [
+          "customer_id"
+        ],
+        "cdc_operation_column": "op",
+        "cdc_operation_mapping": {
+          "delete_values": [
+            "D",
+            "X"
+          ]
+        }
+      },
+      "dq_config": {},
+      "governance_tags": {}
+    },
+    {
+      "flow_step_id": "ts_ref_full_snapshot_cdc",
+      "dataflow_id": "df_ref_autoloader_full",
+      "target_catalog": "{{catalog}}",
+      "target_schema": "ref_silver",
+      "target_table": "ref_full_snapshot_cdc",
+      "target_type": "streaming_table",
+      "source_inputs": [
+        {
+          "input_name": "ref_full_snapshot_cdc_src",
+          "table": "{{catalog}}.ref_bronze.ref_autoloader_full",
+          "is_streaming": false
+        }
+      ],
+      "transformation_sql": "SELECT region, amount FROM ref_full_snapshot_cdc_src",
+      "target_config": {
+        "cdc_load_strategy": "FULL_SNAPSHOT_CDC",
+        "primary_keys": [
+          "region"
+        ]
+      },
+      "dq_config": {},
+      "governance_tags": {}
+    },
+    {
+      "flow_step_id": "ts_ref_external_sink_delta",
+      "dataflow_id": "df_ref_autoloader_full",
+      "target_catalog": "{{catalog}}",
+      "target_schema": "ref_silver",
+      "target_table": "ref_external_sink_delta",
+      "target_type": "external_sink",
+      "source_inputs": [
+        {
+          "input_name": "ref_external_sink_delta_src",
+          "table": "{{catalog}}.ref_bronze.ref_autoloader_full",
+          "is_streaming": true
+        }
+      ],
+      "transformation_sql": "SELECT customer_id, region, amount, updated_at, op FROM ref_external_sink_delta_src",
+      "target_config": {
+        "cdc_load_strategy": "SCD1",
+        "primary_keys": [
+          "customer_id"
+        ],
+        "cdc_operation_column": "op",
+        "cdc_operation_mapping": {
+          "delete_values": [
+            "D"
+          ]
+        },
+        "generate_hash_columns": true,
+        "sink_config": {
+          "format": "delta",
+          "path": "/Volumes/{{catalog}}/egress/ref_external_sink_delta/{{env}}/",
+          "write_mode": "append",
+          "post_export_archive": {
+            "enabled": false
+          }
+        }
+      },
+      "dq_config": {},
+      "governance_tags": {}
+    },
+    {
+      "flow_step_id": "ts_ref_external_sink_kafka",
+      "dataflow_id": "df_ref_autoloader_full",
+      "target_catalog": "{{catalog}}",
+      "target_schema": "ref_silver",
+      "target_table": "ref_external_sink_kafka",
+      "target_type": "external_sink",
+      "source_inputs": [
+        {
+          "input_name": "ref_external_sink_kafka_src",
+          "table": "{{catalog}}.ref_bronze.ref_autoloader_full",
+          "is_streaming": true
+        }
+      ],
+      "transformation_sql": "SELECT customer_id, region, amount, updated_at FROM ref_external_sink_kafka_src",
+      "target_config": {
+        "cdc_load_strategy": "APPEND",
+        "sink_config": {
+          "format": "kafka",
+          "kafka_options": {
+            "kafka.bootstrap.servers": "b-1.example-cluster.kafka.us-east-1.amazonaws.com:9096",
+            "topic": "ref_customer_events",
+            "databricks.serviceCredential": "ref_kafka_write_credential"
+          },
+          "kafka_secret_options": {
+            "kafka.sasl.jaas.config": {
+              "secret_catalog": "{{catalog}}",
+              "secret_schema": "security",
+              "secret_key": "ref_kafka_sasl_jaas_config"
+            }
+          }
+        }
+      },
+      "dq_config": {},
+      "governance_tags": {}
+    },
+    {
+      "flow_step_id": "ts_ref_pure_sink_pgp_zip",
+      "dataflow_id": "df_ref_autoloader_full",
+      "target_catalog": "{{catalog}}",
+      "target_schema": "ref_silver",
+      "target_table": "ref_pure_sink_pgp_zip",
+      "target_type": "sink",
+      "source_inputs": [
+        {
+          "input_name": "ref_pure_sink_pgp_zip_src",
+          "table": "{{catalog}}.ref_bronze.ref_autoloader_full",
+          "is_streaming": true
+        }
+      ],
+      "transformation_sql": "SELECT customer_id, region, amount, updated_at FROM ref_pure_sink_pgp_zip_src",
+      "target_config": {
+        "cdc_load_strategy": "APPEND",
+        "sink_config": {
+          "format": "pgp_zip",
+          "path": "/Volumes/{{catalog}}/egress/ref_pure_sink_pgp_zip/{{env}}/_staging/",
+          "post_export_archive": {
+            "enabled": true,
+            "output_zip_path": "/Volumes/{{catalog}}/egress/zips/ref_pure_sink_pgp_zip/{{env}}/",
+            "export_file_name_format": "ref_export_{timestamp}_{batch_id}.zip",
+            "secret": {
+              "secret_catalog": "{{catalog}}",
+              "secret_schema": "security",
+              "secret_key": "ref_egress_zip_password"
+            },
+            "pgp_encryption": {
+              "enabled": true,
+              "recipient_public_key_secret": {
+                "secret_catalog": "{{catalog}}",
+                "secret_schema": "security",
+                "secret_key": "ref_egress_recipient_public_key"
+              },
+              "sign_with_private_key_secret": {
+                "secret_catalog": "{{catalog}}",
+                "secret_schema": "security",
+                "secret_key": "ref_egress_sender_private_key"
+              },
+              "sign_passphrase_secret": {
+                "secret_catalog": "{{catalog}}",
+                "secret_schema": "security",
+                "secret_key": "ref_egress_sender_private_key_passphrase"
+              }
+            }
+          }
+        }
+      },
+      "dq_config": {},
+      "governance_tags": {}
+    },
+    {
+      "flow_step_id": "ts_ref_union_all",
+      "dataflow_id": "df_ref_autoloader_full",
+      "target_catalog": "{{catalog}}",
+      "target_schema": "ref_silver",
+      "target_table": "ref_union_all_combined",
+      "target_type": "streaming_table",
+      "source_inputs": [
+        {
+          "input_name": "ref_union_left",
+          "table": "{{catalog}}.ref_bronze.ref_autoloader_full",
+          "is_streaming": true
+        },
+        {
+          "input_name": "ref_union_right",
+          "table": "{{catalog}}.ref_bronze.ref_zerobus_full",
+          "is_streaming": true
+        }
+      ],
+      "transformation_sql": "SELECT customer_id, region, amount FROM ref_union_left UNION ALL SELECT event_id AS customer_id, NULL AS region, CAST(NULL AS DOUBLE) AS amount FROM ref_union_right",
+      "target_config": {
+        "cdc_load_strategy": "APPEND"
+      },
+      "dq_config": {},
+      "governance_tags": {}
+    }
+  ],
+  "reconciliation_flows": [
+    {
+      "reconciliation_id": "recon_ref_full_reference",
+      "source_config": {
+        "type": "table",
+        "table": "{{catalog}}.ref_bronze.ref_reconciliation_baseline",
+        "read_mode": "batch",
+        "filter_condition": "load_date = ${run_date}",
+        "data_standardization_sql": [
+          "trim(status_code) AS status_code"
+        ],
+        "hash_precomputed": false
+      },
+      "target_configs": [
+        {
+          "target_id": "ref_table_target",
+          "type": "table",
+          "table": "{{catalog}}.ref_silver.ref_scd1",
+          "read_mode": "batch",
+          "hash_precomputed": true,
+          "comparison_direction": "both",
+          "append_target_table": "{{catalog}}.ref_silver.ref_scd1_cdc"
+        },
+        {
+          "target_id": "ref_file_readback_target",
+          "type": "table",
+          "table": "{{catalog}}.ref_silver.ref_file_export_readback",
+          "read_mode": "streaming",
+          "filter_condition": "status_code IS NOT NULL",
+          "data_standardization_sql": [
+            "upper(status_code) AS status_code"
+          ],
+          "comparison_direction": "source_to_target",
+          "append_target_table": "{{catalog}}.ref_silver.ref_file_target_cdc"
+        },
+        {
+          "target_id": "ref_sink_readback_target",
+          "type": "table",
+          "table": "{{catalog}}.ref_silver.ref_pure_sink_readback",
+          "read_mode": "batch",
+          "comparison_direction": "target_to_source"
+        }
+      ],
+      "match_keys": [
+        "customer_id"
+      ],
+      "compare_columns": [
+        "amount",
+        "status_code"
+      ],
+      "transform_sql": "SELECT customer_id, amount, status_code FROM _reconciliation_unmatched_records WHERE status_code IS NOT NULL",
+      "error_handling": {
+        "on_failure": "fail"
+      },
+      "two_tier_verification": true,
+      "logging_config": {
+        "run_log_capture": true,
+        "mismatch_log_capture": true
+      }
+    },
+    {
+      "reconciliation_id": "recon_ref_warn_minimal",
+      "source_config": {
+        "type": "table",
+        "table": "{{catalog}}.ref_bronze.ref_secondary_baseline"
+      },
+      "target_configs": [
+        {
+          "target_id": "ref_secondary",
+          "type": "table",
+          "table": "{{catalog}}.ref_silver.ref_secondary_final",
+          "comparison_direction": "source_to_target",
+          "append_target_table": "{{catalog}}.ref_silver.ref_secondary_cdc"
+        }
+      ],
+      "match_keys": [
+        "customer_id"
+      ],
+      "error_handling": {
+        "on_failure": "warn"
+      },
+      "two_tier_verification": false,
+      "logging_config": {
+        "run_log_capture": true,
+        "mismatch_log_capture": false
+      }
+    }
+  ],
+  "observability": [
+    {
+      "id": "dest_ref_triggered_volume",
+      "enabled": true,
+      "mode": "triggered",
+      "type": "DATABRICKS_VOLUME",
+      "destination_config": {
+        "volume_path": "/Volumes/{{catalog}}/observability/otel_exports",
+        "file_format": "JSONL",
+        "compressed": true
+      }
+    },
+    {
+      "id": "dest_ref_continuous_otlp",
+      "enabled": true,
+      "mode": "continuous",
+      "type": "OTLP_CONSUMER",
+      "destination_config": {
+        "endpoint": "https://otel-collector.example.com/v1/logs",
+        "event_log_tables": [
+          "{{catalog}}.observability.pipeline_a_event_log",
+          "{{catalog}}.observability.pipeline_b_event_log"
+        ]
+      },
+      "auth": {
+        "type": "BEARER_TOKEN",
+        "credentials": {
+          "token": "secret:otel_scope:otel_token"
+        }
+      },
+      "retry": {
+        "max_attempts": 3,
+        "backoff_seconds": 2
+      },
+      "timeout_ms": 30000
+    }
+  ]
+}

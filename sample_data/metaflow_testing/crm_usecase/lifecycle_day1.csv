@@ -1,0 +1,11 @@
+customer_id,customer_name,city,tier,updated_at
+CUST501,Ava Thompson,Seattle,SILVER,2026-01-01T00:00:00
+CUST502,Noah Martinez,Austin,SILVER,2026-01-01T00:00:00
+CUST503,Liam Chen,Denver,BRONZE,2026-01-01T00:00:00
+CUST504,Emma Wilson,Chicago,GOLD,2026-01-01T00:00:00
+CUST505,Olivia Brown,Miami,SILVER,2026-01-01T00:00:00
+CUST506,William Davis,Boston,BRONZE,2026-01-01T00:00:00
+CUST507,Sophia Garcia,Dallas,SILVER,2026-01-01T00:00:00
+CUST508,James Rodriguez,Phoenix,GOLD,2026-01-01T00:00:00
+CUST509,Isabella Lee,Portland,BRONZE,2026-01-01T00:00:00
+CUST510,Benjamin Clark,Atlanta,SILVER,2026-01-01T00:00:00

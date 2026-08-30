@@ -1,0 +1,33 @@
+{
+  "dataflow_group_id": "dfg_prm_001_path_param",
+  "pipeline_parameters": {
+    "data_domain": "finance_ops",
+    "batch_date": "2026-08-28"
+  },
+  "ingestion_flows": [
+    {
+      "dataflow_id": "df_prm_001_daily_txns_ingest",
+      "source_system": "finance_ops_extract",
+      "source_database": "finance_ops",
+      "source_table_name": "daily_txns",
+      "source_description": "Metaflow test TC-PRM-001: parameterized dynamic Volume/file path -- source_config.path/schema_location contain ${data_domain}/${batch_date} placeholders resolved fresh on every pipeline update via transformation/parameters.py::substitute_path_parameters (NOT the one-time {{catalog}}/{{env}} onboarding-time substitution)",
+      "source_type": "autoloader",
+      "target_catalog": "{{catalog}}",
+      "target_schema": "bronze_finance",
+      "target_table": "daily_txns_raw",
+      "target_type": "streaming_table",
+      "source_config": {
+        "path": "/Volumes/{{catalog}}/${data_domain}/landing/${batch_date}/",
+        "format": "csv",
+        "schema_location": "/Volumes/{{catalog}}/${data_domain}/_schemas/daily_txns_raw/",
+        "reader_options": {"header": "true", "cloudFiles.inferColumnTypes": "true"},
+        "capture_technical_metadata": true
+      },
+      "target_config": {"cdc_load_strategy": "APPEND", "storage_format": "delta"},
+      "dq_config": {"rules": []},
+      "governance_tags": {}
+    }
+  ],
+  "transformation_flows": [],
+  "reconciliation_flows": []
+}

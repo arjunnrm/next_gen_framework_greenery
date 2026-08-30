@@ -1,0 +1,17 @@
+TelecomCDR DEFINITIONS ::= BEGIN
+
+-- ASN.1 (X.680) identifiers allow letters, digits, and single hyphens, never
+-- underscores, and camelCase not snake_case. Also note: a comment closes at the
+-- next double hyphen it finds, even mid line, so never write a literal double
+-- hyphen inside comment text itself (a real mistake made while drafting this note).
+-- Original fields were region_code / call_duration_seconds / cell_id, renamed after
+-- asn1tools.compile_files() was actually run against this file for the first time.
+CallDetailRecord ::= SEQUENCE {
+    imsi                    IA5String,
+    msisdn                  IA5String,
+    regionCode              IA5String,
+    callDurationSeconds     INTEGER,
+    cellId                  IA5String
+}
+
+END

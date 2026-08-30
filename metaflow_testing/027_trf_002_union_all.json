@@ -1,0 +1,69 @@
+{
+  "dataflow_group_id": "dfg_trf_002_union_all",
+  "pipeline_parameters": {},
+  "ingestion_flows": [
+    {
+      "dataflow_id": "df_trf_002_orders_na_ingest",
+      "source_system": "regional_sales_na",
+      "source_database": "sales_landing_na",
+      "source_table_name": "orders_na_raw",
+      "source_description": "TC-TRF-002: North America regional order extract, streaming Auto Loader CSV ingestion into Bronze -- consolidated downstream with the EU regional feed via UNION ALL into one enterprise Silver dataset",
+      "source_type": "autoloader",
+      "target_catalog": "{{catalog}}",
+      "target_schema": "bronze_sales",
+      "target_table": "orders_na_raw",
+      "target_type": "streaming_table",
+      "source_config": {
+        "path": "/Volumes/{{catalog}}/sales/landing_orders_na/incoming/",
+        "format": "csv",
+        "schema_location": "/Volumes/{{catalog}}/sales/_schemas/orders_na_raw/",
+        "reader_options": {"header": "true", "cloudFiles.inferColumnTypes": "true"},
+        "capture_technical_metadata": true
+      },
+      "target_config": {"cdc_load_strategy": "APPEND", "storage_format": "delta"},
+      "dq_config": {"rules": []},
+      "governance_tags": {}
+    },
+    {
+      "dataflow_id": "df_trf_002_orders_eu_ingest",
+      "source_system": "regional_sales_eu",
+      "source_database": "sales_landing_eu",
+      "source_table_name": "orders_eu_raw",
+      "source_description": "TC-TRF-002: Europe regional order extract, streaming Auto Loader CSV ingestion into Bronze -- consolidated downstream with the NA regional feed via UNION ALL into one enterprise Silver dataset",
+      "source_type": "autoloader",
+      "target_catalog": "{{catalog}}",
+      "target_schema": "bronze_sales",
+      "target_table": "orders_eu_raw",
+      "target_type": "streaming_table",
+      "source_config": {
+        "path": "/Volumes/{{catalog}}/sales/landing_orders_eu/incoming/",
+        "format": "csv",
+        "schema_location": "/Volumes/{{catalog}}/sales/_schemas/orders_eu_raw/",
+        "reader_options": {"header": "true", "cloudFiles.inferColumnTypes": "true"},
+        "capture_technical_metadata": true
+      },
+      "target_config": {"cdc_load_strategy": "APPEND", "storage_format": "delta"},
+      "dq_config": {"rules": []},
+      "governance_tags": {}
+    }
+  ],
+  "transformation_flows": [
+    {
+      "flow_step_id": "ts_trf_002_union_all_global_orders",
+      "dataflow_id": "df_trf_002_orders_na_ingest",
+      "target_catalog": "{{catalog}}",
+      "target_schema": "silver_sales",
+      "target_table": "all_global_orders",
+      "target_type": "streaming_table",
+      "source_inputs": [
+        {"input_name": "orders_na_raw", "table": "{{catalog}}.bronze_sales.orders_na_raw", "is_streaming": true},
+        {"input_name": "orders_eu_raw", "table": "{{catalog}}.bronze_sales.orders_eu_raw", "is_streaming": true}
+      ],
+      "transformation_sql": "SELECT * FROM orders_na_raw UNION ALL SELECT * FROM orders_eu_raw",
+      "target_config": {"cdc_load_strategy": "APPEND", "storage_format": "delta"},
+      "dq_config": {"rules": []},
+      "governance_tags": {}
+    }
+  ],
+  "reconciliation_flows": []
+}

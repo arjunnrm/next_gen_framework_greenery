@@ -1,0 +1,176 @@
+{
+  "dataflow_group_id": "dfg_zip_csv_dataload",
+  "pipeline_parameters": {
+    "Country": "US"
+  },
+  "ingestion_flows": [
+    {
+      "dataflow_id": "df_zip_csv_file_ingest",
+      "source_system": "oracle",
+      "source_database": "crm",
+      "source_table_name": "customer",
+      "source_description": "Sample customer data",
+      "source_type": "autoloader",
+      "target_catalog": "{{catalog}}",
+      "target_schema": "bronze_test",
+      "target_table": "customer_raw",
+      "target_type": "streaming_table",
+      "source_config": {
+        "path": "/Volumes/{{catalog}}/landing/input/customer/",
+        "format": "csv",
+        "schema_location": "",
+        "schema_evolution_mode": "rescue",
+        "reader_options": {
+          "header": "true",
+          "cloudFiles.inferColumnTypes": "true"
+        },
+        "data_standardization_sql": [],
+        "landing_retention_policy": {
+          "clean_source": "off",
+          "archive_path": "",
+          "retention_days": 7
+        },
+        "capture_technical_metadata": true,
+        "source_zip_handling": {
+        "enabled": true,
+        "source_zip_path": "/Volumes/{{catalog}}/landing/input/customer_zip/",
+        "zip_file_pattern": "customer*.zip",
+        "target_volume_path": "/Volumes/{{catalog}}/landing/input/customer/",
+        "delete_source_after_extract": true
+        }
+      },
+      "target_config": {
+        "cdc_load_strategy": "SCD1",
+        "primary_keys": ["CustomerID"],
+        "cdc_operation_column": "SignupDate",
+        "cdc_operation_mapping": {"delete_values": ["DELETED"]},
+        "columns_to_exclude": [],
+        "columns_to_check":[],
+        "generate_hash_columns": true,
+        "storage_format": "delta",
+        "partition_columns": [],
+        "liquid_clustering_columns": ["CustomerID"],
+        "auto_ttl": {},
+        "table_properties": {
+          "log_retention_duration": "interval 30 days",
+          "deleted_file_retention_duration": "interval 30 days"
+        },
+        "encrypted_columns": []
+      },
+      "dq_config": {
+        "rules": [
+          {
+            "rule_id": "Country_not_null",
+            "expression": "Country IS NOT NULL",
+            "action": "quarantine"
+          }
+        ],
+        "quarantine_table": "customer_raw_quarantine",
+        "record_id_column": "CustomerID"
+      },
+      "governance_tags": {
+      }
+    },
+    {
+      "dataflow_id": "df_zip_csv_file_plain_ingest",
+      "source_system": "oracle",
+      "source_database": "crm",
+      "source_table_name": "customer",
+      "source_description": "Sample customer data -- plain, unencrypted, non-password-protected ZIP (pre_extraction_decryption omitted entirely)",
+      "source_type": "autoloader",
+      "target_catalog": "{{catalog}}",
+      "target_schema": "bronze_test",
+      "target_table": "customer_plain_raw",
+      "target_type": "streaming_table",
+      "source_config": {
+        "path": "/Volumes/{{catalog}}/landing/input/customer_plain/",
+        "format": "csv",
+        "schema_location": "",
+        "schema_evolution_mode": "rescue",
+        "reader_options": {
+          "header": "true",
+          "cloudFiles.inferColumnTypes": "true"
+        },
+        "data_standardization_sql": [],
+        "landing_retention_policy": {
+          "clean_source": "off",
+          "archive_path": "",
+          "retention_days": 7
+        },
+        "capture_technical_metadata": true,
+        "source_zip_handling": {
+          "enabled": true,
+          "source_zip_path": "/Volumes/{{catalog}}/landing/input/customer_zip_plain/",
+          "zip_file_pattern": "customer*.zip",
+          "target_volume_path": "/Volumes/{{catalog}}/landing/input/customer_plain/",
+          "delete_source_after_extract": false
+        }
+      },
+      "target_config": {
+        "cdc_load_strategy": "SCD1",
+        "primary_keys": ["CustomerID"],
+        "columns_to_exclude": [],
+        "columns_to_check": [],
+        "generate_hash_columns": true,
+        "storage_format": "delta",
+        "partition_columns": [],
+        "liquid_clustering_columns": ["CustomerID"],
+        "auto_ttl": {},
+        "table_properties": {
+          "log_retention_duration": "interval 30 days",
+          "deleted_file_retention_duration": "interval 30 days"
+        },
+        "encrypted_columns": []
+      },
+      "dq_config": {
+        "rules": [
+          {
+            "rule_id": "Country_not_null",
+            "expression": "Country IS NOT NULL",
+            "action": "quarantine"
+          }
+        ],
+        "quarantine_table": "customer_plain_raw_quarantine",
+        "record_id_column": "CustomerID"
+      },
+      "governance_tags": {
+      }
+    }
+  ],
+  "observability": [
+    {
+      "id": "dest-dbx-volume",
+      "enabled": true,
+      "type": "DATABRICKS_VOLUME",
+      "destination_config": {
+        "volume_path": "/Volumes/{{catalog}}/observability/app_logs/",
+        "compression": "GZIP",
+        "file_format": "JSONL"
+      }
+    },
+    {
+      "id": "dest-otlp-collector",
+      "enabled": false,
+      "type": "OTLP_CONSUMER",
+      "destination_config": {
+        "endpoint": "https://otel-collector.internal.net:4318/v1/logs",
+        "protocol": "OTLP_HTTP_JSON",
+        "compression": "gzip",
+        "resource_attributes": {
+          "service.name": "dlt-observability-metaflow-test-100",
+          "deployment.environment": "{{env}}"
+        }
+      },
+      "auth": {
+        "type": "BEARER_TOKEN",
+        "credentials": {
+          "token": "env:OTLP_BEARER_TOKEN"
+        }
+      },
+      "retry": {
+        "max_attempts": 5
+      },
+      "timeout_ms": 5000
+    }
+  ]
+}

@@ -1,0 +1,73 @@
+# Wraps metaflow_test_snk_001_external_sink_pipeline:
+#
+#   setup_control_tables -> seed_metaflow_testing_data -> seed_trf_001_4way_join_data
+#     -> onboard_snk_001 -> run_pipeline
+#
+# Reuses two already-existing seed notebooks rather than inventing new sample data or a new
+# seed notebook (both are idempotent -- CREATE SCHEMA/VOLUME IF NOT EXISTS + fresh-copy-each-time
+# CSV landing -- so this job can be re-run on its own at any time, from a clean environment):
+#   * 02_seed_metaflow_testing_data.py provisions the `egress_ea` schema and its `export_zips`
+#     volume (the exact staging/output Volume this TC's sink_config targets) along with
+#     `bronze_ea`/`silver_ea`.
+#   * 03_seed_trf_001_4way_join_data.py provisions the `ea` schema's landing_assignments/
+#     landing_employees/landing_departments/landing_projects volumes and lands the 4 EA CSV
+#     fixtures (sample_data/metaflow_testing/ea_usecase/*.csv) this TC's own ingestion flows
+#     read from -- the same fixture TC-TRF-001 uses, reused as-is (no new sample data needed).
+#
+# See metaflow_testing/039_snk_001_external_sink.json and docs/61_tc_snk_001.md.
+
+resources:
+  jobs:
+    metaflow_test_snk_001_external_sink_job:
+      name: Metaflow Test SNK-001 - External Sink Dual Materialization & Plain ZIP Export
+
+      tasks:
+        - task_key: setup_control_tables
+          notebook_task:
+            notebook_path: ../notebooks/01_setup/01_setup_control_tables.py
+            base_parameters:
+              catalog: metaflow
+          environment_key: framework_env
+
+        - task_key: seed_metaflow_testing_data
+          depends_on:
+            - task_key: setup_control_tables
+          notebook_task:
+            notebook_path: ../notebooks/00_seed_sample_data/02_seed_metaflow_testing_data.py
+            base_parameters:
+              catalog: metaflow
+          environment_key: framework_env
+
+        - task_key: seed_trf_001_4way_join_data
+          depends_on:
+            - task_key: seed_metaflow_testing_data
+          notebook_task:
+            notebook_path: ../notebooks/00_seed_sample_data/03_seed_trf_001_4way_join_data.py
+            base_parameters:
+              catalog: metaflow
+          environment_key: framework_env
+
+        - task_key: onboard_snk_001
+          depends_on:
+            - task_key: seed_trf_001_4way_join_data
+          notebook_task:
+            notebook_path: ../notebooks/02_onboarding/02_onboarding_engine.py
+            base_parameters:
+              spec_file_path: "${workspace.file_path}/metaflow_testing/039_snk_001_external_sink.json"
+              catalog: metaflow
+              env: dev
+              action_type: CREATE
+          environment_key: framework_env
+
+        - task_key: run_pipeline
+          depends_on:
+            - task_key: onboard_snk_001
+          pipeline_task:
+            pipeline_id: ${resources.pipelines.metaflow_test_snk_001_external_sink_pipeline.id}
+
+      environments:
+        - environment_key: framework_env
+          spec:
+            environment_version: "4"
+            dependencies:
+              - ../dist/*.whl

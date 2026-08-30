@@ -1,0 +1,34 @@
+{
+  "flow_step_id": "ts_template_stream_join_watermark_example",
+  "dataflow_id": "df_template_ingest",
+  "target_catalog": "{{catalog}}",
+  "target_schema": "silver_example",
+  "target_table": "example_dim_stream_join",
+  "target_type": "streaming_table",
+  "source_inputs": [
+    {
+      "input_name": "example_raw_join_left",
+      "table": "{{catalog}}.bronze_example.example_raw",
+      "is_streaming": true,
+      "watermark": {
+        "event_time_column": "updated_at",
+        "delay_threshold": "10 minutes"
+      }
+    },
+    {
+      "input_name": "example_zerobus_join_right",
+      "table": "{{catalog}}.bronze_example.example_zerobus_events",
+      "is_streaming": true,
+      "watermark": {
+        "event_time_column": "event_ts",
+        "delay_threshold": "10 minutes"
+      }
+    }
+  ],
+  "transformation_sql": "SELECT l.example_id, r.event_id, l.amount, r.event_ts FROM example_raw_join_left l JOIN example_zerobus_join_right r ON l.example_id = r.example_id AND r.event_ts BETWEEN l.updated_at - INTERVAL 10 MINUTES AND l.updated_at + INTERVAL 10 MINUTES",
+  "target_config": {
+    "cdc_load_strategy": "APPEND"
+  },
+  "dq_config": {},
+  "governance_tags": {}
+}

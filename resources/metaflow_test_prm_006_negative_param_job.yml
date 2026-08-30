@@ -1,0 +1,52 @@
+# TC-PRM-006: "Negative Validation: Undefined Parameter Reference Error" -- a deliberately
+# INVALID onboarding spec. metaflow_testing/048_prm_006_negative_param.json's one
+# transformation flow references ${dept_code} inside transformation_sql, but the spec's
+# pipeline_parameters only declares region_code -- dept_code is omitted entirely.
+#
+#   setup_control_tables -> onboard_prm_006
+#
+# No seed step and no Lakeflow pipeline resource exist for this scenario: onboarding is
+# expected to fail inside onboard_prm_006 itself (spec_validator.py::_validate_sql_syntax ->
+# transformation/parameters.py::substitute_dynamic_parameters raises FrameworkConfigError,
+# "Transformation SQL references undefined parameter(s): ['dept_code']"), which
+# 02_onboarding_engine.py re-raises as OnboardingValidationError before any control-table
+# upsert or pipeline run is ever attempted -- so no fixture data and no downstream pipeline
+# task are needed to prove the point.
+#
+# IMPORTANT: `onboard_prm_006` is EXPECTED TO FAIL every run -- a FAILED job run with
+# onboard_prm_006 as the failing task (error message containing "references undefined
+# parameter(s): ['dept_code']") is this test case's correct, intended outcome, not a
+# deployment defect. See metaflow_testing/048_prm_006_negative_param.json and
+# docs/70_tc_prm_006.md.
+
+resources:
+  jobs:
+    metaflow_test_prm_006_negative_param_job:
+      name: "Metaflow Test PRM-006 - Negative Validation: Undefined Parameter Reference Error"
+
+      tasks:
+        - task_key: setup_control_tables
+          notebook_task:
+            notebook_path: ../notebooks/01_setup/01_setup_control_tables.py
+            base_parameters:
+              catalog: metaflow
+          environment_key: framework_env
+
+        - task_key: onboard_prm_006
+          depends_on:
+            - task_key: setup_control_tables
+          notebook_task:
+            notebook_path: ../notebooks/02_onboarding/02_onboarding_engine.py
+            base_parameters:
+              spec_file_path: "${workspace.file_path}/metaflow_testing/048_prm_006_negative_param.json"
+              catalog: metaflow
+              env: dev
+              action_type: CREATE
+          environment_key: framework_env
+
+      environments:
+        - environment_key: framework_env
+          spec:
+            environment_version: "4"
+            dependencies:
+              - ../dist/*.whl

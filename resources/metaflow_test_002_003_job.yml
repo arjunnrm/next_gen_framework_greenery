@@ -1,0 +1,89 @@
+# Wraps both metaflow_test_002_zerobus_pipeline and metaflow_test_003_autoload_recon_pipeline
+# in one job, since scenario 003 depends on scenario 002's own output (its reconciliation flow
+# compares against metaflow.bronze_excalibur.zerobus_bronze, which 002's pipeline produces):
+#
+#   setup_control_tables -> seed_metaflow_testing_data
+#     -> onboard_002 -> run_002_pipeline
+#       -> onboard_003 -> run_003_pipeline -> run_003_reconciliation
+#
+# run_003_reconciliation appends any records present in scenario 003's autoload_bronze but
+# missing from scenario 002's zerobus_bronze back into
+# metaflow.Excalibur_usecase.zerobus_source_bus (the Zerobus SOURCE bus table itself, not just
+# its bronze copy) -- so a subsequent run of metaflow_test_002_zerobus_pipeline's Zerobus stream
+# picks those records up as if they had arrived normally. See
+# metaflow_testing/003_autoload_recon_append.json.
+
+resources:
+  jobs:
+    metaflow_test_002_003_job:
+      name: Metaflow Test 002-003 - Zerobus + Autoload Reconciliation
+
+      tasks:
+        - task_key: setup_control_tables
+          notebook_task:
+            notebook_path: ../notebooks/01_setup/01_setup_control_tables.py
+            base_parameters:
+              catalog: metaflow
+          environment_key: framework_env
+
+        - task_key: seed_metaflow_testing_data
+          depends_on:
+            - task_key: setup_control_tables
+          notebook_task:
+            notebook_path: ../notebooks/00_seed_sample_data/02_seed_metaflow_testing_data.py
+            base_parameters:
+              catalog: metaflow
+          environment_key: framework_env
+
+        - task_key: onboard_002
+          depends_on:
+            - task_key: seed_metaflow_testing_data
+          notebook_task:
+            notebook_path: ../notebooks/02_onboarding/02_onboarding_engine.py
+            base_parameters:
+              spec_file_path: "${workspace.file_path}/metaflow_testing/002_zerobus_data_load.json"
+              catalog: metaflow
+              env: dev
+              action_type: CREATE
+          environment_key: framework_env
+
+        - task_key: run_002_pipeline
+          depends_on:
+            - task_key: onboard_002
+          pipeline_task:
+            pipeline_id: ${resources.pipelines.metaflow_test_002_zerobus_pipeline.id}
+
+        - task_key: onboard_003
+          depends_on:
+            - task_key: run_002_pipeline
+          notebook_task:
+            notebook_path: ../notebooks/02_onboarding/02_onboarding_engine.py
+            base_parameters:
+              spec_file_path: "${workspace.file_path}/metaflow_testing/003_autoload_recon_append.json"
+              catalog: metaflow
+              env: dev
+              action_type: CREATE
+          environment_key: framework_env
+
+        - task_key: run_003_pipeline
+          depends_on:
+            - task_key: onboard_003
+          pipeline_task:
+            pipeline_id: ${resources.pipelines.metaflow_test_003_autoload_recon_pipeline.id}
+
+        - task_key: run_003_reconciliation
+          depends_on:
+            - task_key: run_003_pipeline
+          notebook_task:
+            notebook_path: ../notebooks/05_reconciliation/05_reconciliation_engine.py
+            base_parameters:
+              catalog: metaflow
+              reconciliation_id: recon_excalibur_autoload_vs_zerobus
+          environment_key: framework_env
+
+      environments:
+        - environment_key: framework_env
+          spec:
+            environment_version: "4"
+            dependencies:
+              - ../dist/*.whl

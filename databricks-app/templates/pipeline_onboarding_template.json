@@ -1,0 +1,754 @@
+{
+  "$schema": "./onboarding_spec.schema.json",
+  "dataflow_group_id": "dfg_template_example",
+  "pipeline_parameters": {
+    "filter_country": "US",
+    "min_amount": "0",
+    "run_date": "2026-01-01"
+  },
+  "spark_config": {
+    "spark.sql.shuffle.partitions": "auto",
+    "spark.databricks.delta.optimizeWrite.enabled": "true"
+  },
+  "ingestion_flows": [
+    {
+      "dataflow_id": "df_template_ingest",
+      "source_system": "example_source_system",
+      "source_database": "example_landing_db",
+      "source_table_name": "example_raw_table",
+      "source_description": "Template: Bronze ingestion from a Volume (Auto Loader) with regex file selection, quarantine, encryption, and data standardization, in the {{env}} environment",
+      "source_type": "autoloader",
+      "target_catalog": "{{catalog}}",
+      "target_schema": "bronze_example",
+      "target_table": "example_raw",
+      "target_type": "streaming_table",
+      "source_config": {
+        "path": "/Volumes/{{catalog}}/landing/example_raw_zone/incoming/",
+        "format": "csv",
+        "file_pattern": "orc_*",
+        "schema_location": "/Volumes/{{catalog}}/landing/_schemas/example_raw/",
+        "schema_evolution_mode": "rescue",
+        "reader_options": {
+          "header": "true",
+          "cloudFiles.inferColumnTypes": "true"
+        },
+        "data_standardization_sql": [
+          "trim(region) AS region",
+          "upper(country_code) AS country_code"
+        ],
+        "landing_retention_policy": {
+          "clean_source": "archive",
+          "archive_path": "/Volumes/{{catalog}}/landing/_archive/example/",
+          "retention_days": 7
+        },
+        "capture_technical_metadata": true,
+        "remove_dups": false,
+        "column_normalization": {
+          "enabled": true,
+          "case": "lower"
+        }
+      },
+      "target_config": {
+        "cdc_load_strategy": "APPEND",
+        "storage_format": "delta",
+        "partition_columns": [],
+        "liquid_clustering_columns": [
+          "example_id"
+        ],
+        "auto_ttl": {
+          "timestamp_column": "updated_at",
+          "expire_in_days": 90
+        },
+        "table_properties": {
+          "log_retention_duration": "interval 30 days",
+          "deleted_file_retention_duration": "interval 30 days"
+        },
+        "encrypted_columns": [
+          {
+            "column_name": "pii_column",
+            "output_column": "pii_column",
+            "mode": "GCM",
+            "source_data_type": "string",
+            "secret": {
+              "secret_catalog": "{{catalog}}",
+              "secret_schema": "security",
+              "secret_key": "pii_encryption_key"
+            }
+          }
+        ]
+      },
+      "dq_config": {
+        "rules": [
+          {
+            "rule_id": "dq_example_id_not_null",
+            "expression": "example_id IS NOT NULL",
+            "action": "drop"
+          },
+          {
+            "rule_id": "dq_amount_non_negative",
+            "expression": "amount >= 0",
+            "action": "quarantine"
+          }
+        ],
+        "quarantine_table": "example_raw_quarantine",
+        "record_id_column": "example_id"
+      },
+      "governance_tags": {
+        "column_tags": [
+          {
+            "column": "pii_column",
+            "tags": {
+              "mask": "PII",
+              "classification": "restricted"
+            }
+          }
+        ],
+        "table_tags": {
+          "row_filter": "region_restricted",
+          "domain": "example"
+        }
+      }
+    },
+    {
+      "dataflow_id": "df_template_zerobus_ingest",
+      "source_system": "example_zerobus_direct_write",
+      "source_database": "example_events_db",
+      "source_table_name": "example_zerobus_events",
+      "source_description": "Template: streaming read of an existing Delta table landed by Zerobus direct-write, SCD1 with an optional sequence column, delete-marking, hash columns, and a wide-source comparison exclusion",
+      "source_type": "zerobus",
+      "target_catalog": "{{catalog}}",
+      "target_schema": "bronze_example",
+      "target_table": "example_zerobus_events",
+      "target_type": "streaming_table",
+      "source_config": {
+        "source_catalog": "example_source_catalog",
+        "source_schema": "example_source_schema",
+        "source_table": "example_source_zerobus_table",
+        "starting_version": 0,
+        "max_bytes_per_trigger": "1g",
+        "capture_technical_metadata": true
+      },
+      "target_config": {
+        "cdc_load_strategy": "SCD1",
+        "primary_keys": [
+          "event_id"
+        ],
+        "cdc_operation_column": "op",
+        "cdc_operation_mapping": {
+          "delete_values": [
+            "D"
+          ]
+        },
+        "columns_to_exclude": [
+          "batch_load_ts",
+          "source_extract_filename"
+        ],
+        "generate_hash_columns": true
+      },
+      "dq_config": {
+        "rules": [
+          {
+            "rule_id": "dq_example_event_status_known_value",
+            "expression": "event_status IN ('OPEN', 'CLOSED')",
+            "action": "fail"
+          }
+        ]
+      },
+      "governance_tags": {}
+    },
+    {
+      "dataflow_id": "df_template_asn1_ingest",
+      "source_system": "example_telecom_switch",
+      "source_database": "example_cdr_landing",
+      "source_table_name": "example_asn1_cdr",
+      "source_description": "Template: binary ASN.1 (BER/DER) CDR ingestion, PGP-decrypted then unzipped at rest in the source, full-snapshot CDC diffed on the CDR's own callReferenceId",
+      "source_type": "asn1",
+      "target_catalog": "{{catalog}}",
+      "target_schema": "bronze_example",
+      "target_table": "example_asn1_cdr",
+      "target_type": "batch_table",
+      "source_config": {
+        "path": "/Volumes/{{catalog}}/landing/example_asn1_zone/extracted/",
+        "schema_location": "/Volumes/{{catalog}}/landing/_schemas/example_asn1_cdr/",
+        "asn1_schema_path": "/Volumes/{{catalog}}/landing/_asn1_schemas/example_cdr.asn",
+        "asn1_codec": "ber",
+        "asn1_pdu_name": "ExampleCallDetailRecord",
+        "capture_technical_metadata": true,
+        "source_zip_handling": {
+          "enabled": true,
+          "source_zip_path": "/Volumes/{{catalog}}/landing/example_asn1_zone/{{env}}/incoming/",
+          "zip_file_pattern": "example_cdr_batch.zip",
+          "target_volume_path": "/Volumes/{{catalog}}/landing/example_asn1_zone/extracted/",
+          "pre_extraction_decryption": {
+            "type": "pgp",
+            "private_key_secret": {
+              "secret_catalog": "{{catalog}}",
+              "secret_schema": "security",
+              "secret_key": "cdr_pgp_private_key"
+            },
+            "secret_passphrase": {
+              "secret_catalog": "{{catalog}}",
+              "secret_schema": "security",
+              "secret_key": "cdr_zip_passphrase"
+            }
+          },
+          "delete_source_after_extract": true
+        }
+      },
+      "target_config": {
+        "cdc_load_strategy": "FULL_SNAPSHOT_CDC",
+        "primary_keys": [
+          "callReferenceId"
+        ],
+        "storage_format": "delta",
+        "cdc_operation_column": "recordStatus",
+        "cdc_operation_mapping": {
+          "delete_values": [
+            "DELETED"
+          ]
+        }
+      },
+      "dq_config": {
+        "rules": [
+          {
+            "rule_id": "dq_example_call_duration_non_negative",
+            "expression": "callDurationSeconds >= 0",
+            "action": "warn"
+          }
+        ]
+      },
+      "governance_tags": {}
+    },
+    {
+      "dataflow_id": "df_template_json_ingest",
+      "source_system": "example_events_api",
+      "source_table_name": "example_events_json",
+      "source_description": "Template: JSON ingestion demonstrating explode_columns -- flatten only the named nested columns, leave everything else as-is",
+      "source_type": "autoloader",
+      "target_catalog": "{{catalog}}",
+      "target_schema": "bronze_example",
+      "target_table": "example_events_json",
+      "target_type": "streaming_table",
+      "source_config": {
+        "path": "/Volumes/{{catalog}}/landing/example_json_zone/incoming/",
+        "format": "json",
+        "schema_location": "/Volumes/{{catalog}}/landing/_schemas/example_events_json/",
+        "explode_columns": [],
+        "capture_technical_metadata": true,
+        "json_string_columns": [
+          "payload_json"
+        ],
+        "remove_dups": true,
+        "dedup_watermark": {
+          "event_time_column": "event_timestamp",
+          "delay_threshold": "30 minutes"
+        }
+      },
+      "target_config": {
+        "cdc_load_strategy": "APPEND"
+      },
+      "dq_config": {},
+      "governance_tags": {}
+    }
+  ],
+  "transformation_flows": [
+    {
+      "flow_step_id": "ts_template_append_example",
+      "dataflow_id": "df_template_ingest",
+      "target_catalog": "{{catalog}}",
+      "target_schema": "silver_example",
+      "target_table": "example_events_append",
+      "target_type": "streaming_table",
+      "source_inputs": [
+        {
+          "input_name": "example_events_append_src",
+          "table": "{{catalog}}.bronze_example.example_raw",
+          "is_streaming": true
+        }
+      ],
+      "transformation_sql": "SELECT example_id, region, amount, updated_at FROM example_events_append_src WHERE amount > ${min_amount}",
+      "target_config": {
+        "cdc_load_strategy": "APPEND",
+        "storage_format": "delta",
+        "partition_columns": [
+          "region"
+        ]
+      },
+      "dq_config": {},
+      "governance_tags": {}
+    },
+    {
+      "flow_step_id": "ts_template_truncate_and_load_example",
+      "dataflow_id": "df_template_ingest",
+      "target_catalog": "{{catalog}}",
+      "target_schema": "silver_example",
+      "target_table": "example_dim_truncate_reload",
+      "target_type": "materialized_view",
+      "source_inputs": [
+        {
+          "input_name": "example_dim_truncate_reload_src",
+          "table": "{{catalog}}.bronze_example.example_raw",
+          "is_streaming": false
+        }
+      ],
+      "transformation_sql": "SELECT region, COUNT(*) AS example_count FROM example_dim_truncate_reload_src GROUP BY region",
+      "target_config": {
+        "cdc_load_strategy": "TRUNCATE_AND_LOAD",
+        "empty_target_if_source_empty": false
+      },
+      "dq_config": {},
+      "governance_tags": {}
+    },
+    {
+      "flow_step_id": "ts_template_scd1_example",
+      "dataflow_id": "df_template_ingest",
+      "target_catalog": "{{catalog}}",
+      "target_schema": "silver_example",
+      "target_table": "example_dim_scd1_wide",
+      "target_type": "streaming_table",
+      "source_inputs": [
+        {
+          "input_name": "example_dim_scd1_wide_src",
+          "table": "{{catalog}}.bronze_example.example_raw",
+          "is_streaming": true
+        }
+      ],
+      "transformation_sql": "SELECT * FROM example_dim_scd1_wide_src",
+      "target_config": {
+        "cdc_load_strategy": "SCD1",
+        "primary_keys": [
+          "example_id"
+        ],
+        "sequence_by_column": "updated_at",
+        "cdc_operation_column": "op",
+        "cdc_operation_mapping": {
+          "delete_values": [
+            "D"
+          ]
+        },
+        "columns_to_exclude": [
+          "batch_load_ts",
+          "source_extract_filename",
+          "etl_run_id",
+          "checksum_hash",
+          "ingestion_notes"
+        ],
+        "generate_hash_columns": true
+      },
+      "dq_config": {},
+      "governance_tags": {}
+    },
+    {
+      "flow_step_id": "ts_template_scd1_optional_sequence_example",
+      "dataflow_id": "df_template_ingest",
+      "target_catalog": "{{catalog}}",
+      "target_schema": "silver_example",
+      "target_table": "example_dim_scd1_no_sequence",
+      "target_type": "streaming_table",
+      "source_inputs": [
+        {
+          "input_name": "example_dim_scd1_no_sequence_src",
+          "table": "{{catalog}}.bronze_example.example_raw",
+          "is_streaming": true
+        }
+      ],
+      "transformation_sql": "SELECT example_id, region, amount FROM example_dim_scd1_no_sequence_src",
+      "target_config": {
+        "cdc_load_strategy": "SCD1",
+        "primary_keys": [
+          "example_id"
+        ]
+      },
+      "dq_config": {},
+      "governance_tags": {}
+    },
+    {
+      "flow_step_id": "ts_template_scd2_example",
+      "dataflow_id": "df_template_ingest",
+      "target_catalog": "{{catalog}}",
+      "target_schema": "silver_example",
+      "target_table": "example_dim_scd2",
+      "target_type": "streaming_table",
+      "source_inputs": [
+        {
+          "input_name": "example_raw_input",
+          "table": "{{catalog}}.bronze_example.example_raw",
+          "is_streaming": true,
+          "decrypted_columns": [
+            {
+              "column_name": "pii_column",
+              "output_column": "pii_column_plain",
+              "mode": "GCM",
+              "cast_to_type": "string",
+              "secret": {
+                "secret_catalog": "{{catalog}}",
+                "secret_schema": "security",
+                "secret_key": "pii_encryption_key"
+              }
+            }
+          ]
+        }
+      ],
+      "transformation_sql": "SELECT example_id, region, amount, updated_at, pii_column_plain FROM example_raw_input WHERE region = ${filter_country}",
+      "target_config": {
+        "cdc_load_strategy": "SCD2",
+        "primary_keys": [
+          "example_id"
+        ],
+        "sequence_by_column": "updated_at",
+        "columns_to_check": [
+          "amount"
+        ],
+        "cdc_operation_column": "op",
+        "cdc_operation_mapping": {
+          "delete_values": [
+            "D"
+          ]
+        },
+        "generate_hash_columns": true,
+        "encrypted_columns": [
+          {
+            "column_name": "pii_column_plain",
+            "output_column": "pii_column",
+            "mode": "GCM",
+            "source_data_type": "string",
+            "secret": {
+              "secret_catalog": "{{catalog}}",
+              "secret_schema": "security",
+              "secret_key": "pii_encryption_key"
+            }
+          }
+        ]
+      },
+      "dq_config": {},
+      "governance_tags": {}
+    },
+    {
+      "flow_step_id": "ts_template_scd3_example",
+      "dataflow_id": "df_template_ingest",
+      "target_catalog": "{{catalog}}",
+      "target_schema": "silver_example",
+      "target_table": "example_dim_scd3",
+      "target_type": "streaming_table",
+      "source_inputs": [
+        {
+          "input_name": "example_dim_scd3_src",
+          "table": "{{catalog}}.bronze_example.example_raw",
+          "is_streaming": true
+        }
+      ],
+      "transformation_sql": "SELECT example_id, status_code, updated_at FROM example_dim_scd3_src",
+      "target_config": {
+        "cdc_load_strategy": "SCD3",
+        "primary_keys": [
+          "example_id"
+        ],
+        "sequence_by_column": "updated_at",
+        "columns_to_check": [
+          "status_code"
+        ]
+      },
+      "dq_config": {},
+      "governance_tags": {}
+    },
+    {
+      "flow_step_id": "ts_template_full_snapshot_cdc_example",
+      "dataflow_id": "df_template_ingest",
+      "target_catalog": "{{catalog}}",
+      "target_schema": "silver_example",
+      "target_table": "example_dim_full_snapshot",
+      "target_type": "streaming_table",
+      "source_inputs": [
+        {
+          "input_name": "example_dim_full_snapshot_src",
+          "table": "{{catalog}}.bronze_example.example_raw",
+          "is_streaming": false
+        }
+      ],
+      "transformation_sql": "SELECT example_id, region, amount, op FROM example_dim_full_snapshot_src",
+      "target_config": {
+        "cdc_load_strategy": "FULL_SNAPSHOT_CDC",
+        "primary_keys": [
+          "example_id"
+        ],
+        "cdc_operation_column": "op",
+        "cdc_operation_mapping": {
+          "delete_values": [
+            "D",
+            "X"
+          ]
+        }
+      },
+      "dq_config": {},
+      "governance_tags": {}
+    },
+    {
+      "flow_step_id": "ts_template_full_snapshot_cdc_example",
+      "dataflow_id": "df_template_ingest",
+      "target_catalog": "{{catalog}}",
+      "target_schema": "silver_example",
+      "target_table": "example_dim_full_snapshot",
+      "target_type": "streaming_table",
+      "source_inputs": [
+        {
+          "input_name": "example_dim_full_snapshot_src",
+          "table": "{{catalog}}.bronze_example.example_raw",
+          "is_streaming": false
+        }
+      ],
+      "transformation_sql": "SELECT region, amount FROM example_dim_full_snapshot_src",
+      "target_config": {
+        "cdc_load_strategy": "FULL_SNAPSHOT_CDC",
+        "primary_keys": [
+          "region"
+        ]
+      },
+      "dq_config": {},
+      "governance_tags": {}
+    },
+    {
+      "flow_step_id": "ts_template_external_sink_example",
+      "dataflow_id": "df_template_ingest",
+      "target_catalog": "{{catalog}}",
+      "target_schema": "silver_example",
+      "target_table": "example_export_staged",
+      "target_type": "external_sink",
+      "source_inputs": [
+        {
+          "input_name": "example_export_staged_src",
+          "table": "{{catalog}}.bronze_example.example_raw",
+          "is_streaming": true
+        }
+      ],
+      "transformation_sql": "SELECT example_id, region, amount, updated_at FROM example_export_staged_src",
+      "target_config": {
+        "cdc_load_strategy": "APPEND",
+        "sink_config": {
+          "format": "pgp_zip",
+          "path": "/Volumes/{{catalog}}/egress/example_export/{{env}}/_staging/",
+          "post_export_archive": {
+            "enabled": true,
+            "output_zip_path": "/Volumes/{{catalog}}/egress/zips/example_export/{{env}}/",
+            "secret": {
+              "secret_catalog": "{{catalog}}",
+              "secret_schema": "security",
+              "secret_key": "egress_zip_password"
+            },
+            "pgp_encryption": {
+              "enabled": true,
+              "recipient_public_key_secret": {
+                "secret_catalog": "{{catalog}}",
+                "secret_schema": "security",
+                "secret_key": "egress_recipient_public_key"
+              },
+              "sign_with_private_key_secret": {
+                "secret_catalog": "{{catalog}}",
+                "secret_schema": "security",
+                "secret_key": "egress_sender_private_key"
+              }
+            }
+          }
+        }
+      },
+      "dq_config": {},
+      "governance_tags": {}
+    },
+    {
+      "flow_step_id": "ts_template_pure_sink_example",
+      "dataflow_id": "df_template_ingest",
+      "target_catalog": "{{catalog}}",
+      "target_schema": "silver_example",
+      "target_table": "example_direct_sink_output",
+      "target_type": "sink",
+      "source_inputs": [
+        {
+          "input_name": "example_direct_sink_src",
+          "table": "{{catalog}}.bronze_example.example_raw",
+          "is_streaming": true
+        }
+      ],
+      "transformation_sql": "SELECT example_id, region, amount, updated_at FROM example_direct_sink_src",
+      "target_config": {
+        "cdc_load_strategy": "APPEND",
+        "sink_config": {
+          "format": "delta",
+          "path": "/Volumes/{{catalog}}/egress/example_direct_sink/{{env}}/",
+          "write_mode": "append"
+        }
+      },
+      "dq_config": {},
+      "governance_tags": {}
+    },
+    {
+      "flow_step_id": "ts_template_stream_join_watermark_example",
+      "dataflow_id": "df_template_ingest",
+      "target_catalog": "{{catalog}}",
+      "target_schema": "silver_example",
+      "target_table": "example_dim_stream_join",
+      "target_type": "streaming_table",
+      "source_inputs": [
+        {
+          "input_name": "example_raw_join_left",
+          "table": "{{catalog}}.bronze_example.example_raw",
+          "is_streaming": true,
+          "watermark": {
+            "event_time_column": "updated_at",
+            "delay_threshold": "10 minutes"
+          }
+        },
+        {
+          "input_name": "example_zerobus_join_right",
+          "table": "{{catalog}}.bronze_example.example_zerobus_events",
+          "is_streaming": true,
+          "watermark": {
+            "event_time_column": "event_ts",
+            "delay_threshold": "10 minutes"
+          }
+        }
+      ],
+      "transformation_sql": "SELECT l.example_id, r.event_id, l.amount, r.event_ts FROM example_raw_join_left l JOIN example_zerobus_join_right r ON l.example_id = r.example_id AND r.event_ts BETWEEN l.updated_at - INTERVAL 10 MINUTES AND l.updated_at + INTERVAL 10 MINUTES",
+      "target_config": {
+        "cdc_load_strategy": "APPEND"
+      },
+      "dq_config": {},
+      "governance_tags": {}
+    },
+    {
+      "flow_step_id": "ts_template_union_all_example",
+      "dataflow_id": "df_template_ingest",
+      "target_catalog": "{{catalog}}",
+      "target_schema": "silver_example",
+      "target_table": "example_union_all_combined",
+      "target_type": "streaming_table",
+      "source_inputs": [
+        {
+          "input_name": "example_union_left",
+          "table": "{{catalog}}.bronze_example.example_raw",
+          "is_streaming": true
+        },
+        {
+          "input_name": "example_union_right",
+          "table": "{{catalog}}.bronze_example.example_zerobus_events",
+          "is_streaming": true
+        }
+      ],
+      "transformation_sql": "SELECT example_id, region, amount FROM example_union_left UNION ALL SELECT event_id AS example_id, NULL AS region, CAST(NULL AS DOUBLE) AS amount FROM example_union_right",
+      "target_config": {
+        "cdc_load_strategy": "APPEND"
+      },
+      "dq_config": {},
+      "governance_tags": {}
+    }
+  ],
+  "reconciliation_flows": [
+    {
+      "reconciliation_id": "recon_template_example",
+      "source_config": {
+        "type": "table",
+        "table": "{{catalog}}.bronze_example.example_volume_baseline",
+        "read_mode": "batch",
+        "filter_condition": "load_date = '${run_date}'",
+        "data_standardization_sql": [
+          "trim(status) AS status"
+        ],
+        "hash_precomputed": false
+      },
+      "target_configs": [
+        {
+          "target_id": "primary_product_table",
+          "type": "table",
+          "table": "{{catalog}}.bronze_example.example_raw_final",
+          "read_mode": "batch",
+          "hash_precomputed": true,
+          "comparison_direction": "both",
+          "append_target_table": "{{catalog}}.bronze_example.example_raw_cdc"
+        }
+      ],
+      "match_keys": [
+        "example_id"
+      ],
+      "compare_columns": [
+        "amount",
+        "status"
+      ],
+      "transform_sql": "SELECT example_id, amount, status FROM _reconciliation_unmatched_records",
+      "error_handling": {
+        "on_failure": "fail"
+      },
+      "two_tier_verification": true,
+      "logging_config": {
+        "run_log_capture": true,
+        "mismatch_log_capture": true
+      }
+    },
+    {
+      "reconciliation_id": "recon_template_warn_example",
+      "source_config": {
+        "type": "table",
+        "table": "{{catalog}}.bronze_example.example_secondary_baseline"
+      },
+      "target_configs": [
+        {
+          "target_id": "secondary",
+          "type": "table",
+          "table": "{{catalog}}.bronze_example.example_secondary_final",
+          "comparison_direction": "source_to_target",
+          "append_target_table": "{{catalog}}.bronze_example.example_secondary_cdc"
+        }
+      ],
+      "match_keys": [
+        "example_id"
+      ],
+      "error_handling": {
+        "on_failure": "warn"
+      },
+      "two_tier_verification": true,
+      "logging_config": {
+        "run_log_capture": true,
+        "mismatch_log_capture": false
+      }
+    }
+  ],
+  "observability": [
+    {
+      "id": "dest-dbx-volume-example",
+      "enabled": true,
+      "type": "DATABRICKS_VOLUME",
+      "destination_config": {
+        "volume_path": "/Volumes/{{catalog}}/observability/app_logs/",
+        "compression": "GZIP",
+        "file_format": "JSONL"
+      },
+      "mode": "triggered"
+    },
+    {
+      "id": "dest-otlp-example",
+      "enabled": true,
+      "type": "OTLP_CONSUMER",
+      "destination_config": {
+        "endpoint": "https://otel-collector.internal.net:4318/v1/logs",
+        "protocol": "OTLP_HTTP_JSON",
+        "compression": "gzip",
+        "resource_attributes": {
+          "service.name": "dlt-template-example",
+          "deployment.environment": "{{env}}"
+        },
+        "event_log_tables": [
+          "{{catalog}}.observability.pipeline_a_event_log",
+          "{{catalog}}.observability.pipeline_b_event_log"
+        ]
+      },
+      "auth": {
+        "type": "BEARER_TOKEN",
+        "credentials": {
+          "token": "env:OTLP_BEARER_TOKEN"
+        }
+      },
+      "retry": {
+        "max_attempts": 3
+      },
+      "timeout_ms": 5000,
+      "mode": "continuous"
+    }
+  ]
+}

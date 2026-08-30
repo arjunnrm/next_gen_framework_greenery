@@ -1,0 +1,37 @@
+{
+  "dataflow_group_id": "dfg_ing_001_zip_filter",
+  "pipeline_parameters": {},
+  "ingestion_flows": [
+    {
+      "dataflow_id": "df_ing_001_customer_zip_filter_ingest",
+      "source_system": "crm_zip_feed",
+      "source_database": "crm",
+      "source_table_name": "customer_data",
+      "source_description": "TC-ING-001: selective glob-pattern ZIP extraction -- only customer_*.zip archives are extracted/ingested, non-matching archives (e.g. vendor_feed_*.zip) are left untouched in the incoming Volume",
+      "source_type": "autoloader",
+      "target_catalog": "{{catalog}}",
+      "target_schema": "bronze_crm",
+      "target_table": "customer_raw",
+      "target_type": "streaming_table",
+      "source_config": {
+        "path": "/Volumes/{{catalog}}/crm/landing_zip/extracted/customer/",
+        "format": "csv",
+        "schema_location": "/Volumes/{{catalog}}/crm/_schemas/customer/",
+        "reader_options": {"header": "true", "cloudFiles.inferColumnTypes": "true"},
+        "capture_technical_metadata": true,
+        "source_zip_handling": {
+          "enabled": true,
+          "source_zip_path": "/Volumes/{{catalog}}/crm/landing_zip/incoming/",
+          "zip_file_pattern": "customer_*.zip",
+          "target_volume_path": "/Volumes/{{catalog}}/crm/landing_zip/extracted/customer/",
+          "delete_source_after_extract": false
+        }
+      },
+      "target_config": {"cdc_load_strategy": "APPEND", "storage_format": "delta"},
+      "dq_config": {"rules": []},
+      "governance_tags": {}
+    }
+  ],
+  "transformation_flows": [],
+  "reconciliation_flows": []
+}

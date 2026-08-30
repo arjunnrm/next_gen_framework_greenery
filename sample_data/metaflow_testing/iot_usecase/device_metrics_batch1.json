@@ -1,0 +1,2 @@
+{"device_id": "D1", "device_type": "env_sensor", "event_ts": "2026-08-28T09:00:00Z", "metrics": [{"sensor": "temp", "val": 22.5}, {"sensor": "pressure", "val": 101.3}]}
+{"device_id": "D2", "device_type": "env_sensor", "event_ts": "2026-08-28T09:05:00Z", "metrics": [{"sensor": "temp", "val": 24.1}, {"sensor": "pressure", "val": 99.8}]}

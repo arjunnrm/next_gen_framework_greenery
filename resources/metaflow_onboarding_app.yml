@@ -1,0 +1,10 @@
+# Databricks App resource definition for Metaflow Onboarding App
+resources:
+  apps:
+    metaflow_onboarding_app:
+      name: "metaflow-onboarding"
+      description: >-
+        Self-service Metaflow Onboarding Databricks App for authoring, validating,
+        diffing, and deploying metadata-driven ingestion, transformation, and
+        reconciliation pipelines (v1.3.0).
+      source_code_path: "../databricks-app"

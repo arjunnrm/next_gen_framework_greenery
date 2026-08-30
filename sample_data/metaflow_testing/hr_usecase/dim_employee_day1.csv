@@ -1,0 +1,4 @@
+employee_id,employee_name,dept_id,role,updated_at
+E101,Sarah Kim,D1,Software Engineer,2026-01-01T00:00:00
+E102,James Carter,D2,Data Analyst,2026-01-01T00:00:00
+E103,Priya Nair,D3,HR Specialist,2026-01-01T00:00:00

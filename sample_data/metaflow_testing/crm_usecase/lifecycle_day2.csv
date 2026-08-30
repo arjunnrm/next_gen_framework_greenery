@@ -1,0 +1,6 @@
+customer_id,customer_name,city,tier,updated_at
+CUST501,Ava Thompson,San Francisco,GOLD,2026-01-02T00:00:00
+CUST505,Olivia Brown,Miami,GOLD,2026-01-02T00:00:00
+CUST509,Isabella Lee,Seattle,SILVER,2026-01-02T00:00:00
+CUST511,Mia Anderson,Denver,BRONZE,2026-01-02T00:00:00
+CUST512,Ethan Walker,Austin,SILVER,2026-01-02T00:00:00

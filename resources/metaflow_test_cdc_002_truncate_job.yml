@@ -1,0 +1,56 @@
+# Wraps metaflow_test_cdc_002_truncate_pipeline:
+#
+#   setup_control_tables -> seed_cdc_002_truncate_data -> onboard_cdc_002 -> run_pipeline
+#
+# Self-contained and idempotent (control-table upsert + CREATE ... IF NOT EXISTS schema/volume
+# provisioning + idempotent fixture copy), so this job can be re-run on its own at any time --
+# including multiple times in a row, which is the whole point of this test case (the
+# materialized view target must still hold exactly 50 rows after each run).
+# See metaflow_testing/020_cdc_002_truncate.json and docs/41_tc_cdc_002.md.
+
+resources:
+  jobs:
+    metaflow_test_cdc_002_truncate_job:
+      name: Metaflow Test CDC-002 - Full Materialized View Snapshot (TRUNCATE_AND_LOAD)
+
+      tasks:
+        - task_key: setup_control_tables
+          notebook_task:
+            notebook_path: ../notebooks/01_setup/01_setup_control_tables.py
+            base_parameters:
+              catalog: metaflow
+          environment_key: framework_env
+
+        - task_key: seed_cdc_002_truncate_data
+          depends_on:
+            - task_key: setup_control_tables
+          notebook_task:
+            notebook_path: ../notebooks/00_seed_sample_data/03_seed_cdc_002_truncate_data.py
+            base_parameters:
+              catalog: metaflow
+          environment_key: framework_env
+
+        - task_key: onboard_cdc_002
+          depends_on:
+            - task_key: seed_cdc_002_truncate_data
+          notebook_task:
+            notebook_path: ../notebooks/02_onboarding/02_onboarding_engine.py
+            base_parameters:
+              spec_file_path: "${workspace.file_path}/metaflow_testing/020_cdc_002_truncate.json"
+              catalog: metaflow
+              env: dev
+              action_type: CREATE
+          environment_key: framework_env
+
+        - task_key: run_pipeline
+          depends_on:
+            - task_key: onboard_cdc_002
+          pipeline_task:
+            pipeline_id: ${resources.pipelines.metaflow_test_cdc_002_truncate_pipeline.id}
+
+      environments:
+        - environment_key: framework_env
+          spec:
+            environment_version: "4"
+            dependencies:
+              - ../dist/*.whl

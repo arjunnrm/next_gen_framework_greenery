@@ -1,0 +1,11 @@
+customer_id,customer_name,age,email
+C001,Alice Smith,34,alice@example.com
+C002,Bob Jones,45,bob@example.com
+C003,Carla Diaz,16,carla@example.com
+C004,David Lee,29,david@example.com
+C005,Elena Petrova,52,elena@example.com
+C006,Farid Khan,15,farid@example.com
+C007,Grace Kim,22,grace@example.com
+C008,Hassan Ali,38,hassan@example.com
+C009,Irene Novak,60,irene@example.com
+C010,Jamal Brown,19,jamal@example.com

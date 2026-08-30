@@ -1,0 +1,5 @@
+customer_id,customer_name,status,region,updated_at,op
+R001,North Star Inc,ACTIVE,US,2026-01-01T00:00:00,I
+R002,Blue Ocean LLC,ACTIVE,EU,2026-01-01T00:00:00,I
+R003,Green Valley Co,INACTIVE,APAC,2026-01-01T00:00:00,I
+R004,Silver Peak Ltd,SUSPENDED,US,2026-01-01T00:00:00,I

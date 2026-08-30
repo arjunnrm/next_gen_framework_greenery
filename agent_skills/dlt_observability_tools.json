@@ -1,0 +1,125 @@
+{
+  "$comment": "Declarative AI Agent / Copilot tool definitions for the DLT observability module (Deliverable 6). OpenAI Assistants/Chat Completions function-calling JSON Schema shape -- the same 'name'/'description'/'parameters' triple maps directly onto a LangChain StructuredTool (name/description/args_schema) or a Semantic Kernel KernelFunction (name/description/parameters), so this one file is the single source of truth regardless of which agent framework loads it. Each tool is backed by a real, pure-Python function in NextGen_Metadata_Framework.lakeflow_framework.observability.agent_tools -- see 'implementation' below for the exact import path. See docs/25_dlt_observability_module.md for the Error Handling Matrix diagnose_pipeline_telemetry_failures mirrors, and docs/27_dlt_observability_onboarding_reference.md for the full attribute dictionary validate_observability_config enforces. IMPORTANT: there is no separate observability config file -- an onboarding spec's own 'observability': [...] array (validated by onboarding/spec_validator.py, upserted by onboarding/metadata_upsert.py::upsert_observability_config) is the only place this configuration lives; these tools help an agent author/validate that array before merging it into a pipeline's onboarding spec.",
+  "tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "validate_observability_config",
+        "description": "Lint and validate an {\"observability\": [...]} JSON or YAML fragment -- the same shape that goes inside a pipeline's onboarding spec, alongside ingestion_flows/transformation_flows -- against the allowed destination_type/protocol/compression/auth-type/credential-reference values and required fields. Call this BEFORE merging a generated or hand-authored fragment into an onboarding spec, or whenever a user pastes an observability config and asks 'is this valid?' / 'why is my destination not working?' (structural causes only -- for a failed task run's error message, use diagnose_pipeline_telemetry_failures instead).",
+        "implementation": "NextGen_Metadata_Framework.lakeflow_framework.observability.agent_tools.validate_observability_config",
+        "parameters": {
+          "type": "object",
+          "required": ["config_text"],
+          "additionalProperties": false,
+          "properties": {
+            "config_text": {
+              "type": "string",
+              "description": "Full fragment text, JSON or YAML: {\"observability\": [...]}. May contain unresolved {{catalog}}/{{env}} placeholders."
+            },
+            "catalog": {
+              "type": "string",
+              "description": "Value substituted for {{catalog}} before validation. Omit to leave any {{catalog}} placeholder as literal text (usually surfaces as a validation error, which is often what the caller wants to see).",
+              "default": ""
+            },
+            "env": {
+              "type": "string",
+              "description": "Value substituted for {{env}} before validation.",
+              "default": ""
+            }
+          }
+        },
+        "returns": {
+          "type": "object",
+          "properties": {
+            "valid": { "type": "boolean" },
+            "errors": { "type": "array", "items": { "type": "string" }, "description": "One entry per schema violation, formatted '<json_path>: <message>'." },
+            "summary": { "type": "string" }
+          }
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "generate_pipeline_onboarding_config",
+        "description": "Auto-generate an {\"observability\": [...]} array to merge into a pipeline's onboarding spec, from a short list of destination targets (Databricks Volume and/or OTLP HTTP endpoints), filling in the full destination_config/auth/retry shape so the caller only supplies what's genuinely destination-specific. Call this when a user asks to 'set up observability for pipeline X' or 'onboard telemetry export to <destination>' -- the result should be passed through validate_observability_config, then merged into that pipeline's onboarding spec JSON/YAML (alongside its ingestion_flows/transformation_flows) before the next CREATE/UPDATE onboarding run.",
+        "implementation": "NextGen_Metadata_Framework.lakeflow_framework.observability.agent_tools.generate_pipeline_onboarding_config",
+        "parameters": {
+          "type": "object",
+          "required": ["dataflow_group_id", "destination_targets"],
+          "additionalProperties": false,
+          "properties": {
+            "dataflow_group_id": {
+              "type": "string",
+              "description": "The target pipeline's dataflow_group_id -- informational only (used in a log line); the returned observability[] array carries no scoping of its own and simply takes on whatever dataflow_group_id the onboarding spec it gets merged into declares."
+            },
+            "destination_targets": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "object",
+                "required": ["template"],
+                "properties": {
+                  "template": { "type": "string", "enum": ["databricks_volume", "otlp_http"] },
+                  "destination_id": { "type": "string", "description": "Defaults to 'dest-volume'/'dest-otlp' when omitted." },
+                  "volume_path": { "type": "string", "description": "Required for template=databricks_volume. Must start with /Volumes/." },
+                  "compression": { "type": "string", "enum": ["GZIP", "gzip", "none", ""] },
+                  "file_format": { "type": "string", "enum": ["JSONL", "JSON"] },
+                  "endpoint": { "type": "string", "description": "Required for template=otlp_http. Full https:// URL." },
+                  "auth": { "type": "object", "description": "Optional auth_config object (type + credentials, using env:/secret: references only)." },
+                  "resource_attributes": { "type": "object", "description": "Optional per-destination OTel resource attribute overrides." },
+                  "max_attempts": { "type": "integer" },
+                  "timeout_ms": { "type": "integer" }
+                }
+              }
+            },
+            "service_name": {
+              "type": "string",
+              "description": "Fallback OTel service.name resource attribute merged into every otlp_http destination that doesn't already set one."
+            },
+            "deployment_environment": {
+              "type": "string",
+              "description": "Fallback OTel deployment.environment resource attribute, same merge rule as service_name."
+            }
+          }
+        },
+        "returns": {
+          "type": "object",
+          "properties": {
+            "observability": { "type": "array", "description": "Merge this array directly into the target onboarding spec's own top-level \"observability\" key." }
+          }
+        }
+      }
+    },
+    {
+      "type": "function",
+      "function": {
+        "name": "diagnose_pipeline_telemetry_failures",
+        "description": "Inspect a failed observability task run's error message and match it against the known failure matrix (task wiring, pipeline config, destination config, credentials, destination outage, event log access) to return a likely cause and concrete remediation steps. Call this when a user pastes an error from a failed 'observability_export'-style task run and asks why it failed or how to fix it.",
+        "implementation": "NextGen_Metadata_Framework.lakeflow_framework.observability.agent_tools.diagnose_pipeline_telemetry_failures",
+        "parameters": {
+          "type": "object",
+          "required": ["error_message"],
+          "additionalProperties": false,
+          "properties": {
+            "error_message": {
+              "type": "string",
+              "description": "The exception message/traceback text from the failed task run (Jobs UI 'Error' panel, or a Jobs API run output field)."
+            }
+          }
+        },
+        "returns": {
+          "type": "object",
+          "properties": {
+            "matched": { "type": "boolean" },
+            "category": { "type": ["string", "null"], "enum": ["task_wiring", "pipeline_config", "destination_config", "credentials", "destination_outage", "event_log_access", null] },
+            "likely_cause": { "type": ["string", "null"] },
+            "remediation": { "type": ["string", "null"] }
+          }
+        }
+      }
+    }
+  ],
+  "langchain_equivalent": "Each 'function' object above maps to StructuredTool.from_function(name=..., description=..., func=<the implementation path>, args_schema=<a pydantic model built from 'parameters'>).",
+  "semantic_kernel_equivalent": "Each 'function' object maps to a KernelFunction created via @kernel_function(name=..., description=...) decorating the same implementation, with 'parameters' properties becoming Annotated[...] argument types."
+}

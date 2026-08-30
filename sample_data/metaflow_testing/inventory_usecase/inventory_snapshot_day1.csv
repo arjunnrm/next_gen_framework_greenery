@@ -1,0 +1,4 @@
+item_id,item_name,quantity,warehouse
+1,Steel Bolts,500,WH-EAST
+2,Copper Wire,1200,WH-WEST
+3,Rubber Gaskets,300,WH-EAST

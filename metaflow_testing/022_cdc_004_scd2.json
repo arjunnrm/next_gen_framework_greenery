@@ -1,0 +1,36 @@
+{
+  "dataflow_group_id": "dfg_cdc_004_scd2",
+  "pipeline_parameters": {},
+  "ingestion_flows": [
+    {
+      "dataflow_id": "df_cdc_004_employee_scd2_ingest",
+      "source_system": "hr_workday_extract",
+      "source_database": "hr_landing",
+      "source_table_name": "dim_employee",
+      "source_description": "TC-CDC-004: Auto Loader employee dimension ingestion with cdc_load_strategy SCD2 -- verifies a department transfer (E101: D1 -> D2) opens a new history version (__START_AT/__END_AT) instead of overwriting the row, that an unrelated column bump alone (E102/E103's updated_at advancing with dept_id unchanged) does NOT open a new version because columns_to_check scopes tracking to dept_id only, and that the framework's auto-generated dim_employee_scd2_current companion view (cdc/scd.py::register_scd2_reporting_view) reports only the active D2 row for E101",
+      "source_type": "autoloader",
+      "target_catalog": "{{catalog}}",
+      "target_schema": "silver_hr",
+      "target_table": "dim_employee_scd2",
+      "target_type": "streaming_table",
+      "source_config": {
+        "path": "/Volumes/{{catalog}}/hr/landing_emp/incoming/",
+        "format": "csv",
+        "schema_location": "/Volumes/{{catalog}}/hr/_schemas/dim_employee_scd2/",
+        "reader_options": {"header": "true", "cloudFiles.inferColumnTypes": "true"},
+        "capture_technical_metadata": true
+      },
+      "target_config": {
+        "cdc_load_strategy": "SCD2",
+        "storage_format": "delta",
+        "primary_keys": ["employee_id"],
+        "sequence_by_column": "updated_at",
+        "columns_to_check": ["dept_id"]
+      },
+      "dq_config": {"rules": []},
+      "governance_tags": {}
+    }
+  ],
+  "transformation_flows": [],
+  "reconciliation_flows": []
+}

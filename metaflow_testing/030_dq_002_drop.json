@@ -1,0 +1,38 @@
+{
+  "dataflow_group_id": "dfg_dq_002_drop",
+  "pipeline_parameters": {},
+  "ingestion_flows": [
+    {
+      "dataflow_id": "df_dq_002_txns_drop_ingest",
+      "source_system": "core_banking_txn_feed",
+      "source_database": "txns",
+      "source_table_name": "txns_clean",
+      "source_description": "TC-DQ-002: batch Auto Loader transaction feed with a single dq_config rule (amount > 0, action: drop) -- proves 'drop' silently filters violating rows out of the stream, never creating a quarantine table or failing the pipeline",
+      "source_type": "autoloader",
+      "target_catalog": "{{catalog}}",
+      "target_schema": "bronze_txns",
+      "target_table": "txns_clean_raw",
+      "target_type": "streaming_table",
+      "source_config": {
+        "path": "/Volumes/{{catalog}}/txns/landing_dq_drop/",
+        "format": "csv",
+        "schema_location": "/Volumes/{{catalog}}/txns/_schemas/txns_clean/",
+        "reader_options": {"header": "true", "cloudFiles.inferColumnTypes": "true"},
+        "capture_technical_metadata": true
+      },
+      "target_config": {"cdc_load_strategy": "APPEND", "storage_format": "delta"},
+      "dq_config": {
+        "rules": [
+          {
+            "rule_id": "dq_txn_amount_positive_drop",
+            "expression": "amount > 0",
+            "action": "drop"
+          }
+        ]
+      },
+      "governance_tags": {}
+    }
+  ],
+  "transformation_flows": [],
+  "reconciliation_flows": []
+}

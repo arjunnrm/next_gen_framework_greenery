@@ -1,0 +1,63 @@
+{
+  "dataflow_id": "df_template_asn1_ingest",
+  "source_system": "example_telecom_switch",
+  "source_database": "example_cdr_landing",
+  "source_table_name": "example_asn1_cdr",
+  "source_description": "Template: binary ASN.1 (BER/DER) CDR ingestion, PGP-decrypted then unzipped at rest in the source, full-snapshot CDC diffed on the CDR's own callReferenceId",
+  "source_type": "asn1",
+  "target_catalog": "{{catalog}}",
+  "target_schema": "bronze_example",
+  "target_table": "example_asn1_cdr",
+  "target_type": "batch_table",
+  "source_config": {
+    "path": "/Volumes/{{catalog}}/landing/example_asn1_zone/extracted/",
+    "schema_location": "/Volumes/{{catalog}}/landing/_schemas/example_asn1_cdr/",
+    "asn1_schema_path": "/Volumes/{{catalog}}/landing/_asn1_schemas/example_cdr.asn",
+    "asn1_codec": "ber",
+    "asn1_pdu_name": "ExampleCallDetailRecord",
+    "capture_technical_metadata": true,
+    "source_zip_handling": {
+      "enabled": true,
+      "source_zip_path": "/Volumes/{{catalog}}/landing/example_asn1_zone/{{env}}/incoming/",
+      "zip_file_pattern": "example_cdr_batch.zip",
+      "target_volume_path": "/Volumes/{{catalog}}/landing/example_asn1_zone/extracted/",
+      "pre_extraction_decryption": {
+        "type": "pgp",
+        "private_key_secret": {
+          "secret_catalog": "{{catalog}}",
+          "secret_schema": "security",
+          "secret_key": "cdr_pgp_private_key"
+        },
+        "secret_passphrase": {
+          "secret_catalog": "{{catalog}}",
+          "secret_schema": "security",
+          "secret_key": "cdr_zip_passphrase"
+        }
+      },
+      "delete_source_after_extract": true
+    }
+  },
+  "target_config": {
+    "cdc_load_strategy": "FULL_SNAPSHOT_CDC",
+    "primary_keys": [
+      "callReferenceId"
+    ],
+    "storage_format": "delta",
+    "cdc_operation_column": "recordStatus",
+    "cdc_operation_mapping": {
+      "delete_values": [
+        "DELETED"
+      ]
+    }
+  },
+  "dq_config": {
+    "rules": [
+      {
+        "rule_id": "dq_example_call_duration_non_negative",
+        "expression": "callDurationSeconds >= 0",
+        "action": "warn"
+      }
+    ]
+  },
+  "governance_tags": {}
+}

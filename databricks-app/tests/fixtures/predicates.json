@@ -1,0 +1,208 @@
+[
+  {
+    "name": "always operator",
+    "predicate": { "always": true },
+    "context": { "v": {} },
+    "expected": true
+  },
+  {
+    "name": "never operator",
+    "predicate": { "never": true },
+    "context": { "v": {} },
+    "expected": false
+  },
+  {
+    "name": "eq literal match",
+    "predicate": { "eq": ["source_type", "autoloader"] },
+    "context": { "v": { "source_type": "autoloader" } },
+    "expected": true
+  },
+  {
+    "name": "eq literal mismatch",
+    "predicate": { "eq": ["source_type", "autoloader"] },
+    "context": { "v": { "source_type": "zerobus" } },
+    "expected": false
+  },
+  {
+    "name": "ne literal match",
+    "predicate": { "ne": ["source_type", "zerobus"] },
+    "context": { "v": { "source_type": "autoloader" } },
+    "expected": true
+  },
+  {
+    "name": "in list match",
+    "predicate": { "in": ["source_config.format", ["json", "parquet"]] },
+    "context": { "v": { "source_config.format": "parquet" } },
+    "expected": true
+  },
+  {
+    "name": "nin list mismatch",
+    "predicate": { "nin": ["source_config.format", ["json", "parquet"]] },
+    "context": { "v": { "source_config.format": "csv" } },
+    "expected": true
+  },
+  {
+    "name": "gt numeric",
+    "predicate": { "gt": ["retry.max_attempts", 1] },
+    "context": { "v": { "retry.max_attempts": 3 } },
+    "expected": true
+  },
+  {
+    "name": "gte numeric equal",
+    "predicate": { "gte": ["retry.max_attempts", 3] },
+    "context": { "v": { "retry.max_attempts": 3 } },
+    "expected": true
+  },
+  {
+    "name": "lt numeric",
+    "predicate": { "lt": ["retry.max_attempts", 2] },
+    "context": { "v": { "retry.max_attempts": 3 } },
+    "expected": false
+  },
+  {
+    "name": "set on present non-empty",
+    "predicate": { "set": ["source_config.path"] },
+    "context": { "v": { "source_config.path": "/Volumes/test" } },
+    "expected": true
+  },
+  {
+    "name": "unset on missing path",
+    "predicate": { "unset": ["source_config.nonexistent"] },
+    "context": { "v": {} },
+    "expected": true
+  },
+  {
+    "name": "truthy on boolean true",
+    "predicate": { "truthy": ["source_config.remove_dups"] },
+    "context": { "v": { "source_config.remove_dups": true } },
+    "expected": true
+  },
+  {
+    "name": "truthy on string 'true'",
+    "predicate": { "truthy": ["source_config.remove_dups"] },
+    "context": { "v": { "source_config.remove_dups": "true" } },
+    "expected": true
+  },
+  {
+    "name": "falsy on boolean false",
+    "predicate": { "falsy": ["source_config.remove_dups"] },
+    "context": { "v": { "source_config.remove_dups": false } },
+    "expected": true
+  },
+  {
+    "name": "falsy on empty string",
+    "predicate": { "falsy": ["source_config.path"] },
+    "context": { "v": { "source_config.path": "" } },
+    "expected": true
+  },
+  {
+    "name": "nonempty on string",
+    "predicate": { "nonempty": ["source_config.path"] },
+    "context": { "v": { "source_config.path": "/Volumes/data" } },
+    "expected": true
+  },
+  {
+    "name": "empty on whitespace string",
+    "predicate": { "empty": ["source_config.path"] },
+    "context": { "v": { "source_config.path": "   " } },
+    "expected": true
+  },
+  {
+    "name": "empty on empty array",
+    "predicate": { "empty": ["target_config.primary_keys"] },
+    "context": { "v": { "target_config.primary_keys": [] } },
+    "expected": true
+  },
+  {
+    "name": "matches regex valid",
+    "predicate": { "matches": ["dataflow_group_id", "^[A-Za-z0-9_]+$"] },
+    "context": { "v": { "dataflow_group_id": "dfg_orders_123" } },
+    "expected": true
+  },
+  {
+    "name": "matches regex invalid with hyphen",
+    "predicate": { "matches": ["dataflow_group_id", "^[A-Za-z0-9_]+$"] },
+    "context": { "v": { "dataflow_group_id": "dfg-orders-123" } },
+    "expected": false
+  },
+  {
+    "name": "and logical operator",
+    "predicate": {
+      "and": [
+        { "eq": ["source_type", "autoloader"] },
+        { "in": ["source_config.format", ["json", "parquet"]] }
+      ]
+    },
+    "context": {
+      "v": {
+        "source_type": "autoloader",
+        "source_config.format": "json"
+      }
+    },
+    "expected": true
+  },
+  {
+    "name": "or logical operator",
+    "predicate": {
+      "or": [
+        { "eq": ["source_type", "asn1"] },
+        { "eq": ["source_type", "autoloader"] }
+      ]
+    },
+    "context": { "v": { "source_type": "asn1" } },
+    "expected": true
+  },
+  {
+    "name": "not logical operator",
+    "predicate": {
+      "not": { "eq": ["target_type", "batch_table"] }
+    },
+    "context": { "v": { "target_type": "streaming_table" } },
+    "expected": true
+  },
+  {
+    "name": "field value reference comparison",
+    "predicate": {
+      "eq": ["output_column", { "ref": "column_name" }]
+    },
+    "context": {
+      "v": {
+        "column_name": "customer_id",
+        "output_column": "customer_id"
+      }
+    },
+    "expected": true
+  },
+  {
+    "name": "root scope escape @",
+    "predicate": {
+      "eq": ["@observability_enabled", true]
+    },
+    "context": {
+      "v": {},
+      "root": {
+        "v": {
+          "@observability_enabled": true
+        }
+      }
+    },
+    "expected": true
+  },
+  {
+    "name": "nested row and parent scope ^.",
+    "predicate": {
+      "eq": ["^.target_type", "streaming_table"]
+    },
+    "context": {
+      "v": {
+        "column_name": "pii_field"
+      },
+      "parent": {
+        "v": {
+          "target_type": "streaming_table"
+        }
+      }
+    },
+    "expected": true
+  }
+]

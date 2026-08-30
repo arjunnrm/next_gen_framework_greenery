@@ -1,0 +1,45 @@
+{
+  "dataflow_group_id": "dfg_ing_005_pgp_decrypt",
+  "pipeline_parameters": {},
+  "ingestion_flows": [
+    {
+      "dataflow_id": "df_finance_pgp_txns_ingest",
+      "source_system": "finance_partner_extract",
+      "source_database": "finance_partner_feed",
+      "source_table_name": "txns",
+      "source_description": "TC-ING-005: partner drops a PGP-encrypted, then ZIPped, financial transactions batch (financial_txns_202608.zip.pgp) into the landing volume. The framework decrypts it in-memory via the private key resolved from the {{catalog}}.security.pgp_private_key_finance_test UC secret (source_zip_handling.pre_extraction_decryption.type = pgp), unzips the plaintext CSV, and Auto Loader ingests it into Bronze -- all inside one Lakeflow Declarative Pipeline update.",
+      "source_type": "autoloader",
+      "target_catalog": "{{catalog}}",
+      "target_schema": "bronze_finance",
+      "target_table": "txns_raw",
+      "target_type": "streaming_table",
+      "source_config": {
+        "path": "/Volumes/{{catalog}}/finance/landing_pgp/extracted/txns/",
+        "format": "csv",
+        "schema_location": "/Volumes/{{catalog}}/finance/_schemas/txns/",
+        "reader_options": {"header": "true", "cloudFiles.inferColumnTypes": "true"},
+        "capture_technical_metadata": true,
+        "source_zip_handling": {
+          "enabled": true,
+          "source_zip_path": "/Volumes/{{catalog}}/finance/landing_pgp/incoming/",
+          "zip_file_pattern": "financial_txns_202608.zip.pgp",
+          "target_volume_path": "/Volumes/{{catalog}}/finance/landing_pgp/extracted/txns/",
+          "pre_extraction_decryption": {
+            "type": "pgp",
+            "private_key_secret": {
+              "secret_catalog": "{{catalog}}",
+              "secret_schema": "security",
+              "secret_key": "pgp_private_key_finance_test"
+            }
+          },
+          "delete_source_after_extract": false
+        }
+      },
+      "target_config": {"cdc_load_strategy": "APPEND", "storage_format": "delta"},
+      "dq_config": {"rules": []},
+      "governance_tags": {}
+    }
+  ],
+  "transformation_flows": [],
+  "reconciliation_flows": []
+}

@@ -1,0 +1,540 @@
+{
+  "rules": [
+    {
+      "id": "one_flow_array_required",
+      "severity": "error",
+      "scope": "spec",
+      "when": {
+        "and": [
+          {
+            "empty": [
+              "@ingestion_flows"
+            ]
+          },
+          {
+            "empty": [
+              "@transformation_flows"
+            ]
+          },
+          {
+            "empty": [
+              "@reconciliation_flows"
+            ]
+          }
+        ]
+      },
+      "message": "At least one of ingestion_flows, transformation_flows or reconciliation_flows must be non-empty. observability does not count.",
+      "field_path": null,
+      "doc": "#1-top-level-spec-schema"
+    },
+    {
+      "id": "dataflow_group_id_pattern",
+      "severity": "error",
+      "scope": "spec",
+      "when": {
+        "and": [
+          {
+            "nonempty": [
+              "@dataflow_group_id"
+            ]
+          },
+          {
+            "not": {
+              "matches": [
+                "@dataflow_group_id",
+                "^[A-Za-z0-9_]+$"
+              ]
+            }
+          }
+        ]
+      },
+      "message": "dataflow_group_id must contain only alphanumeric characters and underscores.",
+      "field_path": "dataflow_group_id"
+    },
+    {
+      "id": "iceberg_batch_table_only",
+      "severity": "error",
+      "scope": "flow",
+      "when": {
+        "and": [
+          {
+            "eq": [
+              "target_config.storage_format",
+              "iceberg"
+            ]
+          },
+          {
+            "ne": [
+              "target_type",
+              "batch_table"
+            ]
+          }
+        ]
+      },
+      "message": "storage_format iceberg is only valid when target_type is batch_table. For other target types keep delta and set the table property enable_iceberg_read_uniformity: true.",
+      "field_path": "target_config.storage_format"
+    },
+    {
+      "id": "scd_requires_primary_keys",
+      "severity": "error",
+      "scope": "flow",
+      "when": {
+        "and": [
+          {
+            "in": [
+              "target_config.cdc_load_strategy",
+              [
+                "SCD1",
+                "SCD2",
+                "SCD3"
+              ]
+            ]
+          },
+          {
+            "empty": [
+              "target_config.primary_keys"
+            ]
+          }
+        ]
+      },
+      "message": "primary_keys is required when cdc_load_strategy is SCD1, SCD2, or SCD3.",
+      "field_path": "target_config.primary_keys"
+    },
+    {
+      "id": "scd3_transformation_only",
+      "severity": "error",
+      "scope": "flow",
+      "when": {
+        "and": [
+          {
+            "eq": [
+              "target_config.cdc_load_strategy",
+              "SCD3"
+            ]
+          },
+          {
+            "eq": [
+              "@__flow_kind",
+              "ingestion"
+            ]
+          }
+        ]
+      },
+      "message": "SCD3 is only valid for transformation flows.",
+      "field_path": "target_config.cdc_load_strategy"
+    },
+    {
+      "id": "scd3_requires_columns_to_check",
+      "severity": "error",
+      "scope": "flow",
+      "when": {
+        "and": [
+          {
+            "eq": [
+              "target_config.cdc_load_strategy",
+              "SCD3"
+            ]
+          },
+          {
+            "empty": [
+              "target_config.columns_to_check"
+            ]
+          }
+        ]
+      },
+      "message": "columns_to_check is required when cdc_load_strategy is SCD3.",
+      "field_path": "target_config.columns_to_check"
+    },
+    {
+      "id": "columns_to_exclude_cdc_only",
+      "severity": "error",
+      "scope": "flow",
+      "when": {
+        "and": [
+          {
+            "nonempty": [
+              "target_config.columns_to_exclude"
+            ]
+          },
+          {
+            "in": [
+              "target_config.cdc_load_strategy",
+              [
+                "APPEND",
+                "TRUNCATE_AND_LOAD"
+              ]
+            ]
+          }
+        ]
+      },
+      "message": "columns_to_exclude is only meaningful for SCD1, SCD2, and SCD3 strategies.",
+      "field_path": "target_config.columns_to_exclude"
+    },
+    {
+      "id": "auto_ttl_appendish_only",
+      "severity": "error",
+      "scope": "flow",
+      "when": {
+        "and": [
+          {
+            "or": [
+              {
+                "nonempty": [
+                  "target_config.auto_ttl.timestamp_column"
+                ]
+              },
+              {
+                "nonempty": [
+                  "target_config.auto_ttl.expire_in_days"
+                ]
+              }
+            ]
+          },
+          {
+            "nin": [
+              "target_config.cdc_load_strategy",
+              [
+                "APPEND",
+                "TRUNCATE_AND_LOAD"
+              ]
+            ]
+          }
+        ]
+      },
+      "message": "auto_ttl is only valid for APPEND and TRUNCATE_AND_LOAD strategies.",
+      "field_path": "target_config.auto_ttl.timestamp_column"
+    },
+    {
+      "id": "auto_ttl_pair",
+      "severity": "error",
+      "scope": "flow",
+      "when": {
+        "or": [
+          {
+            "and": [
+              {
+                "nonempty": [
+                  "target_config.auto_ttl.timestamp_column"
+                ]
+              },
+              {
+                "empty": [
+                  "target_config.auto_ttl.expire_in_days"
+                ]
+              }
+            ]
+          },
+          {
+            "and": [
+              {
+                "empty": [
+                  "target_config.auto_ttl.timestamp_column"
+                ]
+              },
+              {
+                "nonempty": [
+                  "target_config.auto_ttl.expire_in_days"
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "message": "Both auto_ttl.timestamp_column and auto_ttl.expire_in_days must be provided together.",
+      "field_path": "target_config.auto_ttl.timestamp_column"
+    },
+    {
+      "id": "delete_values_needs_operation_column",
+      "severity": "error",
+      "scope": "flow",
+      "when": {
+        "and": [
+          {
+            "nonempty": [
+              "target_config.cdc_operation_mapping.delete_values"
+            ]
+          },
+          {
+            "empty": [
+              "target_config.cdc_operation_column"
+            ]
+          }
+        ]
+      },
+      "message": "cdc_operation_mapping.delete_values requires cdc_operation_column to be configured.",
+      "field_path": "target_config.cdc_operation_column"
+    },
+    {
+      "id": "sink_requires_sink_config",
+      "severity": "error",
+      "scope": "flow",
+      "when": {
+        "and": [
+          {
+            "in": [
+              "target_type",
+              [
+                "sink",
+                "external_sink"
+              ]
+            ]
+          },
+          {
+            "empty": [
+              "target_config.sink_config.format"
+            ]
+          }
+        ]
+      },
+      "message": "sink_config.format is required when target_type is sink or external_sink.",
+      "field_path": "target_config.sink_config.format"
+    },
+    {
+      "id": "sink_path_required",
+      "severity": "error",
+      "scope": "flow",
+      "when": {
+        "and": [
+          {
+            "in": [
+              "target_type",
+              [
+                "sink",
+                "external_sink"
+              ]
+            ]
+          },
+          {
+            "ne": [
+              "target_config.sink_config.format",
+              "kafka"
+            ]
+          },
+          {
+            "empty": [
+              "target_config.sink_config.path"
+            ]
+          }
+        ]
+      },
+      "message": "target_config.sink_config.path is required for non-Kafka sink exports.",
+      "field_path": "target_config.sink_config.path"
+    },
+    {
+      "id": "watermark_pair",
+      "severity": "error",
+      "scope": "flow",
+      "when": {
+        "or": [
+          {
+            "and": [
+              {
+                "nonempty": [
+                  "source_config.dedup_watermark.event_time_column"
+                ]
+              },
+              {
+                "empty": [
+                  "source_config.dedup_watermark.delay_threshold"
+                ]
+              }
+            ]
+          },
+          {
+            "and": [
+              {
+                "empty": [
+                  "source_config.dedup_watermark.event_time_column"
+                ]
+              },
+              {
+                "nonempty": [
+                  "source_config.dedup_watermark.delay_threshold"
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "message": "Both dedup_watermark.event_time_column and dedup_watermark.delay_threshold must be specified together.",
+      "field_path": "source_config.dedup_watermark.event_time_column"
+    },
+    {
+      "id": "remove_dups_streaming_unbounded",
+      "severity": "warning",
+      "scope": "flow",
+      "when": {
+        "and": [
+          {
+            "truthy": [
+              "source_config.remove_dups"
+            ]
+          },
+          {
+            "empty": [
+              "source_config.dedup_watermark.event_time_column"
+            ]
+          }
+        ]
+      },
+      "message": "remove_dups on a streaming source with no dedup_watermark holds unbounded dedup state.",
+      "field_path": "source_config.dedup_watermark.event_time_column"
+    },
+    {
+      "id": "archive_path_missing_degrades",
+      "severity": "warning",
+      "scope": "flow",
+      "when": {
+        "and": [
+          {
+            "eq": [
+              "source_config.landing_retention_policy.clean_source",
+              "archive"
+            ]
+          },
+          {
+            "empty": [
+              "source_config.landing_retention_policy.archive_path"
+            ]
+          }
+        ]
+      },
+      "message": "clean_source: archive with an empty archive_path degrades to off at runtime.",
+      "field_path": "source_config.landing_retention_policy.archive_path"
+    },
+    {
+      "id": "explode_named_but_auto_flatten",
+      "severity": "warning",
+      "scope": "flow",
+      "when": {
+        "and": [
+          {
+            "eq": [
+              "source_config.explode_mode",
+              "named"
+            ]
+          },
+          {
+            "truthy": [
+              "source_config.auto_flatten_all"
+            ]
+          }
+        ]
+      },
+      "message": "auto_flatten_all: true overrides explode_mode: named and flattens all nested columns.",
+      "field_path": "source_config.auto_flatten_all"
+    },
+    {
+      "id": "recon_append_target_required",
+      "severity": "error",
+      "scope": "flow",
+      "when": {
+        "and": [
+          {
+            "eq": [
+              "@__flow_kind",
+              "reconciliation"
+            ]
+          },
+          {
+            "ne": [
+              "comparison_direction",
+              "target_to_source"
+            ]
+          },
+          {
+            "empty": [
+              "append_target_table"
+            ]
+          }
+        ]
+      },
+      "message": "append_target_table is required when reconciliation comparison_direction includes source-to-target healing.",
+      "field_path": "append_target_table"
+    },
+    {
+      "id": "observability_continuous_tables",
+      "severity": "error",
+      "scope": "flow",
+      "when": {
+        "and": [
+          {
+            "eq": [
+              "@__flow_kind",
+              "observability"
+            ]
+          },
+          {
+            "eq": [
+              "mode",
+              "continuous"
+            ]
+          },
+          {
+            "empty": [
+              "destination_config.event_log_tables"
+            ]
+          }
+        ]
+      },
+      "message": "destination_config.event_log_tables is required when observability mode is continuous.",
+      "field_path": "destination_config.event_log_tables"
+    },
+    {
+      "id": "observability_volume_path",
+      "severity": "error",
+      "scope": "flow",
+      "when": {
+        "and": [
+          {
+            "eq": [
+              "@__flow_kind",
+              "observability"
+            ]
+          },
+          {
+            "ne": [
+              "type",
+              "OTLP_CONSUMER"
+            ]
+          },
+          {
+            "empty": [
+              "destination_config.volume_path"
+            ]
+          }
+        ]
+      },
+      "message": "destination_config.volume_path is required for DATABRICKS_VOLUME observability destinations.",
+      "field_path": "destination_config.volume_path"
+    },
+    {
+      "id": "observability_otlp_endpoint",
+      "severity": "error",
+      "scope": "flow",
+      "when": {
+        "and": [
+          {
+            "eq": [
+              "@__flow_kind",
+              "observability"
+            ]
+          },
+          {
+            "eq": [
+              "type",
+              "OTLP_CONSUMER"
+            ]
+          },
+          {
+            "empty": [
+              "destination_config.endpoint"
+            ]
+          }
+        ]
+      },
+      "message": "destination_config.endpoint is required for OTLP_CONSUMER observability destinations.",
+      "field_path": "destination_config.endpoint"
+    }
+  ]
+}

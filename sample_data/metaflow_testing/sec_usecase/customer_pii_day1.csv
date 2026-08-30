@@ -1,0 +1,4 @@
+customer_id,customer_name,ssn,credit_card
+CUST001,Alice Johnson,123-45-6789,4111111111111111
+CUST002,Bob Martinez,234-56-7890,5500000000000004
+CUST003,Carol Nguyen,345-67-8901,340000000000009

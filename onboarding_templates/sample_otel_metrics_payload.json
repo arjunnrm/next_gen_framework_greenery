@@ -1,0 +1,325 @@
+{
+  "resourceMetrics": [
+    {
+      "resource": {
+        "attributes": [
+          {
+            "key": "service.name",
+            "value": {
+              "stringValue": "metaflow-lakeflow-telemetry"
+            }
+          },
+          {
+            "key": "service.version",
+            "value": {
+              "stringValue": "1.3.0"
+            }
+          },
+          {
+            "key": "deployment.environment",
+            "value": {
+              "stringValue": "prod"
+            }
+          },
+          {
+            "key": "cloud.provider",
+            "value": {
+              "stringValue": "azure"
+            }
+          },
+          {
+            "key": "cloud.region",
+            "value": {
+              "stringValue": "eastus2"
+            }
+          },
+          {
+            "key": "databricks.workspace_id",
+            "value": {
+              "stringValue": "1234567890123456"
+            }
+          },
+          {
+            "key": "databricks.dataflow_group_id",
+            "value": {
+              "stringValue": "dfg_orders_cdc"
+            }
+          },
+          {
+            "key": "databricks.pipeline_id",
+            "value": {
+              "stringValue": "a8f3b2c1-4d5e-6f7a-8b9c-0d1e2f3a4b5c"
+            }
+          },
+          {
+            "key": "databricks.job_id",
+            "value": {
+              "stringValue": "987654321098"
+            }
+          },
+          {
+            "key": "databricks.task_run_id",
+            "value": {
+              "stringValue": "5432109876"
+            }
+          },
+          {
+            "key": "host.name",
+            "value": {
+              "stringValue": "dbx-worker-10-0-128-4.internal"
+            }
+          }
+        ]
+      },
+      "scopeMetrics": [
+        {
+          "scope": {
+            "name": "NextGen_Metadata_Framework.lakeflow_framework.observability.metrics",
+            "version": "1.3.0",
+            "attributes": [
+              {
+                "key": "instrumentation.library",
+                "value": {
+                  "stringValue": "metaflow-otel-exporter"
+                }
+              }
+            ]
+          },
+          "metrics": [
+            {
+              "name": "lakeflow.flow.output_rows",
+              "description": "Total number of records successfully written to target table by Lakeflow flow",
+              "unit": "1",
+              "sum": {
+                "aggregationTemporality": "AGGREGATION_TEMPORALITY_CUMULATIVE",
+                "isMonotonic": true,
+                "dataPoints": [
+                  {
+                    "attributes": [
+                      {
+                        "key": "databricks.dataflow_id",
+                        "value": {
+                          "stringValue": "df_orders_bronze"
+                        }
+                      },
+                      {
+                        "key": "databricks.step_id",
+                        "value": {
+                          "stringValue": "df_orders_bronze"
+                        }
+                      },
+                      {
+                        "key": "lakeflow.flow_name",
+                        "value": {
+                          "stringValue": "df_orders_bronze"
+                        }
+                      },
+                      {
+                        "key": "lakeflow.dataset_name",
+                        "value": {
+                          "stringValue": "bronze.orders_raw"
+                        }
+                      },
+                      {
+                        "key": "pipeline.update_id",
+                        "value": {
+                          "stringValue": "upd-2026-08-29-001"
+                        }
+                      },
+                      {
+                        "key": "lakeflow.status",
+                        "value": {
+                          "stringValue": "COMPLETED"
+                        }
+                      }
+                    ],
+                    "startTimeUnixNano": "1787997600000000000",
+                    "timeUnixNano": "1787997660000000000",
+                    "asInt": "154200"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "lakeflow.flow.duration_ms",
+              "description": "Execution duration of Lakeflow flow in milliseconds",
+              "unit": "ms",
+              "gauge": {
+                "dataPoints": [
+                  {
+                    "attributes": [
+                      {
+                        "key": "databricks.dataflow_id",
+                        "value": {
+                          "stringValue": "df_orders_bronze"
+                        }
+                      },
+                      {
+                        "key": "lakeflow.flow_name",
+                        "value": {
+                          "stringValue": "df_orders_bronze"
+                        }
+                      },
+                      {
+                        "key": "lakeflow.dataset_name",
+                        "value": {
+                          "stringValue": "bronze.orders_raw"
+                        }
+                      },
+                      {
+                        "key": "pipeline.update_id",
+                        "value": {
+                          "stringValue": "upd-2026-08-29-001"
+                        }
+                      }
+                    ],
+                    "startTimeUnixNano": "1787997600000000000",
+                    "timeUnixNano": "1787997660000000000",
+                    "asDouble": 45280.5
+                  }
+                ]
+              }
+            },
+            {
+              "name": "lakeflow.data_quality.records_passed",
+              "description": "Total count of records passing data quality expectations",
+              "unit": "1",
+              "sum": {
+                "aggregationTemporality": "AGGREGATION_TEMPORALITY_CUMULATIVE",
+                "isMonotonic": true,
+                "dataPoints": [
+                  {
+                    "attributes": [
+                      {
+                        "key": "databricks.dataflow_id",
+                        "value": {
+                          "stringValue": "df_orders_bronze"
+                        }
+                      },
+                      {
+                        "key": "lakeflow.expectation_name",
+                        "value": {
+                          "stringValue": "valid_order_id"
+                        }
+                      },
+                      {
+                        "key": "lakeflow.dataset_name",
+                        "value": {
+                          "stringValue": "bronze.orders_raw"
+                        }
+                      },
+                      {
+                        "key": "pipeline.update_id",
+                        "value": {
+                          "stringValue": "upd-2026-08-29-001"
+                        }
+                      }
+                    ],
+                    "startTimeUnixNano": "1787997600000000000",
+                    "timeUnixNano": "1787997660000000000",
+                    "asInt": "154180"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "lakeflow.data_quality.records_failed",
+              "description": "Total count of records failing data quality expectations",
+              "unit": "1",
+              "sum": {
+                "aggregationTemporality": "AGGREGATION_TEMPORALITY_CUMULATIVE",
+                "isMonotonic": true,
+                "dataPoints": [
+                  {
+                    "attributes": [
+                      {
+                        "key": "databricks.dataflow_id",
+                        "value": {
+                          "stringValue": "df_orders_bronze"
+                        }
+                      },
+                      {
+                        "key": "lakeflow.expectation_name",
+                        "value": {
+                          "stringValue": "valid_order_id"
+                        }
+                      },
+                      {
+                        "key": "lakeflow.dataset_name",
+                        "value": {
+                          "stringValue": "bronze.orders_raw"
+                        }
+                      },
+                      {
+                        "key": "lakeflow.dq_action",
+                        "value": {
+                          "stringValue": "drop"
+                        }
+                      },
+                      {
+                        "key": "pipeline.update_id",
+                        "value": {
+                          "stringValue": "upd-2026-08-29-001"
+                        }
+                      }
+                    ],
+                    "startTimeUnixNano": "1787997600000000000",
+                    "timeUnixNano": "1787997660000000000",
+                    "asInt": "20"
+                  }
+                ]
+              }
+            },
+            {
+              "name": "lakeflow.flow.batch_latency_seconds",
+              "description": "Distribution of micro-batch processing latencies",
+              "unit": "s",
+              "histogram": {
+                "aggregationTemporality": "AGGREGATION_TEMPORALITY_CUMULATIVE",
+                "dataPoints": [
+                  {
+                    "attributes": [
+                      {
+                        "key": "databricks.dataflow_id",
+                        "value": {
+                          "stringValue": "df_orders_bronze"
+                        }
+                      },
+                      {
+                        "key": "lakeflow.dataset_name",
+                        "value": {
+                          "stringValue": "bronze.orders_raw"
+                        }
+                      }
+                    ],
+                    "startTimeUnixNano": "1787997600000000000",
+                    "timeUnixNano": "1787997660000000000",
+                    "count": "100",
+                    "sum": 245.5,
+                    "bucketCounts": [
+                      "10",
+                      "45",
+                      "30",
+                      "12",
+                      "3",
+                      "0"
+                    ],
+                    "explicitBounds": [
+                      0.5,
+                      1.0,
+                      2.5,
+                      5.0,
+                      10.0
+                    ],
+                    "min": 0.12,
+                    "max": 8.45
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

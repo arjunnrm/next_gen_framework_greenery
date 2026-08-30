@@ -1,0 +1,30 @@
+{
+  "dataflow_group_id": "dfg_ing_008_tech_metadata",
+  "pipeline_parameters": {},
+  "ingestion_flows": [
+    {
+      "dataflow_id": "df_ing_008_dept_tech_metadata_ingest",
+      "source_system": "ea_enterprise_architecture",
+      "source_database": "ea_reference_data",
+      "source_table_name": "departments",
+      "source_description": "TC-ING-008: plain CSV Auto Loader ingestion of EA department reference data, proving __framework_* technical metadata columns land correctly and business columns (dept_id, dept_name, region) precede them in the target table's schema order",
+      "source_type": "autoloader",
+      "target_catalog": "{{catalog}}",
+      "target_schema": "bronze_ea",
+      "target_table": "departments_tech_metadata_raw",
+      "target_type": "streaming_table",
+      "source_config": {
+        "path": "/Volumes/{{catalog}}/ea/landing_csv/",
+        "format": "csv",
+        "schema_location": "/Volumes/{{catalog}}/ea/_schemas/departments_tech_metadata/",
+        "reader_options": {"header": "true", "cloudFiles.inferColumnTypes": "true"},
+        "capture_technical_metadata": true
+      },
+      "target_config": {"cdc_load_strategy": "APPEND", "storage_format": "delta"},
+      "dq_config": {"rules": []},
+      "governance_tags": {}
+    }
+  ],
+  "transformation_flows": [],
+  "reconciliation_flows": []
+}

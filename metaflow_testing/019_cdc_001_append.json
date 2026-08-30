@@ -1,0 +1,30 @@
+{
+  "dataflow_group_id": "dfg_cdc_001_append",
+  "pipeline_parameters": {},
+  "ingestion_flows": [
+    {
+      "dataflow_id": "df_cdc_001_page_clicks_ingest",
+      "source_system": "web_analytics_clickstream",
+      "source_database": "web_events",
+      "source_table_name": "page_clicks",
+      "source_description": "TC-CDC-001: streaming Auto Loader clickstream ingestion with cdc_load_strategy APPEND -- verifies every micro-batch event is appended verbatim, including rows that share an identical (user_id, event_timestamp) pair, with no deduplication and no history overhead",
+      "source_type": "autoloader",
+      "target_catalog": "{{catalog}}",
+      "target_schema": "bronze_web",
+      "target_table": "page_clicks_stream",
+      "target_type": "streaming_table",
+      "source_config": {
+        "path": "/Volumes/{{catalog}}/web/landing_clicks/incoming/",
+        "format": "csv",
+        "schema_location": "/Volumes/{{catalog}}/web/_schemas/page_clicks_stream/",
+        "reader_options": {"header": "true", "cloudFiles.inferColumnTypes": "true"},
+        "capture_technical_metadata": true
+      },
+      "target_config": {"cdc_load_strategy": "APPEND", "storage_format": "delta"},
+      "dq_config": {"rules": []},
+      "governance_tags": {}
+    }
+  ],
+  "transformation_flows": [],
+  "reconciliation_flows": []
+}

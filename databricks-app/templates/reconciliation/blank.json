@@ -1,0 +1,21 @@
+{
+  "reconciliation_id": "recon_new_reconciliation",
+  "source_config": {
+    "type": "table",
+    "table": "{{catalog}}.bronze_example.source_table",
+    "read_mode": "batch"
+  },
+  "target_configs": [
+    {
+      "target_id": "target_1",
+      "target_catalog": "{{catalog}}",
+      "target_schema": "bronze_example",
+      "target_table": "target_table",
+      "comparison_direction": "both",
+      "append_target_table": "{{catalog}}.bronze_example.healed_table"
+    }
+  ],
+  "match_keys": [
+    "id"
+  ]
+}

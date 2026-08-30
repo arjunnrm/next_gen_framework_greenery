@@ -1,0 +1,47 @@
+{
+  "flow_step_id": "ts_template_external_sink_example",
+  "dataflow_id": "df_template_ingest",
+  "target_catalog": "{{catalog}}",
+  "target_schema": "silver_example",
+  "target_table": "example_export_staged",
+  "target_type": "external_sink",
+  "source_inputs": [
+    {
+      "input_name": "example_export_staged_src",
+      "table": "{{catalog}}.bronze_example.example_raw",
+      "is_streaming": true
+    }
+  ],
+  "transformation_sql": "SELECT example_id, region, amount, updated_at FROM example_export_staged_src",
+  "target_config": {
+    "cdc_load_strategy": "APPEND",
+    "sink_config": {
+      "format": "pgp_zip",
+      "path": "/Volumes/{{catalog}}/egress/example_export/{{env}}/_staging/",
+      "post_export_archive": {
+        "enabled": true,
+        "output_zip_path": "/Volumes/{{catalog}}/egress/zips/example_export/{{env}}/",
+        "secret": {
+          "secret_catalog": "{{catalog}}",
+          "secret_schema": "security",
+          "secret_key": "egress_zip_password"
+        },
+        "pgp_encryption": {
+          "enabled": true,
+          "recipient_public_key_secret": {
+            "secret_catalog": "{{catalog}}",
+            "secret_schema": "security",
+            "secret_key": "egress_recipient_public_key"
+          },
+          "sign_with_private_key_secret": {
+            "secret_catalog": "{{catalog}}",
+            "secret_schema": "security",
+            "secret_key": "egress_sender_private_key"
+          }
+        }
+      }
+    }
+  },
+  "dq_config": {},
+  "governance_tags": {}
+}

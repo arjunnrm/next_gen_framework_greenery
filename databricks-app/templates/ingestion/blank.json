@@ -1,0 +1,15 @@
+{
+  "dataflow_id": "df_new_ingestion",
+  "source_type": "autoloader",
+  "target_catalog": "{{catalog}}",
+  "target_schema": "bronze_example",
+  "target_table": "new_table_raw",
+  "target_type": "streaming_table",
+  "source_config": {
+    "path": "/Volumes/{{catalog}}/landing/zone/incoming/",
+    "format": "csv"
+  },
+  "target_config": {
+    "cdc_load_strategy": "APPEND"
+  }
+}

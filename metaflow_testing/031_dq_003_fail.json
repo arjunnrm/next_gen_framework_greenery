@@ -1,0 +1,38 @@
+{
+  "dataflow_group_id": "dfg_dq_003_fail",
+  "pipeline_parameters": {},
+  "ingestion_flows": [
+    {
+      "dataflow_id": "df_dq_003_accounts_strict_ingest",
+      "source_system": "core_banking_accounts_feed",
+      "source_database": "banking",
+      "source_table_name": "accounts_strict",
+      "source_description": "TC-DQ-003: batch Auto Loader banking accounts feed with a single critical dq_config rule (account_id IS NOT NULL, action: fail) -- proves 'fail' immediately aborts the Lakeflow pipeline update the moment a violating row is encountered, unlike 'warn'/'drop'/'quarantine'",
+      "source_type": "autoloader",
+      "target_catalog": "{{catalog}}",
+      "target_schema": "bronze_banking",
+      "target_table": "accounts_strict_raw",
+      "target_type": "streaming_table",
+      "source_config": {
+        "path": "/Volumes/{{catalog}}/banking/landing_dq_fail/",
+        "format": "csv",
+        "schema_location": "/Volumes/{{catalog}}/banking/_schemas/accounts_strict/",
+        "reader_options": {"header": "true", "cloudFiles.inferColumnTypes": "true"},
+        "capture_technical_metadata": true
+      },
+      "target_config": {"cdc_load_strategy": "APPEND", "storage_format": "delta"},
+      "dq_config": {
+        "rules": [
+          {
+            "rule_id": "dq_accounts_account_id_not_null_fail",
+            "expression": "account_id IS NOT NULL",
+            "action": "fail"
+          }
+        ]
+      },
+      "governance_tags": {}
+    }
+  ],
+  "transformation_flows": [],
+  "reconciliation_flows": []
+}

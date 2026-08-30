@@ -1,0 +1,6 @@
+visit_id,patient_id,patient_name,visit_date,department,billing_amount
+V1001,P2001,John Whitfield,2026-08-10,Cardiology,250.00
+V1002,P2002,Maria Alvarez,2026-08-11,Orthopedics,175.50
+V1003,P2003,Wei Chen,2026-08-12,Radiology,320.25
+V1004,P2004,Fatima Haddad,2026-08-12,Cardiology,99.75
+V1005,P2005,Noah Kim,2026-08-13,Neurology,410.50

@@ -1,0 +1,38 @@
+{
+  "dataflow_group_id": "dfg_dq_001_warn",
+  "pipeline_parameters": {},
+  "ingestion_flows": [
+    {
+      "dataflow_id": "df_dq_001_customer_warn_ingest",
+      "source_system": "crm_customer_feed",
+      "source_database": "crm",
+      "source_table_name": "customer_warn",
+      "source_description": "TC-DQ-001: batch Auto Loader customer feed with a single dq_config rule (age >= 18, action: warn) -- proves 'warn' never blocks or drops a row, it only surfaces as a native Lakeflow expectation violation in the pipeline's own event log",
+      "source_type": "autoloader",
+      "target_catalog": "{{catalog}}",
+      "target_schema": "bronze_crm",
+      "target_table": "customer_warn_raw",
+      "target_type": "streaming_table",
+      "source_config": {
+        "path": "/Volumes/{{catalog}}/crm/landing_dq_warn/",
+        "format": "csv",
+        "schema_location": "/Volumes/{{catalog}}/crm/_schemas/customer_warn/",
+        "reader_options": {"header": "true", "cloudFiles.inferColumnTypes": "true"},
+        "capture_technical_metadata": true
+      },
+      "target_config": {"cdc_load_strategy": "APPEND", "storage_format": "delta"},
+      "dq_config": {
+        "rules": [
+          {
+            "rule_id": "dq_customer_age_adult_warn",
+            "expression": "age >= 18",
+            "action": "warn"
+          }
+        ]
+      },
+      "governance_tags": {}
+    }
+  ],
+  "transformation_flows": [],
+  "reconciliation_flows": []
+}

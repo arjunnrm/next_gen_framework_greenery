@@ -1,0 +1,18 @@
+.databricks/
+build/
+dist/
+!databricks-app/web/dist/**
+!databricks-app/static/**
+__pycache__/
+*.egg-info
+.venv/
+scratch/**
+!scratch/README.md
+**/explorations/**
+**/!explorations/README.md
+node_modules/
+site/
+
+# Windows reserved filename - git cannot index this build byproduct
+databricks-app/web/nul.css
+.pytest_cache/

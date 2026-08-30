@@ -1,0 +1,248 @@
+"""
+Registry loader and resolver for Metaflow Onboarding App.
+Loads config/registry/*.json, expands $fragment refs, merges phase mappings,
+and validates registry integrity at startup.
+"""
+
+import copy
+import json
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Tuple
+
+from server.core.predicates import evaluate_predicate
+
+
+class RegistryManager:
+    """Manages loaded and resolved registry definitions."""
+
+    def __init__(self, config_dir: Optional[Path] = None):
+        if config_dir is None:
+            config_dir = Path(__file__).parent.parent.parent / "config"
+        self.config_dir = config_dir
+        self.meta: Dict[str, Any] = {}
+        self.fragments: Dict[str, Any] = {}
+        self.registries: Dict[str, List[Dict[str, Any]]] = {}
+        self.phases: Dict[str, Any] = {}
+        self.rules: List[Dict[str, Any]] = []
+        self.docs: Dict[str, Any] = {}
+        self.theme: Dict[str, Any] = {}
+        self.field_maps: Dict[str, Dict[str, Dict[str, Any]]] = {}
+        self.reload()
+
+    def reload(self) -> None:
+        """Load and resolve all registry files."""
+        registry_dir = self.config_dir / "registry"
+        phases_dir = self.config_dir / "phases"
+
+        # 1. Load metadata & fragments
+        with open(registry_dir / "_meta.json", "r", encoding="utf-8") as f:
+            self.meta = json.load(f)
+
+        with open(registry_dir / "fragments.json", "r", encoding="utf-8") as f:
+            self.fragments = json.load(f)
+
+        # 2. Load shared components
+        with open(registry_dir / "shared.cdc.json", "r", encoding="utf-8") as f:
+            self.shared_cdc = json.load(f)
+
+        with open(registry_dir / "shared.target.json", "r", encoding="utf-8") as f:
+            self.shared_target = json.load(f)
+
+        # 3. Load flow kind registries
+        for kind in ("root", "observability", "ingestion", "transformation", "reconciliation"):
+            file_path = registry_dir / f"{kind}.json"
+            if file_path.exists():
+                with open(file_path, "r", encoding="utf-8") as f:
+                    raw_sections = json.load(f)
+                    self.registries[kind] = self._resolve_sections(raw_sections, kind)
+
+        # Append shared target sections to ingestion and transformation
+        for kind in ("ingestion", "transformation"):
+            target_secs = copy.deepcopy(self.shared_target)
+            resolved_target_secs = self._resolve_sections(target_secs, kind)
+            self.registries[kind].extend(resolved_target_secs)
+
+        # 4. Load phases
+        for kind in ("ingestion", "transformation", "reconciliation", "spec"):
+            phase_file = phases_dir / f"{kind}.json"
+            if phase_file.exists():
+                with open(phase_file, "r", encoding="utf-8") as f:
+                    self.phases[kind] = json.load(f)
+
+        # 5. Load validation rules
+        rules_file = self.config_dir / "validation" / "rules.json"
+        if rules_file.exists():
+            with open(rules_file, "r", encoding="utf-8") as f:
+                self.rules = json.load(f).get("rules", [])
+
+        # 6. Load docs and theme
+        docs_file = self.config_dir / "docs.json"
+        if docs_file.exists():
+            with open(docs_file, "r", encoding="utf-8") as f:
+                self.docs = json.load(f)
+
+        theme_file = self.config_dir / "theme.json"
+        if theme_file.exists():
+            with open(theme_file, "r", encoding="utf-8") as f:
+                self.theme = json.load(f)
+
+        # 7. Build flattened field lookup maps
+        self._build_field_maps()
+
+        # 8. Run integrity assertions
+        self.verify_integrity()
+
+    def _resolve_sections(self, sections: List[Dict[str, Any]], flow_kind: str) -> List[Dict[str, Any]]:
+        """Expand fragments and inherit section visible_when onto fields."""
+        resolved: List[Dict[str, Any]] = []
+        for sec in sections:
+            sec_copy = copy.deepcopy(sec)
+            sec_vis = sec_copy.get("visible_when")
+            fields = sec_copy.get("fields", [])
+            expanded_fields = self._expand_fields(fields, flow_kind)
+
+            # Inherit section visibility onto each field
+            if sec_vis:
+                for f in expanded_fields:
+                    if "visible_when" in f:
+                        f["visible_when"] = {"and": [sec_vis, f["visible_when"]]}
+                    else:
+                        f["visible_when"] = sec_vis
+
+            sec_copy["fields"] = expanded_fields
+            resolved.append(sec_copy)
+        return resolved
+
+    def _expand_fields(self, fields: List[Dict[str, Any]], flow_kind: str) -> List[Dict[str, Any]]:
+        """Recursively expand $fragment references and repeat fields."""
+        out: List[Dict[str, Any]] = []
+        for f in fields:
+            if "$fragment" in f:
+                frag_name = f["$fragment"]
+                prefix = f.get("prefix", "")
+                params = f.get("params", {})
+                frag_vis = f.get("visible_when")
+
+                if frag_name not in self.fragments:
+                    raise ValueError(f"Unknown fragment reference: '{frag_name}'")
+
+                frag_def = copy.deepcopy(self.fragments[frag_name])
+                for frag_field in frag_def.get("fields", []):
+                    # Replace prefix
+                    bare_path = frag_field["path"]
+                    full_path = f"{prefix}.{bare_path}" if prefix else bare_path
+                    frag_field["path"] = full_path
+                    if "label" not in frag_field:
+                        frag_field["label"] = full_path
+
+                    # Substitute string parameters
+                    for k, v in params.items():
+                        placeholder = f"{{{{{k}}}}}"
+                        for attr in ("required", "placeholder", "description", "default"):
+                            if attr in frag_field and isinstance(frag_field[attr], str):
+                                if frag_field[attr] == placeholder:
+                                    frag_field[attr] = v
+                                else:
+                                    frag_field[attr] = frag_field[attr].replace(placeholder, str(v))
+                            elif attr in frag_field and frag_field[attr] == placeholder:
+                                frag_field[attr] = v
+
+                    # AND visibility condition
+                    if frag_vis:
+                        if "visible_when" in frag_field:
+                            frag_field["visible_when"] = {"and": [frag_vis, frag_field["visible_when"]]}
+                        else:
+                            frag_field["visible_when"] = frag_vis
+
+                    out.append(frag_field)
+            elif f.get("widget") == "repeat" and "fields" in f:
+                f_copy = copy.deepcopy(f)
+                f_copy["fields"] = self._expand_fields(f_copy["fields"], flow_kind)
+                out.append(f_copy)
+            else:
+                out.append(copy.deepcopy(f))
+        return out
+
+    def _build_field_maps(self) -> None:
+        """Build path -> field descriptor map for each flow kind."""
+        self.field_maps = {}
+        for kind, secs in self.registries.items():
+            self.field_maps[kind] = {}
+            for sec in secs:
+                for f in sec.get("fields", []):
+                    self.field_maps[kind][f["path"]] = f
+
+            # Also add CDC fields to ingestion and transformation
+            if kind in ("ingestion", "transformation"):
+                self.field_maps[kind]["target_config.cdc_load_strategy"] = {
+                    "path": "target_config.cdc_load_strategy",
+                    "widget": "select",
+                    "type": "string",
+                    "default": "APPEND",
+                    "options": [t["value"] for t in self.shared_cdc.get("tabs", [])],
+                    "description": "CDC merge strategy."
+                }
+                for f in self.shared_cdc.get("fields", []):
+                    self.field_maps[kind][f["path"]] = f
+
+    def get_field_definition(self, flow_kind: str, path: str) -> Optional[Dict[str, Any]]:
+        """Look up a field descriptor by dotted path."""
+        if path.startswith("@"):
+            return self.field_maps.get("root", {}).get(path) or self.field_maps.get("observability", {}).get(path)
+        return self.field_maps.get(flow_kind, {}).get(path)
+
+    def count_documented_attributes(self) -> int:
+        """Count total unique documented attributes across all registries."""
+        paths = set()
+        for kind, fmap in self.field_maps.items():
+            for p, f in fmap.items():
+                paths.add((kind, p))
+        return len(paths)
+
+    def verify_integrity(self) -> None:
+        """Run §13.7 startup integrity assertions.
+        Fails fast if any rule is violated.
+        """
+        known_widgets = set(self.meta.get("widgets", []))
+        all_section_ids = set()
+
+        for kind, secs in self.registries.items():
+            seen_paths = set()
+            for sec in secs:
+                sec_id = sec["id"]
+                all_section_ids.add(sec_id)
+
+                for f in sec.get("fields", []):
+                    path = f["path"]
+                    # Duplicate path check
+                    if path in seen_paths:
+                        raise ValueError(f"Duplicate path '{path}' in registry '{kind}' section '{sec_id}'")
+                    seen_paths.add(path)
+
+                    # Required field descriptor keys
+                    if "widget" not in f:
+                        raise ValueError(f"Field '{path}' in '{kind}' lacks 'widget'")
+                    if f["widget"] not in known_widgets:
+                        raise ValueError(f"Field '{path}' in '{kind}' has unknown widget '{f['widget']}'")
+                    if "type" not in f and f["widget"] != "note":
+                        raise ValueError(f"Field '{path}' in '{kind}' lacks 'type'")
+                    if "description" not in f or not str(f["description"]).strip():
+                        raise ValueError(f"Field '{path}' in '{kind}' lacks 'description'")
+
+                    # Select option checks
+                    if f["widget"] == "select" and "options" not in f and "options_when" not in f:
+                        raise ValueError(f"Select field '{path}' in '{kind}' lacks options")
+
+        # Verify every phase references real sections
+        for pkind, pdef in self.phases.items():
+            for phase in pdef.get("phases", []):
+                for sid in phase.get("sections", []):
+                    if sid not in all_section_ids:
+                        raise ValueError(f"Phase '{phase.get('label')}' in '{pkind}' references non-existent section '{sid}'")
+
+        # Check emission modes for absent_vs_empty fields
+        emission_targets = {entry["target"] for entry in self.meta.get("emission_modes", [])}
+        for kind, fmap in self.field_maps.items():
+            for p, f in fmap.items():
+                if f.get("absent_vs_empty") and p not in emission_targets:
+                    raise ValueError(f"Field '{p}' has absent_vs_empty: true but no matching emission_modes entry")

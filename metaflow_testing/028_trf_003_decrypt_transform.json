@@ -1,0 +1,73 @@
+{
+  "dataflow_group_id": "dfg_trf_003_decrypt_transform",
+  "pipeline_parameters": {},
+  "ingestion_flows": [
+    {
+      "dataflow_id": "df_health_patient_visits_ingest",
+      "source_system": "hospital_billing_system",
+      "source_database": "health_ops",
+      "source_table_name": "patient_visits",
+      "source_description": "TC-TRF-003: hospital patient visit extract landed via Auto Loader. billing_amount is AES-GCM encrypted at rest in Bronze via target_config.encrypted_columns, keyed off the {{catalog}}.security.pii_encryption_key UC secret this project already provisions (see docs/05_deployment_guide.md) -- decrypted in-memory only by the downstream transformation flow's source_inputs[].decrypted_columns, immediately ahead of its sum(billing_amount) computation, never persisted to Bronze in plaintext.",
+      "source_type": "autoloader",
+      "target_catalog": "{{catalog}}",
+      "target_schema": "bronze_health",
+      "target_table": "patient_visits_raw",
+      "target_type": "streaming_table",
+      "source_config": {
+        "path": "/Volumes/{{catalog}}/health/landing_visits/incoming/",
+        "format": "csv",
+        "schema_location": "/Volumes/{{catalog}}/health/_schemas/patient_visits/",
+        "reader_options": {"header": "true", "cloudFiles.inferColumnTypes": "true"},
+        "capture_technical_metadata": true
+      },
+      "target_config": {
+        "cdc_load_strategy": "APPEND",
+        "storage_format": "delta",
+        "encrypted_columns": [
+          {
+            "column_name": "billing_amount",
+            "output_column": "billing_amount",
+            "mode": "GCM",
+            "secret": {"secret_catalog": "{{catalog}}", "secret_schema": "security", "secret_key": "pii_encryption_key"}
+          }
+        ]
+      },
+      "dq_config": {"rules": []},
+      "governance_tags": {}
+    }
+  ],
+  "transformation_flows": [
+    {
+      "flow_step_id": "ts_trf_003_patient_billing_summary",
+      "dataflow_id": "df_health_patient_visits_ingest",
+      "target_catalog": "{{catalog}}",
+      "target_schema": "silver_health",
+      "target_table": "patient_billing_summary",
+      "target_type": "materialized_view",
+      "source_inputs": [
+        {
+          "input_name": "patient_visits_input",
+          "table": "{{catalog}}.bronze_health.patient_visits_raw",
+          "is_streaming": false,
+          "decrypted_columns": [
+            {
+              "column_name": "billing_amount",
+              "output_column": "billing_amount",
+              "mode": "GCM",
+              "cast_to_type": "double",
+              "secret": {"secret_catalog": "{{catalog}}", "secret_schema": "security", "secret_key": "pii_encryption_key"}
+            }
+          ]
+        }
+      ],
+      "transformation_sql": "SELECT sum(billing_amount) AS billing_amount FROM patient_visits_input",
+      "target_config": {
+        "cdc_load_strategy": "TRUNCATE_AND_LOAD",
+        "storage_format": "delta"
+      },
+      "dq_config": {},
+      "governance_tags": {}
+    }
+  ],
+  "reconciliation_flows": []
+}

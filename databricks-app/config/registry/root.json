@@ -1,0 +1,47 @@
+[
+  {
+    "id": "root",
+    "title": "Spec root",
+    "subtitle": "Root-level fields of the onboarding JSON/YAML. Every control-table row in this spec is upserted under dataflow_group_id.",
+    "doc": "#1-top-level-spec-schema",
+    "fields": [
+      {
+        "path": "dataflow_group_id",
+        "label": "dataflow_group_id",
+        "widget": "text",
+        "type": "string",
+        "required": true,
+        "pattern": "^[A-Za-z0-9_]+$",
+        "placeholder": "dfg_finance_txn_ingest",
+        "description": "Unique identifier for this pipeline group. All control-table rows in this spec are upserted under this ID."
+      },
+      {
+        "path": "spark_config",
+        "label": "spark_config",
+        "widget": "kv",
+        "type": "object<string,scalar>",
+        "span": 2,
+        "default": {},
+        "hint": "keys must start with spark.",
+        "description": "Group-scoped Spark configuration. Keys must start with 'spark.'; values may be string, number or boolean. Pipeline and runtime values strictly override the framework defaults."
+      },
+      {
+        "path": "pipeline_parameters",
+        "label": "pipeline_parameters",
+        "widget": "kv",
+        "type": "object<string,scalar>",
+        "span": 2,
+        "default": {},
+        "description": "String to value map substituted into ${param} placeholders in transformation_sql, filter_condition and transform_sql. Strings are single-quoted automatically."
+      }
+    ]
+  },
+  {
+    "id": "tmplvars",
+    "title": "Template variables",
+    "kind": "note",
+    "subtitle": "{{catalog}} and {{env}} resolve before parsing, anywhere in the file. ${param} resolves at execution time, only inside transformation_sql, filter_condition and transform_sql — never wrap it in quotes.",
+    "doc": "#11-template-variables--parameter-substitution",
+    "fields": []
+  }
+]

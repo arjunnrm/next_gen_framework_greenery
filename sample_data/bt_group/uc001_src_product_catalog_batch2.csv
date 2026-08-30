@@ -1,0 +1,3 @@
+product_id,product_name,category,unit_price,status,updated_at
+PC001,Wireless Mouse,Electronics,19.99,ACTIVE,2026-08-21T09:00:00.000+0000
+PC006,4K Webcam,Electronics,59.99,ACTIVE,2026-08-21T09:05:00.000+0000

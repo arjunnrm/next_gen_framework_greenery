@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="en" data-mfl="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MetaFlow Spec Builder — design preview (v4)</title>
+<meta name="description" content="Static design reference for the MetaFlow Onboarding Databricks App. Layout, tokens and control anatomy only — no backend.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="dist/styles.css">
+<style>
+  /* Preview-only chrome: a banner making clear this page is not the app. */
+  .pv-banner{position:sticky;top:0;z-index:80;display:flex;align-items:center;gap:10px;
+    padding:7px 18px;background:var(--acfill);border-bottom:1px solid var(--acbd);
+    font:500 11.5px Inter,system-ui,sans-serif;color:var(--ac2)}
+  .pv-banner b{font-weight:700}
+  .pv-banner .sp{flex:1}
+  .pv-banner code{font:500 11px "JetBrains Mono",monospace;background:var(--panel3);
+    border:1px solid var(--bd4);border-radius:5px;padding:2px 6px;color:var(--tx2)}
+  body.pv .app{min-height:calc(100vh - 32px)}
+</style>
+</head>
+<body class="pv">
+
+<div class="pv-banner">
+  <b>Design preview</b>
+  <span>Static reference for the v4 layout — no API, no persistence. The running app is served from <code>/</code> by <code>server/app.py</code>.</span>
+  <span class="sp"></span>
+  <span>toggle: <code>theme</code> · <code>preview pane</code> · <code>phases</code></span>
+</div>
+
+<div class="app">
+
+  <!-- ─────────────────────────── header ─────────────────────────── -->
+  <header class="hdr">
+    <div class="brand">
+      <span class="brand-a">MetaFlow</span>
+      <span class="brand-b">Spec Builder</span>
+    </div>
+
+    <div class="seg" role="tablist" aria-label="Flow collections">
+      <button class="seg-b is-on" role="tab" aria-selected="true">Ingestion <span class="seg-n">4</span></button>
+      <button class="seg-b" role="tab" aria-selected="false">Transformation <span class="seg-n">3</span></button>
+      <button class="seg-b" role="tab" aria-selected="false">Reconciliation <span class="seg-n">2</span></button>
+      <button class="seg-b" role="tab" aria-selected="false">Observability <span class="seg-n">2</span></button>
+    </div>
+
+    <div class="hdr-gap"></div>
+
+    <div class="prog" title="Required attributes filled across the whole spec">
+      <div class="prog-track"><div class="prog-fill" style="width:68%"></div></div>
+      <span class="prog-pct">68%</span>
+      <span class="prog-txt">34/50 required</span>
+    </div>
+
+    <div class="hdr-tools">
+      <button class="btn" id="pv-index">Index</button>
+      <a class="btn" href="../docs_site/index.html" target="_blank" rel="noopener">Docs ↗</a>
+      <button class="btn btn-ico" id="pv-theme" title="Switch theme" aria-label="Switch theme">☾</button>
+      <button class="btn is-on" id="pv-preview">Hide preview</button>
+    </div>
+
+    <button class="btn btn-ac" id="pv-run">Onboard &amp; run</button>
+
+    <div class="split">
+      <button class="split-main">Save .json</button>
+      <button class="split-side">switch</button>
+      <button class="split-side" id="pv-save">⌄</button>
+    </div>
+  </header>
+
+  <!-- ─────────────────────────── body grid ─────────────────────────── -->
+  <div class="grid" id="pv-grid">
+
+    <!-- ── nav ── -->
+    <nav class="nav">
+      <div class="eyebrow">Spec</div>
+      <button class="card-b" aria-current="false">
+        <div class="card-b-t">Spec root</div>
+        <div class="card-b-s mono">dfg_finance_txn_ingest</div>
+      </button>
+
+      <div class="nav-head">
+        <span class="eyebrow">Ingestion flows</span>
+        <button class="mini" title="Add ingestion flow">+</button>
+      </div>
+      <div class="nav-sub">in dfg_finance_txn_ingest</div>
+
+      <div class="flowlist">
+        <button class="card-b is-on">
+          <div class="row">
+            <span class="flow-id mono">df_template_ingest</span>
+            <span class="x" title="Remove flow">×</span>
+          </div>
+          <div class="row row-2">
+            <span class="flow-meta">autoloader › APPEND</span>
+            <span class="pct pct-ok">100%</span>
+          </div>
+        </button>
+        <button class="card-b">
+          <div class="row">
+            <span class="flow-id mono">df_template_zerobus_ingest</span>
+            <span class="x">×</span>
+          </div>
+          <div class="row row-2">
+            <span class="flow-meta">zerobus › SCD1</span>
+            <span class="pct pct-warn">80%</span>
+          </div>
+        </button>
+        <button class="card-b">
+          <div class="row">
+            <span class="flow-id mono">df_template_asn1_ingest</span>
+            <span class="x">×</span>
+          </div>
+          <div class="row row-2">
+            <span class="flow-meta">asn1 › FULL_SNAPSHOT_CDC_NO_PK</span>
+            <span class="pct pct-warn">67%</span>
+          </div>
+        </button>
+        <button class="card-b">
+          <div class="row">
+            <span class="flow-id mono">df_template_json_ingest</span>
+            <span class="x">×</span>
+          </div>
+          <div class="row row-2">
+            <span class="flow-meta">autoloader › APPEND</span>
+            <span class="pct pct-ok">100%</span>
+          </div>
+        </button>
+      </div>
+
+      <div class="nav-sec">
+        <div class="eyebrow">Sections</div>
+        <div class="seclist">
+          <a href="#sec-identity"><span>Flow identity</span><span class="mono n">5 attributes</span></a>
+          <a href="#sec-dataset"><span>Target dataset</span><span class="mono n">4 attributes</span></a>
+        </div>
+      </div>
+
+      <div class="nav-sec">
+        <label class="switch-row">
+          <span class="sw" data-on="false"><span class="knob"></span></span>
+          <span class="switch-lbl">Show attributes not applicable</span>
+        </label>
+      </div>
+    </nav>
+
+    <!-- ── main ── -->
+    <main class="main">
+      <div class="page-head">
+        <h1>Ingestion flow</h1>
+        <span class="page-kind mono">df_template_ingest</span>
+        <span class="sp"></span>
+        <span class="page-prog">100% complete</span>
+      </div>
+      <p class="page-sub">
+        Work through the steps in order. Each selection narrows what follows — source type decides the
+        reader fields, target type decides the sink fields, and the load strategy decides the CDC parameters.
+      </p>
+
+      <!-- phase rail -->
+      <div class="rail" role="tablist" aria-label="Phases">
+        <button class="chip is-on"><span class="dot dot-ok"></span><span class="chip-t"><span class="chip-l">Identity</span><span class="chip-m mono">4/4 required</span></span></button>
+        <button class="chip"><span class="dot dot-ok"></span><span class="chip-t"><span class="chip-l">Source</span><span class="chip-m mono">3/3 required</span></span></button>
+        <button class="chip"><span class="dot dot-req"></span><span class="chip-t"><span class="chip-l">Reader</span><span class="chip-m mono">1/2 required</span></span></button>
+        <button class="chip"><span class="dot dot-ok"></span><span class="chip-t"><span class="chip-l">Load strategy</span><span class="chip-m mono">1/1 required</span></span></button>
+        <button class="chip"><span class="dot dot-none"></span><span class="chip-t"><span class="chip-l">Storage</span><span class="chip-m mono">optional</span></span></button>
+        <button class="chip"><span class="dot dot-none"></span><span class="chip-t"><span class="chip-l">Security</span><span class="chip-m mono">optional</span></span></button>
+        <button class="chip"><span class="dot dot-req"></span><span class="chip-t"><span class="chip-l">Quality</span><span class="chip-m mono">2/3 required</span></span></button>
+        <button class="chip"><span class="dot dot-none"></span><span class="chip-t"><span class="chip-l">Governance</span><span class="chip-m mono">optional</span></span></button>
+      </div>
+
+      <div class="sections">
+
+        <!-- section: identity -->
+        <section class="sec" id="sec-identity">
+          <div class="sec-head">
+            <span class="sec-n mono">01</span>
+            <span class="sec-t">Flow identity</span>
+            <a class="sec-doc" href="#">docs</a>
+            <span class="sp"></span>
+            <span class="sec-c mono">5 attributes</span>
+          </div>
+          <p class="sec-sub">Identity and descriptive metadata. Everything but <code>dataflow_id</code> is carried to the control table without validation.</p>
+
+          <div class="fields">
+            <div class="f">
+              <div class="f-head">
+                <span class="f-l mono" title="dataflow_id">dataflow_id</span>
+                <span class="f-req">REQUIRED</span>
+                <button class="i" title="Field reference">i</button>
+              </div>
+              <input class="ctl mono" value="df_template_ingest" spellcheck="false">
+              <div class="f-hint">Unique ID for this ingestion flow. Referenced by transformation flows.</div>
+            </div>
+
+            <div class="f">
+              <div class="f-head">
+                <span class="f-l mono">source_system</span>
+                <button class="i">i</button>
+              </div>
+              <input class="ctl mono" value="example_source_system" spellcheck="false">
+            </div>
+
+            <div class="f">
+              <div class="f-head">
+                <span class="f-l mono">source_database</span>
+                <button class="i">i</button>
+              </div>
+              <input class="ctl mono" placeholder="example_landing_db" spellcheck="false">
+            </div>
+
+            <div class="f">
+              <div class="f-head">
+                <span class="f-l mono">source_table_name</span>
+                <button class="i">i</button>
+              </div>
+              <input class="ctl mono" value="example_raw_table" spellcheck="false">
+            </div>
+
+            <div class="f f-wide">
+              <div class="f-head">
+                <span class="f-l mono">source_description</span>
+                <button class="i">i</button>
+              </div>
+              <textarea class="ctl ctl-sql mono" rows="3" spellcheck="false">Template: Bronze ingestion from a Volume (Auto Loader) with regex file selection, quarantine, encryption, and data standardization, in the {{env}} environment</textarea>
+              <div class="f-hint">Becomes the target Delta table's COMMENT. Supports <code>{{catalog}}</code> and <code>{{env}}</code>.</div>
+            </div>
+          </div>
+        </section>
+
+        <!-- section: load strategy (tabs) -->
+        <section class="sec" id="sec-cdc">
+          <div class="sec-head">
+            <span class="sec-n mono">02</span>
+            <span class="sec-t">Load strategy</span>
+            <a class="sec-doc" href="#">docs</a>
+            <span class="sp"></span>
+          </div>
+          <p class="sec-sub"><code>target_config.cdc_load_strategy</code> decides how data is merged into the target. Pick a tab — only that strategy's parameters are shown.</p>
+
+          <div class="tabs">
+            <button class="tab is-on"><span class="tab-v mono">APPEND</span><span class="tab-b">append-only feed</span></button>
+            <button class="tab"><span class="tab-v mono">TRUNCATE_AND_LOAD</span><span class="tab-b">full replace</span></button>
+            <button class="tab"><span class="tab-v mono">SCD1</span><span class="tab-b">overwrite current</span></button>
+            <button class="tab"><span class="tab-v mono">SCD2</span><span class="tab-b">full history</span></button>
+            <button class="tab is-off" title="Transformation flows only"><span class="tab-v mono">SCD3</span><span class="tab-b">transformation only</span></button>
+            <button class="tab"><span class="tab-v mono">FULL_SNAPSHOT_CDC_NO_PK</span><span class="tab-b">snapshot diff</span></button>
+          </div>
+
+          <div class="tabpane">
+            <div class="tabpane-head">
+              <span class="tabpane-t">APPEND</span>
+              <span class="tabpane-m">no required parameters</span>
+            </div>
+            <p class="tabpane-sub">Immutable facts — events, logs, CDRs. No merge, no per-row diff.</p>
+            <div class="fields">
+              <div class="f is-inert">
+                <div class="f-head">
+                  <span class="f-l mono">primary_keys</span>
+                  <button class="i">i</button>
+                </div>
+                <input class="ctl mono" disabled placeholder="event_id">
+                <div class="f-hint">not applicable to APPEND</div>
+              </div>
+              <div class="f is-inert">
+                <div class="f-head">
+                  <span class="f-l mono">sequence_by_column</span>
+                  <button class="i">i</button>
+                </div>
+                <input class="ctl mono" disabled placeholder="__framework_ingestion_timestamp_utc">
+                <div class="f-hint">not applicable to APPEND</div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- section: storage -->
+        <section class="sec" id="sec-storage">
+          <div class="sec-head">
+            <span class="sec-n mono">03</span>
+            <span class="sec-t">Target · storage &amp; table</span>
+            <a class="sec-doc" href="#">docs</a>
+            <span class="sp"></span>
+            <span class="sec-c mono">8 attributes</span>
+          </div>
+          <p class="sec-sub">Physical layout of the target table.</p>
+
+          <div class="fields">
+            <div class="f">
+              <div class="f-head"><span class="f-l mono">storage_format</span><button class="i">i</button></div>
+              <select class="ctl mono"><option>delta</option><option>iceberg</option></select>
+              <div class="f-hint">iceberg: batch_table only · Iceberg reads elsewhere via UniForm table property</div>
+            </div>
+
+            <div class="f">
+              <div class="f-head"><span class="f-l mono" title="target_config.partition_columns mode">partition_columns mode</span><button class="i">i</button></div>
+              <select class="ctl mono"><option>absent</option><option>unpartitioned</option><option selected>named</option></select>
+              <div class="f-hint">[] means explicitly unpartitioned, never an error</div>
+            </div>
+
+            <div class="f">
+              <div class="f-head"><span class="f-l mono">partition_columns</span><button class="i">i</button></div>
+              <input class="ctl mono" value="region" spellcheck="false">
+              <div class="f-hint">comma-separated list · partition only above ~1 TB</div>
+            </div>
+
+            <div class="f">
+              <div class="f-head"><span class="f-l mono">liquid_clustering_columns</span><button class="i">i</button></div>
+              <input class="ctl mono" value="example_id" spellcheck="false">
+              <div class="f-hint">maximum 3 columns</div>
+            </div>
+
+            <div class="f f-wide">
+              <div class="f-head"><span class="f-l mono">table_properties</span><button class="i">i</button></div>
+              <div class="kv">
+                <div class="kv-row">
+                  <input class="ctl mono" value="log_retention_duration" spellcheck="false">
+                  <input class="ctl mono" value="interval 30 days" spellcheck="false">
+                  <button class="kv-x" title="Remove">×</button>
+                </div>
+                <div class="kv-row">
+                  <input class="ctl mono" value="deleted_file_retention_duration" spellcheck="false">
+                  <input class="ctl mono" value="interval 30 days" spellcheck="false">
+                  <button class="kv-x">×</button>
+                </div>
+                <div class="kv-row kv-virtual">
+                  <input class="ctl mono" placeholder="key" spellcheck="false">
+                  <input class="ctl mono" placeholder="value" spellcheck="false">
+                  <button class="kv-x" style="visibility:hidden">×</button>
+                </div>
+                <button class="add">+ add entry</button>
+              </div>
+            </div>
+
+            <div class="f">
+              <div class="f-head"><span class="f-l mono">auto_ttl.timestamp_column</span><button class="i">i</button></div>
+              <input class="ctl mono" value="updated_at" spellcheck="false">
+            </div>
+
+            <div class="f">
+              <div class="f-head"><span class="f-l mono">auto_ttl.expire_in_days</span><button class="i">i</button></div>
+              <input class="ctl mono" value="90" spellcheck="false">
+            </div>
+          </div>
+        </section>
+
+        <!-- section: dq (repeat) -->
+        <section class="sec" id="sec-dq">
+          <div class="sec-head">
+            <span class="sec-n mono">04</span>
+            <span class="sec-t">Data quality</span>
+            <a class="sec-doc" href="#">docs</a>
+            <span class="sp"></span>
+            <span class="sec-c mono">3 attributes</span>
+          </div>
+          <p class="sec-sub">Rules become pipeline expectations. <code>quarantine</code> is a framework extension that routes rows to a sibling table.</p>
+
+          <div class="fields">
+            <div class="f f-wide">
+              <div class="f-head"><span class="f-l mono">dq_config.rules[]</span><button class="i">i</button></div>
+              <div class="rep">
+                <div class="rep-item">
+                  <div class="rep-head">
+                    <span class="rep-l mono">rules[0]</span><span class="sp"></span>
+                    <button class="rep-x">remove</button>
+                  </div>
+                  <div class="fields fields-sub">
+                    <div class="f">
+                      <div class="f-head"><span class="f-l mono">rule_id</span><span class="f-req">REQUIRED</span><button class="i">i</button></div>
+                      <input class="ctl mono" value="dq_example_id_not_null" spellcheck="false">
+                    </div>
+                    <div class="f">
+                      <div class="f-head"><span class="f-l mono">action</span><span class="f-req">REQUIRED</span><button class="i">i</button></div>
+                      <select class="ctl mono"><option>warn</option><option selected>drop</option><option>fail</option><option>quarantine</option></select>
+                    </div>
+                    <div class="f f-wide">
+                      <div class="f-head"><span class="f-l mono">expression</span><span class="f-req">REQUIRED</span><button class="i">i</button></div>
+                      <textarea class="ctl ctl-sql mono" rows="2" spellcheck="false">example_id IS NOT NULL</textarea>
+                    </div>
+                  </div>
+                </div>
+                <div class="rep-item">
+                  <div class="rep-head">
+                    <span class="rep-l mono">rules[1]</span><span class="sp"></span>
+                    <button class="rep-x">remove</button>
+                  </div>
+                  <div class="fields fields-sub">
+                    <div class="f">
+                      <div class="f-head"><span class="f-l mono">rule_id</span><span class="f-req">REQUIRED</span><button class="i">i</button></div>
+                      <input class="ctl mono" value="dq_amount_non_negative" spellcheck="false">
+                    </div>
+                    <div class="f">
+                      <div class="f-head"><span class="f-l mono">action</span><span class="f-req">REQUIRED</span><button class="i">i</button></div>
+                      <select class="ctl mono"><option>warn</option><option>drop</option><option>fail</option><option selected>quarantine</option></select>
+                    </div>
+                    <div class="f f-wide">
+                      <div class="f-head"><span class="f-l mono">expression</span><span class="f-req">REQUIRED</span><button class="i">i</button></div>
+                      <textarea class="ctl ctl-sql mono" rows="2" spellcheck="false">amount >= 0</textarea>
+                    </div>
+                  </div>
+                </div>
+                <button class="add add-lg">+ add rule</button>
+              </div>
+            </div>
+
+            <div class="f">
+              <div class="f-head"><span class="f-l mono">quarantine_table</span><button class="i">i</button></div>
+              <input class="ctl mono" value="example_raw_quarantine" spellcheck="false">
+            </div>
+            <div class="f">
+              <div class="f-head"><span class="f-l mono">record_id_column</span><button class="i">i</button></div>
+              <input class="ctl mono" value="example_id" spellcheck="false">
+            </div>
+          </div>
+        </section>
+
+      </div>
+
+      <div class="footnav">
+        <button class="btn">← Back</button>
+        <span class="footnav-t mono">Step 1 of 8</span>
+        <span class="sp"></span>
+        <button class="btn btn-ac">Next · Source →</button>
+      </div>
+    </main>
+
+    <!-- ── preview aside ── -->
+    <aside class="aside" id="pv-aside">
+      <div class="aside-head">
+        <span class="aside-t">Spec preview</span>
+        <span class="sp"></span>
+        <div class="seg seg-sm">
+          <button class="seg-b is-on">JSON</button>
+          <button class="seg-b">YAML</button>
+        </div>
+        <button class="btn btn-sm">copy</button>
+      </div>
+      <pre class="aside-pre mono">{
+  "dataflow_group_id": "dfg_finance_txn_ingest",
+  "pipeline_parameters": {
+    "filter_country": "US",
+    "min_amount": "0"
+  },
+  "ingestion_flows": [
+    {
+      "dataflow_id": "df_template_ingest",
+      "source_system": "example_source_system",
+      "source_table_name": "example_raw_table",
+      "source_type": "autoloader",
+      "source_config": {
+        "path": "/Volumes/{{catalog}}/landing/example_raw_zone/incoming/",
+        "format": "csv",
+        "file_pattern": "orc_*",
+        "schema_evolution_mode": "rescue",
+        "capture_technical_metadata": true,
+        "reader_options": {
+          "header": "true",
+          "cloudFiles.inferColumnTypes": "true"
+        }
+      },
+      "target_catalog": "{{catalog}}",
+      "target_schema": "bronze_example",
+      "target_table": "example_raw",
+      "target_type": "streaming_table",
+      "target_config": {
+        "cdc_load_strategy": "APPEND",
+        "storage_format": "delta",
+        "partition_columns": ["region"],
+        "liquid_clustering_columns": ["example_id"],
+        "table_properties": {
+          "log_retention_duration": "interval 30 days"
+        },
+        "auto_ttl": {
+          "timestamp_column": "updated_at",
+          "expire_in_days": 90
+        }
+      },
+      "dq_config": {
+        "rules": [
+          {
+            "rule_id": "dq_example_id_not_null",
+            "expression": "example_id IS NOT NULL",
+            "action": "drop"
+          },
+          {
+            "rule_id": "dq_amount_non_negative",
+            "expression": "amount >= 0",
+            "action": "quarantine"
+          }
+        ],
+        "quarantine_table": "example_raw_quarantine",
+        "record_id_column": "example_id"
+      }
+    }
+  ]
+}</pre>
+    </aside>
+  </div>
+</div>
+
+<!-- ─────────────────────────── run modal ─────────────────────────── -->
+<div class="ovl" id="pv-run-ovl" hidden>
+  <div class="modal modal-run">
+    <div class="modal-head">
+      <span class="modal-t">Onboarding &amp; execution</span>
+      <span class="mono modal-id">run-dfg_finance_txn_ingest</span>
+      <span class="sp"></span>
+      <span class="run-state">RUNNING</span>
+      <button class="modal-x" data-close>×</button>
+    </div>
+    <div class="modal-body">
+      <div class="prog-track prog-track-lg"><div class="prog-fill prog-fill-ac" style="width:62%"></div></div>
+      <div class="stages">
+        <div class="stage is-done"><span class="ring"></span><span class="stage-l">Validate spec against onboarding schema</span><span class="mono stage-t">1.2s</span></div>
+        <div class="stage is-done"><span class="ring"></span><span class="stage-l">Resolve {{catalog}} / {{env}} template variables</span><span class="mono stage-t">1.6s</span></div>
+        <div class="stage is-done"><span class="ring"></span><span class="stage-l">Validate governance tags exist in Unity Catalog</span><span class="mono stage-t">2.0s</span></div>
+        <div class="stage is-done"><span class="ring"></span><span class="stage-l">Create missing governance tag definitions</span><span class="mono stage-t">2.4s</span></div>
+        <div class="stage is-now"><span class="ring"></span><span class="stage-l">Upsert control tables</span><span class="mono stage-t">running</span></div>
+        <div class="stage"><span class="ring"></span><span class="stage-l">Deploy Lakeflow pipeline</span><span class="mono stage-t">queued</span></div>
+        <div class="stage"><span class="ring"></span><span class="stage-l">Apply governance tags to deployed assets</span><span class="mono stage-t">queued</span></div>
+        <div class="stage"><span class="ring"></span><span class="stage-l">Run smoke check &amp; publish telemetry</span><span class="mono stage-t">queued</span></div>
+      </div>
+      <pre class="log mono">[10:07] Validate spec against onboarding schema ✓
+[10:08] Resolve {{catalog}} / {{env}} template variables ✓
+[10:09] Validate governance tags exist in Unity Catalog ✓
+[10:10] Create missing governance tag definitions ✓
+[10:11] Upsert control tables …</pre>
+    </div>
+  </div>
+</div>
+
+<!-- ─────────────────────────── index modal ─────────────────────────── -->
+<div class="ovl" id="pv-index-ovl" hidden>
+  <div class="modal modal-index">
+    <div class="modal-head">
+      <span class="modal-t">Attribute index</span>
+      <span class="mono modal-id">205 attributes</span>
+      <input class="ctl ctl-sm mono" placeholder="filter attributes…" style="max-width:280px">
+      <span class="sp"></span>
+      <button class="modal-x" data-close>×</button>
+    </div>
+    <div class="modal-body modal-body-scroll">
+      <div class="eyebrow ix-g">Ingestion flow · Flow identity</div>
+      <div class="ix">
+        <div class="ix-r"><span class="mono ix-p">dataflow_id</span><span class="mono ix-t">string</span><span class="ix-q ix-req">REQUIRED</span><span class="ix-i">Unique ID for this ingestion flow. Referenced by transformation flows.</span></div>
+        <div class="ix-r"><span class="mono ix-p">source_system</span><span class="mono ix-t">string</span><span class="ix-q">optional</span><span class="ix-i">Descriptive metadata — never validated.</span></div>
+        <div class="ix-r"><span class="mono ix-p">source_description</span><span class="mono ix-t">string</span><span class="ix-q">optional</span><span class="ix-i">Becomes the target Delta table's COMMENT. Supports {{catalog}} and {{env}}.</span></div>
+      </div>
+      <div class="eyebrow ix-g">Target config · load strategy</div>
+      <div class="ix">
+        <div class="ix-r"><span class="mono ix-p">target_config.cdc_load_strategy</span><span class="mono ix-t">string</span><span class="ix-q ix-req">REQUIRED</span><span class="ix-i">Determines how data is loaded or merged into the target.</span></div>
+        <div class="ix-r"><span class="mono ix-p">target_config.primary_keys</span><span class="mono ix-t">array</span><span class="ix-q ix-req">REQUIRED</span><span class="ix-i">Business key(s) used by apply_changes. Not required for FULL_SNAPSHOT_CDC_NO_PK.</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ─────────────────────────── info drawer ─────────────────────────── -->
+<div class="ovl ovl-right" id="pv-info-ovl" hidden>
+  <div class="drawer-spacer" data-close></div>
+  <div class="drawer">
+    <div class="drawer-head">
+      <div>
+        <div class="drawer-t mono">target_config.cdc_load_strategy</div>
+        <div class="drawer-s">Load strategy</div>
+      </div>
+      <button class="modal-x" data-close>×</button>
+    </div>
+    <div class="drawer-rows">
+      <div class="drawer-r"><span class="drawer-k">type</span><span class="mono drawer-v">string (enum)</span></div>
+      <div class="drawer-r"><span class="drawer-k">required</span><span class="mono drawer-v">yes</span></div>
+      <div class="drawer-r"><span class="drawer-k">default</span><span class="mono drawer-v">APPEND</span></div>
+      <div class="drawer-r"><span class="drawer-k">allowed</span><span class="mono drawer-v">APPEND, TRUNCATE_AND_LOAD, SCD1, SCD2, SCD3, FULL_SNAPSHOT_CDC_NO_PK</span></div>
+      <div class="drawer-r"><span class="drawer-k">json path</span><span class="mono drawer-v">target_config.cdc_load_strategy</span></div>
+    </div>
+    <p class="drawer-d">Pick this first: it decides which other CDC fields apply, and whether partitioning, clustering and auto_ttl take effect at all. SCD3 is transformation-only — an ingestion flow using it is a hard onboarding error.</p>
+    <a class="btn btn-ac" href="../docs_site/index.html" target="_blank" rel="noopener">Open in MkDocs ↗</a>
+  </div>
+</div>
+
+<script>
+(function () {
+  var root = document.documentElement;
+
+  // theme
+  var tbtn = document.getElementById('pv-theme');
+  tbtn.addEventListener('click', function () {
+    var next = root.getAttribute('data-mfl') === 'dark' ? 'light' : 'dark';
+    root.setAttribute('data-mfl', next);
+    tbtn.textContent = next === 'dark' ? '☾' : '☀';
+  });
+
+  // preview pane
+  var pbtn = document.getElementById('pv-preview');
+  var grid = document.getElementById('pv-grid');
+  pbtn.addEventListener('click', function () {
+    var off = grid.classList.toggle('no-aside');
+    pbtn.textContent = off ? 'Show preview' : 'Hide preview';
+    pbtn.classList.toggle('is-on', !off);
+  });
+
+  // modals
+  function wire(btnId, ovlId) {
+    var b = document.getElementById(btnId), o = document.getElementById(ovlId);
+    if (b) b.addEventListener('click', function () { o.hidden = false; });
+    o.addEventListener('click', function (e) {
+      if (e.target === o || e.target.hasAttribute('data-close')) o.hidden = true;
+    });
+  }
+  wire('pv-run', 'pv-run-ovl');
+  wire('pv-index', 'pv-index-ovl');
+  wire(null, 'pv-info-ovl');
+  document.querySelectorAll('.i').forEach(function (el) {
+    el.addEventListener('click', function () { document.getElementById('pv-info-ovl').hidden = false; });
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') document.querySelectorAll('.ovl').forEach(function (o) { o.hidden = true; });
+  });
+
+  // phase chips + flow cards + tabs: single-select affordance
+  function group(sel, on) {
+    var els = document.querySelectorAll(sel);
+    els.forEach(function (el) {
+      el.addEventListener('click', function () {
+        els.forEach(function (x) { x.classList.remove(on); });
+        el.classList.add(on);
+      });
+    });
+  }
+  group('.rail .chip', 'is-on');
+  group('.flowlist .card-b', 'is-on');
+  group('.tabs .tab:not(.is-off)', 'is-on');
+  group('.hdr .seg .seg-b', 'is-on');
+
+  // switch
+  document.querySelectorAll('.sw').forEach(function (sw) {
+    sw.parentElement.addEventListener('click', function () {
+      sw.dataset.on = sw.dataset.on === 'true' ? 'false' : 'true';
+    });
+  });
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,66 @@
+{
+  "schema_version": "1.0",
+  "framework_version": "1.3.0",
+  "widgets": [
+    "text",
+    "number",
+    "select",
+    "boolean",
+    "list",
+    "sql",
+    "kv",
+    "repeat",
+    "tabs",
+    "note"
+  ],
+  "label_prefixes": [
+    "source_config.",
+    "target_config.",
+    "dq_config.",
+    "governance_tags.",
+    "sink_config.",
+    "post_export_archive.",
+    "landing_retention_policy.",
+    "source_zip_handling.",
+    "error_handling.",
+    "pgp_encryption.",
+    "pre_extraction_decryption.",
+    "cdc_operation_mapping.",
+    "dedup_watermark.",
+    "column_normalization.",
+    "auto_ttl.",
+    "destination_config.",
+    "logging_config.",
+    "watermark.",
+    "retry."
+  ],
+  "emission_modes": [
+    {
+      "helper": "source_config.explode_mode",
+      "target": "source_config.explode_columns",
+      "map": {
+        "absent": "omit",
+        "empty": "empty_array",
+        "named": "from_target"
+      }
+    },
+    {
+      "helper": "target_config.partition_mode",
+      "target": "target_config.partition_columns",
+      "map": {
+        "absent": "omit",
+        "unpartitioned": "empty_array",
+        "named": "from_target"
+      }
+    }
+  ],
+  "forbidden_keys": [
+    "password",
+    "passphrase",
+    "passphrase_value",
+    "private_key",
+    "secret_value",
+    "token",
+    "client_secret"
+  ]
+}

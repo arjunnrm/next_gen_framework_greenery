@@ -1,0 +1,29 @@
+# TC-CDC-002: "Full Materialized View Snapshot (TRUNCATE_AND_LOAD)" -- proves
+# cdc_load_strategy "TRUNCATE_AND_LOAD" fully recomputes a Silver materialized view
+# (dim_fx_rates_current) from its Bronze source (fx_rates_raw) on every pipeline update, so the
+# target always holds exactly the 50 currently-landed FX rate rows -- never accumulating extra
+# copies just because the pipeline is triggered more than once, unlike an APPEND-style target.
+# See metaflow_testing/020_cdc_002_truncate.json and docs/41_tc_cdc_002.md.
+
+resources:
+  pipelines:
+    metaflow_test_cdc_002_truncate_pipeline:
+      name: metaflow_test_cdc_002_truncate_pipeline_${bundle.target}
+      catalog: metaflow
+      schema: bronze_ref
+      serverless: true
+      photon: true
+      development: true
+      continuous: false
+
+      libraries:
+        - notebook:
+            path: ../notebooks/03_engine/03_lakeflow_declarative_pipeline.py
+
+      environment:
+        dependencies:
+          - ../dist/*.whl
+
+      configuration:
+        dataflow.group.id: dfg_cdc_002_truncate
+        dataflow.control.catalog: metaflow

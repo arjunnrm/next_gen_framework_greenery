@@ -1,0 +1,55 @@
+{
+  "dataflow_group_id": "dfg_ing_004_asn1_decode",
+  "pipeline_parameters": {},
+  "ingestion_flows": [
+    {
+      "dataflow_id": "df_ing_004_asn1_cdr_ingest",
+      "source_system": "gsm_switch_cdr_feed",
+      "source_database": "telecom",
+      "source_table_name": "gsm_cdr",
+      "source_description": "TC-ING-004: ASN.1 BER-encoded GSM telecom call-detail-record ingestion, decoded against gsm_cdr.asn (imsi, imei, callDurationSeconds, cellId, roamingFlag)",
+      "source_type": "asn1",
+      "target_catalog": "{{catalog}}",
+      "target_schema": "bronze_telecom",
+      "target_table": "cdr_stream_raw",
+      "target_type": "streaming_table",
+      "source_config": {
+        "path": "/Volumes/{{catalog}}/telecom/landing_cdr/incoming/",
+        "schema_location": "/Volumes/{{catalog}}/telecom/_schemas/cdr_stream_raw/",
+        "file_pattern": "*.ber",
+        "asn1_schema_path": "/Volumes/{{catalog}}/telecom/schemas/gsm_cdr.asn",
+        "asn1_codec": "ber",
+        "asn1_pdu_name": "GsmCallDetailRecord",
+        "capture_technical_metadata": true
+      },
+      "target_config": {
+        "cdc_load_strategy": "APPEND",
+        "storage_format": "delta"
+      },
+      "dq_config": {
+        "rules": [
+          {
+            "rule_id": "dq_asn1_decode_ok",
+            "expression": "_asn1_decode_error IS NULL",
+            "action": "quarantine"
+          },
+          {
+            "rule_id": "dq_imsi_present",
+            "expression": "imsi IS NOT NULL AND imsi <> ''",
+            "action": "quarantine"
+          },
+          {
+            "rule_id": "dq_call_duration_non_negative",
+            "expression": "callDurationSeconds IS NULL OR callDurationSeconds >= 0",
+            "action": "quarantine"
+          }
+        ],
+        "quarantine_table": "cdr_stream_raw_quarantine",
+        "record_id_column": "imsi"
+      },
+      "governance_tags": {}
+    }
+  ],
+  "transformation_flows": [],
+  "reconciliation_flows": []
+}
