@@ -63,14 +63,14 @@
           "batch",
           "streaming"
         ],
-        "description": "At most one side of a given target's comparison may be streaming."
+        "description": "At most one side of a given target's comparison may be streaming. Rejected on presence with value 'streaming' when execution_mode is 'pipeline' or 'pipeline_audit_only': the in-pipeline comparison is a whole-snapshot batch classification, and a stream-static join supports only inner and left_outer, which cannot express MISSING_IN_SOURCE. Use read_mode 'batch' (the default), or set execution_mode to 'job' to keep the standalone streaming engine."
       },
       {
         "path": "task_run_id_column",
         "widget": "text",
         "type": "string",
         "placeholder": "__framework_pipeline_run_id",
-        "description": "When the task_run_id job parameter is set, narrows this side's read to that run's rows. Reconciliation is triggered-only as of v1.4.0."
+        "description": "When the task_run_id job parameter is set, narrows this side's read to that run's rows. Reconciliation is triggered-only as of v1.4.0. Rejected on presence when execution_mode is 'pipeline' or 'pipeline_audit_only': no stable per-update key exists inside a Lakeflow update, so the narrowing would match every row that pipeline ever wrote -- a silent no-op. Use filter_condition, or set execution_mode to 'job'."
       },
       {
         "path": "filter_condition",

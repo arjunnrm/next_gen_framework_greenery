@@ -2237,6 +2237,34 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#lakeflow_frameworkreconciliationgraph_registrationpy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        lakeflow_framework/reconciliation/graph_registration.py
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="lakeflow_framework/reconciliation/graph_registration.py">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#functions_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Functions
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#lakeflow_frameworkreconciliationmatcherpy" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2271,7 +2299,18 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#functions_2" class="md-nav__link">
+  <a href="#class-reconciliationclassification" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        class ReconciliationClassification
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#functions_3" class="md-nav__link">
     <span class="md-ellipsis">
       
         Functions
@@ -2327,7 +2366,7 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#functions_3" class="md-nav__link">
+  <a href="#functions_4" class="md-nav__link">
     <span class="md-ellipsis">
       
         Functions
@@ -2355,7 +2394,7 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#functions_4" class="md-nav__link">
+  <a href="#functions_5" class="md-nav__link">
     <span class="md-ellipsis">
       
         Functions
@@ -3531,6 +3570,34 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#lakeflow_frameworkreconciliationgraph_registrationpy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        lakeflow_framework/reconciliation/graph_registration.py
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="lakeflow_framework/reconciliation/graph_registration.py">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#functions_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Functions
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#lakeflow_frameworkreconciliationmatcherpy" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3565,7 +3632,18 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#functions_2" class="md-nav__link">
+  <a href="#class-reconciliationclassification" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        class ReconciliationClassification
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#functions_3" class="md-nav__link">
     <span class="md-ellipsis">
       
         Functions
@@ -3621,7 +3699,7 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#functions_3" class="md-nav__link">
+  <a href="#functions_4" class="md-nav__link">
     <span class="md-ellipsis">
       
         Functions
@@ -3649,7 +3727,7 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#functions_4" class="md-nav__link">
+  <a href="#functions_5" class="md-nav__link">
     <span class="md-ellipsis">
       
         Functions
@@ -3686,7 +3764,7 @@
 
 <h1 id="reconciliation"><code>reconciliation</code><a class="headerlink" href="#reconciliation" title="Permanent link">&para;</a></h1>
 <p>Baseline-versus-target comparison and self-healing.</p>
-<p>6 modules.</p>
+<p>7 modules.</p>
 <h2 id="lakeflow_frameworkreconciliationappenderpy"><code>lakeflow_framework/reconciliation/appender.py</code><a class="headerlink" href="#lakeflow_frameworkreconciliationappenderpy" title="Permanent link">&para;</a></h2>
 <p>Per-target reconciliation orchestration: match, append, log -- one target at a time.</p>
 <h3 id="functions">Functions<a class="headerlink" href="#functions" title="Permanent link">&para;</a></h3>
@@ -3707,7 +3785,7 @@
 <td>Check whether this exact target's miss set was already successfully appended.</td>
 </tr>
 <tr>
-<td><code>apply_transform_sql(missing_df: DataFrame, transform_sql: Optional[str], parameters: Optional[Dict[str, Any]] = None) -&gt; DataFrame</code></td>
+<td><code>apply_transform_sql(missing_df: DataFrame, transform_sql: Optional[str], parameters: Optional[Dict[str, Any]] = None, reconciliation_id: str = '', target_id: str = '') -&gt; DataFrame</code></td>
 <td>Reshape <code>missing_df</code> (a target's <code>source_to_target</code> miss set) via the flow-level <code>transform_sql</code>, when configured, to match <code>append_target_table</code>'s own schema.</td>
 </tr>
 <tr>
@@ -3748,8 +3826,29 @@
 <td>Best-effort provider (<code>delta</code>, <code>parquet</code>, <code>csv</code>, ...) of a catalog table.</td>
 </tr>
 <tr>
-<td><code>read_reconciliation_dataset(spark: SparkSession, config: Dict[str, Any], parameters: Optional[Dict[str, Any]] = None, task_run_id: Optional[str] = None) -&gt; DataFrame</code></td>
+<td><code>read_reconciliation_dataset(spark: SparkSession, config: Dict[str, Any], parameters: Optional[Dict[str, Any]] = None, task_run_id: Optional[str] = None, in_graph: bool = False) -&gt; DataFrame</code></td>
 <td>Read one side of a reconciliation comparison (<code>source_config</code> or one <code>target_configs[]</code> entry).</td>
+</tr>
+<tr>
+<td><code>apply_reconciliation_overlays(df: DataFrame, dataset_config: Dict[str, Any], parameters: Optional[Dict[str, Any]] = None, task_run_id: Optional[str] = None) -&gt; DataFrame</code></td>
+<td>Apply the post-read overlay chain shared by every reconciliation dataset read.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="lakeflow_frameworkreconciliationgraph_registrationpy"><code>lakeflow_framework/reconciliation/graph_registration.py</code><a class="headerlink" href="#lakeflow_frameworkreconciliationgraph_registrationpy" title="Permanent link">&para;</a></h2>
+<p>L3/L4/L5 reconciliation graph registration -- the <code>execution_mode: "pipeline"</code>/ <code>"pipeline_audit_only"</code> counterpart to <code>05_reconciliation_engine.py</code>'s standalone job-task path.</p>
+<h3 id="functions_2">Functions<a class="headerlink" href="#functions_2" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Signature</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>register_reconciliation_flow(spark: SparkSession, flow_row: Any, plan: SourcePlanePlan, publish_catalog: str, publish_schema: str, control_schema: str, pipeline_update_id: Optional[str] = None, log_capture_overrides: Optional[Dict[str, Optional[bool]]] = None, pipeline_parameters: Optional[Dict[str, Any]] = None) -&gt; None</code></td>
+<td>Register one <code>reconciliation_flow_spec</code> row's L3 (prepare) + L4 (compare) + L5 (heal) datasets/flows into the currently-building Lakeflow Declarative Pipeline graph.</td>
 </tr>
 </tbody>
 </table>
@@ -3759,7 +3858,9 @@
 <p>One side's cheap Phase 1 fingerprint (see this module's docstring).</p>
 <h3 id="class-reconciliationmatchresult">class <code>ReconciliationMatchResult</code><a class="headerlink" href="#class-reconciliationmatchresult" title="Permanent link">&para;</a></h3>
 <p>Per-target output of :func:<code>match_reconciliation_target</code>.</p>
-<h3 id="functions_2">Functions<a class="headerlink" href="#functions_2" title="Permanent link">&para;</a></h3>
+<h3 id="class-reconciliationclassification">class <code>ReconciliationClassification</code><a class="headerlink" href="#class-reconciliationclassification" title="Permanent link">&para;</a></h3>
+<p>Lazy, pipeline-safe output of :func:<code>classify_reconciliation_target</code> -- the same hash-key join / priority collapse :class:<code>ReconciliationMatchResult</code> has always produced, minus the one eager <code>.collect()</code> that makes it illegal to call from inside a Lakeflow Declarative Pipeline <code>@dlt.table</code> closure reachable from a streaming read (Lakeflow rule 2).</p>
+<h3 id="functions_3">Functions<a class="headerlink" href="#functions_3" title="Permanent link">&para;</a></h3>
 <table>
 <thead>
 <tr>
@@ -3783,6 +3884,10 @@
 <tr>
 <td><code>fingerprints_match(source: ReconciliationFingerprint, target: ReconciliationFingerprint) -&gt; bool</code></td>
 <td><code>True</code> only when <code>row_count</code> <strong>and</strong> both XOR digests are equal on both sides.</td>
+</tr>
+<tr>
+<td><code>classify_reconciliation_target(source_df: DataFrame, target_df: DataFrame, match_keys: List[str], compare_columns: Optional[List[str]] = None, source_hash_precomputed: bool = False, target_hash_precomputed: bool = False) -&gt; ReconciliationClassification</code></td>
+<td>Fully lazy hash-key classification of <code>source_df</code> against <code>target_df</code>.</td>
 </tr>
 <tr>
 <td><code>match_reconciliation_target(source_df: DataFrame, target_df: DataFrame, match_keys: List[str], compare_columns: Optional[List[str]] = None, source_hash_precomputed: bool = False) -&gt; ReconciliationMatchResult</code></td>
@@ -3810,7 +3915,7 @@
 </table>
 <h2 id="lakeflow_frameworkreconciliationmismatch_loggingpy"><code>lakeflow_framework/reconciliation/mismatch_logging.py</code><a class="headerlink" href="#lakeflow_frameworkreconciliationmismatch_loggingpy" title="Permanent link">&para;</a></h2>
 <p>Per-record mismatch detail: <code>matcher.py</code>'s classification, written to <code>reconciliation_mismatch_log</code>.</p>
-<h3 id="functions_3">Functions<a class="headerlink" href="#functions_3" title="Permanent link">&para;</a></h3>
+<h3 id="functions_4">Functions<a class="headerlink" href="#functions_4" title="Permanent link">&para;</a></h3>
 <table>
 <thead>
 <tr>
@@ -3820,6 +3925,10 @@
 </thead>
 <tbody>
 <tr>
+<td><code>build_mismatch_rows(mismatch_detail_df: DataFrame, reconciliation_id: str, target_id: str, match_keys: List[str], compare_columns: Optional[List[str]] = None) -&gt; DataFrame</code></td>
+<td>Pure projection of <code>mismatch_detail_df</code> (``matcher.py::ReconciliationMatchResult.</td>
+</tr>
+<tr>
 <td><code>write_mismatch_log_rows(spark: SparkSession, control_schema: str, run_id: str, reconciliation_id: str, target_id: str, mismatch_detail_df: DataFrame, match_keys: List[str], compare_columns: Optional[List[str]] = None, task_run_id: Optional[str] = None) -&gt; int</code></td>
 <td>Project <code>mismatch_detail_df</code> (<code>matcher.py::ReconciliationMatchResult.mismatch_detail_df</code>) into <code>reconciliation_mismatch_log</code> rows and append them, returning the row count written.</td>
 </tr>
@@ -3827,7 +3936,7 @@
 </table>
 <h2 id="lakeflow_frameworkreconciliationstreamingpy"><code>lakeflow_framework/reconciliation/streaming.py</code><a class="headerlink" href="#lakeflow_frameworkreconciliationstreamingpy" title="Permanent link">&para;</a></h2>
 <p><code>read_mode: "streaming"</code> reconciliation -- a <code>foreachBatch</code>-driven incremental alternative to <code>appender.py</code>'s batch point-in-time-snapshot + fingerprint-dedup path.</p>
-<h3 id="functions_4">Functions<a class="headerlink" href="#functions_4" title="Permanent link">&para;</a></h3>
+<h3 id="functions_5">Functions<a class="headerlink" href="#functions_5" title="Permanent link">&para;</a></h3>
 <table>
 <thead>
 <tr>

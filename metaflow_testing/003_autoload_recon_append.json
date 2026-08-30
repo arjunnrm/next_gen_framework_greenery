@@ -37,6 +37,9 @@
   "reconciliation_flows": [
     {
       "reconciliation_id": "recon_excalibur_autoload_vs_zerobus",
+      "_test_case_note": "TC-R2-001: flipped to execution_mode 'pipeline' -- this scenario is already structurally the geneva shape (a Bronze source produced by this same group's own ingestion flow, reconciled against an external zerobus-produced target, healing into that zerobus flow's own raw source bus in a DIFFERENT dataflow group) so it doubles as a before/after regression proving R2 (source-plane read-once) on an EXISTING passing scenario rather than only on new fixtures. dataflow_group_id is required by V-CYC-6 whenever execution_mode is pipeline-mode; set to this spec's own group so the flow registers into df_metaflow_003's own Lakeflow pipeline update. append_target_table ({{catalog}}.Excalibur_usecase.zerobus_source_bus) is dfg_metaflow_002_zerobus_bronze's own zerobus ingestion source -- genuinely a different dataflow group/spec document, so V-CYC-3/4 do not fire from this document alone (see docs/13's cross-pipeline feedback loop limitation); the live cross-group loop is the same one V-CYC-4 would WARN about if 002 and 003 were ever combined into one spec.",
+      "execution_mode": "pipeline",
+      "dataflow_group_id": "dfg_metaflow_003_autoload_recon",
       "source_config": {
         "type": "table",
         "table": "{{catalog}}.bronze_excalibur.autoload_bronze",

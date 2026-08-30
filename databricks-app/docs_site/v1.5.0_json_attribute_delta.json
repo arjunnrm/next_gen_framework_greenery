@@ -1,0 +1,521 @@
+{
+  "$comment": "MACHINE-READABLE ATTRIBUTE DELTA for the NextGen Metadata Framework (Metaflow) onboarding spec, v1.4.0 -> v1.5.0. Intended to be fed directly to an automated agent updating the Databricks App (databricks-app/) or any other spec-authoring surface. Every path below is expressed as it appears in an onboarding spec document, rooted at the spec object; `[]` denotes an array element. This file is hand-authored and is the source of truth for the delta; the enforcing artefacts are onboarding_templates/onboarding_spec.schema.json (structure) and src/NextGen_Metadata_Framework/lakeflow_framework/onboarding/spec_validator.py (semantics, including the rejection messages quoted below verbatim). READING RULE for `app_action`: every app_action states a FACT about the resulting UI, never a shorthand instruction. In v1.4.01 an app-updating agent implemented a shorthand instruction that contradicted its own `after` field; `before`, `after` and `app_action` must all be readable as descriptions of the same single end state.",
+  "schema_version": "1.0",
+  "framework_version_from": "1.4.0",
+  "framework_version_to": "1.5.0",
+  "release_date": "2026-08-31",
+  "summary": {
+    "added": 4,
+    "modified": 5,
+    "removed": 0,
+    "enum_values_removed": 0,
+    "breaking": false,
+    "headline": "Reconciliation becomes a THIRD first-class flow type that can run INSIDE its dataflow group's Lakeflow Declarative Pipeline DAG (reconciliation_flows[].execution_mode), and every physical read in that pipeline is routed through a read-once source plane governed by the new top-level `source_plane` block.",
+    "migration_required_for": "NOTHING. Every added attribute is optional and every default reproduces v1.4.0 behaviour exactly: execution_mode defaults to 'job' (the unchanged standalone 05_reconciliation_engine.py job task) and source_plane defaults to {materialize:'auto', catalog:null, schema:null}, which materializes a shared node only at fanout >= 2 and otherwise keeps today's inline read. No existing spec is invalidated. The modified attributes are newly constrained only when an author OPTS IN by setting execution_mode to 'pipeline'/'pipeline_audit_only'.",
+    "why_execution_mode_must_default_to_job": "Four DABs resources still run reconciliation job tasks against onboarded rows. If 'pipeline' were the default, those flows would run twice per cycle -- once as the job task and once inside the pipeline update."
+  },
+  "added": [
+    {
+      "path": "reconciliation_flows[].execution_mode",
+      "type": "string",
+      "json_schema_def": "#/$defs/reconciliationFlow/properties/execution_mode",
+      "required": false,
+      "default": "job",
+      "default_behaviour": "Absent == 'job' == the exact v1.4.0 behaviour: the flow runs as a notebooks/05_reconciliation/05_reconciliation_engine.py job task and is registered into no Lakeflow pipeline. No existing spec changes meaning.",
+      "constraints": {
+        "enum": [
+          "job",
+          "pipeline",
+          "pipeline_audit_only"
+        ]
+      },
+      "enum_meanings": {
+        "job": "Run as a 05_reconciliation_engine.py job task, exactly as today. The only mode in which read_mode 'streaming' and task_run_id_column are legal.",
+        "pipeline": "Register this flow inside its dataflow_group_id's Lakeflow pipeline update as a third flow type: the L3 prepared-source/prepared-target datasets, the L4 published recon__<reconciliation_id>__<target_id>__classified / __metrics / __mismatch datasets, AND the L5 heal lane (the fingerprint-ledger-guarded append back into append_target_table, hosted in one dlt.foreach_batch_sink handler per reconciliation flow).",
+        "pipeline_audit_only": "Register L3+L4 only. The comparison, metrics, mismatch datasets and any dq_config expectations run in-pipeline; healing stays on the standalone job engine. The correct setting for a recon flow whose source is static or low-change (in pipeline mode the L5 handler only fires on a micro-batch of the streaming source -- see known_limitations in docs/13), and the pre-built landing zone if dlt.foreach_batch_sink is unavailable in the runtime."
+      },
+      "examples": [
+        "job",
+        "pipeline",
+        "pipeline_audit_only"
+      ],
+      "ui_widget": "select",
+      "ui_position": "In the reconciliation `identity` section, IMMEDIATELY AFTER reconciliation_id -- it is the most consequential choice on the flow and it gates whether publish_schema, dq_config, read_mode 'streaming' and task_run_id_column are legal.",
+      "ui_label": "execution_mode",
+      "description": "Where this reconciliation flow executes: as a standalone job task, or as a registered flow type inside its dataflow group's Lakeflow Declarative Pipeline update.",
+      "rationale": "Satisfies the requirement that ingestion, transformation and reconciliation all run in ONE Lakeflow DAG per dataflow group, without changing anything already deployed: the author opts in one flow at a time. In pipeline mode the reconciliation source is a dataset THIS update publishes, so the comparison reads this update's freshly written rows instead of an always-one-update-stale external read.",
+      "validation": {
+        "onboarding": "spec_validator.py::_validate_reconciliation_flows checks the value against ALLOWED_RECONCILIATION_EXECUTION_MODES = {'job','pipeline','pipeline_audit_only'}. An invalid value is reported AND resolved to the more restrictive 'job' reading for the rest of that flow's checks, so an unrecognised mode never silently skips a mode-conditional rejection. Setting 'pipeline'/'pipeline_audit_only' additionally activates V-CYC-1 (the source must be a target this dataflow group actually produces), V-CYC-6 (dataflow_group_id required) and V-CYC-7 (the producing flow must be append-only), and turns on the presence-rejections of read_mode 'streaming' and task_run_id_column.",
+        "runtime": "control_plane/repository.py::load_active_group_metadata returns reconciliation_rows; the pipeline notebook registers only rows whose execution_mode is 'pipeline'/'pipeline_audit_only', via reconciliation/graph_registration.py::register_reconciliation_flow. The value is read from the reconciliation_flow_spec.execution_mode column and defaults to 'job' when NULL.",
+        "runtime_error_message": "reconciliation_flow[<reconciliation_id>].execution_mode: expected one of ['job', 'pipeline', 'pipeline_audit_only']"
+      },
+      "app_action": "The reconciliation form's `identity` section contains a select named execution_mode positioned immediately after reconciliation_id, with options job / pipeline / pipeline_audit_only and default 'job'; because 'job' is the default, the key is omitted from the emitted spec when the value is 'job'. This field is the visibility driver for publish_schema and dq_config (both shown only when execution_mode != 'job') and the disable/warn driver for source_config.read_mode = 'streaming' and for task_run_id_column on either side (both illegal when execution_mode != 'job'). The same field exists in config/registry/reconciliation.json (server-rendered) and in web/src/registry.js REC_SECTIONS() (browser-rendered) -- two independent transcriptions of one field. Builder.jsx is unchanged: its generic renderer already handles a plain select."
+    },
+    {
+      "path": "reconciliation_flows[].publish_schema",
+      "type": "string",
+      "json_schema_def": "#/$defs/reconciliationFlow/properties/publish_schema",
+      "required": false,
+      "default": null,
+      "default_behaviour": "Absent means the hosting pipeline's own schema. Meaningful only when execution_mode is 'pipeline'/'pipeline_audit_only'.",
+      "constraints": {
+        "minLength": 1
+      },
+      "examples": [
+        "reconciliation_results",
+        "geneva_recon",
+        "bronze_excalibur"
+      ],
+      "ui_widget": "text",
+      "ui_position": "In the reconciliation `identity` section, immediately after execution_mode.",
+      "ui_label": "publish_schema",
+      "description": "Schema (within the hosting pipeline's own catalog) where this flow's recon__<reconciliation_id>__<target_id>__classified / __metrics / __mismatch datasets are published.",
+      "rationale": "Those datasets are real, externally visible Unity Catalog tables. Without this key the pipeline's own schema is used -- e.g. for pipeline e41a47ba that puts geneva reconciliation results in bronze_excalibur, which an operator may not want.",
+      "validation": {
+        "onboarding": "The structural string check always runs. Additionally REJECTED ON PRESENCE (not truthiness) when execution_mode is 'job', via reject_mode_incompatible_keys() with the RECONCILIATION_FLOW_KEYS_REQUIRING_PIPELINE_MODE registry in spec_validator.py.",
+        "runtime": "Persisted to the new nullable reconciliation_flow_spec.publish_schema column and passed as the publish_schema argument of reconciliation/graph_registration.py::register_reconciliation_flow.",
+        "runtime_error_message": "reconciliation_flow[<reconciliation_id>].publish_schema: not supported when execution_mode is 'job'. publish_schema names the schema where this flow's recon__<reconciliation_id>__<target_id>__classified/__metrics/__mismatch datasets are published inside the hosting Lakeflow pipeline -- a 'job' execution_mode flow has no such datasets at all. Set execution_mode to 'pipeline' or 'pipeline_audit_only', or delete this key."
+      },
+      "app_action": "The reconciliation form has an optional text field publish_schema, visible only when execution_mode is 'pipeline' or 'pipeline_audit_only'. Its key is absent from the emitted spec whenever the field is blank OR execution_mode is 'job' -- a value carried forward after the user switches the mode back to 'job' would be emitted and would then be rejected at onboarding."
+    },
+    {
+      "path": "reconciliation_flows[].dq_config",
+      "type": "object",
+      "json_schema_def": "#/$defs/reconciliationFlow/properties/dq_config -> $ref #/$defs/dqConfig",
+      "required": false,
+      "default": {},
+      "default_behaviour": "Absent means no expectations are attached; nothing about the comparison changes.",
+      "constraints": {
+        "shape": "The EXISTING #/$defs/dqConfig reused verbatim: {rules: [{rule_id, expression, action}], quarantine_table, record_id_column}. rule_id and expression are non-empty strings; expression is a boolean Spark SQL expression.",
+        "action_enum_for_reconciliation": [
+          "warn",
+          "drop",
+          "fail"
+        ],
+        "action_rejected_for_reconciliation": [
+          "quarantine"
+        ]
+      },
+      "examples": [
+        {
+          "rules": [
+            {
+              "rule_id": "no_value_drift",
+              "expression": "value_drift_count = 0",
+              "action": "fail"
+            }
+          ]
+        },
+        {
+          "rules": [
+            {
+              "rule_id": "few_missing",
+              "expression": "missing_in_target_count < 100",
+              "action": "warn"
+            }
+          ]
+        }
+      ],
+      "ui_widget": "sub-block reusing the existing dq_config rules repeat group",
+      "ui_position": "A dq_config sub-block on the reconciliation flow, after publish_schema.",
+      "ui_label": "dq_config",
+      "description": "Lakeflow expectations attached to this flow's one-row recon__<reconciliation_id>__<target_id>__metrics dataset.",
+      "rationale": "The FIRST declarative way a reconciliation threshold can fail a pipeline update, and it makes reconciliation compose with data quality exactly as the other two flow types do. It is a $ref to the existing dqConfig def, so the JSON-schema and app cost is near zero. ADDITIVE: it does NOT repurpose error_handling.on_failure, which keeps its exception-level try/except meaning.",
+      "validation": {
+        "onboarding": "spec_validator.py::_validate_dq_config runs the same structural checks as for the other flow types. Two reconciliation-specific rules are added: action 'quarantine' is rejected per rule index, and the whole block is REJECTED ON PRESENCE (not truthiness -- dq_config: {} still counts) when execution_mode is 'job'.",
+        "runtime": "Persisted to the new nullable reconciliation_flow_spec.dq_config_json column (same JSON shape as ingestion_flow_spec.dq_config_json) and applied as dlt expectations on the __metrics dataset by reconciliation/graph_registration.py.",
+        "runtime_error_message": "reconciliation_flow[<reconciliation_id>].dq_config: not supported when execution_mode is 'job'. dq_config attaches dlt expectations to the one-row __metrics dataset -- a 'job' execution_mode flow never produces that dataset, so there is nothing to attach an expectation to. Set execution_mode to 'pipeline' or 'pipeline_audit_only', or delete this key.",
+        "runtime_error_message_quarantine_action": "reconciliation_flow[<reconciliation_id>].dq_config.rules[<index>].action: 'quarantine' is not supported for a reconciliation flow -- there is nothing to quarantine on the one-row __metrics dataset these rules attach to. Use 'warn'/'drop'/'fail' instead."
+      },
+      "app_action": "The reconciliation form has a dq_config sub-block reusing the existing dq rules repeat group (rule_id / expression / action), visible only when execution_mode is 'pipeline' or 'pipeline_audit_only'. On a reconciliation flow the action select offers only warn / drop / fail; 'quarantine' is absent from that option list, while remaining present on ingestion and transformation flows. The columns an expression may reference are those of the one-row __metrics dataset (e.g. value_drift_count, missing_in_target_count, missing_in_source_count, matched_count, source_row_count, target_row_count)."
+    },
+    {
+      "path": "source_plane",
+      "type": "object",
+      "json_schema_def": "#/properties/source_plane -> $ref #/$defs/sourcePlane",
+      "required": false,
+      "default": {
+        "materialize": "auto",
+        "catalog": null,
+        "schema": null
+      },
+      "default_behaviour": "Absent == {'materialize':'auto','catalog':null,'schema':null}. 'auto' materializes a shared L0 node only when an external physical read locator has fanout >= 2 within the pipeline update, so a single-consumer read keeps the v1.4.0 inline code path and its predicate pushdown into the origin table.",
+      "constraints": {
+        "additionalProperties": false,
+        "properties": {
+          "materialize": {
+            "type": "string",
+            "enum": [
+              "auto",
+              "always",
+              "never"
+            ],
+            "default": "auto"
+          },
+          "catalog": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "default": null
+          },
+          "schema": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "default": null
+          }
+        },
+        "note": "additionalProperties is deliberately false here, unlike most $defs in this schema: the whole block is new in v1.5.0, so there is no forward-compatibility reason to accept an unknown key."
+      },
+      "enum_meanings": {
+        "auto": "Shared materialized node only at fanout >= 2; a fanout-1 locator stays inline.",
+        "always": "Every external locator gets a materialized read-once node even at fanout 1 -- a full physical copy and an extra DAG step.",
+        "never": "Every consumer reads the locator inline even at fanout >= 2 -- the escape hatch for a huge, heavily-filtered table where losing predicate pushdown into the origin costs more than the duplicated scan."
+      },
+      "examples": [
+        {
+          "materialize": "auto",
+          "catalog": null,
+          "schema": null
+        },
+        {
+          "materialize": "always",
+          "catalog": "metaflow",
+          "schema": "source_plane"
+        },
+        {
+          "materialize": "never"
+        }
+      ],
+      "ui_widget": "object (one select plus two optional text fields)",
+      "ui_position": "Top-level, in the dataflow-group settings section alongside pipeline_parameters and spark_config.",
+      "ui_label": "source_plane",
+      "description": "The read-once threshold policy for this dataflow group's Lakeflow pipeline. catalog/schema name where materialized shared nodes (_src__<sanitized_locator>__<8hex>__stream / __batch) are published; null means the hosting pipeline's own.",
+      "rationale": "Every physical source table/path must be read EXACTLY ONCE per pipeline update and reused across all consumers. Materialization is what makes read-once literally true -- a @dlt.view is inlined into each consumer, so 'declared once' is not 'read once'. But materialization has a real cost (a physical copy, an extra DAG step, a checkpoint in the streaming case, and the loss of predicate pushdown of a consumer's filter_condition into the ORIGINAL source), which is exactly why 'auto' is the default and 'never' exists.",
+      "validation": {
+        "onboarding": "JSON-schema only: the enum on materialize, the string|null types on catalog/schema, and additionalProperties:false. spec_validator.py adds NO further semantic check -- nothing about the block can be wrong independently of the graph, and the plan pass itself (engine/source_plane.py::plan_source_plane) is pure and unit-testable with no workspace.",
+        "runtime": "Persisted to the new nullable dataflow_group_spec.source_plane_config_json column (json.dumps(spec.get('source_plane', {})) in onboarding/metadata_upsert.py) and read back via getattr(GROUP_ROW, 'source_plane_config_json', None), so a control-table row created before this column existed reads as {} -- all defaults, no failure.",
+        "runtime_error_message": "No runtime rejection is raised by this block itself. The related runtime failure is engine/source_plane.py::FrameworkGraphCycleError, raised by assert_acyclic() when the plan's Kahn topological sort finds a ring; the message lists the ring."
+      },
+      "app_action": "The dataflow-group settings section contains an optional source_plane object with a select materialize (auto / always / never, default auto) and two optional text fields catalog and schema. The block is omitted from the emitted spec when all three are at their defaults, and the JSON schema rejects any key other than these three."
+    }
+  ],
+  "removed": [],
+  "enum_values_removed": [],
+  "modified": [
+    {
+      "path": "reconciliation_flows[].source_config.read_mode",
+      "also_applies_to": [
+        "reconciliation_flows[].target_configs[].read_mode"
+      ],
+      "change": "VALUE_NEWLY_REJECTED_UNDER_A_CONDITION",
+      "type": "string",
+      "constraints": {
+        "enum": [
+          "batch",
+          "streaming"
+        ]
+      },
+      "default": "batch",
+      "before": "'batch' or 'streaming', always legal on either side of a reconciliation flow.",
+      "after": "Unchanged when execution_mode is 'job'. When execution_mode is 'pipeline' or 'pipeline_audit_only', the value 'streaming' is REJECTED (presence-and-value based) on both source_config and every target_configs[] entry; 'batch' -- the default -- is the only legal value in those modes.",
+      "why": "The in-pipeline comparison is a whole-snapshot batch classification, and a stream-static join supports only inner and left_outer, which cannot express MISSING_IN_SOURCE.",
+      "rejection_message_verbatim": "reconciliation_flow[<reconciliation_id>].source_config.read_mode: 'streaming' is not supported when execution_mode is '<execution_mode>'. The in-pipeline comparison is a whole-snapshot batch classification, and a stream-static join supports only inner and left_outer, which cannot express MISSING_IN_SOURCE. Use read_mode 'batch' (the default), or set execution_mode to 'job' to keep the standalone streaming engine.",
+      "enforced_by": "spec_validator.py::_validate_reconciliation_dataset_config, which now takes an execution_mode parameter threaded in by _validate_reconciliation_flows (it validates one side at a time and so has no flow-level context of its own).",
+      "app_action": "The read_mode select on a reconciliation source_config and on each target_configs[] entry offers batch and streaming while execution_mode is 'job'; when execution_mode is 'pipeline' or 'pipeline_audit_only' the emitted spec never carries read_mode 'streaming' on either side -- the option is unavailable there and an already-selected 'streaming' resets to 'batch' when the mode changes."
+    },
+    {
+      "path": "reconciliation_flows[].source_config.task_run_id_column",
+      "also_applies_to": [
+        "reconciliation_flows[].target_configs[].task_run_id_column"
+      ],
+      "change": "KEY_NEWLY_REJECTED_UNDER_A_CONDITION",
+      "type": "string",
+      "default": null,
+      "before": "Optional on either side, in every mode; narrows the side to the rows written by one task run.",
+      "after": "Unchanged when execution_mode is 'job'. REJECTED ON PRESENCE (not truthiness) on either side when execution_mode is 'pipeline' or 'pipeline_audit_only'.",
+      "why": "engine/run_context.py::resolve_pipeline_run_id has no stable per-update key: pipelines.id is the PIPELINE id, constant across every update, and it is the same value dq/quarantine.py stamps into __framework_pipeline_run_id -- the column task_run_id_column is documented to point at. Narrowing by it would match every row that pipeline has ever written, i.e. a SILENT NO-OP. Revisit only if a genuine per-update configuration key is established.",
+      "rejection_message_verbatim": "reconciliation_flow[<reconciliation_id>].source_config.task_run_id_column: not supported when execution_mode is '<execution_mode>'. engine/run_context.py::resolve_pipeline_run_id has no stable per-update key -- pipelines.id is the PIPELINE id, constant across every update, and narrowing by it would match every row that pipeline has ever written, i.e. a silent no-op. Use filter_condition instead, or set execution_mode to 'job' to keep the standalone engine's per-run task_run_id narrowing.",
+      "enforced_by": "spec_validator.py::REMOVED_RECONCILIATION_DATASET_KEYS_PIPELINE, applied through reject_mode_incompatible_keys() from _validate_reconciliation_dataset_config.",
+      "related_runtime_guard": "reconciliation/dataset_reader.py::read_reconciliation_dataset raises when in_graph=True is combined with a task_run_id_column, so the same combination cannot arrive from a hand-edited control-table row either.",
+      "app_action": "task_run_id_column is present and optional on both reconciliation sides while execution_mode is 'job', and the emitted spec omits the key entirely on both sides when execution_mode is 'pipeline' or 'pipeline_audit_only'. Its help text names filter_condition as the alternative narrowing mechanism in pipeline mode."
+    },
+    {
+      "path": "reconciliation_flows[].two_tier_verification",
+      "change": "SEMANTICS_UNCHANGED_PERSISTENCE_DEFECT_FIXED",
+      "type": "boolean",
+      "default": true,
+      "before": "Documented and validated as a boolean defaulting to true, but NEVER PERSISTED: metadata_upsert._RECONCILIATION_FLOW_SPEC_SCHEMA had no such StructField and the Row literal never set it, so `two_tier_verification: false` onboarded cleanly and was silently discarded. The stored row was NULL and the runtime defaulted to True -- a silent inversion of the author's declared intent.",
+      "after": "Identical semantics, in BOTH execution modes, and now actually persisted: the StructField exists in _RECONCILIATION_FLOW_SPEC_SCHEMA and the value is written to the reconciliation_flow_spec.two_tier_verification column (nullable; NULL still reads as true). The Phase-1 fingerprint short-circuit works verbatim inside a dlt.foreach_batch_sink handler, because .collect() is legal there, so it genuinely still skips the join in pipeline mode.",
+      "clarification": "A Phase-1 match skips the JOIN and the APPEND, and NEVER the log writes -- reconciliation/appender.py::_complete_phase_1_match exists precisely to write the same run_log/result rows a Phase 2 run would.",
+      "app_action": "The two_tier_verification checkbox is unchanged in position, label and default (true). What changed is behind the app: a false value now survives onboarding instead of being silently discarded, so any existing spec that set it to false takes effect on its next onboarding run."
+    },
+    {
+      "path": "reconciliation_flows[].dataflow_group_id",
+      "change": "CONDITIONALLY_REQUIRED",
+      "type": "string",
+      "default": null,
+      "before": "Optional in every case. A group-less reconciliation flow is explicitly handled by 05_reconciliation_engine.py and the DDL allows NULL.",
+      "after": "STILL OPTIONAL for execution_mode 'job'. REQUIRED when execution_mode is 'pipeline' or 'pipeline_audit_only' -- a group-less recon flow has no Lakeflow pipeline to live in. Deliberately NOT made globally required: that would break working job-mode flows for no benefit.",
+      "rejection_message_verbatim": "reconciliation_flow[<reconciliation_id>].dataflow_group_id: is required when execution_mode is '<execution_mode>' -- a group-less reconciliation flow has no Lakeflow pipeline to be registered into. Add a dataflow_group_id (this spec's own, to run inside its own pipeline update, or another group's, to run inside that group's pipeline instead), or keep execution_mode 'job'.",
+      "enforced_by": "spec_validator.py cross-flow validation, check V-CYC-6.",
+      "app_action": "dataflow_group_id on a reconciliation flow is optional while execution_mode is 'job' and required while execution_mode is 'pipeline' or 'pipeline_audit_only'; in those two modes the form does not validate with the field blank. The value may equal the spec's own top-level dataflow_group_id or name another group."
+    },
+    {
+      "path": "reconciliation_flows[].error_handling.on_failure",
+      "change": "SEMANTICS_PRESERVED_BLAST_RADIUS_RESTATED",
+      "type": "string",
+      "constraints": {
+        "enum": [
+          "fail",
+          "warn"
+        ]
+      },
+      "default": "fail",
+      "before": "A Python try/except around each target's reconciliation. 'fail' re-raises, which stops the remaining targets of that reconciliation_id via the existing `break` and fails the JOB TASK.",
+      "after": "Identical mechanism -- still a try/except in the handler, still one handler holding every target, so 'fail' still stops the remaining targets of that reconciliation_id via the same `break`. The only difference in pipeline mode is the blast radius: re-raising fails that flow and therefore the PIPELINE UPDATE, whereas in job mode it fails only a job task, so sibling reconciliation flows in the same group may already have run.",
+      "deliberately_not_done": "on_failure is NOT mapped onto dlt expectations. Expectations are per-row predicates; there is no row-level predicate meaning 'this target's reconciliation raised', and expectations cannot be attached to a sink at all.",
+      "see_also": "The finding-level gate people often expect from this attribute is now available separately and additively as reconciliation_flows[].dq_config on the one-row __metrics dataset.",
+      "app_action": "The on_failure select is unchanged in options ('fail' / 'warn'), default and position. Its help text states that in pipeline mode a re-raise fails the whole pipeline update, and points at dq_config for a finding-level (rather than exception-level) gate."
+    }
+  ],
+  "unchanged_but_worth_stating": [
+    {
+      "path": "reconciliation_flows[].checkpoint_root",
+      "status": "NOT A SPEC ATTRIBUTE -- job-task widget only.",
+      "note": "It stays for job mode and is meaningless in pipeline mode (Lakeflow owns every checkpoint). Deliberately NOT added to REMOVED_RECONCILIATION_FLOW_KEYS: rejecting a key that no spec has ever carried would be noise. Recorded in docs/07."
+    },
+    {
+      "path": "dataflow_group_spec.has_reconciliation_flows",
+      "status": "DELIBERATELY NOT ADDED.",
+      "note": "has_ingestion_flows / has_transformation_flows are write-only -- nothing in the repo reads them. A third write-only denormalised column earns nothing. Presence is derived from len(reconciliation_rows)."
+    },
+    {
+      "path": "reconciliation_flows[].governance_tags",
+      "status": "DEFERRED to v1.6.0.",
+      "note": "The published recon datasets do not carry governance tags in v1.5.0. Recorded as a known gap in the enhancement log so it reads as a decision, not an oversight. The app must not offer the field on reconciliation flows."
+    },
+    {
+      "path": "reconciliation_flows[].logging_config.run_log_capture / mismatch_log_capture",
+      "status": "SPEC UNCHANGED; the per-RUN override changes shape in pipeline mode.",
+      "note": "The recon_run_log_capture / recon_mismatch_log job-parameter tri-state has no pipeline equivalent (`pipelines start-update` accepts only --full-refresh). In pipeline mode the override is the pipeline configuration keys dataflow.recon.run_log_capture / dataflow.recon.mismatch_log, tri-state preserved (absent or '' defers to logging_config), read at notebook top level exactly as dataflow.group.id is. THE LOSS IS REAL: the change takes effect on the NEXT update, not the current one."
+    }
+  ],
+  "control_table_delta": {
+    "$comment": "01_setup only ever runs CREATE TABLE IF NOT EXISTS, never a migration. An already-provisioned table therefore does NOT gain these columns automatically -- every new column is nullable and every reader uses getattr(ROW, '<column>', None) with a documented default, so a pre-existing row and a pre-existing table both read as 'unset' rather than failing. Recreating (or ALTER TABLE ADD COLUMN on) the control tables is what makes the new columns physically present.",
+    "reconciliation_flow_spec": {
+      "columns_added": [
+        {
+          "column": "execution_mode",
+          "type": "STRING",
+          "nullable": true,
+          "default_when_null": "job",
+          "source_spec_key": "reconciliation_flows[].execution_mode"
+        },
+        {
+          "column": "publish_schema",
+          "type": "STRING",
+          "nullable": true,
+          "default_when_null": "the hosting pipeline's own schema",
+          "source_spec_key": "reconciliation_flows[].publish_schema"
+        },
+        {
+          "column": "dq_config_json",
+          "type": "STRING",
+          "nullable": true,
+          "default_when_null": "{} (no expectations)",
+          "source_spec_key": "reconciliation_flows[].dq_config",
+          "note": "Same JSON shape as ingestion_flow_spec.dq_config_json / transformation_flow_spec.dq_config_json, written as json.dumps(flow.get('dq_config', {}))."
+        }
+      ],
+      "persistence_defect_fixed": {
+        "column": "two_tier_verification",
+        "type": "BOOLEAN",
+        "nullable": true,
+        "default_when_null": true,
+        "defect": "The column existed in the DDL, but onboarding never wrote it: metadata_upsert._RECONCILIATION_FLOW_SPEC_SCHEMA had no StructField for it and the Row literal never set it, so `two_tier_verification: false` onboarded cleanly and was silently discarded, leaving NULL, which the runtime reads as true -- a silent behaviour inversion.",
+        "fix": "StructField added to the upsert schema and the value set by the Row literal."
+      }
+    },
+    "dataflow_group_spec": {
+      "columns_added": [
+        {
+          "column": "source_plane_config_json",
+          "type": "STRING",
+          "nullable": true,
+          "default_when_null": "{} -- i.e. materialize 'auto', catalog null, schema null",
+          "source_spec_key": "source_plane",
+          "read_via": "getattr(GROUP_ROW, 'source_plane_config_json', None)",
+          "note": "The getattr default is load-bearing: a control-table row (or table) created before this column existed must read as all-defaults rather than raising, because 01_setup performs no migration."
+        }
+      ],
+      "persistence_defect_fixed": {
+        "column": "spark_config_json",
+        "type": "STRING",
+        "nullable": true,
+        "defect": "The top-level spark_config block was validated and documented but never persisted -- the column was not written by onboarding/metadata_upsert.py, so the onboarded Spark configuration silently never reached the pipeline session.",
+        "fix": "spark_config_json is now part of the dataflow_group_spec upsert schema, set by the Row literal as json.dumps(spec.get('spark_config', {})) and included in the MERGE's whenMatchedUpdate set."
+      }
+    },
+    "getattr_default_note": "EVERY new column above is read with getattr(ROW, '<column>', <default>) rather than ROW.<column>. This is what allows a v1.4.0-provisioned control table to keep working unchanged, and it is why none of the additions is breaking."
+  },
+  "python_api_delta": {
+    "$comment": "For any caller outside this repository.",
+    "modules_added": [
+      "NextGen_Metadata_Framework.lakeflow_framework.engine.identifiers",
+      "NextGen_Metadata_Framework.lakeflow_framework.engine.source_plane",
+      "NextGen_Metadata_Framework.lakeflow_framework.engine.flow_generators",
+      "NextGen_Metadata_Framework.lakeflow_framework.reconciliation.graph_registration"
+    ],
+    "modules_deleted": [],
+    "symbols_added": [
+      "engine.identifiers.sanitize_identifier",
+      "engine.identifiers.stable_node_name",
+      "engine.source_plane.ReadIdentity",
+      "engine.source_plane.ConsumerRequest",
+      "engine.source_plane.PlaneNode",
+      "engine.source_plane.Binding",
+      "engine.source_plane.SourcePlanePlan",
+      "engine.source_plane.plan_source_plane",
+      "engine.source_plane.register_source_plane",
+      "engine.source_plane.bind",
+      "engine.source_plane.describe_plan",
+      "engine.source_plane.assert_acyclic",
+      "engine.source_plane.FrameworkGraphCycleError",
+      "engine.sink_registration.register_foreach_batch_sink",
+      "reconciliation.graph_registration.register_reconciliation_flow",
+      "reconciliation.matcher.classify_reconciliation_target",
+      "reconciliation.mismatch_logging.build_mismatch_rows",
+      "control_plane.repository.GroupMetadata"
+    ],
+    "signatures_changed": [
+      {
+        "function": "control_plane.repository.load_active_group_metadata",
+        "before": "returns a 3-field GroupMetadata NamedTuple (group_row, ingestion_rows, transformation_rows)",
+        "after": "returns a 4-field GroupMetadata NamedTuple (group_row, ingestion_rows, transformation_rows, reconciliation_rows). Field order is preserved and the new field is appended, so positional unpacking of exactly three names now raises ValueError -- callers must unpack four or use attribute access.",
+        "breaking_for_external_callers": true
+      },
+      {
+        "function": "transformation.inputs.register_transformation_inputs",
+        "before": "register_transformation_inputs(spark, source_inputs, flow_step_id)",
+        "after": "register_transformation_inputs(spark, source_inputs, plan, flow_step_id) -- `plan` is the dataflow group's SourcePlanePlan, inserted before flow_step_id. Each input view's body now resolves its DataFrame via source_plane.bind(plan, f'{flow_step_id}:input:{input_name}', want_stream=is_streaming) instead of its own spark.read(Stream).table(...), so input_name is an ALIAS over a shared (or in-graph-sibling, or inline) binding. `spark` is retained for interface stability.",
+        "breaking_for_external_callers": true
+      },
+      {
+        "function": "engine.flow_registration.register_staged_view",
+        "added_parameters": [
+          {
+            "name": "materialize",
+            "type": "bool",
+            "default": false,
+            "meaning": "Registers the same closure as a real qualified @dlt.table instead of a @dlt.view, so every downstream reader shares ONE materialized result. A @dlt.view is inlined into each consumer, so 'declared once' is not 'read once'."
+          },
+          {
+            "name": "target_catalog",
+            "type": "Optional[str]",
+            "default": null
+          },
+          {
+            "name": "target_schema",
+            "type": "Optional[str]",
+            "default": null
+          }
+        ],
+        "return_value": "Returns the name callers must read by -- the QUALIFIED table name when materialize=True, and the bare staged view name otherwise. Callers must use the return value, never the bare staged_view_name they passed in.",
+        "position": "trailing keyword parameters; existing positional calls are unaffected",
+        "breaking_for_external_callers": false
+      },
+      {
+        "function": "engine.sink_registration (delta sink options)",
+        "change": "A delta sink accepts EITHER sink_config.table_name (a three-part Unity Catalog name, emitted as {'tableName': ...}) or sink_config.path. A delta sink_config that sets neither raises FrameworkConfigError: \"Flow '<flow_label>': sink_config must set either 'table_name' or 'path' for format 'delta'\".",
+        "breaking_for_external_callers": false
+      },
+      {
+        "function": "reconciliation.matcher.classify_reconciliation_target",
+        "change": "NEW lazy entry point: classify_reconciliation_target(source_df, target_df, match_keys, compare_columns=None, source_hash_precomputed=False, target_hash_precomputed=False) -> ReconciliationClassification. It is Phase 2's algebra (the full outer join on __framework_hash_key, the four-way MATCHED/VALUE_DRIFT/MISSING_IN_TARGET/MISSING_IN_SOURCE when-chain, and the groupBy + F.max_by(priority) per-key collapse) with every eager action removed, so it is legal inside a @dlt.table closure. match_reconciliation_target is now a thin wrapper around it that performs the one collect job mode still needs; its signature, behaviour and return type are UNCHANGED.",
+        "breaking_for_external_callers": false
+      },
+      {
+        "function": "reconciliation.mismatch_logging.build_mismatch_rows",
+        "change": "NEW pure projection: build_mismatch_rows(mismatch_detail_df, reconciliation_id, target_id, match_keys, compare_columns=None) -> DataFrame, in reconciliation_mismatch_log row shape. It deliberately does NOT take run_id/task_run_id, because its two callers disagree about them: write_mismatch_log_rows (job mode and the foreach_batch_sink handler) knows the owning reconciliation_run_log.run_id and adds it as a further column, while the recon__<reconciliation_id>__<target_id>__mismatch dataset has no run-scoped id at all -- it is a per-update snapshot, not a ledger. Performs no action, so it is safe inside a @dlt.table body.",
+        "breaking_for_external_callers": false
+      },
+      {
+        "function": "reconciliation.dataset_reader.read_reconciliation_dataset",
+        "added_parameters": [
+          {
+            "name": "in_graph",
+            "type": "bool",
+            "default": false,
+            "meaning": "True when the side resolves to an in_graph_sibling source-plane binding -- a table this same dataflow group's pipeline update publishes. Skips the eager DESCRIBE TABLE EXTENDED provider probe (the dataset is Delta by construction and may not exist on the first update), and raises when combined with a task_run_id_column."
+          }
+        ],
+        "breaking_for_external_callers": false
+      }
+    ],
+    "new_entry_point": {
+      "function": "reconciliation.graph_registration.register_reconciliation_flow",
+      "signature": "register_reconciliation_flow(spark, flow_row, *, plan, publish_catalog, publish_schema, control_schema, pipeline_update_id=None, log_capture_overrides=None, pipeline_parameters=None) -> None",
+      "meaning": "Registers one reconciliation_flow_spec row's L3 (prepare) + L4 (compare) + L5 (heal) datasets/flows into the currently-building Lakeflow graph. Called only for rows whose execution_mode is 'pipeline' (L3+L4+L5) or 'pipeline_audit_only' (L3+L4 only)."
+    }
+  },
+  "app_update_checklist": [
+    "databricks-app/config/registry/reconciliation.json -- add execution_mode as a select in the `identity` section immediately after reconciliation_id; add publish_schema (text, visible when execution_mode != 'job'); add a dq_config sub-block (visible when execution_mode != 'job', action options warn/drop/fail only).",
+    "databricks-app/config/registry/fragments.json -- reconciliation source_config / target_configs[]: read_mode's 'streaming' option and task_run_id_column are both conditioned on the owning flow's execution_mode being 'job'.",
+    "databricks-app/config/registry/shared / group-settings registry -- add the top-level source_plane object (materialize select auto/always/never default auto; catalog and schema optional texts).",
+    "databricks-app/config/registry/_meta.json -- bump framework_version to 1.5.0 (currently stale at 1.3.0; this fixes two releases of drift). Same bump in databricks-app/server/settings.py and databricks-app/templates/index.json.",
+    "databricks-app/config/validation/rules.json -- mirror the framework validator's mode-conditional rules (V-CYC-1/2/3/6/7 to the extent the app's predicate engine can reach across flow arrays; where it cannot, the app warns and the framework validator carries the real check, documented as a deliberate asymmetry). EVERY binary predicate must carry >= 2 operands, or test_framework_spec_agreement.py fails and evaluate_predicate silently returns False.",
+    "databricks-app/config/attribute_knowledge.curated.json -- add curated entries for execution_mode, publish_schema, reconciliation dq_config and source_plane; then REGENERATE attribute_knowledge.json via databricks-app/scripts/build_attribute_knowledge.py (it is generated from web/src/registry.js plus the curated file -- never hand-edit the output).",
+    "databricks-app/web/src/registry.js -- mirror every change above in REC_SECTIONS() and PRESETS.rec. The server renders from the JSON registry and the browser from this file: two independent transcriptions of one field set. Run `node --check databricks-app/web/src/registry.js` afterwards, and anchor every edit on exact line prefixes (a DOTALL re.sub once swallowed ~650 lines of Builder.jsx).",
+    "databricks-app/web/src/Builder.jsx -- NO change required. The generic renderer already handles a plain select and a text field; it changes only for new serialization semantics or a new widget type.",
+    "REBUILD web/dist -- `npm install && npm run build` in databricks-app/web, and commit the result. Databricks Apps does not build at deploy time, so an un-rebuilt bundle keeps offering fields the framework now rejects. Deploying the app is TWO steps: `bundle deploy` leaves the app on its previous code, `bundle run` is required.",
+    "Spec IMPORT path -- an imported spec carrying publish_schema/dq_config with execution_mode 'job', or read_mode 'streaming'/task_run_id_column with a pipeline execution_mode, must surface as a migration warning naming the rejection, not be silently preserved or dropped."
+  ],
+  "enforcing_artifacts": {
+    "json_schema": "onboarding_templates/onboarding_spec.schema.json",
+    "validator": "src/NextGen_Metadata_Framework/lakeflow_framework/onboarding/spec_validator.py",
+    "validator_registries": [
+      "ALLOWED_RECONCILIATION_EXECUTION_MODES",
+      "_RECONCILIATION_PIPELINE_MODES",
+      "REMOVED_RECONCILIATION_DATASET_KEYS_PIPELINE",
+      "RECONCILIATION_FLOW_KEYS_REQUIRING_PIPELINE_MODE"
+    ],
+    "validator_helpers": [
+      "reject_removed_keys(config, path_prefix, errors, removed)",
+      "reject_mode_incompatible_keys(config, path_prefix, errors, incompatible, mode)"
+    ],
+    "cross_flow_checks": {
+      "V-CYC-1": "In pipeline mode, source_config.table must be a target this dataflow group actually produces.",
+      "V-CYC-6": "In pipeline mode, reconciliation_flows[].dataflow_group_id is required.",
+      "V-CYC-7": "In pipeline mode, the producing flow must be append-only: a cdc_load_strategy that dispatches through dlt.apply_changes[_from_snapshot], or TRUNCATE_AND_LOAD into a materialized_view, is rejected.",
+      "V-CYC-4": "A cross-pipeline feedback loop is a WARNING naming both dataflow groups, not an error -- the loop is real at the data level but legal today."
+    },
+    "runtime_modules": [
+      "src/NextGen_Metadata_Framework/lakeflow_framework/engine/source_plane.py",
+      "src/NextGen_Metadata_Framework/lakeflow_framework/engine/identifiers.py",
+      "src/NextGen_Metadata_Framework/lakeflow_framework/engine/flow_generators.py",
+      "src/NextGen_Metadata_Framework/lakeflow_framework/reconciliation/graph_registration.py",
+      "src/NextGen_Metadata_Framework/lakeflow_framework/control_plane/repository.py",
+      "src/NextGen_Metadata_Framework/lakeflow_framework/control_plane/ddl_definitions.py",
+      "src/NextGen_Metadata_Framework/lakeflow_framework/onboarding/metadata_upsert.py"
+    ],
+    "tests": [
+      "tests/unit/test_spec_validator.py",
+      "tests/unit/test_removed_attributes_v150.py",
+      "tests/unit/test_group_metadata_loader.py",
+      "tests/unit/test_source_plane_plan.py",
+      "tests/unit/test_upsert_schema_agreement.py",
+      "tests/unit/test_recon_registration_ast.py",
+      "tests/unit/test_read_once_wiring.py"
+    ],
+    "docs": [
+      "docs/07_reconciliation_engine.md",
+      "docs/13_known_limitations_and_gotchas.md",
+      "docs/01_platform_architecture.md",
+      "docs/12_module_permutation_matrix.md",
+      "onboarding_templates/onboarding_spec_full_reference.md"
+    ]
+  }
+}

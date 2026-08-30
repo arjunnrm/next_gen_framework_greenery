@@ -35,6 +35,7 @@ CREATE TABLE IF NOT EXISTS {control_schema}.dataflow_group_spec (
     has_transformation_flows    BOOLEAN NOT NULL COMMENT 'True when this group defines one or more transformation flows',
     pipeline_parameters_json    STRING COMMENT 'JSON object of dynamic runtime parameters substituted into ${{param}} placeholders in SQL and paths (transformation/parameters.py) -- string substitution, NOT Spark configuration; see spark_config_json for the latter',
     spark_config_json           STRING COMMENT 'JSON object of Spark configuration applied to the pipeline session for this group -- see engine/spark_config.py for the precedence chain (framework defaults < this < the pipeline resource configuration: dataflow.spark.conf). Distinct from pipeline_parameters_json, which is ${{param}} string substitution.',
+    source_plane_config_json    STRING COMMENT 'JSON: {{materialize: enum ["auto","always","never"] default "auto", catalog: string|null, schema: string|null}} -- the read-once source-plane threshold policy. "auto" materializes a shared node only when fanout >= 2, so a single-consumer read keeps today''s inline path and its predicate pushdown into the origin table. "never" is the escape hatch for a huge, heavily-filtered table where losing that pushdown costs more than the saved scan; "always" forces read-once everywhere. Null catalog/schema mean the hosting pipeline''s own. Read via getattr(GROUP_ROW, "source_plane_config_json", None) -- see engine/source_plane.py.',
     is_active                   BOOLEAN NOT NULL COMMENT 'Soft-disable flag; inactive groups are skipped by the engine',
     created_at                  TIMESTAMP NOT NULL COMMENT 'Row creation timestamp (UTC)',
     updated_at                  TIMESTAMP NOT NULL COMMENT 'Last upsert timestamp (UTC)',
@@ -144,6 +145,9 @@ CREATE TABLE IF NOT EXISTS {control_schema}.reconciliation_flow_spec (
     error_handling_json     STRING COMMENT 'JSON: {{on_failure: "fail"|"warn"}}',
     logging_config_json     STRING COMMENT 'JSON: {{run_log_capture: bool, mismatch_log_capture: bool}}, both default true -- when false, skips writing reconciliation_run_log/reconciliation_mismatch_log respectively for this flow (reconciliation_result is always written regardless). This is the ONBOARDED per-flow layer; it is overridden at run time by the recon_run_log_capture/recon_mismatch_log job parameters, which are tri-state (unset defers to this column). See onboarding/spec_validator.py and reconciliation/appender.py::resolve_log_capture_flags.',
     two_tier_verification   BOOLEAN COMMENT 'Default true when NULL. Gates the Phase 1 early-out: a cheap per-side (row_count, bit_xor of __framework_hash_key, bit_xor of __framework_hash_value) fingerprint that short-circuits the whole comparison when both sides match, leaving the full hash-key join and column-level discrepancy mapping (Phase 2) to run only on a reported difference. Set false for a flow that cannot tolerate the XOR fold''s documented pair-cancellation property -- see reconciliation/matcher.py.',
+    execution_mode          STRING COMMENT 'job (default when NULL) | pipeline | pipeline_audit_only. "job": run as a 05_reconciliation_engine.py job task, exactly as today. "pipeline": register as a third flow type inside this flow''s dataflow_group_id pipeline update -- the L3+L4 published comparison datasets AND the L5 heal lane. "pipeline_audit_only": register L3+L4 only, so the comparison, metrics and mismatch datasets (and any dq_config_json expectations) run in-pipeline while healing (the append back to append_target_table) stays in job mode -- the correct setting for a recon flow whose source cannot be read as an append-only stream. MUST default to job: existing DABs job resources still run recon tasks against onboarded rows, and pipeline by default would run those flows twice per cycle.',
+    publish_schema          STRING COMMENT 'Schema (within the hosting pipeline''s own catalog) where this flow''s recon__<reconciliation_id>__<target_id>__classified / __metrics / __mismatch datasets are published. Defaults to the hosting pipeline''s own schema when NULL. Only meaningful when execution_mode != job; rejected on presence when execution_mode is job, since a job-mode flow has no hosting pipeline to publish into.',
+    dq_config_json          STRING COMMENT 'JSON: {{rules: [{{name, expr, action}}], quarantine_table, record_id_column}} -- same shape as ingestion_flow_spec.dq_config_json, but applied as expectations to the one-row __metrics dataset (e.g. {{name: "no_value_drift", expr: "value_drift_count = 0", action: "fail"}}), giving reconciliation its first declarative way to fail a pipeline update. action "quarantine" is rejected for a reconciliation flow -- there is nothing to quarantine on a one-row metrics table. Rejected on presence when execution_mode is job -- a job task has no dataset to attach expectations to. Additive to error_handling_json.on_failure, which keeps its unrelated exception-level try/except meaning.',
     is_active               BOOLEAN NOT NULL COMMENT 'Soft-disable flag',
     created_at              TIMESTAMP NOT NULL COMMENT 'Row creation timestamp (UTC)',
     updated_at              TIMESTAMP NOT NULL COMMENT 'Last upsert timestamp (UTC)',
@@ -173,7 +177,7 @@ CREATE TABLE IF NOT EXISTS {control_schema}.reconciliation_run_log (
     failed_count                 BIGINT COMMENT 'Records that could not be compared/appended due to an error',
     status                     STRING NOT NULL COMMENT 'One of: SUCCESS, FAILED, SKIPPED_ALREADY_PROCESSED',
     error_message              STRING COMMENT 'Error detail when status = FAILED',
-    task_run_id                STRING COMMENT 'Parent job run id ({{job.run_id}}/{{job.parameters.task_run_id}}), when this reconciliation ran as a task of a parent job -- null for a standalone run. Threaded through so every log row from one orchestrated run can be correlated. As of v1.3.0 it ALSO narrows the read of any side declaring a task_run_id_column -- with no task_run_id_column configured it stays correlation-only, exactly as before. (v1.4.0: reconciliation is triggered-only, so that narrowing is now unconditional; the recon_mode column that used to gate it is dropped from this DDL.) Only written when logging_config.run_log_capture is true (default) -- see onboarding/spec_validator.py',
+    task_run_id                STRING COMMENT 'Parent job run id ({{job.run_id}}/{{job.parameters.task_run_id}}), when this reconciliation ran as a task of a parent job -- null for a standalone run, or the pipeline update id when the flow runs inside a Lakeflow pipeline. Threaded through so every log row from one orchestrated run can be correlated. As of v1.3.0 it ALSO narrows the read of any side declaring a task_run_id_column -- with no task_run_id_column configured it stays correlation-only, exactly as before. (v1.4.0: reconciliation is triggered-only, so that narrowing is now unconditional; the recon_mode column that used to gate it is dropped from this DDL.) Only written when logging_config.run_log_capture is true (default) -- see onboarding/spec_validator.py',
     run_at                     TIMESTAMP NOT NULL COMMENT 'Timestamp this run executed (UTC)',
     CONSTRAINT reconciliation_run_log_pk PRIMARY KEY (run_id)
 )
@@ -196,7 +200,7 @@ CREATE TABLE IF NOT EXISTS {control_schema}.reconciliation_mismatch_log (
     differing_columns_json       STRING COMMENT 'JSON array of {{column, source_value, target_value}} -- populated only for VALUE_DRIFT',
     source_hash_value            STRING COMMENT '__framework_hash_value on the source side, if available',
     target_hash_value            STRING COMMENT '__framework_hash_value on the target side, if available',
-    task_run_id                  STRING COMMENT 'Same parent job run id as the owning reconciliation_run_log row, if any -- see that table''s column comment. Only written when logging_config.mismatch_log_capture is true (default) -- see onboarding/spec_validator.py',
+    task_run_id                  STRING COMMENT 'Same parent job run id as the owning reconciliation_run_log row, if any, or the pipeline update id when the flow runs inside a Lakeflow pipeline -- see that table''s column comment. Only written when logging_config.mismatch_log_capture is true (default) -- see onboarding/spec_validator.py',
     detected_at                  TIMESTAMP NOT NULL COMMENT 'Timestamp this mismatch was detected (UTC)',
     CONSTRAINT reconciliation_mismatch_log_pk PRIMARY KEY (mismatch_id)
 )
@@ -214,7 +218,7 @@ CREATE TABLE IF NOT EXISTS {control_schema}.reconciliation_result (
     run_id                      STRING NOT NULL COMMENT 'reconciliation_run_log.run_id this result summarizes, whether or not that row was itself written (see logging_config.run_log_capture)',
     reconciliation_id           STRING NOT NULL COMMENT 'Reconciliation flow this run executed',
     target_id                   STRING NOT NULL COMMENT 'Which target_configs[] entry this row reports on -- one row per target per run',
-    task_run_id                 STRING COMMENT 'Parent job run id ({{job.run_id}}/{{job.parameters.task_run_id}}), when this reconciliation ran as a task of a parent job -- null for a standalone run',
+    task_run_id                 STRING COMMENT 'Parent job run id ({{job.run_id}}/{{job.parameters.task_run_id}}), when this reconciliation ran as a task of a parent job -- null for a standalone run, or the pipeline update id when the flow runs inside a Lakeflow pipeline',
     status                      STRING NOT NULL COMMENT 'One of: SUCCESS, FAILED, SKIPPED_ALREADY_PROCESSED',
     matched_count                BIGINT COMMENT 'Records present and consistent in both datasets',
     missing_in_target_count      BIGINT COMMENT 'Records present in source, absent/drifted in this target (source_to_target direction)',
@@ -401,4 +405,95 @@ return json.dumps({
         "AS $$\n"
         f"{python_body}\n"
         "$$"
+    )
+
+
+#: Columns added to control tables AFTER their original ``CREATE TABLE`` shipped, keyed by bare
+#: table name -- ``(column_name, sql_type, comment)``.
+#:
+#: Why this exists: every statement in ``get_all_control_table_ddls`` is ``CREATE TABLE IF NOT
+#: EXISTS``, which is a no-op against an already-provisioned table. Adding a column to one of
+#: those CREATE statements therefore reaches brand-new installations only -- on every existing
+#: workspace the column silently never appears, and the first write that references it fails with
+#: ``UNRESOLVED_COLUMN``. Observed live on 2026-08-31: ``metaflow.config.reconciliation_flow_spec``
+#: had none of the three v1.5.0 columns, so no reconciliation flow could be onboarded in
+#: pipeline mode at all.
+#:
+#: Rules for this table:
+#:   * ADDITIVE ONLY. Never list a column here to change its type or drop it -- ``ALTER TABLE ...
+#:     ADD COLUMNS`` is the only statement ``ensure_control_table_columns`` will ever issue, so a
+#:     retype or a drop must be a deliberate, separately-reviewed migration.
+#:   * Every column must also be present in that table's ``CREATE TABLE`` DDL above, so a new
+#:     installation and a migrated one converge on the same schema.
+#:   * Types and comments should match the CREATE DDL. Keep comments free of ``{`` and ``}``:
+#:     these strings are concatenated into SQL, not f-string-interpolated, so braces would NOT be
+#:     doubled the way they must be in the CREATE DDL f-strings above.
+ADDITIVE_CONTROL_TABLE_COLUMNS: Dict[str, List[Tuple[str, str, str]]] = {
+    "reconciliation_flow_spec": [
+        (
+            "two_tier_verification",
+            "BOOLEAN",
+            "Default true when NULL. Gates the Phase 1 early-out: a cheap per-side fingerprint "
+            "that short-circuits the comparison when both sides match. Set false for a flow that "
+            "cannot tolerate the XOR fold's pair-cancellation property.",
+        ),
+        (
+            "execution_mode",
+            "STRING",
+            "job (default when NULL) | pipeline | pipeline_audit_only. Selects whether this flow "
+            "runs as a standalone 05_reconciliation_engine.py job task or is registered as a "
+            "third flow type inside its dataflow group's own Lakeflow pipeline update.",
+        ),
+        (
+            "publish_schema",
+            "STRING",
+            "Schema within the hosting pipeline's own catalog where this flow's classified / "
+            "metrics / mismatch datasets are published. Defaults to the hosting pipeline's own "
+            "schema when NULL. Only meaningful when execution_mode is not job.",
+        ),
+        (
+            "dq_config_json",
+            "STRING",
+            "JSON declaring expectations applied to the one-row metrics dataset, giving "
+            "reconciliation a declarative way to fail a pipeline update. Rejected on presence "
+            "when execution_mode is job.",
+        ),
+    ],
+    "dataflow_group_spec": [
+        (
+            "source_plane_config_json",
+            "STRING",
+            "JSON tuning for the read-once source plane: per-group overrides such as materialize "
+            "always/auto/never. NULL means the default auto policy.",
+        ),
+    ],
+}
+
+
+def get_add_column_ddl(control_schema: str, table_name: str, column_name: str, sql_type: str, comment: str) -> str:
+    """Build one ``ALTER TABLE ... ADD COLUMNS`` statement.
+
+    Deliberately NOT ``ADD COLUMNS IF NOT EXISTS``: Databricks SQL rejects that with
+    ``PARSE_SYNTAX_ERROR`` (verified live on 2026-08-31 against DBR serverless), even though the
+    clause is accepted for ``ADD PARTITION`` and for ``CREATE TABLE``. Idempotence is therefore
+    the caller's job -- ``ensure_control_table_columns`` skips any column already present and
+    swallows the concurrent-add race -- rather than the statement's.
+
+    Built by concatenation rather than f-string interpolation of ``comment`` so that a brace in
+    a comment stays a literal brace -- the CREATE DDL f-strings above must double theirs, and
+    mixing the two conventions in one module is exactly how that bug gets reintroduced.
+    """
+    escaped_comment = comment.replace("'", "''")
+    return (
+        "ALTER TABLE "
+        + control_schema
+        + "."
+        + table_name
+        + " ADD COLUMNS ("
+        + column_name
+        + " "
+        + sql_type
+        + " COMMENT '"
+        + escaped_comment
+        + "')"
     )

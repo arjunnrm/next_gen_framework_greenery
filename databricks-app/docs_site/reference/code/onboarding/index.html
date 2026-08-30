@@ -3921,6 +3921,10 @@
 <td>Append one error per removed key present on <code>config</code>.</td>
 </tr>
 <tr>
+<td><code>reject_mode_incompatible_keys(config: Any, path_prefix: str, errors: List[str], incompatible: Dict[str, str], mode: str) -&gt; None</code></td>
+<td>Append one error per key present on <code>config</code> that is incompatible with the <code>mode</code> the caller has already determined applies here -- e.g.</td>
+</tr>
+<tr>
 <td><code>check_bool(value: Any, path: str, errors: List[str], required: bool = False) -&gt; None</code></td>
 <td>Validate that <code>value</code> is a real Python bool -- catches the classic 'abc' / 'true' (string) mistake.</td>
 </tr>

@@ -15,6 +15,54 @@
         "description": "Unique ID for this reconciliation flow."
       },
       {
+        "path": "execution_mode",
+        "label": "execution_mode",
+        "widget": "select",
+        "type": "string",
+        "default": "job",
+        "options": [
+          "job",
+          "pipeline",
+          "pipeline_audit_only"
+        ],
+        "description": "Where this reconciliation flow runs, and the field that gates which of the fields below are legal. job runs it as a 05_reconciliation_engine.py job task, exactly as today, and is the default because existing job resources already run reconciliation tasks against onboarded rows. pipeline registers it inside its dataflow group's Lakeflow pipeline update as a third flow type -- the published classified/metrics/mismatch datasets and the heal (append-back) lane. pipeline_audit_only registers the comparison, metrics and dq_config expectations in-pipeline but leaves healing in job mode. Both pipeline modes require dataflow_group_id, an append-only source producer, and read_mode batch on every side."
+      },
+      {
+        "path": "dataflow_group_id",
+        "label": "dataflow_group_id",
+        "widget": "text",
+        "type": "string",
+        "required": true,
+        "visible_when": {
+          "in": [
+            "execution_mode",
+            [
+              "pipeline",
+              "pipeline_audit_only"
+            ]
+          ]
+        },
+        "placeholder": "dfg_example_group",
+        "description": "The dataflow group whose Lakeflow pipeline this flow is registered into. Required when execution_mode is pipeline or pipeline_audit_only -- a group-less reconciliation flow has no pipeline update to live in. Usually this spec's own dataflow_group_id; naming another group registers the flow inside that group's pipeline instead. Stays optional in job mode, where the standalone engine handles the group-less case."
+      },
+      {
+        "path": "publish_schema",
+        "label": "publish_schema",
+        "widget": "text",
+        "type": "string",
+        "visible_when": {
+          "in": [
+            "execution_mode",
+            [
+              "pipeline",
+              "pipeline_audit_only"
+            ]
+          ]
+        },
+        "placeholder": "recon_example",
+        "description": "Schema, inside the hosting pipeline's own catalog, where this flow's recon__<reconciliation_id>__<target_id>__classified, __metrics and __mismatch datasets are published. Defaults to the pipeline's own schema, which is often not where an operator wants reconciliation results to land. Rejected on presence when execution_mode is job -- a job-mode flow publishes none of those datasets."
+      },
+      {
         "path": "two_tier_verification",
         "label": "two_tier_verification",
         "widget": "boolean",
@@ -144,7 +192,7 @@
               "batch",
               "streaming"
             ],
-            "description": "At most one side of a given target's comparison may be streaming."
+            "description": "At most one side of a given target's comparison may be streaming. Rejected on presence with value 'streaming' when execution_mode is 'pipeline' or 'pipeline_audit_only': the in-pipeline comparison is a whole-snapshot batch classification, and a stream-static join supports only inner and left_outer, which cannot express MISSING_IN_SOURCE."
           },
           {
             "path": "task_run_id_column",
@@ -152,7 +200,7 @@
             "widget": "text",
             "type": "string",
             "placeholder": "__framework_pipeline_run_id",
-            "description": "When the task_run_id parameter is set, narrows this side's read to that run's rows. Reconciliation is triggered-only as of v1.4.0."
+            "description": "When the task_run_id parameter is set, narrows this side's read to that run's rows. Reconciliation is triggered-only as of v1.4.0. Rejected on presence when execution_mode is 'pipeline' or 'pipeline_audit_only': no stable per-update key exists inside a Lakeflow update, so the narrowing would be a silent no-op. Use filter_condition instead."
           },
           {
             "path": "filter_condition",
@@ -244,6 +292,73 @@
         "span": 2,
         "placeholder": "SELECT example_id, amount, status FROM _reconciliation_unmatched_records",
         "description": "Reshapes missing records before append when schemas differ. Must read FROM _reconciliation_unmatched_records."
+      }
+    ]
+  },
+  {
+    "id": "rdq",
+    "title": "Reconciliation data quality",
+    "subtitle": "dq_config — expectations attached to this flow's one-row __metrics dataset. The first declarative way a reconciliation threshold can fail a pipeline update. In-pipeline execution modes only.",
+    "doc": "#8-reconciliation-flow-schema",
+    "visible_when": {
+      "in": [
+        "execution_mode",
+        [
+          "pipeline",
+          "pipeline_audit_only"
+        ]
+      ]
+    },
+    "fields": [
+      {
+        "path": "dq_config.rules",
+        "label": "dq_config.rules[]",
+        "widget": "repeat",
+        "type": "array<object>",
+        "span": 2,
+        "repeat": {
+          "add_label": "+ add expectation",
+          "min_rows": 0,
+          "max_rows": 50,
+          "single": false,
+          "row_title_from": "rule_id"
+        },
+        "description": "Expectations evaluated against the one-row metrics dataset this flow publishes, e.g. value_drift_count = 0. Additive: it does not repurpose error_handling.on_failure, which keeps its exception-level try/except meaning. Rejected on presence when execution_mode is job -- a job task has no dataset to attach expectations to.",
+        "fields": [
+          {
+            "path": "rule_id",
+            "label": "rule_id",
+            "widget": "text",
+            "type": "string",
+            "required": true,
+            "placeholder": "no_value_drift",
+            "description": "Unique expectation identifier."
+          },
+          {
+            "path": "action",
+            "label": "action",
+            "widget": "select",
+            "type": "string",
+            "required": true,
+            "default": "warn",
+            "options": [
+              "warn",
+              "drop",
+              "fail"
+            ],
+            "description": "warn logs and keeps the metrics row, drop removes it, fail aborts the pipeline update. quarantine is deliberately not offered: it is rejected for a reconciliation flow because a one-row metrics dataset has nothing to quarantine."
+          },
+          {
+            "path": "expression",
+            "label": "expression",
+            "widget": "sql",
+            "type": "string",
+            "span": 2,
+            "required": true,
+            "placeholder": "value_drift_count = 0",
+            "description": "Boolean Spark SQL expression over the metrics columns (source_row_count, target_row_count, missing_in_target_count, missing_in_source_count, value_drift_count)."
+          }
+        ]
       }
     ]
   }

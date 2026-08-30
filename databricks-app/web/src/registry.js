@@ -1,4 +1,4 @@
-// MetaFlow v1.3.0 attribute registry, phases, templates and helpers.
+// MetaFlow v1.5.0 attribute registry, phases, templates and helpers.
 // Lifted verbatim from the approved Spec Builder reference so the 219-attribute
 // inventory, every dependency predicate and every template stay byte-identical.
 /* eslint-disable */
@@ -285,11 +285,22 @@ function TRN_SECTIONS(){return flat([
   TARGET_SECTIONS("transformation")
 ])}
 
+// Reconciliation execution modes (v1.5.0). "job" is and stays the default: existing job
+// resources already run reconciliation tasks against onboarded rows, so a pipeline default
+// would run those flows twice per cycle. The two pipeline modes register the flow inside its
+// dataflow group's Lakeflow pipeline update instead.
+var EXEC_MODES=["job","pipeline","pipeline_audit_only"];
+var REC_PIPELINE_MODES=["pipeline","pipeline_audit_only"];
+// Mirrors the JSON registry's {"in": ["execution_mode", [...]]} visible_when. Deliberately an
+// `in` test, not `execution_mode !== "job"`: an unset value must read as job mode, and a !==
+// test would show every pipeline-only field on a blank flow.
+function isRecPipelineMode(v){return REC_PIPELINE_MODES.indexOf(v("execution_mode"))>-1}
+
 function RECON_DATASET(prefix,label){return [
   S(prefix+".type",label+".type",["table"],{d:"table",i:"Reconciliation is scoped to Delta tables only. Any other value is rejected outright — path-based file and sink sources are no longer valid here."}),
   T(prefix+".table",label+".table",{req:1,ph:"{{catalog}}.bronze.table",i:"Three-part fully-qualified table name."}),
-  S(prefix+".read_mode",label+".read_mode",["batch","streaming"],{d:"batch",i:"At most one side of a given target's comparison may be streaming."}),
-  T(prefix+".task_run_id_column",label+".task_run_id_column",{ph:"__framework_pipeline_run_id",i:"When the task_run_id job parameter is set, narrows this side's read to that run's rows. Reconciliation is triggered-only as of v1.4.0."}),
+  S(prefix+".read_mode",label+".read_mode",["batch","streaming"],{d:"batch",i:"At most one side of a given target's comparison may be streaming. Rejected on presence with value 'streaming' when execution_mode is 'pipeline' or 'pipeline_audit_only': the in-pipeline comparison is a whole-snapshot batch classification, and a stream-static join supports only inner and left_outer, which cannot express MISSING_IN_SOURCE. Use read_mode 'batch' (the default), or set execution_mode to 'job' to keep the standalone streaming engine."}),
+  T(prefix+".task_run_id_column",label+".task_run_id_column",{ph:"__framework_pipeline_run_id",i:"When the task_run_id job parameter is set, narrows this side's read to that run's rows. Reconciliation is triggered-only as of v1.4.0. Rejected on presence when execution_mode is 'pipeline' or 'pipeline_audit_only': no stable per-update key exists inside a Lakeflow update, so the narrowing would match every row that pipeline ever wrote -- a silent no-op. Use filter_condition, or set execution_mode to 'job'."}),
   Q(prefix+".filter_condition",label+".filter_condition",{span:2,ph:"load_date = '${run_date}'",i:"Boolean SQL applied after read. Supports ${param} substitution."}),
   L(prefix+".data_standardization_sql",label+".data_standardization_sql",{span:2,ph:"trim(status) AS status",i:"Column-level cleanup before matching. Same restricted grammar as ingestion."}),
   B(prefix+".hash_precomputed",label+".hash_precomputed",{i:"Reuse existing __framework_hash_key and __framework_hash_value instead of recomputing. Only valid for type table."})
@@ -298,6 +309,9 @@ function RECON_DATASET(prefix,label){return [
 function REC_SECTIONS(){return [
   {id:"identity",title:"Reconciliation identity",doc:"#16-reconciliation-flow-fields",sub:"Cross-dataset comparison and self-healing.",fields:[
     T("reconciliation_id","reconciliation_id",{req:1,ph:"recon_template_example",i:"Unique ID for this reconciliation flow."}),
+    S("execution_mode","execution_mode",EXEC_MODES,{d:"job",i:"Where this reconciliation flow runs, and the field that gates which of the fields below are legal. job runs it as a 05_reconciliation_engine.py job task, exactly as today, and is the default because existing job resources already run reconciliation tasks against onboarded rows. pipeline registers it inside its dataflow group's Lakeflow pipeline update as a third flow type -- the published classified/metrics/mismatch datasets and the heal (append-back) lane. pipeline_audit_only registers the comparison, metrics and dq_config expectations in-pipeline but leaves healing in job mode. Both pipeline modes require dataflow_group_id, an append-only source producer, and read_mode batch on every side."}),
+    T("dataflow_group_id","dataflow_group_id",{req:1,w:isRecPipelineMode,ph:"dfg_example_group",i:"The dataflow group whose Lakeflow pipeline this flow is registered into. Required when execution_mode is pipeline or pipeline_audit_only -- a group-less reconciliation flow has no pipeline update to live in. Usually this spec's own dataflow_group_id; naming another group registers the flow inside that group's pipeline instead. Stays optional in job mode, where the standalone engine handles the group-less case."}),
+    T("publish_schema","publish_schema",{w:isRecPipelineMode,ph:"recon_example",i:"Schema, inside the hosting pipeline's own catalog, where this flow's recon__<reconciliation_id>__<target_id>__classified, __metrics and __mismatch datasets are published. Defaults to the pipeline's own schema, which is often not where an operator wants reconciliation results to land. Rejected on presence when execution_mode is job -- a job-mode flow publishes none of those datasets."}),
     B("two_tier_verification","two_tier_verification",{d:true,i:"Runs a cheap Phase 1 per-side fingerprint (row_count plus an XOR-fold of the framework hash columns) (bit_xor(hash) plus a per-side count) first, and only falls through to the full matcher join when that phase disagrees.",hint:"phase 1 fingerprint, phase 2 full join"}),
     B("logging_config.run_log_capture","logging_config.run_log_capture",{d:true,i:"Per-flow gate on run-log writes. Overridable at runtime by the recon_run_log_capture job parameter."}),
     B("logging_config.mismatch_log_capture","logging_config.mismatch_log_capture",{d:true,i:"Per-flow gate on mismatch-log writes. Overridable at runtime by the recon_mismatch_log job parameter."}),
@@ -310,8 +324,8 @@ function REC_SECTIONS(){return [
       T("target_catalog","catalog",{req:1,ph:"{{catalog}}",i:"Unity Catalog catalog of the target table. Composed into the three-part table name on save."}),
       T("target_schema","schema",{req:1,ph:"bronze_example",i:"Schema of the target table. Composed into the three-part table name on save."}),
       T("target_table","table",{req:1,ph:"example_raw_final",i:"Target table name. Composed into the three-part table name on save."}),
-      S("read_mode","read_mode",["batch","streaming"],{d:"batch",i:"At most one side of a given target's comparison may be streaming."}),
-      T("task_run_id_column","task_run_id_column",{ph:"__framework_pipeline_run_id",i:"When the task_run_id job parameter is set, narrows this side's read to that run's rows. Reconciliation is triggered-only as of v1.4.0."}),
+      S("read_mode","read_mode",["batch","streaming"],{d:"batch",i:"At most one side of a given target's comparison may be streaming. Rejected on presence with value 'streaming' when execution_mode is 'pipeline' or 'pipeline_audit_only': the in-pipeline comparison is a whole-snapshot batch classification, and a stream-static join supports only inner and left_outer, which cannot express MISSING_IN_SOURCE."}),
+      T("task_run_id_column","task_run_id_column",{ph:"__framework_pipeline_run_id",i:"When the task_run_id job parameter is set, narrows this side's read to that run's rows. Reconciliation is triggered-only as of v1.4.0. Rejected on presence when execution_mode is 'pipeline' or 'pipeline_audit_only': no stable per-update key exists inside a Lakeflow update, so the narrowing would be a silent no-op. Use filter_condition instead."}),
       Q("filter_condition","filter_condition",{span:2,ph:"load_date = '${run_date}'",i:"Boolean SQL applied after read. Supports ${param} substitution."}),
       L("data_standardization_sql","data_standardization_sql",{span:2,ph:"trim(status) AS status",i:"Column-level cleanup before matching. Same restricted grammar as ingestion."}),
       B("hash_precomputed","hash_precomputed",{i:"Reuse existing __framework_hash_key and __framework_hash_value instead of recomputing. Valid because reconciliation targets are always tables."}),
@@ -323,6 +337,13 @@ function REC_SECTIONS(){return [
     L("match_keys","match_keys",{req:1,ph:"example_id",i:"Columns identifying the same logical record across datasets."}),
     L("compare_columns","compare_columns",{ph:"amount, status",i:"Columns compared for drift after key matching. Defaults to all columns."}),
     Q("transform_sql","transform_sql",{span:2,ph:"SELECT example_id, amount, status FROM _reconciliation_unmatched_records",i:"Reshapes missing records before append when source and target schemas differ. Must read FROM _reconciliation_unmatched_records. Full Spark SQL, not the restricted grammar."})
+  ]},
+  {id:"rdq",title:"Reconciliation data quality",doc:"#16-reconciliation-flow-fields",sub:"dq_config — expectations attached to this flow's one-row __metrics dataset. The first declarative way a reconciliation threshold can fail a pipeline update. In-pipeline execution modes only.",fields:[
+    REP("dq_config.rules","dq_config.rules[]",[
+      T("rule_id","rule_id",{req:1,ph:"no_value_drift",i:"Unique expectation identifier."}),
+      S("action","action",["warn","drop","fail"],{req:1,d:"warn",i:"warn logs and keeps the metrics row, drop removes it, fail aborts the pipeline update. quarantine is deliberately not offered: it is rejected for a reconciliation flow because a one-row metrics dataset has nothing to quarantine."}),
+      Q("expression","expression",{req:1,span:2,ph:"value_drift_count = 0",i:"Boolean Spark SQL expression over the metrics columns (source_row_count, target_row_count, missing_in_target_count, missing_in_source_count, value_drift_count)."})
+    ],{span:2,w:isRecPipelineMode,i:"Expectations evaluated against the one-row metrics dataset this flow publishes, e.g. value_drift_count = 0. Additive: it does not repurpose error_handling.on_failure, which keeps its exception-level try/except meaning. Rejected on presence when execution_mode is job -- a job task has no dataset to attach expectations to."})
   ]}
 ]}
 
@@ -405,13 +426,13 @@ var PRESETS = {
     }]
   ],
   rec: [
-    ["blank","Blank reconciliation flow","Nothing filled in.",{v:{"source_config.type":"table","source_config.read_mode":"batch"}}],
+    ["blank","Blank reconciliation flow","Nothing filled in.",{v:{execution_mode:"job","source_config.type":"table","source_config.read_mode":"batch"}}],
     ["full","Table vs table · self-healing","Filtered baseline compared both ways, unmatched rows reshaped and appended, failure raises.",{
-      v:{reconciliation_id:"recon_template_example","source_config.type":"table","source_config.table":"{{catalog}}.bronze_example.example_volume_baseline","source_config.read_mode":"batch",two_tier_verification:true,"source_config.filter_condition":"load_date = '${run_date}'","source_config.data_standardization_sql":"trim(status) AS status","source_config.hash_precomputed":false,match_keys:"example_id",compare_columns:"amount, status",transform_sql:"SELECT example_id, amount, status FROM _reconciliation_unmatched_records","error_handling.on_failure":"fail"},
+      v:{reconciliation_id:"recon_template_example",execution_mode:"job","source_config.type":"table","source_config.table":"{{catalog}}.bronze_example.example_volume_baseline","source_config.read_mode":"batch",two_tier_verification:true,"source_config.filter_condition":"load_date = '${run_date}'","source_config.data_standardization_sql":"trim(status) AS status","source_config.hash_precomputed":false,match_keys:"example_id",compare_columns:"amount, status",transform_sql:"SELECT example_id, amount, status FROM _reconciliation_unmatched_records","error_handling.on_failure":"fail"},
       reps:{target_configs:[{target_id:"primary_product_table",target_catalog:"{{catalog}}",target_schema:"bronze_example",target_table:"example_raw_final",read_mode:"batch",hash_precomputed:true,comparison_direction:"both",append_target_table:"{{catalog}}.bronze_example.example_raw_cdc"}]}
     }],
     ["warn","Minimal · warn on failure","Baseline compared source-to-target only, failures logged and the run continues.",{
-      v:{reconciliation_id:"recon_template_warn_example","source_config.type":"table","source_config.table":"{{catalog}}.bronze_example.example_secondary_baseline","match_keys":"example_id","error_handling.on_failure":"warn"},
+      v:{reconciliation_id:"recon_template_warn_example",execution_mode:"job","source_config.type":"table","source_config.table":"{{catalog}}.bronze_example.example_secondary_baseline","match_keys":"example_id","error_handling.on_failure":"warn"},
       reps:{target_configs:[{target_id:"secondary",target_catalog:"{{catalog}}",target_schema:"bronze_example",target_table:"example_secondary_final",comparison_direction:"source_to_target",append_target_table:"{{catalog}}.bronze_example.example_secondary_cdc"}]}
     }]
   ]
@@ -420,7 +441,7 @@ var PRESETS = {
 var PHASES={
   ing:[["Identity",["identity","dataset"]],["Source",["srctype","src_auto","src_asn1","src_zb","zip"]],["Reader",["src_common","src_norm","src_nested","retention"]],["Load strategy",["cdc"]],["Storage",["storage"]],["Security",["enc"]],["Export",["sink"]],["Quality",["dq"]],["Governance",["gov"]]],
   trn:[["Identity",["identity","dataset"]],["Inputs",["inputs","decrypt"]],["Transform",["sql"]],["Load strategy",["cdc"]],["Storage",["storage"]],["Security",["enc"]],["Export",["sink"]],["Quality",["dq"]],["Governance",["gov"]]],
-  rec:[["Identity",["identity"]],["Datasets",["rsource","rtargets"]],["Matching",["matching"]]],
+  rec:[["Identity",["identity"]],["Datasets",["rsource","rtargets"]],["Matching",["matching"]],["Quality",["rdq"]]],
   root:[["Spec root",["root","tmplvars"]]],
   obs:[["Destinations",["obsmaster","obs"]],["Framework columns",["fwcols"]]]
 };

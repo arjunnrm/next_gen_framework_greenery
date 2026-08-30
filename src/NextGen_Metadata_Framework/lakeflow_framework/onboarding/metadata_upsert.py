@@ -50,6 +50,8 @@ _DATAFLOW_GROUP_SPEC_SCHEMA = StructType(
         StructField("has_ingestion_flows", BooleanType(), nullable=False),
         StructField("has_transformation_flows", BooleanType(), nullable=False),
         StructField("pipeline_parameters_json", StringType(), nullable=True),
+        StructField("spark_config_json", StringType(), nullable=True),
+        StructField("source_plane_config_json", StringType(), nullable=True),
         StructField("is_active", BooleanType(), nullable=False),
         StructField("created_at", TimestampType(), nullable=False),
         StructField("updated_at", TimestampType(), nullable=False),
@@ -110,6 +112,10 @@ _RECONCILIATION_FLOW_SPEC_SCHEMA = StructType(
         StructField("transform_sql", StringType(), nullable=True),
         StructField("error_handling_json", StringType(), nullable=True),
         StructField("logging_config_json", StringType(), nullable=True),
+        StructField("two_tier_verification", BooleanType(), nullable=True),
+        StructField("execution_mode", StringType(), nullable=True),
+        StructField("publish_schema", StringType(), nullable=True),
+        StructField("dq_config_json", StringType(), nullable=True),
         StructField("is_active", BooleanType(), nullable=False),
         StructField("created_at", TimestampType(), nullable=False),
         StructField("updated_at", TimestampType(), nullable=False),
@@ -163,6 +169,8 @@ def upsert_dataflow_group_spec(
             has_ingestion_flows=bool(ingestion_flows),
             has_transformation_flows=bool(transformation_flows),
             pipeline_parameters_json=json.dumps(spec.get("pipeline_parameters", {})),
+            spark_config_json=json.dumps(spec.get("spark_config", {})),
+            source_plane_config_json=json.dumps(spec.get("source_plane", {})),
             is_active=True,
             created_at=now,
             updated_at=now,
@@ -179,6 +187,8 @@ def upsert_dataflow_group_spec(
                     "has_ingestion_flows": "s.has_ingestion_flows",
                     "has_transformation_flows": "s.has_transformation_flows",
                     "pipeline_parameters_json": "s.pipeline_parameters_json",
+                    "spark_config_json": "s.spark_config_json",
+                    "source_plane_config_json": "s.source_plane_config_json",
                     "is_active": "s.is_active",
                     "updated_at": "s.updated_at",
                 }
@@ -330,7 +340,17 @@ def upsert_reconciliation_flow_spec(
         rows = [
             Row(
                 reconciliation_id=flow["reconciliation_id"],
-                dataflow_group_id=group_id,
+                # The flow's OWN dataflow_group_id wins over the spec's top-level one, falling
+                # back to it when absent. v1.5.0 made this a real per-flow attribute: V-CYC-6
+                # REQUIRES it on a pipeline-mode flow, and its rejection message explicitly offers
+                # "another group's, to run inside that group's pipeline instead" as a supported
+                # choice. Hardcoding group_id here -- as this line did until the fix -- silently
+                # discarded that choice and registered the flow into the spec's own pipeline
+                # instead, which is the same validator-accepts-it-but-upsert-drops-it defect class
+                # that lost execution_mode. `or` rather than a None check is deliberate: an empty
+                # string is not a usable group id either, and check_string has already rejected a
+                # non-string.
+                dataflow_group_id=flow.get("dataflow_group_id") or group_id,
                 source_config_json=json.dumps(flow["source_config"]),
                 target_configs_json=json.dumps(flow["target_configs"]),
                 match_keys_json=json.dumps(flow["match_keys"]),
@@ -338,6 +358,17 @@ def upsert_reconciliation_flow_spec(
                 transform_sql=flow.get("transform_sql"),
                 error_handling_json=json.dumps(flow.get("error_handling", {})),
                 logging_config_json=json.dumps(flow.get("logging_config", {})),
+                # Persisted as written, with None left as SQL NULL rather than coerced to a
+                # literal default: the DDL documents NULL as the default for each of these
+                # (two_tier_verification -> true, execution_mode -> "job"), and writing the
+                # default explicitly would make a later change of default invisible to already
+                # onboarded rows. Omitting them entirely -- as this Row literal did until
+                # v1.5.0 -- silently dropped the operator's value, which for execution_mode
+                # meant a "pipeline" flow was read back as "job" and never entered the DAG.
+                two_tier_verification=flow.get("two_tier_verification"),
+                execution_mode=flow.get("execution_mode"),
+                publish_schema=flow.get("publish_schema"),
+                dq_config_json=json.dumps(flow["dq_config"]) if flow.get("dq_config") else None,
                 is_active=True,
                 created_at=now,
                 updated_at=now,

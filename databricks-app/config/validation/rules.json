@@ -594,6 +594,162 @@
       },
       "message": "destination_config.endpoint is required for OTLP_CONSUMER observability destinations.",
       "field_path": "destination_config.endpoint"
+    },
+    {
+      "id": "recon_publish_schema_pipeline_only",
+      "severity": "error",
+      "scope": "flow",
+      "when": {
+        "and": [
+          {
+            "eq": [
+              "@__flow_kind",
+              "reconciliation"
+            ]
+          },
+          {
+            "nonempty": [
+              "publish_schema"
+            ]
+          },
+          {
+            "nin": [
+              "execution_mode",
+              [
+                "pipeline",
+                "pipeline_audit_only"
+              ]
+            ]
+          }
+        ]
+      },
+      "message": "publish_schema is only meaningful when execution_mode is 'pipeline' or 'pipeline_audit_only', and is rejected on presence when execution_mode is 'job' -- a job-mode flow publishes no classified/metrics/mismatch datasets to place in a schema. Clear publish_schema, or set execution_mode to 'pipeline'.",
+      "field_path": "publish_schema",
+      "doc": "#8-reconciliation-flow-schema"
+    },
+    {
+      "id": "recon_dq_config_pipeline_only",
+      "severity": "error",
+      "scope": "flow",
+      "when": {
+        "and": [
+          {
+            "eq": [
+              "@__flow_kind",
+              "reconciliation"
+            ]
+          },
+          {
+            "nonempty": [
+              "dq_config.rules"
+            ]
+          },
+          {
+            "nin": [
+              "execution_mode",
+              [
+                "pipeline",
+                "pipeline_audit_only"
+              ]
+            ]
+          }
+        ]
+      },
+      "message": "dq_config is only meaningful when execution_mode is 'pipeline' or 'pipeline_audit_only', and is rejected on presence when execution_mode is 'job' -- a job task has no dataset to attach expectations to. Remove the expectations, or set execution_mode to 'pipeline'. error_handling.on_failure is unaffected: it keeps its exception-level try/except meaning in both modes.",
+      "field_path": "dq_config.rules",
+      "doc": "#8-reconciliation-flow-schema"
+    },
+    {
+      "id": "recon_streaming_read_mode_not_in_pipeline_mode",
+      "severity": "error",
+      "scope": "flow",
+      "when": {
+        "and": [
+          {
+            "eq": [
+              "@__flow_kind",
+              "reconciliation"
+            ]
+          },
+          {
+            "in": [
+              "execution_mode",
+              [
+                "pipeline",
+                "pipeline_audit_only"
+              ]
+            ]
+          },
+          {
+            "eq": [
+              "source_config.read_mode",
+              "streaming"
+            ]
+          }
+        ]
+      },
+      "message": "source_config.read_mode 'streaming' is not supported when execution_mode is 'pipeline'. Use read_mode 'batch' (the default), or set execution_mode to 'job' to keep the standalone streaming engine. The in-pipeline comparison is a whole-snapshot batch classification, and a stream-static join supports only inner and left_outer, which cannot express MISSING_IN_SOURCE.",
+      "field_path": "source_config.read_mode",
+      "doc": "#8-reconciliation-flow-schema"
+    },
+    {
+      "id": "recon_task_run_id_column_not_in_pipeline_mode",
+      "severity": "error",
+      "scope": "flow",
+      "when": {
+        "and": [
+          {
+            "eq": [
+              "@__flow_kind",
+              "reconciliation"
+            ]
+          },
+          {
+            "in": [
+              "execution_mode",
+              [
+                "pipeline",
+                "pipeline_audit_only"
+              ]
+            ]
+          },
+          {
+            "nonempty": [
+              "source_config.task_run_id_column"
+            ]
+          }
+        ]
+      },
+      "message": "source_config.task_run_id_column is rejected on presence when execution_mode is 'pipeline' or 'pipeline_audit_only': no stable per-update key exists inside a Lakeflow update, so narrowing by it would match every row that pipeline ever wrote -- a silent no-op rather than a filter. Use filter_condition, or set execution_mode to 'job'.",
+      "field_path": "source_config.task_run_id_column",
+      "doc": "#8-reconciliation-flow-schema"
+    },
+    {
+      "id": "recon_pipeline_graph_checks_deferred_to_onboarding",
+      "severity": "warning",
+      "scope": "flow",
+      "when": {
+        "and": [
+          {
+            "eq": [
+              "@__flow_kind",
+              "reconciliation"
+            ]
+          },
+          {
+            "in": [
+              "execution_mode",
+              [
+                "pipeline",
+                "pipeline_audit_only"
+              ]
+            ]
+          }
+        ]
+      },
+      "message": "In-pipeline reconciliation adds graph-shape rules this builder cannot check: the predicate engine evaluates one flow at a time and has no way to compare a value in this flow against a value in ingestion_flows[] or transformation_flows[], so V-CYC-1 (source_config.table must be a target THIS dataflow group publishes), V-CYC-2 (append_target_table must not be one of this group's own targets) and V-CYC-3 (append_target_table must not be an ingestion source this group reads) are enforced by the framework validator at onboarding, not here. A deliberate asymmetry -- expect these to be re-checked, and possibly rejected, when the spec is onboarded.",
+      "field_path": "execution_mode",
+      "doc": "#8-reconciliation-flow-schema"
     }
   ]
 }

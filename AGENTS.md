@@ -57,6 +57,21 @@ See `REMOVED_SOURCE_CONFIG_KEYS` / `REMOVED_TARGET_CONFIG_KEYS` /
 `REMOVED_RECONCILIATION_FLOW_KEYS` / `REMOVED_CDC_LOAD_STRATEGIES` and `reject_removed_keys()` in
 `spec_validator.py` for the established pattern.
 
+### Reconciliation now runs inside the DAG (v1.5.0) — two rules that follow from it
+
+- **Route every read through `engine/source_plane.py`.** Requirement R2 is that each physical source
+  table/path is read exactly once per pipeline update and reused by every consumer. Never add a new
+  direct read in a flow body: call `bind(plan, consumer_id, want_stream)`. A `@dlt.view` is inlined
+  into each consumer, so "declared once" is **not** "read once" — only materialization makes R2
+  true. And a fully-qualified three-part name is a *sibling reference*, not an escape hatch:
+  `spark.read.table("cat.sch.tbl")` on a table this same pipeline publishes creates a real graph
+  edge, exactly as `dlt.read` does.
+- **"Never put an eager action inside a dataset query definition" is wrong as stated.** The real
+  prohibitions are eager-on-a-**streaming**-plan, self-read, and side-effecting writes. The batch
+  branch of `dq/quarantine.py::_quarantine_table` runs `.agg(...).collect()[0]` inside a live
+  `@dlt.table` closure and has shipped that way for releases. Any guard written to the blanket rule
+  fails against the framework's own code. See `agent_skills/reference/common_pitfalls.md` §23–25.
+
 ### Two traps this repo has hit more than once
 
 - **Never bulk-edit code with a broad regex.** A blanket `sed` once mangled Python identifiers

@@ -90,6 +90,10 @@
       "page": "reference/json/reconciliation/",
       "anchor": "#compare-columns"
     },
+    "dataflow_group_id": {
+      "page": "reference/json/reconciliation/",
+      "anchor": "#dataflow-group-id"
+    },
     "dataflow_id": {
       "page": "reference/json/ingestion/",
       "anchor": "#dataflow-id"
@@ -158,6 +162,10 @@
       "page": "reference/json/reconciliation/",
       "anchor": "#error-handlingon-failure"
     },
+    "execution_mode": {
+      "page": "reference/json/reconciliation/",
+      "anchor": "#execution-mode"
+    },
     "flow_step_id": {
       "page": "reference/json/transformation/",
       "anchor": "#flow-step-id"
@@ -189,6 +197,10 @@
     "match_keys": {
       "page": "reference/json/reconciliation/",
       "anchor": "#match-keys"
+    },
+    "publish_schema": {
+      "page": "reference/json/reconciliation/",
+      "anchor": "#publish-schema"
     },
     "reconciliation_id": {
       "page": "reference/json/reconciliation/",

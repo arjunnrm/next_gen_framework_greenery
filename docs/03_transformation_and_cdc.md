@@ -40,6 +40,19 @@ A transformation flow consumes one or more upstream Delta tables or views, appli
 
 ---
 
+> **v1.5.0 — an input view is now an alias, not the read.** Each `inputs[]` entry still declares
+> an `input_name` (still the SQL identifier, still required to be unique across the spec) and is
+> still registered as a `dlt.view`. What changed underneath: the view no longer performs the read
+> itself — it binds to the read-once source plane and then applies its own overlay (event-time
+> cast, `withWatermark`, AES column decryption). Two inputs naming the same physical table now
+> share **one** read instead of opening two; an input whose table is published by this same
+> dataflow group becomes a real graph edge (`dlt.read` / `dlt.read_stream`) rather than a second
+> physical scan. `mark_streaming_references` is unchanged and still keys off each input's declared
+> `is_streaming`. See
+> [`01_platform_architecture.md` §7](01_platform_architecture.md#7-the-read-once-source-plane).
+
+---
+
 ## 2. Complete CDC Load Strategies Guide
 
 Metaflow provides 6 built-in load and merge strategies configured via `target_config.cdc_load_strategy`. They fall into two families: `APPEND` and `TRUNCATE_AND_LOAD` need no key and skip the CDC dispatcher entirely; `SCD1`, `SCD2`, `SCD3` and `FULL_SNAPSHOT_CDC` all merge on `primary_keys`.

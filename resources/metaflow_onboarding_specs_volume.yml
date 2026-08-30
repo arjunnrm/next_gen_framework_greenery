@@ -1,0 +1,23 @@
+# UC Volume holding the onboarding specs authored in the Metaflow Onboarding App.
+#
+# Declared here so that deploying the bundle to a new workspace creates the app's storage
+# rather than leaving it to be made by hand. Before this existed, the app was configured
+# to write to /Volumes/<catalog>/metaflow/onboarding_specs/ — a schema and volume that had
+# never been created in any workspace, so every save failed no matter what the app code
+# did. Storage the app depends on belongs in the bundle, next to the app that needs it.
+#
+# It lands in ${var.spec_schema} (default `config`, an existing schema) rather than a new
+# per-target schema on purpose: the `dev` target's metastore is at its 50-Volume ceiling
+# and its catalog at 51 schemas, so a resource that demands a fresh schema cannot deploy
+# there at all. See the `variables:` block in databricks.yml.
+resources:
+  volumes:
+    onboarding_specs_volume:
+      catalog_name: ${var.catalog}
+      schema_name: ${var.spec_schema}
+      name: ${var.spec_volume}
+      volume_type: MANAGED
+      comment: >-
+        Onboarding specs authored by the Metaflow Onboarding App. The app's service
+        principal is granted WRITE_VOLUME on this volume by the app resource in
+        resources/metaflow_onboarding_app.yml.

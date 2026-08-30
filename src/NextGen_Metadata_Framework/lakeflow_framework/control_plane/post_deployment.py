@@ -76,9 +76,9 @@ def apply_all_governance_tags(spark: SparkSession, control_catalog: str, group_i
     Tag DDL is naturally idempotent -- see ``governance/tags.py`` for why no idempotency
     ledger is needed (v1's ``governance_applied_log`` is removed in the v2 schema).
     """
-    _, ingestion_rows, transformation_rows = load_active_group_metadata(spark, control_catalog, group_id)
+    md = load_active_group_metadata(spark, control_catalog, group_id)
 
-    for flow_row in list(ingestion_rows) + list(transformation_rows):
+    for flow_row in list(md.ingestion_rows) + list(md.transformation_rows):
         governance_tags_json = getattr(flow_row, "governance_tags_json", None)
         if not governance_tags_json:
             continue
@@ -181,10 +181,10 @@ def capture_all_scd_change_counts(spark: SparkSession, control_catalog: str, gro
     metrics-capture bug must never fail the governance job it rides alongside.
     """
     control_schema = f"{control_catalog}.config"
-    _, ingestion_rows, transformation_rows = load_active_group_metadata(spark, control_catalog, group_id)
+    md = load_active_group_metadata(spark, control_catalog, group_id)
 
-    tagged_rows = [("ingestion_flow_spec", "dataflow_id", row) for row in ingestion_rows] + [
-        ("transformation_flow_spec", "flow_step_id", row) for row in transformation_rows
+    tagged_rows = [("ingestion_flow_spec", "dataflow_id", row) for row in md.ingestion_rows] + [
+        ("transformation_flow_spec", "flow_step_id", row) for row in md.transformation_rows
     ]
 
     for spec_table, pk_column, flow_row in tagged_rows:

@@ -45,6 +45,7 @@ needs to silence log writes for one run without re-onboarding the flow.
 
 import datetime
 import logging
+import re
 import time
 import uuid
 from typing import Any, Dict, List, Optional, Tuple
@@ -59,6 +60,8 @@ from NextGen_Metadata_Framework.lakeflow_framework.cdc.hashing import (
     deterministic_hash_expression,
     xor_fold_hex_digest,
 )
+from NextGen_Metadata_Framework.lakeflow_framework.dq.quarantine import _is_table_not_found
+from NextGen_Metadata_Framework.lakeflow_framework.engine.identifiers import sanitize_identifier
 from NextGen_Metadata_Framework.lakeflow_framework.exceptions import FrameworkConfigError
 from NextGen_Metadata_Framework.lakeflow_framework.observability.structured_logger import log_flow_event
 from NextGen_Metadata_Framework.lakeflow_framework.reconciliation.matcher import (
@@ -80,10 +83,25 @@ from NextGen_Metadata_Framework.lakeflow_framework.transformation.parameters imp
 
 logger = logging.getLogger("NextGen_Metadata_Framework.lakeflow_framework.reconciliation.appender")
 
-# transform_sql's documented FROM source -- see apply_transform_sql. Fixed (not per-run-unique)
-# because targets within one reconciliation_id are processed sequentially by
-# 05_reconciliation_engine.py's own loop, never concurrently within one Spark session.
+# transform_sql's documented FROM source -- see apply_transform_sql. This is the AUTHOR-FACING
+# name only: every transform_sql is written and validated against this literal token, and
+# apply_transform_sql rewrites the resolved SQL (word-boundary substitution) to point at a
+# per-reconciliation_id/target_id-unique temp view before executing it, so the token below must
+# stay byte-for-byte stable even though no temp view is ever actually registered under it.
+#
+# It is NOT safe to register the temp view under this fixed name directly. That was true for the
+# job-engine notebook, where 05_reconciliation_engine.py's own loop processes the targets of one
+# reconciliation_id sequentially, never concurrently, within one Spark session. It stops being
+# true in pipeline mode: Lakeflow schedules independent FLOWS (this module's per-target
+# @dlt.append_flow handlers included) CONCURRENTLY within one shared Spark session, so two
+# reconciliation flows -- or two targets of the same reconciliation_id dispatched as separate
+# flows -- can both be inside apply_transform_sql at once. A shared literal temp-view name is a
+# session-global mutable slot, so the second flow's createOrReplaceTempView can clobber the first
+# flow's view out from under its still-running spark.sql(resolved_sql), reshaping (or appending)
+# the wrong target's miss set. The per-target unique view name below is the fix; the FROM token
+# authors write never changes.
 UNMATCHED_RECORDS_VIEW_NAME = "_reconciliation_unmatched_records"
+_UNMATCHED_RECORDS_TOKEN_PATTERN = re.compile(r"\b" + re.escape(UNMATCHED_RECORDS_VIEW_NAME) + r"\b")
 
 _RUN_LOG_SCHEMA = StructType(
     [
@@ -200,7 +218,11 @@ def is_target_batch_already_processed(
 
 
 def apply_transform_sql(
-    missing_df: DataFrame, transform_sql: Optional[str], parameters: Optional[Dict[str, Any]] = None
+    missing_df: DataFrame,
+    transform_sql: Optional[str],
+    parameters: Optional[Dict[str, Any]] = None,
+    reconciliation_id: str = "",
+    target_id: str = "",
 ) -> DataFrame:
     """Reshape ``missing_df`` (a target's ``source_to_target`` miss set) via the flow-level
     ``transform_sql``, when configured, to match ``append_target_table``'s own schema.
@@ -209,8 +231,15 @@ def apply_transform_sql(
     see ``ingestion/standardization_sql.py``), ``transform_sql`` legitimately needs full
     ``SELECT``/``FROM`` (and joins, unions, etc) to reshape a record set from the source's
     column layout into the target's -- so it is executed as arbitrary Spark SQL against a
-    temp view of ``missing_df``, named :data:`UNMATCHED_RECORDS_VIEW_NAME`. Every
-    ``transform_sql`` is expected/documented to read ``FROM _reconciliation_unmatched_records``.
+    temp view of ``missing_df``. Every ``transform_sql`` is expected/documented to read
+    ``FROM _reconciliation_unmatched_records`` (:data:`UNMATCHED_RECORDS_VIEW_NAME`) -- that
+    author-facing contract is unchanged -- but the view is actually registered under a
+    per-``reconciliation_id``/``target_id``-unique name, and the resolved SQL is rewritten
+    (word-boundary substitution of the literal token, so it can't accidentally match a
+    substring of some other identifier) to reference that unique name instead. See the
+    module-level comment above :data:`UNMATCHED_RECORDS_VIEW_NAME` for why a single shared
+    literal name is unsafe once flows can run concurrently within one Spark session
+    (pipeline mode).
 
     ``${param}`` placeholders are substituted first (same mechanism as ``filter_condition``
     and ``transformation_sql`` -- see ``transformation/parameters.py``), so this must receive
@@ -225,6 +254,13 @@ def apply_transform_sql(
         Flow-level SQL, or ``None``/empty for a no-op passthrough.
     parameters:
         Dynamic runtime parameters for ``${param}`` substitution.
+    reconciliation_id, target_id:
+        Identify the caller's flow/target, folded into the temp view's registered name so
+        concurrent flows (or concurrent targets) never share one mutable session-global temp
+        view slot. Both default to ``""`` for backward compatibility with any caller that
+        doesn't pass them; that degrades to a single shared sanitized name (``__``), which is
+        only safe under the original job-engine sequential-processing invariant -- every
+        in-framework caller (``run_target_reconciliation``) always passes both.
 
     Raises
     ------
@@ -235,8 +271,13 @@ def apply_transform_sql(
         return missing_df
     try:
         resolved_sql = substitute_dynamic_parameters(transform_sql, parameters or {})
-        missing_df.createOrReplaceTempView(UNMATCHED_RECORDS_VIEW_NAME)
-        return missing_df.sparkSession.sql(resolved_sql)
+        unique_view_name = (
+            f"_reconciliation_unmatched_records__{sanitize_identifier(reconciliation_id)}"
+            f"__{sanitize_identifier(target_id)}"
+        )
+        missing_df.createOrReplaceTempView(unique_view_name)
+        rewritten_sql = _UNMATCHED_RECORDS_TOKEN_PATTERN.sub(unique_view_name, resolved_sql)
+        return missing_df.sparkSession.sql(rewritten_sql)
     except Exception as exc:  # noqa: BLE001
         raise FrameworkConfigError(f"Failed to apply reconciliation transform_sql: {exc}") from exc
 
@@ -260,8 +301,26 @@ def append_missing_records(missing_df: DataFrame, append_target_table: str) -> i
       mirroring how ``storage/table_properties.py``/``dq/quarantine.py`` apply ``cluster_by``
       for CDC-dispatched targets elsewhere in the framework, just via the plain
       ``DataFrameWriter.clusterBy(...)`` API instead of a ``@dlt.table`` decorator kwarg,
-      since this module runs in a plain job-task notebook, not a Lakeflow Declarative
-      Pipeline graph.
+      since this module runs both in a plain job-task notebook AND inside a Lakeflow
+      Declarative Pipeline's ``foreach_batch_sink`` handler (pipeline mode).
+
+    "Does ``append_target_table`` already exist" is decided by attempting a probe read and
+    matching Spark's stable not-found error-condition names -- ``dq/quarantine.py``'s
+    ``_is_table_not_found``/``_TABLE_NOT_FOUND_CONDITIONS`` pattern -- **never** by
+    ``spark.catalog.tableExists``. That API is unusable inside the Lakeflow
+    graph-execution context this function now also runs in: it fails with
+    ``py4j.protocol.Py4JError: An error occurred while calling o<N>.tableExists`` rather than
+    returning a boolean, which took down ``TC-CDC-002``'s whole pipeline update on
+    2026-08-29. When the probe read fails with a genuine not-found condition, clustering is
+    skipped -- **this function never creates ``append_target_table``**, deliberately: in
+    pipeline mode this handler runs concurrently with sibling flows in the same update (hard
+    rule 7 rules out any compensating "create it if missing" step here), so
+    ``append_target_table`` must be pre-provisioned by the author before a flow targets it
+    with ``comparison_direction`` ``source_to_target``/``both``. The very first append to a
+    genuinely new table still succeeds (``saveAsTable`` creates it), just without clustering
+    -- exactly as if ``HASH_KEY_COLUMN`` were absent. Any other exception from the probe
+    (permission denial, corrupt table, catalog outage) propagates untouched, same as
+    ``_is_table_not_found``'s own contract.
 
     Raises
     ------
@@ -273,14 +332,33 @@ def append_missing_records(missing_df: DataFrame, append_target_table: str) -> i
         count = missing_df.count()
         if count == 0:
             return 0
-        spark = missing_df.sparkSession
         writer = missing_df.write.format("delta").mode("append").option("mergeSchema", "true")
-        if HASH_KEY_COLUMN in missing_df.columns and not spark.catalog.tableExists(append_target_table):
+        if HASH_KEY_COLUMN in missing_df.columns and not _append_target_table_exists(missing_df, append_target_table):
             writer = writer.clusterBy(HASH_KEY_COLUMN)
         writer.saveAsTable(append_target_table)
         return count
     except Exception as exc:  # noqa: BLE001
         raise FrameworkConfigError(f"Failed to append missing records into '{append_target_table}': {exc}") from exc
+
+
+def _append_target_table_exists(missing_df: DataFrame, append_target_table: str) -> bool:
+    """True when ``append_target_table`` is already a readable table -- probed by attempting
+    a read, never by ``spark.catalog.tableExists`` (see :func:`append_missing_records`'s
+    docstring for why that API is unusable in the Lakeflow graph-execution context this
+    module now also runs in).
+
+    Only used to decide whether the *first-ever* write should apply Liquid Clustering; a
+    ``False`` result never triggers table creation here (this function only reads).
+    """
+    spark = missing_df.sparkSession
+    try:
+        existing = spark.read.table(append_target_table)
+        existing.schema  # noqa: B018 - forces analysis now, inside this try
+        return True
+    except Exception as exc:  # noqa: BLE001 - narrowed immediately below by condition name
+        if _is_table_not_found(exc):
+            return False
+        raise
 
 
 def write_run_log_entry(
@@ -735,7 +813,13 @@ def run_target_reconciliation(
                 fingerprint,
             )
         else:
-            reshaped_df = apply_transform_sql(match_result.missing_in_target_df, transform_sql, parameters)
+            reshaped_df = apply_transform_sql(
+                match_result.missing_in_target_df,
+                transform_sql,
+                parameters,
+                reconciliation_id=reconciliation_id,
+                target_id=target_id,
+            )
             appended_count = append_missing_records(reshaped_df, append_target_table)
             logger.info(
                 "Reconciliation '%s'/target '%s': appended %d record(s) into '%s'.",

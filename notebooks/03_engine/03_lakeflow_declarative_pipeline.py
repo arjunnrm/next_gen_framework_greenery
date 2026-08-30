@@ -2,21 +2,55 @@
 # MAGIC %md
 # MAGIC # Core Lakeflow Declarative Pipeline Engine
 # MAGIC
-# MAGIC Thin orchestration notebook: resolves an active `dataflow_group_id` from the control
+# MAGIC Thin registration notebook: resolves an active `dataflow_group_id` from the control
 # MAGIC tables and dynamically registers the corresponding Lakeflow Declarative Pipeline graph.
 # MAGIC All business logic lives in the loosely-coupled `NextGen_Metadata_Framework.lakeflow_framework`
 # MAGIC package (see `src/NextGen_Metadata_Framework/lakeflow_framework/`) -- this notebook
 # MAGIC only wires metadata rows to `@dlt.table`/`@dlt.view` registrations, since that wiring
 # MAGIC must execute at notebook top level for Lakeflow's graph-definition phase to see it.
 # MAGIC
+# MAGIC As of v1.5.0 that claim is literally true: the two ~90-line generator bodies that used
+# MAGIC to live here have moved verbatim into `.engine.flow_generators`, where they are
+# MAGIC importable and unit-testable without a workspace (`tests/unit/test_flow_generators.py`).
+# MAGIC What remains below is three phases and three bare `for` loops.
+# MAGIC
+# MAGIC ## The three flow types
+# MAGIC
 # MAGIC * **Ingestion Engine** -- `.ingestion` (readers, technical metadata), `.dq`
 # MAGIC   (expectations, quarantine), `.crypto` (encryption), `.cdc` (CDC/materialization strategies).
 # MAGIC * **Transformation Engine** -- `.transformation` (watermarked inputs, dynamic
 # MAGIC   parameters), plus the same `.dq` / `.crypto` / `.cdc` modules.
+# MAGIC * **Reconciliation Engine (v1.5.0)** -- `.reconciliation.graph_registration`, the DAG's
+# MAGIC   third first-class flow type. Only `reconciliation_flow_spec` rows whose
+# MAGIC   `execution_mode` is `"pipeline"`/`"pipeline_audit_only"` are registered here;
+# MAGIC   `"job"`-mode rows are filtered out by `load_active_group_metadata` and belong to the
+# MAGIC   standalone `notebooks/05_reconciliation/05_reconciliation_engine.py` job task, whose
+# MAGIC   behaviour is entirely unchanged.
 # MAGIC
-# MAGIC A single `dataflow_group_id` yields a **unified**, **ingestion-only**, or
-# MAGIC **transformation-only** DAG purely based on which control tables have active rows for
-# MAGIC that group -- no separate pipeline code path is required.
+# MAGIC A single `dataflow_group_id` yields a **unified**, **ingestion-only**,
+# MAGIC **transformation-only** or any combination DAG purely based on which control tables have
+# MAGIC active rows for that group -- no separate pipeline code path is required.
+# MAGIC
+# MAGIC ## The L0 source plane (read-once)
+# MAGIC
+# MAGIC Every physical read in this pipeline -- ingestion source, transformation input, and both
+# MAGIC reconciliation sides -- is routed through `.engine.source_plane`, so one physical
+# MAGIC table/path is read **exactly once per update** and reused across all its consumers. The
+# MAGIC API is deliberately three-phase and the phases must run in this order:
+# MAGIC
+# MAGIC 1. `plan_source_plane(...)` -- pure. No `dlt` import, no Spark action. Computes one read
+# MAGIC    identity per distinct physical locator and one `Binding` per consumer id.
+# MAGIC    `assert_acyclic(...)` then Kahn-sorts the whole edge set and raises
+# MAGIC    `FrameworkGraphCycleError` naming the ring, before a single dataset is defined.
+# MAGIC 2. `register_source_plane(spark, PLAN)` -- registers one `@dlt.table` per shared node.
+# MAGIC    This must precede phase 3: Lakeflow resolves `dlt.read`/`dlt.read_stream` by dataset
+# MAGIC    name at graph-build time, so a node a generator binds to must already be defined.
+# MAGIC 3. The three registration loops, each generator resolving its own reads via
+# MAGIC    `bind(plan, consumer_id, want_stream)`.
+# MAGIC
+# MAGIC `describe_plan(PLAN)` is emitted as one `source_plane_node` structured log event per
+# MAGIC binding and per shared node, so "was my table actually read once" is answerable from the
+# MAGIC driver log stream without reverse-engineering the event log.
 # MAGIC
 # MAGIC ## Spark Session Configuration
 # MAGIC Group-scoped Spark settings are resolved and applied *once*, between control-metadata
@@ -49,6 +83,15 @@
 # MAGIC a custom row in Lakeflow's own fixed-schema event log), and `dq/quarantine.py` for where
 # MAGIC quarantine-row counts are captured (inside the quarantine table's own `@dlt.table`
 # MAGIC closure, at Lakeflow execution time -- not here at graph-definition time).
+# MAGIC
+# MAGIC ## DEPLOYING A CHANGE TO THIS FILE
+# MAGIC `metaflow_testing/TESTING_PLAN.md` section 0, rule 5: a stale DABs sync snapshot makes
+# MAGIC `bundle deploy` report **"Files: 0 uploaded"** while the workspace keeps running the
+# MAGIC *old* notebook -- and this notebook is the file that has actually been bitten by it.
+# MAGIC After editing this file, confirm the deploy reported a non-zero upload count (or force a
+# MAGIC re-sync) before concluding that a behaviour change "did not work"; every pipeline in
+# MAGIC `resources/*.yml` lists this exact path in its `libraries:` block, so a silent no-op
+# MAGIC deploy here silently no-ops the whole framework.
 
 # COMMAND ----------
 
@@ -67,6 +110,7 @@ import json
 import logging
 import os
 import sys
+from typing import Optional
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger("lakeflow_declarative_pipeline")
@@ -91,44 +135,27 @@ except ImportError:
 from NextGen_Metadata_Framework.lakeflow_framework.control_plane.repository import (
     load_active_group_metadata,  # noqa: E402
 )
-from NextGen_Metadata_Framework.lakeflow_framework.engine.flow_registration import (  # noqa: E402
-    register_flow_output,
-    register_staged_view,
+from NextGen_Metadata_Framework.lakeflow_framework.engine.flow_generators import (  # noqa: E402
+    generate_ingestion_flow,
+    generate_reconciliation_flow,
+    generate_transformation_flow,
+    resolve_pipeline_schema,
 )
 from NextGen_Metadata_Framework.lakeflow_framework.engine.run_context import resolve_pipeline_run_id  # noqa: E402
+from NextGen_Metadata_Framework.lakeflow_framework.engine.source_plane import (  # noqa: E402
+    assert_acyclic,
+    describe_plan,
+    plan_source_plane,
+    register_source_plane,
+)
 from NextGen_Metadata_Framework.lakeflow_framework.engine.spark_config import (  # noqa: E402
     apply_spark_conf,
     read_pipeline_spark_config,
     resolve_spark_conf,
 )
 from NextGen_Metadata_Framework.lakeflow_framework.exceptions import FrameworkConfigError  # noqa: E402
-from NextGen_Metadata_Framework.lakeflow_framework.ingestion.column_normalization import (  # noqa: E402
-    normalize_column_names,
-)
-from NextGen_Metadata_Framework.lakeflow_framework.ingestion.dedup import apply_stream_dedup  # noqa: E402
-from NextGen_Metadata_Framework.lakeflow_framework.ingestion.json_flattening import (  # noqa: E402
-    apply_explode_columns,
-    parse_json_string_columns,
-    resolve_auto_flatten_all,
-)
-from NextGen_Metadata_Framework.lakeflow_framework.ingestion.readers import read_ingestion_source  # noqa: E402
-from NextGen_Metadata_Framework.lakeflow_framework.ingestion.schema_config import (  # noqa: E402
-    apply_schema_config,
-    load_schema_config,
-)
-from NextGen_Metadata_Framework.lakeflow_framework.ingestion.standardization_sql import (  # noqa: E402
-    apply_data_standardization_sql,
-)
-from NextGen_Metadata_Framework.lakeflow_framework.ingestion.technical_metadata import (
-    attach_technical_metadata,  # noqa: E402
-)
-from NextGen_Metadata_Framework.lakeflow_framework.transformation.inputs import (  # noqa: E402
-    mark_streaming_references,
-    register_transformation_inputs,
-)
-from NextGen_Metadata_Framework.lakeflow_framework.transformation.parameters import (
-    substitute_dynamic_parameters,  # noqa: E402
-    substitute_path_parameters,
+from NextGen_Metadata_Framework.lakeflow_framework.observability.structured_logger import (  # noqa: E402
+    log_flow_event,
 )
 
 # COMMAND ----------
@@ -146,9 +173,102 @@ if not GROUP_ID:
 if not CONTROL_CATALOG:
     raise ValueError("Required pipeline configuration 'dataflow.control.catalog' was not set.")
 
-GROUP_ROW, INGESTION_ROWS, TRANSFORMATION_ROWS = load_active_group_metadata(spark, CONTROL_CATALOG, GROUP_ID)
+MD = load_active_group_metadata(spark, CONTROL_CATALOG, GROUP_ID)
+GROUP_ROW = MD.group_row
 PIPELINE_PARAMETERS = json.loads(GROUP_ROW.pipeline_parameters_json) if GROUP_ROW.pipeline_parameters_json else {}
 PIPELINE_RUN_ID = resolve_pipeline_run_id(spark, GROUP_ID)
+
+# The three shared reconciliation control tables (reconciliation_run_log /
+# reconciliation_result / reconciliation_mismatch_log) live beside the four spec tables, exactly
+# as 05_reconciliation_engine.py resolves them (`CONTROL_SCHEMA = f"{CATALOG}.config"`).
+CONTROL_SCHEMA = f"{CONTROL_CATALOG}.config"
+
+# getattr, not GROUP_ROW.source_plane_config_json: this column is new in v1.5.0 and may not
+# exist yet on a dataflow_group_spec table provisioned before it was added (01_setup only ever
+# runs CREATE TABLE IF NOT EXISTS, never a migration) -- absent means "all source-plane
+# defaults", exactly what an empty {} would. Same defensive pattern spark_config_json uses
+# below, and that 05_reconciliation_engine.py already uses for logging_config_json.
+_SOURCE_PLANE_CONFIG = json.loads(getattr(GROUP_ROW, "source_plane_config_json", None) or "{}")
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ## Hosting-Pipeline Identity and Reconciliation Runtime Overrides
+# MAGIC
+# MAGIC Two things the control tables deliberately do **not** record, because they belong to the
+# MAGIC *pipeline resource* rather than to the onboarded group:
+# MAGIC
+# MAGIC * **Where "the hosting pipeline's own catalog/schema" is.** `resources/*.yml` sets
+# MAGIC   `catalog:`/`schema:` on the pipeline, and Lakeflow makes those the update's current
+# MAGIC   catalog/database. That is the documented default for a null `source_plane.catalog` /
+# MAGIC   `source_plane.schema` and for a null `reconciliation_flow_spec.publish_schema`.
+# MAGIC * **The per-run reconciliation log-silencing override.** `05_reconciliation_engine.py`
+# MAGIC   exposes `recon_run_log_capture` / `recon_mismatch_log` as tri-state *job widgets*; a
+# MAGIC   pipeline update has no widgets and `pipelines start-update` accepts only
+# MAGIC   `--full-refresh`. The replacement is the two pipeline-configuration keys
+# MAGIC   `dataflow.recon.run_log_capture` / `dataflow.recon.mismatch_log`, read here exactly as
+# MAGIC   `dataflow.group.id` is. **The tri-state is preserved**: absent *or* `''` defers to the
+# MAGIC   flow's own `logging_config`; `'true'`/`'false'` force writes on/off. The loss is real
+# MAGIC   and documented in `docs/13`: silencing now takes a pipeline settings edit that takes
+# MAGIC   effect on the *next* update, not the current one.
+
+# COMMAND ----------
+
+
+def _resolve_tristate_conf(key: str) -> Optional[bool]:
+    """Read a pipeline configuration key as an ``''``/``'true'``/``'false'`` tri-state.
+
+    Tri-state rather than a plain boolean for the same reason the job widget is: an operator
+    must be able to *silence* log writes without re-onboarding the flow, and must equally be
+    able to leave the decision to the flow's own onboarded metadata -- a two-state boolean
+    cannot express "I am not expressing an opinion", and would silently override
+    ``logging_config`` on every single update. Absent and ``''`` are the same answer: defer.
+    """
+    raw = (spark.conf.get(key, "") or "").strip().lower()
+    if raw not in ("", "true", "false"):
+        raise FrameworkConfigError(f"Pipeline configuration '{key}' must be '', 'true', or 'false', got {raw!r}")
+    return None if raw == "" else raw == "true"
+
+
+RECON_LOG_CAPTURE_OVERRIDES = {
+    "recon_run_log_capture": _resolve_tristate_conf("dataflow.recon.run_log_capture"),
+    "recon_mismatch_log": _resolve_tristate_conf("dataflow.recon.mismatch_log"),
+}
+
+# The hosting pipeline's own catalog/schema. Inside a running update these are the session's
+# current catalog/database; outside one (a local import of this file for linting/AST tests)
+# they are unavailable, so fall back to the group's onboarded catalog_name and leave the schema
+# unset. Neither value is *required* unless it is actually used: plan_source_plane raises only
+# if it must create a shared node, and generate_reconciliation_flow is never called at all for
+# a group with no pipeline-mode reconciliation rows.
+try:
+    _CURRENT_CATALOG = spark.catalog.currentCatalog()
+except Exception as _catalog_exc:  # noqa: BLE001 -- must never fail graph definition
+    logger.warning("Could not resolve the pipeline's current catalog (%s); falling back to catalog_name.", _catalog_exc)
+    _CURRENT_CATALOG = None
+PIPELINE_CATALOG = _CURRENT_CATALOG or getattr(GROUP_ROW, "catalog_name", None) or CONTROL_CATALOG
+# Mirrors PIPELINE_CATALOG's fallback chain, which this line previously lacked entirely -- it read
+# `= _CURRENT_SCHEMA`, and during graph definition that is NOT the pipeline's declared target
+# schema, so reconciliation dataset naming failed. The resolution order lives in
+# `.engine.flow_generators.resolve_pipeline_schema` rather than here, so it is unit-testable and so
+# this notebook keeps only bare registration fan-outs (tests/unit/test_pipeline_notebook_is_thin.py).
+PIPELINE_SCHEMA = resolve_pipeline_schema(spark, GROUP_ROW)
+if not PIPELINE_SCHEMA:
+    logger.warning(
+        "Could not resolve this pipeline's target schema from pipelines.schema/pipelines.target, "
+        "the session's current database, or the group row. Any reconciliation flow that does not "
+        "set an explicit publish_schema will fail when its datasets are named."
+    )
+
+# The onboarding spec (and therefore source_plane_config_json) names these keys `catalog`/
+# `schema` -- "null means the hosting pipeline's own"; plan_source_plane's own parameters are
+# `node_catalog`/`node_schema`, which is what makes them unambiguous at its call sites. The
+# rename happens here, once, rather than being forced into either of those two contracts.
+_SOURCE_PLANE_KWARGS = {
+    "materialize": _SOURCE_PLANE_CONFIG.get("materialize", "auto"),
+    "node_catalog": _SOURCE_PLANE_CONFIG.get("catalog") or PIPELINE_CATALOG,
+    "node_schema": _SOURCE_PLANE_CONFIG.get("schema") or PIPELINE_SCHEMA,
+}
 
 # COMMAND ----------
 
@@ -195,190 +315,104 @@ logger.info(
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC ## Ingestion Engine: Flow Registration
+# MAGIC ## PHASE 1 -- Plan the L0 Source Plane (pure; no `dlt`, no Spark action)
 # MAGIC
-# MAGIC For each active ingestion flow: build a staged view (read + technical metadata + AES
-# MAGIC encryption + quarantine columns), then materialize the main target table (and
-# MAGIC quarantine sibling, if configured) and apply the configured CDC/materialization
-# MAGIC strategy.
+# MAGIC One read identity per distinct physical locator across **all three** flow arrays, one
+# MAGIC `Binding` per consumer id. `assert_acyclic` then Kahn-sorts the full edge set and raises
+# MAGIC `FrameworkGraphCycleError` naming the ring -- multi-hop rings included -- before any
+# MAGIC dataset is defined, so a cycle costs a plan-time error message instead of an opaque
+# MAGIC Lakeflow graph failure. Guards `G-STREAM` (a streaming read of a MERGE-written in-graph
+# MAGIC target) and `G-SIDE` (two competing `landing_retention_policy` / `source_zip_handling`
+# MAGIC lifecycle regimes on one path) also fire here.
 
 # COMMAND ----------
 
+PLAN = plan_source_plane(
+    MD.ingestion_rows,
+    MD.transformation_rows,
+    MD.reconciliation_rows,
+    PIPELINE_PARAMETERS,
+    **_SOURCE_PLANE_KWARGS,
+)
+assert_acyclic(PLAN)
 
-def generate_ingestion_flow(flow_row) -> None:
-    try:
-        # ${param} placeholders in path-bearing fields (source_config/target_config) are
-        # resolved fresh from PIPELINE_PARAMETERS on every pipeline update -- see
-        # transformation/parameters.py::substitute_path_parameters's docstring. dq_config is
-        # deliberately excluded (its expr fields are SQL predicates, not paths).
-        source_config = (
-            json.loads(substitute_path_parameters(flow_row.source_config_json, PIPELINE_PARAMETERS))
-            if flow_row.source_config_json
-            else {}
-        )
-        target_config = (
-            json.loads(substitute_path_parameters(flow_row.target_config_json, PIPELINE_PARAMETERS))
-            if flow_row.target_config_json
-            else {}
-        )
-        dq_config = json.loads(flow_row.dq_config_json) if flow_row.dq_config_json else {}
-    except json.JSONDecodeError as exc:
-        raise FrameworkConfigError(f"Ingestion flow '{flow_row.dataflow_id}': malformed JSON configuration: {exc}") from exc
-
-    dq_rules = dq_config.get("rules", [])
-    is_streaming = flow_row.target_type == "streaming_table"
-    staged_view_name = f"_{flow_row.target_table}_staged"
-
-    def _build_ingestion_dataframe():
-        staged_df = read_ingestion_source(spark, flow_row.source_type, source_config)
-        # schema_config (explicit type/rename/comment) runs first -- its source_name keys
-        # reference the source's true raw column names, before anything else here touches
-        # them. normalize_column_names runs next, over whatever names remain (including any
-        # column schema_config didn't cover) -- see ingestion/column_normalization.py's module
-        # docstring for why this exact order matters.
-        schema_config_path = source_config.get("schema_config_path")
-        if schema_config_path:
-            schema_config = load_schema_config(dbutils, schema_config_path)
-            staged_df = apply_schema_config(staged_df, schema_config)
-        staged_df = normalize_column_names(staged_df, source_config)
-        staged_df = attach_technical_metadata(staged_df, source_config)
-        # parse_json_string_columns turns STRING columns holding a JSON document into real
-        # structs, which is what lets a Parquet/CSV/Delta source with an embedded JSON payload
-        # get the same struct-flatten/array-explode treatment as a native JSON source. It must
-        # run *after* normalize_column_names (its configured column names are the normalized
-        # ones) and *immediately before* apply_explode_columns (the structs it produces are
-        # exactly what explode consumes -- run it afterwards and they would never be flattened).
-        staged_df = parse_json_string_columns(staged_df, source_config.get("json_string_columns"))
-        # resolve_auto_flatten_all, not source_config.get("auto_flatten_all", False): a
-        # PRESENT-but-empty "explode_columns": [] means "auto-flatten everything", while an
-        # ABSENT (or null) explode_columns stays a schema-preserving pass-through. That
-        # distinction is load-bearing -- it is what prevents silent cartesian row explosion on
-        # un-configured sources (see ingestion/json_flattening.py's module docstring) -- and it
-        # can only be made against the raw dict here, because a `.get()` inside the function
-        # collapses "absent" and "present-but-empty" to the same value.
-        staged_df = apply_explode_columns(
-            staged_df, source_config.get("explode_columns"), resolve_auto_flatten_all(source_config)
-        )
-        # Full-row dedup (source_config.remove_dups, default False -- a no-op otherwise) sits
-        # after explode and before standardization on purpose: a source row delivered twice
-        # becomes 2xM rows once an array is explode_outer'ed, so only a post-explode dedup
-        # collapses it correctly; and standardization must run over the surviving rows only,
-        # since a standardization expression built on current_timestamp() (or any other
-        # non-deterministic function) would otherwise make every duplicate look distinct and
-        # defeat the dedup entirely. See ingestion/dedup.py for the unbounded-state warning that
-        # applies to a watermark-less streaming source.
-        staged_df = apply_stream_dedup(staged_df, source_config)
-        staged_df = apply_data_standardization_sql(staged_df, source_config.get("data_standardization_sql"))
-        return staged_df
-
-    register_staged_view(
-        staged_view_name,
-        f"Staged intermediate view for ingestion flow {flow_row.dataflow_id}",
-        dq_rules,
-        _build_ingestion_dataframe,
-        target_config,
-        pipeline_run_id=PIPELINE_RUN_ID,
-        record_id_column=dq_config.get("record_id_column"),
-        capture_technical_metadata=source_config.get("capture_technical_metadata", True),
-        flow_id=flow_row.dataflow_id,
-        read_operation_name="ingestion_read",
+# One structured event per binding and per shared node. This is what makes "was this table
+# actually read once?" answerable from the driver log stream: a `kind: "shared_node"` row with
+# fanout N means one physical read serving N consumers, whereas N separate `kind: "inline"`
+# binding rows on the same locator would mean N physical reads.
+for _plane_node in describe_plan(PLAN):
+    log_flow_event(
+        "source_plane_node",
+        _plane_node.get("consumer_id") or _plane_node.get("dataset_name") or _plane_node.get("locator") or GROUP_ID,
+        "SUCCESS",
+        dataflow_group_id=GROUP_ID,
+        **_plane_node,
     )
-
-    register_flow_output(
-        flow_row.dataflow_id,
-        staged_view_name,
-        flow_row.target_table,
-        flow_row.target_catalog,
-        flow_row.target_schema,
-        flow_row.cdc_load_strategy,
-        target_config,
-        dq_rules,
-        flow_row.source_description,
-        is_streaming,
-        flow_row.target_type,
-        quarantine_table_override=dq_config.get("quarantine_table"),
-    )
-
-
-for _ingestion_row in INGESTION_ROWS:
-    generate_ingestion_flow(_ingestion_row)
 
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC ## Transformation Engine: Flow Registration
+# MAGIC ## PHASE 2 -- Register the L0 Source Plane
 # MAGIC
-# MAGIC For each active transformation flow: register per-input watermarked views, execute
-# MAGIC the (dynamic-parameter-substituted) native SQL transformation as a staged view, apply
-# MAGIC decrypt/re-encrypt and DQ + quarantine, then apply the configured CDC/materialization
-# MAGIC strategy.
+# MAGIC One `@dlt.table` per shared node: a **streaming table** when any consumer streams (it is
+# MAGIC then legally readable by `dlt.read_stream` *and* `dlt.read` consumers in the same
+# MAGIC update), a materialized view when every consumer is batch. Never a `@dlt.view` -- a view
+# MAGIC is inlined into each consumer, so each consumer would open its own `DeltaSource` on the
+# MAGIC same table and "declared once" would not be "read once".
+# MAGIC
+# MAGIC This must run **before** phase 3: Lakeflow resolves `dlt.read`/`dlt.read_stream` by
+# MAGIC dataset name at graph-build time, so a node a generator binds to must already be defined.
 
 # COMMAND ----------
 
+register_source_plane(spark, PLAN)
 
-def generate_transformation_flow(flow_row) -> None:
-    try:
-        source_inputs = json.loads(flow_row.source_inputs_json) if flow_row.source_inputs_json else []
-        target_config = (
-            json.loads(substitute_path_parameters(flow_row.target_config_json, PIPELINE_PARAMETERS))
-            if flow_row.target_config_json
-            else {}
-        )
-        dq_config = json.loads(flow_row.dq_config_json) if flow_row.dq_config_json else {}
-    except json.JSONDecodeError as exc:
-        raise FrameworkConfigError(
-            f"Transformation flow '{flow_row.flow_step_id}': malformed JSON configuration: {exc}"
-        ) from exc
+# COMMAND ----------
 
-    dq_rules = dq_config.get("rules", [])
-    register_transformation_inputs(spark, source_inputs)
-    resolved_sql = substitute_dynamic_parameters(flow_row.transformation_sql, PIPELINE_PARAMETERS)
-    resolved_sql = mark_streaming_references(resolved_sql, source_inputs)
+# MAGIC %md
+# MAGIC ## PHASE 3 -- Flow Registration (ingestion, transformation, reconciliation)
+# MAGIC
+# MAGIC Three bare loops over the three control-table row sets. Each generator lives in
+# MAGIC `.engine.flow_generators` and resolves its own physical reads through `PLAN` via
+# MAGIC `source_plane.bind(...)`; nothing in this notebook reads a source directly any more.
+# MAGIC An empty row set is simply a loop that does not execute, which is how one
+# MAGIC `dataflow_group_id` yields a unified / ingestion-only / transformation-only /
+# MAGIC reconciliation-only DAG with no separate code path.
 
-    # A transformation's staged view is a genuinely streaming computation whenever *any*
-    # of its source_inputs is streaming (Spark propagates streaming through the whole
-    # query plan once one input is), independent of this flow's own target_type -- a
-    # windowed streaming aggregation feeding an `external_sink`/`batch_table`/
-    # `materialized_view` target is still a streaming view under the hood. Missing this
-    # raised `AnalysisException: View '...' is a streaming view and must be referenced
-    # using readStream` the moment `register_main_and_quarantine_tables` read such a
-    # staged view via a plain (non-streaming) `dlt.read(...)`.
-    is_streaming = flow_row.target_type == "streaming_table" or any(
-        input_config.get("is_streaming") for input_config in source_inputs
-    )
-    staged_view_name = f"_{flow_row.target_table}_staged"
+# COMMAND ----------
 
-    register_staged_view(
-        staged_view_name,
-        f"Staged transformation output for {flow_row.flow_step_id}",
-        dq_rules,
-        lambda: spark.sql(resolved_sql),
-        target_config,
+for _ingestion_row in MD.ingestion_rows:
+    generate_ingestion_flow(
+        spark,
+        dbutils,
+        _ingestion_row,
+        plan=PLAN,
+        pipeline_parameters=PIPELINE_PARAMETERS,
         pipeline_run_id=PIPELINE_RUN_ID,
-        record_id_column=dq_config.get("record_id_column"),
-        capture_technical_metadata=target_config.get("capture_technical_metadata", True),
-        flow_id=flow_row.flow_step_id,
-        read_operation_name="transformation_execute",
     )
 
-    register_flow_output(
-        flow_row.flow_step_id,
-        staged_view_name,
-        flow_row.target_table,
-        flow_row.target_catalog,
-        flow_row.target_schema,
-        flow_row.cdc_load_strategy,
-        target_config,
-        dq_rules,
-        f"Transformation target for flow step {flow_row.flow_step_id}",
-        is_streaming,
-        flow_row.target_type,
-        quarantine_table_override=dq_config.get("quarantine_table"),
+for _transformation_row in MD.transformation_rows:
+    generate_transformation_flow(
+        spark,
+        dbutils,
+        _transformation_row,
+        plan=PLAN,
+        pipeline_parameters=PIPELINE_PARAMETERS,
+        pipeline_run_id=PIPELINE_RUN_ID,
     )
 
-
-for _transformation_row in TRANSFORMATION_ROWS:
-    generate_transformation_flow(_transformation_row)
+for _reconciliation_row in MD.reconciliation_rows:
+    generate_reconciliation_flow(
+        spark,
+        _reconciliation_row,
+        plan=PLAN,
+        publish_catalog=PIPELINE_CATALOG,
+        publish_schema=PIPELINE_SCHEMA,
+        control_schema=CONTROL_SCHEMA,
+        pipeline_update_id=PIPELINE_RUN_ID,
+        log_capture_overrides=RECON_LOG_CAPTURE_OVERRIDES,
+        pipeline_parameters=PIPELINE_PARAMETERS,
+    )
 
 # COMMAND ----------
 
@@ -395,3 +429,10 @@ for _transformation_row in TRANSFORMATION_ROWS:
 # MAGIC
 # MAGIC `external_sink`/`sink` egress has no post-deployment counterpart any more (Phase 7)
 # MAGIC -- see the "Governance Tags & Sink Egress" section above.
+# MAGIC
+# MAGIC Reconciliation control rows are written by the L5 `foreach_batch_sink` handler *inside*
+# MAGIC this update whenever its pulse carries rows. The BACKSTOP for an empty pulse and for a
+# MAGIC `"pipeline_audit_only"` flow is `.observability.reconciliation_export`, called from the
+# MAGIC observability **job** task (`notebooks/08_observability/08_dlt_observability_engine.py`)
+# MAGIC -- deliberately not from here: observability stays a normal Lakeflow job task and no
+# MAGIC observability notebook ever enters a pipeline's `libraries:` block.

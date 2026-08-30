@@ -61,6 +61,7 @@ from typing import Any, Dict, List, Optional, Tuple
 from pyspark.sql import SparkSession
 
 from NextGen_Metadata_Framework.lakeflow_framework.exceptions import FrameworkConfigError
+from NextGen_Metadata_Framework.lakeflow_framework.storage.table_properties import qualified_table_name
 from NextGen_Metadata_Framework.lakeflow_framework.transformation.parameters import (
     substitute_dynamic_parameters,
     substitute_path_parameters,
@@ -107,6 +108,16 @@ ALLOWED_STORAGE_FORMATS = {"delta", "iceberg"}
 ALLOWED_SINK_FORMATS = {"delta", "kafka", "pgp_zip"}
 ALLOWED_SINK_WRITE_MODES = {"overwrite", "append"}
 ALLOWED_RECONCILIATION_FAILURE_MODES = {"fail", "warn"}
+# reconciliation_flows[].execution_mode -- "job" (default, unchanged standalone
+# 05_reconciliation_engine.py job task), "pipeline" (register this flow's L3+L4 published
+# datasets AND the L5 heal/append lane inside its dataflow_group_id's Lakeflow pipeline
+# update), or "pipeline_audit_only" (register L3+L4 only -- comparison/metrics/dq_config run
+# in-pipeline, healing stays on the standalone job engine). MUST default to "job": four DABs
+# resources still run recon tasks against onboarded rows today, and "pipeline" defaulting on
+# would run those flows twice per cycle. See control_plane/ddl_definitions.py's
+# reconciliation_flow_spec.execution_mode column comment and docs/07_reconciliation_engine.md.
+ALLOWED_RECONCILIATION_EXECUTION_MODES = {"job", "pipeline", "pipeline_audit_only"}
+_RECONCILIATION_PIPELINE_MODES = {"pipeline", "pipeline_audit_only"}
 # Narrowed from {"table", "file", "sink"}: reconciliation is Delta-tables-only. Both sides of a
 # comparison must share one hash construction, one schema, and one restartability ledger, and a
 # raw file/sink location can offer none of those -- read it into a Delta table first and
@@ -156,8 +167,10 @@ REMOVED_RECONCILIATION_FLOW_KEYS = {
         "removed in v1.4.0 -- reconciliation is triggered-only. Every run is a bounded job task: "
         "batch reads, and trigger(availableNow=True) for a read_mode 'streaming' side, so the run "
         "drains its backlog and finishes. There is no continuous reconciliation mode and no "
-        "recon_mode widget; delete the key. For continuous coverage, schedule the reconciliation "
-        "job on the cadence you need."
+        "recon_mode widget; delete the key. For continuous coverage, either schedule the "
+        "reconciliation job on the cadence you need (execution_mode 'job', the default), or set "
+        "execution_mode to 'pipeline'/'pipeline_audit_only' to run this flow's comparison inside "
+        "its dataflow group's own Lakeflow pipeline update instead."
     ),
     "generate_surrogate_key": (
         "removed in v1.4.0 with the surrogate-key engine. A reconciliation flow matches on its "
@@ -191,8 +204,63 @@ def reject_removed_keys(config: Any, path_prefix: str, errors: List[str], remove
             errors.append(f"{path_prefix}.{key}: {guidance}")
 
 
+def reject_mode_incompatible_keys(
+    config: Any, path_prefix: str, errors: List[str], incompatible: Dict[str, str], mode: str
+) -> None:
+    """Append one error per key present on ``config`` that is incompatible with the ``mode``
+    the caller has already determined applies here -- e.g. a reconciliation dataset side's
+    ``task_run_id_column`` when ``execution_mode`` is ``"pipeline"``/``"pipeline_audit_only"``,
+    or a flow-level ``dq_config``/``publish_schema`` while ``execution_mode`` is (still) ``"job"``.
+
+    Same convention as :func:`reject_removed_keys` -- presence alone is the trigger, not
+    truthiness -- but unlike a removed key, nothing here is gone from the spec forever: the
+    same key is perfectly valid for a different flow, or for this same flow under a different
+    ``execution_mode``. Callers are expected to invoke this only once they know ``mode``
+    actually applies (e.g. only when the flow is genuinely in a pipeline mode), so the message
+    always names the mode that is actually in force, not merely one of several allowed values.
+    """
+    if not isinstance(config, dict):
+        return
+    for key, guidance in incompatible.items():
+        if key in config:
+            errors.append(f"{path_prefix}.{key}: not supported when execution_mode is {mode!r}. {guidance}")
+
+
 ALLOWED_COMPARISON_DIRECTIONS = {"source_to_target", "target_to_source", "both"}
 ALLOWED_READ_MODES = {"batch", "streaming"}
+# Presence-rejected on a reconciliation dataset side (source_config or a target_configs[]
+# entry) when the OWNING FLOW's execution_mode is "pipeline"/"pipeline_audit_only". Wired into
+# _validate_reconciliation_dataset_config via reject_mode_incompatible_keys, which validates
+# one side at a time and so has no flow-level context of its own -- execution_mode is threaded
+# in by the caller (_validate_reconciliation_flows).
+REMOVED_RECONCILIATION_DATASET_KEYS_PIPELINE = {
+    "task_run_id_column": (
+        "engine/run_context.py::resolve_pipeline_run_id has no stable per-update key -- "
+        "pipelines.id is the PIPELINE id, constant across every update, and narrowing by it "
+        "would match every row that pipeline has ever written, i.e. a silent no-op. Use "
+        "filter_condition instead, or set execution_mode to 'job' to keep the standalone "
+        "engine's per-run task_run_id narrowing."
+    ),
+}
+# Presence-rejected on a reconciliation FLOW while execution_mode is (still) "job" -- both
+# attach to a dataset a job task has no equivalent for: publish_schema names where a
+# pipeline-hosted flow's own recon__<id>__<target>__classified/__metrics/__mismatch datasets
+# are published, and dq_config attaches dlt expectations to the one-row __metrics dataset a
+# job task never produces at all.
+RECONCILIATION_FLOW_KEYS_REQUIRING_PIPELINE_MODE = {
+    "publish_schema": (
+        "publish_schema names the schema where this flow's recon__<reconciliation_id>__"
+        "<target_id>__classified/__metrics/__mismatch datasets are published inside the "
+        "hosting Lakeflow pipeline -- a 'job' execution_mode flow has no such datasets at all. "
+        "Set execution_mode to 'pipeline' or 'pipeline_audit_only', or delete this key."
+    ),
+    "dq_config": (
+        "dq_config attaches dlt expectations to the one-row __metrics dataset -- a 'job' "
+        "execution_mode flow never produces that dataset, so there is nothing to attach an "
+        "expectation to. Set execution_mode to 'pipeline' or 'pipeline_audit_only', or delete "
+        "this key."
+    ),
+}
 ALLOWED_ASN1_CODECS = {"ber", "der"}
 ALLOWED_OBSERVABILITY_DESTINATION_TYPES = {"DATABRICKS_VOLUME", "OTLP_CONSUMER"}
 # observability[].mode -- which of the two observability engines serves this destination.
@@ -1216,7 +1284,9 @@ def _validate_no_duplicate_input_names(transformation_flows: List[Any], errors: 
 # ---------------------------------------------------------------------------
 
 
-def _validate_reconciliation_dataset_config(config: Any, path_prefix: str, errors: List[str]) -> None:
+def _validate_reconciliation_dataset_config(
+    config: Any, path_prefix: str, errors: List[str], execution_mode: Optional[str] = None
+) -> None:
     """Validate one reconciliation side (``source_config`` or a ``target_configs[]`` entry).
 
     As of v1.3.0 the only supported ``type`` is ``"table"`` -- see
@@ -1225,9 +1295,15 @@ def _validate_reconciliation_dataset_config(config: Any, path_prefix: str, error
     ``check_string`` produces, because the generic one ("allowed values are ['table']") tells an
     author what is legal but not what to do about the spec they already have; the scope error
     names the migration (read the file/sink output into a Delta table first).
+
+    ``execution_mode`` is the OWNING FLOW's resolved ``execution_mode`` (``"job"`` when absent
+    or invalid), threaded in by the caller since this function validates one side in isolation
+    and has no flow-level context of its own. It is ``None`` only for a caller that has not
+    (yet) resolved one -- treated the same as ``"job"``, the more restrictive default.
     """
     if not check_dict(config, path_prefix, errors, required=True):
         return
+    pipeline_mode = execution_mode in _RECONCILIATION_PIPELINE_MODES
 
     dataset_type = config.get("type", "table")
     check_string(dataset_type, f"{path_prefix}.type", errors, allowed_values=ALLOWED_RECON_DATASET_TYPES)
@@ -1244,6 +1320,18 @@ def _validate_reconciliation_dataset_config(config: Any, path_prefix: str, error
 
     if config.get("read_mode") is not None:
         check_string(config.get("read_mode"), f"{path_prefix}.read_mode", errors, allowed_values=ALLOWED_READ_MODES)
+        if pipeline_mode and config.get("read_mode") == "streaming":
+            errors.append(
+                f"{path_prefix}.read_mode: 'streaming' is not supported when execution_mode is "
+                f"{execution_mode!r}. The in-pipeline comparison is a whole-snapshot batch "
+                "classification, and a stream-static join supports only inner/left_outer, which "
+                "cannot express MISSING_IN_SOURCE. Use read_mode 'batch' (the default), or set "
+                "execution_mode to 'job' to keep the standalone streaming engine."
+            )
+    if pipeline_mode:
+        reject_mode_incompatible_keys(
+            config, path_prefix, errors, REMOVED_RECONCILIATION_DATASET_KEYS_PIPELINE, execution_mode
+        )
     if config.get("task_run_id_column") is not None:
         # The column on THIS side carrying the producing pipeline/job run id. When the task_run_id
         # job parameter is set, the side's read is narrowed to that run's rows (applied before
@@ -1270,7 +1358,9 @@ def _validate_reconciliation_dataset_config(config: Any, path_prefix: str, error
             )
 
 
-def _validate_reconciliation_target_configs(target_configs: Any, path_prefix: str, errors: List[str]) -> None:
+def _validate_reconciliation_target_configs(
+    target_configs: Any, path_prefix: str, errors: List[str], execution_mode: Optional[str] = None
+) -> None:
     if not isinstance(target_configs, list) or not target_configs:
         errors.append(f"{path_prefix}: is required and must be a non-empty list of target objects, got {target_configs!r}")
         return
@@ -1292,7 +1382,7 @@ def _validate_reconciliation_target_configs(target_configs: Any, path_prefix: st
             else:
                 seen_target_ids[target_id] = index
 
-        _validate_reconciliation_dataset_config(target_config, target_path, errors)
+        _validate_reconciliation_dataset_config(target_config, target_path, errors, execution_mode=execution_mode)
 
         if target_config.get("comparison_direction") is not None:
             check_string(
@@ -1335,9 +1425,55 @@ def _validate_reconciliation_flows(
             # it can never produce a false "different", which is why it is only ever used as an
             # early-out. See reconciliation/matcher.py.
             check_bool(flow.get("two_tier_verification"), f"{label}.two_tier_verification", errors)
-        _validate_reconciliation_dataset_config(flow.get("source_config"), f"{label}.source_config", errors)
+
+        # execution_mode -- "job" (default, unchanged standalone engine), "pipeline" (L3+L4 +
+        # the L5 heal lane inside this flow's own dataflow_group_id's Lakeflow pipeline update),
+        # or "pipeline_audit_only" (L3+L4 only; healing stays on the standalone job engine).
+        # Checked BEFORE the allowed-values test resolves it, so an invalid value still falls
+        # back to the more restrictive "job" reading below rather than silently skipping every
+        # mode-conditional check that follows.
+        raw_execution_mode = flow.get("execution_mode")
+        if raw_execution_mode is not None:
+            check_string(
+                raw_execution_mode, f"{label}.execution_mode", errors, allowed_values=ALLOWED_RECONCILIATION_EXECUTION_MODES
+            )
+        execution_mode = raw_execution_mode if raw_execution_mode in ALLOWED_RECONCILIATION_EXECUTION_MODES else "job"
+        pipeline_mode = execution_mode in _RECONCILIATION_PIPELINE_MODES
+
+        if flow.get("dataflow_group_id") is not None:
+            check_string(flow.get("dataflow_group_id"), f"{label}.dataflow_group_id", errors)
+        if flow.get("publish_schema") is not None:
+            # Only meaningful when this flow's recon__*/classified/metrics/mismatch datasets are
+            # real, externally visible UC tables -- i.e. execution_mode != "job". Structural type
+            # check always runs; the mode-incompatibility rejection below is additive to it, same
+            # as every other "only meaningful when X" field in this file (e.g.
+            # empty_target_if_source_empty).
+            check_string(flow.get("publish_schema"), f"{label}.publish_schema", errors)
+
+        dq_config = flow.get("dq_config")
+        if dq_config is not None:
+            _validate_dq_config(dq_config, f"{label}.dq_config", errors)
+            if isinstance(dq_config, dict) and isinstance(dq_config.get("rules"), list):
+                for rule_index, rule in enumerate(dq_config["rules"]):
+                    if isinstance(rule, dict) and rule.get("action") == "quarantine":
+                        errors.append(
+                            f"{label}.dq_config.rules[{rule_index}].action: 'quarantine' is not supported for a "
+                            "reconciliation flow -- there is nothing to quarantine on the one-row __metrics "
+                            "dataset these rules attach to. Use 'warn'/'drop'/'fail' instead."
+                        )
+
+        if not pipeline_mode:
+            reject_mode_incompatible_keys(
+                flow, label, errors, RECONCILIATION_FLOW_KEYS_REQUIRING_PIPELINE_MODE, execution_mode
+            )
+
+        _validate_reconciliation_dataset_config(
+            flow.get("source_config"), f"{label}.source_config", errors, execution_mode=execution_mode
+        )
         _validate_path_parameters(flow.get("source_config"), parameters, f"{label}.source_config", errors)
-        _validate_reconciliation_target_configs(flow.get("target_configs"), f"{label}.target_configs", errors)
+        _validate_reconciliation_target_configs(
+            flow.get("target_configs"), f"{label}.target_configs", errors, execution_mode=execution_mode
+        )
         _validate_path_parameters(flow.get("target_configs"), parameters, f"{label}.target_configs", errors)
         check_list_of_str(flow.get("match_keys"), f"{label}.match_keys", errors, required=True)
         if flow.get("compare_columns") is not None:
@@ -1738,6 +1874,346 @@ def _validate_path_parameters(config: Any, parameters: Dict[str, Any], label: st
         errors.append(f"{label}: {exc}")
 
 
+# ---------------------------------------------------------------------------
+# Reconciliation pipeline placement: cross-array checks that only make sense once every flow
+# array in the spec is known (source of truth: context.read_once_contract's "THE DOUBLE-APPEND
+# HAZARD"/"COLLISION HANDLING" sections). Every comparison below is a casefolded, fully-
+# qualified ``catalog.schema.table`` string built through
+# :func:`storage.table_properties.qualified_table_name` -- never a bare ``target_table`` --
+# because ``metaflow_testing/003_autoload_recon_append.json`` writes ``Excalibur_usecase``
+# with a capital E, and a case-sensitive comparison would silently miss it.
+# ---------------------------------------------------------------------------
+
+# CDC strategies that dispatch through dlt.apply_changes[_from_snapshot] -- i.e. the producing
+# target's Delta transaction log contains real MERGE/UPDATE/DELETE operations, not only
+# appends. A reconciliation source resolving to one of these in a pipeline execution_mode would
+# have its L5 heal lane appending into a comparison built over rows Lakeflow may still rewrite
+# in place before the next update.
+_RECONCILIATION_SOURCE_MERGE_CDC_STRATEGIES = {"SCD1", "SCD2", "SCD3", "FULL_SNAPSHOT_CDC"}
+
+
+def _qualified_or_none(catalog: Any, schema: Any, table: Any) -> Optional[str]:
+    """Best-effort casefolded ``catalog.schema.table`` out of three separate columns (an
+    ingestion/transformation flow's own ``target_catalog``/``target_schema``/``target_table``,
+    or a zerobus ingestion flow's ``source_catalog``/``source_schema``/``source_table``), or
+    ``None`` if any part is missing or not a safe identifier.
+
+    Used only for cross-flow *comparison* here, never persisted -- a spec that has not yet
+    passed its own per-field ``check_string`` calls simply drops out of comparison instead of
+    raising a second, redundant error about the same malformed value.
+    """
+    if not (isinstance(catalog, str) and isinstance(schema, str) and isinstance(table, str)):
+        return None
+    try:
+        return qualified_table_name(catalog, schema, table).casefold()
+    except ValueError:
+        return None
+
+
+def _qualified_table_ref_or_none(value: Any) -> Optional[str]:
+    """Best-effort casefolded ``catalog.schema.table`` out of a bare dotted string, as
+    reconciliation's own ``source_config.table``/``target_configs[].table``/
+    ``append_target_table`` are all spelled -- distinct from :func:`_qualified_or_none`, which
+    builds the same shape from three separate columns. Never a bare table name: only a
+    genuine three-part reference is comparable at all.
+    """
+    if not isinstance(value, str) or not value:
+        return None
+    parts = value.split(".")
+    if len(parts) != 3 or not all(parts):
+        return None
+    return _qualified_or_none(*parts)
+
+
+def _validate_landing_side_effect_collisions(ingestion_flows: List[Any], errors: List[str]) -> None:
+    """V-CYC-8: more than one distinct ``landing_retention_policy``/``source_zip_handling`` on
+    one shared Auto Loader landing path is a latent DATA-LOSS bug even before source-plane
+    sharing exists -- ``cloudFiles.cleanSource`` MOVES or DELETES committed landing files, and
+    ``source_zip_handling`` PGP-decrypts, unzips and writes ``.__framework_extracted__``
+    markers, so two competing lifecycle regimes on one directory corrupt whichever policy runs
+    second. Compared as normalized (sorted-key) JSON so the whole nested shape is covered, not
+    just a hand-picked subset of sub-fields.
+    """
+    seen_retention: Dict[str, Tuple[str, str]] = {}
+    seen_zip: Dict[str, Tuple[str, str]] = {}
+    for flow in ingestion_flows or []:
+        if not isinstance(flow, dict):
+            continue
+        source_config = flow.get("source_config")
+        if not isinstance(source_config, dict):
+            continue
+        path = source_config.get("path")
+        if not isinstance(path, str) or not path:
+            continue
+        flow_label = str(flow.get("dataflow_id") or "<unknown ingestion flow>")
+
+        retention_signature = json.dumps(source_config.get("landing_retention_policy") or {}, sort_keys=True)
+        prior_retention = seen_retention.get(path)
+        if prior_retention is None:
+            seen_retention[path] = (retention_signature, flow_label)
+        elif prior_retention[0] != retention_signature:
+            errors.append(
+                f"ingestion_flow[{flow_label}].source_config.landing_retention_policy: differs from "
+                f"ingestion_flow[{prior_retention[1]}]'s, but both flows share landing path '{path}' -- "
+                "cloudFiles.cleanSource MOVES or DELETES committed landing files, so two different "
+                "retention policies on one directory is a data-loss race, not two independent settings"
+            )
+
+        zip_signature = json.dumps(source_config.get("source_zip_handling") or {}, sort_keys=True)
+        prior_zip = seen_zip.get(path)
+        if prior_zip is None:
+            seen_zip[path] = (zip_signature, flow_label)
+        elif prior_zip[0] != zip_signature:
+            errors.append(
+                f"ingestion_flow[{flow_label}].source_config.source_zip_handling: differs from "
+                f"ingestion_flow[{prior_zip[1]}]'s, but both flows share landing path '{path}' -- "
+                "source_zip_handling PGP-decrypts, unzips and writes .__framework_extracted__ markers, so "
+                "two different zip-handling regimes on one directory corrupt whichever policy runs second"
+            )
+
+
+def _append_cycle_finding(pipeline_mode: bool, execution_mode: Any, message: str, errors: List[str]) -> None:
+    """Record a V-CYC append-loop finding as a hard error in pipeline mode, a warning in job mode.
+
+    Every one of these rules describes a *graph* cycle: a reconciliation flow appending into a
+    dataset that the very same Lakeflow update also reads or writes. In ``execution_mode: "job"``
+    there is no such graph -- the standalone ``05_reconciliation_engine.py`` task runs after the
+    pipeline update has finished, so the append cannot race a read that is no longer happening.
+
+    Making these unconditional errors was a real backward-compatibility break, not a stricter
+    reading of an existing rule: ``metaflow_testing/038_rec_003_precomputed_hash.json`` is a
+    shipped, purely job-mode spec that appends into its own comparison target, and it stopped
+    validating -- which means ``02_onboarding_engine.py`` (which raises on any non-empty
+    ``errors``) could no longer onboard it, with no edit by its author and no opt-in to any
+    v1.5.0 attribute.
+
+    Job mode still gets the warning, because the underlying hazard is real there too (an append
+    into a table Lakeflow owns can be clobbered by the next refresh). Downgrading it to a log
+    line keeps that visible without rejecting a document that has always been accepted.
+    """
+    if pipeline_mode:
+        errors.append(message)
+        return
+    logger.warning(
+        "%s [reported as a warning, not an error, because execution_mode is %r: the standalone "
+        "reconciliation job runs after the pipeline update, so there is no in-graph cycle. This "
+        "WOULD be rejected under execution_mode 'pipeline'/'pipeline_audit_only'.]",
+        message,
+        execution_mode,
+    )
+
+
+def _validate_reconciliation_pipeline_placement(
+    spec_group_id: Any,
+    ingestion_flows: List[Any],
+    transformation_flows: List[Any],
+    reconciliation_flows: List[Any],
+    errors: List[str],
+) -> None:
+    """Cross-array checks that only make sense once every flow array in the spec is known --
+    modelled on :func:`_validate_no_duplicate_input_names`.
+
+    A reconciliation flow's own ``dataflow_group_id`` (new in v1.5.0, independent of this
+    spec's own top-level ``dataflow_group_id``) is what makes a flow's placement "this group"
+    or "a different group" below: absent, it defaults to this spec's own group -- the
+    overwhelmingly common case, a recon flow embedded in the same pipeline as the ingestion/
+    transformation flows it was onboarded alongside. Declaring a *different* group is how a
+    recon flow whose comparison/append touches another group's tables opts into being
+    registered in THAT group's pipeline instead (see V-CYC-4 below) -- ``spec_group_id`` is
+    this spec's own top-level ``dataflow_group_id``, needed only so that WARNING can name both
+    groups involved, not just the one this flow declares.
+
+    Deviation from the base design note: true cross-*spec* awareness (e.g. detecting that
+    ``metaflow_testing/003``'s ``append_target_table`` is ``metaflow_testing/002``'s zerobus
+    ingestion source, when 002 and 003 are onboarded as two separate spec documents) is out of
+    reach for a pure ``validate_spec`` call, which only ever sees the flows of the ONE spec
+    being validated -- there is no live Unity Catalog session or cross-group registry threaded
+    into this function. What is implemented here is the in-spec facsimile: a reconciliation
+    flow that declares a ``dataflow_group_id`` different from this spec's own is treated as
+    "placed in a different group" for V-CYC-3/V-CYC-4 purposes. Genuine cross-spec detection
+    belongs to a live preflight check against the control tables (see
+    ``onboarding/uc_spec_preflight.py``), not to this offline, single-document validator.
+    """
+    if not isinstance(reconciliation_flows, list) or not reconciliation_flows:
+        return
+
+    # (qualified_casefolded, flow_label, cdc_load_strategy, target_type)
+    in_spec_targets: List[Tuple[str, str, Optional[str], Optional[str]]] = []
+    for flow in list(ingestion_flows or []) + list(transformation_flows or []):
+        if not isinstance(flow, dict):
+            continue
+        qualified = _qualified_or_none(flow.get("target_catalog"), flow.get("target_schema"), flow.get("target_table"))
+        if qualified is None:
+            continue
+        target_config = flow.get("target_config") if isinstance(flow.get("target_config"), dict) else {}
+        flow_label = str(flow.get("dataflow_id") or flow.get("flow_step_id") or "<unknown flow>")
+        in_spec_targets.append((qualified, flow_label, target_config.get("cdc_load_strategy"), flow.get("target_type")))
+
+    # (qualified_casefolded, flow_label) -- zerobus is the only ingestion source_type addressed
+    # as a qualified catalog.schema.table; autoloader/asn1 read from a filesystem path, which is
+    # never a Lakeflow dataset reference.
+    in_spec_ingestion_sources: List[Tuple[str, str]] = []
+    for flow in list(ingestion_flows or []):
+        if not isinstance(flow, dict) or flow.get("source_type") != "zerobus":
+            continue
+        source_config = flow.get("source_config") if isinstance(flow.get("source_config"), dict) else {}
+        qualified = _qualified_or_none(
+            source_config.get("source_catalog"), source_config.get("source_schema"), source_config.get("source_table")
+        )
+        if qualified is not None:
+            in_spec_ingestion_sources.append((qualified, str(flow.get("dataflow_id") or "<unknown ingestion flow>")))
+
+    spec_group = spec_group_id if isinstance(spec_group_id, str) and spec_group_id else None
+
+    for flow in reconciliation_flows:
+        if not isinstance(flow, dict):
+            continue
+        recon_id = flow.get("reconciliation_id", "<missing reconciliation_id>")
+        label = f"reconciliation_flow[{recon_id}]"
+
+        execution_mode = flow.get("execution_mode")
+        if execution_mode not in ALLOWED_RECONCILIATION_EXECUTION_MODES:
+            execution_mode = "job"
+        pipeline_mode = execution_mode in _RECONCILIATION_PIPELINE_MODES
+
+        declared_group = flow.get("dataflow_group_id")
+        declared_group = declared_group if isinstance(declared_group, str) and declared_group else None
+        effective_group = declared_group or spec_group
+        same_group_as_spec = declared_group is None or declared_group == spec_group
+
+        # V-CYC-6
+        if pipeline_mode and declared_group is None:
+            errors.append(
+                f"{label}.dataflow_group_id: is required when execution_mode is {execution_mode!r} -- a "
+                "group-less reconciliation flow has no Lakeflow pipeline to be registered into. Add a "
+                "dataflow_group_id (this spec's own, to run inside its own pipeline update, or another "
+                "group's, to run inside that group's pipeline instead), or keep execution_mode 'job'."
+            )
+
+        source_config = flow.get("source_config") if isinstance(flow.get("source_config"), dict) else {}
+        source_ref = _qualified_table_ref_or_none(source_config.get("table"))
+        producer = None
+        if source_ref is not None and same_group_as_spec:
+            for qualified, flow_label, cdc_load_strategy, target_type in in_spec_targets:
+                if qualified == source_ref:
+                    producer = (flow_label, cdc_load_strategy, target_type)
+                    break
+
+        # V-CYC-1
+        if pipeline_mode and same_group_as_spec and source_ref is not None and producer is None:
+            errors.append(
+                f"{label}.source_config.table: does not resolve to any target this dataflow group actually "
+                "produces (an ingestion_flows[]/transformation_flows[] target_catalog.target_schema."
+                f"target_table) -- execution_mode {execution_mode!r} requires the reconciliation source to be "
+                "a dataset THIS pipeline update publishes, so it reads this update's freshly written rows "
+                "instead of silently degrading to an external, always-one-update-stale read. List the "
+                "group's actual producing target, or set execution_mode to 'job'."
+            )
+
+        # V-CYC-7
+        if pipeline_mode and producer is not None:
+            _, cdc_load_strategy, target_type = producer
+            if cdc_load_strategy in _RECONCILIATION_SOURCE_MERGE_CDC_STRATEGIES:
+                errors.append(
+                    f"{label}.source_config.table: is produced by cdc_load_strategy {cdc_load_strategy!r}, which "
+                    f"dispatches through dlt.apply_changes[_from_snapshot] (real MERGE/UPDATE/DELETE writes, "
+                    f"not append-only) -- execution_mode {execution_mode!r} requires an append-only producer. "
+                    "Set execution_mode to 'job' to keep the standalone engine for this source."
+                )
+            elif cdc_load_strategy == "TRUNCATE_AND_LOAD" and target_type == "materialized_view":
+                errors.append(
+                    f"{label}.source_config.table: is produced by cdc_load_strategy 'TRUNCATE_AND_LOAD' into "
+                    "target_type 'materialized_view', which is fully refreshed (not append-only) on every "
+                    f"update -- execution_mode {execution_mode!r} requires an append-only producer. Set "
+                    "execution_mode to 'job' to keep the standalone engine for this source."
+                )
+
+        target_configs = flow.get("target_configs") if isinstance(flow.get("target_configs"), list) else []
+        # Same length as target_configs (None for a malformed non-dict entry), so other_index
+        # below always addresses the true target_configs[] position, not a post-filter one.
+        other_table_refs = [
+            _qualified_table_ref_or_none(tc.get("table")) if isinstance(tc, dict) else None for tc in target_configs
+        ]
+
+        for index, target_config in enumerate(target_configs):
+            if not isinstance(target_config, dict):
+                continue
+            target_path = f"{label}.target_configs[{index}]"
+            append_ref = _qualified_table_ref_or_none(target_config.get("append_target_table"))
+            if append_ref is None:
+                continue
+
+            # V-CYC-2
+            target_match = next((flow_label for qualified, flow_label, _, _ in in_spec_targets if qualified == append_ref), None)
+            if target_match is not None:
+                message = (
+                    f"{target_path}.append_target_table: is this dataflow group's own target '{target_match}' -- "
+                    "Lakeflow owns that table's transaction log, so a reconciliation append into it here would "
+                    "corrupt whatever write contract (streaming append, CDC MERGE, or MV refresh) that flow "
+                    "already declared. Pick a different sink, or restructure the reconciliation as a "
+                    "comparison against that target instead of an append into it."
+                )
+                _append_cycle_finding(pipeline_mode, execution_mode, message, errors)
+
+            # V-CYC-3 / V-CYC-4
+            source_match = next((flow_label for qualified, flow_label in in_spec_ingestion_sources if qualified == append_ref), None)
+            if source_match is not None:
+                if same_group_as_spec:
+                    _append_cycle_finding(
+                        pipeline_mode,
+                        execution_mode,
+                        f"{target_path}.append_target_table: is the raw ingestion source ingestion_flow"
+                        f"[{source_match}] reads from, in this same dataflow group -- appending corrections "
+                        "back into it races the next update's own read of it, corrupting an append-only "
+                        "source's contract rather than healing a target.",
+                        errors,
+                    )
+                else:
+                    logger.warning(
+                        "%s.append_target_table: is the raw ingestion source of ingestion_flow[%s] in "
+                        "dataflow group %r, appended to by a reconciliation flow placed in dataflow group "
+                        "%r -- Lakeflow cannot see this cross-pipeline landing -> ... -> append loop from "
+                        "either pipeline's own graph, so it will never warn on its own. Confirm this is an "
+                        "intended correction feedback loop between the two groups, not an accidental one.",
+                        target_path,
+                        source_match,
+                        spec_group,
+                        effective_group,
+                    )
+
+            # V-CYC-5
+            if source_ref is not None and append_ref == source_ref:
+                _append_cycle_finding(
+                    pipeline_mode,
+                    execution_mode,
+                    f"{target_path}.append_target_table: must not equal this flow's own source_config.table -- "
+                    "appending corrections back into the dataset being compared re-arms every future run "
+                    "against its own output.",
+                    errors,
+                )
+            for other_index, other_ref in enumerate(other_table_refs):
+                if other_ref is None or other_ref != append_ref:
+                    continue
+                if other_index == index:
+                    _append_cycle_finding(
+                        pipeline_mode,
+                        execution_mode,
+                        f"{target_path}.append_target_table: must not equal this same target's own "
+                        f"target_configs[{index}].table -- appending corrections into the dataset being "
+                        "compared re-arms every future run against its own output.",
+                        errors,
+                    )
+                else:
+                    _append_cycle_finding(
+                        pipeline_mode,
+                        execution_mode,
+                        f"{target_path}.append_target_table: must not equal target_configs[{other_index}].table -- "
+                        "appending corrections into a dataset this same flow also reconciles against re-arms "
+                        "every future run against its own output.",
+                        errors,
+                    )
+
+
 def validate_spec(
     spark: SparkSession, spec: Dict[str, Any]
 ) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]], List[Dict[str, Any]], List[Dict[str, Any]], List[str]]:
@@ -1854,5 +2330,14 @@ def validate_spec(
             _validate_sql_syntax(spark, flow["transformation_sql"], label, pipeline_parameters, errors)
 
     _validate_no_duplicate_input_names(transformation_flows, errors)
+    _validate_reconciliation_pipeline_placement(
+        spec.get("dataflow_group_id"), ingestion_flows, transformation_flows, reconciliation_flows, errors
+    )
+    # V-CYC-8 is a pure ingestion rule -- two flows landing on one raw path while disagreeing
+    # about landing_retention_policy/source_zip_handling. It is called here rather than from
+    # inside _validate_reconciliation_pipeline_placement (where it shipped in v1.5.0) because
+    # that function early-returns when the spec declares no reconciliation flows, which made
+    # the rule dead for the ordinary Auto Loader spec it exists to protect.
+    _validate_landing_side_effect_collisions(ingestion_flows, errors)
 
     return ingestion_flows, transformation_flows, reconciliation_flows, observability_destinations, errors

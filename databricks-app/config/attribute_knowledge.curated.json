@@ -536,6 +536,71 @@
         "The value hash follows columns_to_check and columns_to_exclude, so changing either re-hashes every row and the next run reports everything as changed -- once, expected.",
         "Reconciliation flows using hash_precomputed: true depend on these columns existing on the target."
       ]
+    },
+    "execution_mode": {
+      "purpose": "Chooses where a reconciliation flow runs: as its own job task (job), or as a third flow type inside its dataflow group's Lakeflow pipeline update (pipeline, pipeline_audit_only).",
+      "why": "In-pipeline reconciliation is the whole point of v1.5.0: ingestion, transformation and reconciliation in ONE pipeline update, so the comparison reads the rows this update just wrote instead of a stale snapshot from the previous cycle. It stays opt-in, and job stays the default, because job resources already run reconciliation tasks against onboarded rows -- flipping the default would run those flows twice per cycle.",
+      "samples": [
+        {
+          "language": "json",
+          "code": "\"execution_mode\": \"pipeline\""
+        },
+        {
+          "language": "json",
+          "code": "\"execution_mode\": \"pipeline_audit_only\""
+        }
+      ],
+      "tips": [
+        "pipeline_audit_only publishes the classified/metrics/mismatch datasets and runs dq_config expectations in-pipeline, but leaves the append-back healing lane in job mode. It is the right setting for a flow whose source is a static table.",
+        "Both pipeline modes require a flow-level dataflow_group_id, an append-only source producer (not an apply_changes strategy, and not a fully-refreshed materialized view), and read_mode batch on every side.",
+        "publish_schema and dq_config only exist in the pipeline modes; task_run_id_column and read_mode 'streaming' only exist in job mode. The builder hides the first pair in job mode; the last two are rejected at onboarding."
+      ],
+      "errors": [
+        {
+          "symptom": "Onboarding rejects the flow naming dataflow_group_id",
+          "cause": "execution_mode is pipeline or pipeline_audit_only but the flow declares no dataflow_group_id, so there is no pipeline update to register it in.",
+          "fix": "Set the flow's dataflow_group_id (usually this spec's own), or keep execution_mode 'job'."
+        },
+        {
+          "symptom": "Onboarding rejects source_config.table as not produced by this group",
+          "cause": "V-CYC-1: a pipeline-mode flow must reconcile a dataset THIS pipeline update publishes, otherwise it silently degrades to an external, always-one-update-stale read.",
+          "fix": "Point source_config.table at an ingestion or transformation target of the same group, or set execution_mode to 'job'."
+        },
+        {
+          "symptom": "The reconciliation runs twice per cycle",
+          "cause": "The flow was switched to pipeline mode while a job resource still runs a reconciliation task against the same reconciliation_id.",
+          "fix": "Remove the reconciliation task from the job, or move the flow back to execution_mode 'job'."
+        }
+      ],
+      "refs": []
+    },
+    "publish_schema": {
+      "purpose": "The schema, inside the hosting pipeline's own catalog, where a pipeline-mode reconciliation flow publishes its recon__<reconciliation_id>__<target_id>__classified, __metrics and __mismatch datasets.",
+      "why": "Those three datasets are real, externally visible Unity Catalog tables. Without this the pipeline's own schema is used, which drops reconciliation results into whatever bronze or silver schema the group happens to publish to -- rarely where an operator wants them.",
+      "samples": [
+        {
+          "language": "json",
+          "code": "\"publish_schema\": \"recon_results\""
+        }
+      ],
+      "tips": [
+        "The catalog is always the hosting pipeline's own; only the schema is configurable.",
+        "It is rejected on presence when execution_mode is 'job' -- a job-mode flow publishes none of those datasets, so setting it would be a statement about tables that never exist.",
+        "The schema must already exist and be writable by the pipeline's run-as identity; the framework does not create it."
+      ],
+      "errors": [
+        {
+          "symptom": "Onboarding rejects publish_schema",
+          "cause": "execution_mode is 'job' (or left unset, which defaults to 'job').",
+          "fix": "Set execution_mode to 'pipeline' or 'pipeline_audit_only', or clear publish_schema."
+        },
+        {
+          "symptom": "Reconciliation results appear in the group's bronze schema",
+          "cause": "publish_schema was left unset, so the datasets defaulted to the pipeline's own schema.",
+          "fix": "Set publish_schema to a dedicated reconciliation schema."
+        }
+      ],
+      "refs": []
     }
   }
 }

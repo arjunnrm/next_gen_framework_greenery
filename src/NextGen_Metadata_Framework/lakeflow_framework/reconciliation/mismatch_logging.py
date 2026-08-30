@@ -6,12 +6,15 @@ columns -- an explicit user requirement to capture "as much mismatching informat
 possible". For a ``VALUE_DRIFT`` record that means every individual compared column that
 actually differs (not merely "this row drifted"), with both sides' raw values.
 
-Everything here is built as native Spark column expressions (``to_json(struct(...))``,
-``array``/``filter``/``to_json`` for the differing-columns array) rather than a driver-side
-``collect()`` + per-row ``json.dumps`` loop -- a reconciliation flow with a pathologically large
-mismatch set must still write via a normal distributed DataFrame write, not funnel every
-mismatched row through the driver, which is the difference between "fast at any scale" and "an
-OOM waiting to happen" for a flow with millions of drifted/missing records.
+Everything in ``build_mismatch_rows`` is built as native Spark column expressions
+(``to_json(struct(...))``, ``array``/``filter``/``to_json`` for the differing-columns array)
+rather than a driver-side ``collect()`` + per-row ``json.dumps`` loop -- a reconciliation flow
+with a pathologically large mismatch set must still write via a normal distributed DataFrame
+write, not funnel every mismatched row through the driver, which is the difference between
+"fast at any scale" and "an OOM waiting to happen" for a flow with millions of drifted/missing
+records. ``build_mismatch_rows`` itself never triggers an action, which is what makes it safe
+to call from inside a Lakeflow ``@dlt.table``-decorated function body (the ``recon__*__mismatch``
+dataset) as well as from ``write_mismatch_log_rows``'s job-mode/handler write path below.
 """
 
 import logging
@@ -30,6 +33,92 @@ from NextGen_Metadata_Framework.lakeflow_framework.reconciliation.matcher import
 )
 
 logger = logging.getLogger("NextGen_Metadata_Framework.lakeflow_framework.reconciliation.mismatch_logging")
+
+
+def build_mismatch_rows(
+    mismatch_detail_df: DataFrame,
+    reconciliation_id: str,
+    target_id: str,
+    match_keys: List[str],
+    compare_columns: Optional[List[str]] = None,
+) -> DataFrame:
+    """Pure projection of ``mismatch_detail_df`` (``matcher.py::ReconciliationMatchResult.
+    mismatch_detail_df``) into ``reconciliation_mismatch_log`` row shape -- ``mismatch_id``,
+    ``reconciliation_id``, ``target_id``, ``match_key_values_json``, ``mismatch_type``,
+    ``differing_columns_json``, ``source_hash_value``, ``target_hash_value``, ``detected_at``.
+
+    Deliberately does **not** take ``run_id``/``task_run_id``: this function is shared by two
+    callers that don't agree on those -- ``write_mismatch_log_rows`` below (job mode/the
+    Lakeflow ``foreach_batch_sink`` handler, both of which know the owning
+    ``reconciliation_run_log.run_id`` and add it as a further column before writing) and the
+    ``recon__<reconciliation_id>__<target_id>__mismatch`` Lakeflow dataset, which calls this
+    function directly and has no run-scoped ``run_id`` at all -- it is a per-update snapshot,
+    not a run-log-style ledger.
+
+    Performs **no action** -- no ``.count()``, no ``.collect()``, no write. Every expression is a
+    native Spark column expression, so this is safe to call from inside a Lakeflow
+    ``@dlt.table``-decorated function body as well as from eager, job-mode code.
+
+    Parameters
+    ----------
+    mismatch_detail_df:
+        Every non-``MATCHED`` record, as classified by ``matcher.py::match_reconciliation_target``
+        (or, in pipeline mode, by the ``recon__*__classified`` dataset's own
+        ``classify_reconciliation_target`` call) -- already carries ``__recon_mismatch_type``,
+        both sides' raw ``match_keys``/``compare_columns`` values, and both sides' own
+        ``__framework_hash_value``.
+    reconciliation_id, target_id:
+        Identify which flow / which ``target_configs[]`` entry these mismatches belong to.
+    match_keys, compare_columns:
+        Same flow-level lists used to produce ``mismatch_detail_df`` -- needed here to know
+        which columns to fold into ``match_key_values_json``/``differing_columns_json``.
+
+    Returns
+    -------
+    DataFrame
+        Unevaluated (lazy) -- the caller decides whether/how to materialize or write it.
+    """
+    compare_columns = compare_columns or []
+    match_key_values_json = F.to_json(
+        F.struct(*[F.coalesce(F.col(k), F.col(target_prefixed_column(k))).alias(k) for k in match_keys])
+    )
+
+    if compare_columns:
+        # One struct per compare_column that actually differs (null-safe: a NULL on either
+        # side counts as "differs" whenever the other side is non-null, matching the hash
+        # comparison's own coalesce-based semantics in matcher.py) -- F.filter drops the
+        # nulls contributed by columns that *didn't* differ, so the final JSON array lists
+        # only the columns genuinely responsible for this VALUE_DRIFT, not every compared
+        # column.
+        diff_candidates = [
+            F.when(
+                ~F.col(c).eqNullSafe(F.col(target_prefixed_column(c))),
+                F.struct(
+                    F.lit(c).alias("column"),
+                    F.col(c).cast("string").alias("source_value"),
+                    F.col(target_prefixed_column(c)).cast("string").alias("target_value"),
+                ),
+            )
+            for c in compare_columns
+        ]
+        differing_columns_json = F.when(
+            F.col(MISMATCH_TYPE_COLUMN) == MISMATCH_TYPE_VALUE_DRIFT,
+            F.to_json(F.filter(F.array(*diff_candidates), lambda element: element.isNotNull())),
+        ).otherwise(F.lit(None).cast("string"))
+    else:
+        differing_columns_json = F.lit(None).cast("string")
+
+    return mismatch_detail_df.select(
+        F.expr("uuid()").alias("mismatch_id"),
+        F.lit(reconciliation_id).alias("reconciliation_id"),
+        F.lit(target_id).alias("target_id"),
+        match_key_values_json.alias("match_key_values_json"),
+        F.col(MISMATCH_TYPE_COLUMN).alias("mismatch_type"),
+        differing_columns_json.alias("differing_columns_json"),
+        F.col(HASH_VALUE_COLUMN).alias("source_hash_value"),
+        F.col(target_prefixed_column(HASH_VALUE_COLUMN)).alias("target_hash_value"),
+        F.current_timestamp().alias("detected_at"),
+    )
 
 
 def write_mismatch_log_rows(
@@ -91,47 +180,22 @@ def write_mismatch_log_rows(
         "reconciliation_mismatch_log_write", f"{reconciliation_id}:{target_id}", reconciliation_id=reconciliation_id, target_id=target_id, run_id=run_id
     ) as op:
         try:
-            match_key_values_json = F.to_json(
-                F.struct(*[F.coalesce(F.col(k), F.col(target_prefixed_column(k))).alias(k) for k in match_keys])
-            )
-
-            if compare_columns:
-                # One struct per compare_column that actually differs (null-safe: a NULL on either
-                # side counts as "differs" whenever the other side is non-null, matching the hash
-                # comparison's own coalesce-based semantics in matcher.py) -- F.filter drops the
-                # nulls contributed by columns that *didn't* differ, so the final JSON array lists
-                # only the columns genuinely responsible for this VALUE_DRIFT, not every compared
-                # column.
-                diff_candidates = [
-                    F.when(
-                        ~F.col(c).eqNullSafe(F.col(target_prefixed_column(c))),
-                        F.struct(
-                            F.lit(c).alias("column"),
-                            F.col(c).cast("string").alias("source_value"),
-                            F.col(target_prefixed_column(c)).cast("string").alias("target_value"),
-                        ),
-                    )
-                    for c in compare_columns
-                ]
-                differing_columns_json = F.when(
-                    F.col(MISMATCH_TYPE_COLUMN) == MISMATCH_TYPE_VALUE_DRIFT,
-                    F.to_json(F.filter(F.array(*diff_candidates), lambda element: element.isNotNull())),
-                ).otherwise(F.lit(None).cast("string"))
-            else:
-                differing_columns_json = F.lit(None).cast("string")
-
-            rows_df = mismatch_detail_df.select(
-                F.expr("uuid()").alias("mismatch_id"),
+            # build_mismatch_rows doesn't know run_id/task_run_id (the Lakeflow __mismatch
+            # dataset that shares this projection has neither), so they're spliced back in here,
+            # in reconciliation_mismatch_log's own DDL column order, before the write below --
+            # byte-identical to the projection this function built inline before the split.
+            rows_df = build_mismatch_rows(mismatch_detail_df, reconciliation_id, target_id, match_keys, compare_columns).select(
+                "mismatch_id",
                 F.lit(run_id).alias("run_id"),
-                F.lit(reconciliation_id).alias("reconciliation_id"),
-                F.lit(target_id).alias("target_id"),
-                match_key_values_json.alias("match_key_values_json"),
-                F.col(MISMATCH_TYPE_COLUMN).alias("mismatch_type"),
-                differing_columns_json.alias("differing_columns_json"),
-                F.col(HASH_VALUE_COLUMN).alias("source_hash_value"),
-                F.col(target_prefixed_column(HASH_VALUE_COLUMN)).alias("target_hash_value"),
+                "reconciliation_id",
+                "target_id",
+                "match_key_values_json",
+                "mismatch_type",
+                "differing_columns_json",
+                "source_hash_value",
+                "target_hash_value",
                 F.lit(task_run_id).alias("task_run_id"),
-                F.current_timestamp().alias("detected_at"),
+                "detected_at",
             )
 
             count = rows_df.count()

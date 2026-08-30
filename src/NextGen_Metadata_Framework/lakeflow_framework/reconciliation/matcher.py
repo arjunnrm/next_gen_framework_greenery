@@ -62,7 +62,7 @@ genuine difference; it can **never** produce a false "different", so it can neve
 mismatch that is not there. A flow that cannot tolerate the false-equal case sets
 ``two_tier_verification: false`` and pays for Phase 2 on every run.
 
-**Decision 11 (future, not implemented here): shared ingestion/reconciliation DAG node.**
+**Decision 11 (v1.5.0: the algebra is split; the graph wiring is not implemented here).**
 Today ``05_reconciliation_engine.py`` runs as a standalone job task, independent of any
 Lakeflow Declarative Pipeline graph. A future optimization could register a reconciliation
 flow's comparison as a node *inside* the same pipeline graph that already materializes its
@@ -70,11 +70,15 @@ source/target (skipping a redundant table read) whenever ``source_config.table``
 ``target_configs[].table`` matches a flow already registered under the reconciliation flow's
 own ``dataflow_group_id`` (i.e. an ``ingestion_flow_spec``/``transformation_flow_spec`` row
 with the same ``target_table`` and ``dataflow_group_id``) -- at that point this module's
-``prepare_dataset_for_matching``/``match_reconciliation_target`` functions could be called
+``prepare_dataset_for_matching``/``classify_reconciliation_target`` functions could be called
 directly from within that pipeline's own flow registration instead of from this standalone
-notebook, since both already operate on plain DataFrames with no notebook-specific state. This
-pass does not implement that lookup or wiring -- the standalone job-task path is the
-must-work deliverable; this paragraph exists so the hook-in point is discoverable later.
+notebook, since both already operate on plain DataFrames with no notebook-specific state
+(:func:`classify_reconciliation_target` in place of ``match_reconciliation_target`` precisely
+*because* it stays lazy -- see its own docstring -- which a pipeline-graph call site requires
+and a notebook call site never needed). This module now offers that lazy entry point; it does
+not implement the lookup or the graph wiring that would call it -- the standalone job-task path
+via :func:`match_reconciliation_target` remains the must-work deliverable, and this paragraph
+exists so the hook-in point is discoverable for the pass that does the wiring.
 """
 
 import logging
@@ -338,12 +342,16 @@ class ReconciliationMatchResult:
     (``[NOT_SUPPORTED_WITH_SERVERLESS] PERSIST TABLE is not supported on serverless compute``,
     confirmed empirically against this project's own ``dev`` profile) -- so each consumer of
     ``deduped_df`` (the counts aggregation, the append-set key list, ``mismatch_detail_df``)
-    independently re-executes the hash-key join and groupBy that produced it. This is a
-    deliberate, environment-forced trade-off (correctness and portability over avoiding
-    redundant shuffles), not an oversight -- a future optimization could materialize
-    ``deduped_df`` to a temporary Delta table (a storage-backed alternative to in-memory
-    caching that serverless compute does allow) if this proves to be a real bottleneck at
-    production scale.
+    independently re-executes the hash-key join and groupBy that produced it in the standalone
+    job-task path. This is a deliberate, environment-forced trade-off (correctness and
+    portability over avoiding redundant shuffles), not an oversight, for that path -- and the
+    storage-backed alternative this note used to merely wish for now exists for an
+    ``execution_mode: "pipeline"`` flow: there, ``source_df``/``target_df`` (see
+    :func:`classify_reconciliation_target`) are themselves the
+    ``_recon__<reconciliation_id>__src``/``__tgt`` Lakeflow datasets, each already materialized
+    exactly once per update by the graph before this module ever sees them -- so the
+    redundant-shuffle cost described above is specifically a job-mode cost, not one pipeline
+    mode still pays.
     """
 
     deduped_df: DataFrame
@@ -378,56 +386,83 @@ class ReconciliationMatchResult:
     ``differing_columns_json`` for VALUE_DRIFT."""
 
 
-def match_reconciliation_target(
+@dataclass(frozen=True)
+class ReconciliationClassification:
+    """Lazy, pipeline-safe output of :func:`classify_reconciliation_target` -- the same
+    hash-key join / priority collapse :class:`ReconciliationMatchResult` has always produced,
+    minus the one eager ``.collect()`` that makes it illegal to call from inside a Lakeflow
+    Declarative Pipeline ``@dlt.table`` closure reachable from a streaming read (Lakeflow rule
+    2). Every field on this dataclass is an unevaluated ``DataFrame``; nothing here triggers a
+    job.
+
+    ``counts_df`` replaces :class:`ReconciliationMatchResult`'s four scalar ``*_count`` fields
+    with a single, un-collected one-row aggregate carrying the same four columns
+    (``matched_count``, ``missing_in_target_count``, ``value_drift_count``,
+    ``missing_in_source_count``). In pipeline mode this DataFrame *is* the
+    ``recon__<reconciliation_id>__<target_id>__metrics`` published dataset (a one-row
+    ``@dlt.table`` carrying the flow's ``dq_config`` expectations); in job mode
+    :func:`match_reconciliation_target` collects it itself, exactly as it always collected this
+    same aggregate before this split.
+    """
+
+    deduped_df: DataFrame
+    """Same as :attr:`ReconciliationMatchResult.deduped_df` -- one row per distinct
+    ``__framework_hash_key`` with its winning classification."""
+    counts_df: DataFrame
+    """One-row, lazy aggregate over ``deduped_df`` -- see above. Never collected inside this
+    function; collecting it is the caller's decision (the one action
+    :func:`match_reconciliation_target` still performs, for job mode)."""
+    missing_in_target_df: DataFrame
+    """Same as :attr:`ReconciliationMatchResult.missing_in_target_df`."""
+    mismatch_detail_df: DataFrame
+    """Same as :attr:`ReconciliationMatchResult.mismatch_detail_df`."""
+
+
+def classify_reconciliation_target(
     source_df: DataFrame,
     target_df: DataFrame,
     match_keys: List[str],
     compare_columns: Optional[List[str]] = None,
     source_hash_precomputed: bool = False,
-) -> ReconciliationMatchResult:
-    """Compare one prepared source DataFrame against one prepared target DataFrame.
+    target_hash_precomputed: bool = False,
+) -> ReconciliationClassification:
+    """Fully lazy hash-key classification of ``source_df`` against ``target_df``.
 
-    Both inputs must already carry ``__framework_hash_key``/``__framework_hash_value`` (call
-    :func:`prepare_dataset_for_matching` on each side first) -- this function only joins and
-    classifies; it never computes a hash itself, keeping the (potentially wide, multi-column)
-    hashing step and the (narrow, single-hash-key) join step independently reusable.
+    This is Phase 2's actual algebra -- the full outer join on ``__framework_hash_key``, the
+    four-way MATCHED/VALUE_DRIFT/MISSING_IN_TARGET/MISSING_IN_SOURCE ``when``-chain, and the
+    ``groupBy`` + ``F.max_by(priority)`` per-key collapse described in this module's docstring
+    -- with every eager action removed, so it is legal to call from inside a Lakeflow
+    Declarative Pipeline ``@dlt.table`` closure even when ``source_df``/``target_df`` are
+    themselves reachable from a streaming read (Lakeflow rule 2: no eager action --
+    ``.collect()``/``.count()``/``.first()``/``.take()``/``.isEmpty()`` -- on such a plan; a
+    lazy aggregate like ``counts_df`` below is fine).
+    :func:`match_reconciliation_target` is now a thin wrapper around this function that
+    performs the one collect job mode still needs; its signature, behaviour and return type are
+    unchanged by this split.
 
     Parameters
     ----------
     source_df, target_df:
-        Prepared DataFrames (see above). Row multiplicity is preserved and safely handled on
-        both sides -- see this module's docstring for why duplicate keys on either side cannot
-        be pre-filtered away.
+        Prepared DataFrames -- see :func:`match_reconciliation_target`'s own docstring for the
+        duplicate-key-safety property both sides preserve.
     match_keys, compare_columns:
-        Same flow-level lists passed to :func:`prepare_dataset_for_matching` for both sides
-        (must be identical -- passing a different list here than was used to compute the hash
-        columns produces a join/comparison that doesn't correspond to what was actually
-        hashed).
+        Same flow-level lists passed to :func:`prepare_dataset_for_matching` for both sides.
     source_hash_precomputed:
-        When ``False`` (the common case), ``__framework_hash_key``/``__framework_hash_value``
-        were computed by :func:`prepare_dataset_for_matching` purely for this join and are
-        stripped from ``missing_in_target_df`` so they never leak into an ``append_target_table``
-        that was never designed to carry them. ``__framework_hash_key`` specifically is the
-        one exception: it is *always* kept (see :func:`prepare_dataset_for_matching` and
-        ``appender.py``'s liquid-clustering note) because it is a pure, deterministic function
-        of ``match_keys`` -- exactly the same kind of framework technical column every
-        CDC-dispatched target already carries by convention -- so a first-time-created
-        ``append_target_table`` has something meaningful to be liquid-clustered on.
-        ``__framework_hash_value``, by contrast, is ``compare_columns``-dependent and
-        genuinely specific to *this* reconciliation flow's own comparison, so it is dropped
-        whenever it wasn't already a real column on the source table.
+        Controls whether ``__framework_hash_value`` is stripped from ``missing_in_target_df`` --
+        see :func:`match_reconciliation_target`'s own docstring; unchanged here.
+    target_hash_precomputed:
+        Accepted for signature symmetry with ``source_hash_precomputed`` and reserved for a
+        future pipeline-mode caller (e.g. the
+        ``recon__<reconciliation_id>__<target_id>__classified`` node's own call site) -- the
+        classification algebra below is target-hash-agnostic today, exactly as
+        :func:`match_reconciliation_target` always was (it only ever accepted
+        ``source_hash_precomputed``), so this parameter currently has no effect on the output.
 
-    Performance note
-    ----------------
-    ``source_df`` is read twice within this function (once for the narrow join projection,
-    once again -- via ``left_semi`` -- to build ``missing_in_target_df`` with its full column
-    set), and once more per target when one flow's ``source_config`` is shared across several
-    ``target_configs[]`` entries. Callers cannot mitigate this with ``.cache()``/``.persist()``
-    -- this framework's Lakeflow Jobs run on serverless compute, which rejects both outright
-    (see :class:`ReconciliationMatchResult`'s docstring) -- so this cost is accepted rather
-    than avoided: each re-read benefits from Delta's own file skipping on ``filter_condition``
-    and any partition pruning, which keeps it well short of a full duplicate table scan in
-    practice.
+    Returns
+    -------
+    ReconciliationClassification
+        ``deduped_df``, ``counts_df``, ``missing_in_target_df``, ``mismatch_detail_df`` -- all
+        lazy. Nothing is collected.
 
     Raises
     ------
@@ -511,7 +546,12 @@ def match_reconciliation_target(
         *[F.max_by(F.col(c), priority).alias(c) for c in target_side_columns],
     )
 
-    counts = deduped.agg(
+    # Lazy -- deliberately never collected here. Collecting it would be illegal inside a
+    # @dlt.table closure reachable from a streaming read (Lakeflow rule 2); in pipeline mode
+    # this DataFrame IS the recon__<reconciliation_id>__<target_id>__metrics published
+    # dataset, and Lakeflow itself materializes it. match_reconciliation_target collects it
+    # below, for job mode -- the one action this split moved out of this function.
+    counts_df = deduped.agg(
         F.sum(F.when(F.col(MISMATCH_TYPE_COLUMN) == MISMATCH_TYPE_MATCHED, 1).otherwise(0)).alias("matched_count"),
         F.sum(
             F.when(F.col(MISMATCH_TYPE_COLUMN).isin(MISMATCH_TYPE_MISSING_IN_TARGET, MISMATCH_TYPE_VALUE_DRIFT), 1).otherwise(0)
@@ -520,7 +560,7 @@ def match_reconciliation_target(
         F.sum(F.when(F.col(MISMATCH_TYPE_COLUMN) == MISMATCH_TYPE_MISSING_IN_SOURCE, 1).otherwise(0)).alias(
             "missing_in_source_count"
         ),
-    ).collect()[0]
+    )
 
     missing_or_drifted_keys = deduped.filter(
         F.col(MISMATCH_TYPE_COLUMN).isin(MISMATCH_TYPE_MISSING_IN_TARGET, MISMATCH_TYPE_VALUE_DRIFT)
@@ -535,6 +575,87 @@ def match_reconciliation_target(
 
     mismatch_detail_df = deduped.filter(F.col(MISMATCH_TYPE_COLUMN) != MISMATCH_TYPE_MATCHED)
 
+    return ReconciliationClassification(
+        deduped_df=deduped,
+        counts_df=counts_df,
+        missing_in_target_df=missing_in_target_df,
+        mismatch_detail_df=mismatch_detail_df,
+    )
+
+
+def match_reconciliation_target(
+    source_df: DataFrame,
+    target_df: DataFrame,
+    match_keys: List[str],
+    compare_columns: Optional[List[str]] = None,
+    source_hash_precomputed: bool = False,
+) -> ReconciliationMatchResult:
+    """Compare one prepared source DataFrame against one prepared target DataFrame.
+
+    Both inputs must already carry ``__framework_hash_key``/``__framework_hash_value`` (call
+    :func:`prepare_dataset_for_matching` on each side first) -- this function only joins and
+    classifies; it never computes a hash itself, keeping the (potentially wide, multi-column)
+    hashing step and the (narrow, single-hash-key) join step independently reusable.
+
+    Parameters
+    ----------
+    source_df, target_df:
+        Prepared DataFrames (see above). Row multiplicity is preserved and safely handled on
+        both sides -- see this module's docstring for why duplicate keys on either side cannot
+        be pre-filtered away.
+    match_keys, compare_columns:
+        Same flow-level lists passed to :func:`prepare_dataset_for_matching` for both sides
+        (must be identical -- passing a different list here than was used to compute the hash
+        columns produces a join/comparison that doesn't correspond to what was actually
+        hashed).
+    source_hash_precomputed:
+        When ``False`` (the common case), ``__framework_hash_key``/``__framework_hash_value``
+        were computed by :func:`prepare_dataset_for_matching` purely for this join and are
+        stripped from ``missing_in_target_df`` so they never leak into an ``append_target_table``
+        that was never designed to carry them. ``__framework_hash_key`` specifically is the
+        one exception: it is *always* kept (see :func:`prepare_dataset_for_matching` and
+        ``appender.py``'s liquid-clustering note) because it is a pure, deterministic function
+        of ``match_keys`` -- exactly the same kind of framework technical column every
+        CDC-dispatched target already carries by convention -- so a first-time-created
+        ``append_target_table`` has something meaningful to be liquid-clustered on.
+        ``__framework_hash_value``, by contrast, is ``compare_columns``-dependent and
+        genuinely specific to *this* reconciliation flow's own comparison, so it is dropped
+        whenever it wasn't already a real column on the source table.
+
+    Performance note
+    ----------------
+    ``source_df`` is read twice within this function (once for the narrow join projection,
+    once again -- via ``left_semi`` -- to build ``missing_in_target_df`` with its full column
+    set), and once more per target when one flow's ``source_config`` is shared across several
+    ``target_configs[]`` entries. In the standalone job-task path this cannot be mitigated with
+    ``.cache()``/``.persist()`` -- this framework's Lakeflow Jobs run on serverless compute,
+    which rejects both outright (see :class:`ReconciliationMatchResult`'s docstring) -- so this
+    cost is accepted rather than avoided there: each re-read benefits from Delta's own file
+    skipping on ``filter_condition`` and any partition pruning, which keeps it well short of a
+    full duplicate table scan in practice. An ``execution_mode: "pipeline"`` flow does not pay
+    this cost at all: ``source_df``/``target_df`` are there the already-materialized
+    ``_recon__<reconciliation_id>__src``/``__tgt`` Lakeflow datasets (see
+    :func:`classify_reconciliation_target`), so every re-read this note describes resolves to a
+    read of that one materialized dataset rather than a re-scan of the original physical
+    source/target.
+
+    Raises
+    ------
+    FrameworkConfigError
+        If ``match_keys``/``compare_columns`` are missing from either side, or either side is
+        missing its hash columns (i.e. :func:`prepare_dataset_for_matching` was skipped).
+    """
+    compare_columns = compare_columns or []
+
+    classification = classify_reconciliation_target(
+        source_df, target_df, match_keys, compare_columns, source_hash_precomputed
+    )
+    # The one action this split moved OUT of the classification algebra: a lazy counts_df is
+    # legal inside a @dlt.table closure reachable from a streaming read (Lakeflow rule 2), but
+    # collecting it is not -- so job mode, which is not subject to that rule, still collects it
+    # right here, exactly as it always did before classify_reconciliation_target existed.
+    counts = classification.counts_df.collect()[0]
+
     logger.info(
         "Reconciliation match: match_keys=%s, compare_columns=%s -- matched=%d, missing_in_target=%d "
         "(value_drift=%d), missing_in_source=%d",
@@ -547,11 +668,11 @@ def match_reconciliation_target(
     )
 
     return ReconciliationMatchResult(
-        deduped_df=deduped,
+        deduped_df=classification.deduped_df,
         matched_count=counts["matched_count"],
-        missing_in_target_df=missing_in_target_df,
+        missing_in_target_df=classification.missing_in_target_df,
         missing_in_target_count=counts["missing_in_target_count"],
         value_drift_count=counts["value_drift_count"],
         missing_in_source_count=counts["missing_in_source_count"],
-        mismatch_detail_df=mismatch_detail_df,
+        mismatch_detail_df=classification.mismatch_detail_df,
     )

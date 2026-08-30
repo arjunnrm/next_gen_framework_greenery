@@ -10,6 +10,11 @@
     "spark.sql.shuffle.partitions": "auto",
     "spark.databricks.delta.optimizeWrite.enabled": "true"
   },
+  "source_plane": {
+    "materialize": "always",
+    "catalog": null,
+    "schema": "ref_source_plane"
+  },
   "ingestion_flows": [
     {
       "dataflow_id": "df_ref_autoloader_full",
@@ -845,10 +850,12 @@
   "reconciliation_flows": [
     {
       "reconciliation_id": "recon_ref_full_reference",
+      "execution_mode": "job",
       "source_config": {
         "type": "table",
         "table": "{{catalog}}.ref_bronze.ref_reconciliation_baseline",
         "read_mode": "batch",
+        "task_run_id_column": "__framework_pipeline_run_id",
         "filter_condition": "load_date = ${run_date}",
         "data_standardization_sql": [
           "trim(status_code) AS status_code"
@@ -928,6 +935,91 @@
         "run_log_capture": true,
         "mismatch_log_capture": false
       }
+    },
+    {
+      "reconciliation_id": "recon_ref_pipeline_mode",
+      "execution_mode": "pipeline",
+      "dataflow_group_id": "dfg_full_reference_example",
+      "publish_schema": "ref_bronze_recon",
+      "source_config": {
+        "type": "table",
+        "table": "{{catalog}}.ref_bronze.ref_zerobus_full",
+        "read_mode": "batch",
+        "hash_precomputed": false
+      },
+      "target_configs": [
+        {
+          "target_id": "ref_zerobus_external_baseline",
+          "type": "table",
+          "table": "{{catalog}}.ref_bronze.ref_zerobus_external_baseline",
+          "read_mode": "batch",
+          "comparison_direction": "source_to_target",
+          "append_target_table": "{{catalog}}.ref_bronze.ref_zerobus_full_corrections"
+        }
+      ],
+      "match_keys": [
+        "event_id"
+      ],
+      "compare_columns": [
+        "event_payload"
+      ],
+      "error_handling": {
+        "on_failure": "fail"
+      },
+      "two_tier_verification": true,
+      "dq_config": {
+        "rules": [
+          {
+            "rule_id": "no_value_drift",
+            "expression": "value_drift_count = 0",
+            "action": "fail"
+          }
+        ]
+      },
+      "logging_config": {
+        "run_log_capture": true,
+        "mismatch_log_capture": true
+      }
+    },
+    {
+      "reconciliation_id": "recon_ref_pipeline_audit_only_mode",
+      "execution_mode": "pipeline_audit_only",
+      "dataflow_group_id": "dfg_full_reference_example",
+      "publish_schema": "ref_silver_recon",
+      "source_config": {
+        "type": "table",
+        "table": "{{catalog}}.ref_silver.ref_append_full",
+        "read_mode": "batch"
+      },
+      "target_configs": [
+        {
+          "target_id": "ref_append_external_baseline",
+          "type": "table",
+          "table": "{{catalog}}.ref_silver.ref_append_external_baseline",
+          "read_mode": "batch",
+          "comparison_direction": "target_to_source"
+        }
+      ],
+      "match_keys": [
+        "customer_id"
+      ],
+      "error_handling": {
+        "on_failure": "warn"
+      },
+      "two_tier_verification": true,
+      "dq_config": {
+        "rules": [
+          {
+            "rule_id": "warn_on_any_mismatch",
+            "expression": "mismatch_count = 0",
+            "action": "warn"
+          }
+        ]
+      },
+      "logging_config": {
+        "run_log_capture": true,
+        "mismatch_log_capture": true
+      }
     }
   ],
   "observability": [
@@ -962,7 +1054,7 @@
       },
       "retry": {
         "max_attempts": 3,
-        "backoff_seconds": 2
+        "backoff_multiplier": 2.5
       },
       "timeout_ms": 30000
     }

@@ -379,3 +379,329 @@ Every `sink`/`external_sink` export must be registered inside the pipeline graph
 graph-definition time via `engine/sink_registration.py`, executed as part of the same update
 that produces the data it reads. If you're asked to add a new export destination, it is a new
 `sink_config.format` (§7 in `SKILL.md`), not a new post-deployment job step.
+
+---
+
+### 23. "Never put an eager action inside a dataset query definition" is WRONG as stated — the real prohibition is eager-on-a-**streaming** plan
+
+This rule has circulated in this repo (and in this project's memory notes) as an unqualified
+"Rule 2: never put an eager action inside a `@dlt.table`/`@dlt.view` closure". Stated that way it
+is false, and it is falsified by code this repo **ships today**:
+`dq/quarantine.py::register_main_and_quarantine_tables`'s `_quarantine_table` closure runs
+
+```python
+agg_row = upstream.agg(F.count(...), F.sum(...)).collect()[0]
+```
+
+*inside* a live `@dlt.table` closure, on the **batch** branch, under a comment that says in so many
+words that this closure body runs at Lakeflow's graph-**execution** time (see the batch/streaming
+branch around `dq/quarantine.py:519-540`). Only the streaming branch is guarded, and the comment
+there gives the real reason: a streaming DataFrame cannot be eagerly aggregated or collected.
+
+**The three real prohibitions**, which is what any new guard (or AST check) must encode:
+
+1. **Eager action on a STREAMING plan** — `.count()`, `.collect()`, `.isEmpty()`,
+   `.limit(1).take(1)` against a streaming DataFrame. Raises outright.
+2. **Self-read** — a dataset that reads itself, directly or through
+   `spark.read.table("<its own qualified name>")` (see entry 24). Lakeflow aborts graph
+   construction: `Graph is not topologically sorted. There is a cycle between <t> and <t>`.
+3. **Side-effecting writes** — any `.write`/`saveAsTable`/DDL from inside a query definition. The
+   only legal graph terminal is `dlt.create_sink` + `@dlt.append_flow` (or
+   `dlt.foreach_batch_sink`).
+
+The original bug that produced the over-broad rule is still a real bug, but for a *different*
+reason: v1.3.0's E09 empty-source guard called `source_df.isEmpty()` in a closure and could not
+distinguish "the source is genuinely empty" from "the upstream this same update produces has not
+materialized yet". That is a **freshness** problem, not an eagerness problem. Getting this
+distinction right is what licenses the v1.5.0 in-pipeline reconciliation metrics MV; writing the
+guard as the blanket rule would have failed against the framework's own shipped code.
+
+---
+
+### 24. A fully-qualified three-part name is a **sibling reference**, not an external read
+
+`spark.read.table("cat.sch.tbl")` inside a pipeline is **not** an escape hatch from the Lakeflow
+graph. If `cat.sch.tbl` happens to be a dataset published by the *same* pipeline, Lakeflow creates a
+real dependency edge exactly as `dlt.read` would — this is precisely how the self-read cycle above
+was originally triggered (E09's `_read_existing_target_or_none` used a plain `spark.read.table` on
+the flow's own qualified main table and Lakeflow still aborted with the topological-sort cycle; the
+comment survives at `dq/quarantine.py:403-412`).
+
+Two consequences that are easy to get wrong in opposite directions:
+
+- **Any "read the far side outside the graph" design does not work.** Reaching for a plain Spark
+  read to dodge a graph edge fails; you get the edge anyway, or a cycle.
+- **The framework relies on this being true.** Because
+  `storage/table_properties.py::qualified_table_name` makes a published dataset's graph identity
+  byte-identical to the plain string a spec's `source_config.table` holds, a reconciliation or
+  transformation side pointed at a table this same group publishes is resolved by
+  `engine/source_plane.py::bind` to an `in_graph_sibling` binding — a genuine producer→consumer
+  edge, topologically ordered and same-update fresh, with **no second physical read**. Registering a
+  source-plane node for such a locator would be a *second* read of something the graph already
+  produces, which is why `bind` refuses to.
+
+Also do not point a source at a published table's **backing storage path** to "avoid" the edge.
+That reads a Delta location the pipeline is concurrently committing to, outside the graph's
+ordering, and is forbidden.
+
+---
+
+### 25. A `@dlt.view` is declared once but **read** once per consumer — it is not "read once"
+
+Entry 9 covers a view's *lifetime*. This is the separate, sharper problem: Lakeflow **inlines** a
+view into every consumer's plan. Two consumers of one `@dlt.view` over an Auto Loader path open
+**two independent `cloudFiles` streams over that path, sharing one `cloudFiles.schemaLocation`** —
+observed live on TC-DQ-004 (a streaming Auto Loader source with two quarantine rules). "Declared
+once" is not "read once", and no amount of view reuse makes it so.
+
+Only **materialization** makes the read-once requirement (R2) literally true. The v1.5.0 rules,
+encoded in `engine/source_plane.py`:
+
+- **MATERIALIZED:** every L0 shared source-plane node; every L3/L4 reconciliation dataset; a staged
+  view whose flow has quarantine rules or a sink target.
+- **VIEWED:** a single-consumer staged view; every transformation input view (a thin overlay over an
+  already-materialized binding); the L5 `@dlt.append_flow`.
+
+Two corollaries worth memorizing:
+
+- **`read_mode` is not part of a read's identity.** One materialized *streaming table* legally
+  serves `dlt.read_stream` **and** `dlt.read` consumers in the same update. A `@dlt.view` can serve
+  neither pair — reading a streaming view with batch `dlt.read()` raises `View <name> is a streaming
+  view and must be referenced using readStream`. So a streaming/batch collision is **resolved** by
+  collapsing to a streaming table, never split into two nodes, and never papered over with
+  `pipelines.incompatibleViewCheck.enabled=false` (pipeline-wide, and it silences the check without
+  making a streaming plan batch-readable — recorded as known-and-rejected in
+  `docs/13_known_limitations_and_gotchas.md`).
+- **Materialization is not free and the framework does not pretend it is.** A shared node is a full
+  physical copy in UC storage, an extra DAG step, a checkpoint in the streaming case, and — the part
+  usually missed — it **destroys predicate pushdown** of a consumer's `filter_condition` into the
+  original source, which `reconciliation/matcher.py` explicitly relies on. That is why
+  `source_plane.materialize` defaults to `"auto"` (a node only at fanout ≥ 2) and why `"never"`
+  exists for a huge, heavily-filtered table.
+
+---
+
+### 26. A column added to a `CREATE TABLE IF NOT EXISTS` DDL never reaches an existing workspace
+
+Every statement in `control_plane/ddl_definitions.py::get_all_control_table_ddls` is
+`CREATE TABLE IF NOT EXISTS`. Against a control table that already exists that statement is a
+**no-op** — it does not diff the column list, and it does not add the new column. So a column added
+to a CREATE DDL reaches **new installations only**, and every workspace provisioned before that
+change silently keeps the old schema.
+
+**How it actually surfaced (v1.5.0, defect D4, verified live 2026-08-31):** `execution_mode` /
+`publish_schema` / `dq_config_json` were added to `reconciliation_flow_spec`'s CREATE DDL and the
+tests passed, because unit tests build the table from scratch. On the real `metaflow` workspace the
+table had **none** of the three, and pipeline-mode onboarding died at `MERGE` time with
+`UNRESOLVED_COLUMN`.
+
+**Fix, and the rule going forward:** a new control-table column goes in **two** places —
+
+1. the table's `CREATE TABLE` DDL (so a fresh install gets it), and
+2. `ddl_definitions.py::ADDITIVE_CONTROL_TABLE_COLUMNS` (bare table name → list of
+   `(column_name, sql_type, comment)`), which
+   `control_plane/schema_provisioner.py::ensure_control_table_columns` walks at the end of
+   `ensure_control_schema_exists`, issuing `get_add_column_ddl(...)` for anything missing.
+
+The migration is **strictly additive** by design — only `ALTER TABLE ... ADD COLUMNS`, never a drop
+and never a retype. Existing rows get NULL, which is exactly what each column documents as its
+default (`execution_mode` NULL means `"job"`, so an already-onboarded flow keeps its current
+behaviour rather than silently switching hosts).
+
+**The operational half, which is easy to miss:** `databricks bundle deploy` does **not** apply this
+migration. Only *running* the `setup_control_tables` task
+(`notebooks/01_setup/01_setup_control_tables.py`) does. A deploy followed straight by an onboarding
+run on a pre-v1.5.0 workspace still fails with `UNRESOLVED_COLUMN`.
+
+Note also that the brace convention flips between the two structures: the CREATE DDL f-strings must
+double every literal brace as `{{ }}`, while `ADDITIVE_CONTROL_TABLE_COLUMNS` comments are plain
+strings concatenated into SQL and must **not** be doubled.
+
+---
+
+### 27. `ADD COLUMNS IF NOT EXISTS` is a `PARSE_SYNTAX_ERROR` on Databricks SQL
+
+`IF NOT EXISTS` is accepted on `CREATE TABLE` and on `ALTER TABLE ... ADD PARTITION`, so it reads as
+if it should work on `ADD COLUMNS` too. It does not — Databricks SQL rejects
+`ALTER TABLE t ADD COLUMNS IF NOT EXISTS (c STRING)` outright (verified live on DBR serverless,
+2026-08-31). This is a **parse** failure, so it is not something a `try/except` around the statement
+can be tuned around; the statement never runs at all.
+
+**Idempotence is therefore caller-side**, and `schema_provisioner.py::ensure_control_table_columns`
+implements it in two layers:
+
+- **Skip what is present** — read `spark.table(qualified).columns`, casefold, and skip any column
+  already there. This is the normal path.
+- **Swallow the narrow race** — two `01_setup_control_tables` runs racing each other can both see
+  the column absent. `_is_duplicate_column_race` matches only
+  `FIELD_ALREADY_EXISTS` / `FIELDS_ALREADY_EXIST` / `COLUMN_ALREADY_EXISTS` /
+  `COLUMN ALREADY EXISTS` (both the SQLSTATE-style condition names DBR raises and the plain
+  sentence the Delta library raises). It deliberately does **not** substring-match the bare phrase
+  `ALREADY EXISTS`: that also appears in unrelated failures, and swallowing one of those would turn
+  a genuine provisioning error into a silent no-op — leaving the column absent and the next write
+  failing with the very `UNRESOLVED_COLUMN` the migration exists to prevent.
+
+Anything else still raises `FrameworkConfigError`. A missing *table* is only a warning, because
+`ensure_control_schema_exists` has just run the CREATE statements and a table absent after that
+means a permission problem its own error already reported more precisely.
+
+---
+
+### 28. Declaring a column in an upsert `StructType` is not enough — it must also be set in the `Row(...)` literal
+
+`onboarding/metadata_upsert.py` describes each control-table row twice over: once as a module-level
+`StructType` (`_RECONCILIATION_FLOW_SPEC_SCHEMA` and its siblings) and once as the `Row(...)`
+literal the upsert actually constructs. **Adding a field to the schema alone compiles, passes every
+schema-shape assertion, and writes NULL forever.**
+
+**What actually shipped (v1.5.0, defect D1):** `upsert_reconciliation_flow_spec` declared
+`two_tier_verification`, `execution_mode`, `publish_schema` and `dq_config_json` in the
+`StructType` but never wrote them in the `Row(...)`. Every pipeline-mode flow was persisted with
+`execution_mode` NULL, read back as `"job"` by
+`control_plane/repository.py::load_active_group_metadata`, and filtered straight out of the DAG —
+i.e. **the entire feature could never turn on**, with no error anywhere. The spec validated, the
+onboarding job reported success, and the control-table row looked plausible.
+
+**The rule:** when adding an attribute, grep for its name in `metadata_upsert.py` and confirm it
+appears **at least twice** — in the schema *and* in the `Row(...)`. Keep an unset optional as
+`None` (SQL NULL) rather than substituting a Python-side default, so the DDL-documented default
+stays the single authority (`execution_mode` NULL ⇒ `"job"`, `two_tier_verification` NULL ⇒ true).
+
+Same shape of bug, same check: a JSON key the validator parses but the upsert never persists is a
+key the operator can set and the engine can never see.
+
+---
+
+### 29. A validation rule placed inside a function that early-returns is silently dead
+
+A validator helper beginning with a guard such as `if not reconciliation_flows: return` is a
+perfectly sensible shape — right up until an unrelated rule is added *inside* it. From then on the
+rule fires only for specs that happen to satisfy the guard, with no signal at all: no error, no
+warning, and a green test suite for as long as every fixture exercising the rule also satisfies the
+guard.
+
+**What actually shipped (v1.5.0, defect D2):** V-CYC-8
+(`_validate_landing_side_effect_collisions`, which rejects two ingestion flows landing on one raw
+path while disagreeing about `landing_retention_policy`/`source_zip_handling`) was invoked from
+inside `_validate_reconciliation_pipeline_placement`, which returns early when a spec has **no
+reconciliation flows**. V-CYC-8 is a pure *ingestion* rule — so it was dead for exactly the
+ordinary Auto Loader spec it exists to protect. It is now called from `validate_spec` directly.
+
+**The rule:** a validation rule belongs in `validate_spec`'s own top-level call sequence unless it
+is genuinely scoped to the enclosing helper's subject. When adding a rule to an existing helper,
+read that helper's first ten lines for a guard clause before assuming it runs.
+
+---
+
+### 30. A rule about a *graph* cycle must be gated on pipeline mode, or it breaks job-mode specs that always onboarded
+
+The V-CYC append-loop rules (V-CYC-2, V-CYC-3 same-group, V-CYC-5, and the `target_configs`
+self-/cross-append checks) describe a **Lakeflow DAG cycle**: a reconciliation flow appending into a
+table the same pipeline update also produces. That cycle is real and fatal under
+`execution_mode: "pipeline"` / `"pipeline_audit_only"`. Under `"job"` it **does not exist** — the
+standalone engine in `notebooks/05_reconciliation/` runs *after* the update has finished, so there
+is no graph left to be cyclic.
+
+**What actually shipped (v1.5.0, defect D3):** these rules fired unconditionally, as hard errors.
+That was a genuine **backward-compatibility break**: the shipped, pre-v1.5.0, purely job-mode spec
+`metaflow_testing/038_rec_003_precomputed_hash.json` stopped validating and so could no longer be
+onboarded at all, because `02_onboarding_engine.py` raises on any non-empty `errors` list.
+
+**Fix, and the rule going forward:** route every such finding through
+`spec_validator.py::_append_cycle_finding(pipeline_mode, execution_mode, message, errors)`, which
+appends an **ERROR** in pipeline mode and a **WARNING** in job mode. More generally: before making
+any new check a hard error, ask which already-onboarded specs it would now reject. A validator
+change is a compatibility change.
+
+---
+
+### 31. `TRUNCATE_AND_LOAD` is a full recompute, not an append — never stream from it
+
+`TRUNCATE_AND_LOAD` looks append-shaped in the strategy table (`cdc/dispatcher.py` treats it as a
+no-op, exactly like `APPEND`), but its target is a `@dlt.table` fed by a **full recompute**: every
+update replaces the table's entire contents. Delta refuses to stream from a table whose history
+contains non-append commits, so a downstream `readStream` over it fails with
+`DELTA_SOURCE_TABLE_IGNORE_CHANGES`.
+
+**What actually shipped (v1.5.0, defect D5):** `engine/source_plane.py`'s
+`_NON_APPEND_ONLY_CDC_STRATEGIES` — the set backing the **G-STREAM** plan-time guard — listed only
+`SCD1`/`SCD2`/`SCD3`/`FULL_SNAPSHOT_CDC`. A reconciliation flow whose source is an in-graph
+`TRUNCATE_AND_LOAD` target therefore passed every plan-time check under
+`execution_mode: "pipeline"` and then failed at pipeline **runtime** with
+`DELTA_SOURCE_TABLE_IGNORE_CHANGES`. `TRUNCATE_AND_LOAD` is now in that set, and G-STREAM's message
+names `execution_mode: "pipeline_audit_only"` as the correct setting for such a flow.
+
+This is the live shape of the geneva scenario:
+`metaflow_testing/053_geneva_e41a47ba_recon_in_pipeline.json` uses `pipeline_audit_only` precisely
+because its recon source (`geneva_admin.stg_tariffelementband`) is that same group's own
+`TRUNCATE_AND_LOAD` ingestion target. Pinned by `tests/unit/test_geneva_e41a47ba_topology.py`.
+That scenario is verified **offline only** (validator + `plan_source_plane`); see blocker B2 in
+`RELEASE_NOTES.md` — the pipeline's run-as identity lacks table-level `SELECT` on the recon target,
+so it has never been proven by a live run.
+
+**The rule:** "does this strategy append only?" is the question G-STREAM asks, and `APPEND` is the
+only ingestion/transformation strategy that answers yes. When adding a strategy, decide its answer
+explicitly rather than by omission — an absent name defaults to "streamable", which is the unsafe
+direction.
+
+---
+
+### 32. `spark.catalog.currentDatabase()` is NOT the pipeline's target schema during graph definition
+
+At graph-definition time inside a Lakeflow pipeline, `spark.catalog.currentDatabase()` returns the
+session's current database, which is **not** the schema the pipeline publishes to — even for a
+pipeline whose resource definition plainly declares `schema: bronze_excalibur`.
+
+**What actually shipped (v1.5.0, defect D6):** `notebooks/03_engine/03_lakeflow_declarative_pipeline.py`
+gave `PIPELINE_CATALOG` a three-step fallback chain but set `PIPELINE_SCHEMA = _CURRENT_SCHEMA`
+outright. `PIPELINE_SCHEMA` came out `None`, and the first `_node_name()` call in
+`reconciliation/graph_registration.py` died with
+`ValueError: Unsafe or malformed target_schema: None` — hitting any reconciliation flow that sets
+no explicit `publish_schema`.
+
+**The resolution order now used, and the one to copy:**
+
+```
+spark.conf "pipelines.schema"   →  spark.conf "pipelines.target"  →
+spark.catalog.currentDatabase() →  GROUP_ROW.target_schema        →  warn
+```
+
+`pipelines.schema` is the current conf key; `pipelines.target` is its pre-`schema` spelling, still
+set by older pipelines, so both must be tried. `currentDatabase()` stays in the chain only as a
+late fallback, never as the first answer.
+
+---
+
+### 33. A new job must delegate onboarding to the generic `onboarding_job`, never inline `02_onboarding_engine.py`
+
+A new job resource under `resources/` must **not** carry its own `notebook_task` pointing at
+`notebooks/02_onboarding/02_onboarding_engine.py`. Each inlined copy pins its own widget names, its
+own notebook path and its own cluster/environment settings, so any change to the onboarding
+entrypoint has to be replayed across every one of them — which is exactly how the ~20 legacy
+`metaflow_test_*_job.yml` files drifted apart.
+
+Delegate instead, via `run_job_task`, to the parameterised `resources/onboarding_job.yml`:
+
+```yaml
+- task_key: onboard_x
+  run_job_task:
+    job_id: ${resources.jobs.onboarding_job.id}
+    job_parameters:
+      spec_file_path: "${workspace.file_path}/metaflow_testing/<spec>.json"
+      catalog: metaflow
+      env: dev
+      action_type: CREATE
+```
+
+Applied to `resources/metaflow_test_recon_dag_job.yml`,
+`resources/metaflow_test_dag_001_unified_job.yml` and
+`resources/metaflow_test_104_geneva_tariffs_recon_job.yml`. The pre-existing legacy jobs are
+deliberately **left as-is** — `onboarding_job.yml`'s own header records the standing "keep legacy
+jobs as-is, add new orchestration alongside" decision. `resources/framework_config_onboarding_job.yml`
+is the sibling that onboards a whole **directory** (`spec_dir`) rather than one spec.
+
+Related trap in the same file family (v1.5.0, defect D7): when a flow is flipped to
+`execution_mode: "pipeline"`, that job's **standalone** reconciliation task must be deleted.
+`resources/metaflow_test_002_003_job.yml` still carried `run_003_reconciliation` even though its own
+header claimed the task had been removed — reconciliation would have run **twice** per trigger,
+once in-pipeline and once as the job task, risking a double-append into the correction target.
