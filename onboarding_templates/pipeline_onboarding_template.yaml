@@ -30,6 +30,10 @@ pipeline_parameters:
 spark_config:
   spark.sql.shuffle.partitions: auto
   spark.databricks.delta.optimizeWrite.enabled: 'true'
+source_plane:
+  materialize: auto
+  catalog: null
+  schema: null
 ingestion_flows:
 - dataflow_id: df_template_ingest
   source_system: example_source_system
@@ -491,9 +495,12 @@ transformation_flows:
   governance_tags: {}
 reconciliation_flows:
 - reconciliation_id: recon_template_example
+  execution_mode: pipeline
+  dataflow_group_id: dfg_template_example
+  publish_schema: bronze_example_recon
   source_config:
     type: table
-    table: '{{catalog}}.bronze_example.example_volume_baseline'
+    table: '{{catalog}}.bronze_example.example_raw'
     read_mode: batch
     filter_condition: load_date = '${run_date}'
     data_standardization_sql:
@@ -516,6 +523,11 @@ reconciliation_flows:
   error_handling:
     on_failure: fail
   two_tier_verification: true
+  dq_config:
+    rules:
+    - rule_id: no_value_drift
+      expression: value_drift_count = 0
+      action: fail
   logging_config:
     run_log_capture: true
     mismatch_log_capture: true

@@ -65,15 +65,38 @@ def register_staged_view(
     capture_technical_metadata: bool = True,
     flow_id: Optional[str] = None,
     read_operation_name: str = "flow_read",
-) -> None:
-    """Register the ``@dlt.view`` staged intermediate shared by both engines.
+    materialize: bool = False,
+    target_catalog: Optional[str] = None,
+    target_schema: Optional[str] = None,
+) -> str:
+    """Register the staged intermediate shared by both engines, as a ``@dlt.view`` (default)
+    or, when ``materialize`` is set, a genuine ``@dlt.table``.
+
+    **Intra-flow read-once fix.** A ``@dlt.view`` is inlined into every consumer, so each
+    consumer opens its own independent read of whatever this view's closure reads -- for a
+    streaming Auto Loader source with more than one quarantine/sink reader of the staged
+    view, that means more than one ``cloudFiles`` stream sharing one
+    ``cloudFiles.schemaLocation``, which is exactly the intra-flow Rule-2 (read-once)
+    violation this parameter exists to close. Passing ``materialize=True`` registers this
+    same closure as a real, qualified ``@dlt.table`` instead, so every downstream reader
+    shares ONE materialized result. The three call sites this serves today (all read the
+    staged view/table by name after this function returns): ``dq/quarantine.py``'s
+    ``_clean_upstream`` and ``_quarantine_table`` closures inside
+    ``register_main_and_quarantine_tables``, and ``engine/sink_registration.py``'s sink/
+    external-sink registration path -- see those modules for the ``dlt.read``/
+    ``dlt.read_stream`` call that must use this function's *return value*, not the bare
+    ``staged_view_name`` it was given, once ``materialize`` is ``True``.
 
     Parameters
     ----------
     staged_view_name:
-        Name the staged view is registered under (by convention ``_<target_table>_staged``).
+        Name the staged view/table is registered under (by convention
+        ``_<target_table>_staged``). Always the ``name=`` argument when ``materialize`` is
+        ``False``; when ``materialize`` is ``True`` it is instead the unqualified ``table``
+        component passed to :func:`qualified_table_name` -- see ``target_catalog``/
+        ``target_schema`` below.
     comment:
-        DLT comment for the view.
+        DLT comment for the view/table.
     dq_rules:
         This flow's DQ rules -- drives both the native ``warn``/``drop``/``fail``
         expectations decorator and the manual quarantine-column derivation.
@@ -126,15 +149,56 @@ def register_staged_view(
         The ``operation`` label used for the structured log event above -- callers pass
         ``"ingestion_read"``/``"transformation_execute"`` to distinguish the two engines in
         the emitted JSON. Ignored when ``flow_id`` is ``None``.
+    materialize:
+        ``False`` (default, byte-identical to this function's pre-existing behaviour):
+        register as ``@dlt.view(name=staged_view_name, comment=comment)``. ``True``:
+        register as ``@dlt.table(name=qualified_table_name(target_catalog, target_schema,
+        staged_view_name), comment=comment)`` instead -- an unqualified ``@dlt.table`` name
+        would silently land in the pipeline's own default catalog/schema rather than this
+        flow's configured target (see :func:`storage.table_properties.qualified_table_name`).
+        The ``@apply_dq_expectations(dq_rules)`` decorator stays stacked directly under
+        either one, unchanged. Callers decide ``materialize`` per flow (e.g. "this flow has
+        quarantine rules or more than one reader of the staged view"); this function only
+        carries out that decision.
+    target_catalog, target_schema:
+        The flow's target catalog/schema, forwarded to :func:`qualified_table_name` when
+        ``materialize`` is ``True``. ``None`` by default; a caller that passes
+        ``materialize=True`` without both of these gets a ``FrameworkConfigError`` rather
+        than an accidental unqualified/default-schema table.
+
+    Returns
+    -------
+    str
+        The name downstream readers must use for this staged intermediate: the fully
+        qualified ``catalog.schema.table`` name when ``materialize`` is ``True``, or the
+        unchanged ``staged_view_name`` otherwise (a ``@dlt.view`` is always resolved by its
+        bare, pipeline-local name). Existing callers that do not capture this return value
+        are unaffected -- they already have ``staged_view_name`` in scope and only need this
+        return value once they start passing ``materialize=True``.
 
     Raises
     ------
     FrameworkConfigError
         Propagated from encryption/decryption or quarantine-column derivation on malformed
-        configuration.
+        configuration, or raised directly when ``materialize=True`` is passed without both
+        ``target_catalog`` and ``target_schema``.
     """
+    if materialize and (target_catalog is None or target_schema is None):
+        raise FrameworkConfigError(
+            "register_staged_view(materialize=True) requires both target_catalog and "
+            f"target_schema to publish a qualified table name for '{staged_view_name}' -- "
+            "an unqualified @dlt.table name would silently land in the pipeline's default "
+            "catalog/schema instead of this flow's configured target."
+        )
 
-    @dlt.view(name=staged_view_name, comment=comment)
+    if materialize:
+        qualified_name = qualified_table_name(target_catalog, target_schema, staged_view_name)
+        register_dataset = dlt.table(name=qualified_name, comment=comment)
+    else:
+        qualified_name = staged_view_name
+        register_dataset = dlt.view(name=staged_view_name, comment=comment)
+
+    @register_dataset
     @apply_dq_expectations(dq_rules)
     def _staged_view():
         if flow_id is not None:
@@ -160,6 +224,8 @@ def register_staged_view(
             pipeline_run_id=pipeline_run_id,
             record_id_column=record_id_column,
         )
+
+    return qualified_name
 
 
 def register_flow_output(

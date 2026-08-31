@@ -32,6 +32,7 @@ DDL text for the control metadata schema and its control tables (see ``get_all_c
 | `get_observability_config_ddl(control_schema: str, table_properties: Dict[str, str]) -> str` |  |
 | `get_all_control_table_ddls(control_schema: str, table_properties: Dict[str, str]) -> List[Tuple[str, str]]` | Return ``(description, ddl)`` pairs for all control tables, in creation order. |
 | `get_preflight_function_ddl(control_schema: str, onboarding_spec_schema_json: str) -> str` | Build the ``CREATE OR REPLACE FUNCTION`` statement for ``preflight_check_onboarding_spec``, a Unity Catalog Python Function callable directly via SQL -- by Genie, a Mosaic AI Agent, or any MCP tool-calling loop -- with no Python host process required. |
+| `get_add_column_ddl(control_schema: str, table_name: str, column_name: str, sql_type: str, comment: str) -> str` | Build one ``ALTER TABLE ... |
 
 
 ## `lakeflow_framework/control_plane/post_deployment.py`
@@ -49,14 +50,19 @@ Post-deployment governance (ABAC tag application), run *after* a pipeline update
 
 ## `lakeflow_framework/control_plane/repository.py`
 
-Read access to the active dataflow-group / ingestion-flow / transformation-flow metadata.
+Read access to the active dataflow-group / ingestion-flow / transformation-flow / pipeline-mode reconciliation-flow metadata.
+
+
+### class `GroupMetadata`
+
+The active group row plus its active ingestion/transformation/reconciliation flow rows.
 
 
 ### Functions
 
 | Signature | Purpose |
 |---|---|
-| `load_active_group_metadata(spark: SparkSession, control_catalog: str, group_id: str) -> Tuple[Any, List[Any], List[Any]]` | Load the active group row plus its active ingestion/transformation flow rows. |
+| `load_active_group_metadata(spark: SparkSession, control_catalog: str, group_id: str) -> GroupMetadata` | Load the active group row plus its active ingestion/transformation/reconciliation flow rows. |
 
 
 ## `lakeflow_framework/control_plane/schema_provisioner.py`
@@ -69,6 +75,7 @@ Idempotent control-schema/table provisioning, shared by the setup notebook and o
 | Signature | Purpose |
 |---|---|
 | `ensure_control_schema_exists(spark: SparkSession, control_catalog: str, table_properties: Optional[Dict[str, str]] = None) -> None` | Create the ``config`` schema and all four control tables if they don't already exist. |
+| `ensure_control_table_columns(spark: SparkSession, control_catalog: str) -> None` | Add any post-v1.0 control-table column that an already-provisioned table is missing. |
 | `is_already_exists_race(exc: Exception) -> bool` | True when ``exc`` means "another session created this object concurrently". |
 | `ensure_preflight_function_exists(spark: SparkSession, control_catalog: str, onboarding_spec_schema_json: str) -> None` | Create/replace the ``preflight_check_onboarding_spec`` Unity Catalog Python Function in ``<control_catalog>.config``, so it's directly SQL/Genie/MCP-tool-callable (see ``ddl_definitions.get_preflight_function_ddl`` for exactly what it checks and why it's a structural-only sibling of ``onboarding/uc_spec_preflight.py``'s full Python tool). |
 

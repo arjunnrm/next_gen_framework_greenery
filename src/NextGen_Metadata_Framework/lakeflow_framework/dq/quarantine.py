@@ -240,14 +240,22 @@ def _read_existing_target_or_none(qualified_table: str) -> Optional[DataFrame]:
     records, the only way to leave a materialized view's contents alone is to hand its defining
     query exactly what the table already holds, so something has to read that prior state back.
 
-    Deliberately a plain ``spark.read.table`` rather than a ``dlt.read``. This reads the table's
-    PRIOR materialized state from *outside* the pipeline graph, which is exactly what preserving
-    it across an empty-source recompute requires; a ``dlt.read`` of the very dataset this flow is
-    in the middle of defining would resolve to the in-flight graph node -- the empty recompute we
-    are trying not to publish -- or fail outright as a self-reference. It lives in this module
-    rather than in the dispatcher because this is the only place holding the fully-qualified
-    target name *and* the knowledge that the read must bypass the graph, which is precisely why
-    the guard takes a callable instead of catalog/schema/table arguments (see its own docstring).
+    **This function is currently UNWIRED** -- the ``TRUNCATE_AND_LOAD`` empty-source guard it was
+    written for (E09) was withdrawn on 2026-08-29 (see :func:`register_main_and_quarantine_tables`).
+    Written as a plain ``spark.read.table`` on the theory that it would read the table's PRIOR
+    materialized state from *outside* the pipeline graph. **The live cycle probe disproves that
+    theory**: inside a Lakeflow graph-execution context, ``spark.read.table`` of a fully-qualified
+    three-part name is intercepted and resolved as a reference to that *pipeline's own dataset*,
+    not routed to storage -- a self-read of the table this flow is in the middle of defining aborts
+    with ``Graph is not topologically sorted. There is a cycle between <t> and <t>``, exactly as a
+    ``dlt.read`` self-reference would. There is no qualified-name spelling that reads a pipeline's
+    own dataset from outside its own graph. The only genuinely graph-external read of one's own
+    table is by its backing-table **PATH** rather than its registered name -- and that is an
+    unordered race against this same update's write and is FORBIDDEN, not a usable alternative.
+    It lives in this module rather than in the dispatcher because this is the only place holding
+    the fully-qualified target name, which is precisely why the guard takes a callable instead of
+    catalog/schema/table arguments (see its own docstring); wiring it back in would need a
+    genuinely external prior-state source (e.g. a dedicated snapshot table), not this function.
 
     **Existence is decided by attempting the read and matching the not-found condition
     precisely -- NOT by ``spark.catalog.tableExists``.** The original implementation used
@@ -516,6 +524,15 @@ def register_main_and_quarantine_tables(
                     # an acceptable, deliberate trade-off for an accurate business-level count --
                     # see this function's docstring. Still one full extra scan beyond the write
                     # DLT itself performs from the DataFrame this closure returns.
+                    #
+                    # Cross-reference: this eager .agg(...).collect()[0] on a genuinely BATCH plan,
+                    # inside a @dlt.table closure, is the shipped, production precedent that an
+                    # eager action is legal here as long as it is not reachable from a STREAMING
+                    # read (see the `is_streaming` branch above, which deliberately avoids exactly
+                    # that). tests/unit/test_recon_registration_ast.py's AST guard is scoped to
+                    # flag eager collect()/count()/toPandas() only on streaming-sourced plans and
+                    # on writes, not on every collect() in the module, precisely so this line keeps
+                    # passing.
                     agg_row = upstream.agg(
                         F.count(F.lit(1)).alias("total"),
                         F.sum(F.col("__framework_dq_quarantine_flag").cast("long")).alias("quarantined"),

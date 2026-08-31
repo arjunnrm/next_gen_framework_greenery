@@ -18,6 +18,11 @@
       "id": "matching",
       "label": "Matching",
       "sections": ["matching"]
+    },
+    {
+      "id": "quality",
+      "label": "Quality",
+      "sections": ["rdq"]
     }
   ]
 }

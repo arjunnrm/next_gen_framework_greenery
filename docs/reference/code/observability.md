@@ -7,7 +7,7 @@
 Event-log extraction and OpenTelemetry export.
 
 
-9 modules.
+10 modules.
 
 
 ## `lakeflow_framework/observability/agent_tools.py`
@@ -136,6 +136,18 @@ Registered via ``spark.dataSource.register(OtelStreamingDataSource)`` before any
 |---|---|
 | `name() -> str` |  |
 | `streamWriter(schema: StructType, overwrite: bool) -> DataSourceStreamWriter` |  |
+
+
+## `lakeflow_framework/observability/reconciliation_export.py`
+
+Reconciliation control-table BACKSTOP export -- the audit guarantee for a reconciliation flow that runs inside a Lakeflow Declarative Pipeline (``execution_mode`` ``"pipeline"`` / ``"pipeline_audit_only"``).
+
+
+### Functions
+
+| Signature | Purpose |
+|---|---|
+| `export_reconciliation_control_rows(spark: SparkSession, control_catalog: str, group_id: str, pipeline_update_id: str) -> int` | Back-fill ``reconciliation_run_log`` / ``reconciliation_result`` / ``reconciliation_mismatch_log`` from the L4 datasets this group's pipeline-mode reconciliation flows published during ``pipeline_update_id``. |
 
 
 ## `lakeflow_framework/observability/runtime_params.py`

@@ -6,6 +6,151 @@ deliberately **not** the semantic version — that lives here and in `enhancemen
 
 ---
 
+## v1.5.0 — Reconciliation moves inside the pipeline DAG — 2026-08-31
+
+Reconciliation used to be a job task that ran *after* the pipeline, reading whatever the pipeline
+had most recently written. It is now a third first-class flow type that can run **inside** the
+dataflow group's own Lakeflow update, beside ingestion and transformation — and underneath all
+three there is now a source plane that makes every physical read happen exactly once.
+
+Three things this release set out to make true, in plain terms:
+
+- **One graph.** Ingestion, transformation and reconciliation all run inside one Lakeflow pipeline
+  update per dataflow group.
+- **Read once.** Every physical source table or path is read exactly once per update and reused by
+  every consumer of it — including the three places the framework was demonstrably reading the same
+  thing twice (a staged view read by both the clean and quarantine sides, nine transformation inputs
+  over six distinct tables, and a reconciliation source re-read once per target).
+- **Observability unchanged.** The observability engine stays a normal downstream Lakeflow job task.
+  It was not moved into the graph, not wrapped, and not rewritten.
+
+### Opting in
+
+Nothing already deployed changes. The new `reconciliation_flows[].execution_mode` defaults to
+`"job"` — today's standalone engine, byte for byte — and you move one flow at a time:
+
+| `execution_mode` | What runs where |
+|---|---|
+| `"job"` (default) | the standalone `05_reconciliation_engine.py` task, exactly as before |
+| `"pipeline"` | the comparison **and** the self-healing append, inside the pipeline update |
+| `"pipeline_audit_only"` | the comparison inside the pipeline update; healing stays in job mode |
+
+In the two pipeline modes the comparison stops being Python inside a job and becomes real Unity
+Catalog tables — `recon__<reconciliation_id>__<target_id>__classified`, `__metrics` and
+`__mismatch` — that you can query, that carry lineage, and that a new `dq_config` can attach
+expectations to. `{"expr": "value_drift_count = 0", "action": "fail"}` on the one-row `__metrics`
+dataset is the first declarative way a reconciliation threshold can fail an update. A new
+`publish_schema` says where those three land; `source_plane` (top level) tunes the read-once
+threshold, defaulting to `"auto"` so a single-consumer read keeps today's inline path and its
+predicate pushdown.
+
+### Three behaviour changes an operator must know before switching a flow to `"pipeline"`
+
+1. **`error_handling.on_failure: "fail"` has a larger blast radius.** All targets still share one
+   handler, so `"fail"` still stops the remaining targets of that `reconciliation_id`. What changes
+   is what else it takes down: re-raising now fails the pipeline **update**, where before it failed
+   one job task — so sibling reconciliation flows in the same group may already have run.
+2. **The per-run log-silencing override moves to pipeline configuration, and applies to the NEXT
+   update.** `pipelines start-update` accepts only `--full-refresh`, so the `recon_run_log_capture` /
+   `recon_mismatch_log` widgets are replaced by the `dataflow.recon.run_log_capture` /
+   `dataflow.recon.mismatch_log` pipeline configuration keys (same tri-state: absent or `""` defers
+   to `logging_config`). Silencing a flow that is flooding the log tables is now a settings edit that
+   takes effect on the next update, not the current one.
+3. **Healing is source-change-triggered.** The heal lane fires per micro-batch of the reconciliation
+   source, so an update in which that source does not advance performs no append. **Detection is
+   unaffected** — the comparison datasets are recomputed every update, so drift and deletions are
+   always found and the `dq_config` gate always evaluates; only the corrective write waits. If your
+   recon source is static or low-change, keep `"job"`, or use `"pipeline_audit_only"`.
+
+### Three silent bugs fixed on the way
+
+- `two_tier_verification: false` used to onboard cleanly and then be **discarded** — the column was
+  never written, so the runtime defaulted it back to `true`. Anyone who asked for the full
+  comparison every run was silently getting the fingerprint short-circuit.
+- `spark_config` had the identical defect. Both are now persisted, and a new regression test asserts
+  that every attribute the validator accepts survives a round trip through the control table — the
+  test whose absence let both rot.
+- And then this release made the same mistake a third time, in the same function: `execution_mode`,
+  `publish_schema` and `dq_config_json` were declared in the upsert schema and never written, so a
+  spec asking for pipeline mode onboarded successfully, persisted NULL, read back as `"job"`, and was
+  filtered out of the graph. **The feature could not turn on at all**, silently, until this was
+  found. The round-trip test had not been extended to the new columns.
+
+Also corrected: a long-circulating internal rule that said "never put an eager action inside a
+dataset query definition". As stated it is false, and the framework's own shipped `quarantine.py`
+falsifies it. The real prohibitions are eager actions on a *streaming* plan, self-reads, and
+side-effecting writes.
+
+### Verified live
+
+This is not a design note. On **2026-08-31** a reconciliation flow in `execution_mode: "pipeline"`
+ran end-to-end on `dev_metaflow`: job `metaflow_test_recon_dag_job` (id `854232399214818`) SUCCESS,
+all four tasks green, pipeline `be78d88d-6064-414d-a10c-2aacd900fa86`. Its event log shows the
+ingestion streaming table, the two L3 prepare datasets, the three L4 `classified` / `__metrics` /
+`__mismatch` materialized views, the L5 `__pulse` streaming table, the heal `APPEND` flow and the
+`foreachBatch` heal sink **all registered in one update** — one graph, exactly as advertised.
+
+That run also settles an open question from the build: **`dlt.foreach_batch_sink` exists on DBR
+serverless.** The heal lane is real, not theoretical. `"pipeline_audit_only"` was designed partly as
+a fallback in case it did not; it remains a first-class setting for its own reasons (see the healing
+note above and the `TRUNCATE_AND_LOAD` case below), not as a workaround.
+
+Scenarios still **not** run live, and not claimed: audit-only mode, the read-once source plane across
+three flow kinds, and the geneva `e41a47ba` topology — the last verified offline only. See
+`metaflow_testing/TESTING_STATUS.md` §0b.
+
+### Upgrading an existing workspace: run `setup_control_tables`
+
+The four new control-table columns are nullable, but they are **not** free on a workspace that
+already exists. Every control-table statement is `CREATE TABLE IF NOT EXISTS`, which is a no-op
+against a table that is already there, so a column added to a `CREATE` reaches new installations
+only. This release therefore ships an **additive migration** —
+`ensure_control_table_columns()`, called at the end of `ensure_control_schema_exists`, strictly
+additive, never a drop or a retype.
+
+**`databricks bundle deploy` does not apply it.** Only *running* the `setup_control_tables` task
+does. Deploy v1.5.0, go straight to onboarding a pipeline-mode flow, and you get `UNRESOLVED_COLUMN`
+on `reconciliation_flow_spec` — which is exactly what happened on the test workspace, where that
+table had none of `execution_mode`, `publish_schema` or `dq_config_json`. On a brand-new workspace
+the migration is a no-op, since those columns are in the `CREATE` DDL too. Order on a fresh
+workspace: `setup_control_tables` → onboard → run the pipeline.
+
+### Backward compatibility
+
+Nothing already deployed changes shape, and this was checked rather than asserted. `execution_mode`
+NULL means `"job"`, resolved in Python (`getattr(row, "execution_mode", None) or "job"`) so a control
+table that predates the migration still reads as job-mode instead of raising, and
+`register_reconciliation_flow` independently early-returns on a job-mode row. On the workspace used
+for the live run, **every pre-existing reconciliation row still reads NULL** after it, and no
+job-mode flow registered a single node into any graph. Existing specs onboard unchanged; existing
+job resources keep running the standalone engine.
+
+One correction landed here late: the new graph-cycle validations were initially hard errors in job
+mode too, which stopped a shipped job-mode spec from onboarding at all. Cycle findings are now errors
+in pipeline mode and warnings in job mode — a Lakeflow graph cycle is not a thing that can exist when
+the engine runs after the update has finished.
+
+### A flow whose source is a `TRUNCATE_AND_LOAD` target must use `pipeline_audit_only`
+
+A `TRUNCATE_AND_LOAD` target is rewritten in full on every update, and Delta refuses to stream from
+it. Such a flow is now rejected at plan time under `"pipeline"`, with an error naming
+`"pipeline_audit_only"` as the setting to use — previously it passed every check and then failed
+mid-update with `DELTA_SOURCE_TABLE_IGNORE_CHANGES`.
+
+### New convention: onboarding is delegated
+
+New jobs no longer inline a `02_onboarding_engine.py` notebook task. They call the generic
+parameterised `resources/onboarding_job.yml` via `run_job_task`, passing `spec_file_path`, `catalog`,
+`env` and `action_type` as job parameters. Its sibling
+`resources/framework_config_onboarding_job.yml` onboards a whole directory instead of one spec. The
+~20 pre-existing legacy `metaflow_test_*_job.yml` files keep their inline copies deliberately — new
+orchestration is added alongside legacy jobs, not retrofitted into them.
+
+Full detail, including the seven defects fixed between the initial build and the passing live run:
+`enhancement_logs/v1.5.00_enhancement_log.md`.
+
+---
+
 ## Spec Builder ↔ framework agreement: ten corrections — 2026-08-30
 
 v1.4.0 propagated a breaking spec change into the Databricks App by working through a hand-written

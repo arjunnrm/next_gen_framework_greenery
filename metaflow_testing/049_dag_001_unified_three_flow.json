@@ -1,0 +1,73 @@
+{
+  "_test_case_note": "TC-DAG-001 (positive): one physical external table -- {{catalog}}.dag_001_usecase.shared_source_bus -- is read by THREE different flow kinds inside this ONE dataflow group's unified Lakeflow pipeline: (1) ingestion_flows[0]'s own zerobus source_config, (2) transformation_flows[0]'s source_inputs[0] ('shared_source_direct', reading the same locator directly rather than through the ingestion flow's Bronze output), and (3) reconciliation_flows[0]'s target_configs[0] (the raw bus compared, target_to_source, against the freshly-ingested Bronze copy). The ingestion consumer streams (zerobus into a streaming_table); the transformation and reconciliation consumers are batch (is_streaming/read_mode both false/'batch'). Because fanout on this one locator is 3 (>= the source_plane 'auto' threshold of 2) and at least one consumer streams, engine/source_plane.py must register exactly ONE materialized L0 node -- a streaming table (`_src__shared_source_bus__<8hex>__stream`), never a view -- and reuse it for all three, so the pipeline's own event log shows exactly one physical read of this locator per update (tests/integration/test_metaflow_dag_001_unified_three_flow.py asserts this). Reconciliation's source_config.table is deliberately the in-spec Bronze target (not the raw bus) rather than the raw bus itself: V-CYC-1 requires a pipeline-mode reconciliation source to resolve to a dataset THIS group's own graph produces, so the raw external bus can only appear on reconciliation's target side (comparison_direction 'target_to_source' -- no append_target_table needed) -- still the same source-plane dedup mechanism, just addressed via a different bind() consumer id (`<reconciliation_id>:target:<target_id>` instead of `<reconciliation_id>:source`). See metaflow_testing/TESTING_PLAN.md TC-DAG-001 and docs/13's CANONICAL IDENTITY / SHARING RULES sections.",
+  "dataflow_group_id": "dfg_dag_001_unified_three_flow",
+  "pipeline_parameters": {},
+  "ingestion_flows": [
+    {
+      "dataflow_id": "df_dag_001_shared_zerobus_ingest",
+      "source_system": "dag_001_shared_source",
+      "source_database": "dag_001_usecase",
+      "source_table_name": "shared_source_bus",
+      "source_description": "TC-DAG-001: zerobus ingestion of {{catalog}}.dag_001_usecase.shared_source_bus -- the SAME physical locator that transformation_flows[0]'s source_inputs[0] and reconciliation_flows[0]'s target_configs[0] ALSO read directly. Exactly one physical scan of this table per pipeline update, shared via the read-once source plane.",
+      "source_type": "zerobus",
+      "target_catalog": "{{catalog}}",
+      "target_schema": "bronze_dag_001",
+      "target_table": "shared_source_bronze",
+      "target_type": "streaming_table",
+      "source_config": {
+        "source_catalog": "{{catalog}}",
+        "source_schema": "dag_001_usecase",
+        "source_table": "shared_source_bus"
+      },
+      "target_config": {"cdc_load_strategy": "APPEND", "storage_format": "delta"},
+      "dq_config": {"rules": []},
+      "governance_tags": {}
+    }
+  ],
+  "transformation_flows": [
+    {
+      "flow_step_id": "tf_dag_001_shared_source_direct_view",
+      "dataflow_id": "df_dag_001_shared_zerobus_ingest",
+      "source_description": "TC-DAG-001: reads {{catalog}}.dag_001_usecase.shared_source_bus directly as a batch transformation input -- the SAME external locator ingestion_flows[0] streams via zerobus -- rather than reading ingestion's own Bronze output, to prove the source plane dedups a cross-flow-kind read of one physical table, not merely a cross-consumer-within-one-flow read.",
+      "target_catalog": "{{catalog}}",
+      "target_schema": "silver_dag_001",
+      "target_table": "shared_source_snapshot",
+      "target_type": "materialized_view",
+      "source_inputs": [
+        {"input_name": "shared_source_direct", "table": "{{catalog}}.dag_001_usecase.shared_source_bus", "is_streaming": false}
+      ],
+      "transformation_sql": "SELECT * FROM shared_source_direct",
+      "target_config": {"cdc_load_strategy": "TRUNCATE_AND_LOAD", "storage_format": "delta"},
+      "dq_config": {"rules": []},
+      "governance_tags": {}
+    }
+  ],
+  "reconciliation_flows": [
+    {
+      "reconciliation_id": "recon_dag_001_bronze_vs_raw_bus",
+      "execution_mode": "pipeline",
+      "dataflow_group_id": "dfg_dag_001_unified_three_flow",
+      "source_config": {
+        "type": "table",
+        "table": "{{catalog}}.bronze_dag_001.shared_source_bronze",
+        "read_mode": "batch",
+        "hash_precomputed": false
+      },
+      "target_configs": [
+        {
+          "target_id": "raw_source_bus_target",
+          "type": "table",
+          "table": "{{catalog}}.dag_001_usecase.shared_source_bus",
+          "read_mode": "batch",
+          "hash_precomputed": false,
+          "comparison_direction": "target_to_source"
+        }
+      ],
+      "match_keys": ["record_id"],
+      "compare_columns": ["value"],
+      "error_handling": {
+        "on_failure": "warn"
+      }
+    }
+  ]
+}

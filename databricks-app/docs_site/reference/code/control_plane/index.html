@@ -2350,6 +2350,17 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
+  <a href="#class-groupmetadata" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        class GroupMetadata
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#functions_2" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3465,6 +3476,17 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
+  <a href="#class-groupmetadata" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        class GroupMetadata
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#functions_2" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3618,7 +3640,9 @@
 </tbody>
 </table>
 <h2 id="lakeflow_frameworkcontrol_planerepositorypy"><code>lakeflow_framework/control_plane/repository.py</code><a class="headerlink" href="#lakeflow_frameworkcontrol_planerepositorypy" title="Permanent link">&para;</a></h2>
-<p>Read access to the active dataflow-group / ingestion-flow / transformation-flow metadata.</p>
+<p>Read access to the active dataflow-group / ingestion-flow / transformation-flow / pipeline-mode reconciliation-flow metadata.</p>
+<h3 id="class-groupmetadata">class <code>GroupMetadata</code><a class="headerlink" href="#class-groupmetadata" title="Permanent link">&para;</a></h3>
+<p>The active group row plus its active ingestion/transformation/reconciliation flow rows.</p>
 <h3 id="functions_2">Functions<a class="headerlink" href="#functions_2" title="Permanent link">&para;</a></h3>
 <table>
 <thead>
@@ -3629,8 +3653,8 @@
 </thead>
 <tbody>
 <tr>
-<td><code>load_active_group_metadata(spark: SparkSession, control_catalog: str, group_id: str) -&gt; Tuple[Any, List[Any], List[Any]]</code></td>
-<td>Load the active group row plus its active ingestion/transformation flow rows.</td>
+<td><code>load_active_group_metadata(spark: SparkSession, control_catalog: str, group_id: str) -&gt; GroupMetadata</code></td>
+<td>Load the active group row plus its active ingestion/transformation/reconciliation flow rows.</td>
 </tr>
 </tbody>
 </table>

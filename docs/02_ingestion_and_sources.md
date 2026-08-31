@@ -13,6 +13,28 @@ Metaflow provides native, configuration-driven source readers for three primary 
 
 ---
 
+> **v1.5.0 — every source read now goes through the read-once source plane.** A physical table
+> or path is read **once per pipeline update** and shared by all its consumers, instead of each
+> consumer opening its own read. Two consequences worth knowing before you configure a source:
+>
+> * An Auto Loader path with two quarantine rules used to open **two** `cloudFiles` streams over
+>   that path, sharing one `cloudFiles.schemaLocation`. The `_<target>_staged` view is now
+>   materialized whenever it has more than one consumer (quarantine rules, or a `sink` /
+>   `external_sink` target), so the source is read once and the stream is opened once.
+> * File-lifecycle side effects — `landing_retention_policy` (`cloudFiles.cleanSource` *moves or
+>   deletes* committed landing files) and `source_zip_handling` (PGP-decrypt, unzip,
+>   `.__framework_extracted__` markers) — therefore run **exactly once** per update. Two
+>   *different* lifecycle policies on the same path are now rejected at onboarding and again at
+>   plan time, because two competing regimes on one directory is a data-loss bug.
+>
+> Sharing is keyed on base-read options only (format, `schema_location`, `file_pattern`,
+> `reader_options`, retention/ZIP policy, …); everything applied *after* the read — `schema_config`,
+> `column_normalization`, `explode_columns`, `remove_dups`, encryption — is a per-consumer overlay
+> and does **not** split the read. Full mechanics:
+> [`01_platform_architecture.md` §7](01_platform_architecture.md#7-the-read-once-source-plane).
+
+---
+
 ## 2. Auto Loader Ingestion (`source_type: "autoloader"`)
 
 Auto Loader incrementally and efficiently processes billions of new files arriving in Unity Catalog Volumes or cloud storage (`s3://`, `abfss://`, `gs://`).

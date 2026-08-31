@@ -7,7 +7,7 @@
 One entry per `reconciliation_flows[]` element — comparing a baseline against targets.
 
 
-!!! info "27 attributes"
+!!! info "34 attributes"
     Every attribute below is also available in the Spec Builder's attribute
     inspector — click the **i** beside any field to see this same content
     without leaving the form.
@@ -18,10 +18,17 @@ One entry per `reconciliation_flows[]` element — comparing a baseline against 
 | Attribute | Type | Required | Default |
 |---|---|---|---|
 | [`compare_columns`](#compare-columns) | array<string> | no | — |
+| [`dataflow_group_id`](#dataflow-group-id) | string | **yes** | — |
+| [`dq_config.rules`](#dq-configrules) | array<object> | no | — |
+| [`dq_config.rules[].action`](#dq-configrulesaction) | string (enum) | **yes** | — |
+| [`dq_config.rules[].expression`](#dq-configrulesexpression) | string (SQL) | **yes** | — |
+| [`dq_config.rules[].rule_id`](#dq-configrulesrule-id) | string | **yes** | — |
 | [`error_handling.on_failure`](#error-handlingon-failure) | string (enum) | no | — |
+| [`execution_mode`](#execution-mode) | string (enum) | no | — |
 | [`logging_config.mismatch_log_capture`](#logging-configmismatch-log-capture) | boolean | no | — |
 | [`logging_config.run_log_capture`](#logging-configrun-log-capture) | boolean | no | — |
 | [`match_keys`](#match-keys) | array<string> | **yes** | — |
+| [`publish_schema`](#publish-schema) | string | no | — |
 | [`reconciliation_id`](#reconciliation-id) | string | **yes** | — |
 | [`source_config.data_standardization_sql`](#source-configdata-standardization-sql) | array<string> | no | — |
 | [`source_config.filter_condition`](#source-configfilter-condition) | string (SQL) | no | — |
@@ -75,6 +82,151 @@ Columns compared for drift after key matching. Defaults to all columns.
 
 ---
 
+### `dataflow_group_id` { #dataflow-group-id }
+
+The dataflow group whose Lakeflow pipeline this flow is registered into.
+
+
+The dataflow group whose Lakeflow pipeline this flow is registered into. Required when execution_mode is pipeline or pipeline_audit_only -- a group-less reconciliation flow has no pipeline update to live in. Usually this spec's own dataflow_group_id; naming another group registers the flow inside that group's pipeline instead. Stays optional in job mode, where the standalone engine handles the group-less case.
+
+
+**Type** `string` · **Required** yes · **Section** Reconciliation identity
+
+
+```json
+{
+  "dataflow_group_id": "dfg_example_group"
+}
+```
+
+
+!!! tip "Best practice"
+
+    - Required — onboarding rejects the flow if this is missing.
+    - Only applies to some configurations; the form hides it when it is not relevant.
+
+
+---
+
+### `dq_config.rules` { #dq-configrules }
+
+Data-quality expectations evaluated on every row.
+
+
+Each rule becomes a pipeline expectation; the action decides what happens to a failing row.
+
+
+**Type** `array<object>` · **Required** no · **Section** Data quality
+
+
+```json
+"rules": [
+  { "rule_id": "order_id_not_null", "expression": "order_id IS NOT NULL", "action": "drop" },
+  { "rule_id": "amount_non_negative", "expression": "amount >= 0", "action": "quarantine" }
+]
+```
+
+
+!!! tip "Best practice"
+
+    - warn keeps the row and records the violation; drop discards it; fail stops the update; quarantine routes it to a sibling table.
+    - quarantine is a framework extension, not native pipeline behaviour — it needs dq_config.quarantine_table set.
+    - Give each rule a stable rule_id: it is what appears in __framework_dq_failed_rule_ids.
+
+
+!!! warning "Known errors and limitations"
+
+    **quarantine rows go nowhere**  
+    *Cause:* quarantine_table was not configured.  
+    *Fix:* Set dq_config.quarantine_table, and record_id_column so rows can be traced back.
+
+    **The whole update fails on one bad row**  
+    *Cause:* A rule uses action: fail.  
+    *Fix:* Downgrade to drop or quarantine unless the condition really is unrecoverable.
+
+
+**Databricks documentation:** [dlt expectations](https://docs.databricks.com/delta-live-tables/expectations.html)
+
+
+---
+
+### `dq_config.rules[].action` { #dq-configrulesaction }
+
+warn logs and keeps the row, drop silently removes it, fail aborts the pipeline, quarantine routes it to the quarantine table.
+
+
+**Type** `string (enum)` · **Required** yes · **Section** Data quality
+
+
+```json
+{
+  "action": "warn"
+}
+```
+
+
+!!! tip "Best practice"
+
+    - Required — onboarding rejects the flow if this is missing.
+    - Allowed values: warn, drop, fail, quarantine.
+
+
+**Databricks documentation:** [dlt expectations](https://docs.databricks.com/delta-live-tables/expectations.html)
+
+
+---
+
+### `dq_config.rules[].expression` { #dq-configrulesexpression }
+
+Boolean Spark SQL expression evaluated per row.
+
+
+**Type** `string (SQL)` · **Required** yes · **Section** Data quality
+
+
+```json
+{
+  "expression": "amount >= 0"
+}
+```
+
+
+!!! tip "Best practice"
+
+    - Required — onboarding rejects the flow if this is missing.
+    - Supports {{catalog}} and {{env}} template variables, resolved at onboarding time.
+
+
+**Databricks documentation:** [dlt expectations](https://docs.databricks.com/delta-live-tables/expectations.html)
+
+
+---
+
+### `dq_config.rules[].rule_id` { #dq-configrulesrule-id }
+
+Unique rule identifier.
+
+
+**Type** `string` · **Required** yes · **Section** Data quality
+
+
+```json
+{
+  "rule_id": "dq_amount_non_negative"
+}
+```
+
+
+!!! tip "Best practice"
+
+    - Required — onboarding rejects the flow if this is missing.
+
+
+**Databricks documentation:** [dlt expectations](https://docs.databricks.com/delta-live-tables/expectations.html)
+
+
+---
+
 ### `error_handling.on_failure` { #error-handlingon-failure }
 
 fail raises an error, warn logs and continues.
@@ -95,6 +247,46 @@ fail raises an error, warn logs and continues.
 !!! tip "Best practice"
 
     - Allowed values: fail, warn.
+
+
+---
+
+### `execution_mode` { #execution-mode }
+
+Chooses where a reconciliation flow runs: as its own job task (job), or as a third flow type inside its dataflow group's Lakeflow pipeline update (pipeline, pipeline_audit_only).
+
+
+In-pipeline reconciliation is the whole point of v1.5.0: ingestion, transformation and reconciliation in ONE pipeline update, so the comparison reads the rows this update just wrote instead of a stale snapshot from the previous cycle. It stays opt-in, and job stays the default, because job resources already run reconciliation tasks against onboarded rows -- flipping the default would run those flows twice per cycle.
+
+
+**Type** `string (enum)` · **Required** no · **Section** Reconciliation identity
+
+
+```json
+"execution_mode": "pipeline"
+```
+
+
+!!! tip "Best practice"
+
+    - pipeline_audit_only publishes the classified/metrics/mismatch datasets and runs dq_config expectations in-pipeline, but leaves the append-back healing lane in job mode. It is the right setting for a flow whose source is a static table.
+    - Both pipeline modes require a flow-level dataflow_group_id, an append-only source producer (not an apply_changes strategy, and not a fully-refreshed materialized view), and read_mode batch on every side.
+    - publish_schema and dq_config only exist in the pipeline modes; task_run_id_column and read_mode 'streaming' only exist in job mode. The builder hides the first pair in job mode; the last two are rejected at onboarding.
+
+
+!!! warning "Known errors and limitations"
+
+    **Onboarding rejects the flow naming dataflow_group_id**  
+    *Cause:* execution_mode is pipeline or pipeline_audit_only but the flow declares no dataflow_group_id, so there is no pipeline update to register it in.  
+    *Fix:* Set the flow's dataflow_group_id (usually this spec's own), or keep execution_mode 'job'.
+
+    **Onboarding rejects source_config.table as not produced by this group**  
+    *Cause:* V-CYC-1: a pipeline-mode flow must reconcile a dataset THIS pipeline update publishes, otherwise it silently degrades to an external, always-one-update-stale read.  
+    *Fix:* Point source_config.table at an ingestion or transformation target of the same group, or set execution_mode to 'job'.
+
+    **The reconciliation runs twice per cycle**  
+    *Cause:* The flow was switched to pipeline mode while a job resource still runs a reconciliation task against the same reconciliation_id.  
+    *Fix:* Remove the reconciliation task from the job, or move the flow back to execution_mode 'job'.
 
 
 ---
@@ -174,6 +366,42 @@ Columns identifying the same logical record across datasets.
 
     - Required — onboarding rejects the flow if this is missing.
     - Entered as a comma-separated list; written to the spec as a JSON array of strings.
+
+
+---
+
+### `publish_schema` { #publish-schema }
+
+The schema, inside the hosting pipeline's own catalog, where a pipeline-mode reconciliation flow publishes its recon__<reconciliation_id>__<target_id>__classified, __metrics and __mismatch datasets.
+
+
+Those three datasets are real, externally visible Unity Catalog tables. Without this the pipeline's own schema is used, which drops reconciliation results into whatever bronze or silver schema the group happens to publish to -- rarely where an operator wants them.
+
+
+**Type** `string` · **Required** no · **Section** Reconciliation identity
+
+
+```json
+"publish_schema": "recon_results"
+```
+
+
+!!! tip "Best practice"
+
+    - The catalog is always the hosting pipeline's own; only the schema is configurable.
+    - It is rejected on presence when execution_mode is 'job' -- a job-mode flow publishes none of those datasets, so setting it would be a statement about tables that never exist.
+    - The schema must already exist and be writable by the pipeline's run-as identity; the framework does not create it.
+
+
+!!! warning "Known errors and limitations"
+
+    **Onboarding rejects publish_schema**  
+    *Cause:* execution_mode is 'job' (or left unset, which defaults to 'job').  
+    *Fix:* Set execution_mode to 'pipeline' or 'pipeline_audit_only', or clear publish_schema.
+
+    **Reconciliation results appear in the group's bronze schema**  
+    *Cause:* publish_schema was left unset, so the datasets defaulted to the pipeline's own schema.  
+    *Fix:* Set publish_schema to a dedicated reconciliation schema.
 
 
 ---
@@ -295,6 +523,9 @@ Reuse existing __framework_hash_key and __framework_hash_value instead of recomp
 At most one side of a given target's comparison may be streaming.
 
 
+At most one side of a given target's comparison may be streaming. Rejected on presence with value 'streaming' when execution_mode is 'pipeline' or 'pipeline_audit_only': the in-pipeline comparison is a whole-snapshot batch classification, and a stream-static join supports only inner and left_outer, which cannot express MISSING_IN_SOURCE. Use read_mode 'batch' (the default), or set execution_mode to 'job' to keep the standalone streaming engine.
+
+
 **Type** `string (enum)` · **Required** no · **Section** Source dataset
 
 
@@ -343,7 +574,7 @@ Three-part fully-qualified table name.
 When the task_run_id job parameter is set, narrows this side's read to that run's rows.
 
 
-When the task_run_id job parameter is set, narrows this side's read to that run's rows. Reconciliation is triggered-only as of v1.4.0.
+When the task_run_id job parameter is set, narrows this side's read to that run's rows. Reconciliation is triggered-only as of v1.4.0. Rejected on presence when execution_mode is 'pipeline' or 'pipeline_audit_only': no stable per-update key exists inside a Lakeflow update, so the narrowing would match every row that pipeline ever wrote -- a silent no-op. Use filter_condition, or set execution_mode to 'job'.
 
 
 **Type** `string` · **Required** no · **Section** Source dataset
@@ -549,6 +780,9 @@ Reuse existing __framework_hash_key and __framework_hash_value instead of recomp
 At most one side of a given target's comparison may be streaming.
 
 
+At most one side of a given target's comparison may be streaming. Rejected on presence with value 'streaming' when execution_mode is 'pipeline' or 'pipeline_audit_only': the in-pipeline comparison is a whole-snapshot batch classification, and a stream-static join supports only inner and left_outer, which cannot express MISSING_IN_SOURCE.
+
+
 **Type** `string (enum)` · **Required** no · **Section** Target dataset
 
 
@@ -671,7 +905,7 @@ Target table name. Composed into the three-part table name on save.
 When the task_run_id job parameter is set, narrows this side's read to that run's rows.
 
 
-When the task_run_id job parameter is set, narrows this side's read to that run's rows. Reconciliation is triggered-only as of v1.4.0.
+When the task_run_id job parameter is set, narrows this side's read to that run's rows. Reconciliation is triggered-only as of v1.4.0. Rejected on presence when execution_mode is 'pipeline' or 'pipeline_audit_only': no stable per-update key exists inside a Lakeflow update, so the narrowing would be a silent no-op. Use filter_condition instead.
 
 
 **Type** `string` · **Required** no · **Section** Target dataset

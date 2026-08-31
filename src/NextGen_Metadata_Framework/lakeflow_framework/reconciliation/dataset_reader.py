@@ -99,6 +99,7 @@ def read_reconciliation_dataset(
     config: Dict[str, Any],
     parameters: Optional[Dict[str, Any]] = None,
     task_run_id: Optional[str] = None,
+    in_graph: bool = False,
 ) -> DataFrame:
     """Read one side of a reconciliation comparison (``source_config`` or one ``target_configs[]`` entry).
 
@@ -137,6 +138,30 @@ def read_reconciliation_dataset(
         stamps on every row of every framework-materialized table and ``_clean_upstream``
         preserves -- but this module never hardcodes that name, since the same mechanism must
         work against a non-framework table carrying its producer's own run-id column.
+    in_graph:
+        **NEW (pipeline mode), keyword-only by convention, defaulting to ``False`` so every
+        pre-existing (job-mode) call is unaffected.** ``True`` when this read binds an
+        ``in_graph_sibling`` source-plane binding -- a table this same dataflow group's Lakeflow
+        Declarative Pipeline publishes earlier in the same DAG (an L3 RECON PREPARE node reading
+        its own group's L1/L2 output) -- rather than an external table read fresh via
+        ``spark.read``/``spark.readStream``. Two things change when it is ``True``:
+
+        - :func:`resolve_table_provider`'s eager ``DESCRIBE TABLE EXTENDED`` probe is skipped
+          entirely, rather than run and its ``FrameworkConfigError`` swallowed. On a
+          pipeline-produced side the table may not physically exist yet on the pipeline's first
+          update -- its producing node has not committed a snapshot -- so the ``DESCRIBE`` would
+          raise, the probe's own ``except`` returns ``None``, and the Delta-only assertion below
+          would degrade to a permanent, unactionable WARNING on *every* update for exactly the
+          sides this change adds. A graph-internal side is a Lakeflow-managed Delta table by
+          construction, so there is nothing to verify. The probe is kept verbatim for external
+          sides, where an unreadable/non-Delta provider is still a real, actionable signal.
+        - A configured ``task_run_id_column`` is rejected with ``FrameworkConfigError`` instead
+          of silently accepted. In pipeline mode a graph-internal side is read once per update as
+          the shared source-plane node, not re-read per ``task_run_id`` on demand, so narrowing
+          it by a constant pipeline-supplied id would silently narrow every update's node to one
+          producing run's rows rather than raising -- indistinguishable from a flow that simply
+          forgot to drop a job-mode-only setting when it moved to
+          ``execution_mode: "pipeline"``.
 
     Returns
     -------
@@ -150,13 +175,23 @@ def read_reconciliation_dataset(
         If ``type`` is anything other than ``"table"`` (reconciliation is Delta-tables-only as of
         v1.3.0), ``table`` is missing, the resolved table is provably not Delta,
         ``hash_precomputed=True`` is combined with a non-``"table"`` ``type``, the configured
-        ``task_run_id_column`` is not a column on this side, or the underlying
-        read/filter/standardization step fails.
+        ``task_run_id_column`` is not a column on this side, ``in_graph=True`` is combined with a
+        configured ``task_run_id_column``, or the underlying read/filter/standardization step
+        fails.
     """
     dataset_type = config.get("type", _TABLE_TYPE)
     read_mode = config.get("read_mode", "batch")
     is_streaming = read_mode == "streaming"
     hash_precomputed = bool(config.get("hash_precomputed", False))
+
+    if in_graph and config.get("task_run_id_column"):
+        raise FrameworkConfigError(
+            "task_run_id_column is not supported when in_graph=True -- a graph-internal "
+            "reconciliation side is read once per pipeline update as the shared source-plane "
+            "node, not narrowed to one producing run's task_run_id. Remove task_run_id_column "
+            "from this dataset config (it is a job-mode-only setting) or set execution_mode back "
+            "to 'job' for this flow."
+        )
 
     # Kept ahead of the type dispatch below even though the dispatch now rejects every
     # non-"table" type on its own: this message names the *specific* contradiction the operator
@@ -176,18 +211,30 @@ def read_reconciliation_dataset(
                 "that table."
             )
         table = config["table"]
-        provider = resolve_table_provider(spark, table)
-        if provider is not None and provider != _DELTA_PROVIDER:
-            raise FrameworkConfigError(
-                f"Reconciliation dataset table '{table}' is not a Delta table (provider={provider!r}) -- "
-                "reconciliation is supported for Delta tables only."
-            )
-        if provider is None:
-            logger.warning(
-                "Could not determine the provider of reconciliation dataset table '%s' -- proceeding on the "
-                "assumption it is Delta (see dataset_reader.py's module docstring).",
-                table,
-            )
+        if in_graph:
+            # Graph-internal side: skip the eager DESCRIBE TABLE EXTENDED probe entirely. On a
+            # pipeline-produced side the table may not physically exist yet on the pipeline's
+            # first update (its producing node has not committed a snapshot), so the DESCRIBE
+            # would raise, resolve_table_provider's own except returns None, and the Delta-only
+            # assertion just below would degrade to a permanent, unactionable WARNING on every
+            # update for exactly the sides this change adds. A graph-internal side is a
+            # Lakeflow-managed Delta table by construction, so there is nothing to verify here.
+            # The probe below is kept verbatim for external sides, where an unreadable/non-Delta
+            # provider is still a real, actionable signal.
+            pass
+        else:
+            provider = resolve_table_provider(spark, table)
+            if provider is not None and provider != _DELTA_PROVIDER:
+                raise FrameworkConfigError(
+                    f"Reconciliation dataset table '{table}' is not a Delta table (provider={provider!r}) -- "
+                    "reconciliation is supported for Delta tables only."
+                )
+            if provider is None:
+                logger.warning(
+                    "Could not determine the provider of reconciliation dataset table '%s' -- proceeding on the "
+                    "assumption it is Delta (see dataset_reader.py's module docstring).",
+                    table,
+                )
         df = (spark.readStream if is_streaming else spark.read).table(table)
     except KeyError as exc:
         raise FrameworkConfigError(
@@ -198,7 +245,60 @@ def read_reconciliation_dataset(
     except Exception as exc:  # noqa: BLE001
         raise FrameworkConfigError(f"Failed to read reconciliation dataset (type={dataset_type!r}): {exc}") from exc
 
-    task_run_id_column = config.get("task_run_id_column")
+    return apply_reconciliation_overlays(df, config, parameters, task_run_id)
+
+
+def apply_reconciliation_overlays(
+    df: DataFrame,
+    dataset_config: Dict[str, Any],
+    parameters: Optional[Dict[str, Any]] = None,
+    task_run_id: Optional[str] = None,
+) -> DataFrame:
+    """Apply the post-read overlay chain shared by every reconciliation dataset read.
+
+    Extracted from :func:`read_reconciliation_dataset` (v1.4.0) so the same LOAD-BEARING overlay
+    can be applied to a DataFrame obtained a different way -- specifically, an L3 RECON PREPARE
+    source-plane node (``_recon__<reconciliation_id>__src`` /
+    ``_recon__<reconciliation_id>__<target_id>__tgt``) that binds its DataFrame via
+    ``source_plane.bind(...)`` (a fresh external read, a materialized shared node, or a
+    ``dlt.read``/``dlt.read_stream`` of an in-graph sibling) instead of calling
+    ``spark.read``/``spark.readStream`` directly. ``read_reconciliation_dataset`` itself keeps
+    calling this function too, so job-mode reconciliation is byte-for-byte unchanged.
+
+    The order is LOAD-BEARING (see this module's docstring) and MUST NOT be reordered:
+
+    1. ``task_run_id`` narrowing -- only when both ``task_run_id`` and this side's
+       ``task_run_id_column`` are set. Narrows to one producing run's rows.
+    2. ``filter_condition``, ``${param}``-substituted against ``parameters`` -- narrows further.
+       Reversing steps 1 and 2 would let a ``filter_condition`` appear to widen the
+       already-narrowed set, which it cannot.
+    3. ``data_standardization_sql`` -- runs last, against the already-narrowed rows.
+
+    Parameters
+    ----------
+    df:
+        The freshly obtained (batch or streaming) DataFrame for this side, before any overlay.
+    dataset_config:
+        The same ``source_config``/``target_configs[]``-shaped dict :func:`read_reconciliation_dataset`
+        accepts as ``config``.
+    parameters:
+        Dynamic runtime parameters for ``${param}`` substitution in ``filter_condition``.
+    task_run_id:
+        See :func:`read_reconciliation_dataset`'s ``task_run_id`` parameter.
+
+    Returns
+    -------
+    DataFrame
+        ``df`` with the ``task_run_id`` narrowing, ``filter_condition``, and
+        ``data_standardization_sql`` overlay chain applied, in that order.
+
+    Raises
+    ------
+    FrameworkConfigError
+        If the ``task_run_id`` narrowing, ``filter_condition``, or ``data_standardization_sql``
+        step fails.
+    """
+    task_run_id_column = dataset_config.get("task_run_id_column")
     if task_run_id and task_run_id_column:
         try:
             df = df.filter(F.col(task_run_id_column) == F.lit(task_run_id))
@@ -211,7 +311,7 @@ def read_reconciliation_dataset(
             "Reconciliation dataset narrowed to task_run_id='%s' via column '%s'.", task_run_id, task_run_id_column
         )
 
-    filter_condition = config.get("filter_condition")
+    filter_condition = dataset_config.get("filter_condition")
     if filter_condition:
         try:
             resolved_filter = substitute_dynamic_parameters(filter_condition, parameters or {})
@@ -219,4 +319,4 @@ def read_reconciliation_dataset(
         except Exception as exc:  # noqa: BLE001
             raise FrameworkConfigError(f"Failed to apply reconciliation filter_condition {filter_condition!r}: {exc}") from exc
 
-    return apply_data_standardization_sql(df, config.get("data_standardization_sql"))
+    return apply_data_standardization_sql(df, dataset_config.get("data_standardization_sql"))

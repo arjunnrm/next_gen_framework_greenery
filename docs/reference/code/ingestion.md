@@ -64,6 +64,8 @@ Ingestion source readers: autoloader (cloudFiles), zerobus (Delta stream), asn1 
 | `read_autoloader_source(spark: SparkSession, source_config: Dict[str, Any]) -> DataFrame` | Build a streaming Auto Loader (``cloudFiles``) reader from ``source_config``. |
 | `read_zerobus_source(spark: SparkSession, source_config: Dict[str, Any]) -> DataFrame` | Build a streaming reader over an existing Delta table landed via Zerobus. |
 | `read_asn1_source(spark: SparkSession, source_config: Dict[str, Any]) -> DataFrame` | Build a streaming binary reader for ASN.1-encoded CDR files, then decode via ``common.asn1``. |
+| `base_read_options(source_type: str, source_config: Dict[str, Any]) -> Dict[str, Any]` | Select the base-read subset of ``source_config`` that a source-plane ``ReadIdentity``'s ``options_fingerprint`` is computed over (``sha256`` of canonical JSON over exactly this dict, per the read-once contract) -- see :data:`_BASE_READ_KEYS`. |
+| `read_locator(source_config: Dict[str, Any], source_type: str) -> Tuple[str, str]` | Compute the ``(locator_kind, locator)`` half of a source-plane ``ReadIdentity`` for one ingestion ``source_config`` -- see the read-once contract's CANONICAL IDENTITY section (``docs/13``) and ``ReadIdentity`` in ``engine/source_plane.py``. |
 | `read_ingestion_source(spark: SparkSession, source_type: str, source_config: Dict[str, Any]) -> DataFrame` | Dispatch to the reader registered for ``source_type``. |
 
 

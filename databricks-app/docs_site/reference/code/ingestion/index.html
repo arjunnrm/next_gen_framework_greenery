@@ -3798,6 +3798,14 @@
 <td>Build a streaming binary reader for ASN.1-encoded CDR files, then decode via <code>common.asn1</code>.</td>
 </tr>
 <tr>
+<td><code>base_read_options(source_type: str, source_config: Dict[str, Any]) -&gt; Dict[str, Any]</code></td>
+<td>Select the base-read subset of <code>source_config</code> that a source-plane <code>ReadIdentity</code>'s <code>options_fingerprint</code> is computed over (<code>sha256</code> of canonical JSON over exactly this dict, per the read-once contract) -- see :data:<code>_BASE_READ_KEYS</code>.</td>
+</tr>
+<tr>
+<td><code>read_locator(source_config: Dict[str, Any], source_type: str) -&gt; Tuple[str, str]</code></td>
+<td>Compute the <code>(locator_kind, locator)</code> half of a source-plane <code>ReadIdentity</code> for one ingestion <code>source_config</code> -- see the read-once contract's CANONICAL IDENTITY section (<code>docs/13</code>) and <code>ReadIdentity</code> in <code>engine/source_plane.py</code>.</td>
+</tr>
+<tr>
 <td><code>read_ingestion_source(spark: SparkSession, source_type: str, source_config: Dict[str, Any]) -&gt; DataFrame</code></td>
 <td>Dispatch to the reader registered for <code>source_type</code>.</td>
 </tr>

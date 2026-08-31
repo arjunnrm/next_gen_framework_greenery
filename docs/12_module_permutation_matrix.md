@@ -102,6 +102,24 @@ Two further, code-verified restrictions:
 * **At most one side may be `read_mode: "streaming"`.** Both sides streaming raises (`reconciliation/streaming.py`, verbatim): `f"target_id={target_id!r}: both source_config and this target are configured read_mode='streaming' -- stream-stream reconciliation is not supported ..."` — a stream-stream join would need watermarking and only supports inner/left-outer semantics, incompatible with the framework's four-way MATCHED/MISSING_IN_TARGET/MISSING_IN_SOURCE/VALUE_DRIFT classification.
 * **A `read_mode: "streaming"` side must actually be append-friendly.** `reconciliation/dataset_reader.py` reads a streaming side with a plain `spark.readStream.table(table)` — no `ignoreChanges`/`ignoreDeletes` option is set. A table that is fully overwritten on every refresh (the output of `cdc_load_strategy: "TRUNCATE_AND_LOAD"`, or any `materialized_view`) will raise Delta's own "Detected a data update" error the first time it is overwritten while a streaming reconciliation query holds a checkpoint against it. This applies regardless of `recon_mode` — it is a property of `read_mode: "streaming"` against a non-append-only table, not of continuous mode specifically. Configure that side as `read_mode: "batch"` instead.
 
+### 4.1 `execution_mode` × what is legal (v1.5.0)
+
+| | `execution_mode: "job"` (default) | `"pipeline_audit_only"` | `"pipeline"` |
+|---|---|---|---|
+| `dataflow_group_id` | optional — a group-less flow is supported | **required** | **required** |
+| `read_mode: "streaming"` on either side | legal (at most one side) | **rejected on presence** | **rejected on presence** |
+| `task_run_id_column` | legal | **rejected on presence** | **rejected on presence** |
+| `publish_schema` | **rejected on presence** | legal | legal |
+| `dq_config` | **rejected on presence** | legal (on `__metrics`) | legal (on `__metrics`) |
+| `dq_config` rule with `action: "quarantine"` | n/a | **rejected** | **rejected** |
+| `two_tier_verification` | honoured (and, from v1.5.0, actually persisted) | honoured | honoured |
+| `error_handling.on_failure: "fail"` blast radius | fails the job task | fails the job task | fails the **pipeline update** |
+| Healing (`append_target_table` writes) | every job run | job run | per micro-batch of the recon source — an update where the source does not advance performs no append |
+| Comparison datasets published to UC | none | `__classified` / `__metrics` / `__mismatch` | `__classified` / `__metrics` / `__mismatch` |
+
+Narrative, the L0–L5 node map and the DAG:
+[`07_reconciliation_engine.md` §11](07_reconciliation_engine.md#11-execution-modes-job-pipeline-pipeline_audit_only).
+
 `task_run_id_column` narrowing (per-side field, E12) only ever applies to a **static** read: the `source_config`/`target_configs[]` side in a fully-batch target, or the non-streaming side's per-micro-batch read in a mixed target. It never narrows the streaming side — its own micro-batch offsets are already the batch boundary, and filtering it by a single producing-run id would silently discard every offset belonging to any other one, data the checkpoint then advances past and never re-offers. (Before v1.4.0 it also never applied under `recon_mode: "continuous"`; with that mode gone every run is bounded, so the narrowing is unconditional whenever both `task_run_id` and a `task_run_id_column` are configured.) See [`07_reconciliation_engine.md`](07_reconciliation_engine.md) §3 and §5.
 
 ---
@@ -142,6 +160,12 @@ A single place to check "is X even legal," pulled from every other v1.3.0-touche
 | Both sides of a reconciliation target configured `read_mode: "streaming"` | **Runtime `FrameworkConfigError`** — stream-stream reconciliation is unsupported | [`07_reconciliation_engine.md`](07_reconciliation_engine.md) |
 | Reconciliation `read_mode: "streaming"` against a table produced by `TRUNCATE_AND_LOAD` (or any non-append-only overwrite pattern) | **Runtime Delta error** ("Detected a data update...") — not validated at onboarding, since the validator cannot see how a table's producing pipeline writes it | §4 above; see also [`07_reconciliation_engine.md`](07_reconciliation_engine.md) |
 | `reconciliation_flows[].recon_mode` (any value) | **Validation error** at onboarding — removed in v1.4.0; reconciliation is triggered-only | [`07_reconciliation_engine.md`](07_reconciliation_engine.md) §5 |
+| `reconciliation_flows[].execution_mode: "pipeline"`/`"pipeline_audit_only"` with `read_mode: "streaming"` on either side | **Validation error** at onboarding — the in-pipeline comparison is a whole-snapshot batch classification; a stream-static join cannot express `MISSING_IN_SOURCE` | [`07_reconciliation_engine.md`](07_reconciliation_engine.md) §11 |
+| `reconciliation_flows[].execution_mode: "pipeline"`/`"pipeline_audit_only"` with `task_run_id_column` | **Validation error** at onboarding — a Lakeflow update exposes no stable per-update run id, so the narrowing would be a silent no-op | [`07_reconciliation_engine.md`](07_reconciliation_engine.md) §11 |
+| `reconciliation_flows[].execution_mode: "pipeline"`/`"pipeline_audit_only"` without a `dataflow_group_id` | **Validation error** at onboarding — a group-less flow has no pipeline to live in | [`07_reconciliation_engine.md`](07_reconciliation_engine.md) §11 |
+| `reconciliation_flows[].publish_schema` or `dq_config` with `execution_mode: "job"` (the default) | **Validation error** at onboarding — a job task publishes no dataset to name or to attach expectations to | [`07_reconciliation_engine.md`](07_reconciliation_engine.md) §11 |
+| A reconciliation `dq_config` rule with `action: "quarantine"` | **Validation error** at onboarding — there is nothing to quarantine on a one-row `__metrics` table | [`07_reconciliation_engine.md`](07_reconciliation_engine.md) §11 |
+| `spark_config` setting `pipelines.incompatibleViewCheck.enabled: false` | **Known and rejected** — pipeline-wide, and it silences the check without making a streaming plan batch-readable | [`13_known_limitations_and_gotchas.md` L8](13_known_limitations_and_gotchas.md#l8) |
 | `observability[]` destination with `mode: "continuous"` and no `destination_config.event_log_tables` | **Validation error** at onboarding | [`08_observability_and_telemetry.md`](08_observability_and_telemetry.md) |
 | `observability[]` destination with `mode: "triggered"` (the default) but `destination_config.event_log_tables` set anyway | **Validation error** at onboarding — the field is continuous-only | [`08_observability_and_telemetry.md`](08_observability_and_telemetry.md) |
 | A single `observability[]` destination served by both the triggered and continuous engines | **Structurally impossible** — `mode` is the only selector, and each engine filters to its own value | [`08_observability_and_telemetry.md`](08_observability_and_telemetry.md) |

@@ -109,6 +109,53 @@ graph-definition time, never inside the sink's own `write()`/`commit()`. `run_co
 resolve_pipeline_run_id` best-effort resolves a run/update identifier for quarantine-row
 traceability.
 
+Three modules added in **v1.5.0**, when reconciliation moved inside the pipeline DAG:
+
+- `identifiers.py::sanitize_identifier(value)` maps every non-`[0-9a-zA-Z_]` character to `_`;
+  `stable_node_name(prefix, locator, suffix, max_core=80)` builds a collision-free dataset name by
+  **always** appending `sha256(locator)[:8]` — never only on truncation, because sanitizing alone
+  would collide `metaflow.bronze.a_b` with `metaflow.bronze_a.b` and raise `Cannot redefine dataset`
+  for the whole update.
+- `source_plane.py` — the **read-once** plane (requirement R2: every physical source table/path is
+  read exactly once per pipeline update and reused by every consumer). Three-phase, deliberately
+  pure-first: `plan_source_plane(...)` (no `dlt`, no Spark action, unit-testable with zero
+  workspace) → `register_source_plane(spark, plan)` → `bind(plan, consumer_id, want_stream)`.
+  `bind` is keyed on a **consumer id string**, never on a caller-recomputed identity, so plan and
+  bind cannot disagree; it returns one of three binding kinds — `in_graph_sibling` (`dlt.read`/
+  `read_stream` of a table this same group publishes), `shared_node` (one materialized node, a
+  streaming table if *any* consumer streams, an MV otherwise), or `inline` (today's exact code
+  path, preserving predicate pushdown into the origin). Internal types: `ReadIdentity`
+  (`locator_kind`/`locator`/`options_fingerprint`, locator casefolded), `ConsumerRequest`,
+  `PlaneNode`, `Binding`, `SourcePlanePlan`. `assert_acyclic(plan)` runs a Kahn topological sort
+  over the whole edge set and raises `FrameworkGraphCycleError` naming the ring;
+  `describe_plan(plan)` emits one structured `source_plane_node` event per node so "was my table
+  actually read once" is answerable from the log stream. Guards `G-STREAM` (a `want_stream`
+  consumer on a MERGE-written/overwritten locator) and `G-SIDE` (two competing
+  `landing_retention_policy`/`source_zip_handling` lifecycle regimes on one path — a latent
+  data-loss bug that sharing the read also fixes) reject at plan time. `G-STREAM`'s membership test
+  is the module-level `_NON_APPEND_ONLY_CDC_STRATEGIES` frozenset, which as of v1.5.0 is
+  `{SCD1, SCD2, SCD3, FULL_SNAPSHOT_CDC, TRUNCATE_AND_LOAD}` — `TRUNCATE_AND_LOAD` belongs there
+  because its target is a `@dlt.table` fed by a full recompute, so Delta refuses to stream from it
+  (`DELTA_SOURCE_TABLE_IGNORE_CHANGES`); `APPEND` is the only strategy that is genuinely
+  append-only. The guard's message names `execution_mode: "pipeline_audit_only"` as the fix. See
+  `common_pitfalls.md` entry 31.
+- `flow_generators.py::generate_ingestion_flow` / `generate_transformation_flow` /
+  `generate_reconciliation_flow` — the per-flow registration bodies, lifted verbatim out of
+  `notebooks/03_engine/03_lakeflow_declarative_pipeline.py` so the notebook is the thin
+  registration loop its own header always claimed to be, and so they are importable by tests.
+  Each takes the flow's control-table row plus the `SourcePlanePlan`, calls `source_plane.bind`
+  rather than reading a source itself, and funnels into `flow_registration.py`'s shared tail.
+  `_needs_materialized_staged_view(dq_rules, target_type)` is the private helper deciding whether a
+  flow's staged intermediate must be a real table rather than a `@dlt.view` (quarantine rules or a
+  sink target force materialization — `common_pitfalls.md` entry 25).
+  `generate_reconciliation_flow` is the third first-class flow type, delegating to
+  `reconciliation/graph_registration.py`; the engine notebook calls it only for rows whose
+  `execution_mode` is `"pipeline"`/`"pipeline_audit_only"`, so a `"job"` row (including a row whose
+  `execution_mode` is NULL) is filtered out of the DAG and left to notebook 05.
+
+`spark_config.py::resolve_spark_conf` / `read_pipeline_spark_config` / `apply_spark_conf` resolve
+and apply the layered `spark_config` Spark-conf overrides for a group.
+
 ## `onboarding/`
 
 Spec ingestion end to end. `spec_loader.py::load_and_template_spec` reads a JSON/YAML spec,
@@ -117,12 +164,21 @@ spec_version)`. `spec_validator.py::validate_spec` is the **authoritative** stru
 allowed-value/SQL-syntax validator — every `ALLOWED_*` constant near its top is ground truth
 for what a spec may contain; it collects every problem before returning
 `(ingestion_flows, transformation_flows, reconciliation_flows, observability_destinations,
-errors)` rather than failing fast. `metadata_upsert.py::upsert_dataflow_group_spec` /
+errors)` rather than failing fast. Two v1.5.0 helpers worth knowing:
+`_append_cycle_finding(pipeline_mode, execution_mode, message, errors)` is the single funnel for
+every V-CYC append-loop finding — an **ERROR** under `execution_mode` `"pipeline"`/
+`"pipeline_audit_only"`, a **WARNING** under `"job"`, because a Lakeflow graph cycle simply does not
+exist when the standalone engine runs after the update; and
+`_validate_landing_side_effect_collisions` (V-CYC-8) is a pure *ingestion* rule called from
+`validate_spec` directly, not from any reconciliation-scoped helper. `metadata_upsert.py::upsert_dataflow_group_spec` /
 `upsert_ingestion_flow_spec` / `upsert_transformation_flow_spec` /
 `upsert_reconciliation_flow_spec` / `upsert_observability_config` `MERGE`-upsert validated
 flows into the five control tables — `observability[]` (telemetry destinations for the DLT
 observability engine, §16 in `SKILL.md`) is validated and upserted from this exact same spec,
-there is no separate observability config file. `audit_logger.py::write_audit_log_entry` and
+there is no separate observability config file. Each upsert describes its row **twice** — a
+module-level `StructType` (`_RECONCILIATION_FLOW_SPEC_SCHEMA` and siblings) and the `Row(...)`
+literal actually constructed — and a new attribute must be added to both or it silently writes
+NULL forever (`common_pitfalls.md` entry 28). `audit_logger.py::write_audit_log_entry` and
 `client_context.py::build_client_context_json` write the perception/audit trail
 (`onboarding_audit_log`), on both success and failure.
 
@@ -138,8 +194,10 @@ table.
 
 ## `reconciliation/`
 
-The standalone (non-pipeline-graph) source-vs-target(s) comparison engine — see `SKILL.md` §8
-for the full flow. `dataset_reader.py::read_reconciliation_dataset` reads one side
+The source-vs-target(s) comparison engine — see `SKILL.md` §8 for the full flow. Since **v1.5.0**
+it runs in either of two hosts, chosen per flow by `reconciliation_flows[].execution_mode`: the
+standalone job task (`"job"`, the default, unchanged) or **inside the dataflow group's own Lakeflow
+pipeline DAG** (`"pipeline"` / `"pipeline_audit_only"`). `dataset_reader.py::read_reconciliation_dataset` reads one side
 (`table`/`file`/`sink` type, batch or streaming). `matcher.py::prepare_dataset_for_matching` /
 `match_reconciliation_target` do the hash-first full-outer-join classification
 (`MATCHED`/`MISSING_IN_TARGET`/`MISSING_IN_SOURCE`/`VALUE_DRIFT`), collapsing duplicate keys
@@ -153,7 +211,28 @@ column expressions (never a driver-side collect+loop). `streaming.py::
 run_streaming_target_reconciliation` is the `foreachBatch`-driven incremental counterpart,
 reusing every one of the above functions per micro-batch instead of once per whole table.
 `metrics.py::ReconciliationMetrics` is the shared counts dataclass both logging paths write
-from.
+from. `matcher.py::classify_reconciliation_target` is the lazy entry point the in-graph path
+calls — the same full-outer join, when-chain and `F.max_by` per-key collapse as
+`match_reconciliation_target`, with no eager action, so it is legal inside a `@dlt.table` closure.
+`mismatch_logging.py::build_mismatch_rows` and `dataset_reader.py::apply_reconciliation_overlays`
+(plus `read_reconciliation_dataset`'s `in_graph` flag) are the other pure halves both hosts share.
+
+`graph_registration.py::register_reconciliation_flow(...)` is the in-pipeline registrar (layers
+L3/L4/L5 of the DAG). L3 publishes the prepared source and prepared target as real datasets — so
+the read/filter/standardize/hash chain is paid **once** per update instead of once per target, and
+`target_record_count` is structurally pinned to the pre-append instant. L4 publishes
+`recon__<rid>__<tid>__classified` / `__metrics` / `__mismatch` as real, queryable, lineage-tracked
+UC tables in `publish_schema`, with `dq_config` expectations attached to the one-row `__metrics`
+dataset (the first declarative way a reconciliation threshold can fail a pipeline update). L5 is
+the heal lane: the fingerprint-ledger-guarded append plus the three control-table writes, re-hosted
+verbatim inside **one** `dlt.foreach_batch_sink` handler per flow, keeping notebook 05's sequential
+per-target loop, its `try/except` and its `break` — so `error_handling.on_failure: "fail"` still
+stops the remaining targets of that `reconciliation_id`. `pipeline_audit_only` registers L3+L4 and
+leaves healing in job mode. `_counts_query` / `_mismatch_query` / `_wants_heal` are its helpers.
+The fingerprint ledger (`compute_batch_fingerprint` / `is_target_batch_already_processed`) is
+**kept verbatim and is more load-bearing here, not less**: a full refresh re-runs an
+`@dlt.append_flow` with no cleanup of prior writes, and `foreach_batch_sink`'s `batch_id` restarts
+at 0 while the target table is untouched.
 
 ## `archive/`
 
@@ -232,6 +311,15 @@ the pipeline's own graph-definition code:
   `diagnose_pipeline_telemetry_failures`); declarative tool specs in
   `agent_skills/dlt_observability_tools.json`.
 
+`reconciliation_export.py::export_reconciliation_control_rows(spark, control_catalog, group_id,
+pipeline_update_id) -> int` (**v1.5.0**) is the observability-side counterpart of in-pipeline
+reconciliation: it reads every `recon__*__metrics` / `__mismatch` dataset a pipeline update
+published and writes the corresponding `reconciliation_run_log` / `reconciliation_mismatch_log`
+rows, de-duplicated per `(pipeline_update_id, target)`, so `pipeline_audit_only` flows still land
+in the control tables. Like every other function in this package it runs as a **downstream job
+task**, never inside the pipeline graph — requirement R3, observability stays a normal Lakeflow job
+task, unchanged.
+
 New exception types: `ObservabilityConfigError` (config/context resolution failures),
 `ObservabilityDispatchError` (all-destinations-failed).
 
@@ -239,12 +327,47 @@ New exception types: `ObservabilityConfigError` (config/context resolution failu
 
 Control-table DDL, read access, provisioning, and post-deployment steps.
 `ddl_definitions.py::get_all_control_table_ddls` (pure string-building, no execution — this is
-the DDL ground truth for every control table's columns). `repository.py::
-load_active_group_metadata(spark, control_catalog, group_id)` is what the engine notebook
-calls to resolve the active group + its active ingestion/transformation rows.
+the DDL ground truth for every control table's columns; remember that literal braces inside those
+f-strings must be doubled as `{{ }}`). `repository.py::
+load_active_group_metadata(spark, control_catalog, group_id) -> GroupMetadata` is what the engine
+notebook calls to resolve the active group + its active flow rows. **Signature changed in v1.5.0:**
+it now returns a 4-field `GroupMetadata` NamedTuple — `(group_row, ingestion_rows,
+transformation_rows, reconciliation_rows)` — where it previously returned three values. The fourth
+field is what lets the engine notebook register reconciliation as a third flow type; unpack by name
+(`md.reconciliation_rows`), and read the newer nullable group columns defensively via
+`getattr(md.group_row, "source_plane_config_json", None)`, since `01_setup` only ever runs
+`CREATE TABLE IF NOT EXISTS` and an already-provisioned control table will not have them.
 `schema_provisioner.py::ensure_control_schema_exists` idempotently creates the `config` schema
 + all control tables (shared by `01_setup_control_tables.py` and the onboarding engine's own
-self-provisioning). `post_deployment.py::apply_all_governance_tags` /
+self-provisioning).
+
+**Additive column migration, added in v1.5.0.** Every statement in `get_all_control_table_ddls` is
+`CREATE TABLE IF NOT EXISTS`, a no-op against an existing table — so a column added to a CREATE
+statement reaches **new installations only**. `ddl_definitions.py::ADDITIVE_CONTROL_TABLE_COLUMNS`
+(bare table name → list of `(column_name, sql_type, comment)`) plus
+`ddl_definitions.py::get_add_column_ddl(control_schema, table_name, column_name, sql_type, comment)`
+close that gap for existing ones, driven by
+`schema_provisioner.py::ensure_control_table_columns(spark, control_catalog)`, now called at the
+end of `ensure_control_schema_exists`. It currently carries
+`reconciliation_flow_spec`'s `two_tier_verification`/`execution_mode`/`publish_schema`/
+`dq_config_json` and `dataflow_group_spec`'s `source_plane_config_json`. Four things to know before
+touching it:
+
+- **A new control-table column must be added in BOTH places** — the `CREATE TABLE` DDL *and*
+  `ADDITIVE_CONTROL_TABLE_COLUMNS` — so a fresh install and a migrated one converge.
+- **Strictly additive**: only `ALTER TABLE ... ADD COLUMNS`, never a drop and never a retype.
+  Existing rows get NULL, which is each column's documented default.
+- **Idempotence is caller-side**, because Databricks SQL rejects `ADD COLUMNS IF NOT EXISTS` with
+  `PARSE_SYNTAX_ERROR` (verified live 2026-08-31). `ensure_control_table_columns` skips columns
+  already present and swallows only the narrow duplicate-column race
+  (`_DUPLICATE_COLUMN_CONDITIONS` / `_is_duplicate_column_race`, sibling to the pre-existing
+  `_ALREADY_EXISTS_CONDITIONS` / `is_already_exists_race`).
+- **`databricks bundle deploy` does not apply it.** Only *running* the `setup_control_tables` task
+  does. Verified live: `metaflow.config.reconciliation_flow_spec` had none of the three new
+  columns, and pipeline-mode onboarding failed with `UNRESOLVED_COLUMN` until the setup task ran.
+  On a brand-new workspace the migration is a harmless no-op. See `common_pitfalls.md` 26 and 27.
+
+`post_deployment.py::apply_all_governance_tags` /
 `capture_all_scd_change_counts` are the two functions
 `notebooks/04_governance/04_apply_governance_and_egress.py` calls after a pipeline update
 completes — both are genuinely *post*-deployment because they need state (a materialized

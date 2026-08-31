@@ -96,6 +96,9 @@
 | 🟡 | [R4](#r4) | `target_to_source` never appends and never writes MISSING_IN_SOURCE rows for a `source_to_target` flow | `comparison_direction` |
 | 🟠 | [R5](#r5) | Continuous reconciliation is **removed** — it never ran on serverless anyway | `recon_mode` |
 | 🔵 | [R6](#r6) | Batch restartability uses a fingerprint; streaming uses the Spark checkpoint — different guarantees | `read_mode` |
+| 🟠 | [R7](#r7) | A recon source that is an in-graph `TRUNCATE_AND_LOAD`/SCD/snapshot/MV target **cannot** use `execution_mode: "pipeline"` | `execution_mode`, `cdc_load_strategy` |
+| 🔴 | [R8](#r8) | A job-mode recon task left in the YAML beside a pipeline-mode flow runs the comparison **twice** and double-appends | `execution_mode` + `resources/*.yml` |
+| 🔵 | [R9](#r9) | `publish_schema` defaults to the **hosting pipeline's own** schema — three audit tables land beside your business tables | `publish_schema` |
 
 ### Sinks & egress
 
@@ -123,6 +126,10 @@
 | 🟠 | [L4](#l4) | `read_stream` vs `read` must match how the upstream was registered |
 | 🔴 | [L5](#l5) | A Delta streaming source must be **append-only** |
 | 🟠 | [L6](#l6) | `CREATE OR REPLACE FUNCTION` is idempotent in intent but not atomic |
+| 🔴 | [L7](#l7) | A `@dlt.view` is **not** a read-once construct — every consumer opens its own source |
+| 🟠 | [L8](#l8) | `pipelines.incompatibleViewCheck.enabled=false` is **known and rejected** — do not set it |
+| 🔴 | [L9](#l9) | Reading a pipeline table's **backing storage path** to dodge the self-read ban is forbidden |
+| 🔵 | [L10](#l10) | An in-graph healing loop converges in **one update per correction round**, never in-update |
 
 ### Deployment & operations
 
@@ -132,6 +139,8 @@
 | 🔴 | [O2](#o2) | DABs' sync snapshot goes stale — notebooks silently do not update |
 | 🟡 | [O3](#o3) | Pipeline flow retries default to 5 — a flaky flow reports SUCCESS |
 | 🔵 | [O4](#o4) | UC object quota and serverless concurrency limits produce failures that look like framework bugs |
+| 🟠 | [O5](#o5) | `CREATE TABLE IF NOT EXISTS` never adds a column to an **existing** control table — and `bundle deploy` does not run the migration |
+| 🟠 | [O6](#o6) | A pipeline whose `artifact_path` belongs to **another** bundle target is orphaned by every deploy of that target |
 
 ---
 ---
@@ -925,6 +934,110 @@ correlation value.
 
 ---
 
+### <a id="r7"></a>R7 🟠 A `TRUNCATE_AND_LOAD` (or SCD / snapshot / MV) recon source cannot use `execution_mode: "pipeline"`
+
+`execution_mode: "pipeline"` registers the prepared source `_recon__<rid>__src` as a **streaming
+table**, because the L5 pulse streams it — that is what makes healing fire once per source-advancing
+update. **A Delta stream may only read an append-only table.** If the reconciliation source is a
+dataset this same pipeline publishes, and its producing flow does not write it append-only, the
+streaming read is illegal.
+
+| Producer of the recon source, in this same group | Why not append-only | `"pipeline"` legal? |
+|---|---|---|
+| `APPEND` | plain append | ✅ |
+| `TRUNCATE_AND_LOAD` | a `@dlt.table` fed by a **full recompute** — every update *replaces* its contents | ❌ |
+| `SCD1` / `SCD2` / `SCD3` | `dlt.apply_changes` — real `MERGE`/`UPDATE`/`DELETE` writes | ❌ |
+| `FULL_SNAPSHOT_CDC` | `dlt.apply_changes_from_snapshot` | ❌ |
+| `target_type: "materialized_view"` | fully refreshed on every update | ❌ |
+
+**The fix is one word: `execution_mode: "pipeline_audit_only"`.** L3 and L4 still run in-update, so
+the comparison, `__metrics` and the `dq_config` expectation are unaffected; only the corrective
+append moves back to the standalone `05_reconciliation_engine.py` job task.
+
+**Why this is graded 🟠 and not 🔵.** `TRUNCATE_AND_LOAD` was **missing** from the plan-time guard
+(`engine/source_plane.py::_NON_APPEND_ONLY_CDC_STRATEGIES`, which listed only the four CDC
+strategies) — it dispatches to no CDC strategy at all, so it slipped through. Such a flow passed
+**every** onboarding and plan-time check and then failed at pipeline **runtime** with:
+
+```
+DELTA_SOURCE_TABLE_IGNORE_CHANGES
+```
+
+`TRUNCATE_AND_LOAD` is now in the guard set, so the failure is a plan-time `FrameworkConfigError`
+naming the consumer, the locator, the producing flow and `'pipeline_audit_only'` as the setting to
+use. **Delta's own escape hatch, `skipChangeCommits`, is refused outright** — it silently drops
+every changed row instead of failing, which is strictly worse than failing the update. See
+[L5](#l5) and [`07_reconciliation_engine.md` §11.7](07_reconciliation_engine.md#117-the-reconciliation-source-must-be-append-only-in-pipeline-mode).
+
+**Real instance:** the geneva tariffs group reconciles against `geneva_admin.stg_tariffelementband`,
+which is that same group's own `TRUNCATE_AND_LOAD` ingestion target — which is why
+`metaflow_testing/053_geneva_e41a47ba_recon_in_pipeline.json` declares `pipeline_audit_only`. That
+scenario is verified **offline only** (validator + `plan_source_plane`, pinned by
+`tests/unit/test_geneva_e41a47ba_topology.py`); it has never been confirmed by a live run, because
+its target table's grants block the pipeline's run-as identity — see [O6](#o6).
+
+---
+
+### <a id="r8"></a>R8 🔴 A leftover job-mode recon task beside a pipeline-mode flow runs the comparison twice
+
+Flipping a reconciliation flow to `execution_mode: "pipeline"` (or `"pipeline_audit_only"`) changes
+**metadata only**. It does not touch your DABs resources, and nothing anywhere cross-checks them.
+
+A `run_<n>_reconciliation` notebook task still sitting in `resources/<...>_job.yml` therefore keeps
+running the *standalone* `05_reconciliation_engine.py` against the same `reconciliation_id` — so the
+comparison happens **twice per cycle**, once inside the pipeline update and once as the job task,
+and **each pass appends its own corrections** into `append_target_table`.
+
+**Why 🔴 rather than 🟠:** both passes succeed. Two SUCCESS run-log rows, two sets of appended
+corrections into an append-only bus, no error anywhere. The batch fingerprint
+([R6](#r6)) does not save you — the two passes are independent invocations against a source the
+first pass may already have moved, so the fingerprints legitimately differ.
+
+**This is not hypothetical.** `resources/metaflow_test_002_003_job.yml` still carried its
+`run_003_reconciliation` task after scenario 003 was flipped to `"pipeline"` — while the file's own
+header already claimed the task had been removed — risking a double-append into
+`Excalibur_usecase.zerobus_source_bus`. The task was deleted.
+
+**Rule:** the same change that sets `execution_mode` to a pipeline mode must delete that flow's
+standalone reconciliation task in the same commit. Grep the `resources/` tree for the
+`reconciliation_id` before you deploy.
+
+---
+
+### <a id="r9"></a>R9 🔵 `publish_schema` defaults to the hosting pipeline's own schema
+
+Under `execution_mode: "pipeline"` / `"pipeline_audit_only"` a flow publishes **three real,
+externally visible UC tables** — `recon__<rid>__<tid>__classified` / `__metrics` / `__mismatch`.
+Omitting `publish_schema` puts them in the pipeline's **own** target schema, beside the business
+tables it publishes. That is legal, and rarely what anyone wanted.
+
+`notebooks/03_engine/03_lakeflow_declarative_pipeline.py` resolves that default as
+`PIPELINE_SCHEMA`, first non-empty wins:
+
+1. `spark.conf` `pipelines.schema` (the pipeline's declared target schema, current key)
+2. `spark.conf` `pipelines.target` (its pre-`schema` spelling, still set by older pipelines)
+3. `spark.catalog.currentDatabase()`
+4. `GROUP_ROW.target_schema` from the dataflow group's control-table row
+
+All four missing logs a WARNING saying any flow without an explicit `publish_schema` will fail when
+its datasets are named.
+
+**Steps 1 and 2 exist because of a real failure.** `PIPELINE_SCHEMA` originally had no chain at all
+— just `currentDatabase()`. During **graph definition** the session's current database is *not* the
+pipeline's target schema, so it resolved to `None` even for a pipeline plainly declaring
+`schema: bronze_excalibur`, and the first node-naming call died with:
+
+```
+ValueError: Unsafe or malformed target_schema: None
+```
+
+Observed live on 2026-08-31 (pipeline `be78d88d`). It affected **only** flows relying on the
+default; a flow setting an explicit `publish_schema` never went near that path. Setting
+`publish_schema` explicitly, to a dedicated audit schema in the pipeline's own catalog, is the
+recommendation for anything beyond a test fixture.
+
+---
+
 ## Sinks & egress
 
 ### <a id="k1"></a>K1 🟠 Lakeflow sinks accept streaming queries only
@@ -1020,12 +1133,50 @@ the column degrades to `triggered` rather than failing.
 before a single flow runs. Any design where a target's query definition reads its own previous
 contents is rejected outright. This is what withdrew [D2](#d2).
 
+**The subtlety that costs a deploy cycle: `spark.read.table("<my own fully-qualified name>")` is
+NOT an escape.** Inside a pipeline, a plain Spark read of a name the same pipeline publishes is
+**intercepted and resolved as a graph reference**, exactly as if you had written `dlt.read(...)` —
+so it forms the same cycle and aborts the same way. Going through `spark` rather than `dlt` changes
+the spelling, not the graph.
+
+> **Documentation correction (v1.5.0).** `dq/quarantine.py`'s `_quarantine_table` docstring asserted
+> the opposite — that such a read fetches *"the table's PRIOR materialized state from outside the
+> pipeline graph."* That is wrong, and the docstring is corrected in v1.5.0. The code path is
+> unwired today, but it sits in the module this release touches, and a future author trusting the
+> old sentence would build a design that cannot run.
+
+The framework now defends this rule four times, at decreasing cost of discovery: a plan-time Kahn
+topological sort (`engine/source_plane.py::assert_acyclic`, raising `FrameworkGraphCycleError` and
+naming the exact ring) before a single `dlt` call; a binding rule that never gives an in-graph
+locator a source-plane node; the `V-CYC-1..5` onboarding rules in `spec_validator.py`; and an AST
+test asserting no closure reads the dataset it defines.
+
 ### <a id="l2"></a>L2 🟠 Never put an eager action inside a dataset query definition
 
 The closure runs during graph **construction**, when an upstream produced by the same update
 legitimately holds no data yet. `df.isEmpty()` / `limit(1).take(1)` therefore cannot distinguish
 *"source is empty"* from *"source not yet materialized"*, and will fire on flows whose source is
 never empty.
+
+**Corrected in v1.5.0 — the blanket form of this rule is too broad, and this repo already
+contradicts it in production.** `dq/quarantine.py::_quarantine_table` runs
+`upstream.agg(F.count(F.lit(1)), F.sum(...)).collect()[0]` inside a live `@dlt.table` closure on the
+**batch** branch, with the comment *"This closure body runs at Lakeflow's graph-EXECUTION time"*;
+only the **streaming** branch is guarded, and its stated reason is that *"a streaming DataFrame
+cannot be eagerly aggregated/collected here"*. The three prohibitions that are actually real:
+
+1. **An eager action on a STREAMING plan** — Spark raises *"Queries with streaming sources must be
+   executed with writeStream.start()"*.
+2. **A self-read** — see [L1](#l1).
+3. **A side-effecting write** (`saveAsTable`, `insertInto`, a control-table upsert) inside a query
+   definition. Side effects belong in a `foreach_batch_sink` handler, which is execution-time code
+   *outside* any query definition and where `.collect()`, `.count()`, `spark.sql` and `try`/`except`
+   are all legal.
+
+The batch-empty-source trap above is still real and still bites; what is *not* true is that every
+eager action is banned everywhere. `tests/unit/test_recon_registration_ast.py` enforces exactly the
+three prohibitions above and names the `quarantine.py` precedent in its docstring, so no future
+change re-broadens the rule and breaks shipped code.
 
 ### <a id="l3"></a>L3 🟠 An `apply_changes_from_snapshot` lambda may not reference any pipeline dataset
 
@@ -1048,7 +1199,9 @@ Reading a streaming view with batch `dlt.read()` raises
 
 ### <a id="l5"></a>L5 🔴 A Delta streaming source must be append-only
 
-See [R1](#r1) for the full account and recovery procedure.
+See [R1](#r1) for the full account and recovery procedure, and [R7](#r7) for the in-graph form of
+the same rule — a reconciliation flow in `execution_mode: "pipeline"` streams its source, so that
+source's producing flow must write it append-only.
 
 ### <a id="l6"></a>L6 🟠 `CREATE OR REPLACE FUNCTION` is idempotent in intent but not atomic
 
@@ -1057,6 +1210,82 @@ on UC function creation. The loser gets `[ROUTINE_ALREADY_EXISTS]`, every downst
 skipped, and it reads as a framework failure. Handled by
 `schema_provisioner.is_already_exists_race()`, which treats "someone else created it" as success
 while still failing loudly on permission, missing-schema, quota, and syntax errors.
+
+### <a id="l7"></a>L7 🔴 A `@dlt.view` is not a read-once construct
+
+A `@dlt.view` is **inlined into every consumer's plan**. Declaring a source once as a view and
+reading it from three places produces **three independent physical reads** of the underlying table
+or path — three `DeltaSource`s, or three Auto Loader streams. Nothing errors; the cost and the side
+effects simply happen N times.
+
+Two concrete consequences seen in this repo:
+
+* An Auto Loader ingestion flow with two quarantine rules opened **two independent `cloudFiles`
+  streams over one path sharing one `cloudFiles.schemaLocation`** — see [A4](#a4) for why one
+  schema location per stream is not optional.
+* A path carrying `landing_retention_policy` or `source_zip_handling` runs its **file-lifecycle side
+  effects once per consumer**: `cloudFiles.cleanSource` *moves or deletes* committed landing files,
+  and ZIP handling PGP-decrypts, unzips and writes `.__framework_extracted__` markers.
+
+**Only materialization makes "read once" literally true.** That is what `engine/source_plane.py`
+does: at fan-out ≥ 2 it registers one materialized `_src__…` node — a **streaming table** if any
+consumer streams, a materialized view otherwise — and every consumer binds to it. At fan-out 1 it
+deliberately stays inline, because materializing a single-consumer read would cost a full physical
+copy and destroy predicate pushdown of that consumer's filter into the original source. This is why
+`source_plane.materialize` defaults to `"auto"` rather than `"always"`.
+
+### <a id="l8"></a>L8 🟠 `pipelines.incompatibleViewCheck.enabled=false` is known and rejected
+
+When a batch consumer reads a streaming view, Lakeflow's error text
+(*"View `X` is a streaming view and must be referenced using readStream"*, see [L4](#l4)) names
+`pipelines.incompatibleViewCheck.enabled=false` as an escape hatch. **Do not set it, and do not add
+it to a spec's `spark_config`.** It is recorded here as evaluated and rejected for two independent
+reasons:
+
+1. It is **pipeline-wide**. It would be applied through `engine/spark_config.py` and would disable
+   the guard for *every* dataset in the group, not the one you were arguing with.
+2. It **silences the check without making a streaming plan batch-readable.** The incompatibility is
+   in the plan, not in the warning.
+
+The supported resolution is structural, not a flag: a shared source-plane node is registered as a
+**materialized streaming table whenever any consumer streams**, and one such table is legally
+readable by `dlt.read_stream` *and* `dlt.read` in the same update. A view can serve neither pair.
+
+### <a id="l9"></a>L9 🔴 Reading a pipeline table's backing storage path is forbidden
+
+Because [L1](#l1) blocks reading your own dataset by name, the tempting next move is to read its
+**backing storage location** instead — `spark.read.format("delta").load("<the table's path>")` —
+since [L3](#l3) establishes that a *path* is not a pipeline dataset. It works often enough to look
+like a technique. **It is forbidden in this framework, and no framework code does it.**
+
+* It reads a **stale, arbitrary** snapshot: which commit you get depends on where the update
+  happens to be, and Lakeflow has no ordering edge to the producing flow because you have hidden the
+  dependency from the graph.
+* It is exactly the cycle [L1](#l1) rejects, with the safety check removed — the same design, minus
+  the error message that would have told you.
+* It couples the pipeline to a physical location UC is free to change, and it bypasses every UC
+  permission and lineage check performed on the table name.
+
+If you need a table's prior state, publish it as a real upstream dataset and take the graph edge.
+If you need genuinely external, out-of-graph data, it belongs to a *different* pipeline.
+
+### <a id="l10"></a>L10 🔵 An in-graph healing loop converges one update per correction round
+
+Applies to `reconciliation_flows[].execution_mode: "pipeline"`
+([`07_reconciliation_engine.md` §11](07_reconciliation_engine.md#11-execution-modes-job-pipeline-pipeline_audit_only)).
+It is inherent, not a defect, and it is unchanged from job mode — but it surprises people who
+expect an in-DAG healer to be self-correcting *within* the run.
+
+The topological sort orders the ingestion read strictly **before** the reconciliation node that
+produces the corrections — that ordering is exactly what makes the reconciliation source
+same-update fresh — and the corrective append goes to a **sink**, which is outside the graph
+entirely. So **this update's corrections cannot be consumed by this update's read.** The only shape
+that would close the loop in-update is precisely the self-cycle [L1](#l1) rejects.
+
+Read a `reconciliation_run_log` row as *"appended N rows; expect convergence on the next update,"*
+not as *"the discrepancy is gone."* A dashboard that alerts on a non-zero
+`missing_in_target_count` from the same update that healed it will alert on every healthy
+correction round.
 
 ---
 
@@ -1116,6 +1345,78 @@ Validate updates in any case.
 
 Check before blaming code: `databricks schemas list <catalog> -p <profile>` and
 `databricks jobs list --active-only`.
+
+### <a id="o5"></a>O5 🟠 A new control-table column never reaches an existing workspace by `CREATE TABLE IF NOT EXISTS`
+
+Every statement in `control_plane/ddl_definitions.py::get_all_control_table_ddls` is a
+`CREATE TABLE IF NOT EXISTS`, which is a **no-op against a table that already exists**. So a column
+added to one of those `CREATE` statements reaches **new installations only**. An
+already-provisioned workspace keeps the old table shape indefinitely, with nothing logged and
+nothing to notice.
+
+**What that looks like in practice.** Verified live: `metaflow.config.reconciliation_flow_spec` had
+**none** of `execution_mode` / `publish_schema` / `dq_config_json`, so pipeline-mode onboarding on
+that workspace failed with `UNRESOLVED_COLUMN` on the column it was trying to write.
+
+**The fix, and its operational catch.** `ddl_definitions.py` now carries
+`ADDITIVE_CONTROL_TABLE_COLUMNS` (bare table name → `(column_name, sql_type, comment)`) plus
+`get_add_column_ddl()`, and `schema_provisioner.py` gained `ensure_control_table_columns(...)`,
+called at the end of `ensure_control_schema_exists`.
+
+> **`databricks bundle deploy` does NOT apply this migration.** Only **running** the
+> `setup_control_tables` task (`notebooks/01_setup/01_setup_control_tables.py`) does. A deploy that
+> "succeeds" leaves the control tables exactly as they were, and the next onboarding still fails
+> with `UNRESOLVED_COLUMN`. Deploy, then run `setup_control_tables`, then onboard.
+
+Three properties worth knowing before you extend it:
+
+* **Strictly additive.** `ALTER TABLE ... ADD COLUMNS` only — never a drop, never a retype. Every
+  existing row's new column is left NULL, which is exactly what each column's DDL comment documents
+  as its default (`execution_mode` NULL means `"job"`, so an already-onboarded flow keeps its
+  current behaviour rather than silently switching modes).
+* **Not `ADD COLUMNS IF NOT EXISTS`.** Databricks SQL rejects that spelling with
+  `PARSE_SYNTAX_ERROR` — verified live. Idempotence is caller-side (skip columns already present)
+  plus a narrow duplicate-column race swallow (`_is_duplicate_column_race`), the same shape as
+  [L6](#l6).
+* **On a brand-new workspace the migration is a no-op**, because the columns are in the `CREATE`
+  DDL too. It matters only for workspaces provisioned before the column was added.
+
+### <a id="o6"></a>O6 🟠 A pipeline reading another target's `artifact_path` is orphaned by every deploy of that target
+
+A Lakeflow pipeline installs the framework wheel from an `artifact_path`. Each `bundle deploy`
+builds a **new, uniquely-named** wheel, **prunes** the previous one (see [O1](#o1)), and updates
+only the pipelines **that target owns**.
+
+A pipeline that reads its wheel from another target's (or another principal's) artifact path is
+therefore left pointing at a wheel that no longer exists, and fails with:
+
+```
+ENVIRONMENT_PIP_INSTALL_ERROR
+```
+
+**No deploy of that target repairs it** — the deploy that broke it does not know the pipeline
+exists, and a deploy of the pipeline's own bundle is not what is running. Unique per-deploy wheel
+filenames prevent overwrite-in-place, not removal.
+
+**Live instance, currently unresolved.** Pipeline `e41a47ba-5ad0-4dc5-9535-5aa16cc97e65` is a
+`[dev arjun]` pipeline reading from `metaflow@nrmanalytix.com`'s artifact path, so every
+`dev_metaflow` deploy orphans it. It needs its own `artifact_path`, or to be brought under the
+bundle. This is a **pre-existing bundle-topology problem**, not a consequence of any framework
+release.
+
+**A second, independent blocker on that same scenario, also unresolved.** Its reconciliation target
+`metaflow.bronze_excalibur.bronze_tariffelementband` grants `SELECT` to `arjun@`, `gowtham@` and
+`varadaraju@` only — **not** to `metaflow@nrmanalytix.com`, which is the identity the pipeline runs
+as. Schema-level access is fine (the same identity reads `bronze_excalibur.autoload_bronze`), so
+this is a **table-level grant gap**:
+
+```sql
+GRANT SELECT ON TABLE metaflow.bronze_excalibur.bronze_tariffelementband TO `metaflow@nrmanalytix.com`;
+```
+
+Until both are cleared, that scenario is verified **offline only** — validator plus
+`plan_source_plane`, pinned by `tests/unit/test_geneva_e41a47ba_topology.py` — and has never been
+confirmed by a live pipeline run. See [R7](#r7).
 
 ---
 

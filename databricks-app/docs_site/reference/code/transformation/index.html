@@ -3431,7 +3431,7 @@
 </thead>
 <tbody>
 <tr>
-<td><code>register_transformation_inputs(spark: SparkSession, source_inputs: List[Dict[str, Any]]) -&gt; None</code></td>
+<td><code>register_transformation_inputs(spark: SparkSession, source_inputs: List[Dict[str, Any]], plan: SourcePlanePlan, flow_step_id: str) -&gt; None</code></td>
 <td>Register one <code>@dlt.view</code> per configured transformation input, applying watermarks.</td>
 </tr>
 <tr>

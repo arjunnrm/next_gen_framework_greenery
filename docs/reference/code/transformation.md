@@ -19,7 +19,7 @@ Transformation-engine multi-input registration: one watermarked ``@dlt.view`` pe
 
 | Signature | Purpose |
 |---|---|
-| `register_transformation_inputs(spark: SparkSession, source_inputs: List[Dict[str, Any]]) -> None` | Register one ``@dlt.view`` per configured transformation input, applying watermarks. |
+| `register_transformation_inputs(spark: SparkSession, source_inputs: List[Dict[str, Any]], plan: SourcePlanePlan, flow_step_id: str) -> None` | Register one ``@dlt.view`` per configured transformation input, applying watermarks. |
 | `mark_streaming_references(sql_text: str, source_inputs: List[Dict[str, Any]]) -> str` | Prefix every ``FROM``/``JOIN`` reference to a streaming input with SQL's ``STREAM`` keyword. |
 
 

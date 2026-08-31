@@ -1,11 +1,15 @@
 # Metaflow Testing Status Tracker
 
 > Companion to [`TESTING_PLAN.md`](TESTING_PLAN.md) — tracks actual progress against that plan.
-> Last updated: 2026-08-29 (v1.3.0 live execution pass -- see Section 0).
+> Last updated: 2026-08-31 (**`TC-R2-001` / scenario S1 is now VERIFIED LIVE** — see §0b, which
+> supersedes every earlier row saying S3 is the only executable Module 12 scenario. Module 12 also
+> gained `TC-DAG-003` (audit-only) plus `TESTING_PLAN.md` §3.12, the operator-facing scenario
+> runbook for S1–S4 — see §4 below).
 
 ## How to read this doc
 
-`TESTING_PLAN.md`'s 45 `TC-*` rows are a **planned/aspirational** test matrix — each names its
+`TESTING_PLAN.md`'s 50 `TC-*` rows (45 pre-v1.5.0 plus Module 12's `TC-DAG-001`/`TC-DAG-002`/
+`TC-DAG-003`/`TC-DAG-004`/`TC-R2-001`) are a **planned/aspirational** test matrix — each names its
 own dedicated pipeline/job (e.g. `metaflow_test_ing_001_zip_filter_pipeline`). Almost none of
 those dedicated resources have actually been built yet; what exists today are 4 broader,
 already-built scenarios (`001`/`002`+`003`/`100`) that each exercise *several* `TC-*` concerns
@@ -22,7 +26,101 @@ exercises part of this, not a dedicated 1:1 build) · **Not Applicable** (supers
 
 ---
 
-## 0a. Targeted pipeline-failure investigation — `dev_metaflow` (2026-08-29, latest)
+## 0b. `TC-R2-001` / S1 — reconciliation inside the pipeline DAG, VERIFIED LIVE (2026-08-31, latest)
+
+> **This section supersedes §4's and Module 12's earlier statement that "only S3 is fully executable
+> today".** S1 has now been run end-to-end against a live workspace and passed. S2, S4 and S5 remain
+> not-live, each behind a named blocker (below) — nothing here should be read as covering them.
+
+### Result
+
+| Field | Value |
+|---|---|
+| Test case | `TC-R2-001` (`TESTING_PLAN.md` §3.12.1, scenario **S1**) |
+| Target | `dev_metaflow` |
+| Job | `metaflow_test_recon_dag_job`, job id **`854232399214818`** |
+| Pipeline | **`be78d88d-6064-414d-a10c-2aacd900fa86`** (`metaflow_test_003_autoload_recon_pipeline`) |
+| Date | **2026-08-31** |
+| Spec | `metaflow_testing/003_autoload_recon_append.json` (`execution_mode: "pipeline"`) |
+| Outcome | **Executed — Pass** (job run SUCCESS) |
+
+### Task results (all four)
+
+| Task | Result |
+|---|---|
+| `setup_control_tables` | **SUCCESS** |
+| `seed_metaflow_testing_data` | **SUCCESS** |
+| `onboard_003` | **SUCCESS** |
+| `run_003_pipeline` | **SUCCESS** |
+
+`setup_control_tables` is load-bearing here, not boilerplate: it is the *only* thing that applies the
+new additive control-table column migration (`execution_mode` / `publish_schema` / `dq_config_json`
+on `reconciliation_flow_spec`). `bundle deploy` does **not** apply it — see §0b "What this did and
+did not prove".
+
+`onboard_003` runs via the generic parameterised `resources/onboarding_job.yml` (`run_job_task`), not
+an inlined `02_onboarding_engine.py` notebook task — the new convention for any *new* job. The
+standalone `run_003_reconciliation` task was **deleted** from
+`resources/metaflow_test_002_003_job.yml`; its absence is part of the pass criteria, because with
+`003` flipped to `execution_mode: "pipeline"` that task would have run reconciliation a second time
+and risked a double append into `Excalibur_usecase.zerobus_source_bus`.
+
+### Evidence — what pipeline `be78d88d` registered in ONE update
+
+Taken from the pipeline's own event log (`dataset_definition` / `flow_definition` / `sink_definition`
+events for that update), this is the direct proof of **R1** (ingestion + transformation +
+reconciliation in one DAG):
+
+| Registered object | Kind | Layer |
+|---|---|---|
+| `metaflow.bronze_excalibur.autoload_bronze` | `STREAMING_TABLE` | ingestion |
+| `_recon__recon_excalibur_autoload_vs_zerobus__src` | `STREAMING_TABLE` | L3 prepare (source side) |
+| `_recon__recon_excalibur_autoload_vs_zerobus__zerobus_bronze_target__tgt` | `MATERIALIZED_VIEW` | L3 prepare (target side) |
+| `recon__recon_excalibur_autoload_vs_zerobus__zerobus_bronze_target__classified` | `MATERIALIZED_VIEW` | L4 |
+| `recon__recon_excalibur_autoload_vs_zerobus__zerobus_bronze_target__metrics` | `MATERIALIZED_VIEW` | L4 |
+| `recon__recon_excalibur_autoload_vs_zerobus__zerobus_bronze_target__mismatch` | `MATERIALIZED_VIEW` | L4 |
+| `_recon__recon_excalibur_autoload_vs_zerobus__pulse` | `STREAMING_TABLE` | L5 gate |
+| `recon__recon_excalibur_autoload_vs_zerobus__heal_flow` | `APPEND` flow | L5 |
+| `_recon__recon_excalibur_autoload_vs_zerobus__heal_sink` | sink, `foreachBatch` | L5 |
+
+### What this did and did not prove
+
+- **`dlt.foreach_batch_sink` IS available on DBR serverless.** The design previously treated this as
+  unproven and named `pipeline_audit_only` as the fallback if it turned out not to exist. The
+  `_recon__…__heal_sink` `sink_definition` above settles it: the L5 heal lane is real, not
+  theoretical. The `hasattr` guard in `reconciliation/graph_registration.py::register_foreach_batch_sink`
+  stays — the locally installed `databricks-dlt` 0.3.0 stub still lacks the symbol, so the guard is
+  still correct — but it is no longer expected to trip on DBR.
+- **The additive control-table migration is required and is deploy-invisible.** On this workspace
+  `metaflow.config.reconciliation_flow_spec` had **none** of `execution_mode` / `publish_schema` /
+  `dq_config_json`, and pipeline-mode onboarding failed with `UNRESOLVED_COLUMN` until
+  `setup_control_tables` ran. Every statement in `get_all_control_table_ddls` is
+  `CREATE TABLE IF NOT EXISTS`, a no-op against an existing table, so a column added to a `CREATE`
+  reaches **new installations only**. Running `databricks bundle deploy` does not fix an existing
+  workspace; running the `setup_control_tables` task does.
+- **Backward compatibility held.** Every pre-existing reconciliation row on this workspace still
+  reads `execution_mode` NULL, which `load_active_group_metadata` resolves to `"job"` in Python, and
+  `register_reconciliation_flow` early-returns on it. No job-mode flow was registered into the graph.
+- **It did NOT prove S2, S4 or S5.** One passing scenario is one scenario. In particular it does not
+  prove the `pipeline_audit_only` branch (S2/`TC-DAG-003`), the read-once source plane across three
+  flow kinds (S4/`TC-DAG-001`), or the geneva topology (S5/`TC-DAG-004`).
+
+### Still not live, with blockers (unchanged by this run)
+
+| Scenario | TC | State | Blocker |
+|---|---|---|---|
+| S2 — audit-only | `TC-DAG-003` | Not Started (spec-only) | No pipeline/job resource, no seed notebook for `dag_003_usecase` / `dag_003_downstream` / `dag_003_remediation`, and 5 new schemas needed against the 50-schema metastore ceiling. |
+| S3 — negative cycle | `TC-DAG-002` | **Executed — Pass (offline validator)** | None — needs no workspace. |
+| S4 — read-once source plane | `TC-DAG-001` | Not Started | **B3**: `metaflow_testing/049_dag_001_unified_three_flow.json` depends on `metaflow.dag_001_usecase.shared_source_bus`, which **no seed notebook populates**. Also no `observability` destinations array, so `run_observability_task` fails loudly. |
+| S5 — geneva `e41a47ba` in-DAG | `TC-DAG-004` | **Partly Verified — OFFLINE ONLY** | **B1**: pipeline `e41a47ba-5ad0-4dc5-9535-5aa16cc97e65` is a `[dev arjun]` pipeline reading its wheel from `metaflow@nrmanalytix.com`'s artifact path; every `dev_metaflow` deploy builds a uniquely-named wheel and **prunes** the old one while updating only the pipelines that target owns, so this pipeline is orphaned by each deploy and fails with `ENVIRONMENT_PIP_INSTALL_ERROR`. No `dev_metaflow` deploy repairs it; it needs its own `artifact_path` or to be brought under the bundle. Pre-existing bundle-topology problem, **not** caused by v1.5.0. **B2**: `metaflow.bronze_excalibur.bronze_tariffelementband` grants `SELECT` to `arjun@`, `gowtham@` and `varadaraju@` only — not `metaflow@nrmanalytix.com`, which is what the pipeline runs as (schema-level access is fine; `metaflow@` reads `bronze_excalibur.autoload_bronze`). Needed: `GRANT SELECT ON TABLE metaflow.bronze_excalibur.bronze_tariffelementband TO \`metaflow@nrmanalytix.com\`;` |
+
+**S5 is verified OFFLINE only** — validator + `plan_source_plane`, pinned by
+`tests/unit/test_geneva_e41a47ba_topology.py` (6 tests). It has never had a live run. Do not report
+it as a passing live scenario.
+
+---
+
+## 0a. Targeted pipeline-failure investigation — `dev_metaflow` (2026-08-29)
 
 > **This section supersedes the per-test rows below for the five pipelines it names.** Each was
 > diagnosed from its own Lakeflow event stream rather than from runner logs, and each was re-run
@@ -295,7 +393,10 @@ pre-existing `binaryFile` / `fileNamePattern` incompatibility fixed first.
 | Scenario | Resource(s) | Spec | Doc | Status | Notes |
 |---|---|---|---|---|---|
 | 001 — ZIP join + export | `metaflow_test_001_zip_join_export_pipeline` / `_job` | `metaflow_testing/001_zip_file_onboarding.json` | — (pre-existing) | Deployed | Pre-existing scenario; not re-run in this pass. |
-| 002+003 — Zerobus + Autoload recon | `metaflow_test_002_zerobus_pipeline`, `metaflow_test_003_autoload_recon_pipeline` / `metaflow_test_002_003_job` | `002_zerobus_data_load.json`, `003_autoload_recon_append.json` | — (pre-existing) | Deployed; **known fragility found 2026-08-29** | Re-running the full `002_003`/`004` chain repeatedly against this same long-lived dev workspace can break scenario 002's Zerobus streaming read with `DELTA_MERGE_UNRESOLVED_EXPRESSION`/`DELTA_SOURCE_TABLE_IGNORE_CHANGES` — the seed script's idempotent re-merge into `zerobus_source_bus` and scenario 003's own self-healing appends both count as Delta "data updates" that a plain streaming reader can't tolerate mid-checkpoint. Worked around this pass via `databricks pipelines start-update --full-refresh` on `metaflow_test_002_zerobus_pipeline`; not a code bug, but a real operational gotcha worth knowing before re-running this chain — see `docs/archive/legacy_docs/30_test_pipeline_recon_features.md`'s "Real live-run results" section. |
+| 002+003 — Zerobus + Autoload recon | `metaflow_test_002_zerobus_pipeline`, `metaflow_test_003_autoload_recon_pipeline` / `metaflow_test_002_003_job` | `002_zerobus_data_load.json`, `003_autoload_recon_append.json` | — (pre-existing) | Deployed; **known fragility found 2026-08-29**; **spec changed 2026-08-30 (v1.5.0, not yet re-deployed/re-run)** | Re-running the full `002_003`/`004` chain repeatedly against this same long-lived dev workspace can break scenario 002's Zerobus streaming read with `DELTA_MERGE_UNRESOLVED_EXPRESSION`/`DELTA_SOURCE_TABLE_IGNORE_CHANGES` — the seed script's idempotent re-merge into `zerobus_source_bus` and scenario 003's own self-healing appends both count as Delta "data updates" that a plain streaming reader can't tolerate mid-checkpoint. Worked around this pass via `databricks pipelines start-update --full-refresh` on `metaflow_test_002_zerobus_pipeline`; not a code bug, but a real operational gotcha worth knowing before re-running this chain — see `docs/archive/legacy_docs/30_test_pipeline_recon_features.md`'s "Real live-run results" section. **2026-08-30**: `003`'s reconciliation flow now sets `execution_mode: "pipeline"` and an explicit `dataflow_group_id` (`TC-R2-001` — see `TESTING_PLAN.md` Module 12); offline-verified against `_validate_reconciliation_pipeline_placement` and the full JSON schema (0 placement errors, 0 schema errors). **2026-08-31 — now VERIFIED LIVE**: run through the dedicated `metaflow_test_recon_dag_job` (job id `854232399214818`), pipeline `be78d88d-6064-414d-a10c-2aacd900fa86`, all four tasks SUCCESS, with ingestion + L3/L4/L5 reconciliation nodes registered in one update — see §0b for the full evidence table. Note this ran through the *new* job, not `metaflow_test_002_003_job`; the `metaflow_test_002_003_job` result recorded above still reflects the pre-flip, job-mode behaviour, and its standalone `run_003_reconciliation` task has since been deleted so the flow cannot reconcile twice. |
+| **049/050/051 — Unified pipeline-mode reconciliation / read-once source plane (new specs, v1.5.0)** | `resources/metaflow_test_dag_001_unified_{pipeline,job}.yml` and `metaflow_test_104_geneva_tariffs_recon_{pipeline,job}.yml` **now exist** (they were "a later build step" when this row was first written); `050` has none by design | `049_dag_001_unified_three_flow.json`, `050_dag_002_recon_cycle_negative.json`, `051_geneva_tariffs_recon.json` | `TESTING_PLAN.md` Module 12 + §3.12 | **Not Started** (resources built, never deployed or run; `049` and `051` are blocked — see `TESTING_PLAN.md` §3.12.4 / §3.12.5) | Blockers, restated so "resources exist" is not read as "runnable": **`049`** has no seed notebook for `metaflow.dag_001_usecase.shared_source_bus` (its job wires `02_seed_metaflow_testing_data.py`, which seeds only the `EA_usecase`/`Excalibur_usecase` families), and no `observability` destinations array, so `run_observability_task` fails loudly. **`051`** is blocked on grants: the `metaflow` CLI identity holds neither `USE SCHEMA` on `metaflow.geneva_admin` nor `SELECT` on the far side `metaflow.bronze_excalibur.bronze_tariffelementband`, while live pipeline `e41a47ba` runs as another principal; its far-side producer `dfg_zerobus_tariffelementband_cdc` is outside this repo and still carries the v1.4.0-removed `normalize_column_names: true`. **`050`** is the one Module 12 fixture fully executable today (offline validator only). All three offline-verified this pass: JSON-schema-valid (`jsonschema.Draft202012Validator`, 0 errors each) and checked directly against `onboarding/spec_validator.py::_validate_reconciliation_pipeline_placement` after `{{catalog}}`→`metaflow` substitution (the same substitution `onboarding/spec_loader.py::substitute_environment_placeholders` performs before `validate_spec()` ever sees the spec). `049`: 0 placement errors (the only `validate_spec()` finding at all is the expected `spark=None` `EXPLAIN` artifact on its `transformation_sql`, identical in kind to every other transformation-flow fixture in this repo). `050`: exactly 1 error, the intended V-CYC-3 rejection naming `ingestion_flow[df_dag_002_tariffs_zerobus_ingest]`. `051`: 0 errors (deliberately — see `TESTING_PLAN.md`'s note on the cross-spec blind spot). None have been onboarded against a live workspace or run. |
+| **052 — Audit-only pipeline-mode reconciliation (new spec, 2026-08-31)** | **None** — no `resources/metaflow_test_dag_003_audit_only_{pipeline,job}.yml` exists; the names used in `TESTING_PLAN.md` §3.12.2 are proposed, not built | `052_dag_003_recon_audit_only.json` | `TESTING_PLAN.md` `TC-DAG-003` + §3.12.2 | **Not Started** (spec-only) | One of TWO fixtures setting `execution_mode: "pipeline_audit_only"` — the other is `053` (the live geneva pipeline `e41a47ba`, forced into audit-only because its `TRUNCATE_AND_LOAD` source cannot be streamed; see `TC-DAG-004`). `049`/`003` use plain `"pipeline"`, `051` is a synthetic mirror superseded by `053`, `050` is the negative case. `052` remains the only *purpose-built* audit-only fixture. Before it, the audit-only branch of `reconciliation/graph_registration.py` had no fixture coverage at all (unit-only: `tests/unit/test_flow_generators.py`, `tests/unit/test_read_once_wiring.py`). Offline-verified: `validate_spec(None, spec)` returns only the expected `spark=None` `EXPLAIN` artifact on `tf_dag_003_audit_source_direct_view.transformation_sql` — 0 placement errors. **Not runnable**: no resources, no seed for `dag_003_usecase.audit_source_bus` / `dag_003_downstream.audit_target_copy` / `dag_003_remediation.audit_heal_landing`, and 5 new schemas needed against the 50-schema metastore ceiling. Do not report audit-only as covered on the strength of this fixture existing. |
+| **053 — Geneva `e41a47ba` recon-in-pipeline variant (new spec, 2026-08-31)** | Shares `metaflow_test_104_geneva_tariffs_recon_{pipeline,job}.yml` with `051` | `053_geneva_e41a47ba_recon_in_pipeline.json` (`dfg_geneva_tariffs_recon`, reconciliation flow `rec_tariff_element_band`) | `TESTING_PLAN.md` §3.12.5 | **Not Started** | Second capture of the same live geneva group under a different `reconciliation_id`. Blocked by exactly the same grants/seed/cross-repo issues as `051` — see §3.12.5. |
 | 100 — ZIP+CSV, SCD1, quarantine, OTel | `metaflow_test_100_zipcsv_pipeline` / `_job` | `100_zipcsv_onbaording.json` | — (pre-existing) | **Executed — Pass** | Re-run 2026-08-29 as a regression check on this session's changes (run `322114205956865`, all 3 tasks SUCCESS, ~4 min). Data sanity: `customer_raw` 3 rows, `customer_plain_raw` 5 rows, `customer_raw_quarantine` 0 rows. No regression from `ingestion/json_flattening.py`, `ingestion/column_normalization.py`, CDC dispatch, or ZIP-extraction changes. |
 | **004 — Reconciliation feature test (new)** | `metaflow_test_004_recon_features_job` (no dedicated pipeline — reconciliation is a notebook task, not a Lakeflow flow type) | `004_recon_features_test.json` | [`docs/07_reconciliation_engine.md`](../docs/07_reconciliation_engine.md) | **Executed — Pass (2/3 flows), needs a re-run (1/3)** | `recon_004_logging_on`/`recon_004_logging_off`: **Executed — Pass**, fully verified live. `recon_004_streaming` (task `run_004_recon_streaming`): the streaming-side flow. Its last live run predates v1.4.0, when this flow was `recon_004_continuous` and ran an unbounded trigger that serverless job compute rejects outright (`INFINITE_STREAMING_TRIGGER_NOT_SUPPORTED`); the error handling and logging around it were verified correct at the time. Reconciliation is now triggered-only — a `read_mode: "streaming"` side runs under `trigger(availableNow=True)`, drains its backlog and stops — so the platform constraint no longer applies and this flow is expected to pass. **Re-run needed to confirm live.** |
 | **Observability OTel streaming pipeline (new, Design 1)** | `observability_otel_streaming_pipeline` (`continuous: true`, no job) | — (not onboarding-spec-driven) | [`docs/archive/legacy_docs/29_test_pipeline_otel_streaming.md`](../docs/archive/legacy_docs/29_test_pipeline_otel_streaming.md) | Deployed, **not started live** | Deliberately not started as part of this pass — it is a `continuous: true` pipeline that would keep running (and consuming compute) indefinitely once started; starting it needs your explicit go-ahead, not a bundled "run the tests" pass. Verified structurally only (see that doc's Expected Results section). |
@@ -399,6 +500,12 @@ a real bug.
 | TC-GOV-002 Tag Application Idempotency | Built | `metaflow_test_gov_002_idempotent_tag_job`; no dedicated spec/pipeline — reuses TC-GOV-001's job/pipeline for a second run to assert idempotency (see Known gaps above). Not yet run live. |
 
 ### Module 7: Cross-Dataset Reconciliation & Self-Healing
+
+> All three rows below are **job-mode** and form part of the v1.5.0 no-impact regression set —
+> see §4 and `TESTING_PLAN.md` §3.12.6. `TC-REC-001`'s flow is the one `TC-R2-001`/S1 flipped to
+> `execution_mode: "pipeline"`; `TC-REC-002`/`TC-REC-003` must keep their existing behaviour with
+> no new or relaxed assertions.
+
 | TC | Status | Note |
 |---|---|---|
 | TC-REC-001 Missing-Record Self-Healing Backfill | Partially Covered | Scenario 003's own reconciliation flow (`recon_excalibur_autoload_vs_zerobus`) already does exactly this. |
@@ -435,11 +542,83 @@ a real bug.
 | TC-PRM-005 Parameterized Egress Sink Paths | Built | `metaflow_test_prm_005_sink_param_job` / `_pipeline`; spec `metaflow_testing/047_prm_005_sink_param.json`. Directly exercises the new path-parameter feature — `sink_config.path` is one of the fields `substitute_path_parameters` now covers. Not yet run live. |
 | TC-PRM-006 Negative: Undefined Parameter Error | Built | `metaflow_test_prm_006_negative_param_job`; spec `metaflow_testing/048_prm_006_negative_param.json`. No dedicated pipeline (negative/error-path test). Not yet run live. |
 
+### Module 12: Unified Pipeline-Mode Reconciliation & Read-Once Source Plane (v1.5.0)
+
+> Scenario-level detail (pre-conditions, run commands, observable pass criteria, named blockers)
+> now lives in [`TESTING_PLAN.md`](TESTING_PLAN.md) §3.12, which maps these `TC-*` rows onto four
+> operator scenarios: **S1** full pipeline mode incl. the L5 heal lane (`TC-R2-001`), **S2**
+> audit-only (`TC-DAG-003`), **S3** negative cycle rejection (`TC-DAG-002`), **S4** read-once
+> source plane (`TC-DAG-001`), **S5** the live geneva pipeline `e41a47ba` moved in-DAG
+> (`TC-DAG-004`). Of the five, **S1 has now passed live** (2026-08-31, job `854232399214818`,
+> pipeline `be78d88d-6064-414d-a10c-2aacd900fa86` — see §0b, which supersedes this doc's earlier
+> "only S3 is fully executable today"), and **S3** remains fully executable offline — it needs no
+> workspace at all. **S2 and S4 are still not-live** (no resources/seed for S2; no seed for
+> `dag_001_usecase.shared_source_bus` for S4 — blocker B3). S5's offline half (validator +
+> `plan_source_plane` assertions, pinned by `tests/unit/test_geneva_e41a47ba_topology.py`) passes
+> today; its live half is still blocked — the control-table column migration now exists and is
+> applied by running `setup_control_tables`, but pipeline `e41a47ba` is orphaned by every
+> `dev_metaflow` deploy (blocker B1) and `metaflow@nrmanalytix.com` still lacks `SELECT` on the
+> far-side bronze table (blocker B2). See §0b and `TESTING_PLAN.md` §3.12.5.
+
+| TC | Status | Note |
+|---|---|---|
+| TC-DAG-001 Read-Once Source Plane Across Three Flow Kinds | Not Started | Spec `metaflow_testing/049_dag_001_unified_three_flow.json`; resources `resources/metaflow_test_dag_001_unified_{pipeline,job}.yml` **now exist** (no longer "a later build step") and `tests/integration/test_metaflow_dag_001_unified_three_flow.py` already encodes every S4 assertion. Offline-verified: 0 JSON-schema errors, 0 `_validate_reconciliation_pipeline_placement` errors (see Section 1). **Not deployed, not run, and not runnable** (**blocker B3**): nothing seeds `metaflow.dag_001_usecase.shared_source_bus` — see `TESTING_PLAN.md` §3.12.4 Blockers. S1 passing live (§0b) does **not** cover this: `003` has a single reconciliation source and so proves R1, not R2 across three flow kinds. Note the pytest module *skips* rather than fails when the pipeline is absent, so a green run against an un-deployed bundle is not evidence. Also: `049` is deliberately heal-less (`target_to_source`, no `append_target_table`), so it proves R1/R2 but **cannot** prove the L5 lane. |
+| TC-DAG-002 Negative: Recon Append Into Own Ingestion Source (V-CYC-3) | **Executed — Pass (offline validator)** | Spec-only: `metaflow_testing/050_dag_002_recon_cycle_negative.json`. Deliberately never deployed (negative/error-path test, same pattern as `TC-PRM-006`). **Re-confirmed 2026-08-31** by running `validate_spec(None, spec)` with `{{catalog}}`→`metaflow`: the error list has length **exactly 1** and is the intended V-CYC-3 rejection naming `recon_dag_002_cycle_negative` and `df_dag_002_tariffs_zerobus_ingest`. The verbatim message is quoted in `TESTING_PLAN.md` §3.12.3 criterion 2. Note `validate_spec()` returns a 5-tuple — the errors are the **last** element; the earlier elements hold collected rows and are populated even for a rejected spec. Still un-run against a live onboarding job; per §0 runner requirement 3 its job-level verdict must be inverted when it is. |
+| TC-DAG-003 Audit-Only: Compare In-DAG, Heal In-Job (`pipeline_audit_only`) | Not Started | Spec-only: `metaflow_testing/052_dag_003_recon_audit_only.json`; no pipeline/job resource and no seed notebook exist. One of two fixtures covering the `pipeline_audit_only` branch (with `053`), and the only purpose-built one. The test is chiefly a *negative* one — zero `sink_definition` for `_recon__..._heal_sink`, zero `_recon__..._pulse` dataset, 0 rows appended to `dag_003_remediation.audit_heal_landing` — while L3/L4 and the `dq_config` expectation on `__metrics` must still be present and executed. The internal `__missing` dataset **is** still expected (gated on `_wants_heal` alone, not on `execution_mode`). See `TESTING_PLAN.md` §3.12.2. |
+| TC-DAG-004 The Live Geneva Pipeline `e41a47ba` Moved In-DAG (`pipeline_audit_only`) | Partly Verified (offline only) | Spec: `metaflow_testing/053_geneva_e41a47ba_recon_in_pipeline.json`, whose `dataflow_id` and `reconciliation_id` are transcribed from the LIVE `metaflow.config.*` rows so re-onboarding MERGEs in place instead of adding duplicate flows — unlike `051`, which declares the same group but different flows. **Green today**: `validate_spec()` returns 0 errors; `plan_source_plane()` rejects `execution_mode: "pipeline"` (the source, `geneva_admin.stg_tariffelementband`, is this group's own `TRUNCATE_AND_LOAD` ingestion target, and Delta refuses to stream from a full recompute) and accepts `pipeline_audit_only` with the source bound `in_graph_sibling` — R2 read-once on a real production topology. All pinned by `tests/unit/test_geneva_e41a47ba_topology.py` (6 tests). **Blocked from a live run** by three environmental issues, none a code defect: (1) `metaflow.config.reconciliation_flow_spec` is missing `execution_mode`/`publish_schema`/`dq_config_json` until the additive migration in `schema_provisioner.ensure_control_table_columns` is applied by re-running `setup_control_tables` — `bundle deploy` alone does NOT apply it (this half is now *solved*, and was proved by S1's own `setup_control_tables` task in §0b — it just has to be run on whatever workspace hosts `e41a47ba`); (2) **blocker B1** — `e41a47ba` is a `[dev arjun]` pipeline reading its wheel from `metaflow@nrmanalytix.com`'s artifact path, so every `dev_metaflow` deploy builds a new uniquely-named wheel, prunes the old one and updates only the pipelines that target owns, orphaning this one with `ENVIRONMENT_PIP_INSTALL_ERROR`; no `dev_metaflow` deploy repairs it, and it needs its own `artifact_path` or to be brought under the bundle (a pre-existing bundle-topology problem, **not** caused by v1.5.0); (3) **blocker B2** — the `metaflow@nrmanalytix.com` identity lacks `SELECT` on `metaflow.bronze_excalibur.bronze_tariffelementband` (table-level gap only; schema-level access is fine). Do not record this as a passing live scenario on the strength of the offline assertions — it is verified **offline only**. See §0b and `TESTING_PLAN.md` §3.12.5. |
+| TC-R2-001 Existing Scenario Regression Under `execution_mode: "pipeline"` | **Executed — Pass (live, 2026-08-31)** | Run via the dedicated `metaflow_test_recon_dag_job` (job id **`854232399214818`**) on `dev_metaflow`; pipeline **`be78d88d-6064-414d-a10c-2aacd900fa86`**. All four tasks SUCCESS (`setup_control_tables`, `seed_metaflow_testing_data`, `onboard_003`, `run_003_pipeline`). The pipeline's own event log shows ingestion (`bronze_excalibur.autoload_bronze`), the L3 prepare pair, the three L4 `classified`/`__metrics`/`__mismatch` MVs, the L5 `__pulse` streaming table, the `__heal_flow` APPEND flow and the `_recon__…__heal_sink` `foreachBatch` sink all registered in **one** update — full evidence table in §0b. This also settles the open question about `dlt.foreach_batch_sink` on DBR serverless: it exists, and the L5 heal lane is real rather than theoretical. Spec: `metaflow_testing/003_autoload_recon_append.json` (`execution_mode: "pipeline"`). This is **S1** in `TESTING_PLAN.md` §3.12.1 — the only fixture that both heals and has a working seed notebook. Carried into the run and confirmed: (a) the `run_003_reconciliation` task was **deleted** from `resources/metaflow_test_002_003_job.yml`, and its absence is part of the pass criteria (with `003` in pipeline mode it would have reconciled twice and risked a double append into `Excalibur_usecase.zerobus_source_bus`); (b) `TC-REC-001`/`TC-R2-001`'s prose says the missing keys are `C011`/`C012`, but the actual seeded fixtures make them **`C006`/`C007`** (`zerobus_source_bus_batch1.csv` = `C001`–`C005`, `autoload_batch1.csv` = `C001`–`C007`) — assert against `C006`/`C007`. |
+
 ---
 
 ## 3. Suggested Next Batch (if continuing this backlog)
 
 Highest-value next picks, given what this session already built/verified:
-1. **TC-PRM-001 / TC-PRM-005** — directly exercise the new path-parameter substitution feature; no other prerequisite work needed.
-2. **TC-SEC-003** — directly relevant to the still-open `crypto/column_crypto.py` secret-exposure investigation; picking this up would need to resolve that open question first (see memory), not just write a test around today's behavior.
-3. Any `TC-CDC-*`/`TC-DQ-*` row — genuinely net-new dedicated scenarios, straightforward to build following the `002_003`/`004` job pattern.
+1. ~~**TC-R2-001 (S1)**~~ — **DONE, passed live 2026-08-31** via `metaflow_test_recon_dag_job` (job `854232399214818`), see §0b. Everything else in Module 12 is still blocked behind a seed notebook or a grant.
+2. **A seed notebook for `metaflow.dag_001_usecase.shared_source_bus`** (`notebooks/00_seed_sample_data/03_seed_dag_001_shared_source_bus.py`) — a few dozen rows of `record_id`/`value`, insert-only. This one file unblocks **S4** (blocker B3), the only real proof of R2, whose resources and integration tests are already written and waiting. This is now the **highest-value** remaining pick.
+2b. **Unblock S5** — give pipeline `e41a47ba` its own `artifact_path` or bring it under the bundle (B1), and `GRANT SELECT ON TABLE metaflow.bronze_excalibur.bronze_tariffelementband TO \`metaflow@nrmanalytix.com\`` (B2). S5 is verified offline only until both land.
+3. **TC-PRM-001 / TC-PRM-005** — directly exercise the new path-parameter substitution feature; no other prerequisite work needed.
+4. **TC-SEC-003** — directly relevant to the still-open `crypto/column_crypto.py` secret-exposure investigation; picking this up would need to resolve that open question first (see memory), not just write a test around today's behavior.
+5. Any `TC-CDC-*`/`TC-DQ-*` row — genuinely net-new dedicated scenarios, straightforward to build following the `002_003`/`004` job pattern.
+
+---
+
+## 4. Job-Mode Reconciliation Regression Set (must stay green through v1.5.0)
+
+`execution_mode` is `NULL`/absent on every reconciliation row written before v1.5.0, and
+`control_plane/repository.py::load_active_group_metadata` resolves that to `"job"` in **Python**
+(`getattr(r, "execution_mode", None) or "job"`) rather than via a Spark `.filter()` — deliberately,
+so a control table created by an older `01_setup` run still reads as job-mode instead of raising on
+a missing column. `reconciliation/graph_registration.py::register_reconciliation_flow` independently
+early-returns on a job-mode row. **An untouched flow therefore keeps its exact previous behaviour,
+and nothing job-mode is ever registered into a pipeline graph.** Confirmed live on 2026-08-31 (§0b):
+every pre-existing reconciliation row on `dev_metaflow` still reads `execution_mode` NULL after the
+S1 run, and no `_recon__%`/`recon__%` dataset was registered for any job-mode flow.
+
+Note the missing-column case is now *also* repaired rather than merely tolerated: `ddl_definitions`
+gained `ADDITIVE_CONTROL_TABLE_COLUMNS` / `get_add_column_ddl()` and `schema_provisioner` gained
+`ensure_control_table_columns()`, called at the end of `ensure_control_schema_exists`. It is applied
+**only** by running the `setup_control_tables` task — `bundle deploy` does not apply it — and it is
+strictly additive (never a drop or a retype). The `getattr(..., None) or "job"` read stays as the
+belt to that braces.
+
+These are the real `TC-*` rows that must be re-run unchanged to hold that claim — full criteria in
+`TESTING_PLAN.md` §3.12.6:
+
+| TC / scenario | Resource | Status carried forward | Why it is in the regression set |
+|---|---|---|---|
+| `TC-REC-001` | Scenario `003`'s own flow | Partially Covered (see Module 7) | This is the flow S1 flipped to pipeline mode; its job-mode outcome is S1's before/after baseline. |
+| `TC-REC-002` | `metaflow_test_rec_002_drift_job` / `_pipeline` (`037_rec_002_drift.json`) | Built; last live attempt Fail (upstream failure, `dev`) | Job-mode `VALUE_DRIFT` detection must be byte-identical. |
+| `TC-REC-003` | `metaflow_test_rec_003_precomputed_hash_job` / `_pipeline` (`038_rec_003_precomputed_hash.json`) | Built; last live attempt Fail (upstream failure, `dev`) | `hash_precomputed` is now threaded into the new L3 nodes as well as the job path — a change to `matcher.prepare_dataset_for_matching` would break both at once. |
+| `SCN-004` (`004_recon_features_test.json`) | `metaflow_test_004_recon_features_job` | Executed — Pass (2/3 flows); `recon_004_streaming` still owes a re-run | Only coverage of `logging_config` precedence and of a `read_mode: "streaming"` side under `trigger(availableNow=True)`. All three flows are job-mode and must stay so. That re-run debt predates v1.5.0 — do not close it by assumption. |
+| `TC-PRM-003` | — | Not Started | Listed for completeness: `${param}` substitution now runs on **both** paths (`substitute_path_parameters` is called inside `register_reconciliation_flow` too) and is tested on neither. |
+
+Two cheap no-impact checks with no home anywhere yet:
+
+- **A job-mode group registers nothing.** For a group whose reconciliation rows are all job-mode,
+  its pipeline event log must contain **zero** `dataset_definition` events matching `_recon__%` or
+  `recon__%`. Non-zero means the repository filter regressed.
+- **`publish_schema` / `dq_config` must be rejected on presence under `execution_mode: "job"`**
+  (`RECONCILIATION_FLOW_KEYS_REQUIRING_PIPELINE_MODE`, trigger is presence not truthiness — so
+  `"dq_config": {"rules": []}` must still be rejected). `tests/unit/test_spec_validator.py`
+  contains **no** assertion mentioning `publish_schema`, and no `metaflow_testing/` fixture covers
+  the combination. Currently unverified.

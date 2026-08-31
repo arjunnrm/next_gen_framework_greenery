@@ -14,6 +14,17 @@ input's event-time column is cast to ``timestamp`` before ``withWatermark`` is a
 source ingested from JSON/CSV routinely delivers that column as ``STRING`` and
 ``withWatermark`` requires an actual ``TimestampType``.
 
+``input_name`` is now an ALIAS over the L0/L2 source plane (``engine/source_plane.py``), not the
+read itself: the view's body resolves its DataFrame via ``source_plane.bind(plan,
+f"{flow_step_id}:input:{input_name}", want_stream=is_streaming)`` instead of calling
+``spark.read(Stream).table(qualified_table)`` directly. This is what fixes the *cross-flow* R2
+violation -- two transformation inputs (in the same flow or across different flows in the
+group) that point at the identical physical table now share one planned read, materialized
+once, rather than each opening its own independent physical scan. ``input_name`` itself is
+unaffected: it stays the SQL identifier ``transformation_sql`` references and stays spec-wide
+unique (enforced by ``onboarding/spec_validator.py::_validate_no_duplicate_input_names``); only
+what backs it changed, from a direct read to a plane binding.
+
 :func:`mark_streaming_references` is the necessary companion: because ``transformation_sql``
 runs as one plain ``spark.sql(...)`` call, Spark SQL resolves a bare ``FROM``/``JOIN`` reference
 to a streaming view as a *batch* reference regardless of how the view was actually registered
@@ -33,12 +44,18 @@ from pyspark.sql import SparkSession
 from pyspark.sql import functions as F
 
 from NextGen_Metadata_Framework.lakeflow_framework.crypto.column_crypto import apply_aes_column_decryption
+from NextGen_Metadata_Framework.lakeflow_framework.engine.source_plane import SourcePlanePlan, bind
 from NextGen_Metadata_Framework.lakeflow_framework.exceptions import FrameworkConfigError
 
 logger = logging.getLogger("common.transformation.inputs")
 
 
-def register_transformation_inputs(spark: SparkSession, source_inputs: List[Dict[str, Any]]) -> None:
+def register_transformation_inputs(
+    spark: SparkSession,
+    source_inputs: List[Dict[str, Any]],
+    plan: SourcePlanePlan,
+    flow_step_id: str,
+) -> None:
     """Register one ``@dlt.view`` per configured transformation input, applying watermarks.
 
     Each entry in ``source_inputs`` is shaped like::
@@ -51,7 +68,15 @@ def register_transformation_inputs(spark: SparkSession, source_inputs: List[Dict
         }
 
     The resulting views are referenced by ``input_name`` directly from the transformation
-    SQL's ``FROM``/``JOIN`` clauses.
+    SQL's ``FROM``/``JOIN`` clauses. Each view's body resolves its DataFrame via
+    ``source_plane.bind(plan, f"{flow_step_id}:input:{input_name}", want_stream=is_streaming)``
+    -- the same ``plan`` (see :mod:`NextGen_Metadata_Framework.lakeflow_framework.engine.source_plane`)
+    built once for the whole dataflow group, so ``input_name`` is now an ALIAS over the shared
+    (or in-graph-sibling, or inline) plane binding rather than a direct
+    ``spark.read(Stream).table(...)`` of its own. ``spark`` is still accepted for interface
+    stability with callers and for any future direct use, but the input's own read no longer
+    goes through it -- ``bind`` resolves its own active ``SparkSession`` for an ``inline``
+    binding.
 
     ``decrypted_columns`` (v2 schema) is the *only* valid place to decrypt a source column
     -- decryption happens here, per input, before ``transformation_sql`` ever runs; a
@@ -70,7 +95,9 @@ def register_transformation_inputs(spark: SparkSession, source_inputs: List[Dict
     ------
     FrameworkConfigError
         If an input config is missing ``input_name``/``table``, or a configured
-        ``watermark`` is missing ``event_time_column``/``delay_threshold``.
+        ``watermark`` is missing ``event_time_column``/``delay_threshold``. Also raised by
+        :func:`NextGen_Metadata_Framework.lakeflow_framework.engine.source_plane.bind` itself
+        if ``f"{flow_step_id}:input:{input_name}"`` is not a known binding in ``plan``.
     """
     for input_config in source_inputs:
         try:
@@ -95,19 +122,16 @@ def register_transformation_inputs(spark: SparkSession, source_inputs: List[Dict
         decrypted_columns = input_config.get("decrypted_columns", [])
 
         def _make_input_view(
-            qualified_table=qualified_table,
+            input_name=input_name,
             is_streaming=is_streaming,
             event_time_column=event_time_column,
             delay_threshold=delay_threshold,
             decrypted_columns=decrypted_columns,
         ):
-            if is_streaming:
-                view_df = spark.readStream.table(qualified_table)
-                if event_time_column:
-                    view_df = view_df.withColumn(event_time_column, F.col(event_time_column).cast("timestamp"))
-                    view_df = view_df.withWatermark(event_time_column, delay_threshold)
-            else:
-                view_df = spark.read.table(qualified_table)
+            view_df = bind(plan, f"{flow_step_id}:input:{input_name}", want_stream=is_streaming)
+            if is_streaming and event_time_column:
+                view_df = view_df.withColumn(event_time_column, F.col(event_time_column).cast("timestamp"))
+                view_df = view_df.withWatermark(event_time_column, delay_threshold)
             if decrypted_columns:
                 view_df = apply_aes_column_decryption(view_df, decrypted_columns)
             return view_df

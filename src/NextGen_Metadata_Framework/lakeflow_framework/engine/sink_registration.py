@@ -56,10 +56,10 @@ depended on the clean side being a persisted table.
 """
 
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional
 
 import dlt
-from pyspark.sql import functions as F
+from pyspark.sql import DataFrame, functions as F
 from pyspark.sql.session import SparkSession
 
 from NextGen_Metadata_Framework.lakeflow_framework.archive.pgp_zip_sink import PgpZipDataSource
@@ -149,10 +149,22 @@ def _build_sink_options(flow_label: str, sink_format: str, sink_config: Dict[str
         by an older validator version).
     """
     if sink_format == "delta":
+        # A Delta sink accepts EITHER a table_name (a Unity Catalog table reference --
+        # options={"tableName": ...}) OR a path (an external/unmanaged location --
+        # options={"path": ...}), per Lakeflow's own sink docs: "Delta table sinks ... Specify
+        # either a file path or a fully qualified table name" (see _SINKS_DOC_URL). table_name
+        # is the shape a UC-table sink needs -- for example the reconciliation L5
+        # 'pipeline_audit_only' fallback declaring a plain dlt.create_sink over
+        # append_target_table (a real three-part UC name, not a filesystem path). table_name
+        # is preferred over path when both are present since it is the more specific,
+        # governance-friendly reference.
+        table_name = sink_config.get("table_name")
+        if table_name:
+            return {"tableName": table_name}
         path = sink_config.get("path")
-        if not path:
-            raise FrameworkConfigError(f"Flow '{flow_label}': sink_config.path is required for format 'delta'")
-        return {"path": path}
+        if path:
+            return {"path": path}
+        raise FrameworkConfigError(f"Flow '{flow_label}': sink_config must set either 'table_name' or 'path' for format 'delta'")
 
     if sink_format == "kafka":
         # Same options a Spark Structured Streaming Kafka writer supports (Lakeflow's own
@@ -239,6 +251,92 @@ def _create_sink(flow_label: str, sink_name: str, sink_config: Dict[str, Any]) -
     dlt.create_sink(name=sink_name, format=sink_format, options=options)
 
 
+def register_foreach_batch_sink(sink_name: str, handler: Callable[[DataFrame, int], None]) -> None:
+    """Register a genuine Lakeflow ``dlt.foreach_batch_sink`` -- the ForEachBatch sink type
+    (see https://learn.microsoft.com/en-us/azure/databricks/ldp/for-each-batch) -- and apply
+    ``handler`` to it, exactly as ``@dlt.foreach_batch_sink(name=...)`` would if used as a
+    decorator. This is the ONE construct in Lakeflow where arbitrary Python control flow,
+    ``.collect()``/``.count()`` and ``.saveAsTable()`` are legal at EXECUTION time on the
+    current update's data -- see ``reconciliation/graph_registration.py``'s L5 healing handler,
+    the intended (and, as of this change, only) caller.
+
+    **Why this is guarded and ``dlt.create_sink`` (:func:`_create_sink` above, called
+    unguarded at graph-definition time) is not:** ``dlt.create_sink`` is production-proven in
+    this framework -- every ``"sink"``/``"external_sink"`` flow already deploys through it.
+    ``dlt.foreach_batch_sink`` is Public Preview and, confirmed live in this project's own
+    environment, is ABSENT from the installed ``databricks-dlt`` 0.3.0 stub
+    (``hasattr(dlt, "foreach_batch_sink")`` is ``False``). Calling it unguarded would fail as a
+    bare ``AttributeError`` deep inside pipeline graph resolution; guarding it here turns that
+    into an actionable :class:`FrameworkConfigError` naming the operator-facing workaround.
+
+    Parameters
+    ----------
+    sink_name
+        The sink's registered name -- referenced as ``target=`` by the ``@dlt.append_flow``
+        that feeds it (e.g. the reconciliation L5 healing flow).
+    handler
+        The per-micro-batch function, with the same ``(batch_df, batch_id)`` signature as
+        Spark Structured Streaming's ``foreachBatch``. Side effects only -- its return value
+        is ignored.
+
+    Raises
+    ------
+    FrameworkConfigError
+        If the active ``dlt`` module has no ``foreach_batch_sink`` attribute -- i.e. this
+        workspace/runtime does not support it yet.
+    """
+    if not hasattr(dlt, "foreach_batch_sink"):
+        raise FrameworkConfigError(
+            f"Cannot register foreach_batch_sink '{sink_name}': the active Lakeflow runtime's "
+            "'dlt' module has no 'foreach_batch_sink' attribute -- it is a Public Preview "
+            "construct and is not available in every workspace/runtime (confirmed absent from "
+            "the databricks-dlt 0.3.0 stub this project develops against). This construct is "
+            "required for execution_mode 'pipeline' reconciliation healing. Fix: set the flow "
+            "group's execution_mode to 'pipeline_audit_only' (ingestion/transformation run "
+            "in-pipeline; reconciliation healing still runs as a separate job task, unchanged) "
+            "or 'job' (the whole flow group runs as separate job tasks, unchanged) until "
+            "foreach_batch_sink is available in this workspace/runtime."
+        )
+    dlt.foreach_batch_sink(name=sink_name)(handler)
+
+
+def require_streaming_source(flow_label: str, is_streaming: bool, construct: str, detail: str) -> None:
+    """Raise :class:`FrameworkConfigError` unless ``is_streaming`` is ``True``.
+
+    Every genuine Lakeflow sink-adjacent construct in this framework -- ``dlt.create_sink`` +
+    ``@dlt.append_flow`` here, and the reconciliation L5 healing ``@dlt.append_flow`` registered
+    by ``reconciliation/graph_registration.py`` (its pulse-gated join into
+    :func:`register_foreach_batch_sink`'s handler) -- accepts ONLY a streaming query: "Only
+    streaming queries are supported. Batch queries are not supported." (see
+    ``_SINKS_DOC_URL``). This is the ONE guard for that shared constraint; callers reuse it
+    verbatim instead of each re-implementing an equivalent check with a slightly different
+    message.
+
+    Parameters
+    ----------
+    flow_label
+        Identifies the flow in the raised message.
+    is_streaming
+        Whether the caller's upstream query is genuinely streaming.
+    construct
+        Names the thing that requires streaming, e.g. ``"target_type 'sink'"``.
+    detail
+        Caller-specific detail appended after the shared Lakeflow-constraint sentence -- what
+        "not streaming" means for this caller, and how to fix it.
+
+    Raises
+    ------
+    FrameworkConfigError
+        If ``is_streaming`` is ``False``.
+    """
+    if not is_streaming:
+        raise FrameworkConfigError(
+            f"Flow '{flow_label}': {construct} requires a genuinely streaming source. "
+            f"Lakeflow's dlt.create_sink()/@dlt.append_flow only supports streaming queries -- "
+            f"batch queries are not supported (see {_SINKS_DOC_URL}) -- {detail}"
+        )
+
+
 def _register_sink_quarantine_table_if_configured(
     staged_view_name: str,
     target_table: str,
@@ -300,18 +398,17 @@ def register_sink_target(
     with logged_operation(
         "sink_registration", flow_label, target_table=target_table, target_type="sink", sink_format=(target_config.get("sink_config") or {}).get("format")
     ):
-        if not is_streaming:
-            raise FrameworkConfigError(
-                f"Flow '{flow_label}': target_type 'sink' requires a genuinely streaming source. "
-                f"Lakeflow's dlt.create_sink()/@dlt.append_flow only supports streaming queries -- "
-                f"batch queries are not supported (see {_SINKS_DOC_URL}) -- and this flow's staged "
-                "view is NOT streaming (its ingestion source_type is batch-only, or -- for a "
-                "transformation flow -- none of its source_inputs is marked 'is_streaming: true'). "
-                "Fix: either change target_type to 'batch_table' (and export it some other way, "
-                "outside this framework's sink support), or make the underlying source streaming "
-                "(source_type: autoloader/asn1/zerobus for an ingestion flow, or "
-                "source_inputs[].is_streaming: true for a transformation flow)."
-            )
+        require_streaming_source(
+            flow_label,
+            is_streaming,
+            "target_type 'sink'",
+            "and this flow's staged view is NOT streaming (its ingestion source_type is batch-only, "
+            "or -- for a transformation flow -- none of its source_inputs is marked "
+            "'is_streaming: true'). Fix: either change target_type to 'batch_table' (and export it "
+            "some other way, outside this framework's sink support), or make the underlying source "
+            "streaming (source_type: autoloader/asn1/zerobus for an ingestion flow, or "
+            "source_inputs[].is_streaming: true for a transformation flow).",
+        )
 
         sink_config = target_config.get("sink_config") or {}
         if not sink_config:

@@ -21,15 +21,22 @@ attempt work" reconnaissance, layered on top of the framework's own existing val
    ``source_config.path``/``source_config.schema_location``, checks live Unity Catalog via
    ``databricks.sdk.WorkspaceClient`` whether it already exists. A target/volume not existing
    yet is reported informationally (``WILL_BE_CREATED``) -- onboarding routinely creates new
-   catalogs/schemas/tables, so that alone is never an error. The one exception:
-   ``transformation_flows[].source_inputs[].table`` entries are a **hard requirement**
-   (``MISSING_REQUIRED`` if absent) *unless* that exact table is itself the target of another
-   ingestion/transformation flow in this same spec -- transformation flows resolve
-   ``source_inputs`` via a polymorphic table lookup at pipeline-run time, so a source table
-   that is neither pre-existing nor produced elsewhere in this same onboarding batch will
-   fail that lookup for real; one produced by a sibling flow in this spec resolves in-graph
-   (same ``dataflow_group_id``/pipeline) and is never a live Unity Catalog object at onboarding
-   time, so its absence is completely normal, not an error.
+   catalogs/schemas/tables, so that alone is never an error. The exceptions:
+   ``transformation_flows[].source_inputs[].table`` and
+   ``reconciliation_flows[].source_config.table`` / ``target_configs[].table`` entries are each
+   a **hard requirement** (``MISSING_REQUIRED`` if absent) *unless* that exact table is itself
+   the target of another ingestion/transformation flow in this same spec -- these all resolve
+   their table via a polymorphic lookup at pipeline-run/job-run time, so a table that is
+   neither pre-existing nor produced elsewhere in this same onboarding batch will fail that
+   lookup for real; one produced by a sibling flow in this spec resolves in-graph (same
+   ``dataflow_group_id``/pipeline) and is never a live Unity Catalog object at onboarding time,
+   so its absence is completely normal, not an error.
+   ``reconciliation_flows[].target_configs[].append_target_table`` is the opposite direction
+   (the healing append WRITES there, so its own absence is always informational, never
+   required) but gets an additional ``"append_schema"`` check comparing its existing columns
+   against the flow's declared append shape (the source table's columns, adjusted for
+   ``hash_precomputed`` -- see :func:`_check_append_target_schema_shape`), reported as
+   ``SCHEMA_OK``/``SCHEMA_MISMATCH`` since a declared Delta sink cannot ``mergeSchema``.
 4. Returns one JSON string report: ``{"valid": bool, "validation_errors": [...],
    "existence_checks": [...], "summary": "..."}`` -- see :func:`preflight_check_onboarding_spec`
    for the full shape. Designed so an LLM agent calling this as a tool gets one unambiguous
@@ -141,6 +148,31 @@ _REQUIRED_SOURCE_TABLE_NOTE = (
     "resolve source_inputs via a polymorphic table lookup at pipeline-run time, so this table "
     "must already exist in Unity Catalog unless another flow in this same spec creates it"
 )
+
+# A reconciliation flow reads source_config.table / target_configs[].table directly (the
+# standalone job engine's dataset_reader.py, or -- in pipeline execution_mode -- the L3
+# source-plane bind()) to build the comparison, exactly the same "resolved at run time, not
+# a pipeline-graph reference" hazard transformation_flows[].source_inputs[].table already
+# has -- so both get the identical REQUIRED-unless-produced-by-another-flow-in-this-spec
+# treatment (see _run_existence_checks).
+_REQUIRED_RECONCILIATION_SOURCE_TABLE_NOTE = (
+    "REQUIRED source_config.table of reconciliation_flow[{flow_id}] -- reconciliation reads this table "
+    "directly to build the comparison, so it must already exist in Unity Catalog unless another flow in "
+    "this same spec creates it"
+)
+_REQUIRED_RECONCILIATION_TARGET_TABLE_NOTE = (
+    "REQUIRED target_configs[{target_id}].table of reconciliation_flow[{flow_id}] -- reconciliation reads "
+    "this table directly to build the comparison, so it must already exist in Unity Catalog unless another "
+    "flow in this same spec creates it"
+)
+
+# The framework's two canonical hash columns (cdc/hashing.py's HASH_KEY_COLUMN /
+# HASH_VALUE_COLUMN, and the same names reconciliation/matcher.py's append_columns keys off
+# of). Duplicated here as plain strings, deliberately NOT imported from cdc.hashing, because
+# that module imports pyspark unconditionally at module scope -- this tool must keep working
+# with no Spark/pyspark available at all (see _acquire_spark_session).
+_FRAMEWORK_HASH_KEY_COLUMN = "__framework_hash_key"
+_FRAMEWORK_HASH_VALUE_COLUMN = "__framework_hash_value"
 
 
 def _parse_spec_text_json_or_yaml(text: str) -> Dict[str, Any]:
@@ -315,6 +347,21 @@ def _run_existence_checks(
         except Exception:  # noqa: BLE001
             return False
 
+    def _table_columns(full_name: str) -> Optional[Set[str]]:
+        """Best-effort live column names of ``full_name`` (via ``tables.get(...).columns``),
+        or ``None`` if the table doesn't exist, carries no column metadata, or the lookup
+        fails for any reason. Purely advisory -- see ``_check_append_target_schema_shape``,
+        the only caller -- so any failure degrades to "nothing to compare" rather than an
+        error."""
+        try:
+            table_info = workspace_client.tables.get(full_name)
+        except Exception:  # noqa: BLE001 - advisory only, never blocks the report
+            return None
+        columns = getattr(table_info, "columns", None) or []
+        names = {getattr(column, "name", None) for column in columns}
+        names.discard(None)
+        return names or None
+
     ingestion_flows = spec.get("ingestion_flows")
     transformation_flows = spec.get("transformation_flows")
     ingestion_flows = ingestion_flows if isinstance(ingestion_flows, list) else []
@@ -413,6 +460,132 @@ def _run_existence_checks(
                     lambda n=table_ref: _table_exists(n),
                 )
 
+    # Reconciliation flows: source_config.table and each target_configs[].table are live UC
+    # tables reconciliation READS to build the comparison -- the same polymorphic, run-time-
+    # resolved hazard transformation_flows[].source_inputs[].table already has -- so a table
+    # in in_spec_targets (produced by another ingestion/transformation flow in this same spec)
+    # is downgraded from a REQUIRED live lookup to informational, exactly as source_inputs
+    # already is. append_target_table is the opposite direction (the healing append WRITES
+    # there), so its own absence is normal -- it only gets an informational existence check --
+    # but its existing columns are compared against the flow's declared append shape, since a
+    # declared delta sink cannot mergeSchema (hard rule; see AGENTS.md / read_once_contract).
+    def _check_recon_source_like_table(table_ref: Any, path_label: str, required_note: str) -> None:
+        if not isinstance(table_ref, str) or not table_ref:
+            return
+        parts = table_ref.split(".")
+        if len(parts) != 3:
+            notes.append(
+                f"{path_label}: '{table_ref}' is not a 'catalog.schema.table' three-level name -- skipped "
+                "its existence check."
+            )
+            return
+        if tuple(parts) in in_spec_targets:
+            _add(
+                "table",
+                table_ref,
+                f"{path_label} -- created by another flow in this same onboarding spec (in-pipeline-graph "
+                "dependency, not a live Unity Catalog lookup)",
+                lambda n=table_ref: _table_exists(n),
+            )
+            return
+        _add_required_table(table_ref, required_note, lambda n=table_ref: _table_exists(n))
+
+    def _check_append_target_schema_shape(source_config: Dict[str, Any], target_config: Dict[str, Any], flow_id: str) -> None:
+        append_target_table = target_config.get("append_target_table")
+        source_table = source_config.get("table")
+        if not isinstance(append_target_table, str) or not append_target_table:
+            return
+        if not isinstance(source_table, str) or not source_table:
+            return
+        key = ("append_schema", append_target_table)
+        if key in seen:
+            return
+
+        source_columns = _table_columns(source_table)
+        append_columns = _table_columns(append_target_table)
+        if source_columns is None or append_columns is None:
+            # Either side doesn't exist yet (or has no resolvable column metadata) -- nothing
+            # to compare, and that is completely normal (e.g. append_target_table is about to
+            # be created by the first successful append).
+            return
+        seen.add(key)
+
+        # Mirrors reconciliation/matcher.py's append_columns: the source's own columns, plus
+        # the always-synthesized __framework_hash_key, minus __framework_hash_value unless
+        # this source's hash_precomputed flag says that column is genuinely one of its own.
+        expected_columns = set(source_columns)
+        expected_columns.add(_FRAMEWORK_HASH_KEY_COLUMN)
+        if not source_config.get("hash_precomputed"):
+            expected_columns.discard(_FRAMEWORK_HASH_VALUE_COLUMN)
+
+        target_id = target_config.get("target_id") or "<unknown>"
+        missing_columns = sorted(expected_columns - append_columns)
+        if missing_columns:
+            existence_checks.append(
+                {
+                    "kind": "append_schema",
+                    "path": append_target_table,
+                    "status": "SCHEMA_MISMATCH",
+                    "note": (
+                        f"append_target_table of reconciliation_flow[{flow_id}].target_configs[{target_id}] is "
+                        f"missing column(s) {missing_columns} that the healing append will write -- a declared "
+                        "delta sink cannot mergeSchema, so this append will fail at runtime unless "
+                        "append_target_table's schema is widened first"
+                    ),
+                }
+            )
+        else:
+            existence_checks.append(
+                {
+                    "kind": "append_schema",
+                    "path": append_target_table,
+                    "status": "SCHEMA_OK",
+                    "note": (
+                        f"append_target_table of reconciliation_flow[{flow_id}].target_configs[{target_id}] "
+                        "already carries every column the healing append will write"
+                    ),
+                }
+            )
+
+    reconciliation_flows = spec.get("reconciliation_flows")
+    reconciliation_flows = reconciliation_flows if isinstance(reconciliation_flows, list) else []
+
+    for flow in reconciliation_flows:
+        if not isinstance(flow, dict):
+            continue
+        flow_id = flow.get("reconciliation_id") or "<unknown>"
+
+        source_config = flow.get("source_config")
+        source_config = source_config if isinstance(source_config, dict) else {}
+        _check_recon_source_like_table(
+            source_config.get("table"),
+            f"reconciliation_flow[{flow_id}].source_config.table",
+            _REQUIRED_RECONCILIATION_SOURCE_TABLE_NOTE.format(flow_id=flow_id),
+        )
+
+        target_configs = flow.get("target_configs")
+        target_configs = target_configs if isinstance(target_configs, list) else []
+        for target_config in target_configs:
+            if not isinstance(target_config, dict):
+                continue
+            target_id = target_config.get("target_id") or "<unknown>"
+            _check_recon_source_like_table(
+                target_config.get("table"),
+                f"reconciliation_flow[{flow_id}].target_configs[{target_id}].table",
+                _REQUIRED_RECONCILIATION_TARGET_TABLE_NOTE.format(flow_id=flow_id, target_id=target_id),
+            )
+
+            append_target_table = target_config.get("append_target_table")
+            if isinstance(append_target_table, str) and append_target_table:
+                _add(
+                    "table",
+                    append_target_table,
+                    f"append_target_table of reconciliation_flow[{flow_id}].target_configs[{target_id}] -- the "
+                    "healing append writes here; not existing yet is normal, the append can create it",
+                    lambda n=append_target_table: _table_exists(n),
+                )
+                _check_append_target_schema_shape(source_config, target_config, flow_id)
+
     return existence_checks, notes
 
 
@@ -451,11 +624,15 @@ def preflight_check_onboarding_spec(spec_json_or_yaml_text: str, catalog: str) -
           ``spec_validator.validate_spec`` -- every structural/type/allowed-value/SQL-syntax
           problem found, each already a fully-qualified, human-readable message.
         - ``existence_checks`` (list[dict]): one entry per distinct
-          ``{"kind": "catalog"|"schema"|"table"|"volume", "path": str,
-          "status": "EXISTS"|"WILL_BE_CREATED"|"MISSING_REQUIRED", "note": str}``
-          for every catalog/schema/table/volume this spec references (see module docstring
-          for exactly which fields are checked and why only
-          ``transformation_flows[].source_inputs[].table`` can produce ``MISSING_REQUIRED``).
+          ``{"kind": "catalog"|"schema"|"table"|"volume"|"append_schema", "path": str,
+          "status": "EXISTS"|"WILL_BE_CREATED"|"MISSING_REQUIRED"|"SCHEMA_OK"|"SCHEMA_MISMATCH",
+          "note": str}`` for every catalog/schema/table/volume this spec references, plus one
+          ``"append_schema"`` entry per ``reconciliation_flows[].target_configs[].append_target_table``
+          whose columns could be compared against its flow's declared append shape (see module
+          docstring for exactly which fields are checked, why only
+          ``transformation_flows[].source_inputs[].table`` and
+          ``reconciliation_flows[].source_config.table`` / ``target_configs[].table`` can produce
+          ``MISSING_REQUIRED``, and what ``"append_schema"``/``SCHEMA_MISMATCH`` means).
         - ``summary`` (str): one human/agent-readable paragraph stating the verdict.
     """
     try:

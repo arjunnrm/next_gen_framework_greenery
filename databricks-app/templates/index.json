@@ -3,11 +3,11 @@
   "templates": [
     {
       "id": "full_reference_spec",
-      "label": "Full reference spec (v1.4.0)",
+      "label": "Full reference spec (v1.5.0)",
       "description": "The complete onboarding template: every flow kind, every optional block.",
       "scope": "spec",
       "file": "pipeline_onboarding_template.json",
-      "framework_version": "1.4.0",
+      "framework_version": "1.5.0",
       "tags": [
         "reference",
         "all-flows"

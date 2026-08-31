@@ -34,8 +34,9 @@ Companion files in this same skill folder:
 - **`tool_specifications.json`** — Master Declarative AI Agent Tool Specifications (`validate_json`, `onboard_entity`, `get_catalog_schema_parameters`, `validate_observability_config`, `generate_pipeline_onboarding_config`, `diagnose_pipeline_telemetry_failures`).
 - **`SKILL_GAP_ANALYSIS.md`** — Systematic audit checklist itemizing skill coverage, behavioral updates, and net-new capabilities.
 - **`README.md`** — Executive Skill & Tool Catalog Summary with LangChain / Semantic Kernel / OpenAI integration patterns.
-- **`reference/module_map.md`** — one paragraph per subpackage under `lakeflow_framework/`, its responsibility, and key public functions.
-- **`reference/common_pitfalls.md`** — real bugs hit and fixed in this codebase. Read before editing!
+- **`reference/module_map.md`** — one paragraph per subpackage under `lakeflow_framework/`, its responsibility, and key public functions. Covers the v1.5.0 additions: `engine/source_plane.py` (the read-once plane + its `G-STREAM`/`G-SIDE` guards), `engine/flow_generators.py`, `engine/identifiers.py`, `reconciliation/graph_registration.py` (the in-pipeline L3/L4/L5 registrar), the additive control-table column migration in `control_plane/`, `repository.py`'s now-4-field `GroupMetadata`, and `observability/reconciliation_export.py`.
+- **`reference/common_pitfalls.md`** — real bugs hit and fixed in this codebase. Read before editing! Entries 26–33 are the v1.5.0 batch: the `CREATE TABLE IF NOT EXISTS` migration gap, `ADD COLUMNS IF NOT EXISTS` being a parse error, an upsert `StructType` field never written into the `Row(...)`, a validation rule stranded behind an early return, a graph-cycle rule wrongly applied to job mode, streaming from a `TRUNCATE_AND_LOAD` target, `currentDatabase()` not being the pipeline's schema, and inlining onboarding into a new job.
+- **`reference/onboarding_spec_full_reference.json`** — the complete, machine-readable attribute dictionary for the onboarding spec.
 
 ---
 
@@ -125,8 +126,17 @@ Concretely, in file terms:
    `notebooks/03_engine/03_lakeflow_declarative_pipeline.py` as a Lakeflow Declarative
    Pipeline, configured with `dataflow.group.id`/`dataflow.control.catalog` Spark confs (see
    `databricks.yml`'s `dataflow_group_id` bundle variable). At graph-definition time it:
-   - resolves the active group + its active ingestion/transformation rows
-     (`control_plane/repository.py::load_active_group_metadata`);
+   - resolves the active group + its active ingestion/transformation/**reconciliation** rows
+     (`control_plane/repository.py::load_active_group_metadata`, which since v1.5.0 returns a
+     4-field `GroupMetadata` NamedTuple: `(group_row, ingestion_rows, transformation_rows,
+     reconciliation_rows)`);
+   - plans the **source plane** (`engine/source_plane.py::plan_source_plane` →
+     `assert_acyclic` → `register_source_plane`), so every physical source table/path in the
+     group is read **exactly once** per update and reused by every consumer. Each consumer then
+     calls `bind(plan, consumer_id, want_stream)` instead of reading directly, and gets back a
+     sibling reference to an in-graph table, one shared materialized node, or today's inline
+     read (fanout 1 — `source_plane.materialize` defaults to `"auto"`, so nothing already
+     deployed changes shape);
    - for each **ingestion** row: reads the source
      (`ingestion/readers.py::read_ingestion_source`), attaches technical metadata, applies
      `explode_columns`/`data_standardization_sql`, then hands off to the shared tail;
@@ -147,9 +157,13 @@ Concretely, in file terms:
    `control_plane/post_deployment.py::apply_all_governance_tags` (Unity Catalog `SET TAGS`
    DDL — must run after the table exists) and `capture_all_scd_change_counts` (reads Delta
    Change Data Feed for exact insert/update/delete counts per CDC target).
-5. **Reconcile (optional, standalone)** —
-   `notebooks/05_reconciliation/05_reconciliation_engine.py` runs independently of any
-   pipeline graph, per `reconciliation_flow_spec` row (§8).
+5. **Reconcile** — per `reconciliation_flow_spec` row, in whichever host that row's
+   `execution_mode` names (§8). `"job"` (the default) runs
+   `notebooks/05_reconciliation/05_reconciliation_engine.py` independently of any pipeline
+   graph, exactly as before; `"pipeline"` / `"pipeline_audit_only"` register the flow as a
+   third flow type **inside step 3's own update**
+   (`engine/flow_generators.py::generate_reconciliation_flow` →
+   `reconciliation/graph_registration.py::register_reconciliation_flow`).
 
 Full step-by-step detail: [`docs/03_engine_execution_flow.md`](../docs/03_engine_execution_flow.md).
 
@@ -360,11 +374,73 @@ where `dbutils` cannot construct a working gateway. See
 ## 8. How reconciliation works
 
 Compares one `source_config` against one or more `target_configs[]` (a **list** — one
-reconciliation flow can audit multiple targets against the same source). Runs as a
-**standalone job task** (`notebooks/05_reconciliation/05_reconciliation_engine.py`),
-independent of any Lakeflow pipeline graph — not embedded in the DLT DAG.
+reconciliation flow can audit multiple targets against the same source).
 
-Pipeline (all in `reconciliation/`):
+**Since v1.5.0 a reconciliation flow chooses its host** via `reconciliation_flows[].execution_mode`
+(`"job"` | `"pipeline"` | `"pipeline_audit_only"`, default **`"job"`** — nothing already deployed
+changes until an author opts in, one flow at a time):
+
+| `execution_mode` | Where it runs | What you get |
+|---|---|---|
+| `"job"` (default) | standalone job task `notebooks/05_reconciliation/05_reconciliation_engine.py`, independent of any pipeline graph | exactly today's behaviour, unchanged |
+| `"pipeline"` | **inside the dataflow group's own Lakeflow pipeline update**, as a third first-class flow type beside ingestion and transformation | the comparison published as real UC datasets **and** the self-healing append |
+| `"pipeline_audit_only"` | the same pipeline update, comparison half only | in-DAG comparison, metrics and `dq_config` expectations; healing stays in job mode |
+
+In the two pipeline modes the flow is registered by
+`engine/flow_generators.py::generate_reconciliation_flow` →
+`reconciliation/graph_registration.py::register_reconciliation_flow`, which publishes
+`recon__<reconciliation_id>__<target_id>__classified` / `__metrics` / `__mismatch` into
+`publish_schema` (defaults to the pipeline's own schema) and re-hosts the imperative half — the
+fingerprint-guarded append plus the three control-table writes — verbatim inside **one**
+`dlt.foreach_batch_sink` handler per flow. Three mode-scoped spec rules, all rejected on
+**presence**: `read_mode: "streaming"`, `task_run_id_column`, and a missing `dataflow_group_id` are
+each errors in pipeline mode; `publish_schema` and `dq_config` are errors in `"job"` mode.
+`dq_config` on the one-row `__metrics` dataset (e.g. `{"expr": "value_drift_count = 0", "action":
+"fail"}`) is the first declarative way a reconciliation threshold can fail a pipeline update; it is
+**additive** and does not repurpose `error_handling.on_failure`, which keeps its try/except meaning
+(with a larger blast radius in pipeline mode — re-raising fails the whole update, not one job task).
+
+Three behaviours an operator must know before switching a flow to `"pipeline"`: healing is
+**source-change-triggered** (an update in which the recon source advances no offsets performs no
+append — detection and the `dq_config` gate are unaffected, since the comparison datasets are batch
+MVs recomputed every update); the per-run log-silencing widget override is replaced by the
+`dataflow.recon.run_log_capture` / `dataflow.recon.mismatch_log` pipeline configuration keys, which
+take effect on the **next** update; and one run-as identity must now hold every permission the job
+task and the pipeline previously held separately.
+
+**Verification status — read this before promising a behaviour.** `execution_mode: "pipeline"` is
+**live-verified**: on 2026-08-31 pipeline `metaflow_test_003_autoload_recon_pipeline` registered
+ingestion, the L3 prepared source/target, all three L4 datasets, the L5 gate, the L5 append flow and
+a `dlt.foreach_batch_sink` in **one** update, per its own event log, with every task of
+`metaflow_test_recon_dag_job` succeeding. That settles the one open platform question:
+`dlt.foreach_batch_sink` **is** available on DBR serverless, so the heal lane is real and
+`pipeline_audit_only` is a deliberate choice rather than a fallback for an unproven API. (The local
+`databricks-dlt` 0.3.0 stub still lacks the symbol, so `register_foreach_batch_sink` stays guarded
+by `hasattr` — the guard is correct, it is simply no longer expected to trip on DBR.) The
+`pipeline_audit_only` geneva scenario
+(`metaflow_testing/053_geneva_e41a47ba_recon_in_pipeline.json`) is by contrast verified **offline
+only** — validator plus `plan_source_plane`, pinned by `tests/unit/test_geneva_e41a47ba_topology.py`
+— because the pipeline's run-as identity lacks table-level `SELECT` on the reconciliation target.
+Do not describe it as live-proven.
+
+**Two hard constraints on choosing `"pipeline"`:**
+
+- A flow whose reconciliation **source** is a table this same group produces with a non-append-only
+  `cdc_load_strategy` — `SCD1`/`SCD2`/`SCD3`/`FULL_SNAPSHOT_CDC` **and `TRUNCATE_AND_LOAD`** — cannot
+  stream from it. The `G-STREAM` plan-time guard in `engine/source_plane.py` rejects it and names
+  `"pipeline_audit_only"` as the correct setting. `TRUNCATE_AND_LOAD` is the counter-intuitive one:
+  it is a no-op in `cdc/dispatcher.py` exactly like `APPEND`, but its target is a full recompute, so
+  Delta answers a `readStream` with `DELTA_SOURCE_TABLE_IGNORE_CHANGES`
+  (`reference/common_pitfalls.md` entry 31).
+- The three pipeline-mode columns (`execution_mode`, `publish_schema`, `dq_config_json`) reach an
+  **already-provisioned** `reconciliation_flow_spec` only via the additive migration in
+  `control_plane/ddl_definitions.py::ADDITIVE_CONTROL_TABLE_COLUMNS`, applied by *running*
+  `01_setup_control_tables.py` — **not** by `databricks bundle deploy`. On a pre-v1.5.0 workspace,
+  onboarding a pipeline-mode flow without that run fails with `UNRESOLVED_COLUMN`
+  (`reference/common_pitfalls.md` entries 26–27). On a brand-new workspace the migration is a no-op,
+  since the CREATE DDL already carries the columns.
+
+Pipeline (all in `reconciliation/`, and shared verbatim by both hosts):
 
 1. **Read** each side — `dataset_reader.py::read_reconciliation_dataset` (type `table`/
    `file`/`sink`, `read_mode` batch or streaming independently per side, `filter_condition` +
@@ -532,7 +608,21 @@ Say you need to ingest a new CSV drop into Bronze with SCD1 semantics on Silver.
    pass (`onboarding/spec_validator.py::validate_spec`), not one error at a time. Fix all of
    them, not just the first.
 5. **Onboard for real** — re-run with `action_type: "CREATE"` (or `"UPDATE"` for an existing
-   `dataflow_group_id`). This upserts the control-table rows and writes an audit log entry.
+   `dataflow_group_id`). This upserts the control-table rows and writes an audit log entry. If you
+   are adding a **new job** that needs to onboard a spec, it must **delegate** to the generic
+   parameterised `resources/onboarding_job.yml` via `run_job_task` — never inline its own
+   `02_onboarding_engine.py` `notebook_task` (`reference/common_pitfalls.md` entry 33):
+
+   ```yaml
+   - task_key: onboard_x
+     run_job_task:
+       job_id: ${resources.jobs.onboarding_job.id}
+       job_parameters:
+         spec_file_path: "${workspace.file_path}/metaflow_testing/<spec>.json"
+         catalog: metaflow
+         env: dev
+         action_type: CREATE
+   ```
 6. **Point a pipeline at the group** — set the `dataflow_group_id` bundle variable
    (`databricks.yml`) or the pipeline's `dataflow.group.id` configuration
    (`resources/lakeflow_metadata_pipeline.yml`) to your spec's `dataflow_group_id`, then
@@ -543,7 +633,14 @@ Say you need to ingest a new CSV drop into Bronze with SCD1 semantics on Silver.
    `notebooks/04_governance/04_apply_governance_and_egress.py` after the pipeline update
    completes (§10).
 8. **(Optional) Add reconciliation** — a `reconciliation_flows[]` entry comparing the new
-   Silver table against, say, its own Bronze source or an external system of record (§8).
+   Silver table against, say, its own Bronze source or an external system of record (§8). Leave
+   `execution_mode` unset for today's standalone job behaviour; set `"pipeline"` /
+   `"pipeline_audit_only"` to fold it into step 6's own Lakeflow update instead, and then delete
+   any standalone `run_*_reconciliation` task from the job, or it runs twice (§8).
+
+On a **fresh workspace** the order is: run `setup_control_tables` first (it both creates the control
+tables and applies the additive column migration, §8), then onboard via the generic
+`onboarding_job`, then run the pipeline.
 
 Whenever a spec fails validation, read the error message literally — it names the exact
 `json_path` and explains the fix (see
@@ -566,6 +663,10 @@ not guess at a fix; the validator's error text is generated to be actionable on 
 | "What exceptions can this code raise, and which should I catch?" | `exceptions.py` — a typed hierarchy off `FrameworkError` (`FrameworkConfigError`, `SecretResolutionError`, `CryptoError`, `ArchiveError`, `Asn1DecodeError`, `AbacApplicationError`, `CdcStrategyError`, `OnboardingValidationError`, `OnboardingUpsertError`). |
 | "Where do I find a real, worked example of feature Y?" | `metaflow_testing/*.json` for currently-maintained examples; `docs/08`–`docs/23` for narrated worked examples of most individual features (§14 below). |
 | "What are the control tables' exact DDL/columns?" | `control_plane/ddl_definitions.py` (pure string-building, no execution) — and `docs/01_control_metadata_schema.md`'s ER diagram. |
+| "How do I add a column to a control table?" | **Two places, always**: the table's `CREATE TABLE` DDL in `control_plane/ddl_definitions.py` (fresh installs) *and* `ADDITIVE_CONTROL_TABLE_COLUMNS` in the same file (existing workspaces, applied by `control_plane/schema_provisioner.py::ensure_control_table_columns`). A CREATE-only change never reaches a workspace that already has the table. Then add it to the upsert's `StructType` **and** its `Row(...)`. `reference/common_pitfalls.md` 26–28. |
+| "I set `execution_mode: \"pipeline\"` and the flow still ran as a job — why?" | Three candidates, in order: the control table predates the column (run `01_setup_control_tables.py`, §8); the value was never persisted (`onboarding/metadata_upsert.py`'s `Row(...)`); or the job still has a standalone `run_*_reconciliation` task that should have been deleted. `reference/common_pitfalls.md` 26, 28, 33. |
+| "How do I wire onboarding into a new job?" | Never inline a `02_onboarding_engine.py` `notebook_task`. Delegate via `run_job_task` to `resources/onboarding_job.yml` (one spec) or `resources/framework_config_onboarding_job.yml` (a whole `spec_dir`). The ~20 legacy `metaflow_test_*_job.yml` files keep their inline copies deliberately. `reference/common_pitfalls.md` 33. |
+| "Where does the read-once guarantee live?" | `engine/source_plane.py` — `plan_source_plane` (pure, no Spark) → `assert_acyclic` → `register_source_plane` → `bind`, plus the `G-STREAM`/`G-SIDE` plan-time guards. `reference/module_map.md`'s `engine/` section; `reference/common_pitfalls.md` 24–25, 31. |
 
 ---
 

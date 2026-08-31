@@ -17,7 +17,7 @@ sweep excludes only the archives whose extraction failed in the current update.
 import fnmatch
 import logging
 import os
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 from pyspark.sql import DataFrame, SparkSession
 
@@ -771,6 +771,136 @@ _SOURCE_READERS = {
     "zerobus": read_zerobus_source,
     "asn1": read_asn1_source,
 }
+
+
+#: The base-read subset of an ingestion ``source_config`` -- the keys that change *which bytes
+#: are scanned* (format, schema location/evolution, file selection, reader passthrough, landing
+#: lifecycle) or *which physical rows a table-based read returns* (the qualified
+#: ``source_catalog``/``source_schema``/``source_table`` triple, plus the two zerobus streaming
+#: reader options). This is the exact BASE-READ list from the source-plane read-once contract
+#: (``docs/13``); everything NOT in it (``schema_config``, ``column_normalization``, DQ/quarantine
+#: columns, encryption, etc.) is an *overlay*, applied per consumer downstream of the shared read
+#: rather than folded into its identity. See ``ReadIdentity`` in ``engine/source_plane.py``.
+_BASE_READ_KEYS = (
+    "format",
+    "schema_location",
+    "schema_evolution_mode",
+    "file_pattern",
+    "reader_options",
+    "landing_retention_policy",
+    "source_zip_handling",
+    "source_catalog",
+    "source_schema",
+    "source_table",
+    "starting_version",
+    "max_bytes_per_trigger",
+)
+
+
+def base_read_options(source_type: str, source_config: Dict[str, Any]) -> Dict[str, Any]:
+    """Select the base-read subset of ``source_config`` that a source-plane ``ReadIdentity``'s
+    ``options_fingerprint`` is computed over (``sha256`` of canonical JSON over exactly this
+    dict, per the read-once contract) -- see :data:`_BASE_READ_KEYS`.
+
+    Deliberately pure and dumb: no Spark, no I/O, no key mapping, no defaulting. In particular
+    ``file_pattern`` is returned **as the spec spells it**, never translated to Auto Loader's
+    ``pathGlobFilter`` option -- that un-prefixed mapping is
+    :func:`_apply_common_autoloader_options`'s exclusive property (``cloudFiles.fileNamePattern``
+    does not exist for any format; see that function's docstring), and duplicating it here would
+    give this one mapping two owners.
+
+    Only keys actually present in ``source_config`` are returned -- an omitted optional block
+    (e.g. no ``landing_retention_policy`` at all) is left absent rather than defaulted, since
+    resolving defaults/degradation (:func:`resolve_landing_retention_policy`) is itself a mapping
+    step, not an identity-selection one. A caller that needs to compare two configs for the
+    *semantic* side-effect collision the contract describes (">1 distinct
+    landing_retention_policy / source_zip_handling on one path") is expected to resolve both
+    sides first (e.g. via :func:`resolve_landing_retention_policy`) rather than rely on this
+    function's raw, unresolved output for that comparison.
+
+    Parameters
+    ----------
+    source_type:
+        One of the registered ingestion source types (``autoloader`` / ``zerobus`` / ``asn1``).
+    source_config:
+        The flow's ingestion ``source_config``, exactly as it appears in the (already
+        ``${param}``-substituted) spec -- before any reader-option mapping.
+
+    Returns
+    -------
+    Dict[str, Any]
+        The subset of :data:`_BASE_READ_KEYS` present in ``source_config``, values untouched.
+
+    Raises
+    ------
+    FrameworkConfigError
+        If ``source_type`` is not a registered ingestion source type.
+    """
+    if source_type not in _SOURCE_READERS:
+        raise FrameworkConfigError(f"Unsupported ingestion source_type '{source_type}' for base_read_options")
+    return {key: source_config[key] for key in _BASE_READ_KEYS if key in source_config}
+
+
+def read_locator(source_config: Dict[str, Any], source_type: str) -> Tuple[str, str]:
+    """Compute the ``(locator_kind, locator)`` half of a source-plane ``ReadIdentity`` for one
+    ingestion ``source_config`` -- see the read-once contract's CANONICAL IDENTITY section
+    (``docs/13``) and ``ReadIdentity`` in ``engine/source_plane.py``.
+
+    ``zerobus`` reads an existing catalog table, so its locator is the ``source_catalog`` /
+    ``source_schema`` / ``source_table`` triple joined into a fully-qualified name and
+    ``casefold()``-ed -- casefolding is load-bearing (``metaflow_testing/003`` writes a
+    capitalized schema name in one spec; a case-sensitive miss here would silently fall through
+    to a second, duplicate read of the same physical table). ``autoloader`` and ``asn1`` both
+    read a landing directory via Auto Loader, so their locator is ``path`` with any trailing
+    slash(es) stripped, so ``"/Volumes/x/y/z"`` and ``"/Volumes/x/y/z/"`` resolve to the same
+    physical location. ``${param}``/``{{catalog}}`` substitution has already run on
+    ``source_config`` by the time this function sees it (``onboarding/spec_loader.py``, exactly
+    as for ``path``/``schema_location`` elsewhere in this module), so no substitution happens
+    here.
+
+    Deliberately pure: no Spark, no I/O. Takes the raw spec keys before any mapping, exactly
+    like :func:`base_read_options` -- the un-prefixed ``pathGlobFilter`` mapping stays
+    :func:`_apply_common_autoloader_options`'s exclusive property regardless of what a caller
+    does with the locator this function returns.
+
+    Parameters
+    ----------
+    source_config:
+        The flow's ingestion ``source_config``.
+    source_type:
+        One of the registered ingestion source types (``autoloader`` / ``zerobus`` / ``asn1``).
+
+    Returns
+    -------
+    Tuple[str, str]
+        ``("zerobus", "cat.sch.tbl")`` (casefolded) for a zerobus source, or
+        ``("path", "/Volumes/...")`` (trailing-slash-stripped) for an autoloader/asn1 source.
+
+    Raises
+    ------
+    FrameworkConfigError
+        If ``source_type`` is not a registered ingestion source type, or the required locator
+        key(s) (``source_catalog``/``source_schema``/``source_table`` for zerobus, ``path``
+        otherwise) are missing from ``source_config``.
+    """
+    if source_type not in _SOURCE_READERS:
+        raise FrameworkConfigError(f"Unsupported ingestion source_type '{source_type}' for read_locator")
+
+    if source_type == "zerobus":
+        try:
+            qualified_table = (
+                f"{source_config['source_catalog']}.{source_config['source_schema']}.{source_config['source_table']}"
+            )
+        except KeyError as exc:
+            raise FrameworkConfigError(f"zerobus source_config missing required key {exc} for read_locator") from exc
+        return "zerobus", qualified_table.casefold()
+
+    # autoloader / asn1 -- both land files at `path` and are read from there by Auto Loader.
+    try:
+        path = source_config["path"]
+    except KeyError as exc:
+        raise FrameworkConfigError(f"{source_type} source_config missing required key {exc} for read_locator") from exc
+    return "path", path.rstrip("/")
 
 
 def read_ingestion_source(spark: SparkSession, source_type: str, source_config: Dict[str, Any]) -> DataFrame:

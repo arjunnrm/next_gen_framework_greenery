@@ -2622,6 +2622,34 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#lakeflow_frameworkobservabilityreconciliation_exportpy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        lakeflow_framework/observability/reconciliation_export.py
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="lakeflow_framework/observability/reconciliation_export.py">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#functions_5" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Functions
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#lakeflow_frameworkobservabilityruntime_paramspy" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2645,7 +2673,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#functions_5" class="md-nav__link">
+  <a href="#functions_6" class="md-nav__link">
     <span class="md-ellipsis">
       
         Functions
@@ -2673,7 +2701,7 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#functions_6" class="md-nav__link">
+  <a href="#functions_7" class="md-nav__link">
     <span class="md-ellipsis">
       
         Functions
@@ -2712,7 +2740,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#functions_7" class="md-nav__link">
+  <a href="#functions_8" class="md-nav__link">
     <span class="md-ellipsis">
       
         Functions
@@ -3903,6 +3931,34 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#lakeflow_frameworkobservabilityreconciliation_exportpy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        lakeflow_framework/observability/reconciliation_export.py
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="lakeflow_framework/observability/reconciliation_export.py">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#functions_5" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Functions
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#lakeflow_frameworkobservabilityruntime_paramspy" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3926,7 +3982,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#functions_5" class="md-nav__link">
+  <a href="#functions_6" class="md-nav__link">
     <span class="md-ellipsis">
       
         Functions
@@ -3954,7 +4010,7 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#functions_6" class="md-nav__link">
+  <a href="#functions_7" class="md-nav__link">
     <span class="md-ellipsis">
       
         Functions
@@ -3993,7 +4049,7 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#functions_7" class="md-nav__link">
+  <a href="#functions_8" class="md-nav__link">
     <span class="md-ellipsis">
       
         Functions
@@ -4030,7 +4086,7 @@
 
 <h1 id="observability"><code>observability</code><a class="headerlink" href="#observability" title="Permanent link">&para;</a></h1>
 <p>Event-log extraction and OpenTelemetry export.</p>
-<p>9 modules.</p>
+<p>10 modules.</p>
 <h2 id="lakeflow_frameworkobservabilityagent_toolspy"><code>lakeflow_framework/observability/agent_tools.py</code><a class="headerlink" href="#lakeflow_frameworkobservabilityagent_toolspy" title="Permanent link">&para;</a></h2>
 <p>Real Python implementations backing the 3 AI Agent / Copilot tools this module ships (Deliverable 6 -- see <code>agent_skills/dlt_observability_tools.json</code> for the declarative OpenAI-function-calling-style tool specs an agent framework loads, and <code>docs/25_dlt_observability_module.md</code>'s Error Handling Matrix, which :func:<code>diagnose_pipeline_telemetry_failures</code> is a machine-readable mirror of).</p>
 <h3 id="functions">Functions<a class="headerlink" href="#functions" title="Permanent link">&para;</a></h3>
@@ -4238,11 +4294,28 @@
 </tr>
 </tbody>
 </table>
+<h2 id="lakeflow_frameworkobservabilityreconciliation_exportpy"><code>lakeflow_framework/observability/reconciliation_export.py</code><a class="headerlink" href="#lakeflow_frameworkobservabilityreconciliation_exportpy" title="Permanent link">&para;</a></h2>
+<p>Reconciliation control-table BACKSTOP export -- the audit guarantee for a reconciliation flow that runs inside a Lakeflow Declarative Pipeline (<code>execution_mode</code> <code>"pipeline"</code> / <code>"pipeline_audit_only"</code>).</p>
+<h3 id="functions_5">Functions<a class="headerlink" href="#functions_5" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Signature</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>export_reconciliation_control_rows(spark: SparkSession, control_catalog: str, group_id: str, pipeline_update_id: str) -&gt; int</code></td>
+<td>Back-fill <code>reconciliation_run_log</code> / <code>reconciliation_result</code> / <code>reconciliation_mismatch_log</code> from the L4 datasets this group's pipeline-mode reconciliation flows published during <code>pipeline_update_id</code>.</td>
+</tr>
+</tbody>
+</table>
 <h2 id="lakeflow_frameworkobservabilityruntime_paramspy"><code>lakeflow_framework/observability/runtime_params.py</code><a class="headerlink" href="#lakeflow_frameworkobservabilityruntime_paramspy" title="Permanent link">&para;</a></h2>
 <p>Runtime parameter contract for the <strong>triggered</strong> observability engine.</p>
 <h3 id="class-triggeredrunparameters">class <code>TriggeredRunParameters</code><a class="headerlink" href="#class-triggeredrunparameters" title="Permanent link">&para;</a></h3>
 <p>The validated four.</p>
-<h3 id="functions_5">Functions<a class="headerlink" href="#functions_5" title="Permanent link">&para;</a></h3>
+<h3 id="functions_6">Functions<a class="headerlink" href="#functions_6" title="Permanent link">&para;</a></h3>
 <table>
 <thead>
 <tr>
@@ -4263,7 +4336,7 @@
 </table>
 <h2 id="lakeflow_frameworkobservabilitystructured_loggerpy"><code>lakeflow_framework/observability/structured_logger.py</code><a class="headerlink" href="#lakeflow_frameworkobservabilitystructured_loggerpy" title="Permanent link">&para;</a></h2>
 <p>Structured JSON logging for ingestion/transformation/reconciliation/sink operations (Phase 10).</p>
-<h3 id="functions_6">Functions<a class="headerlink" href="#functions_6" title="Permanent link">&para;</a></h3>
+<h3 id="functions_7">Functions<a class="headerlink" href="#functions_7" title="Permanent link">&para;</a></h3>
 <table>
 <thead>
 <tr>
@@ -4286,7 +4359,7 @@
 <p>Resolves the upstream <code>pipeline_task</code> run into a concrete execution window.</p>
 <h3 id="class-taskexecutioncontext">class <code>TaskExecutionContext</code><a class="headerlink" href="#class-taskexecutioncontext" title="Permanent link">&para;</a></h3>
 <p>The resolved identity + time window of the upstream <code>pipeline_task</code> run.</p>
-<h3 id="functions_7">Functions<a class="headerlink" href="#functions_7" title="Permanent link">&para;</a></h3>
+<h3 id="functions_8">Functions<a class="headerlink" href="#functions_8" title="Permanent link">&para;</a></h3>
 <table>
 <thead>
 <tr>

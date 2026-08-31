@@ -42,6 +42,14 @@
 # MAGIC `triggered`, so this notebook's destination set is unchanged for every existing
 # MAGIC deployment.
 # MAGIC
+# MAGIC **It also hosts the reconciliation control-table backstop (v1.5.0).** Before dispatching,
+# MAGIC this task back-fills any `reconciliation_run_log`/`reconciliation_result`/
+# MAGIC `reconciliation_mismatch_log` row that an in-pipeline reconciliation flow's L5 handler
+# MAGIC could not write (an empty pulse, or a `pipeline_audit_only` flow that has no L5 lane at
+# MAGIC all) -- see section 4 and `observability/reconciliation_export.py`. It is a plain eager
+# MAGIC function; this notebook remains a normal job task and never enters a pipeline's
+# MAGIC `libraries:` block.
+# MAGIC
 # MAGIC All business logic lives in
 # MAGIC `NextGen_Metadata_Framework.lakeflow_framework.observability` (see that package's
 # MAGIC `__init__.py` for the 5-module breakdown) -- this notebook is deliberately thin
@@ -103,6 +111,9 @@ from NextGen_Metadata_Framework.lakeflow_framework.observability.event_log_extra
 from NextGen_Metadata_Framework.lakeflow_framework.observability.otel_payload_builder import (  # noqa: E402
     build_resource_logs,
     validate_resource_logs,
+)
+from NextGen_Metadata_Framework.lakeflow_framework.observability.reconciliation_export import (  # noqa: E402
+    export_reconciliation_control_rows,
 )
 from NextGen_Metadata_Framework.lakeflow_framework.observability.runtime_params import (  # noqa: E402
     assert_dataflow_group_id_matches,
@@ -271,7 +282,64 @@ with logged_operation("observability_transformation", flow_id=dataflow_group_id)
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC ## 4. Telemetry Dispatch
+# MAGIC ## 4. Reconciliation Control-Table Backstop
+# MAGIC
+# MAGIC For a reconciliation flow running *inside* the pipeline (`execution_mode` `pipeline` /
+# MAGIC `pipeline_audit_only`), the L5 `foreach_batch_sink` healing handler is the **primary**
+# MAGIC writer of `reconciliation_run_log` / `reconciliation_result` /
+# MAGIC `reconciliation_mismatch_log`. It only fires when the L5 pulse carried rows, and a
+# MAGIC `pipeline_audit_only` flow has no L5 lane at all -- yet the L4 `__metrics` / `__mismatch`
+# MAGIC datasets are published either way. `export_reconciliation_control_rows` reads those
+# MAGIC published datasets and back-fills only the control rows that are genuinely missing, keyed
+# MAGIC on `(reconciliation_id, target_id, pipeline_update_id)`, so an audit row exists for every
+# MAGIC update.
+# MAGIC
+# MAGIC **This does not couple audit to observability.** The handler already wrote the rows on
+# MAGIC every update where it fired; this is the backstop for the updates where it could not. It
+# MAGIC is a plain eager function -- no `dlt`, no graph registration -- so R3 is untouched: this
+# MAGIC notebook stays a normal Lakeflow *job* task with its four required `base_parameters` and
+# MAGIC its `{{tasks.<key>.run_id}}` dependency, and never enters any pipeline's `libraries:`
+# MAGIC block.
+# MAGIC
+# MAGIC It runs **before** dispatch deliberately: a destination that is down must not cost the
+# MAGIC framework its audit trail. It is also a no-op (returns `0`) for a group with no
+# MAGIC pipeline-mode reconciliation flows, which is every group deployed before v1.5.0.
+
+# COMMAND ----------
+
+with logged_operation("reconciliation_control_export", flow_id=dataflow_group_id) as op:
+    # The update ids this task's pipeline run produced -- the same value the in-graph handler
+    # threads through as each control row's task_run_id. `update_ids` is the narrowed,
+    # best-effort Pipelines-API answer; telemetry.updates is what the event log itself reported
+    # for this window, and is the fallback when narrowing was unavailable or switched off.
+    exported_update_ids = update_ids or [u.update_id for u in telemetry.updates]
+    exported_targets = 0
+    for exported_update_id in exported_update_ids:
+        exported_targets += export_reconciliation_control_rows(
+            spark, CATALOG, dataflow_group_id, exported_update_id
+        )
+    op.records_written = exported_targets
+
+    if not exported_update_ids:
+        logger.warning(
+            "No pipeline update id could be resolved for dataflow_group_id='%s' -- skipping the reconciliation "
+            "control-table backstop for this task run. Any in-graph reconciliation rows the L5 handler already "
+            "wrote are unaffected.",
+            dataflow_group_id,
+        )
+    else:
+        logger.info(
+            "Reconciliation control-table backstop for dataflow_group_id='%s': %d target(s) back-filled across "
+            "update(s) %s (0 means the in-graph handler had already written every row).",
+            dataflow_group_id,
+            exported_targets,
+            exported_update_ids,
+        )
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ## 5. Telemetry Dispatch
 
 # COMMAND ----------
 

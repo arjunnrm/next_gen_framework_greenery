@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 from fastapi import APIRouter, Depends, Request
 
+from server.clients.files import resolve_template_placeholders
 from server.core.registry import RegistryManager
 from server.core.templates import load_template_body, scan_templates
 from server.deps import get_app_settings, get_registry_manager, get_request_id, get_user_identity
@@ -36,6 +37,25 @@ def _load_attribute_knowledge(settings: AppSettings) -> Dict[str, Any]:
         return json.loads(kb_file.read_text(encoding="utf-8"))
     except Exception:
         return {"attributes": {}, "defaults": {}, "reference_index": {}}
+
+
+def _resolved_spec_storage(settings: AppSettings) -> Dict[str, Any]:
+    """spec_storage with every root path's template placeholders already substituted.
+
+    The SPA seeds its "save to" directory box from `roots[].path` and posts that string
+    back to /api/storage/write verbatim. Serving the raw `/Volumes/{{catalog}}/...` here
+    meant every save and every open addressed a directory literally named `{{catalog}}`,
+    which is why neither worked against a real workspace.
+
+    `template_path` keeps the unsubstituted form for anything that needs to show or
+    re-resolve the template; `path` is the usable one.
+    """
+    storage = settings.spec_storage.model_dump()
+    for root in storage.get("roots", []):
+        raw = root.get("path", "")
+        root["template_path"] = raw
+        root["path"] = resolve_template_placeholders(settings, raw)
+    return storage
 
 
 @router.get("/health")
@@ -82,10 +102,23 @@ def get_resolved_config(
     templates = scan_templates(settings.config_dir.parent / "templates")
 
     template_variables = {k: v.model_dump() for k, v in settings.template_variables.items()}
-    spec_storage = settings.spec_storage.model_dump()
+    spec_storage = _resolved_spec_storage(settings)
     actions = {k: v.model_dump() for k, v in settings.actions.items()}
     features = settings.features.model_dump()
     limits = settings.limits.model_dump()
+
+    onboarding_job_id = None
+    if settings.actions.get("onboard") and settings.actions.get("onboard").job_id:
+        onboarding_job_id = settings.actions.get("onboard").job_id
+    if not onboarding_job_id:
+        import os
+        for env_k in ("METAFLOW_ONBOARDING_JOB_ID", "ONBOARDING_JOB_ID", "DATABRICKS_ONBOARDING_JOB_ID", "JOB_ID"):
+            val = os.environ.get(env_k, "").strip()
+            if val and val.isdigit():
+                onboarding_job_id = int(val)
+                if "onboard" in actions:
+                    actions["onboard"]["job_id"] = onboarding_job_id
+                break
 
     # The React frontend (web/src/Builder.jsx::loadConfig) reads its storage roots
     # and action metadata from `app.spec_storage.roots` and `app.actions`, and then
@@ -100,10 +133,12 @@ def get_resolved_config(
         "spec_storage": spec_storage,
         "actions": actions,
         "docs": settings.docs.model_dump(),
+        "onboarding_job_id": onboarding_job_id,
     })
 
     return {
         "app": app_cfg,
+        "onboarding_job_id": onboarding_job_id,
         "workspace": {
             "host": settings.workspace.host,
             "run_url_template": settings.workspace.run_url_template,

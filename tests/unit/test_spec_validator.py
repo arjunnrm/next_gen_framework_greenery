@@ -871,6 +871,299 @@ def test_reconciliation_flow_comparison_direction_invalid_value_reports_allowed_
 
 
 # ---------------------------------------------------------------------------
+# execution_mode -- "job" (default, unchanged standalone 05_reconciliation_engine.py job task),
+# "pipeline" (register L3+L4 published datasets AND the L5 heal lane inside this flow's own
+# dataflow_group_id's Lakeflow pipeline update), or "pipeline_audit_only" (L3+L4 only). See
+# ALLOWED_RECONCILIATION_EXECUTION_MODES.
+# ---------------------------------------------------------------------------
+
+
+def test_execution_mode_omitted_defaults_and_has_no_invalid_value_error():
+    spec = {"dataflow_group_id": "dfg_test", "reconciliation_flows": [_base_reconciliation_flow()]}
+    _, _, _, _, errors = validate_spec(None, spec)
+    assert not any("execution_mode" in e for e in errors)
+
+
+def test_execution_mode_accepts_job_pipeline_and_pipeline_audit_only():
+    for mode in ("job", "pipeline", "pipeline_audit_only"):
+        spec = {
+            "dataflow_group_id": "dfg_test",
+            "reconciliation_flows": [_base_reconciliation_flow(execution_mode=mode, dataflow_group_id="dfg_test")],
+        }
+        _, _, _, _, errors = validate_spec(None, spec)
+        assert not any("execution_mode" in e and "has invalid value" in e for e in errors), (mode, errors)
+
+
+def test_execution_mode_rejects_an_unknown_value():
+    spec = {
+        "dataflow_group_id": "dfg_test",
+        "reconciliation_flows": [_base_reconciliation_flow(execution_mode="streaming")],
+    }
+    _, _, _, _, errors = validate_spec(None, spec)
+    assert any(
+        "execution_mode" in e and "has invalid value" in e and "streaming" in e for e in errors
+    )
+
+
+# ---------------------------------------------------------------------------
+# V-CYC-1..8 -- cross-array reconciliation/pipeline-placement checks, only meaningful once every
+# flow array in the spec is known (_validate_reconciliation_pipeline_placement). Every case below
+# uses assert any(...) rather than errors == [] (except the dedicated positive control), because
+# several of these specs are deliberately minimal and can carry other, unrelated findings (e.g.
+# V-CYC-1's own "does not resolve to any target" alongside a V-CYC-2/V-CYC-5 case) that this file
+# does not care about.
+# ---------------------------------------------------------------------------
+
+
+def test_v_cyc_1_pipeline_mode_source_must_resolve_to_an_in_spec_producer():
+    """A group-less-looking recon source (nothing in this spec actually produces it) must be
+    rejected in pipeline mode -- reading it would silently degrade to an external, always-
+    one-update-stale read instead of this update's freshly written rows."""
+    spec = {
+        "dataflow_group_id": "dfg_test",
+        "reconciliation_flows": [
+            _base_reconciliation_flow(execution_mode="pipeline", dataflow_group_id="dfg_test")
+        ],
+    }
+    _, _, _, _, errors = validate_spec(None, spec)
+    assert any("does not resolve to any target this dataflow group actually produces" in e for e in errors)
+
+
+def test_v_cyc_2_append_target_table_is_this_groups_own_target_is_rejected():
+    """Appending into a target THIS dataflow group's own ingestion/transformation flow already
+    owns would corrupt whatever write contract that flow declared for it."""
+    spec = {
+        "dataflow_group_id": "dfg_test",
+        "ingestion_flows": [_base_ingestion_flow(target_catalog="poc", target_schema="bronze_x", target_table="cdc")],
+        "reconciliation_flows": [
+            _base_reconciliation_flow(execution_mode="pipeline", dataflow_group_id="dfg_test")
+        ],
+    }
+    _, _, _, _, errors = validate_spec(None, spec)
+    assert any("is this dataflow group's own target" in e for e in errors)
+
+
+def test_v_cyc_3_append_target_table_is_this_groups_own_ingestion_source_is_rejected():
+    """Appending corrections back into the same group's own raw zerobus ingestion source races
+    the next update's own read of it."""
+    spec = {
+        "dataflow_group_id": "dfg_test",
+        "ingestion_flows": [
+            _base_ingestion_flow(
+                source_type="zerobus",
+                source_config={"source_catalog": "poc", "source_schema": "bronze_x", "source_table": "cdc"},
+            )
+        ],
+        "reconciliation_flows": [
+            _base_reconciliation_flow(
+                execution_mode="pipeline",
+                dataflow_group_id="dfg_test",
+                target_configs=[
+                    {"target_id": "primary", "type": "table", "table": "poc.bronze_x.product", "append_target_table": "poc.bronze_x.cdc"}
+                ],
+            )
+        ],
+    }
+    _, _, _, _, errors = validate_spec(None, spec)
+    assert any("raw ingestion source" in e and "corrupting an append-only source" in e for e in errors)
+
+
+def test_v_cyc_4_append_target_table_is_another_groups_ingestion_source_only_warns(caplog):
+    """Cross-GROUP collision: Lakeflow cannot see this loop from either pipeline's own graph, so
+    it is a WARNING an operator must confirm is intentional, never a hard error."""
+    spec = {
+        "dataflow_group_id": "dfg_test",
+        "ingestion_flows": [
+            _base_ingestion_flow(
+                source_type="zerobus",
+                source_config={"source_catalog": "poc", "source_schema": "bronze_x", "source_table": "cdc"},
+            )
+        ],
+        "reconciliation_flows": [
+            _base_reconciliation_flow(
+                execution_mode="pipeline",
+                dataflow_group_id="dfg_other",
+                target_configs=[
+                    {"target_id": "primary", "type": "table", "table": "poc.bronze_x.product", "append_target_table": "poc.bronze_x.cdc"}
+                ],
+            )
+        ],
+    }
+    with caplog.at_level("WARNING"):
+        _, _, _, _, errors = validate_spec(None, spec)
+    assert not any("raw ingestion source" in e for e in errors), errors
+    assert any("cross-pipeline landing" in record.getMessage() for record in caplog.records)
+
+
+def test_v_cyc_5_append_target_table_equal_to_own_source_config_table_is_rejected():
+    """V-CYC-5 is a PIPELINE-mode rule, so the fixture must declare pipeline mode.
+
+    The append-into-your-own-source loop is a Lakeflow graph cycle: the same update both reads
+    that dataset and appends to it. Under ``execution_mode: "job"`` there is no such graph -- the
+    standalone engine runs after the update finishes -- so the finding is downgraded to a
+    warning there (see ``_append_cycle_finding``). The job-mode half of that contract is pinned
+    by the companion test below.
+    """
+    spec = {
+        "dataflow_group_id": "dfg_test",
+        "reconciliation_flows": [
+            _base_reconciliation_flow(
+                execution_mode="pipeline",
+                dataflow_group_id="dfg_test",
+                source_config={"type": "table", "table": "poc.bronze_x.cdc"},
+            )
+        ],
+    }
+    _, _, _, _, errors = validate_spec(None, spec)
+    assert any("must not equal this flow's own source_config.table" in e for e in errors)
+
+
+def test_v_cyc_5_is_only_a_warning_in_job_mode(caplog):
+    """Backward compatibility: the same shape must still ONBOARD under job mode.
+
+    ``metaflow_testing/038_rec_003_precomputed_hash.json`` is a shipped, pre-v1.5.0, purely
+    job-mode spec that appends into its own comparison target. Because
+    ``02_onboarding_engine.py`` raises on any non-empty ``errors`` list, letting V-CYC-5 fire
+    unconditionally made that document un-onboardable with no edit by its author -- a real
+    regression, caught by tests/unit/test_recon_backward_compatibility.py.
+    """
+    spec = {
+        "dataflow_group_id": "dfg_test",
+        "reconciliation_flows": [_base_reconciliation_flow(source_config={"type": "table", "table": "poc.bronze_x.cdc"})],
+    }
+    with caplog.at_level("WARNING"):
+        _, _, _, _, errors = validate_spec(None, spec)
+
+    assert not any("must not equal this flow's own source_config.table" in e for e in errors), errors
+    assert any(
+        "must not equal this flow's own source_config.table" in record.getMessage() for record in caplog.records
+    ), "job mode must still SURFACE the hazard as a warning, not swallow it silently"
+
+
+def test_v_cyc_6_dataflow_group_id_is_required_in_pipeline_mode():
+    spec = {
+        "dataflow_group_id": "dfg_test",
+        "reconciliation_flows": [_base_reconciliation_flow(execution_mode="pipeline")],
+    }
+    _, _, _, _, errors = validate_spec(None, spec)
+    assert any("dataflow_group_id: is required when execution_mode is" in e for e in errors)
+
+
+def test_v_cyc_7_merge_cdc_strategy_producer_is_rejected_for_pipeline_mode():
+    """SCD1/SCD2/SCD3/FULL_SNAPSHOT_CDC dispatch through dlt.apply_changes[_from_snapshot] --
+    real MERGE/UPDATE/DELETE writes, not append-only -- so an in-pipeline heal lane appending
+    into a comparison built over rows Lakeflow may still rewrite is unsafe."""
+    spec = {
+        "dataflow_group_id": "dfg_test",
+        "ingestion_flows": [
+            _base_ingestion_flow(
+                target_catalog="poc",
+                target_schema="bronze_x",
+                target_table="product",
+                target_config={"cdc_load_strategy": "SCD1", "primary_keys": ["id"]},
+            )
+        ],
+        "reconciliation_flows": [
+            _base_reconciliation_flow(
+                execution_mode="pipeline",
+                dataflow_group_id="dfg_test",
+                source_config={"type": "table", "table": "poc.bronze_x.product"},
+            )
+        ],
+    }
+    _, _, _, _, errors = validate_spec(None, spec)
+    assert any("dispatches through dlt.apply_changes" in e for e in errors)
+
+
+def test_v_cyc_7_truncate_and_load_into_materialized_view_producer_is_rejected_for_pipeline_mode():
+    """TRUNCATE_AND_LOAD into a materialized_view is fully refreshed (not append-only) on every
+    update, the other non-append-only producer shape pipeline mode must reject."""
+    spec = {
+        "dataflow_group_id": "dfg_test",
+        "ingestion_flows": [
+            _base_ingestion_flow(
+                target_catalog="poc",
+                target_schema="bronze_x",
+                target_table="product",
+                target_type="materialized_view",
+                target_config={"cdc_load_strategy": "TRUNCATE_AND_LOAD"},
+            )
+        ],
+        "reconciliation_flows": [
+            _base_reconciliation_flow(
+                execution_mode="pipeline",
+                dataflow_group_id="dfg_test",
+                source_config={"type": "table", "table": "poc.bronze_x.product"},
+            )
+        ],
+    }
+    _, _, _, _, errors = validate_spec(None, spec)
+    assert any("fully refreshed (not append-only) on every" in e for e in errors)
+
+
+def test_v_cyc_8_landing_retention_policy_collision_on_shared_path_is_rejected():
+    """Two ingestion flows sharing one Auto Loader landing path with different
+    landing_retention_policy configs is a latent data-loss race: cloudFiles.cleanSource MOVES or
+    DELETES committed landing files, so two competing lifecycle regimes corrupt whichever policy
+    runs second."""
+    spec = {
+        "dataflow_group_id": "dfg_test",
+        "ingestion_flows": [
+            _base_ingestion_flow(
+                dataflow_id="df_a",
+                source_config={
+                    "path": "/Volumes/poc/landing/x/",
+                    "format": "csv",
+                    "schema_location": "/Volumes/poc/landing/_schemas/x/",
+                    "landing_retention_policy": {"clean_source": "delete", "retention_days": 7},
+                },
+            ),
+            _base_ingestion_flow(
+                dataflow_id="df_b",
+                target_table="test_raw_2",
+                source_config={
+                    "path": "/Volumes/poc/landing/x/",
+                    "format": "csv",
+                    "schema_location": "/Volumes/poc/landing/_schemas/x/",
+                    "landing_retention_policy": {"clean_source": "archive", "archive_path": "/Volumes/poc/landing/_archive/"},
+                },
+            ),
+        ],
+    }
+    _, _, _, _, errors = validate_spec(None, spec)
+    assert any("landing_retention_policy" in e and "data-loss race" in e for e in errors)
+
+
+def test_v_cyc_reconciliation_pipeline_mode_fully_valid_flow_has_no_errors():
+    """Positive control: a producer with an append-only strategy, a source that resolves to it,
+    a dataflow_group_id matching the spec's own, and an append_target_table that collides with
+    nothing -- must validate cleanly end to end."""
+    spec = {
+        "dataflow_group_id": "dfg_test",
+        "ingestion_flows": [
+            _base_ingestion_flow(target_catalog="poc", target_schema="bronze_x", target_table="product")
+        ],
+        "reconciliation_flows": [
+            _base_reconciliation_flow(
+                execution_mode="pipeline",
+                dataflow_group_id="dfg_test",
+                source_config={"type": "table", "table": "poc.bronze_x.product"},
+                target_configs=[
+                    {
+                        "target_id": "primary",
+                        "type": "table",
+                        "table": "poc.bronze_x.replica",
+                        "append_target_table": "poc.bronze_x.other_cdc",
+                    }
+                ],
+            )
+        ],
+    }
+    _, _, _, _, errors = validate_spec(None, spec)
+    assert errors == []
+
+
+# ---------------------------------------------------------------------------
 # observability[] -- telemetry destinations for the DLT observability engine, validated
 # alongside every other top-level flow array from the same onboarding spec (no separate
 # observability config file -- see docs/25_dlt_observability_module.md).
