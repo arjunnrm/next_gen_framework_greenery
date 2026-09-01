@@ -1,0 +1,175 @@
+{
+  "_sample_note": "Sample 01 (reference suite): one dataflow group exercising every merge-style CDC strategy side by side, all assets isolated in the {{catalog}}.metaflow_sample schema. Three CDC ingestion flows (SCD1 customers, SCD2 suppliers, FULL_SNAPSHOT_CDC parts) plus one APPEND order-events ingestion flow whose only job is to give the SCD3 transformation a legally streamable upstream: every merge-CDC target (SCD1/SCD2/FULL_SNAPSHOT_CDC) is written via dlt.apply_changes[_from_snapshot] and therefore can NEVER be read as a stream (DELTA_SOURCE_TABLE_IGNORE_CHANGES), while dlt.apply_changes for the SCD3 pivot REQUIRES a streaming source -- so the SCD3 flow joins the streaming APPEND order-events table (stream side) to the SCD1 customer dimension (static batch side, a legal stream-static inner join over two tables this same pipeline publishes). The seed notebook (notebooks/00_seed_sample_data/04_seed_sample_01_multi_scd_data.py) lands 3 iterations of DISTINCT data: iteration 2 mutates values for existing SCD1/SCD2 keys (in-place overwrite vs. new history version), iteration 3 adds new keys and further changes, and each iteration advances every order through OPENED -> PROCESSING -> FULFILLED so the SCD3 current/previous pivot is visible. HARD CONSTRAINT observed from live testing: apply_changes_from_snapshot reads its snapshot-input dataset's CURRENT CONTENTS, which ACCUMULATE over a streaming Auto Loader upstream -- so the FULL_SNAPSHOT_CDC parts feed is strictly ADDITIVE across iterations (new part keys only, never a changed or removed existing key: a changed key would appear twice in one accumulated snapshot, a removed key would never be deleted).",
+  "dataflow_group_id": "dfg_sample_01_multi_scd",
+  "pipeline_parameters": {},
+  "ingestion_flows": [
+    {
+      "dataflow_id": "df_sample_01_customer_scd1_ingest",
+      "source_system": "databricks_samples_tpch",
+      "source_database": "metaflow_sample",
+      "source_table_name": "sample_dim_customer",
+      "source_description": "Sample 01: SCD1 customer dimension from samples.tpch.customer slices. Iteration 1 lands the base dimension, iteration 2 re-lands changed customers (segment/balance updates overwrite in place, no history), iteration 3 adds brand-new customer keys plus further balance changes.",
+      "source_type": "autoloader",
+      "target_catalog": "{{catalog}}",
+      "target_schema": "metaflow_sample",
+      "target_table": "sample_dim_customer_scd1",
+      "target_type": "streaming_table",
+      "source_config": {
+        "path": "/Volumes/{{catalog}}/metaflow_sample/landing/sample01_customers/incoming/",
+        "format": "csv",
+        "schema_location": "/Volumes/{{catalog}}/metaflow_sample/landing/_schemas/sample_dim_customer_scd1/",
+        "reader_options": {"header": "true", "cloudFiles.inferColumnTypes": "true"},
+        "capture_technical_metadata": true
+      },
+      "target_config": {
+        "cdc_load_strategy": "SCD1",
+        "primary_keys": ["customer_id"],
+        "sequence_by_column": "updated_at",
+        "generate_hash_columns": true,
+        "storage_format": "delta"
+      },
+      "dq_config": {
+        "rules": [
+          {"rule_id": "customer_id_present", "expression": "customer_id IS NOT NULL", "action": "drop"},
+          {"rule_id": "market_segment_present", "expression": "market_segment IS NOT NULL", "action": "warn"}
+        ]
+      },
+      "governance_tags": {}
+    },
+    {
+      "dataflow_id": "df_sample_01_supplier_scd2_ingest",
+      "source_system": "databricks_samples_tpch",
+      "source_database": "metaflow_sample",
+      "source_table_name": "sample_dim_supplier",
+      "source_description": "Sample 01: SCD2 supplier dimension from samples.tpch.supplier slices. columns_to_check scopes history tracking to account_balance/nation_key -- iteration 2's balance changes open new __START_AT/__END_AT versions instead of overwriting, iteration 3 adds new supplier keys and moves some suppliers to a new nation.",
+      "source_type": "autoloader",
+      "target_catalog": "{{catalog}}",
+      "target_schema": "metaflow_sample",
+      "target_table": "sample_dim_supplier_scd2",
+      "target_type": "streaming_table",
+      "source_config": {
+        "path": "/Volumes/{{catalog}}/metaflow_sample/landing/sample01_suppliers/incoming/",
+        "format": "csv",
+        "schema_location": "/Volumes/{{catalog}}/metaflow_sample/landing/_schemas/sample_dim_supplier_scd2/",
+        "reader_options": {"header": "true", "cloudFiles.inferColumnTypes": "true"},
+        "capture_technical_metadata": true
+      },
+      "target_config": {
+        "cdc_load_strategy": "SCD2",
+        "primary_keys": ["supplier_id"],
+        "sequence_by_column": "updated_at",
+        "columns_to_check": ["account_balance", "nation_key"],
+        "generate_hash_columns": true,
+        "storage_format": "delta"
+      },
+      "dq_config": {
+        "rules": [
+          {"rule_id": "supplier_id_present", "expression": "supplier_id IS NOT NULL", "action": "drop"},
+          {"rule_id": "account_balance_non_negative", "expression": "account_balance >= 0", "action": "warn"}
+        ]
+      },
+      "governance_tags": {}
+    },
+    {
+      "dataflow_id": "df_sample_01_part_snapshot_ingest",
+      "source_system": "databricks_samples_tpch",
+      "source_database": "metaflow_sample",
+      "source_table_name": "sample_part_snapshot",
+      "source_description": "Sample 01: FULL_SNAPSHOT_CDC part feed from samples.tpch.part slices, diffed by apply_changes_from_snapshot on part_id. STRICTLY ADDITIVE across the 3 iterations (iteration 1: keys 1-40, iteration 2: keys 41-60, iteration 3: keys 61-80; never a changed or removed existing key) -- the snapshot-input dataset accumulates over a streaming Auto Loader upstream, so multi-snapshot diffing cannot delete removed keys and a re-landed existing key would appear twice in one snapshot. See this spec's _sample_note.",
+      "source_type": "autoloader",
+      "target_catalog": "{{catalog}}",
+      "target_schema": "metaflow_sample",
+      "target_table": "sample_part_snapshot_cdc",
+      "target_type": "streaming_table",
+      "source_config": {
+        "path": "/Volumes/{{catalog}}/metaflow_sample/landing/sample01_parts/incoming/",
+        "format": "csv",
+        "schema_location": "/Volumes/{{catalog}}/metaflow_sample/landing/_schemas/sample_part_snapshot_cdc/",
+        "reader_options": {"header": "true", "cloudFiles.inferColumnTypes": "true"},
+        "capture_technical_metadata": true
+      },
+      "target_config": {
+        "cdc_load_strategy": "FULL_SNAPSHOT_CDC",
+        "primary_keys": ["part_id"],
+        "generate_hash_columns": true,
+        "storage_format": "delta"
+      },
+      "dq_config": {
+        "rules": [
+          {"rule_id": "part_id_present", "expression": "part_id IS NOT NULL", "action": "drop"},
+          {"rule_id": "retail_price_positive", "expression": "retail_price > 0", "action": "warn"}
+        ]
+      },
+      "governance_tags": {}
+    },
+    {
+      "dataflow_id": "df_sample_01_order_events_ingest",
+      "source_system": "databricks_samples_tpch",
+      "source_database": "metaflow_sample",
+      "source_table_name": "sample_order_events",
+      "source_description": "Sample 01: APPEND order-event feed from samples.tpch.orders slices -- the append-only, legally-streamable upstream the SCD3 transformation flow requires (every merge-CDC target in this group is apply_changes-written and cannot be streamed). Each iteration advances the SAME 20 order keys one status step (OPENED -> PROCESSING -> FULFILLED) so the SCD3 current/previous pivot is observable.",
+      "source_type": "autoloader",
+      "target_catalog": "{{catalog}}",
+      "target_schema": "metaflow_sample",
+      "target_table": "sample_order_events_raw",
+      "target_type": "streaming_table",
+      "source_config": {
+        "path": "/Volumes/{{catalog}}/metaflow_sample/landing/sample01_orders/incoming/",
+        "format": "csv",
+        "schema_location": "/Volumes/{{catalog}}/metaflow_sample/landing/_schemas/sample_order_events_raw/",
+        "reader_options": {"header": "true", "cloudFiles.inferColumnTypes": "true"},
+        "capture_technical_metadata": true
+      },
+      "target_config": {"cdc_load_strategy": "APPEND", "storage_format": "delta"},
+      "dq_config": {
+        "rules": [
+          {"rule_id": "order_id_present", "expression": "order_id IS NOT NULL", "action": "drop"},
+          {"rule_id": "order_status_present", "expression": "order_status IS NOT NULL", "action": "warn"}
+        ]
+      },
+      "governance_tags": {}
+    }
+  ],
+  "transformation_flows": [
+    {
+      "flow_step_id": "ts_sample_01_customer_order_scd3",
+      "dataflow_id": "df_sample_01_order_events_ingest",
+      "source_description": "Sample 01: SCD3 current/previous order-status pivot over a stream-static inner join of two tables this same pipeline publishes -- the streaming APPEND order-events table (stream side) enriched with the SCD1 customer dimension (static batch side). columns_to_check scopes the pivot to order_status, so after iteration 3 every order shows current_order_status FULFILLED / previous_order_status PROCESSING.",
+      "target_catalog": "{{catalog}}",
+      "target_schema": "metaflow_sample",
+      "target_table": "sample_customer_order_scd3",
+      "target_type": "streaming_table",
+      "source_inputs": [
+        {"input_name": "sample01_order_events_src", "table": "{{catalog}}.metaflow_sample.sample_order_events_raw", "is_streaming": true},
+        {"input_name": "sample01_customer_dim_src", "table": "{{catalog}}.metaflow_sample.sample_dim_customer_scd1", "is_streaming": false}
+      ],
+      "transformation_sql": "SELECT o.order_id, o.customer_id, c.customer_name, c.market_segment, o.order_status, o.total_price, o.event_ts FROM sample01_order_events_src o INNER JOIN sample01_customer_dim_src c ON o.customer_id = c.customer_id",
+      "target_config": {
+        "cdc_load_strategy": "SCD3",
+        "primary_keys": ["order_id"],
+        "sequence_by_column": "event_ts",
+        "columns_to_check": ["order_status"]
+      },
+      "dq_config": {
+        "rules": [
+          {"rule_id": "scd3_order_id_present", "expression": "order_id IS NOT NULL", "action": "drop"},
+          {"rule_id": "scd3_customer_resolved", "expression": "customer_name IS NOT NULL", "action": "warn"}
+        ]
+      },
+      "governance_tags": {}
+    }
+  ],
+  "reconciliation_flows": [],
+  "observability": [
+    {
+      "id": "dest-sample-01-vol-export",
+      "enabled": true,
+      "type": "DATABRICKS_VOLUME",
+      "destination_config": {
+        "volume_path": "/Volumes/{{catalog}}/metaflow_sample/observability/sample_01_multi_scd/",
+        "compression": "GZIP",
+        "file_format": "JSONL"
+      }
+    }
+  ]
+}
