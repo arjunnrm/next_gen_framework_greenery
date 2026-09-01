@@ -134,7 +134,7 @@ Open your browser at `http://localhost:8000/`.
 
 ## 4. Databricks DABs Bundle Deployment
 
-The app is integrated into the workspace bundle via `resources/metaflow_onboarding_app.yml`.
+The app is integrated into the workspace bundle via `resources/metaflow_app/metaflow_onboarding_app.yml`.
 
 ### Deploying to Dev Target
 ```bash

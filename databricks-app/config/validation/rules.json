@@ -750,6 +750,94 @@
       "message": "In-pipeline reconciliation adds graph-shape rules this builder cannot check: the predicate engine evaluates one flow at a time and has no way to compare a value in this flow against a value in ingestion_flows[] or transformation_flows[], so V-CYC-1 (source_config.table must be a target THIS dataflow group publishes), V-CYC-2 (append_target_table must not be one of this group's own targets) and V-CYC-3 (append_target_table must not be an ingestion source this group reads) are enforced by the framework validator at onboarding, not here. A deliberate asymmetry -- expect these to be re-checked, and possibly rejected, when the spec is onboarded.",
       "field_path": "execution_mode",
       "doc": "#8-reconciliation-flow-schema"
+    },
+    {
+      "id": "recon_dq_rules_require_run_log_capture",
+      "severity": "error",
+      "scope": "flow",
+      "when": {
+        "and": [
+          {
+            "eq": [
+              "@__flow_kind",
+              "reconciliation"
+            ]
+          },
+          {
+            "nonempty": [
+              "dq_config.rules"
+            ]
+          },
+          {
+            "eq": [
+              "logging_config.run_log_capture",
+              false
+            ]
+          }
+        ]
+      },
+      "message": "logging_config.run_log_capture: false is incompatible with dq_config.rules -- the flow's expectations attach to its recon__*__metrics dataset, which is only registered when run_log_capture is true (v1.6.0). Remove the dq_config rules or re-enable run_log_capture.",
+      "field_path": "logging_config.run_log_capture",
+      "doc": "#8-reconciliation-flow-schema"
+    },
+    {
+      "id": "recon_audit_only_needs_one_capture_flag",
+      "severity": "error",
+      "scope": "flow",
+      "when": {
+        "and": [
+          {
+            "eq": [
+              "@__flow_kind",
+              "reconciliation"
+            ]
+          },
+          {
+            "eq": [
+              "execution_mode",
+              "pipeline_audit_only"
+            ]
+          },
+          {
+            "eq": [
+              "logging_config.run_log_capture",
+              false
+            ]
+          },
+          {
+            "eq": [
+              "logging_config.mismatch_log_capture",
+              false
+            ]
+          }
+        ]
+      },
+      "message": "execution_mode 'pipeline_audit_only' with both run_log_capture and mismatch_log_capture false registers compute with no output at all (v1.6.0 -- the audit-only mode exists solely to produce the metrics/mismatch datasets and their control-table exports). Enable at least one capture flag, or use execution_mode 'job'/'pipeline'.",
+      "field_path": "logging_config.mismatch_log_capture",
+      "doc": "#8-reconciliation-flow-schema"
+    },
+    {
+      "id": "staged_file_format_pgp_zip_only",
+      "severity": "error",
+      "scope": "flow",
+      "when": {
+        "and": [
+          {
+            "nonempty": [
+              "target_config.sink_config.staged_file_format"
+            ]
+          },
+          {
+            "ne": [
+              "target_config.sink_config.format",
+              "pgp_zip"
+            ]
+          }
+        ]
+      },
+      "message": "sink_config.staged_file_format is only meaningful for format 'pgp_zip' (the framework's staging-then-archive sink); 'delta' and 'kafka' are native Lakeflow sinks with no staging step. Remove the attribute.",
+      "field_path": "target_config.sink_config.staged_file_format",
+      "doc": "#5-sink-configuration"
     }
   ]
 }

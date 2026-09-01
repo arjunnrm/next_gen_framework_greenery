@@ -1,7 +1,7 @@
 """Post-deployment verification for TC-DAG-001 -- "Read-Once Source Plane Across Three Flow
 Kinds" (``metaflow_testing/049_dag_001_unified_three_flow.json``, dataflow group
 ``dfg_dag_001_unified_three_flow``, pipeline
-``resources/metaflow_test_dag_001_unified_pipeline.yml``).
+``resources/feature_tests/metaflow_test_dag_001_unified_pipeline.yml``).
 
 Like ``tests/integration/test_lakeflow_sink_dag.py``, every assertion here is made against
 artifacts a real ``databricks bundle run metaflow_test_dag_001_unified_job`` pass has ALREADY
@@ -32,7 +32,7 @@ read of that raw locator, and it is the plane node's own flow.
 
 **R3 -- observability stays a normal job task.** Nothing here asserts anything about the
 observability export; it remains ``run_observability_task`` in
-``resources/metaflow_test_dag_001_unified_job.yml``, outside the pipeline. This module
+``resources/feature_tests/metaflow_test_dag_001_unified_job.yml``, outside the pipeline. This module
 deliberately makes no event-log assertion about it.
 
 Why the event log, and why these fixtures

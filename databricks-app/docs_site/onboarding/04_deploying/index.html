@@ -1517,6 +1517,8 @@
       
         
       
+        
+      
     
     
     
@@ -1920,6 +1922,34 @@
     
   
     Full attribute dictionary
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../14_onboarding_restrictions_and_validation_rules/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Onboarding restrictions & validation rules
   
 
     
@@ -2763,6 +2793,8 @@
       
         
       
+        
+      
     
     
     
@@ -2851,6 +2883,34 @@
     
   
     Multi-role FAQs
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../15_agent_skills_and_prompts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Agent skills & prompt library
   
 
     
@@ -3407,24 +3467,37 @@
 
 <h1 id="4-deploying-with-dabs">4 · Deploying with DABs<a class="headerlink" href="#4-deploying-with-dabs" title="Permanent link">&para;</a></h1>
 <h2 id="the-order-that-matters">The order that matters<a class="headerlink" href="#the-order-that-matters" title="Permanent link">&para;</a></h2>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="c1"># 1. publish the wheel to a Volume (NOT a bundle artifact -- see below)</span>
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>python<span class="w"> </span>scripts/build_and_upload_wheel.py<span class="w"> </span>--profile<span class="w"> </span>&lt;profile&gt;<span class="w"> </span>--catalog<span class="w"> </span>metaflow
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="c1"># 1. deploy -- this builds AND uploads the wheel; there is no separate publish step</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>databricks<span class="w"> </span>bundle<span class="w"> </span>deploy<span class="w"> </span>-t<span class="w"> </span>dev_metaflow<span class="w"> </span>-p<span class="w"> </span>dev_metaflow
 <a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>
-<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="c1"># 2. deploy, pinning the exact wheel the previous step printed</span>
-<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>databricks<span class="w"> </span>bundle<span class="w"> </span>deploy<span class="w"> </span>-t<span class="w"> </span>dev_metaflow<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="w">  </span>--var<span class="o">=</span><span class="s2">"framework_wheel_path=/Volumes/metaflow/framework/wheels/nextgen_metadata_framework-&lt;version&gt;-py3-none-any.whl"</span>
-<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>
-<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="c1"># 3. onboard a spec</span>
-<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>databricks<span class="w"> </span>bundle<span class="w"> </span>run<span class="w"> </span>onboarding_job<span class="w"> </span>-t<span class="w"> </span>dev_metaflow<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="w">  </span>--params<span class="w"> </span><span class="nv">spec_path</span><span class="o">=</span>/Volumes/metaflow/framework/onboarding_specs/orders.json
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="c1"># 2. onboard a spec</span>
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>databricks<span class="w"> </span>bundle<span class="w"> </span>run<span class="w"> </span>onboarding_job<span class="w"> </span>-t<span class="w"> </span>dev_metaflow<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="w">  </span>--params<span class="w"> </span><span class="nv">spec_path</span><span class="o">=</span>/Volumes/metaflow/framework/onboarding_specs/orders.json
 </code></pre></div>
+<p>There is no wheel-path variable to pass (the old <code>framework_wheel_path</code> variable and the hand-run
+<code>build_and_upload_wheel.py</code> step are gone). <code>bundle deploy</code> runs <code>scripts/bump_and_build.py</code> via
+the <code>artifacts.framework_wheel</code> block, which stamps a unique patch version so every deploy
+produces a uniquely-named wheel, then uploads it to the target's <code>workspace.artifact_path</code> --
+<code>/Volumes/&lt;catalog&gt;/config/wheels/.internal/</code> as of v1.6.0 (a UC Volume the bundle itself
+declares, <code>volumes.framework_wheels_volume</code>). Resources reference the wheel as
+<code>- ../../dist/*.whl</code>; DABs rewrites that to the uploaded path at deploy time.</p>
+<div class="admonition note">
+<p class="admonition-title">One-time bootstrap on a workspace that has never held the Volume</p>
+<p>The CLI refuses an <code>artifact_path</code> inside a Volume that does not exist yet -- even one the
+bundle itself declares (<code>Error: volume &lt;catalog&gt;.config.wheels does not exist</code>). Comment out
+that target's <code>artifact_path:</code> line in <code>databricks.yml</code> (safe -- it is a workspace setting,
+not a resource, so unsetting it deletes nothing), run
+<code>databricks bundle deploy --select volumes.framework_wheels_volume</code>, restore the line, and
+deploy normally. Once per workspace; <code>bundle validate</code> prints OK from then on.</p>
+</div>
 <div class="admonition danger">
-<p class="admonition-title">Why the wheel is not a bundle artifact</p>
-<p>An <code>artifacts.python_artifact</code> block stamps a new version on every deploy, and DABs prunes the
-superseded wheel. A deploy issued while a Lakeflow update was running therefore <strong>deleted the
-wheel that update was installing</strong>, killing it with <code>ENVIRONMENT_PIP_INSTALL_ERROR</code>.</p>
-<p>A Volume never prunes. Publishing there and pinning an explicit version is what makes a redeploy
-safe while pipelines are running.</p>
+<p class="admonition-title">Never deploy while a pipeline or test wave is running</p>
+<p>Unique per-deploy filenames stop a redeploy overwriting the exact file a running update is
+installing -- but DABs <strong>prunes</strong> superseded artifacts from <code>&lt;artifact_path&gt;/.internal/</code>, on a
+UC Volume exactly as in the workspace. A deploy issued mid-update can therefore still delete
+the wheel that update is installing, killing it with <code>ENVIRONMENT_PIP_INSTALL_ERROR</code>. The only
+mitigation is operational: never <code>bundle deploy</code> while a pipeline or test wave is running
+(<code>metaflow_testing/TESTING_PLAN.md</code> §0).</p>
 </div>
 <h2 id="targets">Targets<a class="headerlink" href="#targets" title="Permanent link">&para;</a></h2>
 <table>
@@ -3471,8 +3544,8 @@ authentication rather than deploying somewhere unexpected.</p>
 <tbody>
 <tr>
 <td><code>ENVIRONMENT_PIP_INSTALL_ERROR</code></td>
-<td>Wheel replaced mid-update</td>
-<td>Pin an explicit version; never glob</td>
+<td>A deploy pruned the wheel a running update was installing</td>
+<td>Never deploy mid-run; rerun the update after the deploy finishes</td>
 </tr>
 <tr>
 <td>Auth failure on deploy</td>

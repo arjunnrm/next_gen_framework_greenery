@@ -111,9 +111,14 @@ from NextGen_Metadata_Framework.lakeflow_framework.exceptions import ArchiveErro
 logger = logging.getLogger("NextGen_Metadata_Framework.lakeflow_framework.archive.pgp_zip_sink")
 
 # compress_and_encrypt_sink only picks up files with one of these suffixes (Spark/Delta
-# marker files like _SUCCESS are deliberately excluded) -- ".json" matches the JSON-Lines
-# staging format `write()` uses below.
-_STAGED_FILE_SUFFIX = ".json"
+# marker files like _SUCCESS are deliberately excluded) -- both staging formats below map to
+# a suffix on that eligibility list (zip_utils.py::include_glob_suffixes).
+_STAGED_FILE_SUFFIXES = {"json": ".json", "csv": ".csv"}
+
+#: ``sink_config.staged_file_format`` values (v1.6.0). "json" (the default, and the only
+#: pre-v1.6.0 behaviour) stages JSON-Lines; "csv" stages RFC-4180 CSV with a header row --
+#: one staged file per non-empty partition per micro-batch, each carrying its own header.
+_ALLOWED_STAGED_FILE_FORMATS = tuple(_STAGED_FILE_SUFFIXES)
 
 
 @dataclass
@@ -131,14 +136,15 @@ class PgpZipCommitMessage(WriterCommitMessage):
 
 
 class _PgpZipStreamWriter(DataSourceStreamWriter):
-    """Per-micro-batch streaming writer: stage rows as JSON-Lines on ``write()`` (executor
-    side), then zip (+ optionally PGP-encrypt) exactly this micro-batch's staged files on
-    ``commit()`` (driver side). Every secret value used here was already resolved upstream,
+    """Per-micro-batch streaming writer: stage rows as JSON-Lines (default) or RFC-4180 CSV
+    (``staged_file_format: "csv"``, v1.6.0) on ``write()`` (executor side), then zip
+    (+ optionally PGP-encrypt) exactly this micro-batch's staged files on ``commit()``
+    (driver side). Every secret value used here was already resolved upstream,
     in ``engine/sink_registration.py`` -- see this module's docstring for why neither
     ``write()`` nor ``commit()`` may ever call ``resolve_secret_ref``/``dbutils`` directly.
     """
 
-    def __init__(self, options: Dict[str, str]) -> None:
+    def __init__(self, options: Dict[str, str], schema: Optional[StructType] = None) -> None:
         self._staging_dir = (options.get("path") or "").rstrip("/")
         self._output_dir = (options.get("output_zip_path") or "").rstrip("/")
         if not self._staging_dir or not self._output_dir:
@@ -147,6 +153,18 @@ class _PgpZipStreamWriter(DataSourceStreamWriter):
                 "row files) and 'output_zip_path' (the destination directory for finished "
                 "archive files) options -- see engine/sink_registration.py."
             )
+        # v1.6.0: staged per-partition file format. "json" (default) is the pre-existing
+        # JSON-Lines staging; "csv" writes RFC-4180 with a header row ordered by the sink's
+        # own write schema (`schema`, when Spark supplies it -- the DataSource contract
+        # passes it to streamWriter), falling back to each row's own field order.
+        self._staged_file_format = (options.get("staged_file_format") or "json").strip().lower()
+        if self._staged_file_format not in _ALLOWED_STAGED_FILE_FORMATS:
+            raise ArchiveError(
+                f"pgp_zip sink: unsupported staged_file_format {self._staged_file_format!r} "
+                f"(allowed: {', '.join(_ALLOWED_STAGED_FILE_FORMATS)}) -- see "
+                "onboarding_spec.schema.json's sink_config.staged_file_format."
+            )
+        self._schema_field_names = list(schema.fieldNames()) if schema is not None else None
         self._zip_secret_value = options.get("zip_secret_value")
         self._pgp_enabled = str(options.get("pgp_enabled", "false")).strip().lower() == "true"
         self._pgp_recipient_key_armored = options.get("pgp_recipient_secret_value") if self._pgp_enabled else None
@@ -169,6 +187,7 @@ class _PgpZipStreamWriter(DataSourceStreamWriter):
     # -- executor side -----------------------------------------------------------------
 
     def write(self, iterator: Iterator[Row]) -> WriterCommitMessage:
+        import csv
         import json
 
         from pyspark import TaskContext
@@ -176,17 +195,43 @@ class _PgpZipStreamWriter(DataSourceStreamWriter):
         os.makedirs(self._staging_dir, exist_ok=True)
         task_context = TaskContext.get()
         partition_id = task_context.partitionId() if task_context is not None else 0
-        staged_file_path = os.path.join(self._staging_dir, f"part-{partition_id}-{uuid.uuid4().hex}{_STAGED_FILE_SUFFIX}")
+        suffix = _STAGED_FILE_SUFFIXES[self._staged_file_format]
+        staged_file_path = os.path.join(self._staging_dir, f"part-{partition_id}-{uuid.uuid4().hex}{suffix}")
+
+        def _csv_cell(value):
+            # Same tolerance philosophy as the JSON branch's default=str: archive the data,
+            # never crash a micro-batch over one awkward column type. None stays an empty
+            # cell; a nested struct/array round-trips as its JSON text rather than Python
+            # repr, so a downstream consumer can still parse it.
+            if value is None:
+                return ""
+            if isinstance(value, (dict, list)):
+                return json.dumps(value, default=str)
+            return value if isinstance(value, str) else str(value)
 
         row_count = 0
-        with open(staged_file_path, "w", encoding="utf-8") as staged_file:
+        # newline="" is the csv-module contract (it writes its own \r\n per RFC 4180);
+        # harmless for the JSON-Lines branch, which writes explicit "\n" separators.
+        with open(staged_file_path, "w", encoding="utf-8", newline="") as staged_file:
+            csv_writer = None
             for row in iterator:
-                # default=str: a row can carry dates/decimals/binary columns that
-                # json.dumps can't natively serialize -- stringify rather than crash a
-                # micro-batch over one awkward column type (this sink's job is to archive
-                # the data for downstream consumption, not to be a strict-typed format).
-                staged_file.write(json.dumps(row.asDict(recursive=True), default=str))
-                staged_file.write("\n")
+                row_dict = row.asDict(recursive=True)
+                if self._staged_file_format == "csv":
+                    if csv_writer is None:
+                        # Header order: the sink's declared write schema when Spark supplied
+                        # one (stable across partitions and micro-batches), else this
+                        # partition's first row's own field order.
+                        field_names = self._schema_field_names or list(row_dict)
+                        csv_writer = csv.DictWriter(staged_file, fieldnames=field_names, extrasaction="ignore")
+                        csv_writer.writeheader()
+                    csv_writer.writerow({name: _csv_cell(row_dict.get(name)) for name in csv_writer.fieldnames})
+                else:
+                    # default=str: a row can carry dates/decimals/binary columns that
+                    # json.dumps can't natively serialize -- stringify rather than crash a
+                    # micro-batch over one awkward column type (this sink's job is to archive
+                    # the data for downstream consumption, not to be a strict-typed format).
+                    staged_file.write(json.dumps(row_dict, default=str))
+                    staged_file.write("\n")
                 row_count += 1
 
         if row_count == 0:
@@ -310,5 +355,6 @@ class PgpZipDataSource(DataSource):
         # `overwrite` is not meaningful here: Lakeflow sinks are written to exclusively via
         # @dlt.append_flow, which is always an append-mode streaming write (there is no
         # "overwrite the sink" concept in Lakeflow's sink API at all) -- every micro-batch
-        # simply produces one more archive file under output_zip_path.
-        return _PgpZipStreamWriter(self.options)
+        # simply produces one more archive file under output_zip_path. `schema` gives the
+        # CSV staging branch (staged_file_format="csv", v1.6.0) its stable header order.
+        return _PgpZipStreamWriter(self.options, schema)

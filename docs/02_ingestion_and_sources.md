@@ -21,6 +21,14 @@ Metaflow provides native, configuration-driven source readers for three primary 
 >   that path, sharing one `cloudFiles.schemaLocation`. The `_<target>_staged` view is now
 >   materialized whenever it has more than one consumer (quarantine rules, or a `sink` /
 >   `external_sink` target), so the source is read once and the stream is opened once.
+>   **v1.6.0:** that materialization is a pipeline-scoped `@dlt.table(temporary=True)` under the
+>   bare `_<target>_staged` name — materialized once per update but never published to Unity
+>   Catalog (the Intermediate Object Rule; before v1.6.0 it was a published, fully-qualified
+>   `catalog.schema` table). Downstream readers resolve it by the same pipeline-local name either
+>   way. If an existing pipeline's catalog shows a `_<target>_staged` table today, the first
+>   update after v1.6.0 unpublishes it — see
+>   [`13_known_limitations_and_gotchas.md` O7](13_known_limitations_and_gotchas.md#o7) before
+>   upgrading a deployed pipeline.
 > * File-lifecycle side effects — `landing_retention_policy` (`cloudFiles.cleanSource` *moves or
 >   deletes* committed landing files) and `source_zip_handling` (PGP-decrypt, unzip,
 >   `.__framework_extracted__` markers) — therefore run **exactly once** per update. Two
@@ -30,7 +38,10 @@ Metaflow provides native, configuration-driven source readers for three primary 
 > Sharing is keyed on base-read options only (format, `schema_location`, `file_pattern`,
 > `reader_options`, retention/ZIP policy, …); everything applied *after* the read — `schema_config`,
 > `column_normalization`, `explode_columns`, `remove_dups`, encryption — is a per-consumer overlay
-> and does **not** split the read. Full mechanics:
+> and does **not** split the read. Since v1.6.0 a shared `_src__…` plane node is likewise a
+> pipeline-scoped **temporary** table unless the spec sets **both** `source_plane.catalog` and
+> `source_plane.schema` (null no longer falls back to the pipeline's own catalog/schema). Full
+> mechanics:
 > [`01_platform_architecture.md` §7](01_platform_architecture.md#7-the-read-once-source-plane).
 
 ---
@@ -166,6 +177,56 @@ Metaflow compiles ASN.1 schemas **once per Spark partition** using `mapInPandas`
   }
 }
 ```
+
+### Choosing `asn1_pdu_name` on a real telecom module
+
+The Spark output schema is derived from the `.asn` file itself
+(`asn1/decoder.py::derive_asn1_field_defs`, via `asn1tools.parse_files` introspection) — there is
+no hand-authored field list to keep in sync. Two constraints follow from that, and they are the
+whole difficulty of onboarding a genuine module:
+
+1. **The PDU must be a top-level `SEQUENCE`.**
+2. **`CHOICE` is rejected anywhere in that `SEQUENCE`'s resolved member tree** — not merely at the
+   top — as is a recursive/self-referential type.
+
+Toy schemas hide this. `sample_data/asn1_schema/gsm_cdr.asn` is a single flat 5-field `SEQUENCE`,
+so its PDU "just works". Every real telecom module is the opposite shape: a root `CHOICE` selecting
+between message kinds. In `metaflow_testing/BT_Testing/TAP.310.asn1` — the genuine GSMA TAP release
+3.10 specification, 375 types — the module's own top-level `DataInterChange` is
+`CHOICE { transferBatch, notification }` and is rejected outright; `TransferBatch` *is* a `SEQUENCE`
+but reaches `CallEventDetail`, also a `CHOICE`, and is rejected one level deeper. `Notification`
+(`[APPLICATION 2] SEQUENCE`) resolves completely, and is a real TAP3 file-level PDU — the
+notification file a roaming partner sends when it has no chargeable events to transfer. That is
+what [Sample 06](09_developer_guide_and_recipes.md#64-sample-06-the-real-gsma-tap3-module-and-why-the-pdu-is-notification)
+ingests.
+
+Rather than reading the module, ask the resolver which PDUs it can actually derive — on TAP.310
+this reports 70 usable types out of 93 top-level `SEQUENCE`s in about a second:
+
+```python
+import asn1tools
+from NextGen_Metadata_Framework.lakeflow_framework.asn1.decoder import derive_asn1_field_defs
+
+module = "metaflow_testing/BT_Testing/TAP.310.asn1"
+types = next(iter(asn1tools.parse_files([module]).values()))["types"]
+for name, node in types.items():
+    if node.get("type") != "SEQUENCE":
+        continue
+    try:
+        print(f"{name:40s} {len(derive_asn1_field_defs(module, name))} fields")
+    except Exception:
+        pass          # CHOICE / recursion / unresolvable member somewhere in the tree
+```
+
+Nested constructs are **not** flattened into columns: a nested `SEQUENCE`/`SET` becomes a Spark
+`struct`, a `SEQUENCE OF`/`SET OF` an `array`, `ENUMERATED` its symbolic name as a string, and
+`BIT STRING` a `struct<bytes, bit_length>`. Flatten downstream with `explode_columns` if a spec
+wants columns. The module file must also define exactly **one** ASN.1 module; `IMPORTS` spanning
+files is not supported.
+
+Per-row decode failures never abort the micro-batch — they populate `_asn1_decode_error` and leave
+every decoded column NULL, which is what makes `"expression": "_asn1_decode_error IS NULL"` with
+`"action": "quarantine"` the standard first DQ rule on an `asn1` flow.
 
 ---
 

@@ -1,0 +1,50 @@
+{
+  "_sample_note": "Sample 05 (reference suite): ingestion of AES-256 password-protected ZIP archives, decrypted on the fly, fully self-contained in the {{catalog}}.metaflow_sample schema. The seed notebook (notebooks/00_seed_sample_data/04_seed_sample_05_encrypted_ingestion_data.py) builds one password-protected ZIP per iteration IN-PROCESS with pyzipper (AES-256, never a pre-built binary fixture), protected with the SAME UC secret Sample 04's export side uses: {{catalog}}.metaflow_sample.sample_zip_passkey. At pipeline runtime, source_zip_handling.pre_extraction_decryption.secret_passphrase resolves that secret and pyzipper extracts the archive before Auto Loader ingests the contained CSV (ingestion/readers.py -> archive/zip_utils.py::extract_encrypted_zip). Note the shape: secret_passphrase is the ZIP archive's OWN password and lives under pre_extraction_decryption WITHOUT a 'type' key -- 'type' is only for an outer whole-file envelope such as PGP (see metaflow_testing/014_ing_005_pgp_decrypt.json for that combinable variant). MANUAL PREREQUISITE: the UC secret must exist before the seed or the pipeline runs -- both fail fast with a clear message if it does not; see the job resource header (resources/sample_jobs/metaflow_sample_05_encrypted_ingestion_job.yml).",
+  "dataflow_group_id": "dfg_sample_05_encrypted_ingestion",
+  "pipeline_parameters": {},
+  "ingestion_flows": [
+    {
+      "dataflow_id": "df_sample_05_secure_txns_ingest",
+      "source_system": "databricks_samples_tpch",
+      "source_database": "metaflow_sample",
+      "source_table_name": "sample_secure_txns",
+      "source_description": "Sample 05: per-iteration AES-256 password-protected ZIP batches (sample_secure_txns_iter1..3.zip, each a distinct samples.tpch.orders-derived transaction slice) are decrypted via the {{catalog}}.metaflow_sample.sample_zip_passkey UC secret, extracted, and Auto Loader-ingested into an APPEND streaming table -- all inside one Lakeflow Declarative Pipeline update.",
+      "source_type": "autoloader",
+      "target_catalog": "{{catalog}}",
+      "target_schema": "metaflow_sample",
+      "target_table": "sample_secure_txns_raw",
+      "target_type": "streaming_table",
+      "source_config": {
+        "path": "/Volumes/{{catalog}}/metaflow_sample/landing/sample05_secure/extracted/txns/",
+        "format": "csv",
+        "schema_location": "/Volumes/{{catalog}}/metaflow_sample/landing/_schemas/sample_secure_txns_raw/",
+        "reader_options": {"header": "true", "cloudFiles.inferColumnTypes": "true"},
+        "capture_technical_metadata": true,
+        "source_zip_handling": {
+          "enabled": true,
+          "source_zip_path": "/Volumes/{{catalog}}/metaflow_sample/landing/sample05_secure/incoming/",
+          "zip_file_pattern": "sample_secure_txns_*.zip",
+          "target_volume_path": "/Volumes/{{catalog}}/metaflow_sample/landing/sample05_secure/extracted/txns/",
+          "delete_source_after_extract": false,
+          "pre_extraction_decryption": {
+            "secret_passphrase": {
+              "secret_catalog": "{{catalog}}",
+              "secret_schema": "metaflow_sample",
+              "secret_key": "sample_zip_passkey"
+            }
+          }
+        }
+      },
+      "target_config": {"cdc_load_strategy": "APPEND", "storage_format": "delta"},
+      "dq_config": {
+        "rules": [
+          {"rule_id": "txn_id_present", "expression": "txn_id IS NOT NULL", "action": "drop"},
+          {"rule_id": "amount_non_negative", "expression": "amount >= 0", "action": "warn"}
+        ]
+      },
+      "governance_tags": {}
+    }
+  ],
+  "transformation_flows": [],
+  "reconciliation_flows": []
+}

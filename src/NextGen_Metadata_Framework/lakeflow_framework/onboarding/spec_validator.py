@@ -106,6 +106,10 @@ ALLOWED_COLUMN_NORMALIZATION_CASES = {"lower", "preserve", "upper"}
 ALLOWED_SCHEMA_EVOLUTION_MODES = {"addNewColumns", "addNewColumnsWithTypeWidening", "rescue", "failOnNewColumns", "none"}
 ALLOWED_STORAGE_FORMATS = {"delta", "iceberg"}
 ALLOWED_SINK_FORMATS = {"delta", "kafka", "pgp_zip"}
+
+#: ``sink_config.staged_file_format`` (v1.6.0) -- the staged per-partition file format inside
+#: a ``pgp_zip`` archive. Absent == "json" (JSON-Lines, the only pre-v1.6.0 behaviour).
+ALLOWED_STAGED_FILE_FORMATS = {"json", "csv"}
 ALLOWED_SINK_WRITE_MODES = {"overwrite", "append"}
 ALLOWED_RECONCILIATION_FAILURE_MODES = {"fail", "warn"}
 # reconciliation_flows[].execution_mode -- "job" (default, unchanged standalone
@@ -669,6 +673,27 @@ def _validate_sink_config(sink_config: Any, path_prefix: str, errors: List[str],
         # staging directory (see archive/pgp_zip_sink.py) -- NOT the finished-archive
         # location, which is post_export_archive.output_zip_path below.
         check_string(sink_config.get("path"), f"{path_prefix}.path", errors, required=True)
+
+    staged_file_format = sink_config.get("staged_file_format")
+    if staged_file_format is not None:
+        # v1.6.0 -- the staged per-partition file format inside a pgp_zip archive: "json"
+        # (default when absent -- JSON-Lines, the only pre-v1.6.0 behaviour) or "csv"
+        # (RFC-4180 with a header row). Presence-rejected for the native sink formats,
+        # which have no framework staging step at all: silently accepting it there would
+        # let a spec assert a file shape nothing ever produces.
+        if sink_format == "pgp_zip":
+            check_string(
+                staged_file_format,
+                f"{path_prefix}.staged_file_format",
+                errors,
+                allowed_values=ALLOWED_STAGED_FILE_FORMATS,
+            )
+        else:
+            errors.append(
+                f"{path_prefix}.staged_file_format: only meaningful for format 'pgp_zip' (this "
+                f"framework's staging-then-archive sink); format {sink_format!r} is a native "
+                "Lakeflow sink with no staging step. Remove the attribute."
+            )
 
     archive_config = sink_config.get("post_export_archive")
     # post_export_archive is REQUIRED for "pgp_zip" -- archiving (optionally PGP-encrypting)
@@ -1497,17 +1522,41 @@ def _validate_reconciliation_flows(
                 allowed_values=ALLOWED_RECONCILIATION_FAILURE_MODES,
             )
 
-        _validate_logging_config(flow.get("logging_config"), f"{label}.logging_config", errors)
+        _validate_logging_config(
+            flow.get("logging_config"),
+            f"{label}.logging_config",
+            errors,
+            execution_mode=execution_mode,
+            dq_config=dq_config,
+        )
 
     return reconciliation_flows
 
 
-def _validate_logging_config(logging_config: Any, label: str, errors: List[str]) -> None:
+def _validate_logging_config(
+    logging_config: Any,
+    label: str,
+    errors: List[str],
+    execution_mode: str = "job",
+    dq_config: Any = None,
+) -> None:
     """Validate the optional ``run_log_capture``/``mismatch_log_capture`` gates a reconciliation
-    flow can set to skip ``reconciliation_run_log``/``reconciliation_mismatch_log`` writes for a
-    high-frequency continuous flow. Both default to ``true`` (today's unconditional behavior) --
-    absent is valid and changes nothing. ``reconciliation_result`` is always written regardless
-    of this config and has no opt-out -- see reconciliation/appender.py.
+    flow can set to skip its log writes for a high-frequency continuous flow. Both default to
+    ``true`` -- absent is valid and changes nothing.
+
+    **v1.6.0 contract:** ``run_log_capture`` gates ``reconciliation_run_log`` AND
+    ``reconciliation_result`` (previously unconditional), and in pipeline mode whether the
+    ``recon__*__metrics`` dataset is registered at all; ``mismatch_log_capture`` gates
+    ``reconciliation_mismatch_log`` and the ``recon__*__mismatch`` dataset. Both false ==
+    reconciliation persists ONLY to its business targets. Two combinations are rejected here
+    (mirroring the graph-time guards in ``reconciliation/graph_registration.py``, so the
+    contradiction surfaces at onboarding instead of on the first pipeline update):
+
+    * ``dq_config.rules`` present while ``run_log_capture`` is ``false`` -- the flow's
+      expectations attach to its ``__metrics`` dataset, which would not exist.
+    * ``execution_mode: pipeline_audit_only`` with BOTH flags ``false`` -- the audit-only mode
+      exists solely to produce the metrics/mismatch datasets and their control-table exports,
+      so this combination registers compute with no output at all.
 
     This block is the **onboarded per-flow layer**. It is overridden at run time by the
     ``recon_run_log_capture``/``recon_mismatch_log`` job parameters (see
@@ -1525,6 +1574,33 @@ def _validate_logging_config(logging_config: Any, label: str, errors: List[str])
         check_bool(logging_config.get("run_log_capture"), f"{label}.run_log_capture", errors)
     if logging_config.get("mismatch_log_capture") is not None:
         check_bool(logging_config.get("mismatch_log_capture"), f"{label}.mismatch_log_capture", errors)
+
+    # Presence-aware cross-field rules -- evaluated on the DEFAULTED values (absent == true),
+    # matching resolve_log_capture_flags' precedence with no job-parameter layer at onboarding
+    # time. A runtime pipeline-conf override producing the same contradiction is caught again
+    # by the graph-time guards in reconciliation/graph_registration.py.
+    run_log_capture = logging_config.get("run_log_capture", True)
+    mismatch_log_capture = logging_config.get("mismatch_log_capture", True)
+    dq_rules = dq_config.get("rules") if isinstance(dq_config, dict) else None
+    if dq_rules and run_log_capture is False:
+        errors.append(
+            f"{label}.run_log_capture: false is incompatible with dq_config.rules -- the flow's "
+            "expectations attach to its recon__*__metrics dataset, which is only registered "
+            "when run_log_capture is true (v1.6.0). Remove the dq_config rules or re-enable "
+            "run_log_capture."
+        )
+    if (
+        execution_mode == "pipeline_audit_only"
+        and run_log_capture is False
+        and mismatch_log_capture is False
+    ):
+        errors.append(
+            f"{label}: execution_mode 'pipeline_audit_only' with both run_log_capture and "
+            "mismatch_log_capture false registers compute with no output at all (v1.6.0 -- the "
+            "audit-only mode exists solely to produce the metrics/mismatch datasets and their "
+            "control-table exports). Enable at least one capture flag, or use execution_mode "
+            "'job'/'pipeline'."
+        )
 
 
 def _validate_observability_auth(auth: Any, path_prefix: str, errors: List[str]) -> None:

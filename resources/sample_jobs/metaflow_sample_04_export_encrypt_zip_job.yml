@@ -1,0 +1,85 @@
+# Sample 04 -- Password-Protected ZIP CSV Export Egress (reference, not a test): two APPEND
+# ingestion flows land order/customer slices and TWO transformation flows join them
+# (stream-static) into TWO genuine Lakeflow sinks (target_type 'sink', sink_config format
+# 'pgp_zip' with staged_file_format 'csv' -- NEW in v1.6.0), each micro-batch packed by
+# post_export_archive into an AES-256 password-protected ZIP under
+# /Volumes/metaflow/metaflow_sample/exports/ -- protected via post_export_archive.secret (the
+# ZIP's own password), deliberately INSTEAD of pgp_encryption. Everything isolated in the
+# metaflow.metaflow_sample schema.
+#
+#   setup_control_tables -> onboard_sample_04 -> run_pipeline -> store_sample_config
+#
+# SEED FIRST. This job lands no data of its own. Its fixtures come from the suite-wide
+# resources/sample_jobs/metaflow_sample_seed_job.yml (tasks seed_sample_04_iteration1..3), which
+# must have completed at least once:
+#
+#   databricks bundle run metaflow_sample_seed_job                 -t dev_metaflow -p dev_metaflow
+#   databricks bundle run metaflow_sample_04_export_encrypt_zip_job -t dev_metaflow -p dev_metaflow
+#
+# All three seeded slices are on disk before this job runs, so the single pipeline update below
+# exports them together rather than as three separate archives per sink.
+#
+# MANUAL PREREQUISITE (one-time, admin-audited, external to this bundle -- mirroring
+# resources/bt_tests/metaflow_test_ing_005_pgp_decrypt_job.yml's documented-prerequisite
+# pattern): the Unity Catalog secret metaflow.metaflow_sample.sample_zip_passkey must already
+# exist before run_pipeline can export (any string works -- pyzipper derives its AES key from
+# the passphrase via its own KDF; resolved at runtime via
+# dbutils.secrets.get(catalog=, schema=, key=), the UC three-level model). The seed job's Sample
+# 04 chain preflights this secret and fails fast with a clear message if it is unresolvable, so
+# the failure happens during seeding, not mid-pipeline-update. The SAME secret also protects
+# (and decrypts) Sample 05's inbound archives -- provision it once, both samples work. See
+# metaflow_testing/README.md's "Sample reference suite" section for the provisioning command.
+#
+# Onboarding is DELEGATED to the generic onboarding_job
+# (resources/metaflow_config_jobs/onboarding_job.yml) via run_job_task -- never an inline
+# 02_onboarding_engine.py notebook_task. Self-contained and idempotent, so this job can be
+# re-run on its own at any time. See metaflow_testing/samples/sample_04_export_encrypt_zip.json.
+
+resources:
+  jobs:
+    metaflow_sample_04_export_encrypt_zip_job:
+      name: Metaflow Sample 04 - Encrypted ZIP CSV Export Egress (AES-256 Passkey)
+
+      tasks:
+        - task_key: setup_control_tables
+          notebook_task:
+            notebook_path: ../../notebooks/01_setup/01_setup_control_tables.py
+            base_parameters:
+              catalog: metaflow
+          environment_key: framework_env
+
+        - task_key: onboard_sample_04
+          depends_on:
+            - task_key: setup_control_tables
+          run_job_task:
+            job_id: ${resources.jobs.onboarding_job.id}
+            job_parameters:
+              spec_file_path: "${workspace.file_path}/metaflow_testing/samples/sample_04_export_encrypt_zip.json"
+              catalog: metaflow
+              env: dev
+              action_type: CREATE
+
+        - task_key: run_pipeline
+          depends_on:
+            - task_key: onboard_sample_04
+          pipeline_task:
+            pipeline_id: ${resources.pipelines.metaflow_sample_04_export_encrypt_zip_pipeline.id}
+
+        # Publishes this job's onboarding spec into the developer-reference Volume
+        # /Volumes/metaflow/metaflow_sample/sample_configs/ -- the last task of every sample job.
+        - task_key: store_sample_config
+          depends_on:
+            - task_key: run_pipeline
+          notebook_task:
+            notebook_path: ../../notebooks/09_sample_reference/09a_store_sample_config.py
+            base_parameters:
+              spec_paths: "${workspace.file_path}/metaflow_testing/samples/sample_04_export_encrypt_zip.json"
+              catalog: metaflow
+          environment_key: framework_env
+
+      environments:
+        - environment_key: framework_env
+          spec:
+            environment_version: "4"
+            dependencies:
+              - ../../dist/*.whl

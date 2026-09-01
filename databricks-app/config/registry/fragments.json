@@ -40,7 +40,6 @@
         "path": "type",
         "widget": "select",
         "type": "string",
-        "default": "table",
         "options": [
           "table"
         ],
@@ -58,7 +57,6 @@
         "path": "read_mode",
         "widget": "select",
         "type": "string",
-        "default": "batch",
         "options": [
           "batch",
           "streaming"
@@ -92,7 +90,6 @@
         "path": "hash_precomputed",
         "widget": "boolean",
         "type": "boolean",
-        "default": false,
         "description": "Reuse existing __framework_hash_key and __framework_hash_value instead of recomputing."
       }
     ]

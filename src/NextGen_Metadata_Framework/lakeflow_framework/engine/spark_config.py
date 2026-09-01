@@ -16,7 +16,7 @@ Three layers, resolved **lowest -> highest** by :func:`resolve_spark_conf`:
 3. The pipeline resource's own ``configuration:`` entry :data:`PIPELINE_SPARK_CONF_KEY`
    (``dataflow.spark.conf``), whose value is a JSON **object encoded as a string** -- the same
    convention ``dataflow.otel_streaming.event_log_tables`` already uses in
-   ``resources/observability_otel_streaming_pipeline.yml``, because a bundle ``configuration:``
+   ``resources/observability/observability_otel_streaming_pipeline.yml``, because a bundle ``configuration:``
    block can only carry flat string values.
 
 **Why the bundle YAML is highest, not lowest.** The bundle is the deployment-time, per-target

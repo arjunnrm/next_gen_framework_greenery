@@ -1402,6 +1402,8 @@
       
         
       
+        
+      
     
     
     
@@ -1805,6 +1807,34 @@
     
   
     Full attribute dictionary
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../14_onboarding_restrictions_and_validation_rules/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Onboarding restrictions & validation rules
   
 
     
@@ -2837,6 +2867,8 @@
       
         
       
+        
+      
     
     
     
@@ -2925,6 +2957,34 @@
     
   
     Multi-role FAQs
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../15_agent_skills_and_prompts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Agent skills & prompt library
   
 
     
@@ -3616,6 +3676,10 @@
 <td><code>get_preflight_function_ddl(control_schema: str, onboarding_spec_schema_json: str) -&gt; str</code></td>
 <td>Build the <code>CREATE OR REPLACE FUNCTION</code> statement for <code>preflight_check_onboarding_spec</code>, a Unity Catalog Python Function callable directly via SQL -- by Genie, a Mosaic AI Agent, or any MCP tool-calling loop -- with no Python host process required.</td>
 </tr>
+<tr>
+<td><code>get_add_column_ddl(control_schema: str, table_name: str, column_name: str, sql_type: str, comment: str) -&gt; str</code></td>
+<td>Build one ``ALTER TABLE ...</td>
+</tr>
 </tbody>
 </table>
 <h2 id="lakeflow_frameworkcontrol_planepost_deploymentpy"><code>lakeflow_framework/control_plane/post_deployment.py</code><a class="headerlink" href="#lakeflow_frameworkcontrol_planepost_deploymentpy" title="Permanent link">&para;</a></h2>
@@ -3672,6 +3736,10 @@
 <tr>
 <td><code>ensure_control_schema_exists(spark: SparkSession, control_catalog: str, table_properties: Optional[Dict[str, str]] = None) -&gt; None</code></td>
 <td>Create the <code>config</code> schema and all four control tables if they don't already exist.</td>
+</tr>
+<tr>
+<td><code>ensure_control_table_columns(spark: SparkSession, control_catalog: str) -&gt; None</code></td>
+<td>Add any post-v1.0 control-table column that an already-provisioned table is missing.</td>
 </tr>
 <tr>
 <td><code>is_already_exists_race(exc: Exception) -&gt; bool</code></td>

@@ -2,7 +2,7 @@
 
 This module exists because the observability engine runs as a *separate* Workflow task,
 downstream of the task that actually ran the DLT pipeline update (``run_pipeline_update`` by
-convention -- see ``resources/dlt_observability_job.yml``). All this module is ever handed is
+convention -- see ``resources/observability/dlt_observability_job.yml``). All this module is ever handed is
 that upstream task's own ``run_id``, arriving as the ``pipeline_task_run_id`` task parameter
 whose value is ``{{tasks.<pipeline_task_key>.run_id}}`` -- a Databricks Jobs *dynamic value
 reference*, substituted by the Jobs service into the downstream task's parameters at dispatch

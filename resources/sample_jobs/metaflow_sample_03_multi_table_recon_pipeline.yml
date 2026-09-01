@@ -1,0 +1,31 @@
+# Sample 03 -- "Concurrent Multi-Table Load with In-DAG Reconciliation" (reference, not a
+# test): the Lakeflow Declarative Pipeline hosting dfg_sample_03_multi_table_recon's two
+# concurrent Auto Loader flows AND the pipeline_audit_only reconciliation flow's L3/L4 compare
+# datasets (recon__recon_sample_03_trips_primary_vs_replica__trips_replica__classified/
+# __metrics/__mismatch, published to metaflow_sample) in one DAG. Everything publishes into the
+# single metaflow.metaflow_sample schema. See
+# metaflow_testing/samples/sample_03_multi_table_recon.json and
+# resources/sample_jobs/metaflow_sample_03_multi_table_recon_job.yml.
+
+resources:
+  pipelines:
+    metaflow_sample_03_multi_table_recon_pipeline:
+      name: metaflow_sample_03_multi_table_recon_pipeline_${bundle.target}
+      catalog: metaflow
+      schema: metaflow_sample
+      serverless: true
+      photon: true
+      development: true
+      continuous: false
+
+      libraries:
+        - notebook:
+            path: ../../notebooks/03_engine/03_lakeflow_declarative_pipeline.py
+
+      environment:
+        dependencies:
+          - ../../dist/*.whl
+
+      configuration:
+        dataflow.group.id: dfg_sample_03_multi_table_recon
+        dataflow.control.catalog: metaflow

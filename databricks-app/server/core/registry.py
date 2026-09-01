@@ -188,7 +188,6 @@ class RegistryManager:
                     "path": "target_config.cdc_load_strategy",
                     "widget": "select",
                     "type": "string",
-                    "default": "APPEND",
                     "options": [t["value"] for t in self.shared_cdc.get("tabs", [])],
                     "description": "CDC merge strategy."
                 }

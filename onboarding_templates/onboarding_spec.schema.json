@@ -188,7 +188,7 @@
             "null"
           ],
           "default": null,
-          "description": "Catalog for materialized L0 source-plane nodes (the `_src__<sanitized_locator>__<8hex>__stream`/`__batch` datasets). Default: null, meaning the hosting pipeline's own catalog."
+          "description": "Catalog for PUBLISHED L0 source-plane nodes (the `_src__<sanitized_locator>__<8hex>__stream`/`__batch` datasets). Since v1.6.0 the default (null) means the node is NOT published at all: it is registered as a pipeline-scoped temporary table -- still materialized once (read-once holds) but never visible in Unity Catalog (the Intermediate Object Rule). Set catalog AND schema together only when you deliberately want the shared node published as a durable, queryable table. Pre-v1.6.0, null meant 'publish into the hosting pipeline's own catalog/schema'."
         },
         "schema": {
           "type": [
@@ -196,7 +196,7 @@
             "null"
           ],
           "default": null,
-          "description": "Schema for materialized L0 source-plane nodes. Default: null, meaning the hosting pipeline's own schema."
+          "description": "Schema for PUBLISHED L0 source-plane nodes. Since v1.6.0 the default (null) means the node stays a pipeline-scoped temporary table (not published); set catalog AND schema together to publish. Pre-v1.6.0, null meant the hosting pipeline's own schema."
         }
       }
     },
@@ -625,6 +625,13 @@
         "path": {
           "type": "string",
           "description": "Required for 'delta'/'pgp_zip'. Unused for 'kafka'."
+        },
+        "staged_file_format": {
+          "enum": [
+            "json",
+            "csv"
+          ],
+          "description": "v1.6.0, 'pgp_zip' only (presence-rejected for 'delta'/'kafka', which have no framework staging step): the staged per-partition file format inside the archive. 'json' (default when absent -- JSON-Lines, the only pre-v1.6.0 behaviour) or 'csv' (RFC-4180 with a header row; one staged file per non-empty partition per micro-batch, header order = the sink's write schema). See archive/pgp_zip_sink.py."
         },
         "kafka_options": {
           "type": "object",
@@ -1754,7 +1761,7 @@
         "logging_config": {
           "type": "object",
           "additionalProperties": false,
-          "description": "Per-flow log-write gates. Overridden at run time by the recon_run_log_capture / recon_mismatch_log job parameters -- see notebooks/05_reconciliation/05_reconciliation_engine.py. reconciliation_result is always written regardless.",
+          "description": "Per-flow log-write gates, both default true. Overridden at run time by the recon_run_log_capture / recon_mismatch_log job parameters -- see notebooks/05_reconciliation/05_reconciliation_engine.py. v1.6.0 contract: run_log_capture=false skips reconciliation_run_log AND reconciliation_result (previously unconditional), and in pipeline mode skips registering the recon__*__metrics dataset entirely; mismatch_log_capture=false skips reconciliation_mismatch_log and the recon__*__mismatch dataset. Both false == reconciliation persists ONLY to its business target tables -- no metric/log dataset is created and no control-table row is written; the run's job/pipeline state is then the only failure signal. Rejected combinations: dq_config.rules with run_log_capture=false (the expectations attach to __metrics, which would not exist), and execution_mode=pipeline_audit_only with both flags false (the flow would register compute with no output).",
           "properties": {
             "run_log_capture": {
               "type": "boolean",

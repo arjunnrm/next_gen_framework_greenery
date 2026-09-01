@@ -104,9 +104,48 @@ the validator cannot catch see [known limitations](13_known_limitations_and_gotc
 ## Operations
 
 ??? question "A deploy killed a running pipeline with `ENVIRONMENT_PIP_INSTALL_ERROR`."
-    The wheel was published as a bundle artifact, so DABs pruned the version the running update was
-    installing. Publish to a Volume and pin an explicit version — see
+    The deploy pruned the superseded wheel from `<artifact_path>/.internal/` while the running
+    update was installing it. DABs prunes on a UC Volume exactly as in the workspace (v1.6.0 moved
+    the artifact path to `/Volumes/<catalog>/config/wheels`, which does **not** change this), and
+    unique per-deploy filenames prevent overwrite-in-place, not removal. The rule is operational:
+    **never `bundle deploy` while a pipeline or test wave is running** — see
     [Deploying](onboarding/04_deploying.md).
+
+??? question "Why don't I see the `_staged` / `_src__*` / `_recon__*` tables in my catalog anymore?"
+    v1.6.0's Intermediate Object Rule: intermediates are `@dlt.view`s or pipeline-scoped
+    **temporary** tables — materialized once per update where read-once demands it, but never
+    published to Unity Catalog. Only final sinks (targets, quarantine tables, SCD2 `_current`) and
+    the conditional reconciliation audit datasets (`__metrics`/`__mismatch`) are published. The
+    datasets still exist inside the pipeline — check the pipeline's graph/event log, not the
+    catalog. See [Known limitations O7](13_known_limitations_and_gotchas.md#o7) for the upgrade
+    implications.
+
+??? question "How do I keep a shared source-plane node queryable from outside the pipeline?"
+    Set **both** `source_plane.catalog` and `source_plane.schema` in the spec — the node is then
+    published there as a real table, exactly as pre-v1.6.0. Leaving them `null` (the default) keeps
+    it a pipeline-scoped temporary table.
+
+??? question "How do I turn off ALL reconciliation logging, and what do I lose?"
+    Set `logging_config: {"run_log_capture": false, "mismatch_log_capture": false}` (or the
+    runtime overrides). v1.6.0 makes this a real off-switch: no `recon__*__metrics`/`__mismatch`
+    dataset is registered, and no `reconciliation_run_log`, `reconciliation_mismatch_log` **or
+    `reconciliation_result`** row is written — the flow persists only to its business targets. You
+    lose the control-table audit trail entirely, including FAILED rows; the job/pipeline run state
+    and structured log events become your only failure signal. Healing still works.
+
+??? question "Why did onboarding reject `run_log_capture: false` on my flow?"
+    Two combinations are rejected (at onboarding and again at graph definition): `dq_config.rules`
+    with `run_log_capture: false` — the expectations attach to the `__metrics` dataset, which would
+    not exist — and `execution_mode: "pipeline_audit_only"` with **both** capture flags false,
+    which would register compute with no output at all. Re-enable the flag, or drop the rules /
+    switch the mode. See [Reconciliation §6](07_reconciliation_engine.md#6-runtime-log-controls).
+
+??? question "How do I export CSV files inside the password-protected ZIP instead of JSON-Lines?"
+    Set `sink_config.staged_file_format: "csv"` on a `pgp_zip` sink (v1.6.0) — staged files become
+    RFC-4180 CSV with a header row (one file per non-empty partition per micro-batch), then
+    `post_export_archive` zips them as before; combine with `post_export_archive.secret` for an
+    AES-256 password-protected archive. The attribute is rejected on `delta`/`kafka` sinks, which
+    have no staging step. Working example: `metaflow_testing/samples/sample_04_export_encrypt_zip.json`.
 
 ??? question "A flow failed but the update still reported SUCCESS."
     `pipelines.maxFlowRetryAttempts` defaults to 5 for triggered pipelines, so a transiently failing

@@ -15,7 +15,8 @@ The Metaflow Reconciliation Engine provides automated, hash-first verification b
 - **Drift Classification**: Categorizes discrepancies into `MATCHED`, `MISSING_IN_TARGET`, `MISSING_IN_SOURCE`, and `VALUE_DRIFT`.
 - **Per-Record Mismatch Audit Logging**: Stores detailed mismatch records in `{catalog}.config.reconciliation_mismatch_log`, including a full column-by-column `differing_columns_json` for every `VALUE_DRIFT` record.
 - **Delta Tables Only (v1.3.0, breaking)**: reconciliation is supported for Delta tables (`type: "table"`) only. `file` and `sink` dataset types, previously accepted, are now rejected at both onboarding and runtime. See [§7](#7-delta-tables-only-scope-breaking-change-in-v130).
-- **In-pipeline reconciliation (v1.5.0)**: `execution_mode` promotes a reconciliation flow to a **third flow type inside the dataflow group's own Lakeflow pipeline update**, publishing the comparison as real UC datasets (`__classified` / `__metrics` / `__mismatch`) and re-hosting the imperative append inside one `foreach_batch_sink` handler. It defaults to `"job"`, so nothing already deployed changes until an author opts in. **Proven live on 2026-08-31** — one update of pipeline `be78d88d-6064-414d-a10c-2aacd900fa86` registered ingestion, the L3/L4 comparison datasets, the L5 pulse, the heal flow *and* the `foreach_batch_sink` handler in a single DAG (the exact node list is in [§11.1](#111-the-l0l5-node-map)). See [§11](#11-execution-modes-job-pipeline-pipeline_audit_only), and — before switching any flow to `"pipeline"` — [§11.7](#117-the-reconciliation-source-must-be-append-only-in-pipeline-mode).
+- **In-pipeline reconciliation (v1.5.0)**: `execution_mode` promotes a reconciliation flow to a **third flow type inside the dataflow group's own Lakeflow pipeline update**, materializing the comparison as real Lakeflow datasets (`__classified` / `__metrics` / `__mismatch`) and re-hosting the imperative append inside one `foreach_batch_sink` handler. It defaults to `"job"`, so nothing already deployed changes until an author opts in. **Proven live on 2026-08-31** — one update of pipeline `be78d88d-6064-414d-a10c-2aacd900fa86` registered ingestion, the L3/L4 comparison datasets, the L5 pulse, the heal flow *and* the `foreach_batch_sink` handler in a single DAG (the exact node list is in [§11.1](#111-the-l0l5-node-map)). See [§11](#11-execution-modes-job-pipeline-pipeline_audit_only), and — before switching any flow to `"pipeline"` — [§11.7](#117-the-reconciliation-source-must-be-append-only-in-pipeline-mode).
+- **The Intermediate Object Rule + a tightened logging contract (v1.6.0)**: every true reconciliation intermediate (`_recon__*__src`/`__tgt`/`__classified`/`__missing`/pulse) is now a pipeline-scoped **temporary** table — materialized once per update, never published to Unity Catalog — and the two published audit datasets, `recon__*__metrics` / `recon__*__mismatch`, are registered **only when their capture flag resolves true**. `logging_config.run_log_capture` now also gates `reconciliation_result` (previously unconditional). See [§6](#6-runtime-log-controls), [§11.1](#111-the-l0l5-node-map) and [§11.10](#1110-v160--the-intermediate-object-rule-and-the-conditional-audit-datasets); **before upgrading an already-deployed pipeline**, read the migration trap [`13_known_limitations_and_gotchas.md` O7](13_known_limitations_and_gotchas.md#o7).
 - **Self-Healing Append**: for a target configured with `comparison_direction: "source_to_target"` or `"both"`, missing/drifted records are automatically appended into that target's `append_target_table`, so a subsequent pipeline run picks the correction up. See [§8](#8-self-healing-append-behavior).
 
 ---
@@ -56,7 +57,8 @@ The Metaflow Reconciliation Engine provides automated, hash-first verification b
                  ▼                                 ▼
       ┌──────────────────────────────────────────────────────────┐
       │        RUN SUMMARY (reconciliation_run_log) +              │
-      │        RESULT (reconciliation_result, always written)      │
+      │        RESULT (reconciliation_result) — both gated by      │
+      │        run_log_capture (v1.6.0, see §6)                    │
       └──────────────────────────────┬───────────────────────────┘
                                       │  (Phase 2 only, and only for
                                       │   MISSING_IN_TARGET/VALUE_DRIFT/
@@ -120,7 +122,7 @@ Field names below are verified against `onboarding/spec_validator.py::_validate_
 | `dataflow_group_id` | `string` | the spec's own top-level `dataflow_group_id` | **New in v1.5.0 — this IS a per-flow field.** Which dataflow group's Lakeflow pipeline this flow is registered into. Omit it and the flow inherits the spec's own top-level group, which is the overwhelmingly common case and the pre-v1.5.0 behaviour. Naming a *different* group registers the flow inside THAT group's pipeline update instead — the supported way to reconcile against, or heal into, tables another group owns. **Required when `execution_mode` is `"pipeline"`/`"pipeline_audit_only"`** (V-CYC-6: a group-less flow has no pipeline to be registered into). Persisted to `reconciliation_flow_spec.dataflow_group_id`; when that column is non-null, `${param}` placeholders in `source_config`/`target_configs`/`filter_condition` resolve against that group's `pipeline_parameters_json`. |
 | `two_tier_verification` | `boolean` | `true` | See [§4](#4-two-tier-verification-phase-1-phase-2). **v1.5.0** — now genuinely persisted to `reconciliation_flow_spec.two_tier_verification`. Before v1.5.0 that column had no `StructField` and the Row literal never set it, so `false` onboarded cleanly and was silently discarded, and the runtime then defaulted to `true` — a silent behaviour inversion. |
 | `execution_mode` | `enum("job", "pipeline", "pipeline_audit_only")` | `"job"` | **New in v1.5.0.** Where this flow runs. `"job"` is today's `05_reconciliation_engine.py` job task, byte-for-byte. `"pipeline"` registers the flow as a third flow type *inside* the owning dataflow group's Lakeflow pipeline update — the L3/L4 published datasets **and** the L5 heal lane. `"pipeline_audit_only"` registers L3+L4 only: comparison, metrics and `dq_config` expectations run in-pipeline while healing stays in job mode. Full treatment: [§11](#11-execution-modes-job-pipeline-pipeline_audit_only). |
-| `publish_schema` | `string` | the hosting pipeline's own schema | **New in v1.5.0.** Schema (inside the pipeline's own catalog) that this flow's `recon__<rid>__<tid>__classified` / `__metrics` / `__mismatch` datasets are published into. They are real, externally visible UC tables, so the default — the pipeline's own schema — is often not where you want reconciliation output to land. Persisted to `reconciliation_flow_spec.publish_schema`. **Rejected on presence when `execution_mode` is `"job"`**, which publishes no datasets. How the default is actually resolved, and why it used to resolve to `None`: [§11.9](#119-where-the-published-datasets-land--publish_schema-resolution). |
+| `publish_schema` | `string` | the hosting pipeline's own schema | **New in v1.5.0.** Schema (inside the pipeline's own catalog) that this flow's **published** datasets land in — since v1.6.0 that is `recon__<rid>__<tid>__metrics` / `__mismatch` (each registered only when its capture flag is on) plus a healing flow's `_src`/healing `_tgt`; every other recon dataset is a pipeline-scoped temporary table and is never published anywhere ([§11.10](#1110-v160--the-intermediate-object-rule-and-the-conditional-audit-datasets)). They are real, externally visible UC tables, so the default — the pipeline's own schema — is often not where you want reconciliation output to land. Persisted to `reconciliation_flow_spec.publish_schema`. **Rejected on presence when `execution_mode` is `"job"`**, which publishes no datasets. How the default is actually resolved, and why it used to resolve to `None`: [§11.9](#119-where-the-published-datasets-land--publish_schema-resolution). |
 | `dq_config` | `object` (the same shape as an ingestion/transformation `dq_config`) | SQL `NULL` | **New in v1.5.0.** Expectations attached to the one-row `__metrics` dataset — e.g. `{"rules": [{"rule_id": "no_value_drift", "expression": "value_drift_count = 0", "action": "fail"}]}`. Each rule requires `rule_id`, `expression` and `action` — `name`/`expr` are NOT accepted. Unlike the ingestion and transformation paths, which persist `{}` when the block is omitted, this one persists SQL `NULL` (`metadata_upsert.py`), so "no expectations" is distinguishable from "an empty rule set". This is the **first declarative way a reconciliation threshold can fail a pipeline update**, and it is *additive*: it does not repurpose `error_handling.on_failure`, which keeps its exception-level try/except meaning. `action: "quarantine"` is rejected (there is nothing to quarantine on a one-row metrics table), and the whole block is **rejected on presence when `execution_mode` is `"job"`**. |
 | `logging_config` | `object` | `{}` (both flags `true`) | See [§6](#6-runtime-log-controls). |
 | `source_config` | `object` | — (required) | See [§3.2](#32-per-side-dataset-fields-source_config-each-target_configs-entry). |
@@ -261,10 +263,22 @@ One asymmetry remains and is deliberate: in a mixed batch/streaming comparison, 
 
 ## 6. Runtime Log Controls
 
-Two independent layers control whether `reconciliation_run_log` / `reconciliation_mismatch_log` rows get written for a run. `reconciliation_result` is **always** written by both layers — a fully-silenced run still leaves a record that it happened.
+Two independent layers control whether a run's log rows get written. **What the flags gate widened in v1.6.0**:
+
+| Resolved flag | Gates (v1.6.0) | Pre-v1.6.0 |
+|---|---|---|
+| `run_log_capture` | `reconciliation_run_log` rows, **`reconciliation_result` rows**, and — in pipeline mode — whether the `recon__*__metrics` dataset is **registered at all** | `reconciliation_run_log` rows only; `reconciliation_result` was always written; `__metrics` was always registered |
+| `mismatch_log_capture` | `reconciliation_mismatch_log` rows and — in pipeline mode — whether the `recon__*__mismatch` dataset is registered | `reconciliation_mismatch_log` rows only; `__mismatch` was always registered |
+
+**Both flags resolved `false` means reconciliation persists to NOTHING but its business targets** — no metric/log dataset is created, no control-table row is written (a failed run included), and the run's job/pipeline state plus the structured log events are the only failure signal. That is the deliberate v1.6.0 contract: `logging_config` is a real off-switch, not a partial one. Two contradictory configurations are rejected — at onboarding (`spec_validator.py::_validate_logging_config`) *and* again at graph definition (`graph_registration.py`, catching runtime pipeline-conf overrides):
+
+* `dq_config.rules` while `run_log_capture` resolves `false` — the flow's expectations attach to its `__metrics` dataset, which would not exist, silently dropping declared data-quality checks.
+* `execution_mode: "pipeline_audit_only"` with **both** flags `false` — audit-only exists solely to produce the metrics/mismatch datasets and their control-table exports, so this combination registers compute with no output at all.
+
+The two layers:
 
 1. **Onboarded, per-flow layer**: `logging_config.run_log_capture` / `logging_config.mismatch_log_capture`, both default `true`. Persisted as `reconciliation_flow_spec.logging_config_json`.
-2. **Runtime, job-parameter layer** (v1.3.0): the notebook widgets `recon_run_log_capture` / `recon_mismatch_log`. Each is **tri-state**: `""` (default — defer to `logging_config`), `"true"`, `"false"`.
+2. **Runtime, job-parameter layer** (v1.3.0): the notebook widgets `recon_run_log_capture` / `recon_mismatch_log`. Each is **tri-state**: `""` (default — defer to `logging_config`), `"true"`, `"false"`. In pipeline mode the equivalents are the pipeline-conf keys `dataflow.recon.run_log_capture` / `dataflow.recon.mismatch_log`, and since v1.6.0 they participate in the graph-definition decision (which datasets exist), not just the write decision.
 
 **Precedence, highest first** (`reconciliation/appender.py::resolve_log_capture_flags`, the single function that decides this — pure, no Spark, unit-tested with plain dicts):
 
@@ -417,7 +431,7 @@ When discrepancies are detected (Phase 2 only — a Phase 1 early-out writes not
 | `task_run_id` | `STRING` | Same parent job run id as the owning `reconciliation_run_log` row, if any. |
 | `detected_at` | `TIMESTAMP` | UTC timestamp when the discrepancy was recorded. |
 
-`reconciliation_run_log` (one row per target per run, when `run_log_capture` resolves `true`) additionally reports `source_record_count`, `target_record_count`, `matched_count`, `missing_in_target_count` (union of `MISSING_IN_TARGET` + `VALUE_DRIFT`), `value_drift_count`, `missing_in_source_count`, `appended_count`, `failed_count`, `status` (`SUCCESS` | `FAILED` | `SKIPPED_ALREADY_PROCESSED`), and `source_batch_fingerprint`. `reconciliation_result` (always written, independent of both logging flags) carries a lighter always-populated pass/fail summary with the same four discrepancy counts, `status`, and `task_run_id` for correlation.
+`reconciliation_run_log` (one row per target per run, when `run_log_capture` resolves `true`) additionally reports `source_record_count`, `target_record_count`, `matched_count`, `missing_in_target_count` (union of `MISSING_IN_TARGET` + `VALUE_DRIFT`), `value_drift_count`, `missing_in_source_count`, `appended_count`, `failed_count`, `status` (`SUCCESS` | `FAILED` | `SKIPPED_ALREADY_PROCESSED`), and `source_batch_fingerprint`. `reconciliation_result` (v1.6.0: gated by the same `run_log_capture` flag — previously written unconditionally) carries a lighter pass/fail summary with the same four discrepancy counts, `status`, and `task_run_id` for correlation.
 
 ---
 
@@ -457,22 +471,29 @@ writes that source by full recompute or by MERGE, `"pipeline"` is illegal and
 Every dataset the framework registers now sits in one of six layers. L0 is shared by all three
 flow types; L3–L5 are what `execution_mode: "pipeline"` adds.
 
-| Layer | Node (name pattern) | Kind | Published? |
+| Layer | Node (name pattern) | Kind | Published? (v1.6.0) |
 |---|---|---|---|
-| **L0 · source plane** | `_src__<locator>__<8hex>__stream` | streaming table — one physical read of one external locator, registered only at fan-out ≥ 2 with at least one streaming consumer | internal |
-| **L0 · source plane** | `_src__<locator>__<8hex>__batch` | materialized view — same, when *every* consumer is batch | internal |
+| **L0 · source plane** | `_src__<locator>__<8hex>__stream` | streaming table — one physical read of one external locator, registered only at fan-out ≥ 2 with at least one streaming consumer | **temporary** (pipeline-scoped, invisible in UC) — published qualified only when the spec sets *both* `source_plane.catalog` + `source_plane.schema` |
+| **L0 · source plane** | `_src__<locator>__<8hex>__batch` | materialized view — same, when *every* consumer is batch | same rule as above |
 | **L0 · source plane** | *(no node)* | `inline` (fan-out 1 — today's read, preserving predicate pushdown) or `in_graph_sibling` (`dlt.read`/`dlt.read_stream` of a table this same group publishes) | — |
-| **L1 · ingestion** | `_<target_table>_staged` | `@dlt.view` under `@apply_dq_expectations`; becomes a `@dlt.table` when it has more than one consumer (quarantine rules, or a `sink`/`external_sink` target) | internal |
-| **L2 · transformation** | `<input_name>` | `dlt.view` — now a thin **alias** over an L0 binding rather than the read itself | internal |
-| **L3 · recon prepare** | `_recon__<rid>__src` | prepared source: `filter_condition` → `data_standardization_sql` → `prepare_dataset_for_matching`. A streaming table when the L5 pulse reads it, else an MV | internal |
-| **L3 · recon prepare** | `_recon__<rid>__<tid>__tgt` | prepared target, always a batch MV — the far side is scanned **once** per update | internal |
-| **L4 · recon compare** | `recon__<rid>__<tid>__classified` | MV — the full-outer join on `__framework_hash_key`, the when-chain and the `max_by` per-key collapse, algebra unchanged | **published** |
-| **L4 · recon compare** | `recon__<rid>__<tid>__metrics` | MV, **exactly one row**, carrying the flow's `dq_config` expectations | **published** |
-| **L4 · recon compare** | `recon__<rid>__<tid>__mismatch` | MV — `build_mismatch_rows` over the non-`MATCHED` rows, gated by `comparison_direction` | **published** |
-| **L4 · recon compare** | `_recon__<rid>__<tid>__missing` | MV — the exact append set, a `left_semi` against the *prepared source* (never the deduped classification, so genuine duplicate source rows are not silently dropped) | internal |
-| **L5 · recon heal** | `_recon__<rid>__pulse` | one-column streaming table (`lit(1)`) — the only legal bridge, because a Lakeflow sink accepts streaming queries only | internal |
-| **L5 · recon heal** | `recon__<rid>__heal_flow` | `@dlt.append_flow` — `read_stream(pulse)` INNER JOIN `read(__metrics)` on a constant column | — |
+| **L1 · ingestion** | `_<target_table>_staged` | `@dlt.view` under `@apply_dq_expectations`; becomes a `@dlt.table(temporary=True)` when it has more than one consumer (quarantine rules, or a `sink`/`external_sink` target) | **never** — view or temporary table, always bare-named |
+| **L2 · transformation** | `<input_name>` | `dlt.view` — now a thin **alias** over an L0 binding rather than the read itself | never (a view) |
+| **L3 · recon prepare** | `_recon__<rid>__src` | prepared source: `filter_condition` → `data_standardization_sql` → `prepare_dataset_for_matching`. A streaming table when the L5 pulse reads it, else an MV | **temporary**, except a *healing* flow's — the L5 handler reads it back via `spark.read.table`, so it stays a published qualified table |
+| **L3 · recon prepare** | `_recon__<rid>__<tid>__tgt` | prepared target, always a batch MV — the far side is scanned **once** per update | **temporary**, except a *healing target's* (same `spark.read.table` reason) |
+| **L4 · recon compare** | `_recon__<rid>__<tid>__classified` | MV — the full-outer join on `__framework_hash_key`, the when-chain and the `max_by` per-key collapse, algebra unchanged. (Renamed from published `recon__…__classified` in v1.6.0.) | **temporary** |
+| **L4 · recon compare** | `recon__<rid>__<tid>__metrics` | MV, **exactly one row**, carrying the flow's `dq_config` expectations | **published — but registered ONLY when `run_log_capture` resolves `true`** (it is the staging feed for `reconciliation_run_log`/`_result`) |
+| **L4 · recon compare** | `recon__<rid>__<tid>__mismatch` | MV — `build_mismatch_rows` over the non-`MATCHED` rows, gated by `comparison_direction` | **published — but registered ONLY when `mismatch_log_capture` resolves `true`** |
+| **L4 · recon compare** | `_recon__<rid>__<tid>__missing` | MV — the exact append set, a `left_semi` against the *prepared source* (never the deduped classification, so genuine duplicate source rows are not silently dropped) | **temporary** |
+| **L5 · recon heal** | `_recon__<rid>__pulse` | one-column streaming table (`lit(1)`) — the only legal bridge, because a Lakeflow sink accepts streaming queries only | **temporary** |
+| **L5 · recon heal** | `recon__<rid>__heal_flow` | `@dlt.append_flow` — `read_stream(pulse)` INNER JOIN a one-row aggregate of `read(__classified)` on a constant column (v1.6.0 — was `__metrics`, now conditional) | — |
 | **L5 · recon heal** | `_recon__<rid>__heal_sink` | `dlt.foreach_batch_sink` handler — **not a dataset; never appears in UC** | — |
+
+> **v1.6.0 — the Intermediate Object Rule applied to this map.** "Temporary" above means
+> `@dlt.table(temporary=True)` under the node's bare, pipeline-local name: materialized once per
+> update (the read-once guarantee is intact) but never published to Unity Catalog. Only the two
+> audit datasets — `__metrics`/`__mismatch`, each conditional on its capture flag — and a healing
+> flow's `_src`/healing `_tgt` remain published. See [§11.10](#1110-v160--the-intermediate-object-rule-and-the-conditional-audit-datasets)
+> for what this means for existing deployments and external consumers.
 
 #### Verified live — the exact graph one update registered
 
@@ -514,12 +535,19 @@ which lists what the event log reported.
 > the guard is no longer expected to trip on DBR. If it does trip on a Databricks runtime, that is
 > news — treat it as a runtime/workspace availability report, not as a normal fallback path.
 
-The `dlt.read` of `__metrics` on the static side of the heal flow is an **ordering edge, not
-decoration**: it is what makes Lakeflow schedule the handler after the whole-snapshot
-classification has materialized, so the handler reads *this* update's miss set. The join must be an
-equi-join on a constant column — a `lit(True)` join raises `Detected implicit cartesian product` —
-and `INNER` is safe precisely because the metrics MV always emits exactly one row, even over an
-empty relation.
+The `dlt.read` on the static side of the heal flow is an **ordering edge, not decoration**: it is
+what makes Lakeflow schedule the handler after the whole-snapshot classification has materialized,
+so the handler reads *this* update's miss set. The join must be an equi-join on a constant column —
+a `lit(True)` join raises `Detected implicit cartesian product` — and `INNER` is safe precisely
+because the static side always emits exactly one row, even over an empty relation. **v1.6.0 moved
+the edge's anchor**: it was `read(__metrics)` (a one-row MV by construction), but `__metrics` is now
+conditional on `run_log_capture`, and a healing flow with logging suppressed must still heal — so
+the flow now reads the always-registered `__classified` dataset and derives its own one-row gate
+with a `groupBy`-less `.agg()`, which carries the identical exactly-one-row guarantee. (The live
+event-log excerpt above predates this and shows the v1.5.0 shape: the `__classified` name gained a
+leading underscore and became temporary in v1.6.0, so on a v1.6.0 runtime only `__metrics`/
+`__mismatch` — when their flags are on — and a healing flow's `_src`/`_tgt` appear in Unity
+Catalog.)
 
 ### 11.2 The DAG
 
@@ -648,7 +676,7 @@ Two related properties, neither of them new:
   not remove anything from your DABs resources. A `run_<n>_reconciliation` notebook task left in
   place beside a now-pipeline-mode flow makes the comparison run **twice per cycle** — once inside
   the update, once as the job task — and each pass appends its own corrections into
-  `append_target_table`. This actually happened: `resources/metaflow_test_002_003_job.yml` still
+  `append_target_table`. This actually happened: `resources/feature_tests/metaflow_test_002_003_job.yml` still
   carried the standalone task after scenario 003 was flipped, and the task was deleted. Nothing
   detects this for you; see [`13_known_limitations_and_gotchas.md` R8](13_known_limitations_and_gotchas.md#r8).
 * **One run-as identity, not two.** Today the recon job task and the pipeline can run as different
@@ -779,10 +807,50 @@ equivalent chain (`currentCatalog()` → `GROUP_ROW.catalog_name` → `CONTROL_C
 > pipeline `be78d88d`. **Anyone relying on the default is affected** — a flow that sets an explicit
 > `publish_schema` never went near this path.
 
-**Practical guidance.** The default puts three real, externally visible UC tables into the same
-schema your pipeline publishes its business tables into. That is rarely where reconciliation output
-belongs. Set `publish_schema` explicitly — to a dedicated audit schema in the pipeline's own
-catalog — for anything beyond a test fixture.
+**Practical guidance.** The default puts the published reconciliation datasets — since v1.6.0 that
+is `__metrics`/`__mismatch` (when their capture flags are on) plus a healing flow's `_src`/healing
+`_tgt`, no longer the whole L3/L4 set — into the same schema your pipeline publishes its business
+tables into. That is rarely where reconciliation output belongs. Set `publish_schema` explicitly —
+to a dedicated audit schema in the pipeline's own catalog — for anything beyond a test fixture.
+
+### 11.10 v1.6.0 — the Intermediate Object Rule and the conditional audit datasets
+
+v1.6.0 applies one framework-wide design standard — the **Intermediate Object Rule** — to the
+reconciliation graph: *an intermediate is a `@dlt.view` when it has a single reader and a
+pipeline-scoped `@dlt.table(temporary=True)` when materialization is required; only final sinks are
+durable, published tables.* For reconciliation, "final sinks" are the business
+`append_target_table`s, the three control tables in `<catalog>.config`, and — because they are the
+staging feed the post-pipeline backstop export reads to populate those control tables — the
+`__metrics`/`__mismatch` audit datasets.
+
+**What changed, concretely:**
+
+* `_recon__<rid>__src`, `_recon__<rid>__<tid>__tgt`, `_recon__<rid>__<tid>__missing` and the pulse
+  are temporary, bare-named datasets. Exception: a **healing** flow keeps `_src` and each healing
+  target's `_tgt` published, because the L5 `foreach_batch_sink` handler reads them back with a
+  plain `spark.read.table(...)`, which resolves through the metastore — a temporary table is not
+  reachable that way.
+* The classification node was renamed `recon__…__classified` → `_recon__…__classified` and is
+  temporary. If a dashboard or ad-hoc query read the published classification, move it to
+  `__mismatch` (per-record detail) or `__metrics` (counts) — that is what they are for.
+* `__metrics` is registered **only when `run_log_capture` resolves `true`**; `__mismatch` only when
+  `mismatch_log_capture` does. They are not gratuitous intermediates — each exists exactly when the
+  control-table row it feeds is wanted, which is why their registration and the corresponding
+  control-table writes are gated by the same flag.
+* `reconciliation_result` is written only when `run_log_capture` resolves `true` (previously
+  unconditional). With both flags `false`, a reconciliation flow persists to **nothing but its
+  business targets** — see [§6](#6-runtime-log-controls) for the two rejected contradictions.
+* The backstop export (`observability/reconciliation_export.py`, hosted by the observability job
+  task) is flag-aware: it probes for `__metrics` when `run_log_capture` is on (else `__mismatch`),
+  skips flows whose flags are both off, and gates its `reconciliation_result` writes under
+  `run_log_capture`.
+
+**Upgrading an already-deployed pipeline-mode flow**: the first v1.6.0 update renames and
+unpublishes the intermediates — Lakeflow treats a renamed dataset as a new one, so the previously
+published `recon__…__classified` / non-healing `_recon__…` tables drop out of Unity Catalog and a
+streaming `_src`'s checkpoint state resets. Read the migration trap
+[`13_known_limitations_and_gotchas.md` O7](13_known_limitations_and_gotchas.md#o7) before deploying
+over a production pipeline.
 
 ---
 

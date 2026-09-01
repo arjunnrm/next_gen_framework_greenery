@@ -7,7 +7,7 @@
 One entry per `transformation_flows[]` element — SQL plus a CDC load strategy.
 
 
-!!! info "68 attributes"
+!!! info "69 attributes"
     Every attribute below is also available in the Spec Builder's attribute
     inspector — click the **i** beside any field to see this same content
     without leaving the form.
@@ -78,6 +78,7 @@ One entry per `transformation_flows[]` element — SQL plus a CDC load strategy.
 | [`target_config.sink_config.post_export_archive.secret.secret_catalog`](#target-configsink-configpost-export-archivesecretsecret-catalog) | string | no | — |
 | [`target_config.sink_config.post_export_archive.secret.secret_key`](#target-configsink-configpost-export-archivesecretsecret-key) | string | no | — |
 | [`target_config.sink_config.post_export_archive.secret.secret_schema`](#target-configsink-configpost-export-archivesecretsecret-schema) | string | no | — |
+| [`target_config.sink_config.staged_file_format`](#target-configsink-configstaged-file-format) | string (enum) | no | — |
 | [`target_config.sink_config.write_mode`](#target-configsink-configwrite-mode) | string (enum) | no | — |
 | [`target_config.storage_format`](#target-configstorage-format) | string (enum) | no | — |
 | [`target_config.table_properties`](#target-configtable-properties) | object<string,string> | no | — |
@@ -1873,6 +1874,40 @@ Unity Catalog secret schema.
 
 
 **Databricks documentation:** [secrets](https://docs.databricks.com/security/secrets/index.html) · [uc privileges](https://docs.databricks.com/data-governance/unity-catalog/manage-privileges/privileges.html)
+
+
+---
+
+### `target_config.sink_config.staged_file_format` { #target-configsink-configstaged-file-format }
+
+File format of the staged export files a pgp_zip sink writes before archiving.
+
+
+json (the default when absent) writes JSON-Lines; csv writes RFC-4180 files with a header row, one file per written partition. Only meaningful when sink_config.format is pgp_zip.
+
+
+**Type** `string (enum)` · **Required** no · **Section** Target · sink config
+
+
+```json
+"sink_config": { "format": "pgp_zip", "path": "/Volumes/{{catalog}}/egress/orders/", "staged_file_format": "csv" }
+```
+
+
+!!! tip "Best practice"
+
+    - Leave it unset to keep the JSON-Lines staging the framework has always produced.
+    - csv emits one file per written partition, each with its own header row.
+
+
+!!! warning "Known errors and limitations"
+
+    **Onboarding rejects staged_file_format**  
+    *Cause:* It was set on a sink whose format is not pgp_zip.  
+    *Fix:* Remove the attribute, or switch sink_config.format to pgp_zip.
+
+
+**Databricks documentation:** [sinks](https://docs.databricks.com/delta-live-tables/sinks.html)
 
 
 ---

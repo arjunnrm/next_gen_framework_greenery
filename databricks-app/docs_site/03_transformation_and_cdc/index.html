@@ -1670,6 +1670,8 @@
       
         
       
+        
+      
     
     
     
@@ -2073,6 +2075,34 @@
     
   
     Full attribute dictionary
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../14_onboarding_restrictions_and_validation_rules/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Onboarding restrictions & validation rules
   
 
     
@@ -2916,6 +2946,8 @@
       
         
       
+        
+      
     
     
     
@@ -3004,6 +3036,34 @@
     
   
     Multi-role FAQs
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../15_agent_skills_and_prompts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Agent skills & prompt library
   
 
     
@@ -3743,6 +3803,19 @@
 <a id="__codelineno-0-26" name="__codelineno-0-26" href="#__codelineno-0-26"></a>│                 TARGET DELTA LAKE DATASET                   │
 <a id="__codelineno-0-27" name="__codelineno-0-27" href="#__codelineno-0-27"></a>└─────────────────────────────────────────────────────────────┘
 </code></pre></div>
+<hr />
+<blockquote>
+<p><strong>v1.5.0 — an input view is now an alias, not the read.</strong> Each <code>inputs[]</code> entry still declares
+an <code>input_name</code> (still the SQL identifier, still required to be unique across the spec) and is
+still registered as a <code>dlt.view</code>. What changed underneath: the view no longer performs the read
+itself — it binds to the read-once source plane and then applies its own overlay (event-time
+cast, <code>withWatermark</code>, AES column decryption). Two inputs naming the same physical table now
+share <strong>one</strong> read instead of opening two; an input whose table is published by this same
+dataflow group becomes a real graph edge (<code>dlt.read</code> / <code>dlt.read_stream</code>) rather than a second
+physical scan. <code>mark_streaming_references</code> is unchanged and still keys off each input's declared
+<code>is_streaming</code>. See
+<a href="../01_platform_architecture/#7-the-read-once-source-plane"><code>01_platform_architecture.md</code> §7</a>.</p>
+</blockquote>
 <hr />
 <h2 id="2-complete-cdc-load-strategies-guide">2. Complete CDC Load Strategies Guide<a class="headerlink" href="#2-complete-cdc-load-strategies-guide" title="Permanent link">&para;</a></h2>
 <p>Metaflow provides 6 built-in load and merge strategies configured via <code>target_config.cdc_load_strategy</code>. They fall into two families: <code>APPEND</code> and <code>TRUNCATE_AND_LOAD</code> need no key and skip the CDC dispatcher entirely; <code>SCD1</code>, <code>SCD2</code>, <code>SCD3</code> and <code>FULL_SNAPSHOT_CDC</code> all merge on <code>primary_keys</code>.</p>

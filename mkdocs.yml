@@ -130,6 +130,7 @@ nav:
           - CDC / load strategy: reference/json/ingestion-transformation.md
           - Other shared attributes: reference/json/other.md
       - Full attribute dictionary: 00_master_reference_index.md
+      - Onboarding restrictions & validation rules: 14_onboarding_restrictions_and_validation_rules.md
       - v1.4.0 attribute delta: v1.4.0_attribute_delta.md
 
   - Code reference:
@@ -157,6 +158,7 @@ nav:
   - Help:
       - FAQ: faq.md
       - Multi-role FAQs: 10_multi_role_faqs.md
+      - Agent skills & prompt library: 15_agent_skills_and_prompts.md
       - Known limitations & gotchas: 13_known_limitations_and_gotchas.md
 
   - Project record:

@@ -6,6 +6,247 @@ deliberately **not** the semantic version — that lives here and in `enhancemen
 
 ---
 
+## v1.6.1 — One seed job for the whole sample suite, and a sixth sample that reads real GSMA TAP3 — 2026-09-01
+
+### Sample suite — seeding is one job now
+
+- **New `metaflow_sample_seed_job`** owns every fixture the reference suite consumes: a serial
+  `provision_sample_schema` root, then six per-sample chains of three strictly-ordered iterations,
+  running in parallel. 19 tasks, one job, one place that answers "what data does this suite need?".
+- **Run it first, then any sample job.** The five existing sample jobs no longer seed anything —
+  each is now `setup_control_tables → onboard_sample_NN → run_pipeline → store_sample_config`
+  (Sample 03 keeps `observability_export`).
+- The root task is serial on purpose: UC's `CREATE ... IF NOT EXISTS` is idempotent in intent but
+  **not atomic**, and six chains creating the same schema and Volumes at once is the same race that
+  produced `[ROUTINE_ALREADY_EXISTS]` on concurrent `setup_control_tables` (pitfall 7). Iterations
+  stay ordered *within* a chain because several seeds are cumulative by construction.
+- > **Behaviour change:** with all three iterations seeded up front, one pipeline update ingests them
+  > together — so each sample job now runs its pipeline **once**, not three times. The end state is
+  > unchanged (`apply_changes` sequences SCD1/SCD2 versions within the single batch, so SCD2 history
+  > is still built), but the update-by-update *progression* is no longer observable: Sample 03's
+  > counters land on their final 6-drift / 14-missing values instead of stepping 0 → 6 → 14. To watch
+  > a sample evolve, drive the seed job one iteration at a time with the pipeline in between.
+
+### New: Sample 06 — real GSMA TAP release 3.10 ASN.1 ingestion
+
+- **`metaflow_sample_06_asn1_tap3_job`** puts `source_type: "asn1"` through the genuine GSMA TAP 3.10
+  module already in this repo (`metaflow_testing/BT_Testing/TAP.310.asn1` — 1597 lines, 375 types),
+  not a hand-written five-field module. Those BT modules previously had no consumer anywhere.
+- The seed lands the module into the sample Volume and compiles **that landed copy** to BER-encode
+  its fixtures, so the encoding schema and the pipeline's `asn1_schema_path` are provably the same
+  document. Every fixture is round-trip-decoded before it is written.
+- Verified live, first run: **18 clean rows** (`fileSequenceNumber` `00001`–`00018`) and **6
+  quarantined rows**, each with a populated `_asn1_decode_error` and a NULL `fileSequenceNumber` —
+  from 2 deliberately truncated payloads per iteration. Decoding produced all three Spark shapes the
+  decoder can emit: scalars, `struct<localTimeStamp,utcTimeOffset>`, and `array<string>`.
+- **No manual prerequisite** — `asn1tools` already ships in the framework wheel.
+
+### Picking `asn1_pdu_name` on a real module — the trap, written down
+
+- `derive_asn1_field_defs` needs a **top-level `SEQUENCE`** and rejects `CHOICE` **anywhere in the
+  resolved member tree**. Real telecom modules are built the other way round: on TAP.310 the module's
+  own top-level `DataInterChange` is a `CHOICE` (rejected), and `TransferBatch` *is* a `SEQUENCE` but
+  reaches `CallEventDetail`, also a `CHOICE` (rejected one level deeper). 70 of its 93 top-level
+  `SEQUENCE` types resolve; Sample 06 uses `Notification`, a real TAP3 file-level PDU.
+- Don't read the module to find a candidate — run the resolver over every top-level `SEQUENCE` and
+  keep what doesn't raise. Snippet in `common_pitfalls.md` **37**, `SKILL.md` §4 and `docs/02`.
+
+### Docs & tests
+
+- `docs/09` gains a full **§6** on the suite: the six samples, the seed job, run order, the single
+  `sample_configs` Volume every spec is published into, Sample 06's PDU reasoning, and the one manual
+  prerequisite. `metaflow_testing/README.md` rewritten to match.
+- New `tests/unit/test_sample_suite_layout.py` (40 tests) asserts the wiring from disk: seeding lives
+  in exactly one job, no sample job may inline a seed notebook again, every spec reaches the one
+  Volume, and jobs/pipelines/specs cover the same set of samples.
+- `pytest tests/unit`: **1087 passed** / 8 pre-existing failures / 113 no-local-Spark errors — +69
+  tests over the 1018 baseline, no new failures. `databricks-app/tests`: 163 passed, 19 skipped
+  (unchanged; no app change).
+
+### Verified live on `dev_metaflow_v3`
+
+- **Seed job**: 21 tasks — `provision_sample_schema` plus all 12 iteration tasks for samples 01/02/03/06
+  SUCCESS; the 04/05 chains fail fast on the missing UC secret and the other four complete regardless,
+  which is the parallel-chain design proving itself. Identical outcome on two independent workspaces.
+- **Sample 06**: 18 clean rows (`00001`–`00018`), 6 quarantined — all carrying `_asn1_decode_error`
+  with a NULL `fileSequenceNumber`; `struct` and `array` columns decoded from the real TAP.310 module.
+- **Sample 02**: 90 clean + 9 quarantined — exactly the totals the old three-update layout produced,
+  confirming the single-update collapse loses nothing but the intermediate steps.
+- **Sample 03**: in-DAG reconciliation landed `value_drift_count 6`, `missing_in_target_count 14`,
+  `matched_count 106` over 120 primary / 112 replica rows, with 8 `MISSING_IN_TARGET` + 6 `VALUE_DRIFT`
+  mismatch rows — precisely the documented end state.
+
+### Operational notes
+
+- **Deploy is now scoped and reproducible**: `21 created, 2 changed, 0 deleted, 85 not selected`. The
+  one-time UC-Volume bootstrap documented in `databricks.yml` was performed on each workspace and
+  behaved exactly as that header predicts.
+- **`mode: development` dropped from the `dev_metaflow` target.** DABs rejects a development-mode
+  target whose `artifact_path` lacks the deploying user's name. The v1.6.0 fixed, shared
+  `/Volumes/<catalog>/config/wheels` path only ever passed that check **by coincidence** — the previous
+  workspace's user was `metaflow@…`, whose short_name is literally `metaflow`, and the path contains
+  it. Satisfying the check properly would mean re-adding the per-user path component that was
+  deliberately reverted on 2026-08-30, so the mode was dropped instead. Cost: no `[dev <user>]` name
+  prefix, and schedules are no longer auto-paused (nothing in this bundle declares one).
+
+### Framework fixes — two pre-existing v1.6.0 defects, found by deploying
+
+Deploying the previously-undeployed v1.6.0 work for the first time surfaced two real framework
+defects. Both are fixed here — the only `src/` changes in this release:
+
+- **`FULL_SNAPSHOT_CDC` flows could not build their graph — fixed.**
+  `source_plane.py::_plan_ingestion_consumers` deliberately skips snapshot rows (their source is
+  consumed by `apply_changes_from_snapshot`'s path-based lambda, never through the plane), but
+  `flow_generators.py::_build_ingestion_dataframe` still called `bind(plan, "<dataflow_id>:source", …)`
+  unconditionally for the staged view — which *is* in the graph for a snapshot flow
+  (`_staged → _clean → _snapshot_input → target`). Every snapshot pipeline died at graph analysis
+  with `FrameworkConfigError: source_plane.bind: unknown consumer_id`. The generator now branches on
+  the strategy and calls `read_ingestion_source(...)` directly for snapshot flows; both sides branch
+  on **one exported constant**, `source_plane.SNAPSHOT_EXCLUDED_FROM_SOURCE_PLANE`, so they cannot
+  drift. Not an R2 exception: the plane deduplicates a locator *shared* between consumers, and a
+  snapshot source has exactly one consumer by construction. 10 new tests
+  (`test_flow_generators.py` §6) pin both directions — snapshot must not bind; every other strategy,
+  and an absent `cdc_load_strategy`, must still bind. Verified live: **Sample 01 SUCCEEDED** on the
+  first run with the fixed wheel — 80 rows in the `FULL_SNAPSHOT_CDC` target that could not
+  previously build its graph, alongside 60 SCD1, 57 SCD2 (**40 current + 17 history**), 60 raw
+  events and 20 SCD3 rows.
+- **The observability job could not import its own module — fixed.**
+  `observability/reconciliation_export.py` and `reconciliation/appender.py` imported the pure helper
+  `_is_table_not_found` from `dq/quarantine.py`, which does a module-level `import dlt` — and both
+  are loaded from plain job notebook tasks (`08_dlt_observability_engine.py`,
+  `05_reconciliation_engine.py`), where importing `dlt` dies at **import time**
+  (`Py4JJavaError … NoSuchElementException: None.get`). The helper now lives in a new
+  dependency-free `dq/table_errors.py` (`is_table_not_found` / `TABLE_NOT_FOUND_CONDITIONS` —
+  imports nothing); the two job-context modules import from it, and `dq/quarantine.py` keeps
+  `_is_table_not_found` / `_TABLE_NOT_FOUND_CONDITIONS` as aliases for pipeline-side callers —
+  importing the *alias* from job context would reintroduce the bug, and a comment at the definition
+  says so. The guard is static, not an import test — `databricks-dlt` is a dev dependency, so
+  `import dlt` succeeds under pytest and proves nothing:
+  `test_job_context_has_no_dlt_import.py` (13 tests) walks the import graph with `ast` and asserts
+  the edge is absent **transitively**, with `dq/quarantine.py` as a control so the assertions
+  cannot pass vacuously. Verified live: Sample 03's `observability_export` **SUCCEEDED** and did
+  real work — a `reconciliation_result` row (SUCCESS, 106 matched / 14 missing / 6 drift) and 14
+  mismatch rows (8 `MISSING_IN_TARGET` + 6 `VALUE_DRIFT`) written into `metaflow.config`, and the
+  `store_sample_config` task previously skipped behind it now runs.
+
+### Remaining blocker — the Samples 04/05 UC secret
+
+- **Samples 04/05** remain unverified: their shared UC secret `metaflow.metaflow_sample.sample_zip_passkey`
+  cannot be created by any non-UI path on either workspace — `databricks secrets put-secret` manages
+  legacy scopes only (which `dbutils.secrets.get(catalog=…)` cannot read), and
+  `POST /api/2.1/unity-catalog/secrets` returns 404 while its list route works normally (not a
+  permissions issue — the CLI principal owns the schema). Create it in Catalog Explorer
+  (**Catalog → metaflow → metaflow_sample → Create → Secret**), then re-run the seed job and both jobs.
+
+---
+
+## v1.6.0 — Intermediates go invisible, recon logging gets a real off-switch, and five reference jobs — 2026-09-01
+
+### Pipeline & ingestion — the Intermediate Object Rule
+
+- **Intermediates are never published to Unity Catalog anymore.** A single-reader intermediate stays a `@dlt.view`; a multi-reader one (quarantine flows, sink flows, shared source reads) is now a pipeline-scoped `@dlt.table(temporary=True)` — still materialized once per update (read-once/R2 holds), but invisible in the catalog. Only final sinks remain durable published tables.
+- `_<target>_staged` intermediates no longer publish under `catalog.schema.*`; they keep their bare pipeline-local names.
+- L0 source-plane nodes (`_src__*__stream/batch`) are temporary by default; set **both** `source_plane.catalog` + `source_plane.schema` to publish one deliberately (`null` no longer means "the pipeline's own schema").
+- Documented exceptions that stay physical/published, with reasons: `_<t>_snapshot_input`, `_<t>_scd2_history`, SCD2 `_current`, quarantine tables, and a healing recon flow's `_src`/healing `_tgt` (read back via `spark.read.table`).
+- > **Upgrade note:** on an already-deployed pipeline the first v1.6.0 update renames/unpublishes these datasets — streaming checkpoint state resets and previously published intermediates drop out of UC. Plan a full refresh per pipeline; APPEND targets can re-ingest. See `docs/13` (new trap entry).
+
+### Reconciliation — `logging_config` now means what it says
+
+- `run_log_capture: false` now skips `reconciliation_run_log` **and `reconciliation_result`** (previously always written) **and** skips registering the `recon__*__metrics` dataset entirely; `mismatch_log_capture: false` does the same for `reconciliation_mismatch_log` / `recon__*__mismatch`.
+- **Both flags false ⇒ reconciliation persists only to its business target tables.** No metric/log table is created, nothing is written to the control schema; the run's job/pipeline state and structured log events are the failure signal.
+- Recon L3/L4 plumbing (`_src`, `_tgt`, `__classified`, `__missing`, pulse) is temporary — the heal ordering edge now anchors on `__classified`, so healing works with logging fully suppressed.
+- Two contradictions are rejected at onboarding *and* at graph definition: `dq_config.rules` with `run_log_capture: false`, and `pipeline_audit_only` with both flags false.
+
+### Egress — CSV inside the encrypted archive
+
+- New `sink_config.staged_file_format: "csv"` (pgp_zip sinks only; default stays `"json"`): staged files inside the exported ZIP are RFC-4180 CSV with a header row. Combine with `post_export_archive.secret` for password-protected CSV drops.
+
+### Spec Builder app — what you see is what exports
+
+- Every display-only default is gone (22 dropdowns, 7 toggles, the hardcoded `APPEND` strategy, all 44 server-registry defaults): a fresh form is **empty with all toggles OFF**, and an untouched field emits **no key** in the JSON. A toggle showing ON is always `true` in the payload; a selected dropdown always exports.
+- The app's validation rules mirror the two new reconciliation rejections and the `staged_file_format` restriction.
+- `web/dist` rebuilt (new bundle hash) — remember the app deploy is still **two steps** (`bundle deploy`, then `bundle run metaflow_onboarding_app`).
+
+### New: `metaflow_sample` reference suite (5 jobs)
+
+- Five self-contained sample jobs under `resources/sample_jobs/`, everything isolated in the `metaflow.metaflow_sample` schema, each running **3 iterations over distinct datasets** (Databricks `samples` catalog slices, with inline fallback), with DQ expectations on every flow, and each job copying its spec JSON to `/Volumes/metaflow/metaflow_sample/sample_configs/` for reference:
+  1. **Multi-SCD** — SCD1 + SCD2 + FULL_SNAPSHOT_CDC ingestion, join into an SCD3 target.
+  2. **ZIP ingestion** — in-process-built ZIPs, glob filter, quarantine rules.
+  3. **Multi-table + in-DAG recon** — 2 concurrent loads, `pipeline_audit_only` reconciliation with metrics/mismatch capture + observability export.
+  4. **Export/encrypt/compress** — 2 joins → 2 CSV exports zipped with an AES-256 passkey (`staged_file_format: "csv"` + `post_export_archive.secret`).
+  5. **Encrypted ingestion** — password-protected inbound ZIPs decrypted on the fly via the UC secret `metaflow.metaflow_sample.sample_zip_passkey`.
+- Onboarding in every sample is delegated to the generic `onboarding_job` (`run_job_task`) — one job + one pipeline per sample, no inline onboarding.
+- One-time prerequisite: create the UC secret above (documented in `metaflow_testing/README.md`).
+
+### Deployment — the wheel lives in a UC Volume now
+
+- `workspace.artifact_path` is `/Volumes/<catalog>/config/wheels` on both targets; the new bundle-managed volume is `resources/metaflow_config_jobs/framework_wheels_volume.yml`. All 93 `../../dist/*.whl` references are unchanged — DABs rewrites them at deploy time.
+- Fixed shared path (no per-user fork). Unique per-deploy wheel filenames keep it overwrite-safe, **but DABs still prunes `<artifact_path>/.internal/` on a Volume — never deploy while a pipeline or test wave is running.**
+- > **One-time bootstrap:** the CLI refuses an `artifact_path` inside a not-yet-deployed Volume, so the *first* deploy must comment out `artifact_path:`, `bundle deploy --select volumes.framework_wheels_volume`, restore, then deploy normally. Until then `bundle validate` reports exactly that error. Documented in `databricks.yml` and `docs/onboarding/04_deploying.md`.
+
+### Docs
+
+- New: `docs/14_onboarding_restrictions_and_validation_rules.md` (every mandatory field, enum, and rejected configuration the validator enforces) and `docs/15_agent_skills_and_prompts.md` (task → agent skill → copy-pastable prompt table).
+- New FAQ entries for the edge cases above; `docs/07`/`docs/13`/`docs/01` updated to the new dataset surface; `common_pitfalls.md` gains entries 35–36.
+
+Machine-readable attribute delta: `docs/v1.6.0_json_attribute_delta.json`. Full detail: `enhancement_logs/v1.6.00_enhancement_log.md`.
+
+---
+
+## v1.5.01 — `resources/` is grouped, and a deploy can be scoped — 2026-08-31
+
+`resources/` held 95 YAML files in one flat directory. They are now grouped one folder per purpose,
+each with its own `include:` line in `databricks.yml`:
+
+| Folder | Holds | Resources |
+|---|---|---|
+| `resources/metaflow_app/` | the Onboarding App + the UC Volume it stores authored specs in | 2 |
+| `resources/metaflow_config_jobs/` | `onboarding_job` (one spec per run) + `framework_config_onboarding_job` (a whole `spec_dir` per run) | 2 |
+| `resources/observability/` | DLT observability export job + the OTEL streaming pipeline | 2 |
+| `resources/bt_tests/` | tests on real BT fixtures: geneva tariff recon replay, ASN.1 decode, PGP decrypt | 6 |
+| `resources/feature_tests/` | the `TC-*` feature/regression corpus — one job + one pipeline per case | 83 |
+| `resources/stability_tests/` | reserved for `STABILITY_TEST_PLAN.md`'s A1–G4 cases | 0 (empty) |
+
+**Nothing about what gets deployed changed.** The fully-resolved bundle config is byte-identical to
+v1.5.0 — verified by diffing `databricks bundle validate -o json` against a detached worktree at the
+previous commit. Same 95 resources (`apps 1, jobs 50, pipelines 43, volumes 1`), same names, same
+tasks, same parameters.
+
+### Deploying only part of the bundle
+
+The everyday loop — app, both config jobs, and the wheel — is now one command (Databricks CLI ≥ v1.13.0):
+
+```bash
+databricks bundle deploy -t dev_metaflow -p dev_metaflow   --select apps.metaflow_onboarding_app,jobs.onboarding_job,jobs.framework_config_onboarding_job,volumes.onboarding_specs_volume
+```
+
+The wheel is still built by `scripts/bump_and_build.py` and uploaded, because the selected jobs
+declare `../../dist/*.whl` in `environments[].spec.dependencies`. Keep `jobs.onboarding_job` and
+`volumes.onboarding_specs_volume` selected even for an app-only change — the app resolves
+`${resources.jobs.onboarding_job.id}` into its `METAFLOW_ONBOARDING_JOB_ID` env var and binds the
+spec Volume to its service principal. And the app is still a **two-step** deploy: `bundle deploy`
+uploads the source, `bundle run metaflow_onboarding_app` puts it in front of users.
+
+> **Do not scope a deploy by commenting out an `include:` line.** DABs treats a resource that is
+> absent from the configuration as one to **delete from the target** — commenting out
+> `resources/feature_tests/*.yml` to "skip the tests" destroys 83 deployed jobs and pipelines on the
+> next deploy. `--select` leaves unselected resources untouched; a missing `include` does not.
+
+### If you have a local branch that adds a resource
+
+A resource YAML now sits one level deeper, so **every relative path inside one is `../../`**:
+`../../notebooks/…`, `../../dist/*.whl`. `bundle validate` does not check that a relative path
+points at anything, so a stale `../` passes review and fails at deploy —
+`tests/unit/test_resource_layout.py` (new, 197 assertions) is what catches it, along with a group
+folder added without its `include:` line.
+
+No onboarding-spec attribute changed; the Databricks App needs no rebuild
+(`docs/v1.5.01_json_attribute_delta.json` records that explicitly, with empty delta arrays). Full
+detail, including the two prose ellipses a naive `../` rewrite would have corrupted, is in
+`enhancement_logs/v1.5.01_enhancement_log.md`.
+
+---
+
 ## v1.5.0 — Reconciliation moves inside the pipeline DAG — 2026-08-31
 
 Reconciliation used to be a job task that ran *after* the pipeline, reading whatever the pipeline

@@ -19,7 +19,6 @@
         "label": "target_config.storage_format",
         "widget": "select",
         "type": "string",
-        "default": "delta",
         "options": [
           "delta",
           "iceberg"
@@ -32,7 +31,6 @@
         "label": "target_config.capture_technical_metadata",
         "widget": "boolean",
         "type": "boolean",
-        "default": true,
         "visible_when": {
           "eq": [
             "@__flow_kind",
@@ -46,7 +44,6 @@
         "label": "partition_columns mode",
         "widget": "select",
         "type": "string",
-        "default": "absent",
         "options": [
           "absent",
           "unpartitioned",
@@ -203,7 +200,6 @@
             "label": "mode",
             "widget": "select",
             "type": "string",
-            "default": "GCM",
             "options": [
               "GCM",
               "CBC",
@@ -251,7 +247,6 @@
         "widget": "select",
         "type": "string",
         "required": true,
-        "default": "delta",
         "options": [
           "delta",
           "kafka",
@@ -273,6 +268,24 @@
         },
         "placeholder": "/Volumes/{{catalog}}/egress/example/",
         "description": "Output directory. Required for delta and pgp_zip."
+      },
+      {
+        "path": "target_config.sink_config.staged_file_format",
+        "label": "sink_config.staged_file_format",
+        "widget": "select",
+        "type": "string",
+        "options": [
+          "",
+          "json",
+          "csv"
+        ],
+        "visible_when": {
+          "eq": [
+            "target_config.sink_config.format",
+            "pgp_zip"
+          ]
+        },
+        "description": "File format of the staged export files a pgp_zip sink writes before archiving — json (default when absent, JSON-Lines) or csv (RFC-4180 with header row; one file per written partition). Only meaningful when sink_config.format is pgp_zip."
       },
       {
         "path": "target_config.sink_config.kafka_options",
@@ -312,7 +325,6 @@
         "label": "post_export_archive.enabled",
         "widget": "boolean",
         "type": "boolean",
-        "default": false,
         "visible_when": {
           "eq": [
             "target_config.sink_config.format",
@@ -371,7 +383,6 @@
         "widget": "boolean",
         "type": "boolean",
         "indent": 1,
-        "default": false,
         "visible_when": {
           "eq": [
             "target_config.sink_config.post_export_archive.enabled",
@@ -486,7 +497,6 @@
             "widget": "select",
             "type": "string",
             "required": true,
-            "default": "warn",
             "options": [
               "warn",
               "drop",

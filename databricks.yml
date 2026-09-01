@@ -4,52 +4,103 @@ bundle:
   name: NextGen_Metadata_Framework
   uuid: 26d61e73-4b1b-4755-9b83-f912bf3e623f
 
+# RESOURCE LAYOUT -- resources/ is grouped into one folder per purpose, and every group is
+# included here. The grouping is organisational only: DABs still loads all of them into one
+# bundle, so a plain `bundle deploy` deploys every group. Scope a deploy with `--select`
+# (below), not by editing this list -- a commented-out include silently DESTROYS the
+# resources it used to declare on the next deploy, because DABs treats a resource missing
+# from the config as one to delete from the target.
+#
+#   resources/metaflow_app/         the Onboarding App + the UC Volume it stores specs in
+#   resources/metaflow_config_jobs/ onboarding_job (one spec per run) and
+#                                   framework_config_onboarding_job (bulk, a whole dir per run)
+#   resources/observability/        DLT observability export job + the OTEL streaming pipeline
+#   resources/bt_tests/             tests driven by real BT fixtures/pipelines: geneva tariff
+#                                   reconciliation replay, ASN.1 decode, PGP decrypt
+#   resources/feature_tests/        the TC-* feature/regression corpus (one job + one pipeline
+#                                   per test case) -- see metaflow_testing/TESTING_PLAN.md
+#   resources/stability_tests/      reserved for metaflow_testing/STABILITY_TEST_PLAN.md's
+#                                   A1-G4 cases; no resource built yet (see its README.md)
+#   resources/sample_jobs/          five metaflow_sample reference jobs, one schema-isolated
+#                                   sample suite
+#
+# THE USUAL DEPLOY -- app + both config jobs + wheel, nothing else. `--select` (CLI >= v1.13.0)
+# limits the deploy to the named resources; the wheel is still built and uploaded by the
+# `artifacts` block below, because the selected jobs depend on it:
+#
+#   databricks bundle deploy -t dev_metaflow -p dev_metaflow \
+#     --select apps.metaflow_onboarding_app,jobs.onboarding_job,jobs.framework_config_onboarding_job,volumes.onboarding_specs_volume,volumes.framework_wheels_volume
+#
+# Keep `volumes.onboarding_specs_volume` and `jobs.onboarding_job` in that list even when only
+# the app changed: the app resource resolves `${resources.jobs.onboarding_job.id}` into its
+# METAFLOW_ONBOARDING_JOB_ID env var and binds the spec Volume to its service principal. Keep
+# `volumes.framework_wheels_volume` too: every target's `workspace.artifact_path` points into
+# that Volume, and selecting it keeps the Volume managed by the same deploy that uploads the
+# wheel into it.
 include:
-  - resources/*.yml
+  - resources/metaflow_app/*.yml
+  - resources/metaflow_config_jobs/*.yml
+  - resources/observability/*.yml
+  - resources/bt_tests/*.yml
+  - resources/feature_tests/*.yml
+  - resources/stability_tests/*.yml
+  - resources/sample_jobs/*.yml
 
 # The framework wheel (a `.whl` -- a ZIP distribution) is built AND published by
 # `bundle deploy` itself. There is no separate upload step, and no pinned-path variable to keep
 # in sync.
 #
 #   artifacts.framework_wheel   builds the wheel via scripts/bump_and_build.py
-#   workspace.artifact_path     NOT SET on any target. Every target uses the DABs standard
-#                               artifact path, `${workspace.root_path}/artifacts`.
-#   resources/*.yml             reference `- ../dist/*.whl`; DABs rewrites that at deploy time
-#                               to the uploaded artifact path, for both job `environments` and
-#                               pipeline `environment.dependencies`.
+#   workspace.artifact_path     /Volumes/${var.catalog}/config/wheels on every target (v1.6.0).
+#                               A UC Volume this bundle itself declares and manages
+#                               (resources/metaflow_config_jobs/framework_wheels_volume.yml).
+#                               `config` is spelled literally, NOT ${var.spec_schema} -- see that
+#                               file's header for why. NOTE the ONE-TIME BOOTSTRAP below: the CLI
+#                               refuses an artifact_path inside a Volume that does not exist yet.
+#   resources/**/*.yml          reference `- ../../dist/*.whl`; DABs rewrites that at deploy time
+#                               to the uploaded artifact path (under `<artifact_path>/.internal/`),
+#                               for both job `environments` and pipeline `environment.dependencies`.
 #
-# Why this replaced the previous hand-run `scripts/build_and_upload_wheel.py` + pinned
-# `framework_wheel_path` variable: the pin and the upload were two separate manual steps, and
-# they drifted. On 2026-08-30 the variable pointed at a wheel that had been built locally but
+# Why deploy-built-and-published replaced the earlier hand-run `scripts/build_and_upload_wheel.py`
+# + pinned `framework_wheel_path` variable: the pin and the upload were two separate manual steps,
+# and they drifted. On 2026-08-30 the variable pointed at a wheel that had been built locally but
 # never uploaded, so all 86 resources referenced a file that did not exist in the Volume. The
 # bundle building and publishing the wheel in one step makes that class of drift impossible.
 #
-# WHY NO UC-VOLUME artifact_path (reverted 2026-08-30). `dev_metaflow` briefly pointed
-# `workspace.artifact_path` at `/Volumes/metaflow/framework/wheels/`
-# `${workspace.current_user.short_name}` -- a *dynamic*, per-target, per-user Volume path. It is
-# gone, and this bundle now falls back strictly to the standard workspace artifact path on every
-# target. Three reasons, in order of how often they bite:
+# THE v1.6.0 UC-VOLUME artifact_path DECISION (adopted 2026-09-01). A first UC-Volume
+# artifact_path was tried and reverted on 2026-08-30 because its path embedded
+# `${workspace.current_user.short_name}`, forking the artifact location by whoever ran the
+# deploy. v1.6.0 re-adopts the Volume with a FIXED path and no per-user component: every
+# deployer of a target publishes to the same `/Volumes/<catalog>/config/wheels`, which is the
+# property that makes a deploy reproducible. That sharing is overwrite-safe -- but NOT
+# prune-safe:
 #
-#   1. Deployment conflicts. A per-user, per-target Volume path forks the artifact location by
-#      whoever ran the deploy, so two engineers deploying the same target publish to two
-#      different places and each rewrites `../dist/*.whl` to their own. The standard path is one
-#      location per target, which is the property that makes a deploy reproducible.
-#   2. Volume provisioning is not free. The `dev` target cannot have a Volume artifact_path at
-#      all -- its metastore is at its volume ceiling ("Cannot create 1 Volume(s) ... estimated
-#      count: 52, limit: 50") and its `metaflow` catalog is at 51 schemas. Two targets diverging
-#      on where artifacts live is exactly the drift this block exists to prevent.
-#   3. It did not buy what it was adopted for. The hoped-for benefit was that a UC Volume never
-#      prunes, so an in-flight Lakeflow update could keep installing an older wheel across a
-#      redeploy. Verified false on 2026-08-30: DABs prunes superseded artifacts from
-#      `<artifact_path>/.internal/` on a UC Volume exactly as it does in the workspace
-#      (`.internal/` went from two wheels to one across a deploy).
+#   * Overwrite-safe. scripts/bump_and_build.py stamps a unique patch version per deploy, so no
+#     deploy can replace another deployer's wheel IN PLACE.
+#   * NOT prune-safe -- NEVER DEPLOY WHILE A PIPELINE OR TEST WAVE IS RUNNING. DABs prunes
+#     superseded artifacts from `<artifact_path>/.internal/` on a UC Volume exactly as it does
+#     in the workspace (verified 2026-08-30: `.internal/` went from two wheels to one across a
+#     deploy -- the hoped-for "a Volume never prunes" benefit is FALSE). A deploy issued while a
+#     Lakeflow update is installing the previous wheel can therefore still kill that update with
+#     ENVIRONMENT_PIP_INSTALL_ERROR, as seen on 2026-08-29 for TC-ING-004/TC-ING-005. The
+#     operational rule is the only mitigation and it is UNCHANGED: never `bundle deploy` while a
+#     test wave or pipeline is running (metaflow_testing/TESTING_PLAN.md section 0).
 #
-# CAVEAT -- deploying during a running update is unsafe, and always was. A deploy issued while a
-# Lakeflow update is installing the previous wheel can kill it with ENVIRONMENT_PIP_INSTALL_ERROR,
-# as seen on 2026-08-29 for TC-ING-004/TC-ING-005. Unique per-deploy filenames prevent a wheel
-# being overwritten IN PLACE, but not removed. Because point 3 above shows the Volume never fixed
-# this, the operational rule is the only mitigation and it is unchanged: never `bundle deploy`
-# while a test wave or pipeline is running (metaflow_testing/TESTING_PLAN.md section 0).
+# ONE-TIME BOOTSTRAP per workspace. `bundle validate` and `bundle deploy` (verified on CLI
+# v1.13.0) REFUSE an artifact_path pointing into a Volume that does not exist yet, even one
+# declared in this same bundle: "volume <catalog>.config.wheels does not exist ... Please first
+# deploy the volume using 'bundle deploy' and then switch over to using it in the artifact_path".
+# DABs does NOT create the Volume before the artifact upload. On a workspace where
+# <catalog>.config.wheels is missing, comment out that target's `artifact_path:` line below
+# (safe -- artifact_path is a workspace setting, not a resource, so unsetting it deletes
+# nothing; deploys fall back to the standard workspace path), run
+# `databricks bundle deploy --select volumes.framework_wheels_volume`, restore the line, and
+# deploy normally. Once per workspace; validate prints OK from then on.
+#
+# LIVE CAVEAT for the `dev` target: its workspace's metastore is at its 50-Volume ceiling
+# ("Cannot create 1 Volume(s) ... estimated count: 52, limit: 50") and its catalog at 51
+# schemas, so creating `framework_wheels_volume` there may fail outright. Deploys from this
+# machine target `dev_metaflow` anyway; free a Volume slot before deploying `dev`.
 #
 # Wheels published by the older manual script live directly in the Volume root, OUTSIDE
 # `.internal/`, so DABs does not manage or prune them; they remain installable for any pipeline
@@ -62,7 +113,7 @@ artifacts:
     type: whl
     path: .
     # scripts/bump_and_build.py -- NOT a bare `uv build --wheel`. It archives any wheel already
-    # in dist/ (so the `../dist/*.whl` glob in resources/*.yml only ever matches ONE file) and
+    # in dist/ (so the `../../dist/*.whl` glob in resources/**/*.yml only ever matches ONE file) and
     # stamps pyproject.toml's patch version to UTC epoch-millis, so every deploy produces a
     # uniquely-named wheel. That uniqueness is what stops a redeploy replacing the exact file a
     # running pipeline is installing. `dynamic_version: true` is deliberately NOT used instead:
@@ -88,7 +139,7 @@ variables:
   spec_volume:
     description: >-
       Volume under ${var.catalog}.${var.spec_schema} holding authored onboarding specs.
-      resources/metaflow_onboarding_specs_volume.yml creates it; the app resource grants
+      resources/metaflow_app/metaflow_onboarding_specs_volume.yml creates it; the app resource grants
       its service principal WRITE_VOLUME on it at deploy time.
     default: onboarding_specs
   dataflow_group_id:
@@ -101,32 +152,35 @@ variables:
     default: dfg_iot_telemetry_unified
 
 targets:
-  dev:
-    # The default target uses 'mode: development' to create a development copy.
-    # - Deployed resources get prefixed with '[dev my_user_name]'
-    # - Any job schedules and triggers are paused by default.
-    # See also https://docs.databricks.com/dev-tools/bundles/deployment-modes.html.
-    mode: development
-    workspace:
-      host: https://dbc-0f3a637e-dc15.cloud.databricks.com
-      # NO artifact_path -- the standard `${workspace.root_path}/artifacts` path. Same as
-      # dev_metaflow below; see the `artifacts` block above for why neither target sets one.
-    variables:
-      catalog: poc
-      schema: dev
   dev_metaflow:
-    # The default target uses 'mode: development' to create a development copy.
-    # - Deployed resources get prefixed with '[dev my_user_name]'
-    # - Any job schedules and triggers are paused by default.
+    # NO `mode: development` -- deliberate, and the reason is the artifact_path below.
+    #
+    # DABs rejects a `mode: development` target whose `artifact_path` does not contain the
+    # deploying user's name: "artifact_path should contain the current username or
+    # ${workspace.current_user.short_name} to ensure uniqueness when using 'mode: development'".
+    # That is exactly the per-user fork the v1.6.0 decision above REVERSED on 2026-08-30 -- the
+    # fixed, shared `/Volumes/<catalog>/config/wheels` path is the property that makes a deploy
+    # reproducible regardless of who runs it, and re-adding a `${...short_name}` component to
+    # satisfy the check would undo it.
+    #
+    # WHY THIS ONLY SURFACED ON THE v3 WORKSPACE. On the previous workspace the deploying user
+    # was `metaflow@nrmanalytix.com`, whose short_name is literally `metaflow` -- and the path
+    # `/Volumes/metaflow/config/wheels` contains it. The check passed by pure coincidence
+    # between the catalog name and that user's name. On this workspace the user is
+    # `metaflow_v3@nrmanalytix.com`, the coincidence is gone, and the check fires.
+    #
+    # WHAT DROPPING development MODE COSTS: deployed resources keep their literal names (no
+    # `[dev <user>]` prefix) and job schedules/triggers are no longer auto-paused. Nothing in
+    # this bundle declares a schedule, so the second point is inert today -- but it is the thing
+    # to re-check before adding one.
     # See also https://docs.databricks.com/dev-tools/bundles/deployment-modes.html.
-    mode: development
     default: true
     workspace:
-      host: https://dbc-2f6b7d4f-8c5b.cloud.databricks.com
+      host: https://dbc-8bb5bedf-1a4b.cloud.databricks.com
       profile: dev_metaflow
-      # NO artifact_path -- the standard `${workspace.root_path}/artifacts` path. The UC-Volume
-      # artifact_path this target used to carry was reverted on 2026-08-30; see the `artifacts`
-      # block above for the three reasons.
+      # v1.6.0: fixed, shared UC-Volume artifact path -- see the `artifacts` block above for the
+      # decision record and the never-deploy-mid-run rule that still applies.
+      artifact_path: /Volumes/${var.catalog}/config/wheels
 
     variables:
       catalog: metaflow

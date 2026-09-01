@@ -4,7 +4,7 @@
 # MAGIC
 # MAGIC Runs as a downstream Workflow task, chained *after* the DLT pipeline update task
 # MAGIC (conventionally ``task_key: run_pipeline_update`` -- see
-# MAGIC ``resources/dlt_observability_job.yml``). Takes that task's own ``run_id`` (via the
+# MAGIC ``resources/observability/dlt_observability_job.yml``). Takes that task's own ``run_id`` (via the
 # MAGIC ``pipeline_task_run_id`` parameter, set to ``{{tasks.<pipeline_task_key>.run_id}}``),
 # MAGIC resolves its execution window, pulls the DLT event log for that window, aggregates it per
 # MAGIC ``dataflow_group_id``, builds strict OTel ``ResourceLogs`` payloads, and dispatches them to

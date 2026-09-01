@@ -671,7 +671,7 @@ wheels = [
 
 [[package]]
 name = "nextgen-metadata-framework"
-version = "0.0.1788008683673"
+version = "0.0.1788132258391"
 source = { editable = "." }
 dependencies = [
     { name = "asn1tools" },
@@ -705,7 +705,7 @@ requires-dist = [
 
 [package.metadata.requires-dev]
 dev = [
-    { name = "databricks-connect", specifier = "~=17.0" },
+    { name = "databricks-connect", specifier = "~=17.3.0" },
     { name = "databricks-dlt" },
     { name = "ipykernel" },
     { name = "pytest" },

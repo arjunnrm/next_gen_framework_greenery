@@ -136,14 +136,15 @@ class _StubSpark:
 class _Registration:
     """One recorded ``dlt.table``/``dlt.view``/``dlt.append_flow`` registration."""
 
-    def __init__(self, kind, name, comment, fn):
+    def __init__(self, kind, name, comment, fn, temporary=False):
         self.kind = kind
         self.name = name
         self.comment = comment
         self.fn = fn
+        self.temporary = temporary
 
     def __repr__(self):  # pragma: no cover -- assertion output only
-        return f"_Registration(kind={self.kind!r}, name={self.name!r})"
+        return f"_Registration(kind={self.kind!r}, name={self.name!r}, temporary={self.temporary!r})"
 
 
 class _DltRecorder:
@@ -155,15 +156,15 @@ class _DltRecorder:
         self.reads = []
         self.read_streams = []
 
-    def _register(self, kind, name, comment):
+    def _register(self, kind, name, comment, temporary=False):
         def _decorator(fn):
-            self.registrations.append(_Registration(kind, name or fn.__name__, comment, fn))
+            self.registrations.append(_Registration(kind, name or fn.__name__, comment, fn, temporary))
             return fn
 
         return _decorator
 
-    def table(self, query_function=None, name=None, comment=None, **_kwargs):
-        decorator = self._register("table", name, comment)
+    def table(self, query_function=None, name=None, comment=None, temporary=False, **_kwargs):
+        decorator = self._register("table", name, comment, temporary)
         return decorator(query_function) if query_function is not None else decorator
 
     def view(self, query_function=None, name=None, comment=None, **_kwargs):
@@ -360,6 +361,7 @@ def _ingestion_row(
     dq_config=None,
     target_type="streaming_table",
     dataflow_id="ing_orders",
+    source_type="autoloader",
 ):
     return _StubRow(
         dataflow_id=dataflow_id,
@@ -370,6 +372,7 @@ def _ingestion_row(
         target_schema="bronze",
         target_table="orders",
         target_type=target_type,
+        source_type=source_type,
         cdc_load_strategy="APPEND",
         source_description="orders landing zone",
     )
@@ -717,20 +720,20 @@ def test_transformation_materializes_the_staged_view_by_the_same_rule(
     assert staged_view_calls[0].kwargs["materialize"] is expected
 
 
-def test_materialized_staged_view_is_registered_as_a_qualified_dlt_table(
+def test_materialized_staged_view_is_registered_as_a_temporary_dlt_table(
     recorder, bind_recorder, overlays, staged_view_calls, flow_output_calls
 ):
-    """A materialized staged intermediate is a real ``@dlt.table``, and an UNQUALIFIED name
-    would silently land in the pipeline's default catalog/schema instead of this flow's target
-    -- so the generator must forward ``target_catalog``/``target_schema`` too."""
+    """v1.6.0 Intermediate Object Rule: a materialized staged intermediate is a real
+    ``@dlt.table`` (so the multi-reader read-once guarantee holds) but ``temporary=True``
+    under its bare, pipeline-local name -- never a published, qualified table."""
     _run_ingestion(_ingestion_row(target_type="sink"))
 
     call = staged_view_calls[0]
     assert call.staged_view_name == "_orders_staged"
-    assert call.kwargs["target_catalog"] == "metaflow"
-    assert call.kwargs["target_schema"] == "bronze"
-    assert call.returns == "metaflow.bronze._orders_staged"
-    assert recorder.by_name("metaflow.bronze._orders_staged").kind == "table"
+    assert call.returns == "_orders_staged"
+    registration = recorder.by_name("_orders_staged")
+    assert registration.kind == "table"
+    assert registration.temporary is True
 
 
 def test_non_materialized_staged_view_stays_a_bare_pipeline_local_dlt_view(
@@ -765,8 +768,10 @@ def test_transformation_flow_output_receives_register_staged_views_return_value(
         )
     )
 
-    assert staged_view_calls[0].returns == "metaflow.silver._enriched_orders_staged"
-    assert flow_output_calls[0]["args"][1] == "metaflow.silver._enriched_orders_staged"
+    # v1.6.0: a materialized staged intermediate is temporary and keeps its bare name.
+    assert staged_view_calls[0].returns == "_enriched_orders_staged"
+    assert flow_output_calls[0]["args"][1] == "_enriched_orders_staged"
+    assert recorder.by_name("_enriched_orders_staged").temporary is True
 
 
 # ---------------------------------------------------------------------------------------------
@@ -1053,3 +1058,140 @@ def test_resolve_pipeline_schema_ignores_an_empty_conf_value():
     """An empty string is not a usable schema and must not short-circuit the chain."""
     spark = _StubSparkForSchema(conf_values={"pipelines.schema": ""}, current_database="real_db")
     assert flow_generators.resolve_pipeline_schema(spark, None) == "real_db"
+
+
+# ---------------------------------------------------------------------------------------------
+# 6. FULL_SNAPSHOT_CDC does NOT go through the source plane  (regression: v1.6.1 defect D2)
+#
+# `source_plane.py::_plan_ingestion_consumers` skips FULL_SNAPSHOT_CDC rows outright, so the plan
+# holds no consumer under "<dataflow_id>:source". Until v1.6.1 the generator called bind() anyway
+# and every snapshot pipeline died at graph analysis with
+#
+#   FrameworkConfigError: source_plane.bind: unknown consumer_id 'df_..._ingest:source'
+#
+# Confirmed live 2026-09-01 on Sample 01. These tests pin BOTH halves of the contract: the
+# snapshot flow must read directly, and every other strategy must still bind -- a fix that
+# accidentally routed all ingestion around the plane would break requirement R2 (read-once) while
+# looking like it worked.
+# ---------------------------------------------------------------------------------------------
+
+
+class _ReadIngestionSourceRecorder:
+    """Records every direct ``read_ingestion_source(spark, source_type, source_config)`` call."""
+
+    def __init__(self):
+        self.calls = []
+
+    def __call__(self, spark, source_type, source_config):
+        self.calls.append({"spark": spark, "source_type": source_type, "source_config": source_config})
+        return _StubDataFrame(f"read_ingestion_source:{source_type}")
+
+
+@pytest.fixture()
+def direct_reader(monkeypatch):
+    recorder = _ReadIngestionSourceRecorder()
+    monkeypatch.setattr(flow_generators, "read_ingestion_source", recorder)
+    return recorder
+
+
+SNAPSHOT_SOURCE_CONFIG = {
+    "path": "/Volumes/metaflow/metaflow_sample/landing/sample01_parts/incoming/",
+    "format": "csv",
+}
+
+
+def test_full_snapshot_cdc_reads_directly_and_never_calls_bind(
+    recorder, bind_recorder, overlays, staged_view_calls, flow_output_calls, direct_reader
+):
+    """THE regression. The plane has no consumer for a snapshot flow, so bind() can only raise."""
+    _run_ingestion(
+        _ingestion_row(
+            source_config=dict(SNAPSHOT_SOURCE_CONFIG),
+            target_config={"cdc_load_strategy": "FULL_SNAPSHOT_CDC", "primary_keys": ["part_id"]},
+        )
+    )
+    staged_view_calls[0].build_dataframe()
+
+    assert bind_recorder.calls == [], (
+        "a FULL_SNAPSHOT_CDC flow must not reach source_plane.bind -- the plan holds no consumer "
+        f"for it, so this is the live 'unknown consumer_id' failure: {bind_recorder.consumer_ids}"
+    )
+    assert len(direct_reader.calls) == 1, "the snapshot flow must read its source directly, exactly once"
+
+
+def test_full_snapshot_cdc_direct_read_gets_the_rows_source_type_and_resolved_config(
+    recorder, bind_recorder, overlays, staged_view_calls, flow_output_calls, direct_reader
+):
+    """The direct read must be the byte-equivalent of what the plane would have done: the row's
+    own ``source_type``, and the ``${param}``-substituted ``source_config`` -- not the raw JSON."""
+    _run_ingestion(
+        _ingestion_row(
+            source_config=dict(SNAPSHOT_SOURCE_CONFIG),
+            target_config={"cdc_load_strategy": "FULL_SNAPSHOT_CDC"},
+            source_type="asn1",
+        )
+    )
+    staged_view_calls[0].build_dataframe()
+
+    call = direct_reader.calls[0]
+    assert call["source_type"] == "asn1"
+    assert call["source_config"] == SNAPSHOT_SOURCE_CONFIG
+
+
+def test_the_overlay_chain_still_runs_on_a_snapshot_flows_direct_read(
+    recorder, bind_recorder, overlays, staged_view_calls, flow_output_calls, direct_reader
+):
+    """Bypassing the plane must bypass ONLY the plane. Every overlay still applies, and the first
+    one consumes the direct read's output -- a snapshot flow whose technical metadata or column
+    normalization silently stopped happening would be a far worse bug than the one being fixed."""
+    _run_ingestion(
+        _ingestion_row(
+            source_config=dict(SNAPSHOT_SOURCE_CONFIG),
+            target_config={"cdc_load_strategy": "FULL_SNAPSHOT_CDC"},
+        )
+    )
+    staged_view_calls[0].build_dataframe()
+
+    assert overlays.order == [name for name in EXPECTED_OVERLAY_ORDER if name != "apply_schema_config"]
+    assert overlays.calls["normalize_column_names"][0]["df"].origin == "read_ingestion_source:autoloader"
+
+
+@pytest.mark.parametrize("strategy", ["APPEND", "SCD1", "SCD2", "SCD3", "TRUNCATE_AND_LOAD"])
+def test_every_non_snapshot_strategy_still_binds_through_the_source_plane(
+    strategy, recorder, bind_recorder, overlays, staged_view_calls, flow_output_calls, direct_reader
+):
+    """The other half of the contract. Requirement R2 (each physical source read once per update)
+    depends on non-snapshot ingestion going through ``bind`` -- the D2 fix must not widen."""
+    _run_ingestion(
+        _ingestion_row(
+            source_config=dict(SNAPSHOT_SOURCE_CONFIG),
+            target_config={"cdc_load_strategy": strategy},
+        )
+    )
+    staged_view_calls[0].build_dataframe()
+
+    assert bind_recorder.consumer_ids == ["ing_orders:source"]
+    assert direct_reader.calls == [], f"{strategy} must not bypass the source plane"
+
+
+def test_an_absent_cdc_load_strategy_binds_rather_than_reading_directly(
+    recorder, bind_recorder, overlays, staged_view_calls, flow_output_calls, direct_reader
+):
+    """``target_config`` with no ``cdc_load_strategy`` at all is not a snapshot flow. Triggering on
+    a missing key would silently pull ordinary flows out of the read-once plane."""
+    _run_ingestion(_ingestion_row(source_config=dict(SNAPSHOT_SOURCE_CONFIG), target_config={}))
+    staged_view_calls[0].build_dataframe()
+
+    assert bind_recorder.consumer_ids == ["ing_orders:source"]
+    assert direct_reader.calls == []
+
+
+def test_the_generator_and_the_plane_agree_on_one_spelling_of_the_strategy():
+    """The two sides must branch on the same literal. If they ever drift, one side plans a
+    consumer the other does not ask for -- and that mismatch is invisible until pipeline runtime."""
+    assert (
+        flow_generators.SNAPSHOT_EXCLUDED_FROM_SOURCE_PLANE
+        is source_plane.SNAPSHOT_EXCLUDED_FROM_SOURCE_PLANE
+        is source_plane._SNAPSHOT_EXCLUDED_STRATEGY
+    )
+    assert source_plane.SNAPSHOT_EXCLUDED_FROM_SOURCE_PLANE == "FULL_SNAPSHOT_CDC"

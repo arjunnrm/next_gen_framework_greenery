@@ -531,6 +531,7 @@
         "sink_config": {
           "format": "pgp_zip",
           "path": "/Volumes/{{catalog}}/egress/example_export/{{env}}/_staging/",
+          "staged_file_format": "json",
           "post_export_archive": {
             "enabled": true,
             "output_zip_path": "/Volumes/{{catalog}}/egress/zips/example_export/{{env}}/",

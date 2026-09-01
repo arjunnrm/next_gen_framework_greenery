@@ -219,6 +219,14 @@ def _build_sink_options(flow_label: str, sink_format: str, sink_config: Dict[str
         if export_file_name_format:
             options["export_file_name_format"] = export_file_name_format
 
+        # Optional (v1.6.0) -- the staged per-partition file format inside the archive:
+        # "json" (default, JSON-Lines) or "csv" (RFC-4180 with a header row). Validated by
+        # onboarding/spec_validator.py::_validate_sink_config; re-validated defensively by
+        # archive/pgp_zip_sink.py's writer, which is where the value is actually consumed.
+        staged_file_format = sink_config.get("staged_file_format")
+        if staged_file_format:
+            options["staged_file_format"] = staged_file_format
+
         zip_secret = archive_config.get("secret")
         if zip_secret:
             _resolve_secret_into_options(options, "zip", zip_secret)

@@ -311,7 +311,7 @@ export default class Builder extends React.Component {
       T("target_config.cdc_operation_column","target_config.cdc_operation_column",{w:function(v){return hasDeleteMarker(st(v))},ph:"op",i:"Column carrying insert/update/delete indicators. Optional regardless of primary_keys. SCD1/SCD2 pass it to apply_changes as apply_as_deletes; FULL_SNAPSHOT_CDC filters flagged rows out of the snapshot so the diff deletes them by absence. A validation error on SCD3, which has no delete path at all."}),
       L("target_config.cdc_operation_mapping.delete_values","cdc_operation_mapping.delete_values",{req:1,ind:1,w:function(v){var c=v("target_config.cdc_operation_column");return hasDeleteMarker(st(v))&&!!(c&&String(c).trim())},ph:"D",i:"Values in cdc_operation_column meaning this row is a delete."}),
       B("target_config.empty_target_if_source_empty","target_config.empty_target_if_source_empty",{w:function(v){return st(v)==="TRUNCATE_AND_LOAD"},i:"WITHDRAWN — this field currently has no runtime effect. It was meant to stop a zero-row TRUNCATE_AND_LOAD source from blanking the target, but preserving the contents makes the target read itself, which Lakeflow rejects as a graph cycle. It still validates so existing specs stay valid; nothing reads it. Enforce the policy outside the graph, with a post-update task comparing the target's row count across updates.",hint:"withdrawn 2026-08-29 — no runtime effect; an empty source blanks the target either way"}),
-      B("target_config.generate_hash_columns","target_config.generate_hash_columns",{d:true,w:function(v){return isCdc(st(v))},i:"Adds __framework_hash_key (SHA-256 of primary keys) and __framework_hash_value (SHA-256 of comparison columns). Never added for APPEND or TRUNCATE_AND_LOAD."})
+      B("target_config.generate_hash_columns","target_config.generate_hash_columns",{w:function(v){return isCdc(st(v))},i:"Adds __framework_hash_key (SHA-256 of primary keys) and __framework_hash_value (SHA-256 of comparison columns). Never added for APPEND or TRUNCATE_AND_LOAD."})
     ]);
   }
 
@@ -752,7 +752,7 @@ export default class Builder extends React.Component {
     var singular={ing:"ingestion flow",trn:"transformation flow",rec:"reconciliation flow",obs:"destination"};
     var listKind=s.kind==="root"?"ing":s.kind;
     var v=this.vget();
-    var strategy=this.read("target_config.cdc_load_strategy")||"APPEND";
+    var strategy=this.read("target_config.cdc_load_strategy")||"";
 
     var secs=this.sections().map(function(sec){
       var ok=!sec.w||sec.w(v);
@@ -797,11 +797,13 @@ export default class Builder extends React.Component {
         totalFields++; if(ok) shownFields++;
         if(!ok&&!s.showInert) return null;
         var g=Object.assign({},f,{__sec:"Load strategy",__doc:"#8-target-config-shared-by-ingestion--transformation"});
-        if(!ok){ g.inert=true; g.inertReason="not applicable to "+strategy; }
+        if(!ok){ g.inert=true; g.inertReason="not applicable to "+(strategy||"the current selection"); }
         return self.renderField(g);
       }).filter(function(x){return x});
     }
-    var curCdc=CDC.filter(function(c){return c[0]===strategy})[0]||CDC[0];
+    // No strategy selected yet: highlight no tab and describe the choice instead of
+    // pretending APPEND is picked — the export carries no cdc_load_strategy either.
+    var curCdc=CDC.filter(function(c){return c[0]===strategy})[0]||["","","No load strategy selected yet. Pick a tab above — only that strategy's parameters are shown, and the spec carries no cdc_load_strategy until you do.","nothing selected"];
 
     var flowList=listKind==="obs"?((s.root.reps["@observability"]||[]).map(function(raw,i){
       var odefs=null;

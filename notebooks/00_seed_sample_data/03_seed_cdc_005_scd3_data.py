@@ -26,7 +26,7 @@
 # MAGIC per pipeline update, exactly matching a real subscription lifecycle arriving over time.
 # MAGIC
 # MAGIC Run once per batch, immediately before that batch's pipeline update -- see
-# MAGIC `resources/metaflow_test_cdc_005_scd3_job.yml` for the full
+# MAGIC `resources/feature_tests/metaflow_test_cdc_005_scd3_job.yml` for the full
 # MAGIC `seed(1) -> run -> seed(2) -> run -> seed(3) -> run` task chain and docs/44_tc_cdc_005.md
 # MAGIC for the full 3-batch drop-and-rerun narrative.
 
@@ -103,7 +103,7 @@ logger.info("Landed subscription batch %s fixture at '%s/%s'", BATCH_NUMBER, SUB
 # MAGIC
 # MAGIC Batch `{{BATCH_NUMBER}}`'s single-row status-change event is now landed at
 # MAGIC `/Volumes/{catalog}/sub/landing_sub/incoming/subscription_batch{N}.csv`. Trigger this
-# MAGIC batch's pipeline update next (see `resources/metaflow_test_cdc_005_scd3_job.yml`) before
+# MAGIC batch's pipeline update next (see `resources/feature_tests/metaflow_test_cdc_005_scd3_job.yml`) before
 # MAGIC re-running this notebook for the next batch -- landing all 3 files before any pipeline
 # MAGIC update would collapse all 3 status changes into a single Auto Loader micro-batch, defeating
 # MAGIC the point of this scenario (proving SCD3's current/previous pivot advances correctly across

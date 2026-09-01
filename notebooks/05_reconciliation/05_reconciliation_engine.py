@@ -380,12 +380,14 @@ for target_config in target_configs:
         except Exception as log_exc:  # noqa: BLE001
             logger.error("Additionally failed to write reconciliation_run_log entry: %s", log_exc)
         try:
-            # reconciliation_result is always written, independent of logging_config -- a
-            # FAILED status must still surface here or a flow with both log captures suppressed
-            # would have no record at all that a run failed.
-            write_reconciliation_result(
-                spark, CONTROL_SCHEMA, RECONCILIATION_ID, target_id, run_id=_failed_run_id, status="FAILED", task_run_id=TASK_RUN_ID
-            )
+            # v1.6.0: reconciliation_result is gated by run_log_capture too -- with logging
+            # suppressed, reconciliation persists to NOTHING but its business targets. The
+            # job run's own FAILED state (this task re-raises below) and the structured log
+            # events remain the failure signal for a suppressed-logging flow.
+            if _failed_run_log_capture:
+                write_reconciliation_result(
+                    spark, CONTROL_SCHEMA, RECONCILIATION_ID, target_id, run_id=_failed_run_id, status="FAILED", task_run_id=TASK_RUN_ID
+                )
         except Exception as log_exc:  # noqa: BLE001
             logger.error("Additionally failed to write reconciliation_result entry: %s", log_exc)
 

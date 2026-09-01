@@ -1,0 +1,32 @@
+# Sample 05 -- "Encrypted ZIP Ingestion via UC Secret Passphrase" (reference, not a test): the
+# Lakeflow Declarative Pipeline hosting dfg_sample_05_encrypted_ingestion's single Auto Loader
+# flow, whose source_zip_handling.pre_extraction_decryption.secret_passphrase decrypts each
+# AES-256 password-protected sample_secure_txns_*.zip archive (pyzipper, UC secret
+# metaflow.metaflow_sample.sample_zip_passkey) before extraction and ingestion. Requires that
+# UC secret at update time -- see the job header
+# (resources/sample_jobs/metaflow_sample_05_encrypted_ingestion_job.yml). Everything publishes
+# into the single metaflow.metaflow_sample schema. See
+# metaflow_testing/samples/sample_05_encrypted_ingestion.json.
+
+resources:
+  pipelines:
+    metaflow_sample_05_encrypted_ingestion_pipeline:
+      name: metaflow_sample_05_encrypted_ingestion_pipeline_${bundle.target}
+      catalog: metaflow
+      schema: metaflow_sample
+      serverless: true
+      photon: true
+      development: true
+      continuous: false
+
+      libraries:
+        - notebook:
+            path: ../../notebooks/03_engine/03_lakeflow_declarative_pipeline.py
+
+      environment:
+        dependencies:
+          - ../../dist/*.whl
+
+      configuration:
+        dataflow.group.id: dfg_sample_05_encrypted_ingestion
+        dataflow.control.catalog: metaflow

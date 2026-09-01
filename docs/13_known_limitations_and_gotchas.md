@@ -97,8 +97,8 @@
 | 🟠 | [R5](#r5) | Continuous reconciliation is **removed** — it never ran on serverless anyway | `recon_mode` |
 | 🔵 | [R6](#r6) | Batch restartability uses a fingerprint; streaming uses the Spark checkpoint — different guarantees | `read_mode` |
 | 🟠 | [R7](#r7) | A recon source that is an in-graph `TRUNCATE_AND_LOAD`/SCD/snapshot/MV target **cannot** use `execution_mode: "pipeline"` | `execution_mode`, `cdc_load_strategy` |
-| 🔴 | [R8](#r8) | A job-mode recon task left in the YAML beside a pipeline-mode flow runs the comparison **twice** and double-appends | `execution_mode` + `resources/*.yml` |
-| 🔵 | [R9](#r9) | `publish_schema` defaults to the **hosting pipeline's own** schema — three audit tables land beside your business tables | `publish_schema` |
+| 🔴 | [R8](#r8) | A job-mode recon task left in the YAML beside a pipeline-mode flow runs the comparison **twice** and double-appends | `execution_mode` + `resources/**/*.yml` |
+| 🔵 | [R9](#r9) | `publish_schema` defaults to the **hosting pipeline's own** schema — the published audit datasets (`__metrics`/`__mismatch`, v1.6.0-conditional) land beside your business tables | `publish_schema` |
 
 ### Sinks & egress
 
@@ -130,8 +130,9 @@
 | 🟠 | [L8](#l8) | `pipelines.incompatibleViewCheck.enabled=false` is **known and rejected** — do not set it |
 | 🔴 | [L9](#l9) | Reading a pipeline table's **backing storage path** to dodge the self-read ban is forbidden |
 | 🔵 | [L10](#l10) | An in-graph healing loop converges in **one update per correction round**, never in-update |
+| 🔴 | [L11](#l11) | A **`FULL_SNAPSHOT_CDC`** flow is not in the source plane — reading it must bypass `bind()` |
 
-### Deployment & operations
+#### Deployment & operations
 
 | | Id | Trap |
 |---|---|---|
@@ -141,6 +142,8 @@
 | 🔵 | [O4](#o4) | UC object quota and serverless concurrency limits produce failures that look like framework bugs |
 | 🟠 | [O5](#o5) | `CREATE TABLE IF NOT EXISTS` never adds a column to an **existing** control table — and `bundle deploy` does not run the migration |
 | 🟠 | [O6](#o6) | A pipeline whose `artifact_path` belongs to **another** bundle target is orphaned by every deploy of that target |
+| 🔴 | [O7](#o7) | The **v1.6.0 upgrade renames/unpublishes intermediates** — streaming state resets; plan the first post-upgrade update per pipeline |
+| 🔴 | [O8](#o8) | A module loaded from a **job task** must not transitively `import dlt` — it dies at import time |
 
 ---
 ---
@@ -993,7 +996,7 @@ corrections into an append-only bus, no error anywhere. The batch fingerprint
 ([R6](#r6)) does not save you — the two passes are independent invocations against a source the
 first pass may already have moved, so the fingerprints legitimately differ.
 
-**This is not hypothetical.** `resources/metaflow_test_002_003_job.yml` still carried its
+**This is not hypothetical.** `resources/feature_tests/metaflow_test_002_003_job.yml` still carried its
 `run_003_reconciliation` task after scenario 003 was flipped to `"pipeline"` — while the file's own
 header already claimed the task had been removed — risking a double-append into
 `Excalibur_usecase.zerobus_source_bus`. The task was deleted.
@@ -1006,10 +1009,14 @@ standalone reconciliation task in the same commit. Grep the `resources/` tree fo
 
 ### <a id="r9"></a>R9 🔵 `publish_schema` defaults to the hosting pipeline's own schema
 
-Under `execution_mode: "pipeline"` / `"pipeline_audit_only"` a flow publishes **three real,
-externally visible UC tables** — `recon__<rid>__<tid>__classified` / `__metrics` / `__mismatch`.
-Omitting `publish_schema` puts them in the pipeline's **own** target schema, beside the business
-tables it publishes. That is legal, and rarely what anyone wanted.
+Under `execution_mode: "pipeline"` / `"pipeline_audit_only"` a flow publishes real, externally
+visible UC tables — since v1.6.0 that is `recon__<rid>__<tid>__metrics` / `__mismatch` (each
+registered only when its `logging_config` capture flag resolves true) plus a healing flow's
+`_recon__…__src`/healing `__tgt`; the classification and every other L3/L4 node are now
+pipeline-scoped temporary tables that publish nowhere (see
+[`07` §11.10](07_reconciliation_engine.md#1110-v160--the-intermediate-object-rule-and-the-conditional-audit-datasets)).
+Omitting `publish_schema` puts the published ones in the pipeline's **own** target schema, beside
+the business tables it publishes. That is legal, and rarely what anyone wanted.
 
 `notebooks/03_engine/03_lakeflow_declarative_pipeline.py` resolves that default as
 `PIPELINE_SCHEMA`, first non-empty wins:
@@ -1234,6 +1241,16 @@ deliberately stays inline, because materializing a single-consumer read would co
 copy and destroy predicate pushdown of that consumer's filter into the original source. This is why
 `source_plane.materialize` defaults to `"auto"` rather than `"always"`.
 
+**Materialized ≠ published (v1.6.0).** Since v1.6.0 these shared nodes are
+`@dlt.table(temporary=True)` under their bare names — materialized once per update, so everything
+above still holds, but **invisible in Unity Catalog** unless the spec sets both
+`source_plane.catalog` *and* `source_plane.schema` to publish them deliberately. The same
+Intermediate Object Rule makes a multi-reader `_<target>_staged` intermediate a temporary table
+rather than a published one, and does the same to the reconciliation L3/L4 plumbing (with the
+exceptions listed in [`07_reconciliation_engine.md` §11.10](07_reconciliation_engine.md#1110-v160--the-intermediate-object-rule-and-the-conditional-audit-datasets)).
+Never conclude from an empty catalog listing that the node was not materialized — check the
+pipeline's own graph/event log. Upgrading an existing deployment: see [O7](#o7).
+
 ### <a id="l8"></a>L8 🟠 `pipelines.incompatibleViewCheck.enabled=false` is known and rejected
 
 When a batch consumer reads a streaming view, Lakeflow's error text
@@ -1288,6 +1305,45 @@ not as *"the discrepancy is gone."* A dashboard that alerts on a non-zero
 correction round.
 
 ---
+
+### <a id="l11"></a>L11 🔴 A `FULL_SNAPSHOT_CDC` flow is not in the source plane — reading it must bypass `bind()`
+
+**Fixed in v1.6.1.** `engine/source_plane.py::_plan_ingestion_consumers` deliberately skips every
+ingestion row whose `cdc_load_strategy` is `FULL_SNAPSHOT_CDC`, because
+`apply_changes_from_snapshot`'s lambda reads a **path**, never a pipeline dataset
+([L3](#l3)). The plan therefore holds no consumer under `"<dataflow_id>:source"`, and
+`engine/source_plane.py::bind` never guesses:
+
+```
+FrameworkConfigError: source_plane.bind: unknown consumer_id 'df_sample_01_part_snapshot_ingest:source'.
+Known consumer ids: ['df_sample_01_customer_scd1_ingest:source', ...]
+```
+
+The part that is easy to get wrong is that the exclusion applies to the **lambda**, not to the
+whole flow. A snapshot flow still registers a staged view in the graph —
+`_<t>_staged` → `_<t>_clean` → `_<t>_snapshot_input` → target — and that view needs a real source
+read. Until v1.6.1, `engine/flow_generators.py::_build_ingestion_dataframe` called `bind()`
+unconditionally, so **every** `FULL_SNAPSHOT_CDC` pipeline failed at graph analysis. It survived
+review because the v1.6.0 source-plane work was never deployed; Sample 01 hit it on the first live
+run (2026-09-01).
+
+The generator now branches on `source_plane.SNAPSHOT_EXCLUDED_FROM_SOURCE_PLANE` — the single
+exported constant both sides share, so the two can never disagree — and reads directly:
+
+```python
+if is_snapshot_cdc:
+    staged_df = read_ingestion_source(spark, flow_row.source_type, source_config)
+else:
+    staged_df = bind(plan, source_consumer_id, want_stream=is_streaming)
+```
+
+That is a correct read-once outcome, not an exception to R2: the plane deduplicates a locator
+*shared between consumers*, and a snapshot source has exactly one consumer by construction. Every
+other strategy still binds — pinned in both directions by `tests/unit/test_flow_generators.py` §6.
+
+**If you are adding a new CDC strategy** that also sits outside the plane, add it to the exported
+constant and to the generator's branch together; a strategy excluded on one side only fails
+nowhere until a real pipeline update.
 
 ## Deployment & operations
 
@@ -1417,6 +1473,82 @@ GRANT SELECT ON TABLE metaflow.bronze_excalibur.bronze_tariffelementband TO `met
 Until both are cleared, that scenario is verified **offline only** — validator plus
 `plan_source_plane`, pinned by `tests/unit/test_geneva_e41a47ba_topology.py` — and has never been
 confirmed by a live pipeline run. See [R7](#r7).
+
+### <a id="o7"></a>O7 🔴 The v1.6.0 upgrade renames and unpublishes intermediates — plan it per pipeline
+
+v1.6.0's Intermediate Object Rule changes the **identity** of several datasets an already-deployed
+pipeline has been maintaining. On the first update after deploying the v1.6.0 wheel:
+
+* A **materialized `_<target>_staged` intermediate** (quarantine flows, `sink`/`external_sink`
+  flows) stops being the published `catalog.schema._<target>_staged` table and becomes a temporary
+  table under its bare name. Lakeflow treats that as a **new dataset**: the old published table is
+  removed from the pipeline's managed set, and — for a streaming flow — the staged intermediate's
+  **checkpoint state resets**, so its Auto Loader/stream read starts over. For an `APPEND` final
+  target that can mean **re-ingesting rows it already appended**; SCD/apply-changes targets dedup by
+  key and self-heal.
+* **L0 source-plane nodes** (`_src__…__stream/batch`) similarly vanish from Unity Catalog unless the
+  spec explicitly sets `source_plane.catalog` + `source_plane.schema`, and their stream state resets
+  under the temporary re-registration.
+* **Reconciliation** L3/L4 plumbing is renamed/unpublished (`recon__…__classified` →
+  `_recon__…__classified`, temporary), and `__metrics`/`__mismatch` exist only when their capture
+  flags are on — see [`07` §11.10](07_reconciliation_engine.md#1110-v160--the-intermediate-object-rule-and-the-conditional-audit-datasets).
+
+**What to do, per pipeline, before the first post-upgrade update on anything that matters:**
+
+1. Inventory external consumers of the disappearing tables (`_staged`, `_src__*`,
+   `recon__*__classified`) and repoint them — `__mismatch`/`__metrics` for recon consumers; for a
+   shared source node, set `source_plane.catalog`/`schema` to keep it published.
+2. Expect the update to behave like a structural change: prefer a maintenance window, and for
+   streaming `APPEND` flows decide deliberately between accepting a one-time re-ingest window or a
+   coordinated full refresh with the landing zone quiesced.
+3. The old published intermediate tables that Lakeflow does not clean up itself can be dropped once
+   the first v1.6.0 update has succeeded — they are orphans, no longer maintained by anything.
+
+**None of this affects a freshly-onboarded pipeline** — only ones that ran under ≤ v1.5.x. The
+sample suite (`resources/sample_jobs/`) was born on v1.6.0 and is unaffected.
+
+---
+
+### <a id="o8"></a>O8 🔴 A module loaded from a job task must not transitively `import dlt`
+
+**Fixed in v1.6.1.** `import dlt` is not free outside a Lakeflow pipeline. It calls into the
+runtime's notebook entry point, which in a plain **job** notebook task has no notebook id to
+return, and the import dies before any framework code runs:
+
+```
+Py4JJavaError: An error occurred while calling o36.get.
+: java.util.NoSuchElementException: None.get
+    at scala.None$.get(Option.scala:627)
+```
+
+Confirmed live 2026-09-01. `observability/reconciliation_export.py` imported one *pure*
+exception-inspection helper (`_is_table_not_found`) from `dq/quarantine.py`, which does a
+module-level `import dlt`. Sample 03's `observability_export` task failed at **import time** and
+took its downstream `store_sample_config` with it — while the pipeline that produced the
+reconciliation datasets had succeeded minutes earlier, which is what makes the failure so
+confusing to read. `reconciliation/appender.py` carried the identical latent import and would
+have broken the standalone reconciliation job the same way.
+
+**Transitivity is the whole trap.** The diff of `reconciliation_export.py` shows a helper import
+from a sibling module and nothing alarming; the `dlt` edge is one hop further out. The fix is not
+to move the import site but to give shared code a home that cannot drag `dlt` in:
+`dq/table_errors.py` now holds `is_table_not_found` / `TABLE_NOT_FOUND_CONDITIONS` and imports
+**nothing at all**. `dq/quarantine.py` keeps `_is_table_not_found` as an alias for pipeline-side
+callers — importing *that alias* from job context reintroduces the bug in full.
+
+**It does not fail locally.** `databricks-dlt` is a dev dependency, so `import dlt` succeeds under
+pytest and tells you nothing about the serverless job runtime. The guard is therefore static:
+`tests/unit/test_job_context_has_no_dlt_import.py` walks the import graph with `ast` and asserts
+the edge is absent, using `dq/quarantine.py` itself as a control so the assertions cannot pass
+vacuously.
+
+Job-context entry points to keep clean:
+
+| Module | Loaded by |
+|---|---|
+| `observability/reconciliation_export.py` | `notebooks/08_observability/08_dlt_observability_engine.py` |
+| `reconciliation/appender.py` | `notebooks/05_reconciliation/05_reconciliation_engine.py` |
+| `dq/table_errors.py` | shared — must stay importable from anywhere |
 
 ---
 

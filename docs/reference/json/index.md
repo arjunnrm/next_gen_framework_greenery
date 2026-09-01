@@ -12,14 +12,14 @@ Every attribute the framework understands, grouped by the part of the spec it be
 | Section | Attributes | What it covers |
 |---|---|---|
 | [Spec root](root.md) | 3 | Top-level attributes of the onboarding document. Everything else hangs off these. |
-| [Ingestion flows](ingestion.md) | 100 | One entry per `ingestion_flows[]` element — reading from a landing zone into Bronze. |
-| [Transformation flows](transformation.md) | 68 | One entry per `transformation_flows[]` element — SQL plus a CDC load strategy. |
+| [Ingestion flows](ingestion.md) | 101 | One entry per `ingestion_flows[]` element — reading from a landing zone into Bronze. |
+| [Transformation flows](transformation.md) | 69 | One entry per `transformation_flows[]` element — SQL plus a CDC load strategy. |
 | [CDC / load strategy](ingestion-transformation.md) | 9 | Attributes under `target_config` that only apply to particular CDC load strategies. The Spec Builder shows these on the **Load strategy** step and hides the ones the selected strategy does not use. |
 | [Reconciliation flows](reconciliation.md) | 34 | One entry per `reconciliation_flows[]` element — comparing a baseline against targets. |
 | [Observability](observability.md) | 18 | One entry per `observability[]` element — where telemetry is exported. |
 
 
-**177 distinct attributes** across 6 sections.
+**178 distinct attributes** across 6 sections.
 
 
 ## CDC load strategies

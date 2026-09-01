@@ -19,7 +19,6 @@
         "label": "execution_mode",
         "widget": "select",
         "type": "string",
-        "default": "job",
         "options": [
           "job",
           "pipeline",
@@ -67,7 +66,6 @@
         "label": "two_tier_verification",
         "widget": "boolean",
         "type": "boolean",
-        "default": true,
         "hint": "phase 1 fingerprint, phase 2 full join",
         "description": "Runs a cheap Phase 1 per-side fingerprint (row_count plus XOR-fold of framework hash columns) first, only falling through to full join on mismatch."
       },
@@ -76,7 +74,6 @@
         "label": "logging_config.run_log_capture",
         "widget": "boolean",
         "type": "boolean",
-        "default": true,
         "description": "Per-flow gate on run-log writes. Overridable at runtime by recon_run_log_capture parameter."
       },
       {
@@ -84,7 +81,6 @@
         "label": "logging_config.mismatch_log_capture",
         "widget": "boolean",
         "type": "boolean",
-        "default": true,
         "description": "Per-flow gate on mismatch-log writes. Overridable at runtime by recon_mismatch_log parameter."
       },
       {
@@ -187,7 +183,6 @@
             "label": "read_mode",
             "widget": "select",
             "type": "string",
-            "default": "batch",
             "options": [
               "batch",
               "streaming"
@@ -225,7 +220,6 @@
             "label": "hash_precomputed",
             "widget": "boolean",
             "type": "boolean",
-            "default": false,
             "description": "Reuse existing __framework_hash_key and __framework_hash_value instead of recomputing."
           },
           {
@@ -233,7 +227,6 @@
             "label": "comparison_direction",
             "widget": "select",
             "type": "string",
-            "default": "both",
             "options": [
               "both",
               "source_to_target",
@@ -340,7 +333,6 @@
             "widget": "select",
             "type": "string",
             "required": true,
-            "default": "warn",
             "options": [
               "warn",
               "drop",

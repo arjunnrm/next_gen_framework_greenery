@@ -135,7 +135,7 @@ def resolve_triggered_run_parameters(raw_parameters: Mapping[str, Any]) -> Trigg
             f"Triggered observability run is missing required task parameter(s): {missing}. "
             "All of "
             f"{list(REQUIRED_TRIGGERED_PARAMETERS)} must be supplied as base_parameters on the "
-            "observability task -- see resources/dlt_observability_job.yml. "
+            "observability task -- see resources/observability/dlt_observability_job.yml. "
             'pipeline_task_run_id is a dynamic task value: pass "{{tasks.<pipeline_task_key>.run_id}}", '
             "where <pipeline_task_key> is the task_key of the pipeline_task this task depends_on."
         )

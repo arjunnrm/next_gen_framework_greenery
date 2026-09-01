@@ -101,6 +101,12 @@ def _calls_named(tree, names):
     out = []
     for node in ast.walk(tree):
         if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute) and node.func.attr in names:
+            # F.count(...) / F.first(...) are pyspark.sql.functions Column expressions --
+            # lazy by construction, not DataFrame actions. Only a receiver other than the
+            # functions module can be an eager action or a write.
+            receiver = node.func.value
+            if isinstance(receiver, ast.Name) and receiver.id == "F":
+                continue
             out.append(node)
     return out
 

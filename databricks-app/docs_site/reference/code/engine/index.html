@@ -1402,6 +1402,8 @@
       
         
       
+        
+      
     
     
     
@@ -1805,6 +1807,34 @@
     
   
     Full attribute dictionary
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../14_onboarding_restrictions_and_validation_rules/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Onboarding restrictions & validation rules
   
 
     
@@ -2976,6 +3006,8 @@
       
         
       
+        
+      
     
     
     
@@ -3064,6 +3096,34 @@
     
   
     Multi-role FAQs
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../15_agent_skills_and_prompts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Agent skills & prompt library
   
 
     
@@ -3843,6 +3903,10 @@
 </thead>
 <tbody>
 <tr>
+<td><code>resolve_pipeline_schema(spark: Any, group_row: Any = None) -&gt; Optional[str]</code></td>
+<td>Resolve the schema this pipeline publishes into, or <code>None</code> if nothing can determine it.</td>
+</tr>
+<tr>
 <td><code>generate_ingestion_flow(spark, dbutils, flow_row, plan: SourcePlanePlan, pipeline_parameters: Dict[str, Any], pipeline_run_id: Optional[str] = None) -&gt; None</code></td>
 <td>Register one <code>ingestion_flow_spec</code> row's staged intermediate + flow output.</td>
 </tr>
@@ -3868,8 +3932,8 @@
 </thead>
 <tbody>
 <tr>
-<td><code>register_staged_view(staged_view_name: str, comment: str, dq_rules: List[Dict[str, Any]], build_dataframe: Callable[[], DataFrame], target_config: Dict[str, Any], pipeline_run_id: Optional[str] = None, record_id_column: Optional[str] = None, capture_technical_metadata: bool = True, flow_id: Optional[str] = None, read_operation_name: str = 'flow_read', materialize: bool = False, target_catalog: Optional[str] = None, target_schema: Optional[str] = None) -&gt; str</code></td>
-<td>Register the staged intermediate shared by both engines, as a <code>@dlt.view</code> (default) or, when <code>materialize</code> is set, a genuine <code>@dlt.table</code>.</td>
+<td><code>register_staged_view(staged_view_name: str, comment: str, dq_rules: List[Dict[str, Any]], build_dataframe: Callable[[], DataFrame], target_config: Dict[str, Any], pipeline_run_id: Optional[str] = None, record_id_column: Optional[str] = None, capture_technical_metadata: bool = True, flow_id: Optional[str] = None, read_operation_name: str = 'flow_read', materialize: bool = False) -&gt; str</code></td>
+<td>Register the staged intermediate shared by both engines, as a <code>@dlt.view</code> (default) or, when <code>materialize</code> is set, a pipeline-scoped <strong>temporary</strong> <code>@dlt.table</code>.</td>
 </tr>
 <tr>
 <td><code>register_flow_output(flow_label: str, staged_view_name: str, target_table: str, target_catalog: str, target_schema: str, cdc_load_strategy: str, target_config: Dict[str, Any], dq_rules: List[Dict[str, Any]], comment: Optional[str], is_streaming: bool, target_type: str, quarantine_table_override: Optional[str] = None) -&gt; bool</code></td>

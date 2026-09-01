@@ -67,7 +67,6 @@
         "widget": "select",
         "type": "string",
         "required": true,
-        "default": "streaming_table",
         "options": ["streaming_table", "materialized_view", "batch_table", "external_sink", "sink"],
         "description": "Output dataset type."
       }
@@ -118,7 +117,6 @@
             "label": "is_streaming",
             "widget": "boolean",
             "type": "boolean",
-            "default": false,
             "description": "true reads with spark.readStream.table, false with spark.read.table."
           },
           {
@@ -204,7 +202,6 @@
             "label": "mode",
             "widget": "select",
             "type": "string",
-            "default": "GCM",
             "options": ["GCM", "CBC", "ECB"],
             "description": "Must match mode column was encrypted with."
           },

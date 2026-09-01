@@ -1402,6 +1402,8 @@
       
         
       
+        
+      
     
     
     
@@ -1805,6 +1807,34 @@
     
   
     Full attribute dictionary
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../14_onboarding_restrictions_and_validation_rules/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Onboarding restrictions & validation rules
   
 
     
@@ -2650,6 +2680,8 @@
       
         
       
+        
+      
     
     
     
@@ -2865,6 +2897,34 @@
     
   
     Multi-role FAQs
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../15_agent_skills_and_prompts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Agent skills & prompt library
   
 
     
@@ -3560,9 +3620,53 @@ does not recognise are preserved. This is covered by a round-trip test.</p>
 <h2 id="operations">Operations<a class="headerlink" href="#operations" title="Permanent link">&para;</a></h2>
 <details class="question">
 <summary>A deploy killed a running pipeline with <code>ENVIRONMENT_PIP_INSTALL_ERROR</code>.</summary>
-<p>The wheel was published as a bundle artifact, so DABs pruned the version the running update was
-installing. Publish to a Volume and pin an explicit version — see
+<p>The deploy pruned the superseded wheel from <code>&lt;artifact_path&gt;/.internal/</code> while the running
+update was installing it. DABs prunes on a UC Volume exactly as in the workspace (v1.6.0 moved
+the artifact path to <code>/Volumes/&lt;catalog&gt;/config/wheels</code>, which does <strong>not</strong> change this), and
+unique per-deploy filenames prevent overwrite-in-place, not removal. The rule is operational:
+<strong>never <code>bundle deploy</code> while a pipeline or test wave is running</strong> — see
 <a href="../onboarding/04_deploying/">Deploying</a>.</p>
+</details>
+<details class="question">
+<summary>Why don't I see the <code>_staged</code> / <code>_src__*</code> / <code>_recon__*</code> tables in my catalog anymore?</summary>
+<p>v1.6.0's Intermediate Object Rule: intermediates are <code>@dlt.view</code>s or pipeline-scoped
+<strong>temporary</strong> tables — materialized once per update where read-once demands it, but never
+published to Unity Catalog. Only final sinks (targets, quarantine tables, SCD2 <code>_current</code>) and
+the conditional reconciliation audit datasets (<code>__metrics</code>/<code>__mismatch</code>) are published. The
+datasets still exist inside the pipeline — check the pipeline's graph/event log, not the
+catalog. See <a href="../13_known_limitations_and_gotchas/#o7">Known limitations O7</a> for the upgrade
+implications.</p>
+</details>
+<details class="question">
+<summary>How do I keep a shared source-plane node queryable from outside the pipeline?</summary>
+<p>Set <strong>both</strong> <code>source_plane.catalog</code> and <code>source_plane.schema</code> in the spec — the node is then
+published there as a real table, exactly as pre-v1.6.0. Leaving them <code>null</code> (the default) keeps
+it a pipeline-scoped temporary table.</p>
+</details>
+<details class="question">
+<summary>How do I turn off ALL reconciliation logging, and what do I lose?</summary>
+<p>Set <code>logging_config: {"run_log_capture": false, "mismatch_log_capture": false}</code> (or the
+runtime overrides). v1.6.0 makes this a real off-switch: no <code>recon__*__metrics</code>/<code>__mismatch</code>
+dataset is registered, and no <code>reconciliation_run_log</code>, <code>reconciliation_mismatch_log</code> <strong>or
+<code>reconciliation_result</code></strong> row is written — the flow persists only to its business targets. You
+lose the control-table audit trail entirely, including FAILED rows; the job/pipeline run state
+and structured log events become your only failure signal. Healing still works.</p>
+</details>
+<details class="question">
+<summary>Why did onboarding reject <code>run_log_capture: false</code> on my flow?</summary>
+<p>Two combinations are rejected (at onboarding and again at graph definition): <code>dq_config.rules</code>
+with <code>run_log_capture: false</code> — the expectations attach to the <code>__metrics</code> dataset, which would
+not exist — and <code>execution_mode: "pipeline_audit_only"</code> with <strong>both</strong> capture flags false,
+which would register compute with no output at all. Re-enable the flag, or drop the rules /
+switch the mode. See <a href="../07_reconciliation_engine/#6-runtime-log-controls">Reconciliation §6</a>.</p>
+</details>
+<details class="question">
+<summary>How do I export CSV files inside the password-protected ZIP instead of JSON-Lines?</summary>
+<p>Set <code>sink_config.staged_file_format: "csv"</code> on a <code>pgp_zip</code> sink (v1.6.0) — staged files become
+RFC-4180 CSV with a header row (one file per non-empty partition per micro-batch), then
+<code>post_export_archive</code> zips them as before; combine with <code>post_export_archive.secret</code> for an
+AES-256 password-protected archive. The attribute is rejected on <code>delta</code>/<code>kafka</code> sinks, which
+have no staging step. Working example: <code>metaflow_testing/samples/sample_04_export_encrypt_zip.json</code>.</p>
 </details>
 <details class="question">
 <summary>A flow failed but the update still reported SUCCESS.</summary>

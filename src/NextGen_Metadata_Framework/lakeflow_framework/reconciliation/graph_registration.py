@@ -13,34 +13,47 @@ plane (``engine/source_plane.py``) instead of re-reading tables the same update 
 materialized, and its comparison becomes a queryable, lineage-tracked, ``dq_config``-gated set of
 Unity Catalog tables instead of opaque job-task Python.
 
-**The five layers this module registers, per reconciliation flow:**
+**The five layers this module registers, per reconciliation flow** (v1.6.0 Intermediate Object
+Rule: every true intermediate below is a pipeline-scoped ``@dlt.table(temporary=True)`` under
+its bare name -- materialized once, never published to Unity Catalog; the only published
+datasets are ``__metrics``/``__mismatch``, which are the staging feed for the control-table
+sinks and exist only when their capture flag resolves true, plus -- for a healing flow only --
+the L3 ``_src``/healing ``_tgt`` nodes the L5 handler must read back through the metastore):
 
 * **L3 RECON PREPARE** -- ``_recon__<reconciliation_id>__src`` (one shared, hash-prepared read of
   ``source_config``, paid ONCE regardless of how many targets this flow compares against) and one
   ``_recon__<reconciliation_id>__<target_id>__tgt`` per target (the far side, always batch).
-* **L4 RECON COMPARE** -- per target: ``recon__<reconciliation_id>__<target_id>__classified``
-  (the published full-outer-join classification), ``__metrics`` (one row, carrying this flow's
-  ``dq_config`` expectations -- reconciliation's first declarative way to fail a pipeline
-  update), ``__mismatch`` (the published per-record mismatch detail, direction-gated), and
+  Temporary, except published for a healing flow (``_src`` always, ``_tgt`` per healing target)
+  because the L5 handler reads them back via a plain ``spark.read.table``.
+* **L4 RECON COMPARE** -- per target: ``_recon__<reconciliation_id>__<target_id>__classified``
+  (the full-outer-join classification -- temporary, read up to 3x downstream), ``__metrics``
+  (one published row, registered ONLY when ``run_log_capture`` resolves true; carries this
+  flow's ``dq_config`` expectations -- reconciliation's first declarative way to fail a pipeline
+  update), ``__mismatch`` (the published per-record mismatch detail, direction-gated, registered
+  ONLY when ``mismatch_log_capture`` resolves true), and
   ``_recon__<reconciliation_id>__<target_id>__missing`` (the ``source_to_target`` append set,
-  registered only for a target that actually heals).
+  temporary, registered only for a target that actually heals).
 * **L5 RECON HEAL** -- only when ``execution_mode == "pipeline"`` *and* at least one target
-  heals: ``_recon__<reconciliation_id>__pulse`` (a one-column streaming projection of the
-  source, whose sole purpose is to give ``dlt.foreach_batch_sink`` -- streaming-only -- something
-  to trigger on), ``recon__<reconciliation_id>__heal_flow`` (the ``@dlt.append_flow`` joining the
-  pulse against the first healing target's ``__metrics`` row purely as an ORDERING EDGE -- see
-  below), and ``_recon__<reconciliation_id>__heal_sink`` (the ``foreach_batch_sink`` handler,
-  never itself a Unity Catalog dataset).
+  heals: ``_recon__<reconciliation_id>__pulse`` (a temporary one-column streaming projection of
+  the source, whose sole purpose is to give ``dlt.foreach_batch_sink`` -- streaming-only --
+  something to trigger on), ``recon__<reconciliation_id>__heal_flow`` (the ``@dlt.append_flow``
+  joining the pulse against a one-row aggregate of the first healing target's ``__classified``
+  dataset purely as an ORDERING EDGE -- see below), and
+  ``_recon__<reconciliation_id>__heal_sink`` (the ``foreach_batch_sink`` handler, never itself a
+  Unity Catalog dataset).
 
-**Why the append_flow joins the pulse against a ``__metrics`` row at all.** A pulse's own rows
-carry nothing but ``__recon_gate``; the join's real job is to make Lakeflow schedule this flow
-*after* the target's whole-snapshot L4 classification has materialized this update, by making
-the flow structurally depend on it (``dlt.read`` of a materialized-view dataset is a real graph
-edge). An equi-join on a constant literal column is the one documented legal stream-static join
-shape (a non-equi ``lit(True)`` join raises Lakeflow's "Detected implicit cartesian product");
-``INNER`` is safe here specifically because ``__metrics`` is a single ``.agg(...)`` with no
-``groupBy`` and therefore always emits exactly one row, even over an entirely empty relation --
-so the join can never silently degenerate into "no batch this update" on an all-matched run.
+**Why the append_flow joins the pulse against a one-row ``__classified`` aggregate at all.** A
+pulse's own rows carry nothing but ``__recon_gate``; the join's real job is to make Lakeflow
+schedule this flow *after* the target's whole-snapshot L4 classification has materialized this
+update, by making the flow structurally depend on it (``dlt.read`` of a materialized dataset is
+a real graph edge). An equi-join on a constant literal column is the one documented legal
+stream-static join shape (a non-equi ``lit(True)`` join raises Lakeflow's "Detected implicit
+cartesian product"); ``INNER`` is safe here specifically because the gate side is a single
+``.agg(...)`` with no ``groupBy`` and therefore always emits exactly one row, even over an
+entirely empty relation -- so the join can never silently degenerate into "no batch this
+update" on an all-matched run. (Pre-v1.6.0 this edge anchored on ``__metrics``, which carried
+the same one-row guarantee; ``__metrics`` is now conditional on ``run_log_capture``, and a
+healing flow with logging suppressed must still heal.)
 
 **Why the healing handler re-derives its own match/append/log via
 :func:`~reconciliation.appender.run_target_reconciliation` instead of reading back the published
@@ -55,7 +68,7 @@ restartability fingerprinting) would mean re-implementing that entire contract a
 calling the existing function unchanged, against the already-materialized ``_..._src``/
 ``_..._tgt`` L3 nodes (each read exactly once more, cheaply, since they are themselves
 materialized-once-per-update datasets), keeps exactly one implementation of "match, append, log"
-in the codebase. The append_flow's join with ``__metrics`` (above) is what guarantees L3/L4 have
+in the codebase. The append_flow's join with the ``__classified`` gate (above) is what guarantees L3/L4 have
 already fully materialized by the time this handler runs, so this second pass over ``_src``/
 ``_tgt`` sees the same, final, this-update snapshot L4 already classified.
 
@@ -67,7 +80,7 @@ already fully materialized by the time this handler runs, so this second pass ov
   module itself registers; ``__classified`` reads ``_..._src``/``_..._tgt``; ``__metrics``/
   ``__mismatch``/``_..._missing`` all read ``__classified`` (plus, for ``__metrics``/
   ``_..._missing``, ``_..._src``/``_..._tgt`` again); the pulse binds the source identity fresh;
-  the heal append_flow reads the pulse and the first healing target's ``__metrics``.
+  the heal append_flow reads the pulse and the first healing target's ``__classified``.
 * *Rule 2 (no eager action reachable from a streaming plan).* Every ``@dlt.table`` body below
   returns a lazy DataFrame -- ``matcher.classify_reconciliation_target`` is used specifically
   because it performs no ``.collect()``/``.count()``, and ``__metrics``' own ``.agg(...)`` is
@@ -335,6 +348,38 @@ def register_reconciliation_flow(
     on_failure = error_handling.get("on_failure", "fail")
     dq_rules = dq_config.get("rules") or []
 
+    # v1.6.0: the log-capture flags participate in GRAPH-DEFINITION decisions, not just the
+    # L5 handler's writes -- `__metrics` is registered only when run_log_capture resolves
+    # true, `__mismatch` only when mismatch_log_capture does. Resolution here uses exactly
+    # the same precedence the handler used at execution time (pipeline-conf override wins,
+    # then the onboarded logging_config, then True), over exactly the same inputs, so the
+    # two decisions can never disagree.
+    recon_run_log_capture = (log_capture_overrides or {}).get("recon_run_log_capture")
+    recon_mismatch_log = (log_capture_overrides or {}).get("recon_mismatch_log")
+    run_log_capture, mismatch_log_capture = resolve_log_capture_flags(
+        logging_config, recon_run_log_capture, recon_mismatch_log
+    )
+
+    if dq_rules and not run_log_capture:
+        raise FrameworkConfigError(
+            f"Reconciliation flow '{reconciliation_id}': dq_config.rules are declared but "
+            "run_log_capture resolves to false. The flow's expectations attach to its "
+            "`__metrics` dataset, which is only registered when run_log_capture is true -- "
+            "suppressing it would silently drop declared data-quality expectations. Either "
+            "remove logging_config.run_log_capture: false (or the "
+            "dataflow.recon.run_log_capture pipeline-conf override), or remove dq_config "
+            "from this reconciliation flow."
+        )
+
+    if execution_mode == _PIPELINE_AUDIT_ONLY_EXECUTION_MODE and not run_log_capture and not mismatch_log_capture:
+        raise FrameworkConfigError(
+            f"Reconciliation flow '{reconciliation_id}': execution_mode='pipeline_audit_only' "
+            "with both run_log_capture and mismatch_log_capture resolved false registers "
+            "compute with no output at all -- the audit-only mode exists solely to produce "
+            "the `__metrics`/`__mismatch` datasets and their control-table exports. Enable "
+            "at least one capture flag, or switch the flow to execution_mode='job'/'pipeline'."
+        )
+
     # two_tier_verification defaults to True when the column is absent/NULL -- same
     # column-may-not-exist-yet caveat as source_plane.py / 05_reconciliation_engine.py.
     _two_tier_raw = _row_get(flow_row, "two_tier_verification", None)
@@ -353,16 +398,27 @@ def register_reconciliation_flow(
 
     # -----------------------------------------------------------------------------------------
     # L3 RECON PREPARE -- one shared source, one target per target_configs[] entry.
+    #
+    # v1.6.0 Intermediate Object Rule: L3/L4 prepare/classify nodes are transient plumbing, so
+    # they are pipeline-scoped temporary tables (materialized -- read-once holds -- but never
+    # published to Unity Catalog) under their bare names. The ONE exception is a healing flow:
+    # the L5 foreach_batch_sink handler reads `_..._src` and each healing target's `_..._tgt`
+    # back via a plain `spark.read.table(...)`, which resolves through the metastore and
+    # therefore requires those specific nodes to remain published qualified tables.
     # -----------------------------------------------------------------------------------------
 
-    src_table_name = _node_name(f"_recon__{sanitized_reconciliation_id}__src")
+    src_published = needs_heal
+    _src_bare_name = f"_recon__{sanitized_reconciliation_id}__src"
+    src_table_name = _node_name(_src_bare_name) if src_published else _src_bare_name
 
     def _make_src_table(_source_config=source_config, _want_stream=needs_heal):
         @dlt.table(
             name=src_table_name,
+            temporary=not src_published,
             comment=(
                 f"L3 RECON PREPARE -- shared, hash-prepared read of reconciliation "
-                f"'{reconciliation_id}''s source_config ({'streaming table' if _want_stream else 'materialized view'}), "
+                f"'{reconciliation_id}''s source_config ({'streaming table' if _want_stream else 'materialized view'}"
+                f"{'' if src_published else ', pipeline-scoped temporary'}), "
                 f"paid once regardless of target count."
             ),
         )
@@ -386,7 +442,11 @@ def register_reconciliation_flow(
         target_hash_precomputed = bool(target_config.get("hash_precomputed", False))
         comparison_direction = target_config.get("comparison_direction", "both")
 
-        tgt_table_name = _node_name(f"_recon__{sanitized_reconciliation_id}__{sanitized_target_id}__tgt")
+        # A target's L3 node must stay published only when the L5 handler will read it back
+        # via spark.read.table -- i.e. this flow heals AND this specific target is a healer.
+        tgt_published = needs_heal and _wants_heal(target_config)
+        _tgt_bare_name = f"_recon__{sanitized_reconciliation_id}__{sanitized_target_id}__tgt"
+        tgt_table_name = _node_name(_tgt_bare_name) if tgt_published else _tgt_bare_name
         target_table_names[target_id] = tgt_table_name
 
         def _make_tgt_table(
@@ -394,10 +454,12 @@ def register_reconciliation_flow(
             _target_id=target_id,
             _tgt_table_name=tgt_table_name,
             _hash_precomputed=target_hash_precomputed,
+            _tgt_published=tgt_published,
         ):
             @dlt.table(
                 name=_tgt_table_name,
-                comment=f"L3 RECON PREPARE -- hash-prepared far side for reconciliation '{reconciliation_id}' target '{_target_id}' (always batch).",
+                temporary=not _tgt_published,
+                comment=f"L3 RECON PREPARE -- hash-prepared far side for reconciliation '{reconciliation_id}' target '{_target_id}' (always batch{'' if _tgt_published else ', pipeline-scoped temporary'}).",
             )
             def _recon_tgt():
                 target_consumer_id = f"{reconciliation_id}:target:{_target_id}"
@@ -408,11 +470,17 @@ def register_reconciliation_flow(
         _make_tgt_table()
 
         # -------------------------------------------------------------------------------------
-        # L4 RECON COMPARE -- classified (published), metrics (published, dq_config-gated),
-        # mismatch (published), missing (internal, heal-only).
+        # L4 RECON COMPARE -- classified (temporary intermediate, read up to 3x downstream),
+        # metrics (published IFF run_log_capture), mismatch (published IFF
+        # mismatch_log_capture), missing (temporary, heal-only). The published metrics/
+        # mismatch datasets are not gratuitous intermediates: they are the staging feed the
+        # post-pipeline backstop export (observability/reconciliation_export.py) reads from a
+        # plain job session to populate reconciliation_run_log/_mismatch_log -- which is why
+        # they stay published while every true intermediate is temporary, and why their
+        # registration is gated by the same flags that gate those control-table writes.
         # -------------------------------------------------------------------------------------
 
-        classified_table_name = _node_name(f"recon__{sanitized_reconciliation_id}__{sanitized_target_id}__classified")
+        classified_table_name = f"_recon__{sanitized_reconciliation_id}__{sanitized_target_id}__classified"
         classified_table_names[target_id] = classified_table_name
 
         def _make_classified_table(
@@ -424,6 +492,7 @@ def register_reconciliation_flow(
         ):
             @dlt.table(
                 name=_classified_table_name,
+                temporary=True,
                 comment=(
                     f"L4 RECON COMPARE -- full MATCHED/MISSING_IN_TARGET/MISSING_IN_SOURCE/VALUE_DRIFT "
                     f"classification of reconciliation '{reconciliation_id}' target '{_target_id}'."
@@ -458,7 +527,8 @@ def register_reconciliation_flow(
                 comment=(
                     f"L4 RECON COMPARE -- one-row metrics summary for reconciliation '{reconciliation_id}' "
                     f"target '{_target_id}'. Carries this flow's dq_config expectations, if any -- "
-                    f"reconciliation's first declarative way to fail a pipeline update."
+                    f"reconciliation's first declarative way to fail a pipeline update. Registered "
+                    f"only when run_log_capture resolves true (it feeds reconciliation_run_log)."
                 ),
             )
             @apply_dq_expectations(dq_rules)
@@ -468,7 +538,8 @@ def register_reconciliation_flow(
                 target_df = dlt.read(_tgt_table_name)
                 return _counts_query(classified_df, source_df, target_df)
 
-        _make_metrics_table()
+        if run_log_capture:
+            _make_metrics_table()
 
         def _make_mismatch_table(
             _target_id=target_id,
@@ -479,7 +550,8 @@ def register_reconciliation_flow(
                 name=_node_name(f"recon__{sanitized_reconciliation_id}__{sanitized_target_id}__mismatch"),
                 comment=(
                     f"L4 RECON COMPARE -- per-record mismatch detail for reconciliation "
-                    f"'{reconciliation_id}' target '{_target_id}', gated by comparison_direction={_comparison_direction!r}."
+                    f"'{reconciliation_id}' target '{_target_id}', gated by comparison_direction={_comparison_direction!r}. "
+                    f"Registered only when mismatch_log_capture resolves true (it feeds reconciliation_mismatch_log)."
                 ),
             )
             def _recon_mismatch():
@@ -489,10 +561,11 @@ def register_reconciliation_flow(
                     mismatch_detail_df, reconciliation_id, _target_id, match_keys, compare_columns
                 )
 
-        _make_mismatch_table()
+        if mismatch_log_capture:
+            _make_mismatch_table()
 
         if _wants_heal(target_config):
-            missing_table_name = _node_name(f"_recon__{sanitized_reconciliation_id}__{sanitized_target_id}__missing")
+            missing_table_name = f"_recon__{sanitized_reconciliation_id}__{sanitized_target_id}__missing"
             missing_table_names[target_id] = missing_table_name
 
             def _make_missing_table(
@@ -502,6 +575,7 @@ def register_reconciliation_flow(
             ):
                 @dlt.table(
                     name=_missing_table_name,
+                    temporary=True,
                     comment=(
                         f"L4 RECON COMPARE -- source_to_target miss set (MISSING_IN_TARGET + VALUE_DRIFT) for "
                         f"reconciliation '{reconciliation_id}' target '{_target_id}', feeding the L5 heal lane."
@@ -534,11 +608,12 @@ def register_reconciliation_flow(
     if not needs_heal:
         return
 
-    pulse_table_name = _node_name(f"_recon__{sanitized_reconciliation_id}__pulse")
+    pulse_table_name = f"_recon__{sanitized_reconciliation_id}__pulse"
 
     def _make_pulse_table():
         @dlt.table(
             name=pulse_table_name,
+            temporary=True,
             comment=(
                 f"L5 RECON HEAL -- one-column streaming pulse for reconciliation '{reconciliation_id}', "
                 f"triggering the foreach_batch_sink healing handler once per source-advancing update."
@@ -551,7 +626,13 @@ def register_reconciliation_flow(
     _make_pulse_table()
 
     first_heal_target_id = heal_targets[0]["target_id"]
-    first_metrics_table_name = metrics_table_names[first_heal_target_id]
+    # The heal flow's ordering edge joins against the first healing target's CLASSIFIED
+    # dataset (always registered), not its `__metrics` row as pre-v1.6.0 -- `__metrics` is
+    # now conditional on run_log_capture, and a healing flow with logging suppressed must
+    # still heal. Classified sits at the same L4 root (it derives from the L3 src/tgt nodes
+    # the handler re-reads), so "heal only after this update's L3/L4 have materialized"
+    # holds identically.
+    first_gate_table_name = classified_table_names[first_heal_target_id]
 
     require_streaming_source(
         reconciliation_id,
@@ -565,8 +646,8 @@ def register_reconciliation_flow(
     heal_sink_name = f"_recon__{sanitized_reconciliation_id}__heal_sink"
     heal_flow_name = f"recon__{sanitized_reconciliation_id}__heal_flow"
 
-    recon_run_log_capture = (log_capture_overrides or {}).get("recon_run_log_capture")
-    recon_mismatch_log = (log_capture_overrides or {}).get("recon_mismatch_log")
+    # recon_run_log_capture / recon_mismatch_log / run_log_capture were resolved at the top of
+    # this function (they gate the L4 metrics/mismatch registrations too).
 
     def _build_heal_handler(
         _control_schema: str = control_schema,
@@ -581,6 +662,7 @@ def register_reconciliation_flow(
         _pipeline_update_id: Optional[str] = pipeline_update_id,
         _recon_run_log_capture: Optional[bool] = recon_run_log_capture,
         _recon_mismatch_log: Optional[bool] = recon_mismatch_log,
+        _run_log_capture: bool = run_log_capture,
         _two_tier_verification: bool = two_tier_verification,
         _on_failure: str = on_failure,
         _src_table_name: str = src_table_name,
@@ -630,10 +712,7 @@ def register_reconciliation_flow(
                     )
                     failed_run_id = str(uuid.uuid4())
                     try:
-                        failed_run_log_capture, _unused = resolve_log_capture_flags(
-                            _logging_config, _recon_run_log_capture, _recon_mismatch_log
-                        )
-                        if failed_run_log_capture:
+                        if _run_log_capture:
                             write_run_log_entry(
                                 spark_session,
                                 _control_schema,
@@ -648,15 +727,20 @@ def register_reconciliation_flow(
                     except Exception as log_exc:  # noqa: BLE001
                         logger.error("Additionally failed to write reconciliation_run_log entry: %s", log_exc)
                     try:
-                        write_reconciliation_result(
-                            spark_session,
-                            _control_schema,
-                            _reconciliation_id,
-                            target_id,
-                            run_id=failed_run_id,
-                            status="FAILED",
-                            task_run_id=_pipeline_update_id,
-                        )
+                        # v1.6.0: reconciliation_result is gated by run_log_capture too --
+                        # with logging suppressed, reconciliation persists to NOTHING but its
+                        # business targets. The pipeline update's own FAILED state (and the
+                        # structured log event below) remain the failure signal.
+                        if _run_log_capture:
+                            write_reconciliation_result(
+                                spark_session,
+                                _control_schema,
+                                _reconciliation_id,
+                                target_id,
+                                run_id=failed_run_id,
+                                status="FAILED",
+                                task_run_id=_pipeline_update_id,
+                            )
                     except Exception as log_exc:  # noqa: BLE001
                         logger.error("Additionally failed to write reconciliation_result entry: %s", log_exc)
 
@@ -693,17 +777,25 @@ def register_reconciliation_flow(
             target=heal_sink_name,
             comment=(
                 f"L5 RECON HEAL -- pulse-gated trigger for reconciliation '{reconciliation_id}''s "
-                f"foreach_batch_sink healing handler; the join against '{first_metrics_table_name}' is "
+                f"foreach_batch_sink healing handler; the join against '{first_gate_table_name}' is "
                 f"purely an ordering edge (see this module's docstring)."
             ),
         )
         def _recon_heal_flow():
             pulse_df = dlt.read_stream(pulse_table_name).withColumnRenamed("__recon_gate", "__recon_pulse_gate")
-            metrics_df = dlt.read(first_metrics_table_name).withColumn("__recon_gate", F.lit(1))
-            joined = pulse_df.join(
-                metrics_df, on=(pulse_df["__recon_pulse_gate"] == metrics_df["__recon_gate"]), how="inner"
+            # A groupBy-less .agg() emits exactly one row even over an empty relation -- the
+            # same guarantee the pre-v1.6.0 `__metrics` join leaned on. `__metrics` itself is
+            # now conditional on run_log_capture, so the ordering edge anchors on the
+            # always-registered classified dataset and derives its own one-row gate.
+            gate_df = (
+                dlt.read(first_gate_table_name)
+                .agg(F.count(F.lit(1)).alias("__recon_classified_rowcount"))
+                .withColumn("__recon_gate", F.lit(1))
             )
-            return joined.drop("__recon_pulse_gate", "__recon_gate")
+            joined = pulse_df.join(
+                gate_df, on=(pulse_df["__recon_pulse_gate"] == gate_df["__recon_gate"]), how="inner"
+            )
+            return joined.drop("__recon_pulse_gate", "__recon_gate", "__recon_classified_rowcount")
 
     _make_heal_flow()
 

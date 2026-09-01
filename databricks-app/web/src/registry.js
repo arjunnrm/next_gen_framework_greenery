@@ -56,13 +56,13 @@ var VOLUME_COMPRESSION={
   "JSONL":["","GZIP","NONE"],
   "JSON":["","GZIP","NONE"]
 };
-var TARGET_TYPES=["streaming_table","materialized_view","batch_table","external_sink","sink"];
-var MODES=["GCM","CBC","ECB"];
+var TARGET_TYPES=["","streaming_table","materialized_view","batch_table","external_sink","sink"];
+var MODES=["","GCM","CBC","ECB"];
 
 var ENC_FIELDS=[
   T("column_name","column_name",{req:1,ph:"pii_column",i:"Plaintext column on this flow's DataFrame to encrypt."}),
   T("output_column","output_column",{ph:"pii_column",i:"Output column name. Defaults to column_name — set the same name to encrypt in place."}),
-  S("mode","mode",MODES,{d:"GCM",i:"AES cipher mode. GCM is recommended — it adds a random IV."}),
+  S("mode","mode",MODES,{i:"AES cipher mode. GCM is recommended — it adds a random IV."}),
   T("source_data_type","source_data_type",{ph:"string",i:"Optional. The column's original Spark type before encryption replaces it with ciphertext binary (string, decimal(18,2), timestamp, ...). Becomes the Unity Catalog original_data_type tag that a downstream decrypted_columns.cast_to_type is checked against. Leave blank to use the type observed at encryption time; declare it to make a silent source type change fail loudly instead."}),
   SK("secret","secret",1)
 ];
@@ -70,7 +70,7 @@ var DEC_FIELDS=[
   T("input_name","applies to input_name",{req:1,ph:"example_raw_input",i:"Which source_inputs[] entry this decryption belongs to."}),
   T("column_name","column_name",{req:1,ph:"pii_column",i:"Source ciphertext column on the input table."}),
   T("output_column","output_column",{ph:"pii_column_plain",i:"Output plaintext column. Use a different name to keep both ciphertext and plaintext."}),
-  S("mode","mode",MODES,{d:"GCM",i:"Must match the mode the column was encrypted with."}),
+  S("mode","mode",MODES,{i:"Must match the mode the column was encrypted with."}),
   T("cast_to_type","cast_to_type",{req:1,ph:"string",i:"Spark SQL type to cast the decrypted value to. Cross-validated against the original_data_type tag."}),
   SK("secret","secret",1)
 ];
@@ -91,9 +91,9 @@ function OBS_SECTIONS(){return [
   {id:"obs",title:"Destinations",doc:"#19-observability",w:function(v){return v("@observability_enabled")===true},sub:"Each destination exports telemetry independently. Does not count toward the at-least-one-flow-array requirement.",fields:[
     REP("@observability","observability[]",[
       T("id","id",{req:1,ph:"dest-otlp-example",i:"Unique destination identifier."}),
-      B("enabled","enabled",{d:true,i:"Master enable switch for this destination. A disabled destination is dropped entirely by the config loader — callers never see it."}),
-      S("type","type",["DATABRICKS_VOLUME","OTLP_CONSUMER"],{req:1,d:"DATABRICKS_VOLUME",i:"Where telemetry is exported."}),
-      S("mode","mode",["triggered","continuous"],{d:"triggered",i:"triggered extracts the event log once after a pipeline run, bounded by task_id and a start/end time window. continuous streams every configured event-log table together as an always-on process."}),
+      B("enabled","enabled",{i:"Master enable switch for this destination. A disabled destination is dropped entirely by the config loader — callers never see it."}),
+      S("type","type",["","DATABRICKS_VOLUME","OTLP_CONSUMER"],{req:1,i:"Where telemetry is exported."}),
+      S("mode","mode",["","triggered","continuous"],{i:"triggered extracts the event log once after a pipeline run, bounded by task_id and a start/end time window. continuous streams every configured event-log table together as an always-on process."}),
       L("destination_config.event_log_tables","destination_config.event_log_tables",{req:1,span:2,w:function(v){return v("mode")==="continuous"},ph:"{{catalog}}.silver_example.event_log",i:"Fully-qualified catalog.schema.event_log_table names streamed together in continuous mode.",hint:"continuous mode only"}),
       T("destination_config.volume_path","destination_config.volume_path",{req:1,span:2,w:function(v){return v("type")!=="OTLP_CONSUMER"},ph:"/Volumes/{{catalog}}/observability/app_logs/",i:"Unity Catalog Volume directory telemetry files are written to."}),
       S("destination_config.compression","destination_config.compression",["","GZIP","SNAPPY","NONE"],{w:function(v){return v("type")!=="OTLP_CONSUMER"},
@@ -130,9 +130,9 @@ function TARGET_SECTIONS(kind){
   return [
     {id:"cdc",title:"Load strategy",doc:"#8-target-config-shared-by-ingestion--transformation",tabs:1,sub:"target_config.cdc_load_strategy decides how data is merged into the target. Pick a tab — only that strategy's parameters are shown.",fields:[]},
     {id:"storage",title:"Target · storage & table",doc:"#8-target-config-shared-by-ingestion--transformation",sub:"Physical layout of the target table.",fields:flat([
-      S("target_config.storage_format","target_config.storage_format",["delta","iceberg"],{d:"delta",i:"Target table format. iceberg is only valid when target_type is batch_table — for every other target type, leave this on delta and add the table property enable_iceberg_read_uniformity: true instead, which turns on Delta UniForm so Iceberg readers can read the Delta table.",hint:"iceberg: batch_table only · Iceberg reads elsewhere via UniForm table property"}),
-      kind==="transformation"?B("target_config.capture_technical_metadata","target_config.capture_technical_metadata",{d:true,i:"Transformation flows only. Gates __framework_ingestion_timestamp_utc."}):[],
-      S("target_config.partition_mode","partition_columns mode",["absent","unpartitioned","named"],{d:"absent",w:function(v){return isAppendish(st(v))},i:"absent omits partition_columns entirely. unpartitioned writes partition_columns: [] — an explicit, documented declaration that the table is not partitioned. named writes the columns you list below.",hint:"[] means explicitly unpartitioned, never an error"}),
+      S("target_config.storage_format","target_config.storage_format",["","delta","iceberg"],{i:"Target table format. iceberg is only valid when target_type is batch_table — for every other target type, leave this on delta and add the table property enable_iceberg_read_uniformity: true instead, which turns on Delta UniForm so Iceberg readers can read the Delta table.",hint:"iceberg: batch_table only · Iceberg reads elsewhere via UniForm table property"}),
+      kind==="transformation"?B("target_config.capture_technical_metadata","target_config.capture_technical_metadata",{i:"Transformation flows only. Gates __framework_ingestion_timestamp_utc."}):[],
+      S("target_config.partition_mode","partition_columns mode",["","absent","unpartitioned","named"],{w:function(v){return isAppendish(st(v))},i:"absent omits partition_columns entirely. unpartitioned writes partition_columns: [] — an explicit, documented declaration that the table is not partitioned. named writes the columns you list below.",hint:"[] means explicitly unpartitioned, never an error"}),
       L("target_config.partition_columns","target_config.partition_columns",{w:function(v){return isAppendish(st(v))&&v("target_config.partition_mode")==="named"},i:"Physical partitioning. Only effective for APPEND and TRUNCATE_AND_LOAD — silently ignored for CDC-dispatched strategies. Databricks guidance: do not partition tables under 1 TB; use liquid clustering instead.",hint:"partition only above ~1 TB (Databricks guidance)"}),
       L("target_config.liquid_clustering_columns","target_config.liquid_clustering_columns",{w:function(v){return isAppendish(st(v))},i:"Liquid clustering keys. Only effective for APPEND and TRUNCATE_AND_LOAD. Maximum of 3 columns, enforced at onboarding and again at runtime.",hint:"maximum 3 columns"}),
       KV("target_config.table_properties","target_config.table_properties",{span:2,keys:["log_retention_duration","deleted_file_retention_duration","enable_iceberg_read_uniformity"],i:"Delta table properties, added as key-value pairs. Documented keys: log_retention_duration (Delta log retention, e.g. interval 30 days), deleted_file_retention_duration (VACUUM safety window), enable_iceberg_read_uniformity (true enables Delta UniForm so Iceberg readers can read this table — valid for any target_type).",hint:"log_retention_duration · deleted_file_retention_duration · enable_iceberg_read_uniformity"}),
@@ -143,8 +143,9 @@ function TARGET_SECTIONS(kind){
       REP("target_config.encrypted_columns","target_config.encrypted_columns[]",ENC_FIELDS,{span:2,addLabel:"+ encrypt a column"})
     ]},
     {id:"sink",title:"Target · sink config",doc:"#10-sink-config-target_configsink_config",w:sinky,sub:"Required when target_type is sink or external_sink. sink exports only; external_sink writes a governed table and exports.",fields:flat([
-      S("target_config.sink_config.format","sink_config.format",["delta","kafka","pgp_zip"],{req:1,d:"delta",i:"Export format. pgp_zip uses the framework's custom PySpark DataSource."}),
+      S("target_config.sink_config.format","sink_config.format",["","delta","kafka","pgp_zip"],{req:1,i:"Export format. pgp_zip uses the framework's custom PySpark DataSource."}),
       T("target_config.sink_config.path","sink_config.path",{req:1,w:function(v){var f=v("target_config.sink_config.format");return f!=="kafka"},ph:"/Volumes/{{catalog}}/egress/example/",i:"Output directory. Required for delta and pgp_zip."}),
+      S("target_config.sink_config.staged_file_format","sink_config.staged_file_format",["","json","csv"],{w:function(v){return v("target_config.sink_config.format")==="pgp_zip"},i:"File format of the staged export files a pgp_zip sink writes before archiving — json (default when absent, JSON-Lines) or csv (RFC-4180 with header row; one file per written partition). Only meaningful when sink_config.format is pgp_zip."}),
       KV("target_config.sink_config.kafka_options","sink_config.kafka_options",{span:2,req:1,w:function(v){return v("target_config.sink_config.format")==="kafka"},i:"Connection options for a kafka sink — the same flat options a Spark Structured Streaming Kafka writer takes. Onboarding requires both kafka.bootstrap.servers and topic. A kafka sink has no filesystem path. Prefer databricks.serviceCredential over an inline credential. sink_config.kafka_secret_options (option name → UC secret ref, for an option whose literal value must embed a resolved secret such as kafka.sasl.jaas.config) is supported by the framework but cannot be authored here — add it by hand to the exported JSON.",hint:"kafka.bootstrap.servers and topic are both mandatory"}),
       S("target_config.sink_config.write_mode","sink_config.write_mode",["","append","overwrite"],{i:"Delta write mode. Currently accepted but inert — @dlt.append_flow always appends."}),
       B("target_config.sink_config.post_export_archive.enabled","post_export_archive.enabled",{w:function(v){return v("target_config.sink_config.format")==="pgp_zip"},i:"Enable post-write archiving for pgp_zip exports."}),
@@ -159,7 +160,7 @@ function TARGET_SECTIONS(kind){
     {id:"dq",title:"Data quality",doc:"#11-dq-config",sub:"Rules become pipeline expectations. quarantine is a framework extension that routes rows to a sibling table.",fields:[
       REP("dq_config.rules","dq_config.rules[]",[
         T("rule_id","rule_id",{req:1,ph:"dq_amount_non_negative",i:"Unique rule identifier."}),
-        S("action","action",["warn","drop","fail","quarantine"],{req:1,d:"warn",i:"warn logs and keeps the row, drop silently removes it, fail aborts the pipeline, quarantine routes it to the quarantine table."}),
+        S("action","action",["","warn","drop","fail","quarantine"],{req:1,i:"warn logs and keeps the row, drop silently removes it, fail aborts the pipeline, quarantine routes it to the quarantine table."}),
         Q("expression","expression",{req:1,span:2,ph:"amount >= 0",i:"Boolean Spark SQL expression evaluated per row."})
       ],{span:2,addLabel:"+ add rule"}),
       T("dq_config.quarantine_table","dq_config.quarantine_table",{ph:"<target_table>_quarantine",i:"Quarantine table name. Only created when at least one rule uses action quarantine."}),
@@ -190,14 +191,14 @@ function ING_SECTIONS(){
       T("target_catalog","target_catalog",{req:1,ph:"{{catalog}}",i:"Unity Catalog catalog for the target table."}),
       T("target_schema","target_schema",{req:1,ph:"bronze_example",i:"Schema for the target table."}),
       T("target_table","target_table",{req:1,ph:"example_raw",i:"Target Delta table name."}),
-      S("target_type","target_type",TARGET_TYPES,{req:1,d:"streaming_table",i:"streaming_table for incremental, materialized_view for full recompute, batch_table for batch (the only type supporting iceberg), external_sink for table plus export, sink for export only."})
+      S("target_type","target_type",TARGET_TYPES,{req:1,i:"streaming_table for incremental, materialized_view for full recompute, batch_table for batch (the only type supporting iceberg), external_sink for table plus export, sink for export only."})
     ]},
     {id:"srctype",title:"Source type",doc:"#3-source-config-reference",sub:"Picking a source type decides which source_config fields apply — only those are shown below.",fields:[
-      S("source_type","source_type",["autoloader","zerobus","asn1"],{req:1,d:"autoloader",i:"autoloader reads files from a Volume, zerobus streams an existing Delta table, asn1 decodes binary CDR files."})
+      S("source_type","source_type",["","autoloader","zerobus","asn1"],{req:1,i:"autoloader reads files from a Volume, zerobus streams an existing Delta table, asn1 decodes binary CDR files."})
     ]},
     {id:"src_auto",title:"Source · autoloader",doc:"#4-source-config--autoloader-specific",w:function(v){return srcT(v)==="autoloader"},sub:"Fields specific to source_type autoloader.",fields:[
       T("source_config.path","source_config.path",{req:1,span:2,ph:"/Volumes/{{catalog}}/landing/zone/incoming/",i:"Landing directory Auto Loader monitors for new files."}),
-      S("source_config.format","source_config.format",["csv","json","parquet","avro","text","orc","binaryFile"],{req:1,d:"csv",i:"File format of incoming data. Maps to cloudFiles.format."}),
+      S("source_config.format","source_config.format",["","csv","json","parquet","avro","text","orc","binaryFile"],{req:1,i:"File format of incoming data. Maps to cloudFiles.format."}),
       T("source_config.schema_location","source_config.schema_location",{ph:"/Volumes/{{catalog}}/landing/_schemas/<table>/",i:"Where Auto Loader stores the inferred schema. If omitted a convention-based default is derived."})
     ]},
     {id:"src_zb",title:"Source · zerobus",doc:"#5-source-config--zerobus-specific",w:function(v){return srcT(v)==="zerobus"},sub:"Fields specific to source_type zerobus — a streaming read of an existing Delta table.",fields:[
@@ -210,12 +211,12 @@ function ING_SECTIONS(){
     {id:"src_asn1",title:"Source · ASN.1",doc:"#6-source-config--asn1-specific",w:function(v){return srcT(v)==="asn1"},sub:"Fields specific to source_type asn1. The Spark schema is derived from the .asn module — no manual schema needed.",fields:[
       T("source_config.path","source_config.path",{req:1,span:2,ph:"/Volumes/{{catalog}}/landing/zone/extracted/",i:"Directory containing extracted binary CDR files."}),
       T("source_config.asn1_schema_path","source_config.asn1_schema_path",{req:1,ph:"/Volumes/{{catalog}}/landing/_asn1_schemas/cdr.asn",i:"ASN.1 module definition file. Must be a real .asn file."}),
-      S("source_config.asn1_codec","source_config.asn1_codec",["ber","der"],{req:1,d:"ber",i:"Which ASN.1 encoding to decode."}),
+      S("source_config.asn1_codec","source_config.asn1_codec",["","ber","der"],{req:1,i:"Which ASN.1 encoding to decode."}),
       T("source_config.asn1_pdu_name","source_config.asn1_pdu_name",{req:1,ph:"CallDetailRecord",i:"The top-level SEQUENCE type in the .asn file to decode each record as."}),
       T("source_config.schema_location","source_config.schema_location",{ph:"auto-derived",i:"Auto Loader schema checkpoint for binary file discovery."})
     ]},
     {id:"src_common",title:"Source · reader options",doc:"#3-source-config-reference",sub:"Valid for every source type.",fields:[
-      B("source_config.capture_technical_metadata","source_config.capture_technical_metadata",{d:true,i:"Adds __framework_source_file_name/_size/_modification_time/_metadata_headers and gates __framework_ingestion_timestamp_utc."}),
+      B("source_config.capture_technical_metadata","source_config.capture_technical_metadata",{i:"Adds __framework_source_file_name/_size/_modification_time/_metadata_headers and gates __framework_ingestion_timestamp_utc."}),
       S("source_config.schema_evolution_mode","source_config.schema_evolution_mode",["","addNewColumns","addNewColumnsWithTypeWidening","rescue","failOnNewColumns","none"],{i:"Maps to cloudFiles.schemaEvolutionMode. rescue sends new or mismatched columns to _rescued_data."}),
       T("source_config.file_pattern","source_config.file_pattern",{ph:"orc_*",i:"Glob or regex filtering which files are picked up. Maps to cloudFiles.fileNamePattern."}),
       B("source_config.remove_dups","source_config.remove_dups",{i:"Full-row dropDuplicates over every column except __framework_*-prefixed columns and _rescued_data / _metadata. Without a watermark this holds unbounded dedup state.",hint:"set the watermark below to bound state"}),
@@ -226,17 +227,17 @@ function ING_SECTIONS(){
     ]},
     {id:"src_norm",title:"Source · column normalization",doc:"#3-source-config-reference",sub:"Trims whitespace, replaces special characters with underscore, and applies the case below. Off unless enabled is set.",fields:[
       B("source_config.column_normalization.enabled","column_normalization.enabled",{i:"Switch for column normalization. When off, source column names are passed through unchanged."}),
-      S("source_config.column_normalization.case","column_normalization.case",["lower","preserve","upper"],{d:"lower",reason:"column_normalization.enabled is off",w:function(v){return v("source_config.column_normalization.enabled")===true},i:"Case applied to normalized column names. lower is the default; preserve keeps the source casing; upper uppercases."})
+      S("source_config.column_normalization.case","column_normalization.case",["","lower","preserve","upper"],{reason:"column_normalization.enabled is off",w:function(v){return v("source_config.column_normalization.enabled")===true},i:"Case applied to normalized column names. lower is the default; preserve keeps the source casing; upper uppercases."})
     ]},
     {id:"src_nested",title:"Source · nested data & standardization",doc:"#3-source-config-reference",sub:"Flattening applies to nested formats only. data_standardization_sql runs after explode_columns.",fields:[
-      S("source_config.explode_mode","explode_columns mode",["absent","empty","named"],{d:"absent",w:function(v){return srcT(v)==="asn1"||(srcT(v)==="autoloader"&&(fmt(v)==="json"||fmt(v)==="parquet"))},reason:"available only for json and parquet formats (and asn1 sources)",i:"How explode_columns is written to the spec. absent omits the key entirely — schema-preserving pass-through. empty writes explode_columns: [] — auto-flattens every nested struct and explodes every array in the schema. named writes the columns you list below.",hint:"the absent / explicitly-empty distinction is load-bearing"}),
+      S("source_config.explode_mode","explode_columns mode",["","absent","empty","named"],{w:function(v){return srcT(v)==="asn1"||(srcT(v)==="autoloader"&&(fmt(v)==="json"||fmt(v)==="parquet"))},reason:"available only for json and parquet formats (and asn1 sources)",i:"How explode_columns is written to the spec. absent omits the key entirely — schema-preserving pass-through. empty writes explode_columns: [] — auto-flattens every nested struct and explodes every array in the schema. named writes the columns you list below.",hint:"the absent / explicitly-empty distinction is load-bearing"}),
       L("source_config.explode_columns","source_config.explode_columns",{w:function(v){return v("source_config.explode_mode")==="named"&&(srcT(v)==="asn1"||(srcT(v)==="autoloader"&&(fmt(v)==="json"||fmt(v)==="parquet")))},i:"Only the named top-level columns are processed. A column that is neither struct nor array at runtime is an error."}),
       B("source_config.auto_flatten_all","source_config.auto_flatten_all",{w:function(v){return (srcT(v)==="asn1"||(srcT(v)==="autoloader"&&(fmt(v)==="json"||fmt(v)==="parquet")))&&v("source_config.explode_mode")!=="named"},reason:"overridden while explode_columns names specific columns",i:"Recursively flattens all nested structs and explodes all arrays regardless of explode_columns — the same effect as an explicitly-empty explode_columns. Only takes effect while explode_columns is absent or empty.",hint:"same effect as the empty explode_columns mode"}),
       L("source_config.json_string_columns","source_config.json_string_columns",{span:2,w:function(v){return srcT(v)==="autoloader"&&(fmt(v)==="json"||fmt(v)==="parquet")},reason:"available only for json and parquet formats",i:"STRING columns holding a JSON document, parsed with from_json / schema_of_json before flattening — giving Parquet sources parity with JSON. Each entry is either a column name or an object of the form {\"column\": \"col\", \"schema_ddl\": \"struct<...>\"}.",hint:"name, or {column, schema_ddl} for an explicit schema"}),
       L("source_config.data_standardization_sql","source_config.data_standardization_sql",{span:2,ph:"trim(region) AS region, upper(country_code) AS country_code",i:"Per-column expressions, each ending AS <column>. Restricted grammar: no SELECT/FROM/JOIN/UNION/WHERE/DML/DDL and no semicolons."})
     ]},
     {id:"retention",title:"Source · landing retention",doc:"#3-source-config-reference",sub:"What happens to landing-zone files after ingestion. Maps to cloudFiles.cleanSource.",fields:[
-      S("source_config.landing_retention_policy.clean_source","landing_retention_policy.clean_source",["off","archive","delete"],{d:"off",i:"off leaves files in place, archive moves them, delete removes them."}),
+      S("source_config.landing_retention_policy.clean_source","landing_retention_policy.clean_source",["","off","archive","delete"],{i:"off leaves files in place, archive moves them, delete removes them."}),
       T("source_config.landing_retention_policy.archive_path","landing_retention_policy.archive_path",{w:function(v){return v("source_config.landing_retention_policy.clean_source")==="archive"},ph:"/Volumes/{{catalog}}/landing/_archive/zone/",i:"Where archived files are moved. Maps to cloudFiles.cleanSource.moveDestination. No longer a hard requirement: archive with a missing or empty archive_path degrades to off with a runtime warning. delete never needs it.",hint:"missing path degrades archive to off — not a validation error"}),
       N("source_config.landing_retention_policy.retention_days","landing_retention_policy.retention_days",{w:function(v){return v("source_config.landing_retention_policy.clean_source")!=="off"},ph:"7",i:"Maps to cloudFiles.cleanSource.retentionDuration as N days. Minimum 0; defaults to 7 when omitted."})
     ]},
@@ -265,7 +266,7 @@ function TRN_SECTIONS(){return flat([
     T("target_catalog","target_catalog",{req:1,ph:"{{catalog}}",i:"Unity Catalog catalog for the target table."}),
     T("target_schema","target_schema",{req:1,ph:"silver_example",i:"Schema for the target table."}),
     T("target_table","target_table",{req:1,ph:"example_dim_scd1",i:"Target table name."}),
-    S("target_type","target_type",TARGET_TYPES,{req:1,d:"streaming_table",i:"Same five values as ingestion."})
+    S("target_type","target_type",TARGET_TYPES,{req:1,i:"Same five values as ingestion."})
   ]},
   {id:"inputs",title:"Source inputs",doc:"#14-source-inputs-transformation_flowssource_inputs",sub:"Upstream tables. input_name must be unique across the entire spec and is what transformation_sql joins on. Watermarks are required when a stream is joined to another stream.",fields:[
     REP("source_inputs","source_inputs[]",[
@@ -289,7 +290,7 @@ function TRN_SECTIONS(){return flat([
 // resources already run reconciliation tasks against onboarded rows, so a pipeline default
 // would run those flows twice per cycle. The two pipeline modes register the flow inside its
 // dataflow group's Lakeflow pipeline update instead.
-var EXEC_MODES=["job","pipeline","pipeline_audit_only"];
+var EXEC_MODES=["","job","pipeline","pipeline_audit_only"];
 var REC_PIPELINE_MODES=["pipeline","pipeline_audit_only"];
 // Mirrors the JSON registry's {"in": ["execution_mode", [...]]} visible_when. Deliberately an
 // `in` test, not `execution_mode !== "job"`: an unset value must read as job mode, and a !==
@@ -297,9 +298,9 @@ var REC_PIPELINE_MODES=["pipeline","pipeline_audit_only"];
 function isRecPipelineMode(v){return REC_PIPELINE_MODES.indexOf(v("execution_mode"))>-1}
 
 function RECON_DATASET(prefix,label){return [
-  S(prefix+".type",label+".type",["table"],{d:"table",i:"Reconciliation is scoped to Delta tables only. Any other value is rejected outright — path-based file and sink sources are no longer valid here."}),
+  S(prefix+".type",label+".type",["","table"],{i:"Reconciliation is scoped to Delta tables only. Any other value is rejected outright — path-based file and sink sources are no longer valid here."}),
   T(prefix+".table",label+".table",{req:1,ph:"{{catalog}}.bronze.table",i:"Three-part fully-qualified table name."}),
-  S(prefix+".read_mode",label+".read_mode",["batch","streaming"],{d:"batch",i:"At most one side of a given target's comparison may be streaming. Rejected on presence with value 'streaming' when execution_mode is 'pipeline' or 'pipeline_audit_only': the in-pipeline comparison is a whole-snapshot batch classification, and a stream-static join supports only inner and left_outer, which cannot express MISSING_IN_SOURCE. Use read_mode 'batch' (the default), or set execution_mode to 'job' to keep the standalone streaming engine."}),
+  S(prefix+".read_mode",label+".read_mode",["","batch","streaming"],{i:"At most one side of a given target's comparison may be streaming. Rejected on presence with value 'streaming' when execution_mode is 'pipeline' or 'pipeline_audit_only': the in-pipeline comparison is a whole-snapshot batch classification, and a stream-static join supports only inner and left_outer, which cannot express MISSING_IN_SOURCE. Use read_mode 'batch' (the default), or set execution_mode to 'job' to keep the standalone streaming engine."}),
   T(prefix+".task_run_id_column",label+".task_run_id_column",{ph:"__framework_pipeline_run_id",i:"When the task_run_id job parameter is set, narrows this side's read to that run's rows. Reconciliation is triggered-only as of v1.4.0. Rejected on presence when execution_mode is 'pipeline' or 'pipeline_audit_only': no stable per-update key exists inside a Lakeflow update, so the narrowing would match every row that pipeline ever wrote -- a silent no-op. Use filter_condition, or set execution_mode to 'job'."}),
   Q(prefix+".filter_condition",label+".filter_condition",{span:2,ph:"load_date = '${run_date}'",i:"Boolean SQL applied after read. Supports ${param} substitution."}),
   L(prefix+".data_standardization_sql",label+".data_standardization_sql",{span:2,ph:"trim(status) AS status",i:"Column-level cleanup before matching. Same restricted grammar as ingestion."}),
@@ -309,12 +310,12 @@ function RECON_DATASET(prefix,label){return [
 function REC_SECTIONS(){return [
   {id:"identity",title:"Reconciliation identity",doc:"#16-reconciliation-flow-fields",sub:"Cross-dataset comparison and self-healing.",fields:[
     T("reconciliation_id","reconciliation_id",{req:1,ph:"recon_template_example",i:"Unique ID for this reconciliation flow."}),
-    S("execution_mode","execution_mode",EXEC_MODES,{d:"job",i:"Where this reconciliation flow runs, and the field that gates which of the fields below are legal. job runs it as a 05_reconciliation_engine.py job task, exactly as today, and is the default because existing job resources already run reconciliation tasks against onboarded rows. pipeline registers it inside its dataflow group's Lakeflow pipeline update as a third flow type -- the published classified/metrics/mismatch datasets and the heal (append-back) lane. pipeline_audit_only registers the comparison, metrics and dq_config expectations in-pipeline but leaves healing in job mode. Both pipeline modes require dataflow_group_id, an append-only source producer, and read_mode batch on every side."}),
+    S("execution_mode","execution_mode",EXEC_MODES,{i:"Where this reconciliation flow runs, and the field that gates which of the fields below are legal. job runs it as a 05_reconciliation_engine.py job task, exactly as today, and is the default because existing job resources already run reconciliation tasks against onboarded rows. pipeline registers it inside its dataflow group's Lakeflow pipeline update as a third flow type -- the published classified/metrics/mismatch datasets and the heal (append-back) lane. pipeline_audit_only registers the comparison, metrics and dq_config expectations in-pipeline but leaves healing in job mode. Both pipeline modes require dataflow_group_id, an append-only source producer, and read_mode batch on every side."}),
     T("dataflow_group_id","dataflow_group_id",{req:1,w:isRecPipelineMode,ph:"dfg_example_group",i:"The dataflow group whose Lakeflow pipeline this flow is registered into. Required when execution_mode is pipeline or pipeline_audit_only -- a group-less reconciliation flow has no pipeline update to live in. Usually this spec's own dataflow_group_id; naming another group registers the flow inside that group's pipeline instead. Stays optional in job mode, where the standalone engine handles the group-less case."}),
     T("publish_schema","publish_schema",{w:isRecPipelineMode,ph:"recon_example",i:"Schema, inside the hosting pipeline's own catalog, where this flow's recon__<reconciliation_id>__<target_id>__classified, __metrics and __mismatch datasets are published. Defaults to the pipeline's own schema, which is often not where an operator wants reconciliation results to land. Rejected on presence when execution_mode is job -- a job-mode flow publishes none of those datasets."}),
-    B("two_tier_verification","two_tier_verification",{d:true,i:"Runs a cheap Phase 1 per-side fingerprint (row_count plus an XOR-fold of the framework hash columns) (bit_xor(hash) plus a per-side count) first, and only falls through to the full matcher join when that phase disagrees.",hint:"phase 1 fingerprint, phase 2 full join"}),
-    B("logging_config.run_log_capture","logging_config.run_log_capture",{d:true,i:"Per-flow gate on run-log writes. Overridable at runtime by the recon_run_log_capture job parameter."}),
-    B("logging_config.mismatch_log_capture","logging_config.mismatch_log_capture",{d:true,i:"Per-flow gate on mismatch-log writes. Overridable at runtime by the recon_mismatch_log job parameter."}),
+    B("two_tier_verification","two_tier_verification",{i:"Runs a cheap Phase 1 per-side fingerprint (row_count plus an XOR-fold of the framework hash columns) (bit_xor(hash) plus a per-side count) first, and only falls through to the full matcher join when that phase disagrees.",hint:"phase 1 fingerprint, phase 2 full join"}),
+    B("logging_config.run_log_capture","logging_config.run_log_capture",{i:"Per-flow gate on run-log writes. Overridable at runtime by the recon_run_log_capture job parameter."}),
+    B("logging_config.mismatch_log_capture","logging_config.mismatch_log_capture",{i:"Per-flow gate on mismatch-log writes. Overridable at runtime by the recon_mismatch_log job parameter."}),
     S("error_handling.on_failure","error_handling.on_failure",["","fail","warn"],{i:"fail raises an error, warn logs and continues."})
   ]},
   {id:"rsource",title:"Source dataset",doc:"#17-reconciliation-dataset-config-shared-source--target",half:1,cols:1,sub:"source_config — the baseline to compare from.",fields:flat(RECON_DATASET("source_config","source_config"))},
@@ -324,12 +325,12 @@ function REC_SECTIONS(){return [
       T("target_catalog","catalog",{req:1,ph:"{{catalog}}",i:"Unity Catalog catalog of the target table. Composed into the three-part table name on save."}),
       T("target_schema","schema",{req:1,ph:"bronze_example",i:"Schema of the target table. Composed into the three-part table name on save."}),
       T("target_table","table",{req:1,ph:"example_raw_final",i:"Target table name. Composed into the three-part table name on save."}),
-      S("read_mode","read_mode",["batch","streaming"],{d:"batch",i:"At most one side of a given target's comparison may be streaming. Rejected on presence with value 'streaming' when execution_mode is 'pipeline' or 'pipeline_audit_only': the in-pipeline comparison is a whole-snapshot batch classification, and a stream-static join supports only inner and left_outer, which cannot express MISSING_IN_SOURCE."}),
+      S("read_mode","read_mode",["","batch","streaming"],{i:"At most one side of a given target's comparison may be streaming. Rejected on presence with value 'streaming' when execution_mode is 'pipeline' or 'pipeline_audit_only': the in-pipeline comparison is a whole-snapshot batch classification, and a stream-static join supports only inner and left_outer, which cannot express MISSING_IN_SOURCE."}),
       T("task_run_id_column","task_run_id_column",{ph:"__framework_pipeline_run_id",i:"When the task_run_id job parameter is set, narrows this side's read to that run's rows. Reconciliation is triggered-only as of v1.4.0. Rejected on presence when execution_mode is 'pipeline' or 'pipeline_audit_only': no stable per-update key exists inside a Lakeflow update, so the narrowing would be a silent no-op. Use filter_condition instead."}),
       Q("filter_condition","filter_condition",{span:2,ph:"load_date = '${run_date}'",i:"Boolean SQL applied after read. Supports ${param} substitution."}),
       L("data_standardization_sql","data_standardization_sql",{span:2,ph:"trim(status) AS status",i:"Column-level cleanup before matching. Same restricted grammar as ingestion."}),
       B("hash_precomputed","hash_precomputed",{i:"Reuse existing __framework_hash_key and __framework_hash_value instead of recomputing. Valid because reconciliation targets are always tables."}),
-      S("comparison_direction","comparison_direction",["both","source_to_target","target_to_source"],{d:"both",i:"source_to_target self-heals missing records, target_to_source audits orphaned records, both does each."}),
+      S("comparison_direction","comparison_direction",["","both","source_to_target","target_to_source"],{i:"source_to_target self-heals missing records, target_to_source audits orphaned records, both does each."}),
       T("append_target_table","append_target_table",{req:1,span:2,w:function(v){return v("comparison_direction")!=="target_to_source"},ph:"{{catalog}}.bronze_example.example_raw_cdc",i:"Where self-healed records are appended. Required when the direction includes source-to-target."})
     ],{span:2,single:1})
   ]},
@@ -341,7 +342,7 @@ function REC_SECTIONS(){return [
   {id:"rdq",title:"Reconciliation data quality",doc:"#16-reconciliation-flow-fields",sub:"dq_config — expectations attached to this flow's one-row __metrics dataset. The first declarative way a reconciliation threshold can fail a pipeline update. In-pipeline execution modes only.",fields:[
     REP("dq_config.rules","dq_config.rules[]",[
       T("rule_id","rule_id",{req:1,ph:"no_value_drift",i:"Unique expectation identifier."}),
-      S("action","action",["warn","drop","fail"],{req:1,d:"warn",i:"warn logs and keeps the metrics row, drop removes it, fail aborts the pipeline update. quarantine is deliberately not offered: it is rejected for a reconciliation flow because a one-row metrics dataset has nothing to quarantine."}),
+      S("action","action",["","warn","drop","fail"],{req:1,i:"warn logs and keeps the metrics row, drop removes it, fail aborts the pipeline update. quarantine is deliberately not offered: it is rejected for a reconciliation flow because a one-row metrics dataset has nothing to quarantine."}),
       Q("expression","expression",{req:1,span:2,ph:"value_drift_count = 0",i:"Boolean Spark SQL expression over the metrics columns (source_row_count, target_row_count, missing_in_target_count, missing_in_source_count, value_drift_count)."})
     ],{span:2,w:isRecPipelineMode,i:"Expectations evaluated against the one-row metrics dataset this flow publishes, e.g. value_drift_count = 0. Additive: it does not repurpose error_handling.on_failure, which keeps its exception-level try/except meaning. Rejected on presence when execution_mode is job -- a job task has no dataset to attach expectations to."})
   ]}
@@ -349,7 +350,7 @@ function REC_SECTIONS(){return [
 
 var PRESETS = {
   ing: [
-    ["blank","Blank ingestion flow","Nothing filled in — cascade from source_type.",{v:{source_type:"autoloader",target_type:"streaming_table","target_config.cdc_load_strategy":"APPEND"}}],
+    ["blank","Blank ingestion flow","Nothing filled in — cascade from source_type.",{v:{}}],
     ["autoloader_csv","autoloader · csv · APPEND","Volume ingestion with regex file selection, rescue schema evolution, archive retention, quarantine, encryption and standardization.",{
       v:{dataflow_id:"df_template_ingest",source_system:"example_source_system",source_database:"example_landing_db",source_table_name:"example_raw_table",source_description:"Template: Bronze ingestion from a Volume (Auto Loader) with regex file selection, quarantine, encryption, and data standardization, in the {{env}} environment",source_type:"autoloader",target_catalog:"{{catalog}}",target_schema:"bronze_example",target_table:"example_raw",target_type:"streaming_table",
         "source_config.path":"/Volumes/{{catalog}}/landing/example_raw_zone/incoming/","source_config.format":"csv","source_config.file_pattern":"orc_*","source_config.schema_location":"/Volumes/{{catalog}}/landing/_schemas/example_raw/","source_config.schema_evolution_mode":"rescue","source_config.capture_technical_metadata":true,"source_config.data_standardization_sql":"trim(region) AS region, upper(country_code) AS country_code",
@@ -381,7 +382,7 @@ var PRESETS = {
     }]
   ],
   trn: [
-    ["blank","Blank transformation flow","Nothing filled in — cascade from target_type and load strategy.",{v:{target_type:"streaming_table","target_config.cdc_load_strategy":"APPEND"}}],
+    ["blank","Blank transformation flow","Nothing filled in — cascade from target_type and load strategy.",{v:{}}],
     ["append","APPEND · filtered select","Streaming input, parameterised WHERE, partitioned APPEND target.",{
       v:{flow_step_id:"ts_template_append_example",dataflow_id:"df_template_ingest",target_catalog:"{{catalog}}",target_schema:"silver_example",target_table:"example_events_append",target_type:"streaming_table",transformation_sql:"SELECT example_id, region, amount, updated_at FROM example_events_append_src WHERE amount > ${min_amount}","target_config.cdc_load_strategy":"APPEND","target_config.storage_format":"delta","target_config.partition_mode":"named","target_config.partition_columns":"region"},
       reps:{source_inputs:[{input_name:"example_events_append_src",table:"{{catalog}}.bronze_example.example_raw",is_streaming:true}]}
@@ -426,7 +427,7 @@ var PRESETS = {
     }]
   ],
   rec: [
-    ["blank","Blank reconciliation flow","Nothing filled in.",{v:{execution_mode:"job","source_config.type":"table","source_config.read_mode":"batch"}}],
+    ["blank","Blank reconciliation flow","Nothing filled in.",{v:{}}],
     ["full","Table vs table · self-healing","Filtered baseline compared both ways, unmatched rows reshaped and appended, failure raises.",{
       v:{reconciliation_id:"recon_template_example",execution_mode:"job","source_config.type":"table","source_config.table":"{{catalog}}.bronze_example.example_volume_baseline","source_config.read_mode":"batch",two_tier_verification:true,"source_config.filter_condition":"load_date = '${run_date}'","source_config.data_standardization_sql":"trim(status) AS status","source_config.hash_precomputed":false,match_keys:"example_id",compare_columns:"amount, status",transform_sql:"SELECT example_id, amount, status FROM _reconciliation_unmatched_records","error_handling.on_failure":"fail"},
       reps:{target_configs:[{target_id:"primary_product_table",target_catalog:"{{catalog}}",target_schema:"bronze_example",target_table:"example_raw_final",read_mode:"batch",hash_precomputed:true,comparison_direction:"both",append_target_table:"{{catalog}}.bronze_example.example_raw_cdc"}]}
@@ -479,8 +480,6 @@ function defaultsFor(){
     });
   };
   take(ING_SECTIONS()); take(TRN_SECTIONS()); take(REC_SECTIONS()); take(ROOT_SECTIONS()); take(OBS_SECTIONS());
-  DEFAULTS["target_config.cdc_load_strategy"]="APPEND";
-  DEFAULTS["target_config.generate_hash_columns"]=true;
   return DEFAULTS;
 }
 function repeatList(store,f){

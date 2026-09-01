@@ -1,6 +1,5 @@
 {
   "path": "target_config.cdc_load_strategy",
-  "default": "APPEND",
   "tabs": [
     {
       "value": "APPEND",
@@ -170,7 +169,6 @@
       "label": "target_config.empty_target_if_source_empty",
       "widget": "boolean",
       "type": "boolean",
-      "default": false,
       "visible_when": {
         "eq": [
           "target_config.cdc_load_strategy",
@@ -185,7 +183,6 @@
       "label": "target_config.generate_hash_columns",
       "widget": "boolean",
       "type": "boolean",
-      "default": true,
       "visible_when": {
         "in": [
           "target_config.cdc_load_strategy",

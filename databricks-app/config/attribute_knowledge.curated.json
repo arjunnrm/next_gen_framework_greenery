@@ -437,6 +437,30 @@
         "sinks"
       ]
     },
+    "target_config.sink_config.staged_file_format": {
+      "purpose": "File format of the staged export files a pgp_zip sink writes before archiving.",
+      "why": "json (the default when absent) writes JSON-Lines; csv writes RFC-4180 files with a header row, one file per written partition. Only meaningful when sink_config.format is pgp_zip.",
+      "samples": [
+        {
+          "language": "json",
+          "code": "\"sink_config\": { \"format\": \"pgp_zip\", \"path\": \"/Volumes/{{catalog}}/egress/orders/\", \"staged_file_format\": \"csv\" }"
+        }
+      ],
+      "tips": [
+        "Leave it unset to keep the JSON-Lines staging the framework has always produced.",
+        "csv emits one file per written partition, each with its own header row."
+      ],
+      "errors": [
+        {
+          "symptom": "Onboarding rejects staged_file_format",
+          "cause": "It was set on a sink whose format is not pgp_zip.",
+          "fix": "Remove the attribute, or switch sink_config.format to pgp_zip."
+        }
+      ],
+      "refs": [
+        "sinks"
+      ]
+    },
     "target_type": {
       "purpose": "The kind of Lakeflow dataset registered for this flow.",
       "why": "Decides whether the target is incrementally maintained, fully recomputed, or export-only.",

@@ -27,7 +27,7 @@
 # MAGIC ## Module Bootstrap
 # MAGIC
 # MAGIC In production `NextGen_Metadata_Framework` is installed as a wheel attached to this job
-# MAGIC (see `resources/framework_config_onboarding_job.yml`), so a plain `import` resolves from
+# MAGIC (see `resources/metaflow_config_jobs/framework_config_onboarding_job.yml`), so a plain `import` resolves from
 # MAGIC site-packages. The fallback below only kicks in for local, wheel-less notebook
 # MAGIC development.
 

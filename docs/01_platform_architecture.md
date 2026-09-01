@@ -167,7 +167,7 @@ precedence chain, resolved by the new `engine/spark_config.py`.
 3. **The pipeline resource's own `configuration:` block**, specifically the key
    `dataflow.spark.conf`, whose value is a **JSON object encoded as a string** — the same
    convention `dataflow.otel_streaming.event_log_tables` already uses in
-   `resources/observability_otel_streaming_pipeline.yml` (a bundle `configuration:` block can only
+   `resources/observability/observability_otel_streaming_pipeline.yml` (a bundle `configuration:` block can only
    hold flat string values, so a nested mapping has to travel as JSON text and get decoded at
    read time).
 
@@ -189,7 +189,7 @@ the precedence decidable at all.
 FRAMEWORK_SPARK_DEFAULTS["spark.sql.shuffle.partitions"] = "200"
 ```
 ```yaml
-# resources/*_pipeline.yml
+# resources/<group>/*_pipeline.yml
 configuration:
   dataflow.group.id: dfg_orders
   dataflow.control.catalog: metaflow
@@ -301,7 +301,7 @@ computes an identity, so plan and bind cannot disagree about what is shared with
 | Kind | When | What the consumer gets |
 |---|---|---|
 | `in_graph_sibling` | the locator is a table **this same group publishes** | `dlt.read(...)` / `dlt.read_stream(...)` — a real graph edge, same-update fresh by topological order, and no second physical read because the producer already materialized it. No plane node: one would be a *second* read of something the graph already produces. |
-| `shared_node` | external, fan-out ≥ 2 (or `materialize: "always"`) | one materialized `_src__<locator>__<8hex>__{stream,batch}` node. A **streaming table** if *any* consumer streams, a materialized view otherwise — never the reverse, because an MV emits update/delete commits and cannot be a streaming source. |
+| `shared_node` | external, fan-out ≥ 2 (or `materialize: "always"`) | one materialized `_src__<locator>__<8hex>__{stream,batch}` node. A **streaming table** if *any* consumer streams, a materialized view otherwise — never the reverse, because an MV emits update/delete commits and cannot be a streaming source. **v1.6.0:** the node is a pipeline-scoped `@dlt.table(temporary=True)` under its bare name — still materialized once per update (read-once holds; a view is still never used for a shared node), but never published to Unity Catalog — unless the spec sets **both** `source_plane.catalog` and `source_plane.schema`, which is the explicit opt-in for a published, durable, queryable node. |
 | `inline` | external, fan-out 1 (or `materialize: "never"`) | today's exact code path, which preserves predicate pushdown of that consumer's filter into the original source. |
 
 ### What is in the identity, and what is not
@@ -346,10 +346,32 @@ sanitizing maps every non-identifier character to `_`, and `metaflow.bronze.a_b`
 actually read once?"* is answerable from the log stream rather than by inference.
 
 > **Materialization is a real cost, deliberately not hidden.** A shared node is a full physical
-> copy in UC storage, an extra DAG step, and — the part usually missed — it destroys predicate
+> copy (pipeline-managed storage for a temporary node, UC storage for a published one), an extra
+> DAG step, and — the part usually missed — it destroys predicate
 > pushdown of a consumer's filter into the *original* source. That is why `source_plane.materialize`
 > defaults to `"auto"` (a node only at fan-out ≥ 2) and why `"never"` exists for a huge,
 > heavily-filtered table.
+
+### Where a shared node lives — `source_plane.catalog` / `source_plane.schema` (semantics changed in v1.6.0)
+
+Since v1.6.0 an L0 node is plumbing, not a deliverable — the framework-wide **Intermediate Object
+Rule**: an intermediate dataset is a `@dlt.view` when it has a single reader, and a pipeline-scoped
+`@dlt.table(temporary=True)` under its bare name when materialization is required (multi-reader
+read-once, or an API that demands a table); only final sinks are durable published tables.
+Accordingly:
+
+* **`source_plane.catalog` / `source_plane.schema` both null (the default)** — the shared node is
+  registered as `@dlt.table(temporary=True)` under its bare `_src__…` name. Read-once still holds
+  (it is materialized, never a view), but the node never appears in Unity Catalog.
+  **This is a semantic change:** pre-v1.6.0, null fell back to the hosting pipeline's own
+  catalog/schema, so every shared node was a published table.
+* **Both set** — the node is published as `catalog.schema._src__…`, the explicit opt-in for a
+  durable, externally queryable node (`PlaneNode.published = True`). Setting only one of the two
+  behaves as unpublished.
+
+Upgrading an already-deployed pipeline whose plan produced shared nodes renames/unpublishes those
+datasets on the first post-v1.6.0 update — see
+[`13_known_limitations_and_gotchas.md` O7](13_known_limitations_and_gotchas.md#o7).
 
 ---
 

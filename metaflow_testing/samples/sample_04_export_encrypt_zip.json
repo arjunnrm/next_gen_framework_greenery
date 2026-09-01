@@ -1,0 +1,144 @@
+{
+  "_sample_note": "Sample 04 (reference suite): encrypted CSV export egress, fully self-contained in the {{catalog}}.metaflow_sample schema. Two APPEND ingestion flows land order/customer slices, and TWO transformation flows join them (stream-static inner joins -- the driving side streams the append-only raw table, the dimension side is a batch read of the sibling table) into TWO genuine Lakeflow sinks (target_type 'sink': dlt.create_sink + @dlt.append_flow, never a persisted table). Each sink stages rows as CSV (sink_config.staged_file_format, NEW in v1.6.0) and post_export_archive packs every micro-batch into an AES-256 password-protected ZIP under /Volumes/{{catalog}}/metaflow_sample/exports/ -- protected via post_export_archive.secret (the ZIP's own password, resolved from the UC secret {{catalog}}.metaflow_sample.sample_zip_passkey), deliberately INSTEAD of pgp_encryption (Sample 04 shows the passkey-ZIP shape; metaflow_testing/041_snk_003_pgp_zip_sink.json shows the PGP shape). MANUAL PREREQUISITE: that UC secret must exist before the pipeline runs -- see the job resource header (resources/sample_jobs/metaflow_sample_04_export_encrypt_zip_job.yml) and the seed notebook's fail-fast preflight.",
+  "dataflow_group_id": "dfg_sample_04_export_encrypt_zip",
+  "pipeline_parameters": {},
+  "ingestion_flows": [
+    {
+      "dataflow_id": "df_sample_04_orders_ingest",
+      "source_system": "databricks_samples_tpch",
+      "source_database": "metaflow_sample",
+      "source_table_name": "sample_export_orders",
+      "source_description": "Sample 04: order feed (samples.tpch.orders slices, a distinct key range per iteration), Auto Loader-ingested into an APPEND streaming table -- the streaming driving side of both export joins.",
+      "source_type": "autoloader",
+      "target_catalog": "{{catalog}}",
+      "target_schema": "metaflow_sample",
+      "target_table": "sample_export_orders_raw",
+      "target_type": "streaming_table",
+      "source_config": {
+        "path": "/Volumes/{{catalog}}/metaflow_sample/landing/sample04_orders/incoming/",
+        "format": "csv",
+        "schema_location": "/Volumes/{{catalog}}/metaflow_sample/landing/_schemas/sample_export_orders_raw/",
+        "reader_options": {"header": "true", "cloudFiles.inferColumnTypes": "true"},
+        "capture_technical_metadata": true
+      },
+      "target_config": {"cdc_load_strategy": "APPEND", "storage_format": "delta"},
+      "dq_config": {
+        "rules": [
+          {"rule_id": "order_id_present", "expression": "order_id IS NOT NULL", "action": "drop"},
+          {"rule_id": "total_price_positive", "expression": "total_price > 0", "action": "warn"}
+        ]
+      },
+      "governance_tags": {}
+    },
+    {
+      "dataflow_id": "df_sample_04_customers_ingest",
+      "source_system": "databricks_samples_tpch",
+      "source_database": "metaflow_sample",
+      "source_table_name": "sample_export_customers",
+      "source_description": "Sample 04: customer dimension feed (samples.tpch.customer slices), Auto Loader-ingested into an APPEND streaming table -- the static dimension side of both export joins.",
+      "source_type": "autoloader",
+      "target_catalog": "{{catalog}}",
+      "target_schema": "metaflow_sample",
+      "target_table": "sample_export_customers_raw",
+      "target_type": "streaming_table",
+      "source_config": {
+        "path": "/Volumes/{{catalog}}/metaflow_sample/landing/sample04_customers/incoming/",
+        "format": "csv",
+        "schema_location": "/Volumes/{{catalog}}/metaflow_sample/landing/_schemas/sample_export_customers_raw/",
+        "reader_options": {"header": "true", "cloudFiles.inferColumnTypes": "true"},
+        "capture_technical_metadata": true
+      },
+      "target_config": {"cdc_load_strategy": "APPEND", "storage_format": "delta"},
+      "dq_config": {
+        "rules": [
+          {"rule_id": "customer_id_present", "expression": "customer_id IS NOT NULL", "action": "drop"},
+          {"rule_id": "customer_name_present", "expression": "customer_name IS NOT NULL", "action": "warn"}
+        ]
+      },
+      "governance_tags": {}
+    }
+  ],
+  "transformation_flows": [
+    {
+      "flow_step_id": "ts_sample_04_customer_orders_export",
+      "dataflow_id": "df_sample_04_orders_ingest",
+      "source_description": "Sample 04 export #1: every order enriched with its customer (stream-static inner join), staged as CSV and packed per micro-batch into an AES-256 password-protected ZIP under exports/customer_orders/output/.",
+      "target_catalog": "{{catalog}}",
+      "target_schema": "metaflow_sample",
+      "target_table": "sample_customer_orders_export",
+      "target_type": "sink",
+      "source_inputs": [
+        {"input_name": "exp04_orders_stream", "table": "{{catalog}}.metaflow_sample.sample_export_orders_raw", "is_streaming": true},
+        {"input_name": "exp04_customers_dim", "table": "{{catalog}}.metaflow_sample.sample_export_customers_raw", "is_streaming": false}
+      ],
+      "transformation_sql": "SELECT o.order_id, o.customer_id, c.customer_name, c.market_segment, o.order_status, o.total_price, o.order_date FROM exp04_orders_stream o INNER JOIN exp04_customers_dim c ON o.customer_id = c.customer_id",
+      "target_config": {
+        "cdc_load_strategy": "APPEND",
+        "storage_format": "delta",
+        "sink_config": {
+          "path": "/Volumes/{{catalog}}/metaflow_sample/exports/customer_orders/_staging/",
+          "format": "pgp_zip",
+          "staged_file_format": "csv",
+          "post_export_archive": {
+            "enabled": true,
+            "output_zip_path": "/Volumes/{{catalog}}/metaflow_sample/exports/customer_orders/output/",
+            "export_file_name_format": "sample_customer_orders_{batch_id}",
+            "secret": {
+              "secret_catalog": "{{catalog}}",
+              "secret_schema": "metaflow_sample",
+              "secret_key": "sample_zip_passkey"
+            }
+          }
+        }
+      },
+      "dq_config": {
+        "rules": [
+          {"rule_id": "export_order_id_present", "expression": "order_id IS NOT NULL", "action": "drop"},
+          {"rule_id": "export_customer_resolved", "expression": "customer_name IS NOT NULL", "action": "warn"}
+        ]
+      },
+      "governance_tags": {}
+    },
+    {
+      "flow_step_id": "ts_sample_04_high_value_orders_export",
+      "dataflow_id": "df_sample_04_customers_ingest",
+      "source_description": "Sample 04 export #2: the high-value slice (total_price >= 150000) of the same stream-static join, staged as CSV and packed per micro-batch into its own AES-256 password-protected ZIP under exports/high_value_orders/output/ -- a second, independent dlt.create_sink over the same two source tables (the read-once source plane serves both exports from one scan per update).",
+      "target_catalog": "{{catalog}}",
+      "target_schema": "metaflow_sample",
+      "target_table": "sample_high_value_orders_export",
+      "target_type": "sink",
+      "source_inputs": [
+        {"input_name": "exp04_hv_orders_stream", "table": "{{catalog}}.metaflow_sample.sample_export_orders_raw", "is_streaming": true},
+        {"input_name": "exp04_hv_customers_dim", "table": "{{catalog}}.metaflow_sample.sample_export_customers_raw", "is_streaming": false}
+      ],
+      "transformation_sql": "SELECT o.order_id, o.customer_id, c.customer_name, o.total_price, o.order_date FROM exp04_hv_orders_stream o INNER JOIN exp04_hv_customers_dim c ON o.customer_id = c.customer_id WHERE o.total_price >= 150000",
+      "target_config": {
+        "cdc_load_strategy": "APPEND",
+        "storage_format": "delta",
+        "sink_config": {
+          "path": "/Volumes/{{catalog}}/metaflow_sample/exports/high_value_orders/_staging/",
+          "format": "pgp_zip",
+          "staged_file_format": "csv",
+          "post_export_archive": {
+            "enabled": true,
+            "output_zip_path": "/Volumes/{{catalog}}/metaflow_sample/exports/high_value_orders/output/",
+            "export_file_name_format": "sample_high_value_orders_{batch_id}",
+            "secret": {
+              "secret_catalog": "{{catalog}}",
+              "secret_schema": "metaflow_sample",
+              "secret_key": "sample_zip_passkey"
+            }
+          }
+        }
+      },
+      "dq_config": {
+        "rules": [
+          {"rule_id": "hv_order_id_present", "expression": "order_id IS NOT NULL", "action": "drop"},
+          {"rule_id": "hv_total_price_threshold", "expression": "total_price >= 150000", "action": "warn"}
+        ]
+      },
+      "governance_tags": {}
+    }
+  ],
+  "reconciliation_flows": []
+}

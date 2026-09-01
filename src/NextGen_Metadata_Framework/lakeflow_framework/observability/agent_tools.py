@@ -320,7 +320,7 @@ _FAILURE_MATRIX: List[Dict[str, str]] = [
         "'continuous'. The two modes are separate notebooks with separate lifecycles, not two settings of one "
         "entrypoint -- this batch engine is bounded and post-update; continuous export needs an always-on pipeline.",
         "remediation": "Set the observability task's obs_mode widget back to 'triggered'. To export continuously, "
-        "deploy and run resources/observability_otel_streaming_pipeline.yml "
+        "deploy and run resources/observability/observability_otel_streaming_pipeline.yml "
         "(notebooks/06_observability_streaming/06_event_log_otel_streaming_pipeline.py) instead, and mark the "
         "destination mode='continuous' in the onboarding spec.",
     },
@@ -333,7 +333,7 @@ _FAILURE_MATRIX: List[Dict[str, str]] = [
         "dataflow.otel_streaming.event_log_tables fallback -- so it has no event-log tables to stream.",
         "remediation": "Either onboard a destination with mode='continuous' and "
         "destination_config.event_log_tables (and set dataflow.group.id + dataflow.control.catalog in "
-        "resources/observability_otel_streaming_pipeline.yml's configuration: block so the pipeline can read "
+        "resources/observability/observability_otel_streaming_pipeline.yml's configuration: block so the pipeline can read "
         "observability_config at all), or set the dataflow.otel_streaming.event_log_tables configuration key to a "
         "JSON array of fully-qualified event-log table names.",
     },

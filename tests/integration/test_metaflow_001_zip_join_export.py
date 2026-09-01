@@ -36,7 +36,7 @@ cases -- a bare row-count check alone would not (an outer join bug that also, co
 dropped a different legitimate row would still total 5).
 
 Run ``databricks bundle run metaflow_test_001_job --target dev`` (see
-``resources/metaflow_test_001_job.yml``, which chases through
+``resources/feature_tests/metaflow_test_001_job.yml``, which chases through
 ``setup_control_tables -> seed_metaflow_testing_data -> onboard_001 -> run_pipeline_update``)
 before running these -- these tests assert against tables/Volume paths *already materialized*
 by that real run; Lakeflow Declarative Pipelines cannot run locally (see the note in

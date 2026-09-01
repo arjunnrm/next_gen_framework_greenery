@@ -59,7 +59,7 @@ changes how DQ/quarantine applies to snapshot flows — deliberately not attempt
 | Cause | Count | Framework defect? | Detail |
 |---|---|---|---|
 | `Pipeline update already in progress` | 8 | **No** — test-harness defect | Several `TC-*` cases deliberately **share a Lakeflow pipeline** (e.g. `TC-GOV-002` reuses `TC-GOV-001`'s pipeline). The wave runner ran them concurrently. **Cases that share a pipeline must be serialised.** |
-| `ENVIRONMENT_PIP_INSTALL_ERROR` | 3+ | **No** — build/deploy infrastructure | A `bundle deploy` during a running update replaced the wheel being installed. Fixed structurally by publishing wheels to a UC Volume (`/Volumes/<catalog>/framework/wheels/`) pinned via the `framework_wheel_path` bundle variable. |
+| `ENVIRONMENT_PIP_INSTALL_ERROR` | 3+ | **No** — build/deploy infrastructure | A `bundle deploy` during a running update removed the wheel being installed. Unique per-deploy wheel filenames (`scripts/bump_and_build.py`) prevent overwrite-in-place, but DABs prunes `<artifact_path>/.internal/` — on a UC Volume exactly as in the workspace — so the real rule is **never deploy mid-run** (runner requirement 2 below). As of v1.6.0 artifacts live at `/Volumes/<catalog>/config/wheels`. |
 | `[ROUTINE_ALREADY_EXISTS]` in `setup_control_tables` | 1 | **Yes** (now fixed) | Concurrent jobs racing UC function creation — see the table above. |
 | **Expected-failure test misclassified** | 1 | **No** — harness defect | See `TC-DQ-003` below. |
 
@@ -457,7 +457,7 @@ databricks bundle run metaflow_test_002_003_job --target dev_metaflow
 The job's task chain is `setup_control_tables` -> `seed_metaflow_testing_data` -> `onboard_002`
 -> `run_002_pipeline` -> `onboard_003` -> `run_003_pipeline`. **There is deliberately no
 `run_003_reconciliation` task any more** -- it was deleted from
-`resources/metaflow_test_002_003_job.yml` when `003` flipped to `execution_mode: "pipeline"`.
+`resources/feature_tests/metaflow_test_002_003_job.yml` when `003` flipped to `execution_mode: "pipeline"`.
 Its absence is itself part of the pass criteria.
 
 **Observable pass criteria.**

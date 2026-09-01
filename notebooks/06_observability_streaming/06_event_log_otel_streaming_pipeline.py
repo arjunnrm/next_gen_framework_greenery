@@ -3,7 +3,7 @@
 # MAGIC # Event Log OTel Streaming Pipeline
 # MAGIC
 # MAGIC A genuinely continuous Lakeflow Declarative Pipeline (``continuous: true`` -- see
-# MAGIC `resources/observability_otel_streaming_pipeline.yml`): reads N event-log tables (each a
+# MAGIC `resources/observability/observability_otel_streaming_pipeline.yml`): reads N event-log tables (each a
 # MAGIC real Unity Catalog Delta table one *source* pipeline publishes its own event log to --
 # MAGIC see https://learn.microsoft.com/en-us/azure/databricks/ldp/observability) as streaming
 # MAGIC sources, unions them tagging every row with a `source_pipeline` column, and continuously
@@ -51,7 +51,7 @@
 # MAGIC
 # MAGIC Lakeflow Declarative Pipeline source notebooks do not support `%run`. In production,
 # MAGIC attach `NextGen_Metadata_Framework`'s wheel to this pipeline via
-# MAGIC `resources/observability_otel_streaming_pipeline.yml`'s `environment.dependencies` --
+# MAGIC `resources/observability/observability_otel_streaming_pipeline.yml`'s `environment.dependencies` --
 # MAGIC once installed that way, a plain `import` resolves it like any other site-packages
 # MAGIC library. The fallback below only kicks in for local, wheel-less notebook development.
 
@@ -80,7 +80,7 @@ except ImportError:
     except ImportError as exc:
         raise ImportError(
             "Could not import 'NextGen_Metadata_Framework'. In production this must be attached as a "
-            "wheel library (see resources/observability_otel_streaming_pipeline.yml); for local "
+            "wheel library (see resources/observability/observability_otel_streaming_pipeline.yml); for local "
             f"development, run from within the repo so '../../src' resolves. Original error: {exc}"
         ) from exc
 
@@ -220,7 +220,7 @@ logger.info(
 # MAGIC One `@dlt.view` per configured event-log table: a plain streaming read tagged with
 # MAGIC `source_pipeline` (the table's own fully-qualified name, since this framework configures
 # MAGIC exactly one event-log table per source pipeline -- see
-# MAGIC `resources/observability_otel_streaming_pipeline.yml`'s header comment). Registered via a
+# MAGIC `resources/observability/observability_otel_streaming_pipeline.yml`'s header comment). Registered via a
 # MAGIC helper function called once per table (not a `for` loop building closures directly) so
 # MAGIC each view's `table_name` is bound to that call's own local variable -- a bare loop-body
 # MAGIC closure here would otherwise suffer Python's classic late-binding-in-a-loop bug, where

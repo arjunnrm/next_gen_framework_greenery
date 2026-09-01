@@ -98,6 +98,77 @@ def test_write_serializes_non_json_native_values_via_default_str(tmp_path):
     assert decoded["event_date"] == "2026-01-01"
 
 
+# ---------------------------------------------------------------------------
+# write() -- staged_file_format="csv" (v1.6.0)
+# ---------------------------------------------------------------------------
+
+
+def test_invalid_staged_file_format_raises_archive_error(tmp_path):
+    with pytest.raises(ArchiveError, match="staged_file_format"):
+        _writer(tmp_path, staged_file_format="parquet")
+
+
+def test_csv_staging_writes_rfc4180_with_header_and_csv_suffix(tmp_path):
+    import csv
+
+    writer = _writer(tmp_path, staged_file_format="csv")
+    message = writer.write(iter([Row(a=1, b="x,with comma"), Row(a=2, b=None)]))
+
+    assert message.row_count == 2
+    assert message.staged_file_path.endswith(".csv")
+    with open(message.staged_file_path, encoding="utf-8", newline="") as staged_file:
+        rows = list(csv.reader(staged_file))
+    assert rows[0] == ["a", "b"]
+    assert rows[1] == ["1", "x,with comma"]
+    assert rows[2] == ["2", ""], "None must stage as an empty cell, not the string 'None'"
+
+
+def test_csv_staging_header_order_follows_the_write_schema_when_supplied(tmp_path):
+    import csv
+
+    from pyspark.sql.types import IntegerType, StringType, StructField, StructType
+
+    schema = StructType([StructField("b", StringType()), StructField("a", IntegerType())])
+    options = {
+        "path": str(tmp_path / "staging"),
+        "output_zip_path": str(tmp_path / "archives"),
+        "staged_file_format": "csv",
+    }
+    writer = _PgpZipStreamWriter(options, schema)
+    message = writer.write(iter([Row(a=1, b="x")]))
+
+    with open(message.staged_file_path, encoding="utf-8", newline="") as staged_file:
+        rows = list(csv.reader(staged_file))
+    assert rows[0] == ["b", "a"], "header order must follow the sink's write schema, not the row dict"
+    assert rows[1] == ["x", "1"]
+
+
+def test_csv_staging_serializes_nested_values_as_json_text(tmp_path):
+    import csv
+
+    writer = _writer(tmp_path, staged_file_format="csv")
+    message = writer.write(iter([Row(a=1, payload={"k": "v"})]))
+
+    with open(message.staged_file_path, encoding="utf-8", newline="") as staged_file:
+        rows = list(csv.reader(staged_file))
+    assert json.loads(rows[1][1]) == {"k": "v"}
+
+
+def test_csv_staging_empty_partition_removes_the_staged_file(tmp_path):
+    writer = _writer(tmp_path, staged_file_format="csv")
+    message = writer.write(iter([]))
+    assert message.staged_file_path is None
+    assert message.row_count == 0
+    staging_dir = tmp_path / "staging"
+    assert not any(staging_dir.iterdir()), "an empty partition must leave no zero-row CSV behind"
+
+
+def test_json_staging_stays_the_default_when_staged_file_format_is_absent(tmp_path):
+    writer = _writer(tmp_path)
+    message = writer.write(iter([Row(a=1)]))
+    assert message.staged_file_path.endswith(".json")
+
+
 def test_write_empty_partition_removes_the_staged_file_and_reports_zero_rows(tmp_path):
     writer = _writer(tmp_path)
     message = writer.write(iter([]))
@@ -306,3 +377,45 @@ def test_abort_tolerates_already_missing_files(tmp_path):
     message = PgpZipCommitMessage(staged_file_path=str(tmp_path / "staging" / "does-not-exist.json"), row_count=1)
     # Must not raise even though the file was never actually created.
     writer.abort([message], batchId=1)
+
+
+# ---------------------------------------------------------------------------
+# onboarding-time validation of sink_config.staged_file_format (v1.6.0)
+# ---------------------------------------------------------------------------
+
+
+def _sink_config_errors(sink_config):
+    from NextGen_Metadata_Framework.lakeflow_framework.onboarding.spec_validator import _validate_sink_config
+
+    errors = []
+    _validate_sink_config(sink_config, "target_config.sink_config", errors, target_type="sink")
+    return errors
+
+
+def _pgp_zip_sink_config(**extra):
+    config = {
+        "format": "pgp_zip",
+        "path": "/Volumes/c/egress/_staging/",
+        "post_export_archive": {"enabled": True, "output_zip_path": "/Volumes/c/egress/zips/"},
+    }
+    config.update(extra)
+    return config
+
+
+def test_staged_file_format_json_and_csv_are_accepted_for_pgp_zip():
+    assert _sink_config_errors(_pgp_zip_sink_config(staged_file_format="json")) == []
+    assert _sink_config_errors(_pgp_zip_sink_config(staged_file_format="csv")) == []
+    assert _sink_config_errors(_pgp_zip_sink_config()) == []  # absent == json default
+
+
+def test_staged_file_format_invalid_value_is_rejected():
+    errors = _sink_config_errors(_pgp_zip_sink_config(staged_file_format="parquet"))
+    assert any("staged_file_format" in error for error in errors)
+
+
+def test_staged_file_format_is_presence_rejected_for_native_sink_formats():
+    """Presence, not truthiness: a native Lakeflow sink has no framework staging step, so
+    accepting the key there would let a spec assert a file shape nothing ever produces."""
+    delta_config = {"format": "delta", "path": "/Volumes/c/egress/out/", "staged_file_format": "csv"}
+    errors = _sink_config_errors(delta_config)
+    assert any("staged_file_format" in error and "pgp_zip" in error for error in errors)

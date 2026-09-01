@@ -1402,6 +1402,8 @@
       
         
       
+        
+      
     
     
     
@@ -1805,6 +1807,34 @@
     
   
     Full attribute dictionary
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../14_onboarding_restrictions_and_validation_rules/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Onboarding restrictions & validation rules
   
 
     
@@ -2550,6 +2580,34 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#lakeflow_frameworkdqtable_errorspy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        lakeflow_framework/dq/table_errors.py
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="lakeflow_framework/dq/table_errors.py">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#functions_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Functions
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -2770,6 +2828,8 @@
       
         
       
+        
+      
     
     
     
@@ -2858,6 +2918,34 @@
     
   
     Multi-role FAQs
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../15_agent_skills_and_prompts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Agent skills & prompt library
   
 
     
@@ -3396,6 +3484,34 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#lakeflow_frameworkdqtable_errorspy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        lakeflow_framework/dq/table_errors.py
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="lakeflow_framework/dq/table_errors.py">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#functions_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Functions
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -3418,7 +3534,7 @@
 
 <h1 id="dq"><code>dq</code><a class="headerlink" href="#dq" title="Permanent link">&para;</a></h1>
 <p>Data-quality expectations and quarantine routing.</p>
-<p>2 modules.</p>
+<p>3 modules.</p>
 <h2 id="lakeflow_frameworkdqexpectationspy"><code>lakeflow_framework/dq/expectations.py</code><a class="headerlink" href="#lakeflow_frameworkdqexpectationspy" title="Permanent link">&para;</a></h2>
 <p>Native Lakeflow DQ expectations: warn / drop / fail, applied as a decorator.</p>
 <h3 id="functions">Functions<a class="headerlink" href="#functions" title="Permanent link">&para;</a></h3>
@@ -3454,6 +3570,23 @@
 <tr>
 <td><code>register_main_and_quarantine_tables(base_view_name: str, target_table: str, target_catalog: str, target_schema: str, target_config: Dict[str, Any], dq_rules: List[Dict[str, Any]], comment: Optional[str], is_streaming: bool, needs_cdc_dispatch: bool, quarantine_table_override: Optional[str] = None, flow_label: Optional[str] = None) -&gt; str</code></td>
 <td>Register the quarantine-filtered "clean" dataset, plus its sibling quarantine table if configured.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="lakeflow_frameworkdqtable_errorspy"><code>lakeflow_framework/dq/table_errors.py</code><a class="headerlink" href="#lakeflow_frameworkdqtable_errorspy" title="Permanent link">&para;</a></h2>
+<p>Spark "that table/view does not exist" detection -- deliberately free of any <code>dlt</code> import.</p>
+<h3 id="functions_2">Functions<a class="headerlink" href="#functions_2" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Signature</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>is_table_not_found(exc: Exception) -&gt; bool</code></td>
+<td>True only when <code>exc</code> specifically means "that table/view does not exist".</td>
 </tr>
 </tbody>
 </table>

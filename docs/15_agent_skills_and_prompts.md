@@ -1,0 +1,170 @@
+# 🤖 Agent Skills & Prompt Library
+
+> **Audience**: Anyone driving this framework with an LLM agent — platform engineers wiring
+> Metaflow tools into an agent stack, and users who want a ready-made, copy-pastable prompt for
+> a common task instead of composing one from scratch.
+>
+> **Version & maintenance**: describes **v1.6.0** and is hand-maintained against the
+> `agent_skills/` directory. Every skill, tool, and reference file named below is a real file
+> in this repository; when this page and `agent_skills/` disagree, the files win.
+
+---
+
+## 1. What lives in `agent_skills/`
+
+The `agent_skills/` directory is this repository's agent-facing knowledge pack: a
+map-not-a-copy orientation skill, a governance policy skill, machine-readable tool
+specifications, and reference files sized for an LLM context window.
+
+| File | What it is | Load it when |
+|---|---|---|
+| `agent_skills/SKILL.md` | The 16-section orientation skill (architecture, spec shape, source/target/CDC/sink/reconciliation/secrets/governance/DQ, a step-by-step onboarding walkthrough, "where to look for X", doc index, repo layout, observability module). | Always — it is the entry point and indexes everything else. |
+| `agent_skills/governance/SKILL.md` | The `metaflow-governance` skill: standardized naming (`dfg_*`, `df_*`, `tf_*`, `rf_*`), mandatory table/column tags, OTel service/metric naming standards. | Generating any production spec, or reviewing names/tags. |
+| `agent_skills/README.md` | Executive skill & tool catalog with LangChain / Semantic Kernel / OpenAI integration patterns. | Wiring the tools into an agent framework (§4 below). |
+| `agent_skills/tool_specifications.json` | OpenAI function-calling JSON for the three onboarding tools: `validate_json`, `onboard_entity`, `get_catalog_schema_parameters` — backed by real functions in `onboarding/agent_tools.py`. | Registering onboarding tools with any tools-API-compatible runtime. |
+| `agent_skills/dlt_observability_tools.json` | Same shape for the three observability tools: `validate_observability_config`, `generate_pipeline_onboarding_config`, `diagnose_pipeline_telemetry_failures` — backed by `observability/agent_tools.py`. | Registering the observability tools. |
+| `agent_skills/reference/module_map.md` | One paragraph per subpackage under `lakeflow_framework/`: responsibility + key public functions. | "Where does field X take effect at runtime?" |
+| `agent_skills/reference/common_pitfalls.md` | Real bugs hit and fixed in this codebase, numbered. | Before editing framework code, or diagnosing a confusing failure. |
+| `agent_skills/reference/onboarding_spec_full_reference.json` | The complete machine-readable attribute dictionary for the onboarding spec. | Generating or reviewing a spec field-by-field. |
+| `agent_skills/SKILL_GAP_ANALYSIS.md` | Audit checklist of skill coverage. | Extending the skill pack itself. |
+
+---
+
+## 2. Task ↦ skill/tool ↦ prompt reference
+
+The prompts below are designed to be pasted into an agent session as-is, with the
+`<angle-bracket>` placeholders filled in. Each one names the skill/reference files the agent
+should load and the tool it should call, so the agent grounds itself in the repository instead
+of inventing field names.
+
+| Task / Use Case | Agent Skill / Tool | Sample Prompt |
+|---|---|---|
+| **New pipeline onboarding** (config generation) | `agent_skills/SKILL.md` §3–§6 + §12, `reference/onboarding_spec_full_reference.json`, `metaflow-governance`; tool: `validate_json` | Load `agent_skills/SKILL.md` (sections 3–6 and 12), `agent_skills/reference/onboarding_spec_full_reference.json`, and `agent_skills/governance/SKILL.md`. Generate a complete onboarding spec for dataflow group `dfg_<domain>_<entity>_<purpose>`: an ingestion flow `df_<entity>_bronze_ingest` reading `<format>` files from `/Volumes/<catalog>/<schema>/<landing_dir>/` with `source_type: "autoloader"` into `<catalog>.<bronze_schema>.<entity>_raw` (`target_type: "streaming_table"`, `cdc_load_strategy: "APPEND"`), and a transformation flow `tf_<entity>_silver_scd1` with `cdc_load_strategy: "SCD1"` and `primary_keys: [<key_columns>]` into `<catalog>.<silver_schema>.<entity>_dim`. Then call `validate_json` on the result and fix every reported error before returning the spec. |
+| **Discover source/target schemas first** | tool: `get_catalog_schema_parameters` | Call `get_catalog_schema_parameters` with `catalog_name: "<catalog>"`, `schema_name: "<schema>"`, `include_column_metadata: true`, `include_governance_tags: true`. Summarize each table's columns and existing tags, and tell me which columns look like primary-key and sequence-by candidates before we author the spec. |
+| **Spec validation before onboarding** | tool: `validate_json`; references: `reference/common_pitfalls.md`, `docs/14_onboarding_restrictions_and_validation_rules.md` | Call `validate_json` with `spec_content: <full spec JSON/YAML>`, `catalog: "<catalog>"`, `env: "<env>"`. If `valid` is false, group the errors by `json_path` prefix, and for each one propose the exact edit — consult `docs/14_onboarding_restrictions_and_validation_rules.md` and `agent_skills/reference/common_pitfalls.md` before proposing a fix. Do not call `onboard_entity` until `error_count` is 0. |
+| **Onboard for real** (after validation) | tool: `onboard_entity` | Call `onboard_entity` with `spec_content: <the validated spec>`, `action_type: "create"` (or `"update"` for an existing `dataflow_group_id`), `catalog: "<catalog>"`, `environment: "<env>"`, `dry_run: false`. Report `dataflow_group_id`, `affected_tables`, and `audit_log_id`. |
+| **Bulk onboarding a spec directory** | job `resources/metaflow_config_jobs/framework_config_onboarding_job.yml` (→ `onboarding/bulk_onboarding.py`) | Run the bulk onboarding job `framework_config_onboarding_job` with job parameters `spec_dir: "<workspace-or-volume path to the spec directory>"`, `catalog: "<catalog>"`, `env: "<env>"`, `action_type: "VALIDATE_ONLY"`. Summarize the per-spec report (it is fail-soft: every spec is attempted). Only if every spec passed, rerun with `action_type: "CREATE"`. Never inline a new onboarding notebook task — always delegate to this generic job via `run_job_task`. |
+| **Adding DQ rules / quarantine to an existing flow** | `agent_skills/SKILL.md` §11; tool: `validate_json` | Load `agent_skills/SKILL.md` section 11. In the spec for `<dataflow_group_id>`, add to flow `<dataflow_id or flow_step_id>` a `dq_config` with `rules: [{"rule_id": "<id>", "expression": "<SQL predicate over final post-normalization column names>", "action": "quarantine"}]` and `record_id_column: "<business id column>"`. Remember: the `<target_table>_quarantine` sibling table is only created when at least one rule has `action: "quarantine"`, and `quarantine` is not allowed on reconciliation flows. Validate with `validate_json` and return the updated spec. |
+| **Onboarding an in-pipeline reconciliation flow** (v1.5.0+) | `agent_skills/SKILL.md` §8, `docs/07_reconciliation_engine.md` §11; tool: `validate_json` | Load `agent_skills/SKILL.md` section 8 and `docs/07_reconciliation_engine.md` section 11. Add a `reconciliation_flows[]` entry `rf_<entity>_<source>_vs_<target>` with `execution_mode: "pipeline"`, `dataflow_group_id: "<group>"` (required in pipeline mode), `source_config.table` set to a table this group produces **append-only** (`APPEND` into a streaming table — merge-writing CDC producers are rejected), `target_configs: [{"target_id": "<id>", "table": "<catalog.schema.table>", "append_target_table": "<catalog.schema.heal_table>"}]`, `match_keys: [<keys>]`, `publish_schema: "<schema>"`, and a `dq_config` rule on the metrics dataset such as `{"rule_id": "no_drift", "expression": "value_drift_count = 0", "action": "fail"}`. Do not set `read_mode: "streaming"` or `task_run_id_column` — both are rejected in pipeline mode. Validate and return the spec plus the job change: delete any standalone `run_*_reconciliation` task or the flow runs twice. |
+| **Diagnosing a failed pipeline update / telemetry export** | tool: `diagnose_pipeline_telemetry_failures`; references: `docs/08_observability_and_telemetry.md`, `reference/common_pitfalls.md` | Call `diagnose_pipeline_telemetry_failures` with `error_message: <paste the failed task run's full error text/traceback>`. Report `category`, `likely_cause`, and `remediation`. If `matched` is false, load the Error Handling Matrix in `docs/08_observability_and_telemetry.md` and scan `agent_skills/reference/common_pitfalls.md` for the error's signature, then propose the next diagnostic step. |
+| **Configuring observability destinations** | tools: `generate_pipeline_onboarding_config`, then `validate_observability_config` | Call `generate_pipeline_onboarding_config` with `dataflow_group_id: "<group>"`, `service_name: "metaflow.<env>.<domain>.<group>"`, `deployment_environment: "<env>"`, and `destination_targets` for `<a Databricks Volume path and/or an OTLP HTTP collector endpoint>`. Then call `validate_observability_config` on the generated `{"observability": [...]}` fragment and merge it into the group's onboarding spec — there is no separate observability config file; it onboards with everything else. |
+| **Governance tag application** | `metaflow-governance` (`agent_skills/governance/SKILL.md`) | Load `agent_skills/governance/SKILL.md`. Add `governance_tags` to every flow in the spec for `<dataflow_group_id>`: mandatory `table_tags` (`cost_center: "CC-<4 digits>-<UNIT>"`, `data_owner: "<team email>"`, `classification: "<public/internal/confidential/restricted>"`, `sla: "<tier>"`, `environment: "<env>"`, `retention_tier: "<tier>"`) and, for every PII/PCI column, `column_tags` entries with `pii_type` and `security_tier`. Use the validator's shape — `column_tags` is a **list** of `{"column": "<name>", "tags": {...}}` objects. Then run `validate_json`. Note the framework only applies tags; UC tag policies are administered outside this repo. |
+| **Password-protected CSV export sink** (v1.6.0 `staged_file_format`) | `agent_skills/SKILL.md` §7, `docs/06_egress_and_lakeflow_sinks.md`; tool: `validate_json` | Load `agent_skills/SKILL.md` section 7. Add a flow with `target_type: "<sink or external_sink>"` whose `target_config.sink_config` is: `format: "pgp_zip"`, `staged_file_format: "csv"` (new in v1.6.0 — RFC-4180 with header row; the default is `"json"`, and this key is rejected on `delta`/`kafka` sinks), `path: "/Volumes/<catalog>/<schema>/<staging_dir>/"`, and `post_export_archive: {"enabled": true, "output_zip_path": "/Volumes/<catalog>/<schema>/<export_dir>/", "secret": {"secret_catalog": "<c>", "secret_schema": "<s>", "secret_key": "<zip_password_key>"}}` for AES password protection (add a `pgp_encryption` block with `recipient_public_key_secret` if the recipient also needs PGP). Remember sinks are streaming-only. Validate and return the spec. |
+| **Migrating a spec that uses removed attributes** | tool: `validate_json`; reference: `docs/14_onboarding_restrictions_and_validation_rules.md` §4.1 | Run `validate_json` on `<the legacy spec>`. For every "removed in v1.4.0" error, apply exactly the migration the message names: `normalize_column_names` → `column_normalization: {enabled: true}`; `generate_surrogate_key` / `surrogate_key_columns` / `surrogate_key_exclude_columns` → delete and declare real `primary_keys` (or switch to `TRUNCATE_AND_LOAD` if the source has no key); `recon_mode` → delete (reconciliation is triggered-only; use `execution_mode` for in-pipeline hosting); `FULL_SNAPSHOT_CDC_NO_PK` → `FULL_SNAPSHOT_CDC` with `primary_keys`, or `TRUNCATE_AND_LOAD`. Cross-check against `docs/14_onboarding_restrictions_and_validation_rules.md` section 4.1, re-validate, and repeat until `error_count` is 0. |
+
+---
+
+## 3. Longer prompt templates
+
+For the multi-step tasks, a fuller template the agent can follow end to end.
+
+**End-to-end: generate, validate, onboard, wire the pipeline**
+
+```text
+You are working in the NextGen_Metadata_Framework repo. Load agent_skills/SKILL.md fully,
+plus agent_skills/reference/onboarding_spec_full_reference.json and
+agent_skills/governance/SKILL.md.
+
+Goal: onboard <business description of the feed>.
+
+1. Call get_catalog_schema_parameters for <catalog>.<source_schema> to ground column names.
+2. Generate the onboarding spec (group dfg_<domain>_<entity>_<purpose>) following the
+   metaflow-governance naming and tagging standards. Copy the shape of the closest existing
+   example in metaflow_testing/*.json rather than inventing field names.
+3. Call validate_json; fix every error; repeat until error_count is 0.
+4. Call onboard_entity with action_type "create", dry_run true; review affected_tables;
+   then rerun with dry_run false.
+5. Tell me the databricks.yml dataflow_group_id variable value and which existing job/pipeline
+   resource to point at the group — do not create a new inline onboarding task; delegate to
+   resources/metaflow_config_jobs/onboarding_job.yml via run_job_task if a job needs one.
+```
+
+**Migrate a pre-v1.4.0 spec**
+
+```text
+Load docs/14_onboarding_restrictions_and_validation_rules.md (section 4) and
+agent_skills/SKILL.md section 6.
+
+Here is a legacy onboarding spec: <paste spec>.
+
+Run validate_json on it. Apply every migration named in the "removed in v1.4.0" error
+messages verbatim — never delete a failing key without applying its named replacement,
+because several removed keys switched data-shaping behaviour ON and dropping them silently
+would switch it OFF. Show me a before/after diff of the spec, re-validate, and stop only at
+error_count 0. Flag (do not fix) anything in docs/13_known_limitations_and_gotchas.md that
+the migrated spec now triggers.
+```
+
+**Debug a failed pipeline update**
+
+```text
+Load agent_skills/reference/common_pitfalls.md and docs/08_observability_and_telemetry.md.
+
+Pipeline <pipeline name> failed its last update. Here is the error: <paste error text>.
+
+1. If the failure is in the observability_export task, call
+   diagnose_pipeline_telemetry_failures with the error text and report its remediation.
+2. Otherwise, match the error against common_pitfalls.md by signature (quote the entry
+   number), and against the Lakeflow graph constraints in agent_skills/SKILL.md section 8 if
+   it involves reconciliation execution_mode.
+3. Propose the single most likely fix, the file it lives in, and how to verify it — and say
+   explicitly whether re-onboarding the spec is required or the fix is code/resource-only.
+```
+
+---
+
+## 4. Wiring the tools into an agent framework
+
+`agent_skills/README.md` is the authoritative catalog with working snippets — summarized here,
+not duplicated:
+
+- **LangChain / LangGraph** — import the backing functions directly
+  (`NextGen_Metadata_Framework.lakeflow_framework.onboarding.agent_tools` for `validate_json`,
+  `onboard_entity`, `get_catalog_schema_parameters`;
+  `...lakeflow_framework.observability.agent_tools` for the three observability tools) and wrap
+  each in a `StructuredTool.from_function(...)` with a pydantic `args_schema`. The README
+  carries a complete `validate_json` example.
+- **Semantic Kernel** — register each tool as a `[KernelFunction]` whose parameter
+  `Description` attributes mirror the JSON specifications.
+- **OpenAI Assistants / Chat Completions** — the JSON files are already in the tools-API
+  shape: load `agent_skills/tool_specifications.json` (and/or
+  `agent_skills/dlt_observability_tools.json`) and pass their `tools` arrays straight into the
+  API call.
+
+Two behaviours every integration should preserve, whatever the framework: `validate_json`
+returns the *complete* error list in one call (`["<json_path>: <message>", ...]`) — surface all
+of it to the model, not the first entry; and `onboard_entity` pre-validates and refuses to
+mutate control tables on an invalid spec, so a `success: false` there is a validation report,
+not an infrastructure failure. The `metaflow-governance` skill is not a callable tool — inject
+`agent_skills/governance/SKILL.md` into the system prompt (or load it as an agent skill) so its
+naming and tagging rules constrain generation.
+
+---
+
+## 5. Which reference file to load for which question
+
+Keyed to `agent_skills/SKILL.md`'s own table of contents, so an agent loads the smallest
+sufficient context:
+
+| Question is about… | Load |
+|---|---|
+| What the framework *is*; overall architecture; control tables → engine flow | `SKILL.md` §1–§2 |
+| The onboarding spec's top-level shape; which fields are required | `SKILL.md` §3, then `reference/onboarding_spec_full_reference.json` for field-level detail, then `docs/14_onboarding_restrictions_and_validation_rules.md` for every enforced rule |
+| Source types (`autoloader`/`zerobus`/`asn1`), ZIP/PGP pre-extraction, ASN.1 | `SKILL.md` §4; `docs/02_ingestion_and_sources.md` |
+| Target types and sinks (`delta`/`kafka`/`pgp_zip`, `staged_file_format`) | `SKILL.md` §5 + §7; `docs/06_egress_and_lakeflow_sinks.md` |
+| CDC strategies, `primary_keys`, hash columns, removed v1.4.0 attributes | `SKILL.md` §6; `docs/03_transformation_and_cdc.md` |
+| Reconciliation (`execution_mode`, two-tier verification, self-healing, v1.6.0 `logging_config` gates) | `SKILL.md` §8; `docs/07_reconciliation_engine.md` |
+| Secrets and encryption (UC 3-level refs, `source_data_type` contract) | `SKILL.md` §9; `docs/05_security_and_cryptography.md` |
+| Governance tags and naming standards | `SKILL.md` §10 + `governance/SKILL.md`; `docs/04_data_quality_and_governance.md` |
+| DQ expectations vs quarantine | `SKILL.md` §11; `docs/04_data_quality_and_governance.md` |
+| A worked end-to-end onboarding walkthrough | `SKILL.md` §12 |
+| "Where does X live / where does field X take effect?" | `SKILL.md` §13, then `reference/module_map.md` |
+| Which deep-dive doc covers a topic | `SKILL.md` §14 |
+| Repo/file layout, resources grouping, deploy scoping | `SKILL.md` §15; `reference/common_pitfalls.md` entry 34 |
+| The DLT observability module and its tools | `SKILL.md` §16; `dlt_observability_tools.json`; `docs/08_observability_and_telemetry.md` |
+| "Why did this fail?" — known bugs and traps | `reference/common_pitfalls.md` first, then `docs/13_known_limitations_and_gotchas.md` for spec-level silent traps |
+
+One known drift to be aware of when following examples: the `governance/SKILL.md` example
+fragment spells `column_tags` as an object keyed by column name, but the onboarding validator
+(`onboarding/spec_validator.py::_validate_governance_tags`) requires a **list** of
+`{"column": ..., "tags": {...}}` objects. Generate the list shape; it is what onboards.

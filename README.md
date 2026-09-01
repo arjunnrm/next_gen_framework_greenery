@@ -28,8 +28,13 @@ NextGen_Metadata_Framework/
 │           └── exceptions.py             # Central domain exceptions hierarchy
 │
 ├── resources/                            # Databricks Asset Bundle (DAB) Resources
-│   ├── *.pipeline.yml                    # Lakeflow pipeline resource declarations
-│   └── *.job.yml                         # Automated workflow job declarations
+│   ├── metaflow_app/                     # Onboarding App + the UC Volume it writes specs to
+│   ├── metaflow_config_jobs/             # onboarding_job (one spec) + bulk (a whole spec_dir)
+│   ├── observability/                    # DLT observability export job + OTEL streaming pipeline
+│   ├── bt_tests/                         # Tests on real BT fixtures (geneva, ASN.1, PGP)
+│   ├── feature_tests/                    # TC-* feature/regression corpus (job + pipeline per case)
+│   ├── sample_jobs/                      # metaflow_sample reference suite: 6 jobs + 6 pipelines + 1 common seed job
+│   └── stability_tests/                  # Reserved for STABILITY_TEST_PLAN.md's A1-G4 (empty)
 │
 ├── metaflow_testing/                     # Comprehensive Testing Suite Specs
 │   ├── *.json                            # 48 end-to-end test configuration specs

@@ -36,7 +36,6 @@ from NextGen_Metadata_Framework.lakeflow_framework.engine.sink_registration impo
     register_external_sink_export,
     register_sink_target,
 )
-from NextGen_Metadata_Framework.lakeflow_framework.exceptions import FrameworkConfigError
 from NextGen_Metadata_Framework.lakeflow_framework.ingestion.technical_metadata import (
     attach_framework_ingestion_timestamp,
 )
@@ -66,11 +65,9 @@ def register_staged_view(
     flow_id: Optional[str] = None,
     read_operation_name: str = "flow_read",
     materialize: bool = False,
-    target_catalog: Optional[str] = None,
-    target_schema: Optional[str] = None,
 ) -> str:
     """Register the staged intermediate shared by both engines, as a ``@dlt.view`` (default)
-    or, when ``materialize`` is set, a genuine ``@dlt.table``.
+    or, when ``materialize`` is set, a pipeline-scoped **temporary** ``@dlt.table``.
 
     **Intra-flow read-once fix.** A ``@dlt.view`` is inlined into every consumer, so each
     consumer opens its own independent read of whatever this view's closure reads -- for a
@@ -78,23 +75,21 @@ def register_staged_view(
     view, that means more than one ``cloudFiles`` stream sharing one
     ``cloudFiles.schemaLocation``, which is exactly the intra-flow Rule-2 (read-once)
     violation this parameter exists to close. Passing ``materialize=True`` registers this
-    same closure as a real, qualified ``@dlt.table`` instead, so every downstream reader
-    shares ONE materialized result. The three call sites this serves today (all read the
-    staged view/table by name after this function returns): ``dq/quarantine.py``'s
-    ``_clean_upstream`` and ``_quarantine_table`` closures inside
-    ``register_main_and_quarantine_tables``, and ``engine/sink_registration.py``'s sink/
-    external-sink registration path -- see those modules for the ``dlt.read``/
-    ``dlt.read_stream`` call that must use this function's *return value*, not the bare
-    ``staged_view_name`` it was given, once ``materialize`` is ``True``.
+    same closure as a ``@dlt.table(temporary=True)`` instead, so every downstream reader
+    shares ONE materialized result while the intermediate never appears in Unity Catalog
+    (the v1.6.0 Intermediate Object Rule -- only final sinks are durable published tables;
+    before v1.6.0 this was a published, fully-qualified ``@dlt.table``). The three call
+    sites this serves today (all read the staged view/table by name after this function
+    returns): ``dq/quarantine.py``'s ``_clean_upstream`` and ``_quarantine_table`` closures
+    inside ``register_main_and_quarantine_tables``, and ``engine/sink_registration.py``'s
+    sink/external-sink registration path.
 
     Parameters
     ----------
     staged_view_name:
         Name the staged view/table is registered under (by convention
-        ``_<target_table>_staged``). Always the ``name=`` argument when ``materialize`` is
-        ``False``; when ``materialize`` is ``True`` it is instead the unqualified ``table``
-        component passed to :func:`qualified_table_name` -- see ``target_catalog``/
-        ``target_schema`` below.
+        ``_<target_table>_staged``). Always the bare, pipeline-local ``name=`` argument --
+        for the ``@dlt.view`` and the temporary ``@dlt.table`` alike.
     comment:
         DLT comment for the view/table.
     dq_rules:
@@ -150,52 +145,41 @@ def register_staged_view(
         ``"ingestion_read"``/``"transformation_execute"`` to distinguish the two engines in
         the emitted JSON. Ignored when ``flow_id`` is ``None``.
     materialize:
-        ``False`` (default, byte-identical to this function's pre-existing behaviour):
-        register as ``@dlt.view(name=staged_view_name, comment=comment)``. ``True``:
-        register as ``@dlt.table(name=qualified_table_name(target_catalog, target_schema,
-        staged_view_name), comment=comment)`` instead -- an unqualified ``@dlt.table`` name
-        would silently land in the pipeline's own default catalog/schema rather than this
-        flow's configured target (see :func:`storage.table_properties.qualified_table_name`).
-        The ``@apply_dq_expectations(dq_rules)`` decorator stays stacked directly under
-        either one, unchanged. Callers decide ``materialize`` per flow (e.g. "this flow has
+        ``False`` (default): register as ``@dlt.view(name=staged_view_name,
+        comment=comment)``. ``True``: register as ``@dlt.table(name=staged_view_name,
+        temporary=True, comment=comment)`` instead -- materialized once for every
+        downstream reader, but pipeline-scoped and never published to Unity Catalog. Both
+        registrations use the same bare, pipeline-local name, so downstream readers resolve
+        the staged intermediate identically either way. The
+        ``@apply_dq_expectations(dq_rules)`` decorator stays stacked directly under either
+        one, unchanged. Callers decide ``materialize`` per flow (e.g. "this flow has
         quarantine rules or more than one reader of the staged view"); this function only
         carries out that decision.
-    target_catalog, target_schema:
-        The flow's target catalog/schema, forwarded to :func:`qualified_table_name` when
-        ``materialize`` is ``True``. ``None`` by default; a caller that passes
-        ``materialize=True`` without both of these gets a ``FrameworkConfigError`` rather
-        than an accidental unqualified/default-schema table.
 
     Returns
     -------
     str
-        The name downstream readers must use for this staged intermediate: the fully
-        qualified ``catalog.schema.table`` name when ``materialize`` is ``True``, or the
-        unchanged ``staged_view_name`` otherwise (a ``@dlt.view`` is always resolved by its
-        bare, pipeline-local name). Existing callers that do not capture this return value
-        are unaffected -- they already have ``staged_view_name`` in scope and only need this
-        return value once they start passing ``materialize=True``.
+        The name downstream readers must use for this staged intermediate -- always the
+        bare, pipeline-local ``staged_view_name`` (both a ``@dlt.view`` and a temporary
+        ``@dlt.table`` are resolved by their pipeline-local name). Kept as the return
+        contract so callers stay agnostic to the view-vs-temporary-table decision.
 
     Raises
     ------
     FrameworkConfigError
         Propagated from encryption/decryption or quarantine-column derivation on malformed
-        configuration, or raised directly when ``materialize=True`` is passed without both
-        ``target_catalog`` and ``target_schema``.
+        configuration.
     """
-    if materialize and (target_catalog is None or target_schema is None):
-        raise FrameworkConfigError(
-            "register_staged_view(materialize=True) requires both target_catalog and "
-            f"target_schema to publish a qualified table name for '{staged_view_name}' -- "
-            "an unqualified @dlt.table name would silently land in the pipeline's default "
-            "catalog/schema instead of this flow's configured target."
-        )
-
     if materialize:
-        qualified_name = qualified_table_name(target_catalog, target_schema, staged_view_name)
-        register_dataset = dlt.table(name=qualified_name, comment=comment)
+        # temporary=True: materialized (so the multi-reader R2 guarantee holds -- every
+        # downstream reader shares ONE physical result) but pipeline-scoped, never published
+        # to Unity Catalog. The v1.6.0 Intermediate Object Rule: an intermediate is a
+        # @dlt.view when it has a single reader, a temporary @dlt.table when it has more --
+        # only final sinks (targets, quarantine, SCD2 _current) are durable published tables.
+        # A temporary table always uses its bare, pipeline-local name; the pre-v1.6.0
+        # qualified catalog.schema publication of staged intermediates is gone.
+        register_dataset = dlt.table(name=staged_view_name, temporary=True, comment=comment)
     else:
-        qualified_name = staged_view_name
         register_dataset = dlt.view(name=staged_view_name, comment=comment)
 
     @register_dataset
@@ -225,7 +209,7 @@ def register_staged_view(
             record_id_column=record_id_column,
         )
 
-    return qualified_name
+    return staged_view_name
 
 
 def register_flow_output(

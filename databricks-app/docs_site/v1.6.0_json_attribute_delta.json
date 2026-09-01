@@ -1,0 +1,164 @@
+{
+  "$comment": "MACHINE-READABLE ATTRIBUTE DELTA for the NextGen Metadata Framework (Metaflow) onboarding spec, v1.5.01 -> v1.6.0. Written for an automated agent updating the Databricks App (databricks-app/). Every path below is expressed as it appears in an onboarding spec document, rooted at the spec object; [] denotes an array element. IMPORTANT FOR CONSUMERS: unlike prior deltas, the v1.6.0 app-side work was applied IN THE SAME RELEASE -- each entry's app_state says whether any action remains. Verify against databricks-app/web/src/registry.js and config/registry/*.json before re-applying anything.",
+  "schema_version": "1",
+  "framework_version_from": "1.5.01",
+  "framework_version_to": "1.6.0",
+  "release_date": "2026-09-01",
+  "spec_surface_changed": true,
+  "summary": {
+    "added": 1,
+    "modified": 3,
+    "removed": 0,
+    "enum_values_removed": 0,
+    "rejections_added": 3,
+    "breaking": [
+      "reconciliation_result is now gated by logging_config.run_log_capture (previously written unconditionally) -- any monitoring that expects a result row for every reconciliation run breaks for suppressed-logging flows",
+      "source_plane.catalog/schema null no longer publishes L0 nodes into the hosting pipeline's own schema -- shared nodes default to pipeline-scoped temporary tables invisible in Unity Catalog",
+      "staged intermediates (_<t>_staged when materialized) and reconciliation L3/L4 intermediates are no longer published to Unity Catalog; on an already-deployed pipeline the first v1.6.0 update renames/unpublishes them (streaming state resets -- see migration notes in docs/13)"
+    ],
+    "headline": "v1.6.0: the Intermediate Object Rule (intermediates are @dlt.view or temporary tables, never published), reconciliation logging_config now gates dataset registration and reconciliation_result, sink_config.staged_file_format adds CSV staging to pgp_zip exports, and the app removes every display-only default (UI empty/OFF == key absent in JSON).",
+    "app_ui_change_without_spec_change": "All display-only defaults were removed from the app (web/src/registry.js d: values, config/registry/*.json default: entries, the hardcoded APPEND cdc_load_strategy) so the UI state and the exported JSON can no longer disagree: an untouched field renders empty/OFF and emits no key. This changes no spec attribute semantics -- absent keys keep their framework defaults.",
+    "see_also": [
+      "enhancement_logs/v1.6.00_enhancement_log.md",
+      "docs/14_onboarding_restrictions_and_validation_rules.md",
+      "RELEASE_NOTES.md#v160"
+    ]
+  },
+  "added": [
+    {
+      "path": "ingestion_flows[].target_config.sink_config.staged_file_format",
+      "also_at": "transformation_flows[].target_config.sink_config.staged_file_format",
+      "type": "string",
+      "json_schema_def": "#/$defs/sinkConfig/properties/staged_file_format",
+      "required": false,
+      "default": null,
+      "default_behaviour": "Absent == 'json' == the exact pre-v1.6.0 behaviour: the pgp_zip sink stages each non-empty partition's rows as a JSON-Lines file before zipping. No existing spec changes meaning.",
+      "constraints": {
+        "enum": ["json", "csv"],
+        "only_meaningful_when": "target_config.sink_config.format == 'pgp_zip'",
+        "presence_rejected_when": "target_config.sink_config.format is 'delta' or 'kafka'"
+      },
+      "enum_meanings": {
+        "json": "JSON-Lines staged files (one json.dumps(row) per line, default=str for non-native types). The pre-v1.6.0 behaviour and the default.",
+        "csv": "RFC-4180 CSV staged files with a header row; header order follows the sink's write schema; one staged .csv per non-empty partition per micro-batch (each with its own header); None stages as an empty cell; nested struct/array values stage as JSON text."
+      },
+      "verbatim_rejection_message_for_non_pgp_zip": "target_config.sink_config.staged_file_format: only meaningful for format 'pgp_zip' (this framework's staging-then-archive sink); format '<format>' is a native Lakeflow sink with no staging step. Remove the attribute.",
+      "examples": ["csv", "json"],
+      "ui_widget": "select",
+      "ui_position": "In the sink_config section, immediately after sink_config.path, visible only when sink_config.format == 'pgp_zip'.",
+      "app_state": "already_applied -- web/src/registry.js and config/registry/shared.target.json carry the field (options ['', 'json', 'csv'], no default, visible_when format==pgp_zip); config/validation/rules.json rule id 'staged_file_format_pgp_zip_only' mirrors the rejection; attribute_knowledge regenerated. No action remains.",
+      "enforced_by": [
+        "onboarding/spec_validator.py::_validate_sink_config (ALLOWED_STAGED_FILE_FORMATS)",
+        "archive/pgp_zip_sink.py::_PgpZipStreamWriter (defensive re-validation + the CSV writer)",
+        "engine/sink_registration.py::_build_sink_options (option pass-through)",
+        "tests/unit/test_pgp_zip_sink.py"
+      ]
+    }
+  ],
+  "modified": [
+    {
+      "path": "reconciliation_flows[].logging_config",
+      "change": "semantics",
+      "previous": "run_log_capture gated reconciliation_run_log; mismatch_log_capture gated reconciliation_mismatch_log; reconciliation_result was ALWAYS written regardless; the recon__*__metrics/__mismatch pipeline datasets were always registered.",
+      "current": "run_log_capture (default true) gates reconciliation_run_log AND reconciliation_result AND, in pipeline mode, whether the recon__*__metrics dataset is registered at all; mismatch_log_capture gates reconciliation_mismatch_log and the recon__*__mismatch dataset. Both false == reconciliation persists ONLY to its business target tables: no metric/log dataset is created and no control-table row is written. Runtime overrides (recon_run_log_capture/recon_mismatch_log job parameters; dataflow.recon.run_log_capture/dataflow.recon.mismatch_log pipeline conf) keep their precedence and now also drive the graph-definition decision.",
+      "migration": "A flow relying on reconciliation_result rows while setting run_log_capture: false must either re-enable run_log_capture or move its monitoring to the pipeline/job run state and structured log events.",
+      "ui_action": "None required beyond the defaults removal (both toggles now render OFF-looking only when explicitly false; absent emits no key and the framework default true applies). app_state: already_applied.",
+      "app_state": "already_applied"
+    },
+    {
+      "path": "source_plane.catalog",
+      "change": "semantics of null",
+      "previous": "null meant 'publish materialized L0 source-plane nodes into the hosting pipeline's own catalog' -- every shared node became a published table.",
+      "current": "null means the shared node is NOT published: it is registered as @dlt.table(temporary=True) under its bare name -- materialized once per update (read-once holds) but never visible in Unity Catalog. Set catalog AND schema together to publish deliberately.",
+      "migration": "A consumer that queried _src__<locator>__<8hex>__{stream,batch} tables from outside the pipeline must set source_plane.catalog + source_plane.schema explicitly to keep them published.",
+      "ui_action": "Help text update only (attribute_knowledge). app_state: already_applied (knowledge regenerated).",
+      "app_state": "already_applied"
+    },
+    {
+      "path": "source_plane.schema",
+      "change": "semantics of null",
+      "previous": "null meant the hosting pipeline's own schema.",
+      "current": "See source_plane.catalog -- null means unpublished temporary node; both must be set to publish.",
+      "migration": "Same as source_plane.catalog.",
+      "app_state": "already_applied"
+    }
+  ],
+  "removed": [],
+  "enum_values_removed": [],
+  "rejections_added": [
+    {
+      "rule": "reconciliation_flows[].dq_config.rules present while logging_config.run_log_capture is false",
+      "severity": "error",
+      "verbatim_message_validator": "<label>.run_log_capture: false is incompatible with dq_config.rules -- the flow's expectations attach to its recon__*__metrics dataset, which is only registered when run_log_capture is true (v1.6.0). Remove the dq_config rules or re-enable run_log_capture.",
+      "verbatim_message_runtime": "Reconciliation flow '<id>': dq_config.rules are declared but run_log_capture resolves to false. The flow's expectations attach to its `__metrics` dataset, which is only registered when run_log_capture is true -- suppressing it would silently drop declared data-quality expectations. Either remove logging_config.run_log_capture: false (or the dataflow.recon.run_log_capture pipeline-conf override), or remove dq_config from this reconciliation flow.",
+      "enforced_at": ["onboarding (spec_validator.py::_validate_logging_config)", "graph definition (reconciliation/graph_registration.py)"],
+      "app_rule_id": "recon_dq_rules_require_run_log_capture",
+      "app_state": "already_applied (config/validation/rules.json)"
+    },
+    {
+      "rule": "reconciliation_flows[].execution_mode == 'pipeline_audit_only' with both logging_config flags false",
+      "severity": "error",
+      "verbatim_message_validator": "<label>: execution_mode 'pipeline_audit_only' with both run_log_capture and mismatch_log_capture false registers compute with no output at all (v1.6.0 -- the audit-only mode exists solely to produce the metrics/mismatch datasets and their control-table exports). Enable at least one capture flag, or use execution_mode 'job'/'pipeline'.",
+      "enforced_at": ["onboarding (spec_validator.py::_validate_logging_config)", "graph definition (reconciliation/graph_registration.py)"],
+      "app_rule_id": "recon_audit_only_needs_one_capture_flag",
+      "app_state": "already_applied (config/validation/rules.json)"
+    },
+    {
+      "rule": "target_config.sink_config.staged_file_format present while sink_config.format != 'pgp_zip'",
+      "severity": "error",
+      "verbatim_message_validator": "<path>.staged_file_format: only meaningful for format 'pgp_zip' (this framework's staging-then-archive sink); format '<format>' is a native Lakeflow sink with no staging step. Remove the attribute.",
+      "enforced_at": ["onboarding (spec_validator.py::_validate_sink_config)"],
+      "app_rule_id": "staged_file_format_pgp_zip_only",
+      "app_state": "already_applied (config/validation/rules.json)"
+    }
+  ],
+  "dataset_surface_delta": {
+    "$comment": "Not spec attributes, but catalog-visible objects an operator or BI tool may reference. What disappears from Unity Catalog under the v1.6.0 Intermediate Object Rule.",
+    "no_longer_published": [
+      "<catalog>.<schema>._<target_table>_staged (materialized staged intermediates -- now temporary, bare-named)",
+      "<node_catalog>.<node_schema>._src__<locator>__<8hex>__{stream,batch} (L0 source-plane nodes, unless source_plane.catalog+schema explicitly set)",
+      "<catalog>.<publish_schema>.recon__<id>__<target>__classified (now temporary _recon__<id>__<target>__classified)",
+      "<catalog>.<publish_schema>._recon__<id>__src and __tgt for NON-healing flows (now temporary; healing flows keep them published)",
+      "<catalog>.<publish_schema>._recon__<id>__<target>__missing and _recon__<id>__pulse (now temporary)"
+    ],
+    "conditionally_published": [
+      "recon__<id>__<target>__metrics -- registered only when run_log_capture resolves true",
+      "recon__<id>__<target>__mismatch -- registered only when mismatch_log_capture resolves true"
+    ],
+    "still_published_unchanged": [
+      "flow target tables, quarantine tables, SCD2 <target>_current, _<target>_snapshot_input, _<target>_scd2_history"
+    ]
+  },
+  "app_update_checklist": [
+    "DONE (this release): remove every display-only default from web/src/registry.js (22 select d:, 6 bool d:true, defaultsFor() injections, non-blank 'blank' presets) and Builder.jsx (generate_hash_columns d:true, the ||'APPEND' strategy fallback).",
+    "DONE (this release): remove all 44 'default:' entries from config/registry/*.json and the hardcoded APPEND injection in server/core/registry.py.",
+    "DONE (this release): add target_config.sink_config.staged_file_format to web/src/registry.js + config/registry/shared.target.json + attribute_knowledge.curated.json; regenerate config/attribute_knowledge.json.",
+    "DONE (this release): add the three validation rules named in rejections_added to config/validation/rules.json.",
+    "DONE (this release): npm run build in databricks-app/web (dist bundle regenerated).",
+    "REMAINING: none. A future agent should verify rather than re-apply."
+  ],
+  "enforcing_artifacts": {
+    "json_schema": "onboarding_templates/onboarding_spec.schema.json ($defs.sinkConfig.staged_file_format, $defs.sourcePlane catalog/schema descriptions, logging_config description)",
+    "validator": "src/NextGen_Metadata_Framework/lakeflow_framework/onboarding/spec_validator.py (_validate_sink_config, _validate_logging_config, ALLOWED_STAGED_FILE_FORMATS)",
+    "runtime_modules": [
+      "engine/flow_registration.py::register_staged_view (temporary staged intermediates)",
+      "engine/source_plane.py (PlaneNode.published, temporary L0 nodes)",
+      "reconciliation/graph_registration.py (conditional __metrics/__mismatch, temporary L3/L4, classified-anchored heal ordering edge, graph-time guards)",
+      "reconciliation/appender.py (reconciliation_result gated by run_log_capture)",
+      "observability/reconciliation_export.py (flag-aware backstop)",
+      "archive/pgp_zip_sink.py + engine/sink_registration.py (staged_file_format)"
+    ],
+    "tests": [
+      "tests/unit/test_recon_logging_gates.py",
+      "tests/unit/test_pgp_zip_sink.py (CSV staging + staged_file_format validation)",
+      "tests/unit/test_flow_generators.py (temporary staged intermediate)",
+      "tests/unit/test_source_plane_plan.py (unpublished vs published nodes)",
+      "databricks-app/tests/test_no_registry_defaults.py"
+    ],
+    "docs": [
+      "docs/07_reconciliation_engine.md",
+      "docs/13_known_limitations_and_gotchas.md (v1.6.0 migration trap)",
+      "docs/14_onboarding_restrictions_and_validation_rules.md"
+    ]
+  }
+}

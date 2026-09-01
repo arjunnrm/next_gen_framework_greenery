@@ -45,17 +45,18 @@ be simplified and cannot; each is called out inline at its own line as well:
    ``AnalysisException: View '...' is a streaming view and must be referenced using
    readStream``.
 
-**Staged-view materialization.** Both flow generators now pass ``materialize=`` to
+**Staged-view materialization.** Both flow generators pass ``materialize=`` to
 :func:`~engine.flow_registration.register_staged_view` and use its RETURN VALUE as the name
-handed to :func:`~engine.flow_registration.register_flow_output` -- a materialized staged
-intermediate is published under a fully qualified ``catalog.schema.table`` name, and every
-downstream ``dlt.read``/``dlt.read_stream`` of it must use that name rather than the bare
-``_<target_table>_staged`` string. ``materialize`` is ``True`` exactly when the staged
-intermediate has more than one reader: when the flow has ``action: "quarantine"`` DQ rules
-(``dq/quarantine.py`` reads it once for the clean side and again for the quarantine sibling) or
-when ``target_type`` is ``sink``/``external_sink`` (``engine/sink_registration.py`` reads it
-again). That is the INTRA-flow half of R2 -- a ``@dlt.view`` is inlined into each consumer, so
-"declared once" is not "read once".
+handed to :func:`~engine.flow_registration.register_flow_output`. Since v1.6.0 a materialized
+staged intermediate is a ``@dlt.table(temporary=True)`` -- materialized once for every
+downstream reader but pipeline-scoped, never published to Unity Catalog (the Intermediate
+Object Rule: only final sinks are durable published tables). Its name is the same bare
+``_<target_table>_staged`` string a ``@dlt.view`` would use. ``materialize`` is ``True``
+exactly when the staged intermediate has more than one reader: when the flow has
+``action: "quarantine"`` DQ rules (``dq/quarantine.py`` reads it once for the clean side and
+again for the quarantine sibling) or when ``target_type`` is ``sink``/``external_sink``
+(``engine/sink_registration.py`` reads it again). That is the INTRA-flow half of R2 -- a
+``@dlt.view`` is inlined into each consumer, so "declared once" is not "read once".
 """
 
 import json
@@ -66,10 +67,15 @@ from NextGen_Metadata_Framework.lakeflow_framework.engine.flow_registration impo
     register_flow_output,
     register_staged_view,
 )
-from NextGen_Metadata_Framework.lakeflow_framework.engine.source_plane import SourcePlanePlan, bind
+from NextGen_Metadata_Framework.lakeflow_framework.engine.source_plane import (
+    SNAPSHOT_EXCLUDED_FROM_SOURCE_PLANE,
+    SourcePlanePlan,
+    bind,
+)
 from NextGen_Metadata_Framework.lakeflow_framework.exceptions import FrameworkConfigError
 from NextGen_Metadata_Framework.lakeflow_framework.ingestion.column_normalization import normalize_column_names
 from NextGen_Metadata_Framework.lakeflow_framework.ingestion.dedup import apply_stream_dedup
+from NextGen_Metadata_Framework.lakeflow_framework.ingestion.readers import read_ingestion_source
 from NextGen_Metadata_Framework.lakeflow_framework.ingestion.json_flattening import (
     apply_explode_columns,
     parse_json_string_columns,
@@ -241,6 +247,10 @@ def generate_ingestion_flow(
     is_streaming = flow_row.target_type == "streaming_table"
     staged_view_name = f"_{flow_row.target_table}_staged"
     source_consumer_id = f"{flow_row.dataflow_id}:source"
+    # FULL_SNAPSHOT_CDC rows are EXCLUDED from the source plane by
+    # source_plane.py::_plan_ingestion_consumers, so no consumer was ever planned for this id --
+    # see the branch in _build_ingestion_dataframe below.
+    is_snapshot_cdc = target_config.get("cdc_load_strategy") == SNAPSHOT_EXCLUDED_FROM_SOURCE_PLANE
 
     def _build_ingestion_dataframe():
         # bind(), not a direct read_ingestion_source(spark, ...): this flow's physical source
@@ -249,7 +259,26 @@ def generate_ingestion_flow(
         # publishes becomes a real in-graph edge instead of a second physical read. A
         # single-consumer external locator still resolves to the byte-identical inline
         # read_ingestion_source(...) call this line replaced -- see engine/source_plane.py.
-        staged_df = bind(plan, source_consumer_id, want_stream=is_streaming)
+        #
+        # THE ONE EXCEPTION: FULL_SNAPSHOT_CDC. source_plane.py::_plan_ingestion_consumers skips
+        # snapshot rows outright ("its 'source' is consumed by apply_changes_from_snapshot's own
+        # path-based lambda, never through the plane"), so `plan` holds NO consumer under this
+        # id and bind() can only raise:
+        #
+        #   FrameworkConfigError: source_plane.bind: unknown consumer_id
+        #   'df_<flow>_ingest:source'. Known consumer ids: [...]
+        #
+        # That exclusion note is right about the LAMBDA and was wrong about this staged read. A
+        # snapshot flow's staged view is a real graph node -- _staged -> _clean ->
+        # _<target>_snapshot_input -> target -- and something has to read the source for it.
+        # Confirmed live 2026-09-01: every FULL_SNAPSHOT_CDC pipeline failed at graph analysis
+        # with the error above until this branch existed. Reading directly is correct rather
+        # than merely expedient: the plane's job is dedup/read-once across consumers, and a
+        # snapshot source has exactly one consumer by construction -- the exclusion says so.
+        if is_snapshot_cdc:
+            staged_df = read_ingestion_source(spark, flow_row.source_type, source_config)
+        else:
+            staged_df = bind(plan, source_consumer_id, want_stream=is_streaming)
         # schema_config (explicit type/rename/comment) runs first -- its source_name keys
         # reference the source's true raw column names, before anything else here touches
         # them. normalize_column_names runs next, over whatever names remain (including any
@@ -290,9 +319,9 @@ def generate_ingestion_flow(
         staged_df = apply_data_standardization_sql(staged_df, source_config.get("data_standardization_sql"))
         return staged_df
 
-    # The RETURN VALUE, not staged_view_name: when materialize is True the staged intermediate
-    # is a qualified @dlt.table, and every downstream reader (quarantine's clean/quarantine
-    # split, the sink export) must resolve it by that qualified name.
+    # The RETURN VALUE, not staged_view_name: kept as the contract so this generator stays
+    # agnostic to register_staged_view's view-vs-temporary-table decision (both resolve by
+    # the same bare pipeline-local name since v1.6.0, but the indirection is deliberate).
     staged_dataset_name = register_staged_view(
         staged_view_name,
         f"Staged intermediate view for ingestion flow {flow_row.dataflow_id}",
@@ -305,8 +334,6 @@ def generate_ingestion_flow(
         flow_id=flow_row.dataflow_id,
         read_operation_name="ingestion_read",
         materialize=_needs_materialized_staged_view(dq_rules, flow_row.target_type),
-        target_catalog=flow_row.target_catalog,
-        target_schema=flow_row.target_schema,
     )
 
     register_flow_output(
@@ -421,8 +448,6 @@ def generate_transformation_flow(
         flow_id=flow_row.flow_step_id,
         read_operation_name="transformation_execute",
         materialize=_needs_materialized_staged_view(dq_rules, flow_row.target_type),
-        target_catalog=flow_row.target_catalog,
-        target_schema=flow_row.target_schema,
     )
 
     register_flow_output(

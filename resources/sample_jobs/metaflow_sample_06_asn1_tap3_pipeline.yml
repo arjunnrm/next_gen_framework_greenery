@@ -1,0 +1,35 @@
+# Sample 06 -- "Real GSMA TAP3 ASN.1 BER Ingestion" (reference, not a test): the Lakeflow
+# Declarative Pipeline hosting dfg_sample_06_asn1_tap3's single asn1 flow -- Auto Loader reads
+# the .ber payloads as binaryFile and asn1/decoder.py's mapInPandas transform decodes each one
+# against the landed GSMA TAP release 3.10 module (PDU 'Notification'), routing undecodable
+# payloads into sample_tap3_notification_raw_quarantine. Everything publishes into the single
+# metaflow.metaflow_sample schema. See
+# metaflow_testing/samples/sample_06_asn1_tap3_ingestion.json and
+# resources/sample_jobs/metaflow_sample_06_asn1_tap3_job.yml.
+#
+# asn1tools -- which both the decoder and the seed notebook need -- is a declared dependency of
+# the framework wheel (pyproject.toml), so the `../../dist/*.whl` entry below installs it
+# transitively; there is no separate library to list.
+
+resources:
+  pipelines:
+    metaflow_sample_06_asn1_tap3_pipeline:
+      name: metaflow_sample_06_asn1_tap3_pipeline_${bundle.target}
+      catalog: metaflow
+      schema: metaflow_sample
+      serverless: true
+      photon: true
+      development: true
+      continuous: false
+
+      libraries:
+        - notebook:
+            path: ../../notebooks/03_engine/03_lakeflow_declarative_pipeline.py
+
+      environment:
+        dependencies:
+          - ../../dist/*.whl
+
+      configuration:
+        dataflow.group.id: dfg_sample_06_asn1_tap3
+        dataflow.control.catalog: metaflow

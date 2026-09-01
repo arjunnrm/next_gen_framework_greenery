@@ -21,7 +21,6 @@
         "widget": "kv",
         "type": "object<string,scalar>",
         "span": 2,
-        "default": {},
         "hint": "keys must start with spark.",
         "description": "Group-scoped Spark configuration. Keys must start with 'spark.'; values may be string, number or boolean. Pipeline and runtime values strictly override the framework defaults."
       },
@@ -31,7 +30,6 @@
         "widget": "kv",
         "type": "object<string,scalar>",
         "span": 2,
-        "default": {},
         "description": "String to value map substituted into ${param} placeholders in transformation_sql, filter_condition and transform_sql. Strings are single-quoted automatically."
       }
     ]

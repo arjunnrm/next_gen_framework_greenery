@@ -174,7 +174,7 @@ finished. See `cdc/scd.py::register_scd2_reporting_view`.
 ### 10. A bare `name=` on `@dlt.table`/`@dlt.view` resolves against the *pipeline's* default schema, not the flow's
 
 Lakeflow resolves every unqualified `name=` against the pipeline resource's own default
-catalog/schema (`resources/*.yml`), **not** against a flow's own `target_catalog`/
+catalog/schema (`resources/**/*.yml`), **not** against a flow's own `target_catalog`/
 `target_schema` control-table columns. Passing a bare `target_table` silently lands every
 flow in the pipeline's default schema instead of its configured target — only surfaces once a
 pipeline has flows spanning more than one schema and something tries to read a table by its
@@ -680,7 +680,7 @@ own notebook path and its own cluster/environment settings, so any change to the
 entrypoint has to be replayed across every one of them — which is exactly how the ~20 legacy
 `metaflow_test_*_job.yml` files drifted apart.
 
-Delegate instead, via `run_job_task`, to the parameterised `resources/onboarding_job.yml`:
+Delegate instead, via `run_job_task`, to the parameterised `resources/metaflow_config_jobs/onboarding_job.yml`:
 
 ```yaml
 - task_key: onboard_x
@@ -693,15 +693,256 @@ Delegate instead, via `run_job_task`, to the parameterised `resources/onboarding
       action_type: CREATE
 ```
 
-Applied to `resources/metaflow_test_recon_dag_job.yml`,
-`resources/metaflow_test_dag_001_unified_job.yml` and
-`resources/metaflow_test_104_geneva_tariffs_recon_job.yml`. The pre-existing legacy jobs are
+Applied to `resources/feature_tests/metaflow_test_recon_dag_job.yml`,
+`resources/feature_tests/metaflow_test_dag_001_unified_job.yml` and
+`resources/bt_tests/metaflow_test_104_geneva_tariffs_recon_job.yml`. The pre-existing legacy jobs are
 deliberately **left as-is** — `onboarding_job.yml`'s own header records the standing "keep legacy
-jobs as-is, add new orchestration alongside" decision. `resources/framework_config_onboarding_job.yml`
+jobs as-is, add new orchestration alongside" decision. `resources/metaflow_config_jobs/framework_config_onboarding_job.yml`
 is the sibling that onboards a whole **directory** (`spec_dir`) rather than one spec.
 
 Related trap in the same file family (v1.5.0, defect D7): when a flow is flipped to
 `execution_mode: "pipeline"`, that job's **standalone** reconciliation task must be deleted.
-`resources/metaflow_test_002_003_job.yml` still carried `run_003_reconciliation` even though its own
+`resources/feature_tests/metaflow_test_002_003_job.yml` still carried `run_003_reconciliation` even though its own
 header claimed the task had been removed — reconciliation would have run **twice** per trigger,
 once in-pipeline and once as the job task, risking a double-append into the correction target.
+
+---
+
+### 34. `resources/` is grouped into subfolders — a new resource needs `../../`, and a commented-out `include:` DELETES resources
+
+`resources/` is no longer flat. Every resource YAML lives one level down, in the folder matching its
+purpose, and `databricks.yml`'s `include:` lists each group:
+
+| Folder | Holds |
+|---|---|
+| `resources/metaflow_app/` | the Onboarding App + the UC Volume it stores authored specs in |
+| `resources/metaflow_config_jobs/` | `onboarding_job` (one spec per run) and `framework_config_onboarding_job` (a whole `spec_dir` per run) |
+| `resources/observability/` | the DLT observability export job + the OTEL streaming pipeline |
+| `resources/bt_tests/` | tests driven by real BT fixtures/pipelines: geneva tariff recon replay, ASN.1 decode, PGP decrypt |
+| `resources/feature_tests/` | the `TC-*` feature/regression corpus — one job + one pipeline per case |
+| `resources/stability_tests/` | reserved for `STABILITY_TEST_PLAN.md`'s A1–G4; empty today (see its `README.md`) |
+
+Two traps follow from it:
+
+**Relative paths are now two levels up.** DABs resolves a relative path against the file that
+declares it, so every path in a resource YAML is `../../`, not `../`:
+
+```yaml
+notebook_path: ../../notebooks/02_onboarding/02_onboarding_engine.py   # NOT ../notebooks/...
+dependencies:
+  - ../../dist/*.whl                                                   # NOT ../dist/*.whl
+```
+
+A `../` left behind does **not** fail `bundle validate`; it fails at deploy with a missing-file
+error, or worse, silently uploads nothing where a glob matched nothing.
+
+**Never scope a deploy by editing `include:`.** DABs treats a resource absent from the config as one
+to **delete from the target** — commenting out `resources/feature_tests/*.yml` to "deploy just the
+app" destroys 83 deployed jobs and pipelines on the next `bundle deploy`. Scope with `--select`
+(CLI ≥ v1.13.0) instead, which leaves unselected resources untouched:
+
+```bash
+databricks bundle deploy -t dev_metaflow -p dev_metaflow   --select apps.metaflow_onboarding_app,jobs.onboarding_job,jobs.framework_config_onboarding_job,volumes.onboarding_specs_volume
+```
+
+The wheel is still built and uploaded under `--select`, because the selected jobs declare it in
+`environments[].spec.dependencies`. Keep `jobs.onboarding_job` and `volumes.onboarding_specs_volume`
+in the list even for an app-only change: the app resolves `${resources.jobs.onboarding_job.id}` into
+its `METAFLOW_ONBOARDING_JOB_ID` env var and binds the spec Volume to its service principal.
+
+---
+
+### 35. Intermediates are temporary, not views and not published tables — and the v1.6.0 upgrade renames them
+
+The v1.6.0 **Intermediate Object Rule**: an intermediate dataset is a `@dlt.view` when it has one
+reader, and a pipeline-scoped `@dlt.table(temporary=True)` under its **bare name** when
+materialization is required (multi-reader read-once, or an API that needs a table). Only final
+sinks are durable published tables. Three traps hide in that sentence:
+
+**"Temporary" is not "view".** A `@dlt.view` is inlined into every consumer — two consumers of one
+view open two physical reads (pitfall 24 / docs/13 L7). A temporary table is materialized once and
+shared; it just never appears in Unity Catalog. Do not "simplify" a temporary table into a view:
+you would silently reintroduce the duplicate-read bug the materialization exists to fix.
+
+**Not everything can be temporary.** `dlt.create_streaming_table` has **no** `temporary` parameter,
+so `_<t>_scd2_history` stays a real published table; `_<t>_snapshot_input` stays published because
+`apply_changes_from_snapshot` needs a stable, versioned Delta relation and its name resolution has
+burned this repo before (pitfall 23 / `cdc/snapshot.py`); a **healing** reconciliation flow's
+`_recon__*__src` and healing `__tgt` stay published because the L5 `foreach_batch_sink` handler
+reads them back with a plain `spark.read.table(...)`, which resolves through the metastore and
+cannot see a temporary table. Any guard or "cleanup" written to the blanket rule fails against the
+framework's own exceptions — check the code, not the slogan.
+
+**The upgrade is a rename.** Pre-v1.6.0, a materialized `_<t>_staged` published a qualified
+`catalog.schema` table, every L0 plane node published into the pipeline's schema, and
+`recon__*__classified` was a published table. The first post-upgrade update re-registers all of
+them under new (bare/underscore-prefixed) identities: streaming checkpoint state resets, published
+intermediates drop out of UC, and an `APPEND` final target can re-ingest. Read
+`docs/13_known_limitations_and_gotchas.md` **O7** before deploying v1.6.0 over a pipeline that has
+history. To keep an L0 node queryable from outside the pipeline, set `source_plane.catalog` AND
+`source_plane.schema` — since v1.6.0, `null` means *unpublished*, no longer "the pipeline's own
+schema".
+
+---
+
+### 36. `reconciliation_result` is no longer unconditional — `run_log_capture` gates it, plus dataset registration
+
+Pre-v1.6.0, `logging_config` gated only `reconciliation_run_log`/`reconciliation_mismatch_log`
+rows; `reconciliation_result` was written for every run "so a silenced flow still leaves a
+record", and the `recon__*__metrics`/`__mismatch` datasets always existed. v1.6.0 makes the flags
+mean what they say:
+
+- `run_log_capture: false` → no `reconciliation_run_log` row, **no `reconciliation_result` row**
+  (FAILED runs included), and — in pipeline mode — **no `recon__*__metrics` dataset at all**.
+- `mismatch_log_capture: false` → no `reconciliation_mismatch_log` row and no `recon__*__mismatch`
+  dataset.
+- Both false → reconciliation persists **only** to its business targets. Healing still works (the
+  heal ordering edge anchors on the always-registered `__classified`, not on `__metrics`).
+
+Two things break if you assume the old contract:
+
+1. **A monitoring query that expects a `reconciliation_result` row per run** silently sees nothing
+   for a suppressed-logging flow. The failure signal for such a flow is the job/pipeline run state
+   and the structured log events — by design.
+2. **Two spec combinations are now rejected** (at onboarding by
+   `spec_validator.py::_validate_logging_config` AND at graph definition, which also catches the
+   `dataflow.recon.run_log_capture`/`dataflow.recon.mismatch_log` pipeline-conf overrides):
+   `dq_config.rules` with `run_log_capture: false` (the expectations attach to `__metrics`, which
+   would not exist — silently dropping declared DQ checks is the thing this framework never does),
+   and `execution_mode: "pipeline_audit_only"` with both flags false (audit-only exists solely to
+   produce the audit datasets — that combination is compute with no output).
+
+The backstop export (`observability/reconciliation_export.py`) follows the same contract: it
+probes `__metrics` when `run_log_capture` is on (else `__mismatch`), skips both-flags-false flows,
+and gates its `reconciliation_result` writes under `run_log_capture`.
+
+
+---
+
+### 37. A real ASN.1 module's natural top-level PDU is a `CHOICE` — and `CHOICE` is rejected anywhere in the tree
+
+`asn1_pdu_name` must name a **top-level `SEQUENCE`**, and `derive_asn1_field_defs` resolves that
+`SEQUENCE`'s whole member tree before it will emit a Spark schema. `CHOICE` raises at any depth:
+
+```
+Asn1DecodeError: ASN.1 CHOICE types are not yet supported by schema auto-derivation (node: 'CallEventDetail')
+```
+
+The trap is that toy fixtures never show this. `sample_data/asn1_schema/gsm_cdr.asn` is one flat
+5-field `SEQUENCE`, so `GsmCallDetailRecord` "just works" and nothing warns you that the pattern
+does not carry over. Every genuine telecom module is built the other way round — a root `CHOICE`
+selecting between message kinds. In `metaflow_testing/BT_Testing/TAP.310.asn1` (the real GSMA TAP
+release 3.10 spec):
+
+* `DataInterChange` — the module's own top-level PDU — is `CHOICE { transferBatch, notification }`.
+  **Rejected.**
+* `TransferBatch` *is* a `SEQUENCE`, but reaches `CallEventDetailList` → `CallEventDetail`, also a
+  `CHOICE`. **Rejected**, one level deeper, which is the version of this that wastes an afternoon.
+* `Notification` (`[APPLICATION 2] SEQUENCE`) resolves completely — and is a real TAP3 file-level
+  PDU, not a contrivance. This is what `metaflow_testing/samples/sample_06_asn1_tap3_ingestion.json`
+  uses.
+
+**Do not read the module to find a candidate.** Ask the framework's own resolver, which is the
+authority and takes about a second over 375 types:
+
+```python
+import asn1tools
+from NextGen_Metadata_Framework.lakeflow_framework.asn1.decoder import derive_asn1_field_defs
+
+module = "metaflow_testing/BT_Testing/TAP.310.asn1"
+types = next(iter(asn1tools.parse_files([module]).values()))["types"]
+for name, node in types.items():
+    if node.get("type") != "SEQUENCE":
+        continue
+    try:
+        fields = derive_asn1_field_defs(module, name)
+        print(f"{name:40s} {len(fields)} fields")
+    except Exception:
+        pass          # CHOICE / recursion / unresolvable member somewhere in the tree
+```
+
+On TAP.310 that prints 70 usable PDUs out of 93 top-level `SEQUENCE` types. Two related notes:
+
+* **One module per file.** `derive_asn1_field_defs` refuses a file defining more than one ASN.1
+  module, and does not follow `IMPORTS` across files.
+* **A nested `SEQUENCE` becomes a `struct`, a `SEQUENCE OF` an `array`** — they are not flattened.
+  `Notification` yields scalars, three `struct<localTimeStamp,utcTimeOffset>` timestamps, and an
+  `array<string>`. Flatten downstream with `explode_columns` if a spec wants columns.
+
+
+---
+
+### 38. A `FULL_SNAPSHOT_CDC` ingestion flow is NOT in the source plane — never `bind()` for one
+
+`engine/source_plane.py::_plan_ingestion_consumers` skips every row whose `cdc_load_strategy` is
+`FULL_SNAPSHOT_CDC`, because `apply_changes_from_snapshot`'s lambda reads a **path**, not a
+pipeline dataset (pitfall 3). So the plan contains no consumer under `"<dataflow_id>:source"`, and
+`bind()` — which never guesses — can only raise:
+
+```
+FrameworkConfigError: source_plane.bind: unknown consumer_id 'df_sample_01_part_snapshot_ingest:source'.
+Known consumer ids: ['df_sample_01_customer_scd1_ingest:source', ...]
+```
+
+**The half that is easy to miss:** the exclusion comment talks about the *lambda*, but a snapshot
+flow still has a **staged view in the graph** — `_<t>_staged` → `_<t>_clean` →
+`_<t>_snapshot_input` → target — and that view needs a real source read. Until v1.6.1
+`flow_generators.py::_build_ingestion_dataframe` called `bind()` unconditionally, so **every**
+`FULL_SNAPSHOT_CDC` pipeline in the repo died at graph analysis. It went unnoticed because the
+v1.6.0 source-plane work was never deployed; Sample 01 hit it on the first live run (2026-09-01).
+
+The shape now in place:
+
+```python
+if is_snapshot_cdc:                       # target_config.cdc_load_strategy == FULL_SNAPSHOT_CDC
+    staged_df = read_ingestion_source(spark, flow_row.source_type, source_config)
+else:
+    staged_df = bind(plan, source_consumer_id, want_stream=is_streaming)
+```
+
+Reading directly is correct rather than merely expedient: the plane exists to make a *shared*
+locator read once (R2), and a snapshot source has exactly one consumer by construction — that is
+precisely what the exclusion asserts. Both sides branch on the single exported constant
+`source_plane.SNAPSHOT_EXCLUDED_FROM_SOURCE_PLANE`, never on two copies of the string, because a
+drift between them is invisible until pipeline runtime. Pinned by
+`tests/unit/test_flow_generators.py` §6 — including the other half, that every non-snapshot
+strategy *still* binds.
+
+---
+
+### 39. A module loaded from a JOB task must not transitively `import dlt`
+
+`import dlt` is not free outside a Lakeflow pipeline. It calls into the runtime's notebook entry
+point, which in a plain **job** notebook task has no notebook id to return, and the import dies
+before any framework code runs:
+
+```
+Py4JJavaError: An error occurred while calling o36.get.
+: java.util.NoSuchElementException: None.get
+    at scala.None$.get(Option.scala:627)
+```
+
+Confirmed live 2026-09-01: `observability/reconciliation_export.py` imported one *pure*
+exception-inspection helper (`_is_table_not_found`) from `dq/quarantine.py`, which does a
+module-level `import dlt`. Sample 03's `observability_export` task failed at **import time**,
+taking `store_sample_config` with it — while the pipeline that produced its reconciliation
+datasets had succeeded minutes earlier. `reconciliation/appender.py` carried the identical latent
+import, which would have broken the standalone reconciliation job the same way.
+
+**The trap is transitivity.** Reviewing the diff of `reconciliation_export.py` shows a helper
+import from a sibling module and nothing alarming; the `dlt` edge is one hop further out. The
+fix is not to shuffle the import site but to put shared code in a module that cannot drag `dlt`
+in: `dq/table_errors.py` now holds `is_table_not_found` / `TABLE_NOT_FOUND_CONDITIONS` and
+imports **nothing at all**. `dq/quarantine.py` keeps `_is_table_not_found` as an alias for
+pipeline-side callers — and a job-context module importing *that alias* would reintroduce the bug
+in full, which is why the alias carries a comment saying so.
+
+**This does not fail locally.** `databricks-dlt` is a dev dependency, so `import dlt` succeeds in
+pytest and proves nothing about the serverless job runtime. The guard is therefore static:
+`tests/unit/test_job_context_has_no_dlt_import.py` walks the real import graph with `ast` and
+asserts the edge is absent, with `dq/quarantine.py` itself as the control so the assertions
+cannot pass vacuously.
+
+Job-context entry points to keep clean (each is loaded by a notebook task, not a pipeline):
+`observability/reconciliation_export.py` (`08_dlt_observability_engine.py`),
+`reconciliation/appender.py` (`05_reconciliation_engine.py`), and `dq/table_errors.py` itself.

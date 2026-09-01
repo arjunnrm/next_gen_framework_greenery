@@ -16,7 +16,7 @@
         <link rel="prev" href="../reference/json/other/">
       
       
-        <link rel="next" href="../v1.4.0_attribute_delta/">
+        <link rel="next" href="../14_onboarding_restrictions_and_validation_rules/">
       
       
         
@@ -1404,6 +1404,8 @@
       
         
       
+        
+      
     
     
     
@@ -2136,6 +2138,34 @@
   
 </nav>
       
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../14_onboarding_restrictions_and_validation_rules/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Onboarding restrictions & validation rules
+  
+
+    
+  </span>
+  
+  
+
+      </a>
     </li>
   
 
@@ -2971,6 +3001,8 @@
       
         
       
+        
+      
     
     
     
@@ -3059,6 +3091,34 @@
     
   
     Multi-role FAQs
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../15_agent_skills_and_prompts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Agent skills & prompt library
   
 
     
@@ -3919,6 +3979,15 @@
 <td><a href="../07_reconciliation_engine/">Reconciliation Guide</a></td>
 </tr>
 <tr>
+<td><code>source_plane</code></td>
+<td><code>object</code></td>
+<td>No</td>
+<td><code>{"materialize": "auto", "catalog": null, "schema": null}</code></td>
+<td><code>materialize</code>: <code>"auto"</code>|<code>"always"</code>|<code>"never"</code>; <code>catalog</code>/<code>schema</code>: string or <code>null</code></td>
+<td><strong>New in v1.5.0.</strong> Read-once policy for the whole group. Every physical source — ingestion source, transformation input, both reconciliation sides — is routed through the source plane so one locator is read once per update. <code>"auto"</code> materializes a shared node only at fan-out ≥ 2, keeping a single-consumer read inline and preserving its predicate pushdown; <code>"never"</code> is the escape hatch for a huge, heavily-filtered table; <code>"always"</code> forces read-once everywhere. v1.6.0: <code>null</code> catalog/schema mean the shared node is <strong>not published</strong> — it becomes a pipeline-scoped temporary table (set both to publish it; pre-v1.6.0 <code>null</code> meant the pipeline's own schema). Persisted to <code>dataflow_group_spec.source_plane_config_json</code>.</td>
+<td><a href="../01_platform_architecture/#7-the-read-once-source-plane">Read-once source plane</a></td>
+</tr>
+<tr>
 <td><code>observability</code></td>
 <td><code>array</code></td>
 <td>No</td>
@@ -4759,6 +4828,30 @@
 <td>Unique identifier for this reconciliation flow.</td>
 </tr>
 <tr>
+<td><code>execution_mode</code></td>
+<td><code>string</code></td>
+<td>No</td>
+<td><code>"job"</code></td>
+<td><code>"job"</code>, <code>"pipeline"</code>, <code>"pipeline_audit_only"</code></td>
+<td><strong>New in v1.5.0.</strong> <code>"job"</code> runs the flow as today's <code>05_reconciliation_engine.py</code> job task. <code>"pipeline"</code> registers it as a third flow type inside the owning dataflow group's Lakeflow pipeline update — published <code>__classified</code>/<code>__metrics</code>/<code>__mismatch</code> datasets plus the in-graph heal lane. <code>"pipeline_audit_only"</code> registers the comparison and expectations in-pipeline while healing stays in job mode. Requires <code>dataflow_group_id</code> and <code>read_mode: "batch"</code> in the two pipeline modes. See <a href="../07_reconciliation_engine/#11-execution-modes-job-pipeline-pipeline_audit_only"><code>07_reconciliation_engine.md</code> §11</a>.</td>
+</tr>
+<tr>
+<td><code>publish_schema</code></td>
+<td><code>string</code></td>
+<td>No</td>
+<td>the hosting pipeline's own schema</td>
+<td>Schema name</td>
+<td><strong>New in v1.5.0.</strong> Where the three published reconciliation datasets land, inside the pipeline's own catalog. Persisted to <code>reconciliation_flow_spec.publish_schema</code>. <strong>Rejected on presence when <code>execution_mode</code> is <code>"job"</code>.</strong></td>
+</tr>
+<tr>
+<td><code>dq_config</code></td>
+<td><code>object</code></td>
+<td>No</td>
+<td>SQL <code>NULL</code></td>
+<td>Same shape as an ingestion/transformation <code>dq_config</code> (see <a href="#5-data-quality-config">§5</a>)</td>
+<td><strong>New in v1.5.0.</strong> Expectations attached to the one-row <code>__metrics</code> dataset — the first declarative way a reconciliation threshold can fail a pipeline update, e.g. <code>{"rules": [{"name": "no_value_drift", "expr": "value_drift_count = 0", "action": "fail"}]}</code>. Additive: it does not repurpose <code>error_handling.on_failure</code>. <code>action: "quarantine"</code> is rejected, and the block is <strong>rejected on presence when <code>execution_mode</code> is <code>"job"</code></strong>.</td>
+</tr>
+<tr>
 <td><code>two_tier_verification</code></td>
 <td><code>boolean</code></td>
 <td>No</td>
@@ -4772,7 +4865,7 @@
 <td>No</td>
 <td><code>true</code> / <code>true</code></td>
 <td><code>true</code>, <code>false</code></td>
-<td>Per-flow log-write gates, overridable at runtime by the <code>recon_run_log_capture</code>/<code>recon_mismatch_log</code> job parameters (highest precedence). <code>reconciliation_result</code> is always written regardless.</td>
+<td>Per-flow log-write gates, overridable at runtime by the <code>recon_run_log_capture</code>/<code>recon_mismatch_log</code> job parameters (highest precedence). v1.6.0: <code>run_log_capture</code> also gates <code>reconciliation_result</code> and (pipeline mode) the <code>recon__*__metrics</code> dataset registration; <code>mismatch_log_capture</code> gates the <code>__mismatch</code> dataset. Both <code>false</code> == the flow persists only to its business targets.</td>
 </tr>
 <tr>
 <td><code>source_config</code></td>
@@ -4812,7 +4905,7 @@
 <td>No</td>
 <td><code>"fail"</code></td>
 <td><code>"fail"</code>, <code>"warn"</code></td>
-<td>Evaluated per target. <code>"fail"</code> stops the run on the first target failure; <code>"warn"</code> logs it and continues to the next target.</td>
+<td>Evaluated per target. <code>"fail"</code> stops the run on the first target failure; <code>"warn"</code> logs it and continues to the next target. <strong>v1.5.0:</strong> semantics unchanged, blast radius larger under <code>execution_mode: "pipeline"</code> — re-raising fails the whole <strong>pipeline update</strong>, not just a job task.</td>
 </tr>
 </tbody>
 </table>
@@ -4851,7 +4944,7 @@
 <td>No</td>
 <td><code>"batch"</code></td>
 <td><code>"batch"</code>, <code>"streaming"</code></td>
-<td>At most one side of a given target's comparison may be streaming.</td>
+<td>At most one side of a given target's comparison may be streaming. <strong>v1.5.0: <code>"streaming"</code> is rejected on presence when <code>execution_mode</code> is <code>"pipeline"</code>/<code>"pipeline_audit_only"</code></strong> — the in-pipeline comparison is a whole-snapshot batch classification.</td>
 </tr>
 <tr>
 <td><code>task_run_id_column</code></td>
@@ -4859,7 +4952,7 @@
 <td>No</td>
 <td>—</td>
 <td>Column name</td>
-<td><strong>New in v1.3.0.</strong> When the <code>task_run_id</code> job parameter is set, narrows this side's read to <code>task_run_id_column == task_run_id</code>, applied before <code>filter_condition</code>. Reconciliation is triggered-only as of v1.4.0, so the narrowing is unconditional whenever both are configured. Recommended value: <code>__framework_pipeline_run_id</code> (not hardcoded — a third-party table's own run-id column works the same way).</td>
+<td><strong>New in v1.3.0.</strong> When the <code>task_run_id</code> job parameter is set, narrows this side's read to <code>task_run_id_column == task_run_id</code>, applied before <code>filter_condition</code>. Reconciliation is triggered-only as of v1.4.0, so the narrowing is unconditional whenever both are configured. Recommended value: <code>__framework_pipeline_run_id</code> (not hardcoded — a third-party table's own run-id column works the same way). <strong>v1.5.0: rejected on presence when <code>execution_mode</code> is <code>"pipeline"</code>/<code>"pipeline_audit_only"</code></strong> — a Lakeflow update exposes no stable per-update run id, so the narrowing would be a silent no-op.</td>
 </tr>
 <tr>
 <td><code>hash_precomputed</code></td>

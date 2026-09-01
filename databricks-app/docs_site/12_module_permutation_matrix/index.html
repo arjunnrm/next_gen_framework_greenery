@@ -1462,6 +1462,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="4. Reconciliation: which sides are reconcilable">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#41-execution_mode-what-is-legal-v150" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.1 execution_mode × what is legal (v1.5.0)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -1532,6 +1549,8 @@
       
         
           
+        
+      
         
       
         
@@ -1945,6 +1964,34 @@
     
   
     Full attribute dictionary
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../14_onboarding_restrictions_and_validation_rules/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Onboarding restrictions & validation rules
   
 
     
@@ -2788,6 +2835,8 @@
       
         
       
+        
+      
     
     
     
@@ -2876,6 +2925,34 @@
     
   
     Multi-role FAQs
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../15_agent_skills_and_prompts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Agent skills & prompt library
   
 
     
@@ -3400,6 +3477,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="4. Reconciliation: which sides are reconcilable">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#41-execution_mode-what-is-legal-v150" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.1 execution_mode × what is legal (v1.5.0)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -3620,6 +3714,81 @@ continuous and was not. The attribute is removed; see
 <li><strong>At most one side may be <code>read_mode: "streaming"</code>.</strong> Both sides streaming raises (<code>reconciliation/streaming.py</code>, verbatim): <code>f"target_id={target_id!r}: both source_config and this target are configured read_mode='streaming' -- stream-stream reconciliation is not supported ..."</code> — a stream-stream join would need watermarking and only supports inner/left-outer semantics, incompatible with the framework's four-way MATCHED/MISSING_IN_TARGET/MISSING_IN_SOURCE/VALUE_DRIFT classification.</li>
 <li><strong>A <code>read_mode: "streaming"</code> side must actually be append-friendly.</strong> <code>reconciliation/dataset_reader.py</code> reads a streaming side with a plain <code>spark.readStream.table(table)</code> — no <code>ignoreChanges</code>/<code>ignoreDeletes</code> option is set. A table that is fully overwritten on every refresh (the output of <code>cdc_load_strategy: "TRUNCATE_AND_LOAD"</code>, or any <code>materialized_view</code>) will raise Delta's own "Detected a data update" error the first time it is overwritten while a streaming reconciliation query holds a checkpoint against it. This applies regardless of <code>recon_mode</code> — it is a property of <code>read_mode: "streaming"</code> against a non-append-only table, not of continuous mode specifically. Configure that side as <code>read_mode: "batch"</code> instead.</li>
 </ul>
+<h3 id="41-execution_mode-what-is-legal-v150">4.1 <code>execution_mode</code> × what is legal (v1.5.0)<a class="headerlink" href="#41-execution_mode-what-is-legal-v150" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th></th>
+<th><code>execution_mode: "job"</code> (default)</th>
+<th><code>"pipeline_audit_only"</code></th>
+<th><code>"pipeline"</code></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>dataflow_group_id</code></td>
+<td>optional — a group-less flow is supported</td>
+<td><strong>required</strong></td>
+<td><strong>required</strong></td>
+</tr>
+<tr>
+<td><code>read_mode: "streaming"</code> on either side</td>
+<td>legal (at most one side)</td>
+<td><strong>rejected on presence</strong></td>
+<td><strong>rejected on presence</strong></td>
+</tr>
+<tr>
+<td><code>task_run_id_column</code></td>
+<td>legal</td>
+<td><strong>rejected on presence</strong></td>
+<td><strong>rejected on presence</strong></td>
+</tr>
+<tr>
+<td><code>publish_schema</code></td>
+<td><strong>rejected on presence</strong></td>
+<td>legal</td>
+<td>legal</td>
+</tr>
+<tr>
+<td><code>dq_config</code></td>
+<td><strong>rejected on presence</strong></td>
+<td>legal (on <code>__metrics</code>)</td>
+<td>legal (on <code>__metrics</code>)</td>
+</tr>
+<tr>
+<td><code>dq_config</code> rule with <code>action: "quarantine"</code></td>
+<td>n/a</td>
+<td><strong>rejected</strong></td>
+<td><strong>rejected</strong></td>
+</tr>
+<tr>
+<td><code>two_tier_verification</code></td>
+<td>honoured (and, from v1.5.0, actually persisted)</td>
+<td>honoured</td>
+<td>honoured</td>
+</tr>
+<tr>
+<td><code>error_handling.on_failure: "fail"</code> blast radius</td>
+<td>fails the job task</td>
+<td>fails the job task</td>
+<td>fails the <strong>pipeline update</strong></td>
+</tr>
+<tr>
+<td>Healing (<code>append_target_table</code> writes)</td>
+<td>every job run</td>
+<td>job run</td>
+<td>per micro-batch of the recon source — an update where the source does not advance performs no append</td>
+</tr>
+<tr>
+<td>Comparison datasets published to UC</td>
+<td>none</td>
+<td><code>__classified</code> / <code>__metrics</code> / <code>__mismatch</code></td>
+<td><code>__classified</code> / <code>__metrics</code> / <code>__mismatch</code></td>
+</tr>
+</tbody>
+</table>
+<p>Narrative, the L0–L5 node map and the DAG:
+<a href="../07_reconciliation_engine/#11-execution-modes-job-pipeline-pipeline_audit_only"><code>07_reconciliation_engine.md</code> §11</a>.</p>
 <p><code>task_run_id_column</code> narrowing (per-side field, E12) only ever applies to a <strong>static</strong> read: the <code>source_config</code>/<code>target_configs[]</code> side in a fully-batch target, or the non-streaming side's per-micro-batch read in a mixed target. It never narrows the streaming side — its own micro-batch offsets are already the batch boundary, and filtering it by a single producing-run id would silently discard every offset belonging to any other one, data the checkpoint then advances past and never re-offers. (Before v1.4.0 it also never applied under <code>recon_mode: "continuous"</code>; with that mode gone every run is bounded, so the narrowing is unconditional whenever both <code>task_run_id</code> and a <code>task_run_id_column</code> are configured.) See <a href="../07_reconciliation_engine/"><code>07_reconciliation_engine.md</code></a> §3 and §5.</p>
 <hr />
 <h2 id="5-observability-mode-destination_type-trigger-source">5. Observability: <code>mode</code> × <code>destination_type</code> × trigger source<a class="headerlink" href="#5-observability-mode-destination_type-trigger-source" title="Permanent link">&para;</a></h2>
@@ -3736,6 +3905,36 @@ continuous and was not. The attribute is removed; see
 <td><code>reconciliation_flows[].recon_mode</code> (any value)</td>
 <td><strong>Validation error</strong> at onboarding — removed in v1.4.0; reconciliation is triggered-only</td>
 <td><a href="../07_reconciliation_engine/"><code>07_reconciliation_engine.md</code></a> §5</td>
+</tr>
+<tr>
+<td><code>reconciliation_flows[].execution_mode: "pipeline"</code>/<code>"pipeline_audit_only"</code> with <code>read_mode: "streaming"</code> on either side</td>
+<td><strong>Validation error</strong> at onboarding — the in-pipeline comparison is a whole-snapshot batch classification; a stream-static join cannot express <code>MISSING_IN_SOURCE</code></td>
+<td><a href="../07_reconciliation_engine/"><code>07_reconciliation_engine.md</code></a> §11</td>
+</tr>
+<tr>
+<td><code>reconciliation_flows[].execution_mode: "pipeline"</code>/<code>"pipeline_audit_only"</code> with <code>task_run_id_column</code></td>
+<td><strong>Validation error</strong> at onboarding — a Lakeflow update exposes no stable per-update run id, so the narrowing would be a silent no-op</td>
+<td><a href="../07_reconciliation_engine/"><code>07_reconciliation_engine.md</code></a> §11</td>
+</tr>
+<tr>
+<td><code>reconciliation_flows[].execution_mode: "pipeline"</code>/<code>"pipeline_audit_only"</code> without a <code>dataflow_group_id</code></td>
+<td><strong>Validation error</strong> at onboarding — a group-less flow has no pipeline to live in</td>
+<td><a href="../07_reconciliation_engine/"><code>07_reconciliation_engine.md</code></a> §11</td>
+</tr>
+<tr>
+<td><code>reconciliation_flows[].publish_schema</code> or <code>dq_config</code> with <code>execution_mode: "job"</code> (the default)</td>
+<td><strong>Validation error</strong> at onboarding — a job task publishes no dataset to name or to attach expectations to</td>
+<td><a href="../07_reconciliation_engine/"><code>07_reconciliation_engine.md</code></a> §11</td>
+</tr>
+<tr>
+<td>A reconciliation <code>dq_config</code> rule with <code>action: "quarantine"</code></td>
+<td><strong>Validation error</strong> at onboarding — there is nothing to quarantine on a one-row <code>__metrics</code> table</td>
+<td><a href="../07_reconciliation_engine/"><code>07_reconciliation_engine.md</code></a> §11</td>
+</tr>
+<tr>
+<td><code>spark_config</code> setting <code>pipelines.incompatibleViewCheck.enabled: false</code></td>
+<td><strong>Known and rejected</strong> — pipeline-wide, and it silences the check without making a streaming plan batch-readable</td>
+<td><a href="../13_known_limitations_and_gotchas/#l8"><code>13_known_limitations_and_gotchas.md</code> L8</a></td>
 </tr>
 <tr>
 <td><code>observability[]</code> destination with <code>mode: "continuous"</code> and no <code>destination_config.event_log_tables</code></td>

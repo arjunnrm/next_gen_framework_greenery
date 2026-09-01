@@ -78,25 +78,47 @@ Streams processed records into a real-time Kafka topic with SASL/SSL authenticat
 ```
 
 ### 2.3 PGP-Encrypted ZIP Export (`format: "pgp_zip"`)
-Compresses processed records into a ZIP archive, encrypts the archive with an external partner's PGP public key, and writes the resulting `.zip.pgp` file to a target Volume.
+This framework's own custom Lakeflow sink (`archive/pgp_zip_sink.py::PgpZipDataSource`, a real `pyspark.sql.datasource.DataSource`). Each micro-batch is a two-step **stage-then-archive**: `write()` (executor side) stages one raw-row file per non-empty partition into `sink_config.path` (the staging directory), then `commit()` (driver side) zips exactly that micro-batch's staged files — optionally AES-password-protecting the ZIP and/or PGP-encrypting+signing it — into one finished archive under `post_export_archive.output_zip_path`.
 ```json
 {
   "target_type": "external_sink",
   "target_config": {
     "sink_config": {
       "format": "pgp_zip",
-      "destination_volume_path": "/Volumes/{{catalog}}/egress/partner_secure_drop",
-      "archive_name_prefix": "daily_settlement_",
-      "compression_level": 9,
-      "pgp_public_key_secret": {
-        "secret_catalog": "poc",
-        "secret_schema": "security",
-        "secret_key": "partner_public_pgp_key"
+      "path": "/Volumes/{{catalog}}/egress/partner_staging",
+      "staged_file_format": "json",
+      "post_export_archive": {
+        "enabled": true,
+        "output_zip_path": "/Volumes/{{catalog}}/egress/partner_secure_drop",
+        "export_file_name_format": "{timestamp}_{batch_id}_export.zip",
+        "pgp_encryption": {
+          "enabled": true,
+          "recipient_public_key_secret": {
+            "secret_catalog": "poc",
+            "secret_schema": "security",
+            "secret_key": "partner_public_pgp_key"
+          }
+        }
       }
     }
   }
 }
 ```
+
+#### Staged file format inside the archive (`staged_file_format`, v1.6.0)
+
+`sink_config.staged_file_format` controls the format of the staged per-partition files that end up
+inside the exported archive. It is meaningful for `pgp_zip` **only** — the attribute is rejected on
+presence for `"delta"`/`"kafka"`, which are native Lakeflow sinks with no framework staging step
+(`onboarding/spec_validator.py::_validate_sink_config`).
+
+| Value | Staged file shape |
+|---|---|
+| `"json"` (default when absent) | JSON-Lines — one JSON object per row, the only pre-v1.6.0 behaviour. Non-JSON-native values (dates, decimals, binary) are stringified rather than failing the micro-batch. |
+| `"csv"` | RFC-4180 CSV **with a header row**, one staged file per non-empty partition per micro-batch (each file carries its own header). Header/column order follows the sink's declared write schema when Spark supplies one (stable across partitions and micro-batches), falling back to the first row's own field order. `None` serialises as an **empty cell**; a nested struct/array serialises as its **JSON text** (never a Python repr), so a downstream consumer can still parse it. |
+
+Both formats share the same tolerance philosophy: the sink's job is to archive the data for
+downstream consumption, never to crash a micro-batch over one awkward column type.
 
 ---
 

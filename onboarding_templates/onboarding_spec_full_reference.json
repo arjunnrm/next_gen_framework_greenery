@@ -787,6 +787,7 @@
         "sink_config": {
           "format": "pgp_zip",
           "path": "/Volumes/{{catalog}}/egress/ref_pure_sink_pgp_zip/{{env}}/_staging/",
+          "staged_file_format": "csv",
           "post_export_archive": {
             "enabled": true,
             "output_zip_path": "/Volumes/{{catalog}}/egress/zips/ref_pure_sink_pgp_zip/{{env}}/",

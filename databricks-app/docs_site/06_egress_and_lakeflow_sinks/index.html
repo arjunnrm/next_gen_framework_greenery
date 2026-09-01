@@ -1537,6 +1537,8 @@
       
         
       
+        
+      
     
     
     
@@ -1940,6 +1942,34 @@
     
   
     Full attribute dictionary
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../14_onboarding_restrictions_and_validation_rules/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Onboarding restrictions & validation rules
   
 
     
@@ -2783,6 +2813,8 @@
       
         
       
+        
+      
     
     
     
@@ -2871,6 +2903,34 @@
     
   
     Multi-role FAQs
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../15_agent_skills_and_prompts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Agent skills & prompt library
   
 
     
@@ -3510,24 +3570,56 @@
 <a id="__codelineno-2-15" name="__codelineno-2-15" href="#__codelineno-2-15"></a><span class="p">}</span>
 </code></pre></div></p>
 <h3 id="23-pgp-encrypted-zip-export-format-pgp_zip">2.3 PGP-Encrypted ZIP Export (<code>format: "pgp_zip"</code>)<a class="headerlink" href="#23-pgp-encrypted-zip-export-format-pgp_zip" title="Permanent link">&para;</a></h3>
-<p>Compresses processed records into a ZIP archive, encrypts the archive with an external partner's PGP public key, and writes the resulting <code>.zip.pgp</code> file to a target Volume.
+<p>This framework's own custom Lakeflow sink (<code>archive/pgp_zip_sink.py::PgpZipDataSource</code>, a real <code>pyspark.sql.datasource.DataSource</code>). Each micro-batch is a two-step <strong>stage-then-archive</strong>: <code>write()</code> (executor side) stages one raw-row file per non-empty partition into <code>sink_config.path</code> (the staging directory), then <code>commit()</code> (driver side) zips exactly that micro-batch's staged files — optionally AES-password-protecting the ZIP and/or PGP-encrypting+signing it — into one finished archive under <code>post_export_archive.output_zip_path</code>.
 <div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="p">{</span>
 <a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="w">  </span><span class="nt">"target_type"</span><span class="p">:</span><span class="w"> </span><span class="s2">"external_sink"</span><span class="p">,</span>
 <a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="w">  </span><span class="nt">"target_config"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
 <a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="w">    </span><span class="nt">"sink_config"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
 <a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="w">      </span><span class="nt">"format"</span><span class="p">:</span><span class="w"> </span><span class="s2">"pgp_zip"</span><span class="p">,</span>
-<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="w">      </span><span class="nt">"destination_volume_path"</span><span class="p">:</span><span class="w"> </span><span class="s2">"/Volumes/{{catalog}}/egress/partner_secure_drop"</span><span class="p">,</span>
-<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="w">      </span><span class="nt">"archive_name_prefix"</span><span class="p">:</span><span class="w"> </span><span class="s2">"daily_settlement_"</span><span class="p">,</span>
-<a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a><span class="w">      </span><span class="nt">"compression_level"</span><span class="p">:</span><span class="w"> </span><span class="mi">9</span><span class="p">,</span>
-<a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a><span class="w">      </span><span class="nt">"pgp_public_key_secret"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a><span class="w">        </span><span class="nt">"secret_catalog"</span><span class="p">:</span><span class="w"> </span><span class="s2">"poc"</span><span class="p">,</span>
-<a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a><span class="w">        </span><span class="nt">"secret_schema"</span><span class="p">:</span><span class="w"> </span><span class="s2">"security"</span><span class="p">,</span>
-<a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a><span class="w">        </span><span class="nt">"secret_key"</span><span class="p">:</span><span class="w"> </span><span class="s2">"partner_public_pgp_key"</span>
-<a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a><span class="w">      </span><span class="p">}</span>
-<a id="__codelineno-3-14" name="__codelineno-3-14" href="#__codelineno-3-14"></a><span class="w">    </span><span class="p">}</span>
-<a id="__codelineno-3-15" name="__codelineno-3-15" href="#__codelineno-3-15"></a><span class="w">  </span><span class="p">}</span>
-<a id="__codelineno-3-16" name="__codelineno-3-16" href="#__codelineno-3-16"></a><span class="p">}</span>
+<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="w">      </span><span class="nt">"path"</span><span class="p">:</span><span class="w"> </span><span class="s2">"/Volumes/{{catalog}}/egress/partner_staging"</span><span class="p">,</span>
+<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="w">      </span><span class="nt">"staged_file_format"</span><span class="p">:</span><span class="w"> </span><span class="s2">"json"</span><span class="p">,</span>
+<a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a><span class="w">      </span><span class="nt">"post_export_archive"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a><span class="w">        </span><span class="nt">"enabled"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+<a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a><span class="w">        </span><span class="nt">"output_zip_path"</span><span class="p">:</span><span class="w"> </span><span class="s2">"/Volumes/{{catalog}}/egress/partner_secure_drop"</span><span class="p">,</span>
+<a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a><span class="w">        </span><span class="nt">"export_file_name_format"</span><span class="p">:</span><span class="w"> </span><span class="s2">"{timestamp}_{batch_id}_export.zip"</span><span class="p">,</span>
+<a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a><span class="w">        </span><span class="nt">"pgp_encryption"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a><span class="w">          </span><span class="nt">"enabled"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+<a id="__codelineno-3-14" name="__codelineno-3-14" href="#__codelineno-3-14"></a><span class="w">          </span><span class="nt">"recipient_public_key_secret"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-3-15" name="__codelineno-3-15" href="#__codelineno-3-15"></a><span class="w">            </span><span class="nt">"secret_catalog"</span><span class="p">:</span><span class="w"> </span><span class="s2">"poc"</span><span class="p">,</span>
+<a id="__codelineno-3-16" name="__codelineno-3-16" href="#__codelineno-3-16"></a><span class="w">            </span><span class="nt">"secret_schema"</span><span class="p">:</span><span class="w"> </span><span class="s2">"security"</span><span class="p">,</span>
+<a id="__codelineno-3-17" name="__codelineno-3-17" href="#__codelineno-3-17"></a><span class="w">            </span><span class="nt">"secret_key"</span><span class="p">:</span><span class="w"> </span><span class="s2">"partner_public_pgp_key"</span>
+<a id="__codelineno-3-18" name="__codelineno-3-18" href="#__codelineno-3-18"></a><span class="w">          </span><span class="p">}</span>
+<a id="__codelineno-3-19" name="__codelineno-3-19" href="#__codelineno-3-19"></a><span class="w">        </span><span class="p">}</span>
+<a id="__codelineno-3-20" name="__codelineno-3-20" href="#__codelineno-3-20"></a><span class="w">      </span><span class="p">}</span>
+<a id="__codelineno-3-21" name="__codelineno-3-21" href="#__codelineno-3-21"></a><span class="w">    </span><span class="p">}</span>
+<a id="__codelineno-3-22" name="__codelineno-3-22" href="#__codelineno-3-22"></a><span class="w">  </span><span class="p">}</span>
+<a id="__codelineno-3-23" name="__codelineno-3-23" href="#__codelineno-3-23"></a><span class="p">}</span>
 </code></pre></div></p>
+<h4 id="staged-file-format-inside-the-archive-staged_file_format-v160">Staged file format inside the archive (<code>staged_file_format</code>, v1.6.0)<a class="headerlink" href="#staged-file-format-inside-the-archive-staged_file_format-v160" title="Permanent link">&para;</a></h4>
+<p><code>sink_config.staged_file_format</code> controls the format of the staged per-partition files that end up
+inside the exported archive. It is meaningful for <code>pgp_zip</code> <strong>only</strong> — the attribute is rejected on
+presence for <code>"delta"</code>/<code>"kafka"</code>, which are native Lakeflow sinks with no framework staging step
+(<code>onboarding/spec_validator.py::_validate_sink_config</code>).</p>
+<table>
+<thead>
+<tr>
+<th>Value</th>
+<th>Staged file shape</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>"json"</code> (default when absent)</td>
+<td>JSON-Lines — one JSON object per row, the only pre-v1.6.0 behaviour. Non-JSON-native values (dates, decimals, binary) are stringified rather than failing the micro-batch.</td>
+</tr>
+<tr>
+<td><code>"csv"</code></td>
+<td>RFC-4180 CSV <strong>with a header row</strong>, one staged file per non-empty partition per micro-batch (each file carries its own header). Header/column order follows the sink's declared write schema when Spark supplies one (stable across partitions and micro-batches), falling back to the first row's own field order. <code>None</code> serialises as an <strong>empty cell</strong>; a nested struct/array serialises as its <strong>JSON text</strong> (never a Python repr), so a downstream consumer can still parse it.</td>
+</tr>
+</tbody>
+</table>
+<p>Both formats share the same tolerance philosophy: the sink's job is to archive the data for
+downstream consumption, never to crash a micro-batch over one awkward column type.</p>
 <hr />
 <h2 id="3-eager-secret-resolution-principle">3. Eager Secret Resolution Principle<a class="headerlink" href="#3-eager-secret-resolution-principle" title="Permanent link">&para;</a></h2>
 <p>To ensure zero downtime and fail-fast validation:

@@ -14,11 +14,16 @@ handler invocation, and in both of them the comparison itself ran perfectly well
 * a ``"pipeline_audit_only"`` flow, which registers L3+L4 and deliberately has **no** L5 lane at
   all -- so nothing ever writes its control rows.
 
-The published L4 datasets (``recon__<id>__<target>__metrics`` and ``__mismatch``) are materialized
-regardless in both cases: the comparison is visible in Unity Catalog, but the audit trail an
-operator actually queries would silently have no row for that update. This module closes that gap.
-It reads what the pipeline already published and appends the missing control rows, so **an audit
-row exists for every update** whether or not the handler fired.
+The published L4 datasets (``recon__<id>__<target>__metrics`` when ``run_log_capture`` resolves
+true, ``__mismatch`` when ``mismatch_log_capture`` does -- since v1.6.0 each is registered ONLY
+when its capture flag is on) are materialized regardless in both cases: the comparison is visible
+in Unity Catalog, but the audit trail an operator actually queries would silently have no row for
+that update. This module closes that gap. It reads what the pipeline already published and appends
+the missing control rows, so **an audit row exists for every update the flow's logging_config asks
+to be logged** whether or not the handler fired. A flow whose flags both resolve false publishes
+no L4 audit datasets, writes no control rows anywhere, and is deliberately skipped here --
+reconciliation then persists only to its business targets (the v1.6.0 contract; this includes
+``reconciliation_result``, which is now gated by ``run_log_capture`` instead of unconditional).
 
 **Idempotency is the whole contract.** Every write is keyed on
 ``(reconciliation_id, target_id, pipeline_update_id)`` -- the update id is threaded through as each
@@ -47,9 +52,9 @@ handler already wrote the rows on every update where it fired.
 recorded in ``dataflow_group_spec``. So the location is *resolved by probing*: the flow's own
 ``publish_schema`` (against the group's ``catalog_name`` and every catalog its flows publish into)
 when set, otherwise every ``(target_catalog, target_schema)`` pair this group's ingestion and
-transformation flows use, in control-table order. The first candidate whose ``__metrics`` dataset is
-readable wins; a flow whose datasets cannot be located anywhere is logged at WARNING and skipped,
-never guessed at.
+transformation flows use, in control-table order. The first candidate whose probe dataset
+(``__metrics`` when ``run_log_capture`` is on, else ``__mismatch``) is readable wins; a flow whose
+datasets cannot be located anywhere is logged at WARNING and skipped, never guessed at.
 """
 
 import json
@@ -61,7 +66,11 @@ from pyspark.sql import SparkSession
 from pyspark.sql import functions as F
 
 from NextGen_Metadata_Framework.lakeflow_framework.control_plane.repository import load_active_group_metadata
-from NextGen_Metadata_Framework.lakeflow_framework.dq.quarantine import _is_table_not_found
+# dq.table_errors, NOT dq.quarantine: this module is imported by
+# notebooks/08_observability/08_dlt_observability_engine.py, a plain JOB notebook task.
+# dq/quarantine.py does a module-level `import dlt`, which dies outside a pipeline context
+# with `NoSuchElementException: None.get` before any framework code runs (live, 2026-09-01).
+from NextGen_Metadata_Framework.lakeflow_framework.dq.table_errors import is_table_not_found
 from NextGen_Metadata_Framework.lakeflow_framework.engine.identifiers import sanitize_identifier
 from NextGen_Metadata_Framework.lakeflow_framework.exceptions import FrameworkConfigError
 from NextGen_Metadata_Framework.lakeflow_framework.observability.structured_logger import logged_operation
@@ -138,7 +147,7 @@ def _table_is_readable(spark: SparkSession, table_name: str) -> bool:
         spark.read.table(table_name).schema  # noqa: B018 -- forces analysis now, inside this try
         return True
     except Exception as exc:  # noqa: BLE001 -- narrowed immediately by condition name
-        if _is_table_not_found(exc):
+        if is_table_not_found(exc):
             return False
         raise
 
@@ -364,9 +373,22 @@ def export_reconciliation_control_rows(
             # logging_config is the only layer -- exactly the defaulting the L5 handler applies.
             run_log_capture, mismatch_log_capture = resolve_log_capture_flags(logging_config)
 
+            if not run_log_capture and not mismatch_log_capture:
+                # v1.6.0: with both captures suppressed the flow registers no __metrics/
+                # __mismatch datasets and writes no control rows at all -- nothing to export.
+                logger.info(
+                    "Reconciliation flow '%s': both log captures resolve false -- nothing to export.",
+                    reconciliation_id,
+                )
+                skipped_targets += len(target_configs)
+                continue
+
             target_ids = [tc["target_id"] for tc in target_configs]
             first_sanitized_target_id = sanitize_identifier(target_ids[0])
 
+            # v1.6.0: __metrics exists only when run_log_capture is true, __mismatch only when
+            # mismatch_log_capture is -- probe whichever dataset this flow actually registers.
+            _probe_suffix = "metrics" if run_log_capture else "mismatch"
             location = None
             for candidate_catalog, candidate_schema in _publish_location_candidates(
                 metadata.group_row, flow_row, flow_rows
@@ -374,7 +396,7 @@ def export_reconciliation_control_rows(
                 probe = qualified_table_name(
                     candidate_catalog,
                     candidate_schema,
-                    f"recon__{sanitized_reconciliation_id}__{first_sanitized_target_id}__metrics",
+                    f"recon__{sanitized_reconciliation_id}__{first_sanitized_target_id}__{_probe_suffix}",
                 )
                 if _table_is_readable(spark, probe):
                     location = (candidate_catalog, candidate_schema)
@@ -396,45 +418,55 @@ def export_reconciliation_control_rows(
             for target_id in target_ids:
                 sanitized_target_id = sanitize_identifier(target_id)
                 key = (reconciliation_id, target_id)
-                needs_result = key not in result_keys
+                # v1.6.0: reconciliation_result is gated by run_log_capture too -- with the
+                # run log suppressed, reconciliation persists nothing but business targets.
+                needs_result = run_log_capture and key not in result_keys
                 needs_run_log = run_log_capture and key not in run_log_keys
                 needs_mismatch = mismatch_log_capture and key not in mismatch_keys
                 if not (needs_result or needs_run_log or needs_mismatch):
                     skipped_targets += 1
                     continue
 
-                metrics_dataset = qualified_table_name(
-                    publish_catalog,
-                    publish_schema,
-                    f"recon__{sanitized_reconciliation_id}__{sanitized_target_id}__metrics",
-                )
-                if not _table_is_readable(spark, metrics_dataset):
-                    logger.warning(
-                        "Reconciliation flow '%s' target '%s': '%s' is not readable -- skipping this target's "
-                        "control-row export for pipeline_update_id='%s'.",
-                        reconciliation_id,
-                        target_id,
-                        metrics_dataset,
-                        pipeline_update_id,
+                metrics = None
+                if needs_run_log or needs_result:
+                    metrics_dataset = qualified_table_name(
+                        publish_catalog,
+                        publish_schema,
+                        f"recon__{sanitized_reconciliation_id}__{sanitized_target_id}__metrics",
                     )
+                    if not _table_is_readable(spark, metrics_dataset):
+                        logger.warning(
+                            "Reconciliation flow '%s' target '%s': '%s' is not readable -- skipping this target's "
+                            "run_log/result export for pipeline_update_id='%s'.",
+                            reconciliation_id,
+                            target_id,
+                            metrics_dataset,
+                            pipeline_update_id,
+                        )
+                        needs_run_log = needs_result = False
+                    else:
+                        metrics_rows = spark.table(metrics_dataset).limit(1).collect()
+                        if not metrics_rows:
+                            # The L4 metrics dataset is a single .agg(...) and is one row by
+                            # construction; zero rows means it was never materialized. Inventing
+                            # all-NULL counts here would file an audit row asserting a comparison
+                            # that has no evidence.
+                            logger.warning(
+                                "Reconciliation flow '%s' target '%s': '%s' published no rows -- skipping this "
+                                "target's run_log/result export for pipeline_update_id='%s'.",
+                                reconciliation_id,
+                                target_id,
+                                metrics_dataset,
+                                pipeline_update_id,
+                            )
+                            needs_run_log = needs_result = False
+                        else:
+                            metrics = _metrics_from_row(metrics_rows[0])
+
+                if not (needs_result or needs_run_log or needs_mismatch):
+                    skipped_targets += 1
                     continue
 
-                metrics_rows = spark.table(metrics_dataset).limit(1).collect()
-                if not metrics_rows:
-                    # The L4 metrics dataset is a single .agg(...) and is one row by construction;
-                    # zero rows means it was never materialized. Inventing all-NULL counts here
-                    # would file an audit row asserting a comparison that has no evidence.
-                    logger.warning(
-                        "Reconciliation flow '%s' target '%s': '%s' published no rows -- skipping this target's "
-                        "control-row export for pipeline_update_id='%s'.",
-                        reconciliation_id,
-                        target_id,
-                        metrics_dataset,
-                        pipeline_update_id,
-                    )
-                    continue
-
-                metrics = _metrics_from_row(metrics_rows[0])
                 run_id = _backstop_run_id(reconciliation_id, target_id, pipeline_update_id)
 
                 if needs_run_log:

@@ -236,7 +236,7 @@ distinguishing field(s) — see the JSON itself for the full object.
 | `ts_ref_full_snapshot_cdc_minimal` | `streaming_table` | `FULL_SNAPSHOT_CDC` | The minimal snapshot shape — `primary_keys: ["region"]` and nothing else; no `cdc_operation_column`, so deletes are inferred purely from rows missing from the next snapshot |
 | `ts_ref_external_sink_delta` | `external_sink` | `SCD1` | `sink_config.format: "delta"` + `write_mode` (dead field, see below) + `post_export_archive.enabled: false` — the structurally-accepted-but-inert path for a non-`pgp_zip` format |
 | `ts_ref_external_sink_kafka` | `external_sink` | `APPEND` | `sink_config.format: "kafka"` with `kafka_options` (`kafka.bootstrap.servers`, `topic`, `databricks.serviceCredential`) and `kafka_secret_options` (`kafka.sasl.jaas.config` → secret ref) — **the baseline template has no Kafka example at all** |
-| `ts_ref_pure_sink_pgp_zip` | `sink` | `APPEND` | `sink_config.format: "pgp_zip"` with **every** `post_export_archive` field: `output_zip_path`, `export_file_name_format` (a `str.format()` template — new vs. baseline), `secret` (AES ZIP password), and `pgp_encryption` with all three of `recipient_public_key_secret`, `sign_with_private_key_secret`, **and** `sign_passphrase_secret` together (new — the baseline template signs without a passphrase) |
+| `ts_ref_pure_sink_pgp_zip` | `sink` | `APPEND` | `sink_config.format: "pgp_zip"` with `staged_file_format: "csv"` (v1.6.0 — RFC-4180 staged files with a header row; absent means the JSON-Lines default) and **every** `post_export_archive` field: `output_zip_path`, `export_file_name_format` (a `str.format()` template — new vs. baseline), `secret` (AES ZIP password), and `pgp_encryption` with all three of `recipient_public_key_secret`, `sign_with_private_key_secret`, **and** `sign_passphrase_secret` together (new — the baseline template signs without a passphrase) |
 | `ts_ref_union_all` | `streaming_table` | `APPEND` | `UNION ALL` across two streaming `source_inputs` |
 
 A few of these fields are worth calling out individually since they don't fit neatly into
@@ -447,7 +447,7 @@ file actually cover field X" lookup; every row was cross-checked line-by-line ag
 | `target_config.capture_technical_metadata` | `ts_ref_append_full` |
 | `sink_config.format: "delta"` | `ts_ref_external_sink_delta` |
 | `sink_config.format: "kafka"` + `kafka_options` + `kafka_secret_options` | `ts_ref_external_sink_kafka` |
-| `sink_config.format: "pgp_zip"` + `export_file_name_format` + `sign_passphrase_secret` | `ts_ref_pure_sink_pgp_zip` |
+| `sink_config.format: "pgp_zip"` + `staged_file_format` + `export_file_name_format` + `sign_passphrase_secret` | `ts_ref_pure_sink_pgp_zip` |
 | `sink_config.write_mode` (dead field) | `ts_ref_external_sink_delta` |
 | `dq_config.rules[].action` — all 4 values | `df_ref_autoloader_full`, `ts_ref_append_full` |
 | `governance_tags.column_tags`/`table_tags` | `df_ref_autoloader_full`, `ts_ref_append_full` |

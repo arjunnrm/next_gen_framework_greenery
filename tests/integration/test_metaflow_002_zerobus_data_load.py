@@ -36,7 +36,7 @@ than assumed from reading the framework source alone.
 *only* ``customer_id``/``customer_name``/``status`` -- no ``updated_at``. This ingestion flow's
 one and only stream materialization run happened against that original 3-column schema
 (scenario 002's pipeline runs before scenario 003's reconciliation task in
-``resources/metaflow_test_002_003_job.yml``'s task graph). ``updated_at`` only comes into
+``resources/feature_tests/metaflow_test_002_003_job.yml``'s task graph). ``updated_at`` only comes into
 existence on ``zerobus_source_bus`` later, as a side effect of scenario 003's reconciliation
 appending C006/C007 back into it with ``mergeSchema=true``
 (``reconciliation/appender.py::append_missing_records``) -- see
@@ -45,7 +45,7 @@ appending C006/C007 back into it with ``mergeSchema=true``
 correctly has no ``updated_at`` column at all.
 
 Run ``databricks bundle run metaflow_test_002_003_job --target dev`` (see
-``resources/metaflow_test_002_003_job.yml``) before running these -- these tests assert
+``resources/feature_tests/metaflow_test_002_003_job.yml``) before running these -- these tests assert
 against a table *already materialized* by that real run; Lakeflow Declarative Pipelines cannot
 run locally (see the note in ``tests/conftest.py`` and the analogous docstring in
 ``tests/integration/test_pipeline1_scd.py``).

@@ -394,18 +394,42 @@ def test_materialize_never_stays_inline_even_at_fanout_two():
     assert plan.bindings["fs_b:input:d"].kind == "inline"
 
 
-def test_shared_node_without_node_catalog_is_rejected():
-    """A plan that needs a node but was given nowhere to publish it fails loudly at plan time
-    rather than producing an unqualified (and therefore mis-published) dataset name.
+def test_shared_node_without_node_catalog_is_an_unpublished_temporary_node():
+    """v1.6.0 Intermediate Object Rule: a plan that needs a node but was given no explicit
+    publish location (``source_plane.catalog``/``schema`` unset) creates the node anyway --
+    bare-named and ``published=False``, which ``register_source_plane`` registers as a
+    pipeline-scoped ``@dlt.table(temporary=True)``. (Pre-v1.6.0 this raised
+    ``FrameworkConfigError``; the notebook then papered over it by falling back to the
+    pipeline's own catalog/schema, publishing every L0 node.)
     """
     external = f"{CATALOG}.ext.dim"
     rows = [
         _transformation_row("fs_a", [{"input_name": "d", "table": external, "is_streaming": False}], "out_a"),
         _transformation_row("fs_b", [{"input_name": "d", "table": external, "is_streaming": False}], "out_b"),
     ]
-    with pytest.raises(FrameworkConfigError) as excinfo:
-        plan_source_plane([], rows, [], node_catalog=None, node_schema=None)
-    assert "requires a shared node" in str(excinfo.value)
+    plan = plan_source_plane([], rows, [], node_catalog=None, node_schema=None)
+
+    assert len(plan.nodes) == 1
+    node = next(iter(plan.nodes.values()))
+    assert node.published is False
+    assert "." not in node.dataset_name, "an unpublished node must keep its bare, pipeline-local name"
+    assert plan.bindings["fs_a:input:d"].kind == "shared_node"
+    assert plan.bindings["fs_a:input:d"].dataset_name == node.dataset_name
+
+
+def test_shared_node_with_explicit_catalog_and_schema_is_published_qualified():
+    """When the spec explicitly sets ``source_plane.catalog``+``schema``, the node is published
+    there, exactly as pre-v1.6.0."""
+    external = f"{CATALOG}.ext.dim"
+    rows = [
+        _transformation_row("fs_a", [{"input_name": "d", "table": external, "is_streaming": False}], "out_a"),
+        _transformation_row("fs_b", [{"input_name": "d", "table": external, "is_streaming": False}], "out_b"),
+    ]
+    plan = plan_source_plane([], rows, [], node_catalog=CATALOG, node_schema="plane")
+
+    node = next(iter(plan.nodes.values()))
+    assert node.published is True
+    assert node.dataset_name.startswith(f"{CATALOG}.plane.")
 
 
 # ---------------------------------------------------------------------------------------------

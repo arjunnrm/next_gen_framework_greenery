@@ -238,9 +238,10 @@ RECON_LOG_CAPTURE_OVERRIDES = {
 # The hosting pipeline's own catalog/schema. Inside a running update these are the session's
 # current catalog/database; outside one (a local import of this file for linting/AST tests)
 # they are unavailable, so fall back to the group's onboarded catalog_name and leave the schema
-# unset. Neither value is *required* unless it is actually used: plan_source_plane raises only
-# if it must create a shared node, and generate_reconciliation_flow is never called at all for
-# a group with no pipeline-mode reconciliation rows.
+# unset. Since v1.6.0 these are consumed only by reconciliation dataset naming (published
+# metrics/mismatch nodes) -- the source plane no longer receives them (an unpublished node
+# needs no home), and generate_reconciliation_flow is never called at all for a group with no
+# pipeline-mode reconciliation rows.
 try:
     _CURRENT_CATALOG = spark.catalog.currentCatalog()
 except Exception as _catalog_exc:  # noqa: BLE001 -- must never fail graph definition
@@ -261,13 +262,16 @@ if not PIPELINE_SCHEMA:
     )
 
 # The onboarding spec (and therefore source_plane_config_json) names these keys `catalog`/
-# `schema` -- "null means the hosting pipeline's own"; plan_source_plane's own parameters are
-# `node_catalog`/`node_schema`, which is what makes them unambiguous at its call sites. The
-# rename happens here, once, rather than being forced into either of those two contracts.
+# `schema`; plan_source_plane's own parameters are `node_catalog`/`node_schema`, which is what
+# makes them unambiguous at its call sites. The rename happens here, once, rather than being
+# forced into either of those two contracts. Since v1.6.0 the spec's raw values are passed
+# WITHOUT falling back to the pipeline's own catalog/schema: "null" now means "do not publish"
+# -- the shared node becomes a pipeline-scoped temporary table (Intermediate Object Rule) --
+# whereas the old fallback made every L0 node a published table in the pipeline's target schema.
 _SOURCE_PLANE_KWARGS = {
     "materialize": _SOURCE_PLANE_CONFIG.get("materialize", "auto"),
-    "node_catalog": _SOURCE_PLANE_CONFIG.get("catalog") or PIPELINE_CATALOG,
-    "node_schema": _SOURCE_PLANE_CONFIG.get("schema") or PIPELINE_SCHEMA,
+    "node_catalog": _SOURCE_PLANE_CONFIG.get("catalog"),
+    "node_schema": _SOURCE_PLANE_CONFIG.get("schema"),
 }
 
 # COMMAND ----------

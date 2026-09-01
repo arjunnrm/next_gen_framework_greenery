@@ -42,6 +42,16 @@ own the real target-table name — see `cdc/dispatcher.py`) and its sibling `_qu
 and is where `__framework_hash_key`/`__framework_hash_value` get computed on the clean upstream
 (`_apply_hash_columns`) before any CDC strategy ever sees it.
 
+`table_errors.py` is the odd one out in this package and the reason is import safety, not data
+quality: it holds `is_table_not_found` / `TABLE_NOT_FOUND_CONDITIONS` and **imports nothing at
+all**. `quarantine.py` does a module-level `import dlt`, which is fatal in a plain job notebook
+task (`NoSuchElementException: None.get`), so any module reachable from a job — today
+`observability/reconciliation_export.py` and `reconciliation/appender.py` — imports the helper
+from `table_errors.py`, never from `quarantine.py`. `quarantine.py` keeps `_is_table_not_found`
+as a backwards-compatible alias for pipeline-side callers; importing *that* from job context
+reintroduces the bug. See `common_pitfalls.md` **39** and
+`tests/unit/test_job_context_has_no_dlt_import.py`.
+
 ## `cdc/`
 
 Every `cdc_load_strategy` implementation, dispatched by `dispatcher.py::register_cdc_strategy`.
@@ -98,8 +108,12 @@ string values itself — never wrap a placeholder in your own quotes in the SQL 
 The shared convergence point both the ingestion and transformation engines funnel into (see
 `notebooks/03_engine/03_lakeflow_declarative_pipeline.py`, which only differs per-engine in
 *how* it builds the staged DataFrame). `flow_registration.py::register_staged_view` registers
-the `@dlt.view` staged intermediate (DQ expectations decorator, ingestion timestamp,
-output-column encryption, quarantine columns); `register_flow_output` dispatches on
+the staged intermediate (DQ expectations decorator, ingestion timestamp, output-column
+encryption, quarantine columns) — a `@dlt.view` for a single-reader flow, or (v1.6.0, the
+Intermediate Object Rule) a pipeline-scoped `@dlt.table(temporary=True)` under the same bare
+name when it has more than one reader (quarantine rules, `sink`/`external_sink` targets):
+materialized once for read-once, never published to Unity Catalog (pre-v1.6.0 this case
+published a qualified `catalog.schema` table); `register_flow_output` dispatches on
 `target_type` to either a genuine sink (`"sink"`) or the main/quarantine-table + CDC-dispatch
 path (everything else), and additionally triggers the `"external_sink"` export.
 `sink_registration.py::register_sink_target` / `register_external_sink_export` build the
@@ -123,8 +137,10 @@ Three modules added in **v1.5.0**, when reconciliation moved inside the pipeline
   `bind` is keyed on a **consumer id string**, never on a caller-recomputed identity, so plan and
   bind cannot disagree; it returns one of three binding kinds — `in_graph_sibling` (`dlt.read`/
   `read_stream` of a table this same group publishes), `shared_node` (one materialized node, a
-  streaming table if *any* consumer streams, an MV otherwise), or `inline` (today's exact code
-  path, preserving predicate pushdown into the origin). Internal types: `ReadIdentity`
+  streaming table if *any* consumer streams, an MV otherwise — since v1.6.0 registered as a
+  bare-named `@dlt.table(temporary=True)`, published qualified only when the spec sets both
+  `source_plane.catalog` + `source_plane.schema`; `PlaneNode.published` carries the decision), or
+  `inline` (today's exact code path, preserving predicate pushdown into the origin). Internal types: `ReadIdentity`
   (`locator_kind`/`locator`/`options_fingerprint`, locator casefolded), `ConsumerRequest`,
   `PlaneNode`, `Binding`, `SourcePlanePlan`. `assert_acyclic(plan)` runs a Kahn topological sort
   over the whole edge set and raises `FrameworkGraphCycleError` naming the ring;
@@ -218,17 +234,26 @@ calls — the same full-outer join, when-chain and `F.max_by` per-key collapse a
 (plus `read_reconciliation_dataset`'s `in_graph` flag) are the other pure halves both hosts share.
 
 `graph_registration.py::register_reconciliation_flow(...)` is the in-pipeline registrar (layers
-L3/L4/L5 of the DAG). L3 publishes the prepared source and prepared target as real datasets — so
-the read/filter/standardize/hash chain is paid **once** per update instead of once per target, and
-`target_record_count` is structurally pinned to the pre-append instant. L4 publishes
-`recon__<rid>__<tid>__classified` / `__metrics` / `__mismatch` as real, queryable, lineage-tracked
-UC tables in `publish_schema`, with `dq_config` expectations attached to the one-row `__metrics`
-dataset (the first declarative way a reconciliation threshold can fail a pipeline update). L5 is
-the heal lane: the fingerprint-ledger-guarded append plus the three control-table writes, re-hosted
-verbatim inside **one** `dlt.foreach_batch_sink` handler per flow, keeping notebook 05's sequential
-per-target loop, its `try/except` and its `break` — so `error_handling.on_failure: "fail"` still
-stops the remaining targets of that `reconciliation_id`. `pipeline_audit_only` registers L3+L4 and
-leaves healing in job mode. `_counts_query` / `_mismatch_query` / `_wants_heal` are its helpers.
+L3/L4/L5 of the DAG). L3 materializes the prepared source and prepared target — so the
+read/filter/standardize/hash chain is paid **once** per update instead of once per target, and
+`target_record_count` is structurally pinned to the pre-append instant; since v1.6.0 these (and
+`__classified`/`__missing`/the pulse) are pipeline-scoped **temporary** tables, published qualified
+only for a healing flow's `_src`/healing `_tgt` (the L5 handler reads them back via
+`spark.read.table`). L4's published audit datasets, `recon__<rid>__<tid>__metrics` /
+`__mismatch`, are registered **only when their `logging_config` capture flag resolves true**
+(resolved at graph-definition time via `resolve_log_capture_flags`, pipeline-conf overrides
+included), land in `publish_schema`, and carry `dq_config` expectations on the one-row `__metrics`
+dataset (the first declarative way a reconciliation threshold can fail a pipeline update). Two
+contradictions raise `FrameworkConfigError` at graph definition (mirrored by the validator):
+`dq_config.rules` with `run_log_capture` false, and `pipeline_audit_only` with both flags false.
+L5 is the heal lane: the fingerprint-ledger-guarded append plus the control-table writes
+(`reconciliation_result` gated by `run_log_capture` since v1.6.0), re-hosted verbatim inside
+**one** `dlt.foreach_batch_sink` handler per flow, keeping notebook 05's sequential per-target
+loop, its `try/except` and its `break` — so `error_handling.on_failure: "fail"` still stops the
+remaining targets of that `reconciliation_id`; the heal flow's ordering edge joins a one-row
+aggregate of `__classified` (v1.6.0 — was `__metrics`, now conditional). `pipeline_audit_only`
+registers L3+L4 and leaves healing in job mode. `_counts_query` / `_mismatch_query` /
+`_wants_heal` are its helpers.
 The fingerprint ledger (`compute_batch_fingerprint` / `is_target_batch_already_processed`) is
 **kept verbatim and is more load-bearing here, not less**: a full refresh re-runs an
 `@dlt.append_flow` with no cleanup of prior writes, and `foreach_batch_sink`'s `batch_id` restarts
@@ -243,10 +268,11 @@ protected ZIP extraction into a UC Volume, via `pyzipper`) and `compress_and_enc
 FUSE mount doesn't support seek-on-write). `pgp_zip_sink.py::PgpZipDataSource` /
 `_PgpZipStreamWriter` is the genuine custom Lakeflow sink backing `sink_config.format:
 "pgp_zip"` (a real `pyspark.sql.datasource.DataSource`, registered via
-`spark.dataSource.register`) — stages rows as JSON-Lines per-partition on `write()`
-(executor-side), zips+optionally-PGP-encrypts exactly that micro-batch's files on `commit()`
-(driver-side); every secret it uses was already resolved upstream by
-`engine/sink_registration.py`. `zip_ingestion_pipeline.py::validate_zip_batch` /
+`spark.dataSource.register`) — stages rows per-partition on `write()` (executor-side) as
+JSON-Lines, or as RFC-4180 CSV with a header row when `sink_config.staged_file_format: "csv"`
+(v1.6.0; header order follows the sink's write schema, nested values stage as JSON text),
+zips+optionally-PGP-encrypts exactly that micro-batch's files on `commit()` (driver-side); every
+secret it uses was already resolved upstream by `engine/sink_registration.py`. `zip_ingestion_pipeline.py::validate_zip_batch` /
 `ingest_zip_batch` is the multi-ZIP batch orchestration (validate → extract → load → join →
 re-archive) backing `notebooks/06_zip_ingestion/`.
 
@@ -277,7 +303,7 @@ used at every call site in `engine/flow_registration.py`, `engine/sink_registrat
 (the observability engine's own dispatch phase) `destination_dispatcher.py` below.
 
 The DLT observability engine runs as a **downstream Workflow task**, chained after a pipeline's
-`run_pipeline_update` task (see `resources/dlt_observability_job.yml`,
+`run_pipeline_update` task (see `resources/observability/dlt_observability_job.yml`,
 `notebooks/08_observability/08_dlt_observability_engine.py`), and is completely independent of
 the pipeline's own graph-definition code:
 - `config_loader.py::load_destination_configs(spark, control_catalog, dataflow_group_id)`
@@ -314,9 +340,13 @@ the pipeline's own graph-definition code:
 `reconciliation_export.py::export_reconciliation_control_rows(spark, control_catalog, group_id,
 pipeline_update_id) -> int` (**v1.5.0**) is the observability-side counterpart of in-pipeline
 reconciliation: it reads every `recon__*__metrics` / `__mismatch` dataset a pipeline update
-published and writes the corresponding `reconciliation_run_log` / `reconciliation_mismatch_log`
-rows, de-duplicated per `(pipeline_update_id, target)`, so `pipeline_audit_only` flows still land
-in the control tables. Like every other function in this package it runs as a **downstream job
+published and writes the corresponding `reconciliation_run_log` / `reconciliation_mismatch_log` /
+`reconciliation_result` rows, de-duplicated per `(pipeline_update_id, target)`, so
+`pipeline_audit_only` flows still land in the control tables. **Flag-aware since v1.6.0**: it
+probes for `__metrics` when `run_log_capture` resolves true (else `__mismatch`), skips a flow
+whose two capture flags are both false (such a flow registers no audit datasets and writes no
+control rows anywhere), and gates its `reconciliation_result` writes under `run_log_capture` —
+the same contract as the L5 handler. Like every other function in this package it runs as a **downstream job
 task**, never inside the pipeline graph — requirement R3, observability stays a normal Lakeflow job
 task, unchanged.
 

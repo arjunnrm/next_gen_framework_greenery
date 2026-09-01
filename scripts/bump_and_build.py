@@ -1,4 +1,4 @@
-"""Build wrapper invoked by databricks.yml's `artifacts.python_artifact.build`.
+"""Build wrapper invoked by databricks.yml's `artifacts.framework_wheel.build`.
 
 Every `databricks bundle deploy` run must produce a brand-new, uniquely-named wheel
 rather than overwriting the one from the previous deploy -- otherwise a currently
@@ -8,7 +8,7 @@ docs/05_deployment_guide.md for the full rationale.
 
 Steps, in order:
 1. Archive (never delete) any wheel(s) already in dist/ so the subsequent `uv build`
-   is the only *.whl dist/ contains -- resources/*.yml's `../dist/*.whl` glob must
+   is the only *.whl dist/ contains -- resources/**/*.yml's `../../dist/*.whl` glob must
    only ever match one file.
 2. Stamp pyproject.toml's patch version to the current UTC epoch-milliseconds, so
    the new wheel's filename is guaranteed unique (hatch-vcs/setuptools_scm-style

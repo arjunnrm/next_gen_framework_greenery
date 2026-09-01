@@ -1404,6 +1404,8 @@
       
         
       
+        
+      
     
     
     
@@ -2682,6 +2684,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#target-configsink-configstaged-file-format" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        target_config.sink_config.staged_file_format
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#target-configsink-configwrite-mode" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2993,6 +3006,34 @@
     
   
     Full attribute dictionary
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../14_onboarding_restrictions_and_validation_rules/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Onboarding restrictions & validation rules
   
 
     
@@ -3836,6 +3877,8 @@
       
         
       
+        
+      
     
     
     
@@ -3924,6 +3967,34 @@
     
   
     Multi-role FAQs
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../15_agent_skills_and_prompts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Agent skills & prompt library
   
 
     
@@ -5464,6 +5535,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#target-configsink-configstaged-file-format" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        target_config.sink_config.staged_file_format
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#target-configsink-configwrite-mode" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -5557,7 +5639,7 @@
 <h1 id="ingestion-flows">Ingestion flows<a class="headerlink" href="#ingestion-flows" title="Permanent link">&para;</a></h1>
 <p>One entry per <code>ingestion_flows[]</code> element — reading from a landing zone into Bronze.</p>
 <div class="admonition info">
-<p class="admonition-title">100 attributes</p>
+<p class="admonition-title">101 attributes</p>
 <p>Every attribute below is also available in the Spec Builder's attribute
 inspector — click the <strong>i</strong> beside any field to see this same content
 without leaving the form.</p>
@@ -6134,6 +6216,12 @@ without leaving the form.</p>
 <tr>
 <td><a href="#target-configsink-configpost-export-archivesecretsecret-schema"><code>target_config.sink_config.post_export_archive.secret.secret_schema</code></a></td>
 <td>string</td>
+<td>no</td>
+<td>—</td>
+</tr>
+<tr>
+<td><a href="#target-configsink-configstaged-file-format"><code>target_config.sink_config.staged_file_format</code></a></td>
+<td>string (enum)</td>
 <td>no</td>
 <td>—</td>
 </tr>
@@ -8013,17 +8101,38 @@ without leaving the form.</p>
 </div>
 <p><strong>Databricks documentation:</strong> <a href="https://docs.databricks.com/security/secrets/index.html">secrets</a> · <a href="https://docs.databricks.com/data-governance/unity-catalog/manage-privileges/privileges.html">uc privileges</a></p>
 <hr />
+<h3 id="target-configsink-configstaged-file-format"><code>target_config.sink_config.staged_file_format</code><a class="headerlink" href="#target-configsink-configstaged-file-format" title="Permanent link">&para;</a></h3>
+<p>File format of the staged export files a pgp_zip sink writes before archiving.</p>
+<p>json (the default when absent) writes JSON-Lines; csv writes RFC-4180 files with a header row, one file per written partition. Only meaningful when sink_config.format is pgp_zip.</p>
+<p><strong>Type</strong> <code>string (enum)</code> · <strong>Required</strong> no · <strong>Section</strong> Target · sink config</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-94-1" name="__codelineno-94-1" href="#__codelineno-94-1"></a><span class="nt">"sink_config"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nt">"format"</span><span class="p">:</span><span class="w"> </span><span class="s2">"pgp_zip"</span><span class="p">,</span><span class="w"> </span><span class="nt">"path"</span><span class="p">:</span><span class="w"> </span><span class="s2">"/Volumes/{{catalog}}/egress/orders/"</span><span class="p">,</span><span class="w"> </span><span class="nt">"staged_file_format"</span><span class="p">:</span><span class="w"> </span><span class="s2">"csv"</span><span class="w"> </span><span class="p">}</span>
+</code></pre></div>
+<div class="admonition tip">
+<p class="admonition-title">Best practice</p>
+<ul>
+<li>Leave it unset to keep the JSON-Lines staging the framework has always produced.</li>
+<li>csv emits one file per written partition, each with its own header row.</li>
+</ul>
+</div>
+<div class="admonition warning">
+<p class="admonition-title">Known errors and limitations</p>
+<p><strong>Onboarding rejects staged_file_format</strong><br />
+<em>Cause:</em> It was set on a sink whose format is not pgp_zip.<br />
+<em>Fix:</em> Remove the attribute, or switch sink_config.format to pgp_zip.</p>
+</div>
+<p><strong>Databricks documentation:</strong> <a href="https://docs.databricks.com/delta-live-tables/sinks.html">sinks</a></p>
+<hr />
 <h3 id="target-configsink-configwrite-mode"><code>target_config.sink_config.write_mode</code><a class="headerlink" href="#target-configsink-configwrite-mode" title="Permanent link">&para;</a></h3>
 <p>Delta write mode.</p>
 <p>Delta write mode. Currently accepted but inert — @dlt.append_flow always appends.</p>
 <p><strong>Type</strong> <code>string (enum)</code> · <strong>Required</strong> no · <strong>Section</strong> Target · sink config</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-94-1" name="__codelineno-94-1" href="#__codelineno-94-1"></a><span class="p">{</span>
-<a id="__codelineno-94-2" name="__codelineno-94-2" href="#__codelineno-94-2"></a><span class="w">  </span><span class="nt">"target_config"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-94-3" name="__codelineno-94-3" href="#__codelineno-94-3"></a><span class="w">    </span><span class="nt">"sink_config"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-94-4" name="__codelineno-94-4" href="#__codelineno-94-4"></a><span class="w">      </span><span class="nt">"write_mode"</span><span class="p">:</span><span class="w"> </span><span class="s2">"append"</span>
-<a id="__codelineno-94-5" name="__codelineno-94-5" href="#__codelineno-94-5"></a><span class="w">    </span><span class="p">}</span>
-<a id="__codelineno-94-6" name="__codelineno-94-6" href="#__codelineno-94-6"></a><span class="w">  </span><span class="p">}</span>
-<a id="__codelineno-94-7" name="__codelineno-94-7" href="#__codelineno-94-7"></a><span class="p">}</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-95-1" name="__codelineno-95-1" href="#__codelineno-95-1"></a><span class="p">{</span>
+<a id="__codelineno-95-2" name="__codelineno-95-2" href="#__codelineno-95-2"></a><span class="w">  </span><span class="nt">"target_config"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-95-3" name="__codelineno-95-3" href="#__codelineno-95-3"></a><span class="w">    </span><span class="nt">"sink_config"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-95-4" name="__codelineno-95-4" href="#__codelineno-95-4"></a><span class="w">      </span><span class="nt">"write_mode"</span><span class="p">:</span><span class="w"> </span><span class="s2">"append"</span>
+<a id="__codelineno-95-5" name="__codelineno-95-5" href="#__codelineno-95-5"></a><span class="w">    </span><span class="p">}</span>
+<a id="__codelineno-95-6" name="__codelineno-95-6" href="#__codelineno-95-6"></a><span class="w">  </span><span class="p">}</span>
+<a id="__codelineno-95-7" name="__codelineno-95-7" href="#__codelineno-95-7"></a><span class="p">}</span>
 </code></pre></div>
 <div class="admonition tip">
 <p class="admonition-title">Best practice</p>
@@ -8037,11 +8146,11 @@ without leaving the form.</p>
 <p>Target table format.</p>
 <p>Target table format. iceberg is only valid when target_type is batch_table — for every other target type, leave this on delta and add the table property enable_iceberg_read_uniformity: true instead, which turns on Delta UniForm so Iceberg readers can read the Delta table.</p>
 <p><strong>Type</strong> <code>string (enum)</code> · <strong>Required</strong> no · <strong>Section</strong> Target · storage &amp; table</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-95-1" name="__codelineno-95-1" href="#__codelineno-95-1"></a><span class="p">{</span>
-<a id="__codelineno-95-2" name="__codelineno-95-2" href="#__codelineno-95-2"></a><span class="w">  </span><span class="nt">"target_config"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-95-3" name="__codelineno-95-3" href="#__codelineno-95-3"></a><span class="w">    </span><span class="nt">"storage_format"</span><span class="p">:</span><span class="w"> </span><span class="s2">"delta"</span>
-<a id="__codelineno-95-4" name="__codelineno-95-4" href="#__codelineno-95-4"></a><span class="w">  </span><span class="p">}</span>
-<a id="__codelineno-95-5" name="__codelineno-95-5" href="#__codelineno-95-5"></a><span class="p">}</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-96-1" name="__codelineno-96-1" href="#__codelineno-96-1"></a><span class="p">{</span>
+<a id="__codelineno-96-2" name="__codelineno-96-2" href="#__codelineno-96-2"></a><span class="w">  </span><span class="nt">"target_config"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-96-3" name="__codelineno-96-3" href="#__codelineno-96-3"></a><span class="w">    </span><span class="nt">"storage_format"</span><span class="p">:</span><span class="w"> </span><span class="s2">"delta"</span>
+<a id="__codelineno-96-4" name="__codelineno-96-4" href="#__codelineno-96-4"></a><span class="w">  </span><span class="p">}</span>
+<a id="__codelineno-96-5" name="__codelineno-96-5" href="#__codelineno-96-5"></a><span class="p">}</span>
 </code></pre></div>
 <div class="admonition tip">
 <p class="admonition-title">Best practice</p>
@@ -8056,10 +8165,10 @@ without leaving the form.</p>
 <p>Delta table properties applied to the target.</p>
 <p>Controls log retention, VACUUM safety windows, and Iceberg read compatibility.</p>
 <p><strong>Type</strong> <code>object&lt;string,string&gt;</code> · <strong>Required</strong> no · <strong>Section</strong> Target · storage &amp; table</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-96-1" name="__codelineno-96-1" href="#__codelineno-96-1"></a><span class="nt">"table_properties"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-96-2" name="__codelineno-96-2" href="#__codelineno-96-2"></a><span class="w">  </span><span class="nt">"log_retention_duration"</span><span class="p">:</span><span class="w"> </span><span class="s2">"interval 30 days"</span><span class="p">,</span>
-<a id="__codelineno-96-3" name="__codelineno-96-3" href="#__codelineno-96-3"></a><span class="w">  </span><span class="nt">"enable_iceberg_read_uniformity"</span><span class="p">:</span><span class="w"> </span><span class="s2">"true"</span>
-<a id="__codelineno-96-4" name="__codelineno-96-4" href="#__codelineno-96-4"></a><span class="p">}</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-97-1" name="__codelineno-97-1" href="#__codelineno-97-1"></a><span class="nt">"table_properties"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-97-2" name="__codelineno-97-2" href="#__codelineno-97-2"></a><span class="w">  </span><span class="nt">"log_retention_duration"</span><span class="p">:</span><span class="w"> </span><span class="s2">"interval 30 days"</span><span class="p">,</span>
+<a id="__codelineno-97-3" name="__codelineno-97-3" href="#__codelineno-97-3"></a><span class="w">  </span><span class="nt">"enable_iceberg_read_uniformity"</span><span class="p">:</span><span class="w"> </span><span class="s2">"true"</span>
+<a id="__codelineno-97-4" name="__codelineno-97-4" href="#__codelineno-97-4"></a><span class="p">}</span>
 </code></pre></div>
 <div class="admonition tip">
 <p class="admonition-title">Best practice</p>
@@ -8079,9 +8188,9 @@ without leaving the form.</p>
 <h3 id="target-schema"><code>target_schema</code><a class="headerlink" href="#target-schema" title="Permanent link">&para;</a></h3>
 <p>Schema for the target table.</p>
 <p><strong>Type</strong> <code>string</code> · <strong>Required</strong> yes · <strong>Section</strong> Target dataset</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-97-1" name="__codelineno-97-1" href="#__codelineno-97-1"></a><span class="p">{</span>
-<a id="__codelineno-97-2" name="__codelineno-97-2" href="#__codelineno-97-2"></a><span class="w">  </span><span class="nt">"target_schema"</span><span class="p">:</span><span class="w"> </span><span class="s2">"bronze_example"</span>
-<a id="__codelineno-97-3" name="__codelineno-97-3" href="#__codelineno-97-3"></a><span class="p">}</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-98-1" name="__codelineno-98-1" href="#__codelineno-98-1"></a><span class="p">{</span>
+<a id="__codelineno-98-2" name="__codelineno-98-2" href="#__codelineno-98-2"></a><span class="w">  </span><span class="nt">"target_schema"</span><span class="p">:</span><span class="w"> </span><span class="s2">"bronze_example"</span>
+<a id="__codelineno-98-3" name="__codelineno-98-3" href="#__codelineno-98-3"></a><span class="p">}</span>
 </code></pre></div>
 <div class="admonition tip">
 <p class="admonition-title">Best practice</p>
@@ -8093,9 +8202,9 @@ without leaving the form.</p>
 <h3 id="target-table"><code>target_table</code><a class="headerlink" href="#target-table" title="Permanent link">&para;</a></h3>
 <p>Target Delta table name.</p>
 <p><strong>Type</strong> <code>string</code> · <strong>Required</strong> yes · <strong>Section</strong> Target dataset</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-98-1" name="__codelineno-98-1" href="#__codelineno-98-1"></a><span class="p">{</span>
-<a id="__codelineno-98-2" name="__codelineno-98-2" href="#__codelineno-98-2"></a><span class="w">  </span><span class="nt">"target_table"</span><span class="p">:</span><span class="w"> </span><span class="s2">"example_raw"</span>
-<a id="__codelineno-98-3" name="__codelineno-98-3" href="#__codelineno-98-3"></a><span class="p">}</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-99-1" name="__codelineno-99-1" href="#__codelineno-99-1"></a><span class="p">{</span>
+<a id="__codelineno-99-2" name="__codelineno-99-2" href="#__codelineno-99-2"></a><span class="w">  </span><span class="nt">"target_table"</span><span class="p">:</span><span class="w"> </span><span class="s2">"example_raw"</span>
+<a id="__codelineno-99-3" name="__codelineno-99-3" href="#__codelineno-99-3"></a><span class="p">}</span>
 </code></pre></div>
 <div class="admonition tip">
 <p class="admonition-title">Best practice</p>
@@ -8108,7 +8217,7 @@ without leaving the form.</p>
 <p>The kind of Lakeflow dataset registered for this flow.</p>
 <p>Decides whether the target is incrementally maintained, fully recomputed, or export-only.</p>
 <p><strong>Type</strong> <code>string (enum)</code> · <strong>Required</strong> yes · <strong>Section</strong> Target dataset</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-99-1" name="__codelineno-99-1" href="#__codelineno-99-1"></a><span class="nt">"target_type"</span><span class="p">:</span><span class="w"> </span><span class="s2">"streaming_table"</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-100-1" name="__codelineno-100-1" href="#__codelineno-100-1"></a><span class="nt">"target_type"</span><span class="p">:</span><span class="w"> </span><span class="s2">"streaming_table"</span>
 </code></pre></div>
 <div class="admonition tip">
 <p class="admonition-title">Best practice</p>

@@ -53,6 +53,10 @@ from pyspark.sql import functions as F
 
 from NextGen_Metadata_Framework.lakeflow_framework.cdc.comparison_columns import resolve_comparison_columns
 from NextGen_Metadata_Framework.lakeflow_framework.cdc.hashing import compute_hash_columns
+from NextGen_Metadata_Framework.lakeflow_framework.dq.table_errors import (
+    TABLE_NOT_FOUND_CONDITIONS,
+    is_table_not_found,
+)
 from NextGen_Metadata_Framework.lakeflow_framework.exceptions import FrameworkConfigError
 from NextGen_Metadata_Framework.lakeflow_framework.observability.structured_logger import log_flow_event
 from NextGen_Metadata_Framework.lakeflow_framework.storage.column_ordering import reorder_columns_for_delta_stats
@@ -198,38 +202,15 @@ def _apply_hash_columns(df: DataFrame, target_config: Dict[str, Any]) -> DataFra
     return result_df
 
 
-# Spark error-condition names meaning "this table/view does not exist". Matched by name rather
-# than by message text so a Databricks-runtime wording change cannot silently turn a
-# never-materialized target into a hard failure (or vice versa). DELTA_TABLE_NOT_FOUND and
-# DELTA_PATH_DOES_NOT_EXIST cover the Delta-specific spellings; PATH_NOT_FOUND covers a target
-# whose storage location was removed out from under the metastore entry.
-_TABLE_NOT_FOUND_CONDITIONS = (
-    "TABLE_OR_VIEW_NOT_FOUND",
-    "DELTA_TABLE_NOT_FOUND",
-    "DELTA_PATH_DOES_NOT_EXIST",
-    "PATH_NOT_FOUND",
-)
-
-
-def _is_table_not_found(exc: Exception) -> bool:
-    """True only when ``exc`` specifically means "that table/view does not exist".
-
-    Prefers PySpark's structured ``getErrorClass()``/``getCondition()`` when the exception
-    exposes one; falls back to scanning the rendered message for a condition name only when it
-    does not. The fallback is a substring check against those same uppercase condition tokens,
-    never against free-form prose, so it stays insensitive to message rewording.
-    """
-    for accessor in ("getCondition", "getErrorClass"):
-        getter = getattr(exc, accessor, None)
-        if callable(getter):
-            try:
-                condition = getter()
-            except Exception:  # noqa: BLE001 - a shim that raises tells us nothing; try the next one
-                condition = None
-            if condition:
-                return any(name in str(condition).upper() for name in _TABLE_NOT_FOUND_CONDITIONS)
-    rendered = str(exc).upper()
-    return any(name in rendered for name in _TABLE_NOT_FOUND_CONDITIONS)
+# Both names now live in dq/table_errors.py, which imports NOTHING -- see that module's docstring
+# for the live failure that forced the move: this module's own top-level `import dlt` made every
+# job-context importer of the helper die at import time. These two aliases keep the historical
+# `dq.quarantine._is_table_not_found` spelling working for pipeline-side callers and tests.
+#
+# A JOB-CONTEXT MODULE MUST NOT IMPORT THESE ALIASES. Importing them imports this module, which
+# imports `dlt` -- exactly the bug the split fixes. Import from dq.table_errors directly instead.
+_TABLE_NOT_FOUND_CONDITIONS = TABLE_NOT_FOUND_CONDITIONS
+_is_table_not_found = is_table_not_found
 
 
 def _read_existing_target_or_none(qualified_table: str) -> Optional[DataFrame]:
@@ -315,8 +296,9 @@ def register_main_and_quarantine_tables(
     """Register the quarantine-filtered "clean" dataset, plus its sibling quarantine table if configured.
 
     Both read from the same upstream staged view/table (``base_view_name``, always
-    unqualified: staged views are graph-internal and stay in the pipeline's own default
-    schema) so quarantine routing never duplicates read I/O against the original source.
+    unqualified: a staged intermediate is a ``@dlt.view`` or, when multi-reader, a
+    pipeline-scoped ``@dlt.table(temporary=True)`` -- graph-internal either way, never
+    published) so quarantine routing never duplicates read I/O against the original source.
     Published datasets go under ``target_catalog.target_schema`` (see
     :func:`common.storage.table_properties.qualified_table_name`) -- a bare ``name=``
     always resolves against the *pipeline's* default catalog/schema, not a flow's own

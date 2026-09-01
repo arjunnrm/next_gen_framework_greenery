@@ -109,7 +109,7 @@ class AppSettings(BaseModel):
 # host or a job id from the wrong workspace fails at run time, not at deploy time.
 #
 # These variables let the bundle supply those four things at deploy time
-# (resources/metaflow_onboarding_app.yml sets them from ${workspace.host},
+# (resources/metaflow_app/metaflow_onboarding_app.yml sets them from ${workspace.host},
 # ${resources.jobs.onboarding_job.id} and the target's own catalog/schema variables), so
 # the same source tree deploys unchanged to any workspace. Anything not set falls back to
 # config/index.json exactly as before.

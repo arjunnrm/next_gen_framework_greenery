@@ -60,7 +60,10 @@ from NextGen_Metadata_Framework.lakeflow_framework.cdc.hashing import (
     deterministic_hash_expression,
     xor_fold_hex_digest,
 )
-from NextGen_Metadata_Framework.lakeflow_framework.dq.quarantine import _is_table_not_found
+# dq.table_errors, NOT dq.quarantine: this module is imported by
+# notebooks/05_reconciliation/05_reconciliation_engine.py, a plain JOB notebook task, so it
+# must not transitively import `dlt`. See dq/table_errors.py's docstring.
+from NextGen_Metadata_Framework.lakeflow_framework.dq.table_errors import is_table_not_found
 from NextGen_Metadata_Framework.lakeflow_framework.engine.identifiers import sanitize_identifier
 from NextGen_Metadata_Framework.lakeflow_framework.exceptions import FrameworkConfigError
 from NextGen_Metadata_Framework.lakeflow_framework.observability.structured_logger import log_flow_event
@@ -356,7 +359,7 @@ def _append_target_table_exists(missing_df: DataFrame, append_target_table: str)
         existing.schema  # noqa: B018 - forces analysis now, inside this try
         return True
     except Exception as exc:  # noqa: BLE001 - narrowed immediately below by condition name
-        if _is_table_not_found(exc):
+        if is_table_not_found(exc):
             return False
         raise
 
@@ -429,11 +432,14 @@ def write_reconciliation_result(
     metrics: Optional[ReconciliationMetrics] = None,
     task_run_id: Optional[str] = None,
 ) -> None:
-    """Append one row to ``reconciliation_result`` -- always, regardless of ``logging_config``.
+    """Append one row to ``reconciliation_result``.
 
     Deliberately lighter than ``reconciliation_run_log`` (no fingerprint, no source/target row
-    counts, no error detail) so it stays cheap to write unconditionally even for a
-    high-frequency continuous flow with both ``logging_config`` flags off. See
+    counts, no error detail). **v1.6.0 contract change:** every call site now gates this write
+    under the resolved ``run_log_capture`` flag -- with ``run_log_capture: false``,
+    reconciliation persists to NOTHING but its business targets (the pre-v1.6.0 behaviour wrote
+    ``reconciliation_result`` unconditionally). A suppressed-logging flow's failure signal is
+    the job/pipeline run state plus the structured log events. See
     ``control_plane/ddl_definitions.py::get_reconciliation_result_ddl``.
 
     Raises
@@ -504,8 +510,11 @@ def resolve_log_capture_flags(
     Returns
     -------
     Tuple[bool, bool]
-        ``(run_log_capture, mismatch_log_capture)``. ``reconciliation_result`` is written
-        unconditionally regardless of both -- see :func:`write_reconciliation_result`.
+        ``(run_log_capture, mismatch_log_capture)``. Since v1.6.0, ``run_log_capture`` gates
+        BOTH ``reconciliation_run_log`` and ``reconciliation_result`` (and, in pipeline mode,
+        whether the ``__metrics`` dataset is registered at all); ``mismatch_log_capture`` gates
+        ``reconciliation_mismatch_log`` (and the ``__mismatch`` dataset). Both false ==
+        reconciliation persists only to its business targets.
     """
     config = logging_config or {}
     run_log_capture = (
@@ -550,8 +559,8 @@ def _complete_phase_1_match(
     has nothing to guard.
 
     ``mismatch_log_capture`` is resolved but unused here: an all-matched run produces no
-    per-record mismatch rows to gate in the first place. ``reconciliation_result`` is written
-    unconditionally, exactly as on every other path.
+    per-record mismatch rows to gate in the first place. ``reconciliation_result`` is gated by
+    ``run_log_capture`` (v1.6.0), exactly as on every other path.
     """
     run_log_capture, _unused_mismatch_log_capture = resolve_log_capture_flags(
         logging_config, recon_run_log_capture, recon_mismatch_log
@@ -574,7 +583,9 @@ def _complete_phase_1_match(
         write_run_log_entry(
             spark, control_schema, reconciliation_id, target_id, run_id, fingerprint, status, metrics, task_run_id=task_run_id
         )
-    write_reconciliation_result(spark, control_schema, reconciliation_id, target_id, run_id, status, metrics, task_run_id=task_run_id)
+        # v1.6.0: reconciliation_result is gated by run_log_capture too -- with logging
+        # suppressed, reconciliation persists to NOTHING but its business targets.
+        write_reconciliation_result(spark, control_schema, reconciliation_id, target_id, run_id, status, metrics, task_run_id=task_run_id)
 
     log_flow_event(
         operation="reconciliation_match",
@@ -657,9 +668,10 @@ def run_target_reconciliation(
         this function ever sees ``source_df``/``target_df``).
     logging_config:
         This flow's raw ``logging_config`` dict (``run_log_capture``/``mismatch_log_capture``,
-        both default ``true``) -- gates whether ``reconciliation_run_log``/
-        ``reconciliation_mismatch_log`` get written for this run. ``reconciliation_result`` is
-        always written regardless -- see ``write_reconciliation_result``.
+        both default ``true``) -- ``run_log_capture`` gates ``reconciliation_run_log`` AND
+        ``reconciliation_result`` (v1.6.0 -- previously the result row was unconditional);
+        ``mismatch_log_capture`` gates ``reconciliation_mismatch_log``. Both false ==
+        this run persists only to its business target.
     task_run_id:
         Parent job's own run id, threaded into every log/result row written by this call for
         correlation -- ``None`` for a standalone run. It is *not* a filter here: narrowing a
@@ -878,7 +890,9 @@ def run_target_reconciliation(
         write_run_log_entry(
             spark, control_schema, reconciliation_id, target_id, run_id, fingerprint, status, metrics, task_run_id=task_run_id
         )
-    write_reconciliation_result(spark, control_schema, reconciliation_id, target_id, run_id, status, metrics, task_run_id=task_run_id)
+        # v1.6.0: reconciliation_result is gated by run_log_capture too -- with logging
+        # suppressed, reconciliation persists to NOTHING but its business targets.
+        write_reconciliation_result(spark, control_schema, reconciliation_id, target_id, run_id, status, metrics, task_run_id=task_run_id)
 
     log_flow_event(
         operation="reconciliation_match",

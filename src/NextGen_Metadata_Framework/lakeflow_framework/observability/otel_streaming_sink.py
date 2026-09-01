@@ -11,7 +11,7 @@ Workflow task after one pipeline's update completes, reads that one pipeline's e
 bounded time-window query, and dispatches once. It is architecturally incapable of a
 continuously-running, multi-pipeline, always-on export -- there is no streaming source in that
 path at all. This module is the streaming counterpart: it is fed by a genuinely continuous
-Lakeflow pipeline (``continuous: true``, see ``resources/observability_otel_streaming_pipeline.yml``)
+Lakeflow pipeline (``continuous: true``, see ``resources/observability/observability_otel_streaming_pipeline.yml``)
 that reads N event-log tables (each a real Unity Catalog Delta table a *source* pipeline
 publishes its own event log to -- see
 https://learn.microsoft.com/en-us/azure/databricks/ldp/observability -- "Publish pipeline

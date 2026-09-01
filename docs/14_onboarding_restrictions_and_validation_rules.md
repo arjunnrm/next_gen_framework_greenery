@@ -1,0 +1,411 @@
+# 🚦 Onboarding Restrictions & Validation Rules
+
+> **Audience**: Spec authors, reviewers, and AI agents generating onboarding specs — anyone who
+> needs to know, before submitting a spec, exactly what the onboarding validator will accept,
+> reject, and why.
+>
+> **Version & maintenance**: this page describes **v1.6.0** and is **hand-maintained against
+> `src/NextGen_Metadata_Framework/lakeflow_framework/onboarding/spec_validator.py`** — the
+> single source of truth for every rule below. When this page and the validator disagree, the
+> validator wins; fix the page. Companion pages:
+> [`00_master_reference_index.md`](00_master_reference_index.md) (what each field *means*),
+> [`12_module_permutation_matrix.md`](12_module_permutation_matrix.md) (what is *legal
+> together*), and [`13_known_limitations_and_gotchas.md`](13_known_limitations_and_gotchas.md)
+> (what is legal, meaningful, and still wrong — the traps the validator *cannot* catch).
+
+---
+
+## 1. Where validation runs, and what an "error" is
+
+Every onboarding spec passes through one function —
+`onboarding/spec_validator.py::validate_spec` — before any control-table row is written. It
+runs in three places:
+
+| Entry point | What runs | When to use it |
+|---|---|---|
+| **Single-spec onboarding job** | `notebooks/02_onboarding/02_onboarding_engine.py` (widgets: `spec_file_path`, `catalog`, `env`, `action_type` = `CREATE` / `UPDATE` / `VALIDATE_ONLY`) | The normal CI/CD path — one spec changes, one job runs. |
+| **Bulk directory onboarding** | `notebooks/02_onboarding/02b_bulk_config_onboarding_engine.py` → `onboarding/bulk_onboarding.py` (parameters: `spec_dir`, `action_type`, fail-soft by default) | Bringing up a whole environment or regression-onboarding the `metaflow_testing/` corpus. Every spec is attempted; failures are reported per spec at the end. |
+| **Spec Builder app** | `POST /api/spec/validate` (`databricks-app/server/routers/spec_router.py` → `server/core/validator.py::SpecValidator`) | Interactive feedback while authoring in the app. This is a registry-driven, in-app **approximation** of the framework validator (Layer 1 structural + Layer 2 rule checks, no Spark session) — a spec that passes the app can still fail the framework validator, never the reverse direction you want. Treat the framework validator as authoritative. |
+
+Four properties of the framework validator worth internalizing:
+
+- **It collects *every* problem, not the first one.** A single validation pass returns a
+  complete report, so you fix the whole spec once instead of looping fix-one-rerun. Each
+  finding is one human-readable string of the form `"<json_path>: <what's wrong>"`, e.g.
+  `ingestion_flow[df_raw_txn].source_config.capture_technical_metadata: expected a boolean
+  (true/false), got 'abc' (str)`.
+- **Errors block onboarding; warnings do not.** Everything appended to the errors list makes
+  the onboarding engine raise before any `MERGE` runs. A handful of findings are deliberately
+  demoted to `logger.warning` instead: the graph-cycle rules under `execution_mode: "job"`
+  (§4.4), a cross-group append-loop advisory, and `transformation_sql` references that cannot
+  resolve yet because the referenced views only exist once the pipeline runs
+  (`_validate_sql_syntax`). Warnings appear in the job run log only.
+- **The validator is authoritative over the JSON Schema.** The editor-facing schema
+  (`onboarding_templates/onboarding_spec.schema.json`) exists for IDE autocomplete and the
+  Spec Builder app; it mirrors the validator but enforces nothing at onboarding time. Where
+  the two drift, the validator is what actually runs.
+- **It validates the shape of what is present.** Container objects such as
+  `source_config` and `target_config` are not themselves presence-checked — a flow that omits
+  `target_config` entirely produces no onboarding error (and fails later, at pipeline
+  graph-definition time). Every "required" below therefore means *required by the validator*:
+  either always, or whenever its enclosing container is present. The tables say which.
+
+---
+
+## 2. Mandatory fields per flow type
+
+Extracted from the validator's `check_string(..., required=True)` / `check_dict(...,
+required=True)` / `check_list_of_str(..., required=True)` calls, not from memory.
+
+### 2.1 Spec root (the dataflow group)
+
+| Field | Type | Constraint |
+|---|---|---|
+| `dataflow_group_id` | string | **Required**, non-empty. |
+| `ingestion_flows` / `transformation_flows` / `reconciliation_flows` | arrays | Each optional individually, but **at least one of the three must be non-empty**. |
+| `observability` | array | Optional. Deliberately does **not** count toward the "at least one non-empty" rule — telemetry with nothing to observe is meaningless. |
+| `pipeline_parameters` | object | Optional. Drives `${param}` substitution in SQL and paths. |
+| `spark_config` | object | Optional. Every key must start with `spark.`; every value must be a string, number, or boolean (never a nested object/array). See `_validate_spark_config`. |
+
+### 2.2 `ingestion_flows[]`
+
+Always required on every entry:
+
+| Field | Type | Constraint |
+|---|---|---|
+| `dataflow_id` | string | Required, non-empty (the flow's primary key). |
+| `source_type` | string | Required, one of `ALLOWED_SOURCE_TYPES` (§3.1). |
+| `target_catalog` / `target_schema` / `target_table` | string | Required, non-empty. |
+| `target_type` | string | Required, one of `ALLOWED_TARGET_TYPES` (§3.1). |
+
+Conditionally required, per `source_type` (inside `source_config`, when that block is present):
+
+| `source_type` | Required `source_config` fields |
+|---|---|
+| `autoloader` | `path`, `format`, `schema_location` — `schema_location` is auto-derived to `/Volumes/<target_catalog>/landing/_schemas/<target_table>/` when omitted and the target coordinates are present (the derived value is persisted). |
+| `zerobus` | `source_catalog`, `source_schema`, `source_table`. |
+| `asn1` | `path`, `schema_location` (same auto-derivation), `asn1_schema_path`, `asn1_codec` (`ber`/`der`), `asn1_pdu_name`. |
+
+Conditionally required elsewhere in an ingestion (or transformation) flow:
+
+| Trigger | Then required |
+|---|---|
+| `target_config` present | `target_config.cdc_load_strategy`. |
+| `cdc_load_strategy` in `SCD1`/`SCD2`/`SCD3`/`FULL_SNAPSHOT_CDC` | `target_config.primary_keys` (list of strings). |
+| `target_config.cdc_operation_column` or `cdc_operation_mapping` present | Both `cdc_operation_column` and `cdc_operation_mapping.delete_values`. |
+| `target_type` is `sink`/`external_sink` | `target_config.sink_config` with `format`; then `path` (for `delta`/`pgp_zip`) or `kafka_options` (for `kafka`); `pgp_zip` additionally requires `post_export_archive` (§4.3). |
+| `source_zip_handling` present | `enabled` (boolean); when `true`: `source_zip_path`, `zip_file_pattern`, `target_volume_path`. |
+| `source_zip_handling.pre_extraction_decryption.type: "pgp"` | `private_key_secret` (a secret reference, §3.2). |
+| `encrypted_columns[]` entry present | `column_name` and `secret` per entry. |
+| `dq_config.rules[]` entry present | `rule_id`, `expression`, `action` per rule. |
+| `governance_tags.column_tags[]` entry present | `column` and `tags` (string→string object) per entry. |
+| `source_config.dedup_watermark` present | Both `event_time_column` and `delay_threshold` — plus `remove_dups: true` on the same source (§4.3). |
+
+### 2.3 `transformation_flows[]`
+
+| Field | Type | Constraint |
+|---|---|---|
+| `flow_step_id` | string | Required, non-empty (the flow's primary key). |
+| `dataflow_id` | string | Required, non-empty. |
+| `target_catalog` / `target_schema` / `target_table` | string | Required, non-empty. |
+| `target_type` | string | Required, one of `ALLOWED_TARGET_TYPES`. |
+| `transformation_sql` | string | Required, non-empty. Parse-validated via `EXPLAIN` after `${param}` substitution (§3.6). |
+| `source_inputs[].input_name` | string | Required per entry — and **unique across every transformation flow in the spec**, because each registers a `@dlt.view` in the same pipeline graph (`_validate_no_duplicate_input_names`). |
+| `source_inputs[].table` | string | Required per entry. |
+| `source_inputs[].watermark` | object | Optional; when present, both `event_time_column` and `delay_threshold` are required. |
+| `source_inputs[].decrypted_columns[]` | objects | Per entry: `column_name`, `cast_to_type`, and `secret` are all required — decryption may change the physical type, so `cast_to_type` is never optional. |
+
+`target_config` and its CDC rules behave exactly as in §2.2, with one widening: transformation
+flows may also use `cdc_load_strategy: "SCD3"` (§3.1).
+
+### 2.4 `reconciliation_flows[]`
+
+| Field | Type | Constraint |
+|---|---|---|
+| `reconciliation_id` | string | Required, non-empty. |
+| `source_config` | object | **Required** (`check_dict(..., required=True)`); its `table` is required (the only supported `type` is `"table"`, which is also the default). |
+| `target_configs` | array | Required, non-empty. |
+| `target_configs[].target_id` | string | Required per entry, unique within the flow. |
+| `target_configs[].table` | string | Required per entry. |
+| `target_configs[].append_target_table` | string | Required when the entry's `comparison_direction` is `source_to_target` or `both` (and `both` is the default). |
+| `match_keys` | list of strings | Required. |
+| `dataflow_group_id` | string | Required **when `execution_mode` is `pipeline` or `pipeline_audit_only`** — a group-less flow has no Lakeflow pipeline to be registered into (rule V-CYC-6, §4.4). Optional in `job` mode. |
+
+Everything else — `execution_mode`, `compare_columns`, `transform_sql`, `two_tier_verification`,
+`error_handling`, `logging_config`, `publish_schema`, `dq_config` — is optional, but several of
+them are only *legal* under a specific `execution_mode` (§4.2).
+
+### 2.5 `observability[]`
+
+| Field | Type | Constraint |
+|---|---|---|
+| `id` | string | Required per destination, unique within the spec. |
+| `type` | string | Required, one of `ALLOWED_OBSERVABILITY_DESTINATION_TYPES` (§3.1). |
+| `destination_config` | object | **Required.** |
+| `destination_config.volume_path` | string | Required for `type: DATABRICKS_VOLUME`; must start with `/Volumes/` (§3.3). |
+| `destination_config.endpoint` | string | Required for `type: OTLP_CONSUMER`; must be a full `http://` or `https://` URL. |
+| `destination_config.event_log_tables` | list of strings | Required when `mode: "continuous"`; **rejected** when `mode` is `triggered` (the default); every entry must be a fully-qualified three-part `catalog.schema.table` name. See `_validate_observability_event_log_tables`. |
+| `auth.type` | string | Required whenever `auth` is present. |
+| `auth.credentials` | object | Required for `BEARER_TOKEN` (`token`), `API_KEY` (`header_name` + `api_key`), `BASIC_AUTH` (`username` + `password`) — each credential value a `env:`/`secret:` reference, never a literal (§3.2). |
+
+---
+
+## 3. Enumerations and data-type constraints
+
+### 3.1 Allowed-value registries
+
+All defined as module-level constants at the top of `onboarding/spec_validator.py`. An invalid
+value produces `"<path>: has invalid value '<x>' -- allowed values are [...]"`.
+
+| Attribute path | Constant | Allowed values | Notes |
+|---|---|---|---|
+| `ingestion_flows[].source_type` | `ALLOWED_SOURCE_TYPES` | `autoloader`, `zerobus`, `asn1` | `gcs_autoloader` was renamed to `autoloader` in v2. |
+| `*.target_type` | `ALLOWED_TARGET_TYPES` | `streaming_table`, `materialized_view`, `batch_table`, `external_sink`, `sink` | |
+| `target_config.cdc_load_strategy` (ingestion) | `ALLOWED_INGESTION_CDC_STRATEGIES` | `APPEND`, `TRUNCATE_AND_LOAD`, `SCD1`, `SCD2`, `FULL_SNAPSHOT_CDC` | `SCD3` on an ingestion flow is rejected with a dedicated message (§4.3). |
+| `target_config.cdc_load_strategy` (transformation) | `ALLOWED_TRANSFORMATION_CDC_STRATEGIES` | the above + `SCD3` | |
+| `dq_config.rules[].action` | `ALLOWED_DQ_ACTIONS` | `warn`, `drop`, `fail`, `quarantine` | `quarantine` is additionally rejected on a reconciliation flow's `dq_config` (§4.3). |
+| `target_config.encrypted_columns[].mode` | `ALLOWED_AES_MODES` | `GCM`, `CBC`, `ECB` | |
+| `source_config.landing_retention_policy.clean_source` | `ALLOWED_CLEAN_SOURCE_MODES` | `archive`, `delete`, `off` | `archive_path` is deliberately never required — an `archive` policy with no path degrades to a documented no-op. |
+| `source_zip_handling.delete_source_after_extract.action` | `ALLOWED_ZIP_DELETE_ACTIONS` | `delete_now`, `delete_after_x_days` | `"never"` has deliberately **no spec spelling** — it exists only as the normalized form of the legacy boolean `false`. |
+| `source_config.column_normalization.case` | `ALLOWED_COLUMN_NORMALIZATION_CASES` | `lower`, `preserve`, `upper` | Only the case fold is configurable; character normalization and the lowercased collision check are fixed. |
+| `source_config.schema_evolution_mode` | `ALLOWED_SCHEMA_EVOLUTION_MODES` | `addNewColumns`, `addNewColumnsWithTypeWidening`, `rescue`, `failOnNewColumns`, `none` | |
+| `target_config.storage_format` | `ALLOWED_STORAGE_FORMATS` | `delta`, `iceberg` | `iceberg` only for `target_type: "batch_table"` (§4.3). |
+| `target_config.sink_config.format` | `ALLOWED_SINK_FORMATS` | `delta`, `kafka`, `pgp_zip` | |
+| `target_config.sink_config.staged_file_format` | `ALLOWED_STAGED_FILE_FORMATS` | `json`, `csv` | **New in v1.6.0.** The staged per-partition file format inside a `pgp_zip` archive; absent means `json` (JSON-Lines, the only pre-v1.6.0 behaviour). Presence-rejected for `delta`/`kafka` (§4.3). |
+| `reconciliation_flows[].error_handling.on_failure` | `ALLOWED_RECONCILIATION_FAILURE_MODES` | `fail`, `warn` | |
+| `reconciliation_flows[].execution_mode` | `ALLOWED_RECONCILIATION_EXECUTION_MODES` | `job`, `pipeline`, `pipeline_audit_only` | Defaults to `job`; an invalid value still resolves to `job` for the mode-conditional checks, so nothing is silently skipped. |
+| `reconciliation` dataset `type` | `ALLOWED_RECON_DATASET_TYPES` | `table` | Delta tables only since v1.3.0 — `file`/`sink` produce a migration-naming error. |
+| `target_configs[].comparison_direction` | `ALLOWED_COMPARISON_DIRECTIONS` | `source_to_target`, `target_to_source`, `both` | Default `both`. |
+| `source_config`/`target_configs[]` `read_mode` | `ALLOWED_READ_MODES` | `batch`, `streaming` | `streaming` rejected in pipeline execution modes (§4.2). |
+| `source_config.asn1_codec` | `ALLOWED_ASN1_CODECS` | `ber`, `der` | |
+| `pre_extraction_decryption.type` | `ALLOWED_PRE_EXTRACTION_DECRYPTION_TYPES` | `pgp` | Adding an algorithm later means a new handler + a new name here, never a schema restructure. |
+| `observability[].type` | `ALLOWED_OBSERVABILITY_DESTINATION_TYPES` | `DATABRICKS_VOLUME`, `OTLP_CONSUMER` | |
+| `observability[].mode` | `ALLOWED_OBSERVABILITY_MODES` | `triggered`, `continuous` | Absent resolves to `triggered`. `mode` is what stops one destination being served — and double-exported — by both observability engines. |
+| `observability[].auth.type` | `ALLOWED_OBSERVABILITY_AUTH_TYPES` | `BEARER_TOKEN`, `API_KEY`, `BASIC_AUTH`, `NONE` | |
+| `observability[].destination_config.compression` | `ALLOWED_OBSERVABILITY_COMPRESSION` | `GZIP`, `gzip`, `none`, `""` | |
+| `destination_config.file_format` (volume) | inline | `JSONL`, `JSON` | |
+| `destination_config.protocol` (OTLP) | inline | `OTLP_HTTP_JSON`, `OTLP_HTTP_PROTO`, `OTLP_GRPC` | |
+
+One constant is defined but not currently consumed by any check: `ALLOWED_SINK_WRITE_MODES`
+(`overwrite`, `append`). Do not document a sink `write_mode` restriction as enforced — today it
+is not.
+
+### 3.2 Secret and credential reference shapes
+
+Two deliberately different shapes exist, and they are not interchangeable:
+
+- **Unity Catalog three-level secret reference** — used *everywhere* in the data plane
+  (encryption keys, PGP keys, ZIP passwords, Kafka secret options). Validated by
+  `check_secret_ref`; resolved by `crypto/secrets.py::resolve_secret_value` via
+  `dbutils.secrets.get(catalog=, schema=, key=)`, never a classic workspace scope:
+
+  ```json
+  {"secret_catalog": "poc", "secret_schema": "security", "secret_key": "pii_encryption_key"}
+  ```
+
+  All three keys are required whenever the reference itself is required or present.
+
+- **Observability credential reference** — the `observability[].auth.credentials` values are
+  short strings matching `env:<VAR_NAME>` or `secret:<scope>:<key>`
+  (`check_credential_ref`, pattern `_CREDENTIAL_REF_PATTERN`). A literal secret value is
+  rejected with a message saying so. See
+  `observability/destination_dispatcher.py::resolve_credential` for why this module's shape
+  differs.
+
+### 3.3 Path rules
+
+| Rule | Where enforced |
+|---|---|
+| `observability[].destination_config.volume_path` must start with `/Volumes/`. | `_validate_observability_destination_config`. |
+| `observability[].destination_config.endpoint` must start with `http://` or `https://`. | Same function. |
+| `event_log_tables[]` entries must be three-part `catalog.schema.table`. | `_validate_observability_event_log_tables`. |
+| An undefined `${param}` in any `source_config`/`target_config` path field is an onboarding error, not a pipeline-run failure. | `_validate_path_parameters`, mirroring the engine notebooks' own substitution. |
+| `schema_location`, when omitted on an `autoloader`/`asn1` flow, is derived to the repo-wide `/Volumes/<catalog>/landing/_schemas/<table>/` convention rather than rejected. | `_validate_ingestion_source_config`. |
+
+Other path fields (`source_config.path`, `sink_config.path`, `source_zip_handling.*`) are
+validated as non-empty strings only — the validator has no filesystem access, so existence is a
+runtime concern.
+
+### 3.4 Identifier safety
+
+`crypto/secrets.py::assert_safe_identifier` enforces `^[A-Za-z_][A-Za-z0-9_]*$` on every
+identifier that gets spliced into framework-assembled SQL — catalog/schema/table/column names
+and the three secret-reference parts. It is deliberately stricter than what Unity Catalog
+itself permits (no `.` or `-`), because its job is closing off SQL injection via a compromised
+or malformed control-table row.
+
+Where it bites at validation time: the cross-flow graph rules (§4.4) build comparison keys
+through `storage/table_properties.py::qualified_table_name`, which applies
+`assert_safe_identifier` to each part — a name that fails simply drops out of cross-flow
+comparison (the per-field type error has already been reported). Where it bites at runtime:
+encryption, decryption, governance-tag DDL, and every qualified table name. A spec can
+technically onboard with an exotic identifier and then fail at graph-definition time, so treat
+the regex as the practical naming rule for all framework-touched identifiers.
+
+### 3.5 Type strictness and numeric bounds
+
+| Rule | Detail |
+|---|---|
+| Booleans must be JSON `true`/`false`. | `check_bool` rejects `"true"` (string) with a message telling you to unquote it. |
+| Integers must be integers. | `check_int` rejects booleans explicitly, even though Python's `bool` subclasses `int`. |
+| `target_config.liquid_clustering_columns` | At most `MAX_LIQUID_CLUSTERING_COLUMNS` = **3** columns (Delta Liquid Clustering's own hard limit, re-asserted at runtime by `storage/table_properties.py`). An empty list is valid and means "no clustering". |
+| `target_config.partition_columns: []` | Valid; means "no partitioning", logged distinctly from an absent field. |
+| `landing_retention_policy.retention_days` | Integer ≥ **0**. Zero means "no age threshold"; *omitting* the field means 7 days (`ingestion/readers.py::DEFAULT_LANDING_RETENTION_DAYS`), not zero. |
+| `delete_source_after_extract.days` | Integer ≥ 0; required for `delete_after_x_days`, rejected for `delete_now` (§4.3). |
+| `auto_ttl.expire_in_days` | Integer ≥ 1 when present. |
+| `observability[].retry.max_attempts` | Integer ≥ 1. |
+| `observability[].retry.backoff_multiplier` | A number strictly > 1. |
+| `observability[].timeout_ms` | Integer ≥ 1. |
+
+### 3.6 Restricted SQL grammars
+
+Two different SQL surfaces, two different rules:
+
+- **`data_standardization_sql`** (ingestion sources and reconciliation dataset sides) is a
+  **column-expression allowlist, never a full statement**. Any bare occurrence of
+  `SELECT`/`FROM`/`JOIN`/`UNION`/`WHERE`/`INSERT`/`UPDATE`/`DELETE`/`MERGE`/`DROP`/`ALTER`/
+  `CREATE`/`GRANT`/`REVOKE` (case-insensitive, word-boundary matched) is rejected outright, as
+  is any `;`. Exactly one column expression per entry, e.g.
+  `"trim(customer_name) AS customer_name"`. Deliberately conservative: better to reject a
+  legitimate edge case than silently accept a disguised full statement.
+- **`transformation_sql`** (and reconciliation `transform_sql`) legitimately needs full
+  `SELECT`/`FROM`, so it is validated for *parse-ability and structural planning* instead, via
+  an `EXPLAIN` of the post-`${param}`-substitution text (`_validate_sql_syntax`). A
+  `ParseException` is always a hard error. Of the planning failures, only the genuinely
+  structural codes `NUM_COLUMNS_MISMATCH` and `INCOMPATIBLE_COLUMN_TYPE` (e.g. a `UNION` whose
+  branches don't line up) are hard errors — an unresolved table/column reference is expected
+  pre-deployment (the referenced `source_inputs[]` views only exist once the pipeline runs) and
+  is logged as a warning, never an error.
+
+---
+
+## 4. Forbidden and rejected configurations
+
+### 4.1 Removed attributes — rejected on presence, never silently ignored
+
+The design rule, quoting `reject_removed_keys`' own rationale:
+
+> Presence alone is the trigger — not truthiness. `generate_surrogate_key: false` is still a
+> statement about a feature that no longer exists, and leaving it in a spec means the next
+> person to read it believes the framework still has the knob. Reporting it costs the author
+> one deletion and buys a document that describes what actually runs.
+
+An ignored key is the worst possible behaviour: the spec still onboards, the control table
+still gets a row, the pipeline still runs — and it quietly does something other than what the
+document says. For any attribute that switched a data-shaping behaviour ON, ignoring it flips
+that behaviour OFF with no signal at all. Hence four registries, each key mapping to its own
+migration message (paraphrased below; the validator emits the full text verbatim):
+
+| Registry | Removed key | Migration (summary of the emitted message) |
+|---|---|---|
+| `REMOVED_SOURCE_CONFIG_KEYS` | `source_config.normalize_column_names` | Removed in v1.4.0 — `column_normalization` is now the only switch. Replace `normalize_column_names: true` with `column_normalization: {enabled: true}` (add a `case` key if you relied on something other than the default `lower`); delete the key outright if it was `false`. |
+| `REMOVED_TARGET_CONFIG_KEYS` | `target_config.generate_surrogate_key` | Removed in v1.4.0 — the surrogate-key engine is gone; `__framework_surrogate_key` is no longer generated for any flow. Declare real `primary_keys` (`SCD1`/`SCD2`/`SCD3`/`FULL_SNAPSHOT_CDC` all take them), or use `TRUNCATE_AND_LOAD` if the source has no key. |
+| `REMOVED_TARGET_CONFIG_KEYS` | `target_config.surrogate_key_columns` | Removed with the surrogate-key engine — it scoped a column no longer generated. Row identity: `primary_keys`; change comparison: `columns_to_check`/`columns_to_exclude`. |
+| `REMOVED_TARGET_CONFIG_KEYS` | `target_config.surrogate_key_exclude_columns` | Same as above. |
+| `REMOVED_RECONCILIATION_FLOW_KEYS` | `reconciliation_flows[].recon_mode` | Removed in v1.4.0 — reconciliation is triggered-only. Every run is a bounded job task (`trigger(availableNow=True)` for a streaming side). Delete the key; for continuous coverage, schedule the job, or set `execution_mode` to `pipeline`/`pipeline_audit_only` to run the comparison inside the group's own Lakeflow update. |
+| `REMOVED_RECONCILIATION_FLOW_KEYS` | `reconciliation_flows[].generate_surrogate_key` | Removed with the surrogate-key engine. A reconciliation flow matches on its declared `match_keys`; both sides must carry those columns. |
+| `REMOVED_CDC_LOAD_STRATEGIES` | `cdc_load_strategy: "FULL_SNAPSHOT_CDC_NO_PK"` | Removed in v1.4.0 — it existed only to consume the surrogate-key engine, hashing every payload column of every row on every run. Use `FULL_SNAPSHOT_CDC` with `target_config.primary_keys` (the Databricks-native `apply_changes_from_snapshot` pattern), or `TRUNCATE_AND_LOAD` if the source genuinely has no key. Checked *before* the allowed-values test, so authors see the migration message, not a generic "not one of [...]" list. |
+
+### 4.2 Mode-incompatible keys (reconciliation `execution_mode`)
+
+Same presence-not-truthiness convention as §4.1 (`reject_mode_incompatible_keys`), but nothing
+here is gone from the spec forever — each key is perfectly valid under a *different*
+`execution_mode`. The error always names the mode actually in force.
+
+| Key | Rejected when `execution_mode` is | Why / migration |
+|---|---|---|
+| `source_config.task_run_id_column` / `target_configs[].task_run_id_column` | `pipeline`, `pipeline_audit_only` (`REMOVED_RECONCILIATION_DATASET_KEYS_PIPELINE`) | `engine/run_context.py::resolve_pipeline_run_id` has no stable per-update key — `pipelines.id` is constant across every update, so narrowing by it would silently match everything. Use `filter_condition`, or keep `execution_mode: "job"`. |
+| `reconciliation_flows[].publish_schema` | `job` (`RECONCILIATION_FLOW_KEYS_REQUIRING_PIPELINE_MODE`) | It names where the flow's `recon__<id>__<target>__classified`/`__metrics`/`__mismatch` datasets are published inside the hosting pipeline — a job-mode flow has no such datasets. |
+| `reconciliation_flows[].dq_config` | `job` (same registry) | Its expectations attach to the one-row `__metrics` dataset, which a job task never produces. |
+| `read_mode: "streaming"` on either dataset side | `pipeline`, `pipeline_audit_only` | The in-pipeline comparison is a whole-snapshot batch classification; a stream-static join cannot express `MISSING_IN_SOURCE`. Use `batch` (the default) or `execution_mode: "job"`. |
+| *Missing* `dataflow_group_id` on the flow | `pipeline`, `pipeline_audit_only` | Required — see §2.4 and V-CYC-6 (§4.4). |
+
+### 4.3 Cross-field rejections
+
+Rules that only fire when two or more fields are considered together. The two `logging_config`
+rules are **new in v1.6.0** and mirror graph-time guards in
+`reconciliation/graph_registration.py`, so the contradiction surfaces at onboarding instead of
+on the first pipeline update. The v1.6.0 contract behind them: `logging_config.run_log_capture`
+now gates `reconciliation_run_log` **and** `reconciliation_result` **and** (in pipeline mode)
+whether the `recon__*__metrics` dataset is registered at all; `mismatch_log_capture` gates
+`reconciliation_mismatch_log` and the `recon__*__mismatch` dataset; both `false` means the flow
+persists only to its business targets. Both flags default to `true` and the rules evaluate the
+*defaulted* values, so absent flags never trip them.
+
+| # | Rejected configuration | Rule (see `spec_validator.py` function) |
+|---|---|---|
+| 1 | `logging_config.run_log_capture: false` together with `dq_config.rules` on the same reconciliation flow | **v1.6.0.** The flow's expectations attach to its `recon__*__metrics` dataset, which is only registered when `run_log_capture` is true. Remove the rules or re-enable capture. (`_validate_logging_config`) |
+| 2 | `execution_mode: "pipeline_audit_only"` with **both** `run_log_capture: false` and `mismatch_log_capture: false` | **v1.6.0.** Audit-only mode exists solely to produce the metrics/mismatch datasets and their control-table exports — this combination registers compute with no output at all. Enable at least one flag, or use `job`/`pipeline`. (`_validate_logging_config`) |
+| 3 | `dq_config.rules[].action: "quarantine"` on a reconciliation flow | There is nothing to quarantine on the one-row `__metrics` dataset. Use `warn`/`drop`/`fail`. (`_validate_reconciliation_flows`) |
+| 4 | `sink_config.staged_file_format` with `format: "delta"` or `"kafka"` | **v1.6.0, presence-rejected.** The native sink formats have no framework staging step; accepting it would let a spec assert a file shape nothing ever produces. Only `pgp_zip` stages files. (`_validate_sink_config`) |
+| 5 | `format: "pgp_zip"` without `post_export_archive`, or with `post_export_archive.enabled: false` | Archiving *is* what this sink format does; use `delta`/`kafka` for a sink with no archiving step. When enabled, `output_zip_path` is also required. (`_validate_sink_config`) |
+| 6 | `post_export_archive.pgp_encryption.enabled: true` without `recipient_public_key_secret` | The recipient key is required to encrypt at all. |
+| 7 | `pgp_encryption.sign_passphrase_secret` without `sign_with_private_key_secret` | A passphrase is only meaningful alongside a signing key. |
+| 8 | `format: "kafka"` without `kafka_options["kafka.bootstrap.servers"]` or without `kafka_options["topic"]` | The same minimum options a Spark Structured Streaming Kafka writer requires. Every `kafka_secret_options` value must be a UC secret reference. |
+| 9 | `storage_format: "iceberg"` with any `target_type` other than `batch_table` | Use `delta` (optionally with `table_properties.enable_iceberg_read_uniformity`). (`_validate_target_config`) |
+| 10 | `cdc_load_strategy: "SCD3"` on an ingestion flow | SCD3 pivots current/previous state via an internal history table — transformation flows only. (`validate_spec`) |
+| 11 | `target_config.columns_to_exclude` outside `SCD1`/`SCD2`/`SCD3` | Only those strategies have a comparison-column concept to exclude from. |
+| 12 | `target_config.cdc_operation_column`/`cdc_operation_mapping` outside `SCD1`/`SCD2`/`FULL_SNAPSHOT_CDC` | Only those strategies have a delete-marker path. |
+| 13 | `target_config.empty_target_if_source_empty` outside `TRUNCATE_AND_LOAD` | Every other strategy appends or diffs — there is no truncation to guard, so the value would be silently inert. |
+| 14 | `target_config.auto_ttl` (both sub-fields set) outside `APPEND`/`TRUNCATE_AND_LOAD` | The only strategies the engine threads the `auto_ttl` decorator kwarg through. (`_validate_auto_ttl`) |
+| 15 | `source_config.dedup_watermark` without `remove_dups: true` | On its own it configures nothing; accepting it silently would let an author believe dedup was enabled. |
+| 16 | `source_config.landing_retention_policy` on `source_type: "zerobus"` | Maps to `cloudFiles.cleanSource`, which only exists on an Auto Loader file read — `autoloader`/`asn1` only. |
+| 17 | `liquid_clustering_columns` with more than 3 entries | Delta Liquid Clustering's own hard limit — caught here so it fails at onboarding, not mid-pipeline-update. |
+| 18 | `hash_precomputed: true` on a reconciliation dataset whose `type` is not `table` | Only a framework-managed table can carry pre-built `__framework_hash_key`/`__framework_hash_value`. |
+| 19 | `destination_config.event_log_tables` present with `mode: "triggered"`, or absent with `mode: "continuous"` | The continuous pipeline must be told what to stream; the triggered engine resolves its pipeline from the upstream task and would silently ignore a list. |
+| 20 | `delete_source_after_extract.days` with `action: "delete_now"`, or missing with `action: "delete_after_x_days"` | A sweep with no threshold is `delete_now` spelled confusingly; a `days` on `delete_now` would be silently inert. |
+| 21 | A column listed twice in `source_config.json_string_columns` | The second entry would silently overwrite the first's parse. |
+| 22 | `source_inputs[].input_name` reused across transformation flows | All flows in one spec share one pipeline graph and one view namespace. (`_validate_no_duplicate_input_names`) |
+| 23 | Duplicate `target_configs[].target_id` within a reconciliation flow, or duplicate `observability[].id` within a spec | Both are upsert keys. |
+| 24 | A `spark_config` key not starting with `spark.`, or a non-scalar value | Far more likely a misfiled `pipeline_parameters` entry; a nested object has no meaningful `str()` rendering for `spark.conf.set`. |
+| 25 | An undefined `${param}` in SQL or in any path field | `_validate_sql_syntax` / `_validate_path_parameters` — checked against `pipeline_parameters` at onboarding time. |
+
+### 4.4 Graph-cycle and placement rules (V-CYC-1 … V-CYC-8)
+
+Cross-array checks in `_validate_reconciliation_pipeline_placement` and
+`_validate_landing_side_effect_collisions` that only make sense once every flow array in the
+spec is known. All table references are compared as casefolded, fully-qualified
+`catalog.schema.table` strings via `storage/table_properties.py::qualified_table_name`.
+
+Severity depends on `execution_mode` (`_append_cycle_finding`): in `pipeline`/
+`pipeline_audit_only` a cycle finding is a **hard error** (the append would race a read inside
+the same Lakeflow update); in `job` mode the same finding is demoted to a **warning**, because
+the standalone reconciliation task runs after the update finishes — the hazard is real but
+there is no in-graph cycle, and job-mode specs that have always onboarded must keep onboarding.
+
+| Rule | What it rejects (or warns about) |
+|---|---|
+| V-CYC-1 | Pipeline mode, same group: `source_config.table` does not resolve to any target this dataflow group actually produces — the in-pipeline source must be a dataset *this* update publishes, not an external always-one-update-stale read. Error. |
+| V-CYC-2 | `append_target_table` is one of this group's own ingestion/transformation targets — Lakeflow owns that table's transaction log, and a reconciliation append would corrupt its declared write contract. Error in pipeline mode, warning in job mode. |
+| V-CYC-3 | `append_target_table` is the raw `zerobus` ingestion source a flow in this same group reads — appending corrections back into it races the next update's own read. Error in pipeline mode, warning in job mode. |
+| V-CYC-4 | Same as V-CYC-3 but the reconciliation flow is placed in a *different* `dataflow_group_id` — always a warning naming both groups, since neither pipeline's own graph can see the cross-pipeline loop. |
+| V-CYC-5 | `append_target_table` equals the flow's own `source_config.table`, its own compared `target_configs[].table`, or another table this same flow reconciles against — every future run re-arms against its own output. Error in pipeline mode, warning in job mode. |
+| V-CYC-6 | Pipeline mode with no `dataflow_group_id` on the flow — no pipeline to register into. Always an error. |
+| V-CYC-7 | Pipeline mode where the reconciliation source is produced by a merge-writing strategy (`SCD1`/`SCD2`/`SCD3`/`FULL_SNAPSHOT_CDC`) or by `TRUNCATE_AND_LOAD` into a `materialized_view` — pipeline mode requires an append-only producer. Always an error; use `execution_mode: "job"`. |
+| V-CYC-8 | Two ingestion flows sharing one Auto Loader landing `path` while declaring *different* `landing_retention_policy` or `source_zip_handling` blocks — `cloudFiles.cleanSource` moves/deletes committed files and zip handling decrypts/extracts/marks them, so two competing lifecycle regimes on one directory corrupt whichever runs second. Always an error, independent of any reconciliation flow. |
+
+---
+
+## 5. Testing a spec without onboarding it
+
+Three ways to run the full validator (or an approximation) with zero writes:
+
+1. **`action_type: "VALIDATE_ONLY"`** — run the generic onboarding job
+   (`resources/metaflow_config_jobs/onboarding_job.yml`, backing notebook
+   `notebooks/02_onboarding/02_onboarding_engine.py`) with `action_type=VALIDATE_ONLY`. The
+   exact same `validate_spec` runs, every error across the whole spec is reported in one pass,
+   and the control-table upsert is skipped. The bulk engine
+   (`02b_bulk_config_onboarding_engine.py`, job
+   `resources/metaflow_config_jobs/framework_config_onboarding_job.yml`) accepts the same
+   `action_type` to dry-run an entire `spec_dir`, reporting per-spec results fail-soft.
+2. **The Spec Builder app's validate endpoint** — `POST /api/spec/validate` with
+   `{"spec": {...}}` returns the app's Layer 1 + Layer 2 findings interactively. Remember it is
+   an in-app approximation (§1); finish with a `VALIDATE_ONLY` run before trusting a spec.
+3. **pytest** — `tests/unit/test_spec_validator.py` exercises the validator directly (add a
+   case here for any new rule), and `tests/unit/test_spec_loader.py` asserts the shipped
+   templates stay loadable and that `pipeline_onboarding_template.json` and `.yaml` remain
+   byte-for-byte equivalent — which means the templates themselves are validated on every
+   `pytest tests/unit` run, with no Databricks workspace involved.
+
+When a spec fails, read the error text literally: it names the exact `json_path` and the fix.
+The validator's messages are generated to be actionable on their own — do not guess.

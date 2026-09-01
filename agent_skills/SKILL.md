@@ -35,7 +35,7 @@ Companion files in this same skill folder:
 - **`SKILL_GAP_ANALYSIS.md`** — Systematic audit checklist itemizing skill coverage, behavioral updates, and net-new capabilities.
 - **`README.md`** — Executive Skill & Tool Catalog Summary with LangChain / Semantic Kernel / OpenAI integration patterns.
 - **`reference/module_map.md`** — one paragraph per subpackage under `lakeflow_framework/`, its responsibility, and key public functions. Covers the v1.5.0 additions: `engine/source_plane.py` (the read-once plane + its `G-STREAM`/`G-SIDE` guards), `engine/flow_generators.py`, `engine/identifiers.py`, `reconciliation/graph_registration.py` (the in-pipeline L3/L4/L5 registrar), the additive control-table column migration in `control_plane/`, `repository.py`'s now-4-field `GroupMetadata`, and `observability/reconciliation_export.py`.
-- **`reference/common_pitfalls.md`** — real bugs hit and fixed in this codebase. Read before editing! Entries 26–33 are the v1.5.0 batch: the `CREATE TABLE IF NOT EXISTS` migration gap, `ADD COLUMNS IF NOT EXISTS` being a parse error, an upsert `StructType` field never written into the `Row(...)`, a validation rule stranded behind an early return, a graph-cycle rule wrongly applied to job mode, streaming from a `TRUNCATE_AND_LOAD` target, `currentDatabase()` not being the pipeline's schema, and inlining onboarding into a new job.
+- **`reference/common_pitfalls.md`** — real bugs hit and fixed in this codebase. Read before editing! Entries 26–33 are the v1.5.0 batch: the `CREATE TABLE IF NOT EXISTS` migration gap, `ADD COLUMNS IF NOT EXISTS` being a parse error, an upsert `StructType` field never written into the `Row(...)`, a validation rule stranded behind an early return, a graph-cycle rule wrongly applied to job mode, streaming from a `TRUNCATE_AND_LOAD` target, `currentDatabase()` not being the pipeline's schema, and inlining onboarding into a new job. Entry **34** covers the grouped `resources/` tree: why every resource path is now `../../`, and why scoping a deploy by commenting out an `include:` line DELETES the resources it declared (use `--select`).
 - **`reference/onboarding_spec_full_reference.json`** — the complete, machine-readable attribute dictionary for the onboarding spec.
 
 ---
@@ -257,7 +257,19 @@ ASN.1 detail worth knowing before touching a CDR spec: the Spark output schema i
 automatically** from the real `.asn` module file (`asn1/decoder.py::derive_asn1_field_defs`,
 via `asn1tools.parse_files` introspection) — never a hand-authored JSON field list. ASN.1
 identifiers are camelCase with no underscores (per X.680), so expect fields like
-`callDurationSeconds`, not `call_duration_seconds`. `CHOICE` types are not yet supported.
+`callDurationSeconds`, not `call_duration_seconds`.
+
+**Choosing `asn1_pdu_name` on a real telecom module is the step that actually bites.** The PDU
+must be a **top-level `SEQUENCE`**, and `CHOICE` is rejected *anywhere* in its resolved member
+tree — not merely at the top. Real modules put a `CHOICE` at the root: in
+`metaflow_testing/BT_Testing/TAP.310.asn1` (the genuine GSMA TAP 3.10 spec, 375 types) both
+`DataInterChange` and, one level down, `CallEventDetail` are `CHOICE`, so neither
+`DataInterChange` nor `TransferBatch` can be the PDU. 70 of that module's 93 top-level
+`SEQUENCE` types *do* resolve; `Notification` is the one Sample 06 uses
+(`resources/sample_jobs/metaflow_sample_06_asn1_tap3_job.yml`). To find the workable set for any
+module, run `derive_asn1_field_defs` over every top-level `SEQUENCE` and keep the ones that do
+not raise `Asn1DecodeError` — far faster than reading the module. See pitfall 37 in
+`reference/common_pitfalls.md`.
 
 ---
 
@@ -348,7 +360,7 @@ was removed entirely once this was fixed — see
 |---|---|---|
 | `"delta"` | `sink_config.path` | Native Lakeflow Delta sink. |
 | `"kafka"` | `sink_config.kafka_options` (at minimum `kafka.bootstrap.servers`, `topic`); optional `kafka_secret_options` for a connector option needing a literal resolved secret value | Native Lakeflow Kafka sink — same options a Spark Structured Streaming Kafka writer takes. |
-| `"pgp_zip"` | `sink_config.path` (staging dir) + `sink_config.post_export_archive.output_zip_path` | This framework's own **custom Lakeflow sink** (`archive/pgp_zip_sink.py::PgpZipDataSource`, a real `pyspark.sql.datasource.DataSource`) — zips (optionally AES-password-protects, optionally PGP-encrypts+signs) every micro-batch's rows into one archive file. |
+| `"pgp_zip"` | `sink_config.path` (staging dir) + `sink_config.post_export_archive.output_zip_path`; optional `sink_config.staged_file_format` (`"json"` default \| `"csv"`, **v1.6.0**) | This framework's own **custom Lakeflow sink** (`archive/pgp_zip_sink.py::PgpZipDataSource`, a real `pyspark.sql.datasource.DataSource`) — stages every micro-batch's rows per partition (JSON-Lines, or RFC-4180 CSV with a header row when `staged_file_format: "csv"`), then zips (optionally AES-password-protects via `post_export_archive.secret`, optionally PGP-encrypts+signs) them into one archive file. `staged_file_format` is presence-rejected on `"delta"`/`"kafka"`, which have no staging step. |
 
 Hard constraint (Databricks platform limitation, not a framework choice): `dlt.create_sink`/
 `@dlt.append_flow` are **streaming-only** — a batch/non-streaming source cannot feed a sink at
@@ -388,13 +400,21 @@ changes until an author opts in, one flow at a time):
 
 In the two pipeline modes the flow is registered by
 `engine/flow_generators.py::generate_reconciliation_flow` →
-`reconciliation/graph_registration.py::register_reconciliation_flow`, which publishes
-`recon__<reconciliation_id>__<target_id>__classified` / `__metrics` / `__mismatch` into
-`publish_schema` (defaults to the pipeline's own schema) and re-hosts the imperative half — the
-fingerprint-guarded append plus the three control-table writes — verbatim inside **one**
-`dlt.foreach_batch_sink` handler per flow. Three mode-scoped spec rules, all rejected on
-**presence**: `read_mode: "streaming"`, `task_run_id_column`, and a missing `dataflow_group_id` are
-each errors in pipeline mode; `publish_schema` and `dq_config` are errors in `"job"` mode.
+`reconciliation/graph_registration.py::register_reconciliation_flow`. **v1.6.0 changed the dataset
+surface**: the L3/L4 plumbing (`_recon__*__src`/`__tgt`/`__classified`/`__missing`/pulse) is
+pipeline-scoped `@dlt.table(temporary=True)` — materialized, never published (a healing flow's
+`_src`/healing `_tgt` stay published because the L5 handler reads them via `spark.read.table`) —
+and the two published audit datasets, `recon__<reconciliation_id>__<target_id>__metrics` /
+`__mismatch`, land in `publish_schema` (defaults to the pipeline's own schema) **only when their
+`logging_config` capture flag resolves true**. `run_log_capture` also gates `reconciliation_result`
+(previously unconditional); both flags false == the flow persists only to its business targets.
+The imperative half — the fingerprint-guarded append plus the control-table writes — is re-hosted
+verbatim inside **one** `dlt.foreach_batch_sink` handler per flow. Mode-scoped spec rules, all
+rejected on **presence**: `read_mode: "streaming"`, `task_run_id_column`, and a missing
+`dataflow_group_id` are each errors in pipeline mode; `publish_schema` and `dq_config` are errors
+in `"job"` mode; and (v1.6.0) `dq_config.rules` with `run_log_capture: false`, or
+`pipeline_audit_only` with **both** capture flags false, are rejected at onboarding *and* at graph
+definition — see `reference/common_pitfalls.md` **36**.
 `dq_config` on the one-row `__metrics` dataset (e.g. `{"expr": "value_drift_count = 0", "action":
 "fail"}`) is the first declarative way a reconciliation threshold can fail a pipeline update; it is
 **additive** and does not repurpose `error_handling.on_failure`, which keeps its try/except meaning
@@ -610,7 +630,7 @@ Say you need to ingest a new CSV drop into Bronze with SCD1 semantics on Silver.
 5. **Onboard for real** — re-run with `action_type: "CREATE"` (or `"UPDATE"` for an existing
    `dataflow_group_id`). This upserts the control-table rows and writes an audit log entry. If you
    are adding a **new job** that needs to onboard a spec, it must **delegate** to the generic
-   parameterised `resources/onboarding_job.yml` via `run_job_task` — never inline its own
+   parameterised `resources/metaflow_config_jobs/onboarding_job.yml` via `run_job_task` — never inline its own
    `02_onboarding_engine.py` `notebook_task` (`reference/common_pitfalls.md` entry 33):
 
    ```yaml
@@ -665,7 +685,10 @@ not guess at a fix; the validator's error text is generated to be actionable on 
 | "What are the control tables' exact DDL/columns?" | `control_plane/ddl_definitions.py` (pure string-building, no execution) — and `docs/01_control_metadata_schema.md`'s ER diagram. |
 | "How do I add a column to a control table?" | **Two places, always**: the table's `CREATE TABLE` DDL in `control_plane/ddl_definitions.py` (fresh installs) *and* `ADDITIVE_CONTROL_TABLE_COLUMNS` in the same file (existing workspaces, applied by `control_plane/schema_provisioner.py::ensure_control_table_columns`). A CREATE-only change never reaches a workspace that already has the table. Then add it to the upsert's `StructType` **and** its `Row(...)`. `reference/common_pitfalls.md` 26–28. |
 | "I set `execution_mode: \"pipeline\"` and the flow still ran as a job — why?" | Three candidates, in order: the control table predates the column (run `01_setup_control_tables.py`, §8); the value was never persisted (`onboarding/metadata_upsert.py`'s `Row(...)`); or the job still has a standalone `run_*_reconciliation` task that should have been deleted. `reference/common_pitfalls.md` 26, 28, 33. |
-| "How do I wire onboarding into a new job?" | Never inline a `02_onboarding_engine.py` `notebook_task`. Delegate via `run_job_task` to `resources/onboarding_job.yml` (one spec) or `resources/framework_config_onboarding_job.yml` (a whole `spec_dir`). The ~20 legacy `metaflow_test_*_job.yml` files keep their inline copies deliberately. `reference/common_pitfalls.md` 33. |
+| "How do I wire onboarding into a new job?" | Never inline a `02_onboarding_engine.py` `notebook_task`. Delegate via `run_job_task` to `resources/metaflow_config_jobs/onboarding_job.yml` (one spec) or `resources/metaflow_config_jobs/framework_config_onboarding_job.yml` (a whole `spec_dir`). The ~20 legacy `metaflow_test_*_job.yml` files keep their inline copies deliberately. `reference/common_pitfalls.md` 33. |
+| "Where do I put a new resource YAML, and how do I deploy only the app?" | `resources/` is grouped: `metaflow_app/`, `metaflow_config_jobs/`, `observability/`, `bt_tests/`, `feature_tests/`, `sample_jobs/` (the `metaflow_sample` reference suite — six sample jobs, six pipelines, and the one common `metaflow_sample_seed_job` that lands every fixture they consume), `stability_tests/` (each globbed by `databricks.yml`'s `include:`). Paths inside a resource are `../../`, not `../`. Scope a deploy with `databricks bundle deploy --select apps.metaflow_onboarding_app,jobs.onboarding_job,jobs.framework_config_onboarding_job,volumes.onboarding_specs_volume,volumes.framework_wheels_volume` — **never** by commenting out an `include:` line, which makes DABs delete those resources. `reference/common_pitfalls.md` 34. |
+| "Why don't the `_staged`/`_src__*`/`_recon__*` tables show up in the catalog?" | v1.6.0 Intermediate Object Rule: intermediates are views or pipeline-scoped `temporary` tables, never published — only final sinks and the conditional `__metrics`/`__mismatch` audit datasets are. Upgrading an existing deployment renames/unpublishes them (streaming state resets). `reference/common_pitfalls.md` 35, `docs/13` O7. |
+| "How do I switch reconciliation logging fully off, and why was my spec rejected?" | `logging_config` both-false persists to business targets only — no `__metrics`/`__mismatch` datasets, no `run_log`/`mismatch_log`/**`result`** rows. `dq_config.rules` + `run_log_capture: false` and `pipeline_audit_only` + both-false are rejected at onboarding and graph definition. `reference/common_pitfalls.md` 36, `docs/07` §6/§11.10. |
 | "Where does the read-once guarantee live?" | `engine/source_plane.py` — `plan_source_plane` (pure, no Spark) → `assert_acyclic` → `register_source_plane` → `bind`, plus the `G-STREAM`/`G-SIDE` plan-time guards. `reference/module_map.md`'s `engine/` section; `reference/common_pitfalls.md` 24–25, 31. |
 
 ---
@@ -695,7 +718,15 @@ doc, not just this table, before making a non-trivial change in its area.
 
 ```
 NextGen_Metadata_Framework/
-├── databricks.yml, resources/*.yml     # Bundle + pipeline/job resource definitions
+├── databricks.yml                      # Bundle definition; `include:` lists every resources/ group
+├── resources/                          # Pipeline/job/app/volume definitions, grouped by purpose:
+│   ├── metaflow_app/                   #   the Onboarding App + its spec Volume
+│   ├── metaflow_config_jobs/           #   onboarding_job (one spec) + framework_config_onboarding_job (bulk)
+│   ├── observability/                  #   DLT observability export job + OTEL streaming pipeline
+│   ├── bt_tests/                       #   real-BT-fixture tests (geneva, ASN.1, PGP)
+│   ├── feature_tests/                  #   the TC-* corpus — one job + one pipeline per case
+│   ├── sample_jobs/                    #   metaflow_sample suite: 6 jobs + 6 pipelines + 1 common seed job
+│   └── stability_tests/                #   reserved for STABILITY_TEST_PLAN.md A1-G4 (empty today)
 ├── src/NextGen_Metadata_Framework/lakeflow_framework/   # ALL business logic — see reference/module_map.md
 ├── notebooks/
 │   ├── 01_setup/                       # Creates the config schema + control tables
@@ -770,7 +801,7 @@ noted — see `reference/module_map.md`'s `observability/` section for full func
 | `onboarding/metadata_upsert.py::upsert_observability_config` | `MERGE`-upserts `observability[]` into `observability_config`, from `02_onboarding_engine.py`. |
 | `control_plane/ddl_definitions.py::get_observability_config_ddl` | The control table's DDL (auto-provisioned by `01_setup_control_tables.py`, alongside the other control tables). |
 | `notebooks/08_observability/08_dlt_observability_engine.py` | The thin entrypoint notebook wiring the read-side (`config_loader.py` onward) together. |
-| `resources/dlt_observability_job.yml` | A complete, runnable example job wiring `onboard_100` (whose spec carries an `observability[]` array) → `run_pipeline_update` → `observability_export`. |
+| `resources/observability/dlt_observability_job.yml` | A complete, runnable example job wiring `onboard_100` (whose spec carries an `observability[]` array) → `run_pipeline_update` → `observability_export`. |
 
 **`dataflow_group_id` is not a native event-log field.** This framework configures exactly one
 `dataflow.group.id` Spark conf per pipeline (§2 above), so `event_log_extractor.py::

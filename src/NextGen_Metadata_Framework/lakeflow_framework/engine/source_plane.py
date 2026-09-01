@@ -86,6 +86,12 @@ _NON_APPEND_ONLY_CDC_STRATEGIES = frozenset({"SCD1", "SCD2", "SCD3", "FULL_SNAPS
 #: framework's existing, unchanged snapshot-loading code path.
 _SNAPSHOT_EXCLUDED_STRATEGY = "FULL_SNAPSHOT_CDC"
 
+#: Public alias of the strategy above. engine/flow_generators.py must branch on exactly the same
+#: value this module excludes -- if the two ever disagree, a flow is planned by one side and not
+#: the other and the mismatch surfaces only at pipeline runtime as
+#: "source_plane.bind: unknown consumer_id". One spelling, imported, keeps that impossible.
+SNAPSHOT_EXCLUDED_FROM_SOURCE_PLANE = _SNAPSHOT_EXCLUDED_STRATEGY
+
 
 class FrameworkGraphCycleError(FrameworkError):
     """Raised by :func:`assert_acyclic` when the source plane's producer -> consumer edges
@@ -150,6 +156,13 @@ class PlaneNode:
     ``"batch"`` -- a materialized streaming table is a legal source for both
     ``dlt.read_stream`` and ``dlt.read`` in the same update, so "any consumer streams" is the
     only rule that keeps every consumer servable from one node.
+
+    ``published`` (v1.6.0): ``True`` only when the spec explicitly supplied
+    ``source_plane.catalog``/``source_plane.schema`` -- the node is then a published
+    ``catalog.schema.table``. ``False`` (the default when the spec is silent): the node is
+    registered as ``@dlt.table(temporary=True)`` under its bare, pipeline-local
+    ``dataset_name`` -- still materialized (read-once holds), never visible in Unity
+    Catalog. The Intermediate Object Rule: an L0 node is plumbing, not a deliverable.
     """
 
     identity: ReadIdentity
@@ -157,6 +170,7 @@ class PlaneNode:
     mode: str  # "stream" | "batch"
     materialized: bool
     consumer_ids: List[str]
+    published: bool = False
 
 
 @dataclass(frozen=True)
@@ -545,8 +559,14 @@ def plan_source_plane(
         its consumers, exactly as today, even at fanout >= 2 (an explicit opt-out of sharing,
         e.g. to preserve per-consumer predicate pushdown at the cost of N physical reads).
     node_catalog, node_schema:
-        Where a ``shared_node`` :class:`PlaneNode` is published. Required (raises
-        :class:`FrameworkConfigError`) only if the plan actually needs to create one.
+        Where a ``shared_node`` :class:`PlaneNode` is *published*, when the spec explicitly
+        asks for publication (``source_plane.catalog`` + ``source_plane.schema`` both set).
+        Since v1.6.0 these are genuinely optional: when either is absent, a shared node is
+        registered as a pipeline-scoped ``@dlt.table(temporary=True)`` under its bare name
+        instead -- still materialized (read-once holds), never published to Unity Catalog
+        (the Intermediate Object Rule). Callers must pass the spec's raw values, NOT a
+        fallback to the pipeline's own catalog/schema -- the fallback is what used to make
+        every L0 node a published table.
 
     Returns
     -------
@@ -555,8 +575,7 @@ def plan_source_plane(
     Raises
     ------
     FrameworkConfigError
-        On a G-STREAM or G-SIDE guard violation, or if a ``shared_node`` must be created but
-        ``node_catalog``/``node_schema`` is not supplied.
+        On a G-STREAM or G-SIDE guard violation.
     """
     in_graph_targets, producer_meta_by_locator, qualified_name_by_locator = _collect_in_graph_targets(
         ingestion_rows, transformation_rows
@@ -628,22 +647,24 @@ def plan_source_plane(
 
         node = nodes.get(request.identity)
         if node is None:
-            if not node_catalog or not node_schema:
-                raise FrameworkConfigError(
-                    f"Source-plane identity '{locator}' requires a shared node (fanout={fanout}, "
-                    f"materialize={materialize!r}) but node_catalog/node_schema was not supplied to "
-                    f"plan_source_plane -- a materialized source-plane node has nowhere to be published."
-                )
             node_mode = "stream" if any(r.want_stream for r in sibling_requests) else "batch"
             suffix = "stream" if node_mode == "stream" else "batch"
             node_table_name = stable_node_name("_src", locator, suffix)
-            node_dataset_name = qualified_table_name(node_catalog, node_schema, node_table_name)
+            # v1.6.0 Intermediate Object Rule: a shared node is published to UC only when the
+            # spec explicitly asked for it (source_plane.catalog + source_plane.schema both
+            # set). Otherwise it stays a pipeline-scoped temporary table under its bare name
+            # -- materialized (read-once still holds) but never visible outside the pipeline.
+            published = bool(node_catalog and node_schema)
+            node_dataset_name = (
+                qualified_table_name(node_catalog, node_schema, node_table_name) if published else node_table_name
+            )
             node = PlaneNode(
                 identity=request.identity,
                 dataset_name=node_dataset_name,
                 mode=node_mode,
                 materialized=True,
                 consumer_ids=[r.consumer_id for r in sibling_requests],
+                published=published,
             )
             nodes[request.identity] = node
             node_reader_specs[request.identity] = reader_spec_by_identity[request.identity]
@@ -793,9 +814,11 @@ def register_source_plane(spark, plan: SourcePlanePlan) -> None:
 
         dlt.table(
             name=node.dataset_name,
+            temporary=not node.published,
             comment=(
                 f"L0 source-plane node -- one shared read of '{identity.locator}' "
-                f"({'streaming table' if streaming else 'materialized view'}), consumed by "
+                f"({'streaming table' if streaming else 'materialized view'}"
+                f"{'' if node.published else ', pipeline-scoped temporary'}), consumed by "
                 f"{len(node.consumer_ids)} downstream reader(s): {', '.join(sorted(node.consumer_ids))}."
             ),
         )(_make_source_plane_node)

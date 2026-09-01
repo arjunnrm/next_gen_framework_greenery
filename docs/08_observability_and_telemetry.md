@@ -412,7 +412,7 @@ the category pipeline configuration is for (see §1.1.1).
 The notebook tries two sources, in this order, and uses the first one that yields anything:
 
 1. **`observability_config` rows with `mode == "continuous"`**, scoped to this pipeline's configured `dataflow.group.id`, read from `<dataflow.control.catalog>.config`. Their `destination_config.event_log_tables` arrays are unioned — de-duplicated, order-preserving — by `config_loader.py::resolve_event_log_tables`. This source requires **both** new pipeline `configuration:` keys, `dataflow.group.id` and `dataflow.control.catalog`, to be set; when either is absent this source is silently skipped (not an error) — a pre-v1.3.0 deployment legitimately has neither.
-2. **`dataflow.otel_streaming.event_log_tables`** — the original mechanism, a JSON-encoded array set directly on the pipeline resource's own `configuration:` block (see `resources/observability_otel_streaming_pipeline.yml`). This fallback is **permanent and fully supported**, not a deprecation path — a deployment that never adopts the two new configuration keys keeps working exactly as it did before v1.3.0.
+2. **`dataflow.otel_streaming.event_log_tables`** — the original mechanism, a JSON-encoded array set directly on the pipeline resource's own `configuration:` block (see `resources/observability/observability_otel_streaming_pipeline.yml`). This fallback is **permanent and fully supported**, not a deprecation path — a deployment that never adopts the two new configuration keys keeps working exactly as it did before v1.3.0.
 
 If neither source yields a table, the pipeline fails at graph-definition time with this exact message:
 
@@ -442,7 +442,7 @@ A continuous `DATABRICKS_VOLUME` destination missing `volume_path` is skipped wi
 
 ### 6.3 Enabling it
 
-Add both new pipeline `configuration:` keys to `resources/observability_otel_streaming_pipeline.yml` (or your own copy of it) so the pipeline can reach `observability_config`:
+Add both new pipeline `configuration:` keys to `resources/observability/observability_otel_streaming_pipeline.yml` (or your own copy of it) so the pipeline can reach `observability_config`:
 
 ```yaml
 configuration:

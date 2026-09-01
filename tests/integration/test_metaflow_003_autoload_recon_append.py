@@ -8,7 +8,7 @@ This scenario's ingestion flow (``df_excalibur_autoload_ingest``) lands a fixed 
 ``metaflow.bronze_excalibur.autoload_bronze`` via Auto Loader, ``cdc_load_strategy: APPEND``.
 That batch deliberately includes ``C006``/``C007`` -- customers *absent* from scenario 002's
 ``zerobus_source_bus`` (and therefore from ``zerobus_bronze``) at the time both pipelines first
-ran, per ``resources/metaflow_test_002_003_job.yml``'s task order (``run_002_pipeline`` before
+ran, per ``resources/feature_tests/metaflow_test_002_003_job.yml``'s task order (``run_002_pipeline`` before
 ``run_003_pipeline`` before ``run_003_reconciliation``).
 
 **The reconciliation flow this scenario exists to exercise**
@@ -55,7 +55,7 @@ for this project's established rationale for relative-invariant assertions over 
 accumulating log table.
 
 Run ``databricks bundle run metaflow_test_002_003_job --target dev`` (see
-``resources/metaflow_test_002_003_job.yml``) before running these -- these tests assert
+``resources/feature_tests/metaflow_test_002_003_job.yml``) before running these -- these tests assert
 against tables *already materialized* by that real run; Lakeflow Declarative Pipelines cannot
 run locally (see the note in ``tests/conftest.py``).
 """

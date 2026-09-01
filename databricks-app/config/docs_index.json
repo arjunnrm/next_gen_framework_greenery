@@ -626,6 +626,10 @@
       "page": "reference/json/ingestion/",
       "anchor": "#target-configsink-configpost-export-archivesecretsecret-schema"
     },
+    "target_config.sink_config.staged_file_format": {
+      "page": "reference/json/ingestion/",
+      "anchor": "#target-configsink-configstaged-file-format"
+    },
     "target_config.sink_config.write_mode": {
       "page": "reference/json/ingestion/",
       "anchor": "#target-configsink-configwrite-mode"
