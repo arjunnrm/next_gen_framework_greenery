@@ -671,7 +671,7 @@ wheels = [
 
 [[package]]
 name = "nextgen-metadata-framework"
-version = "0.0.1788132258391"
+version = "0.0.1788286056222"
 source = { editable = "." }
 dependencies = [
     { name = "asn1tools" },

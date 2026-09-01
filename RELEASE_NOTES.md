@@ -6,6 +6,82 @@ deliberately **not** the semantic version — that lives here and in `enhancemen
 
 ---
 
+## v1.7.0 — The sample suite becomes a developer blueprint — 2026-09-02
+
+### Sample jobs are now exactly two tasks
+
+Every sample job is `pipeline_task` -> `observability_task`. Nothing else. Clone one and you get the
+pipeline run plus its telemetry export, with no provisioning scaffolding to read past and delete.
+
+- **`setup_control_tables`, `onboard_sample_NN` and `store_sample_config` are gone** from all six.
+- **Observability is now suite-wide.** It used to be Sample 03 only; all six export telemetry, DQ
+  results and execution metrics, each pinned to its own `dataflow_group_id` and its own
+  `pipeline_task` run id.
+
+### One provisioning job for the whole suite
+
+`metaflow_sample_seed_job`'s serial root grew to three links, then fans out into the six seed chains:
+
+```
+provision_sample_schema -> setup_control_tables -> onboard_all_samples -> 6 x (3 iterations)
+```
+
+`onboard_all_samples` onboards **all six specs in a single run** — the generic
+`framework_config_onboarding_job` pointed at the bundle's spec directory — replacing six per-job
+onboarding tasks. Pass `action_type=UPDATE` to re-onboard specs that changed.
+
+### Onboarding specs moved into the bundle
+
+`metaflow_testing/samples/*.json` → **`resources/sample_jobs/onboarding/*.json`**, referenced
+consistently through the seed job's `spec_dir`.
+
+- > **Breaking — run the seed job once before any sample job.** Sample jobs are no longer
+  > self-provisioning. A sample run without it fails in `control_plane/repository.py` with
+  > `FrameworkConfigError: No active dataflow_group_spec row found for dataflow_group_id=...`,
+  > because `pipeline_task` resolves its configuration from the control tables.
+  >
+  > ```bash
+  > databricks bundle run metaflow_sample_seed_job         -t <target> -p <profile>   # once
+  > databricks bundle run metaflow_sample_01_multi_scd_job -t <target> -p <profile>
+  > ```
+
+- > **Also breaking:** `store_sample_config` was removed, so
+  > `/Volumes/<catalog>/metaflow_sample/sample_configs/` is no longer populated. The specs now live
+  > in the bundle at `resources/sample_jobs/onboarding/`. Repoint anything that read that Volume.
+
+---
+
+## v1.6.2 — Wheel retention: a deploy is no longer the only copy — 2026-09-02
+
+### Deploy tooling — keep more than one wheel in the Volume
+
+- **New `scripts/archive_deployed_wheel.py`.** Run it right after a successful `bundle deploy`:
+  it copies the published wheel out of `<artifact_path>/.internal/` into a sibling `archive/`
+  folder. DABs manages only `.internal/`, so archived wheels are **never pruned** and stay
+  installable for rollback and forensics.
+
+  ```bash
+  databricks bundle deploy -t <target> --fail-on-active-runs
+  python scripts/archive_deployed_wheel.py --profile <profile>
+  ```
+
+  `--prune-keep N` caps the archive at the N most recent wheels; `--dry-run` reports without
+  copying; re-running is idempotent (already-archived wheels are skipped).
+
+- **Correction — a UC Volume DOES prune.** `scripts/build_and_upload_wheel.py` stated that a
+  Volume "has none of that behaviour ... Every historical version stays installable". That is
+  false, and it has been replaced in place with a warning saying so. Verified live: three
+  consecutive deploys left `.internal/` holding exactly one wheel. What is true is narrower —
+  DABs prunes only `.internal/`; everything else in the Volume is left alone.
+
+- > **This is recovery, not prevention.** Deployed jobs and pipelines are pinned to the
+  > *absolute* `.internal/` wheel path, so an archived copy does not repair a pin whose target
+  > was pruned mid-install — that means repointing the resource at the archived path by hand.
+  > To *prevent* the mid-run kill, use **`databricks bundle deploy --fail-on-active-runs`**,
+  > which refuses to deploy while any job or pipeline in the bundle is running. Use both.
+
+---
+
 ## v1.6.1 — One seed job for the whole sample suite, and a sixth sample that reads real GSMA TAP3 — 2026-09-01
 
 ### Sample suite — seeding is one job now

@@ -1,6 +1,6 @@
 [project]
 name = "NextGen_Metadata_Framework"
-version = "0.0.1788255797156"
+version = "0.0.1788287671576"
 authors = [{ name = "madhan@nrmanalytix.com" }]
 requires-python = "==3.12.*"
 dependencies = [

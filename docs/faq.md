@@ -145,7 +145,7 @@ the validator cannot catch see [known limitations](13_known_limitations_and_gotc
     RFC-4180 CSV with a header row (one file per non-empty partition per micro-batch), then
     `post_export_archive` zips them as before; combine with `post_export_archive.secret` for an
     AES-256 password-protected archive. The attribute is rejected on `delta`/`kafka` sinks, which
-    have no staging step. Working example: `metaflow_testing/samples/sample_04_export_encrypt_zip.json`.
+    have no staging step. Working example: `resources/sample_jobs/onboarding/sample_04_export_encrypt_zip.json`.
 
 ??? question "A flow failed but the update still reported SUCCESS."
     `pipelines.maxFlowRetryAttempts` defaults to 5 for triggered pipelines, so a transiently failing

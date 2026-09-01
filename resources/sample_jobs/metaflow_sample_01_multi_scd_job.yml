@@ -2,7 +2,6 @@
 # FULL_SNAPSHOT_CDC ingestion plus an SCD3 transformation joining two of the group's own
 # tables, everything isolated in the metaflow.metaflow_sample schema.
 #
-#   setup_control_tables -> onboard_sample_01 -> run_pipeline -> store_sample_config
 #
 # SEED FIRST. This job lands no data of its own. Its fixtures come from the suite-wide
 # resources/sample_jobs/metaflow_sample_seed_job.yml (tasks seed_sample_01_iteration1..3), which
@@ -38,7 +37,30 @@
 # (resources/metaflow_config_jobs/onboarding_job.yml) via run_job_task -- never an inline
 # 02_onboarding_engine.py notebook_task. Self-contained and idempotent (control-table upsert +
 # CREATE ... IF NOT EXISTS provisioning), so this job can be re-run on its own at any time. See
-# metaflow_testing/samples/sample_01_multi_scd.json.
+# resources/sample_jobs/onboarding/sample_01_multi_scd.json.
+
+# ---------------------------------------------------------------------------------------------
+# DEVELOPER BLUEPRINT -- the 2-task sample template. Clone this file.
+#
+#   pipeline_task       runs the Lakeflow pipeline (the transformation logic)
+#   observability_task  exports telemetry, DQ results and execution metrics for that update
+#
+# THAT IS THE WHOLE JOB. Provisioning is deliberately NOT here. Control-table setup, spec
+# onboarding and fixture seeding all live in the ONE suite-wide provisioning job,
+# resources/sample_jobs/metaflow_sample_seed_job.yml, which must have run at least once:
+#
+#   databricks bundle run metaflow_sample_seed_job -t <target> -p <profile>   # once
+#   databricks bundle run metaflow_sample_01_multi_scd_job -t <target> -p <profile>
+#
+# WHY ONBOARDING MOVED OUT. `pipeline_task` reads its configuration from the control tables;
+# a group that was never onboarded fails in repository.py with
+# `FrameworkConfigError: No active dataflow_group_spec row found for dataflow_group_id=...`.
+# Onboarding is provisioning -- the same category as seeding -- so it is done once by the seed
+# job for all six samples, not re-done on every developer run.
+#
+# The onboarding spec for this sample lives in the bundle at
+# resources/sample_jobs/onboarding/sample_01_multi_scd.json
+# ---------------------------------------------------------------------------------------------
 
 resources:
   jobs:
@@ -46,40 +68,26 @@ resources:
       name: Metaflow Sample 01 - Multi-Strategy SCD Dimensions (SCD1 + SCD2 + Snapshot CDC + SCD3)
 
       tasks:
-        - task_key: setup_control_tables
-          notebook_task:
-            notebook_path: ../../notebooks/01_setup/01_setup_control_tables.py
-            base_parameters:
-              catalog: metaflow
-          environment_key: framework_env
-
-        - task_key: onboard_sample_01
-          depends_on:
-            - task_key: setup_control_tables
-          run_job_task:
-            job_id: ${resources.jobs.onboarding_job.id}
-            job_parameters:
-              spec_file_path: "${workspace.file_path}/metaflow_testing/samples/sample_01_multi_scd.json"
-              catalog: metaflow
-              env: dev
-              action_type: CREATE
-
-        - task_key: run_pipeline
-          depends_on:
-            - task_key: onboard_sample_01
+        # 1/2 -- core pipeline / transformation logic.
+        - task_key: pipeline_task
           pipeline_task:
             pipeline_id: ${resources.pipelines.metaflow_sample_01_multi_scd_pipeline.id}
 
-        # Publishes this job's onboarding spec into the developer-reference Volume
-        # /Volumes/metaflow/metaflow_sample/sample_configs/ -- the last task of every sample job.
-        - task_key: store_sample_config
+        # 2/2 -- telemetry, data-quality validation and execution monitoring for the update
+        # `pipeline_task` just completed. All four base_parameters below are REQUIRED -- see
+        # resources/observability/dlt_observability_job.yml's PARAMETER CONTRACT note.
+        - task_key: observability_task
           depends_on:
-            - task_key: run_pipeline
+            - task_key: pipeline_task
           notebook_task:
-            notebook_path: ../../notebooks/09_sample_reference/09a_store_sample_config.py
+            notebook_path: ../../notebooks/08_observability/08_dlt_observability_engine.py
             base_parameters:
-              spec_paths: "${workspace.file_path}/metaflow_testing/samples/sample_01_multi_scd.json"
+              dataflow_group_id: dfg_sample_01_multi_scd
               catalog: metaflow
+              env: dev
+              pipeline_task_run_id: "{{tasks.pipeline_task.run_id}}"
+              service_name: dlt-observability-metaflow-sample-01
+              fail_task_on_dispatch_error: "true"
           environment_key: framework_env
 
       environments:

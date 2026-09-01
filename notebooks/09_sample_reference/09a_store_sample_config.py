@@ -66,7 +66,7 @@ for spec_path in SPEC_PATHS:
     if not os.path.exists(local_path):
         raise FileNotFoundError(
             f"Onboarding spec not found at '{spec_path}' (also tried '{local_path}') -- is the bundle's "
-            "metaflow_testing/samples/ tree synced alongside this notebook?"
+            "resources/sample_jobs/onboarding/ tree synced alongside this notebook?"
         )
 
     with open(local_path, "r", encoding="utf-8") as source:

@@ -2,7 +2,7 @@
 # MAGIC %md
 # MAGIC # Seed Sample 06 -- Real GSMA TAP3 ASN.1 BER Fixtures
 # MAGIC
-# MAGIC Dedicated seed notebook for `metaflow_testing/samples/sample_06_asn1_tap3_ingestion.json`
+# MAGIC Dedicated seed notebook for `resources/sample_jobs/onboarding/sample_06_asn1_tap3_ingestion.json`
 # MAGIC only. Parameterized by `iteration`; the common seed job
 # MAGIC (`resources/sample_jobs/metaflow_sample_seed_job.yml`) invokes it once per iteration
 # MAGIC (1 -> 2 -> 3, chained) before any sample pipeline runs.

@@ -6,7 +6,7 @@
 # (resources/sample_jobs/metaflow_sample_04_export_encrypt_zip_job.yml). Tables publish into
 # the single metaflow.metaflow_sample schema; archives land under
 # /Volumes/metaflow/metaflow_sample/exports/. See
-# metaflow_testing/samples/sample_04_export_encrypt_zip.json.
+# resources/sample_jobs/onboarding/sample_04_export_encrypt_zip.json.
 
 resources:
   pipelines:

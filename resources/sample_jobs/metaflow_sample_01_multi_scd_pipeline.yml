@@ -3,7 +3,7 @@
 # SCD2 suppliers, FULL_SNAPSHOT_CDC parts (strictly additive iterations -- see the job header),
 # an APPEND order-events feed, and the SCD3 transformation joining order events (stream side)
 # to the SCD1 customer dimension (static side). Every asset publishes into the single
-# metaflow.metaflow_sample schema. See metaflow_testing/samples/sample_01_multi_scd.json and
+# metaflow.metaflow_sample schema. See resources/sample_jobs/onboarding/sample_01_multi_scd.json and
 # resources/sample_jobs/metaflow_sample_01_multi_scd_job.yml.
 
 resources:

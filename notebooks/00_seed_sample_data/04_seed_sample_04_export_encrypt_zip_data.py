@@ -2,7 +2,7 @@
 # MAGIC %md
 # MAGIC # Seed Sample 04 -- Encrypted ZIP CSV Export Egress Fixtures
 # MAGIC
-# MAGIC Dedicated seed notebook for `metaflow_testing/samples/sample_04_export_encrypt_zip.json`
+# MAGIC Dedicated seed notebook for `resources/sample_jobs/onboarding/sample_04_export_encrypt_zip.json`
 # MAGIC only. Parameterized by `iteration`; the common seed job
 # MAGIC (`resources/sample_jobs/metaflow_sample_seed_job.yml`) invokes it once per iteration
 # MAGIC (1 -> 2 -> 3, chained) before any sample pipeline runs.

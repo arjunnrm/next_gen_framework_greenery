@@ -3,7 +3,7 @@
 # MAGIC # Seed Sample 05 -- Encrypted ZIP Ingestion Fixtures (AES-256 Passkey)
 # MAGIC
 # MAGIC Dedicated seed notebook for
-# MAGIC `metaflow_testing/samples/sample_05_encrypted_ingestion.json` only. Parameterized by
+# MAGIC `resources/sample_jobs/onboarding/sample_05_encrypted_ingestion.json` only. Parameterized by
 # MAGIC `iteration`; the common seed job
 # MAGIC (`resources/sample_jobs/metaflow_sample_seed_job.yml`) invokes it once per iteration
 # MAGIC (1 -> 2 -> 3, chained) before any sample pipeline runs.

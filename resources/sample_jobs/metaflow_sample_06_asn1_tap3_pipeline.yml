@@ -4,7 +4,7 @@
 # against the landed GSMA TAP release 3.10 module (PDU 'Notification'), routing undecodable
 # payloads into sample_tap3_notification_raw_quarantine. Everything publishes into the single
 # metaflow.metaflow_sample schema. See
-# metaflow_testing/samples/sample_06_asn1_tap3_ingestion.json and
+# resources/sample_jobs/onboarding/sample_06_asn1_tap3_ingestion.json and
 # resources/sample_jobs/metaflow_sample_06_asn1_tap3_job.yml.
 #
 # asn1tools -- which both the decoder and the seed notebook need -- is a declared dependency of

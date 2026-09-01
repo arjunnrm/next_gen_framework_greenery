@@ -15,11 +15,21 @@ told to ``pip install``, and the update dies with
 Confirmed live on 2026-08-29: ``TC-ING-004`` and ``TC-ING-005`` both died this way on
 ``dev_metaflow`` while an unrelated redeploy was in flight. Nothing was wrong with either test.
 
-A UC Volume has none of that behaviour. It is ordinary managed storage: files accumulate, and
-nothing removes an older wheel just because a newer one appeared. Every historical version
-stays installable, so an in-flight update keeps working no matter how many times the bundle is
-redeployed underneath it, and rolling a pipeline back to a prior wheel is a config edit rather
-than a rebuild.
+.. warning::
+
+   **The claim this paragraph used to make is FALSE.** It read that a UC Volume "has none of
+   that behaviour ... nothing removes an older wheel just because a newer one appeared". That
+   was disproved on 2026-08-30 and re-confirmed on 2026-09-01: DABs prunes
+   ``<artifact_path>/.internal/`` on a UC Volume exactly as it does in the workspace. Three
+   consecutive deploys to the ``arjun`` workspace left ``.internal/`` holding exactly one wheel.
+
+   What IS true is narrower: DABs only manages ``.internal/``. Files elsewhere in the Volume --
+   the root, or the ``archive/`` folder written by ``scripts/archive_deployed_wheel.py`` -- are
+   never pruned. Retaining a historical wheel therefore takes an explicit copy OUT of
+   ``.internal/``; it is not a property the Volume provides for free.
+
+   Prevention of the mid-run kill is the operational rule, now enforceable with
+   ``databricks bundle deploy --fail-on-active-runs``.
 
 **Why this is a pre-deploy step, not an ``artifacts`` build step.** The wheel path has to be
 fed to ``bundle deploy`` as a variable (``--var=framework_wheel_path=...``), and a build step

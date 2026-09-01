@@ -2,7 +2,7 @@
 # MAGIC %md
 # MAGIC # Seed Sample 01 -- Multi-Strategy SCD Dimension Fixtures
 # MAGIC
-# MAGIC Dedicated seed notebook for `metaflow_testing/samples/sample_01_multi_scd.json` only.
+# MAGIC Dedicated seed notebook for `resources/sample_jobs/onboarding/sample_01_multi_scd.json` only.
 # MAGIC Parameterized by `iteration`; the common seed job
 # MAGIC (`resources/sample_jobs/metaflow_sample_seed_job.yml`) invokes it once per iteration
 # MAGIC (1 -> 2 -> 3, chained) before any sample pipeline runs. Data comes from the
@@ -324,7 +324,7 @@ _write_csv(
 # MAGIC %md
 # MAGIC ## Done
 # MAGIC
-# MAGIC Iteration landed. `metaflow_testing/samples/sample_01_multi_scd.json` can now be (or
+# MAGIC Iteration landed. `resources/sample_jobs/onboarding/sample_01_multi_scd.json` can now be (or
 # MAGIC already was) onboarded and the sample pipeline run for this iteration. Re-running this
 # MAGIC notebook with the same `iteration` is safe: every landing file regenerates idempotently
 # MAGIC (same deterministic content, overwritten in place).

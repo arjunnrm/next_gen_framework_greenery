@@ -35,7 +35,7 @@ import yaml
 REPO_ROOT = pathlib.Path(__file__).resolve().parents[2]
 SAMPLE_JOBS_DIR = REPO_ROOT / "resources" / "sample_jobs"
 SEED_NOTEBOOK_DIR = REPO_ROOT / "notebooks" / "00_seed_sample_data"
-SAMPLES_SPEC_DIR = REPO_ROOT / "metaflow_testing" / "samples"
+SAMPLES_SPEC_DIR = REPO_ROOT / "resources" / "sample_jobs" / "onboarding"
 STORE_CONFIG_NOTEBOOK = REPO_ROOT / "notebooks" / "09_sample_reference" / "09a_store_sample_config.py"
 
 #: The one job that owns every fixture the suite consumes.
@@ -58,6 +58,15 @@ SEED_NOTEBOOKS = {
 
 #: The seed job's serial root -- see its own YAML header for why it cannot be dropped.
 PROVISION_TASK_KEY = "provision_sample_schema"
+
+#: The rest of the seed job's provisioning chain, moved out of the six sample jobs so each of
+#: those is exactly two tasks.
+SETUP_TASK_KEY = "setup_control_tables"
+ONBOARD_TASK_KEY = "onboard_all_samples"
+
+#: The two -- and only two -- tasks a sample job may declare.
+PIPELINE_TASK_KEY = "pipeline_task"
+OBSERVABILITY_TASK_KEY = "observability_task"
 PROVISION_NOTEBOOK = "04_seed_sample_00_provision_sample_schema.py"
 
 ITERATIONS = ("1", "2", "3")
@@ -120,13 +129,49 @@ def test_seed_job_provisions_storage_before_anything_else():
         f"'{PROVISION_TASK_KEY}' is the root task and must depend on nothing"
     )
 
+    # The provisioning chain is serial: schema -> control tables -> onboarding. Every seed
+    # chain then waits on the LAST link, so no fixture lands before its group is onboarded.
+    assert [d["task_key"] for d in tasks[SETUP_TASK_KEY].get("depends_on", [])] == [
+        PROVISION_TASK_KEY
+    ], f"'{SETUP_TASK_KEY}' must depend on '{PROVISION_TASK_KEY}'"
+    assert [d["task_key"] for d in tasks[ONBOARD_TASK_KEY].get("depends_on", [])] == [
+        SETUP_TASK_KEY
+    ], f"'{ONBOARD_TASK_KEY}' must depend on '{SETUP_TASK_KEY}' -- control tables first"
+
     for sample_id in SAMPLE_IDS:
         first = tasks[f"seed_sample_{sample_id}_iteration1"]
         depends = [d["task_key"] for d in first.get("depends_on", [])]
-        assert depends == [PROVISION_TASK_KEY], (
-            f"seed_sample_{sample_id}_iteration1 must depend only on '{PROVISION_TASK_KEY}', "
+        assert depends == [ONBOARD_TASK_KEY], (
+            f"seed_sample_{sample_id}_iteration1 must depend only on '{ONBOARD_TASK_KEY}', "
             f"got {depends}"
         )
+
+
+def test_seed_job_owns_all_provisioning_removed_from_sample_jobs():
+    """Control-table setup and spec onboarding moved OUT of the six sample jobs and INTO the
+    one seed job, so a cloned sample job is exactly pipeline_task + observability_task.
+
+    Guards the removal: if onboarding silently vanished from BOTH places, every sample would
+    fail at runtime with `FrameworkConfigError: No active dataflow_group_spec row found`."""
+    tasks = {t["task_key"]: t for t in _tasks(_load(SAMPLE_JOBS_DIR / SEED_JOB_FILE))}
+
+    assert SETUP_TASK_KEY in tasks, (
+        f"{SEED_JOB_FILE} must own '{SETUP_TASK_KEY}' now that sample jobs do not"
+    )
+    assert ONBOARD_TASK_KEY in tasks, (
+        f"{SEED_JOB_FILE} must own '{ONBOARD_TASK_KEY}' now that sample jobs do not -- "
+        "without it no sample pipeline can resolve its dataflow_group_spec row"
+    )
+
+    onboard = tasks[ONBOARD_TASK_KEY]
+    assert "run_job_task" in onboard, (
+        f"'{ONBOARD_TASK_KEY}' must delegate via run_job_task, never an inline "
+        "02_onboarding_engine.py notebook_task (AGENTS.md)"
+    )
+    spec_dir = onboard["run_job_task"]["job_parameters"]["spec_dir"]
+    assert spec_dir.endswith("resources/sample_jobs/onboarding"), (
+        f"'{ONBOARD_TASK_KEY}' must onboard the bundle's spec directory, got {spec_dir!r}"
+    )
 
 
 @pytest.mark.parametrize("sample_id", SAMPLE_IDS)
@@ -196,21 +241,37 @@ def test_store_sample_config_targets_exactly_one_volume():
 
 
 @pytest.mark.parametrize("job_file", _sample_job_files(), ids=lambda p: p.name)
-def test_every_sample_job_publishes_its_own_spec(job_file):
-    tasks = _tasks(_load(job_file))
-    store = [t for t in tasks if t["task_key"] == "store_sample_config"]
-    assert len(store) == 1, (
-        f"{job_file.name} must end with exactly one 'store_sample_config' task, found {len(store)}"
+def test_every_sample_job_is_exactly_two_tasks(job_file):
+    """The developer blueprint: pipeline_task + observability_task, nothing else.
+
+    A sample job is a pattern developers clone. Every extra task is one they must understand
+    and then delete. Provisioning belongs to the seed job (see
+    ``test_seed_job_owns_all_provisioning_removed_from_sample_jobs``); this asserts none of it
+    creeps back in."""
+    keys = [t["task_key"] for t in _tasks(_load(job_file))]
+    assert keys == [PIPELINE_TASK_KEY, OBSERVABILITY_TASK_KEY], (
+        f"{job_file.name} must declare exactly "
+        f"['{PIPELINE_TASK_KEY}', '{OBSERVABILITY_TASK_KEY}'], found {keys}"
+    )
+
+
+@pytest.mark.parametrize("job_file", _sample_job_files(), ids=lambda p: p.name)
+def test_sample_job_observability_follows_its_own_pipeline(job_file):
+    """The telemetry task must export the update THIS job just ran -- a stale or missing
+    pipeline_task_run_id silently exports the wrong (or no) update."""
+    tasks = {t["task_key"]: t for t in _tasks(_load(job_file))}
+    obs = tasks[OBSERVABILITY_TASK_KEY]
+    assert [d["task_key"] for d in obs.get("depends_on", [])] == [PIPELINE_TASK_KEY], (
+        f"{job_file.name}'s '{OBSERVABILITY_TASK_KEY}' must depend on '{PIPELINE_TASK_KEY}'"
+    )
+    params = obs["notebook_task"]["base_parameters"]
+    assert params["pipeline_task_run_id"] == "{{tasks.%s.run_id}}" % PIPELINE_TASK_KEY, (
+        f"{job_file.name} must pass the run_id of its own '{PIPELINE_TASK_KEY}' task"
     )
     sample_id = SAMPLE_JOB_FILE.match(job_file.name).group(1)
-    spec_paths = store[0]["notebook_task"]["base_parameters"]["spec_paths"]
-    assert f"/samples/sample_{sample_id}_" in spec_paths, (
-        f"{job_file.name}'s store_sample_config publishes {spec_paths!r}, which is not "
-        f"sample {sample_id}'s own spec"
-    )
-    referenced = spec_paths.rsplit("/", 1)[-1]
-    assert (SAMPLES_SPEC_DIR / referenced).exists(), (
-        f"{job_file.name} publishes '{referenced}', which does not exist in metaflow_testing/samples/"
+    assert f"sample_{sample_id}" in params["dataflow_group_id"], (
+        f"{job_file.name} exports telemetry for {params['dataflow_group_id']!r}, "
+        f"which is not sample {sample_id}'s own group"
     )
 
 
@@ -234,23 +295,27 @@ def test_every_sample_job_runs_exactly_one_pipeline_update(job_file):
     """With all three iterations seeded up front, one update ingests them all -- the three
     ``run_pipeline_iteration<N>`` tasks the suite used to carry would be no-ops 2 and 3."""
     pipeline_tasks = [t["task_key"] for t in _tasks(_load(job_file)) if "pipeline_task" in t]
-    assert pipeline_tasks == ["run_pipeline"], (
-        f"{job_file.name} must run its pipeline exactly once, in a task called 'run_pipeline'; "
+    assert pipeline_tasks == [PIPELINE_TASK_KEY], (
+        f"{job_file.name} must run its pipeline exactly once, in a task called "
+        f"'{PIPELINE_TASK_KEY}'; "
         f"found {pipeline_tasks}"
     )
 
 
-@pytest.mark.parametrize("job_file", _sample_job_files(), ids=lambda p: p.name)
-def test_every_sample_job_onboards_through_the_generic_onboarding_job(job_file):
-    """Onboarding is delegated via run_job_task -- never an inline 02_onboarding_engine.py."""
-    tasks = _tasks(_load(job_file))
-    inline = [t["task_key"] for t in tasks if "02_onboarding_engine" in _notebook_path(t)]
-    assert inline == [], (
-        f"{job_file.name} inlines the onboarding engine in {inline}; delegate to "
-        "${resources.jobs.onboarding_job.id} via run_job_task instead"
-    )
-    delegated = [t for t in tasks if "run_job_task" in t]
-    assert len(delegated) == 1, (
-        f"{job_file.name} must delegate onboarding through exactly one run_job_task, "
-        f"found {len(delegated)}"
-    )
+def test_no_sample_job_onboards_or_seeds_anything():
+    """Onboarding and seeding are the seed job's, not the blueprint's.
+
+    Replaces the old per-job `test_every_sample_job_onboards_through_the_generic_onboarding_job`:
+    a sample job must now carry NO onboarding task at all, inline or delegated."""
+    for job_file in _sample_job_files():
+        tasks = _tasks(_load(job_file))
+        inline = [t["task_key"] for t in tasks if "02_onboarding_engine" in _notebook_path(t)]
+        assert inline == [], (
+            f"{job_file.name} inlines the onboarding engine in {inline}; onboarding belongs to "
+            f"{SEED_JOB_FILE}'s '{ONBOARD_TASK_KEY}' task"
+        )
+        delegated = [t["task_key"] for t in tasks if "run_job_task" in t]
+        assert delegated == [], (
+            f"{job_file.name} still delegates onboarding in {delegated}; it moved to "
+            f"{SEED_JOB_FILE}'s '{ONBOARD_TASK_KEY}' task"
+        )

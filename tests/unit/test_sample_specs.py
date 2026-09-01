@@ -1,5 +1,5 @@
 """Offline validation of the sample reference suite's onboarding specs
-(``metaflow_testing/samples/*.json`` -- the 6 ``resources/sample_jobs/*`` sample jobs).
+(``resources/sample_jobs/onboarding/*.json`` -- the 6 ``resources/sample_jobs/*`` sample jobs).
 
 Every sample spec must (a) parse as JSON, (b) pass the REAL onboarding validator
 (``onboarding/spec_validator.py::validate_spec``) with zero errors after the same
@@ -31,7 +31,7 @@ import pytest
 from NextGen_Metadata_Framework.lakeflow_framework.onboarding.spec_validator import validate_spec
 
 _REPO_ROOT = pathlib.Path(__file__).resolve().parents[2]
-_SAMPLES_DIR = _REPO_ROOT / "metaflow_testing" / "samples"
+_SAMPLES_DIR = _REPO_ROOT / "resources" / "sample_jobs" / "onboarding"
 
 # The {{catalog}} placeholder every spec carries; the onboarding driver substitutes the deploy
 # target's catalog before validation, so a validator replay must too.
@@ -95,7 +95,7 @@ def test_all_sample_specs_exist():
     """A silent zero-spec discovery would turn every parametrized test below into a vacuous pass."""
     found = sorted(path.name for path in _spec_paths())
     assert found == _EXPECTED_SPEC_NAMES, (
-        f"metaflow_testing/samples/ should hold exactly the "
+        f"resources/sample_jobs/onboarding/ should hold exactly the "
         f"{len(_EXPECTED_SPEC_NAMES)} sample suite specs; found {found}."
     )
 

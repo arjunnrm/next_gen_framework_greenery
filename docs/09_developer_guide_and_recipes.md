@@ -523,7 +523,7 @@ and neither is caused by v1.5.0:
 ## 6. The `metaflow_sample` Reference Suite
 
 Six self-contained **reference** jobs (not tests) under `resources/sample_jobs/`, with their
-onboarding specs in `metaflow_testing/samples/`. Every asset they produce - landing files,
+onboarding specs in `resources/sample_jobs/onboarding/`. Every asset they produce - landing files,
 `_schemas` checkpoints, target tables, quarantine tables, reconciliation datasets, ZIP exports,
 observability output, and a copy of each job's own spec - is isolated in the single Unity Catalog
 schema **`metaflow.metaflow_sample`**.
@@ -576,29 +576,40 @@ databricks bundle run metaflow_sample_01_multi_scd_job  -t dev_metaflow -p dev_m
 databricks bundle run metaflow_sample_06_asn1_tap3_job  -t dev_metaflow -p dev_metaflow
 ```
 
-Each sample job is now just `setup_control_tables` -> `onboard_sample_NN` -> `run_pipeline` ->
-`store_sample_config` (Sample 03 adds an `observability_export` before the last task). Onboarding is
-always **delegated** to the generic `onboarding_job` via `run_job_task` - never an inline
-`02_onboarding_engine.py` notebook task.
+Each sample job is now **exactly two tasks** — `pipeline_task` -> `observability_task`. That is the
+developer blueprint: clone a sample job and you get the pipeline run plus its telemetry export, and
+nothing else to delete.
 
-> [!NOTE]
-> **What seeding up front changes.** All three iterations are on disk before a sample's pipeline
-> first runs, so that **one** update ingests them together - which is why each sample job runs its
-> pipeline once rather than three times. The end state is the same (`apply_changes` sequences the
-> SCD1/SCD2 versions within the single batch, so SCD2 history is still built); what is no longer
-> observable is the update-by-update *progression* - Sample 03's drift counters land on their final
-> 6-drift / 14-missing values instead of stepping 0 -> 6 -> 14. To watch a sample evolve, run the
-> seed job's chain one iteration at a time with the sample's pipeline in between.
+All provisioning moved into the one suite-wide seed job, whose serial root is now a three-link
+chain:
 
-### 6.3 Every spec lands in one Volume
+```
+metaflow_sample_seed_job
+  provision_sample_schema -> setup_control_tables -> onboard_all_samples
+                                                       |
+                          six parallel seed chains  <--+
+```
 
-The last task of every sample job is `store_sample_config`
-(`notebooks/09_sample_reference/09a_store_sample_config.py`), which copies that job's onboarding
-spec JSON into the single reference Volume **`/Volumes/metaflow/metaflow_sample/sample_configs/`**.
-A developer browsing the `metaflow_sample` schema therefore finds, next to every table the suite
-produced, the exact spec document that produced it. The notebook validates each spec with
-`json.loads` before publishing, so an unparseable document is refused loudly rather than stored as a
-broken reference.
+`onboard_all_samples` onboards **all six specs in one run** by pointing the generic
+`framework_config_onboarding_job` at the bundle's spec directory
+(`resources/sample_jobs/onboarding/`), replacing the six per-job `onboard_sample_NN` tasks.
+Onboarding is still delegated via `run_job_task` — never an inline `02_onboarding_engine.py`.
+
+> **Why onboarding cannot simply be dropped.** `pipeline_task` reads its configuration from the
+> control tables. A group that was never onboarded fails in
+> `control_plane/repository.py` with
+> `FrameworkConfigError: No active dataflow_group_spec row found for dataflow_group_id=...`.
+> Onboarding is provisioning, so it happens once in the seed job rather than on every developer run.
+
+Run the seed job once, then any sample job as often as you like:
+
+```bash
+databricks bundle run metaflow_sample_seed_job         -t <target> -p <profile>   # once
+databricks bundle run metaflow_sample_01_multi_scd_job -t <target> -p <profile>
+```
+
+Pass `action_type=UPDATE` to the seed job to re-onboard specs that changed after first onboarding.
+
 
 ### 6.4 Sample 06: the real GSMA TAP3 module, and why the PDU is `Notification`
 

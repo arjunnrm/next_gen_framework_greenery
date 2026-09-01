@@ -64,9 +64,24 @@ resources:
       parameters:
         - name: catalog
           default: metaflow
+        # CREATE on first run; pass UPDATE to re-onboard specs that changed since.
+        - name: action_type
+          default: CREATE
 
       tasks:
         # ---------------------------------------------------------------- serial root
+        #
+        # PROVISIONING ROOT -- three strictly-ordered tasks that must complete before any
+        # fixture lands, and before ANY sample job is run:
+        #
+        #   provision_sample_schema -> setup_control_tables -> onboard_all_samples
+        #
+        # These moved OUT of the individual sample jobs so each of those is exactly two tasks
+        # (pipeline_task + observability_task). They are provisioning, not per-run work: doing
+        # them once here is both cheaper and the reason a cloned sample job stays minimal.
+        # The chain is serial on purpose -- UC's `CREATE ... IF NOT EXISTS` is idempotent in
+        # intent but NOT atomic, and concurrent creators reproduce the `[ROUTINE_ALREADY_EXISTS]`
+        # race documented in agent_skills/reference/common_pitfalls.md (pitfall 7).
         - task_key: provision_sample_schema
           notebook_task:
             notebook_path: ../../notebooks/00_seed_sample_data/04_seed_sample_00_provision_sample_schema.py
@@ -74,13 +89,44 @@ resources:
               catalog: "{{job.parameters.catalog}}"
           environment_key: framework_env
 
+        # Control tables must exist before any spec can be onboarded into them.
+        - task_key: setup_control_tables
+          depends_on:
+            - task_key: provision_sample_schema
+          notebook_task:
+            notebook_path: ../../notebooks/01_setup/01_setup_control_tables.py
+            base_parameters:
+              catalog: "{{job.parameters.catalog}}"
+          environment_key: framework_env
+
+        # Onboards ALL SIX sample specs in ONE run by pointing the generic bulk onboarding job
+        # at the bundle's spec directory. This replaces the six per-job `onboard_sample_NN`
+        # tasks. Delegated via run_job_task to `framework_config_onboarding_job` -- never an
+        # inline 02_onboarding_engine.py notebook_task (see AGENTS.md).
+        #
+        # Idempotent: onboarding is a control-table upsert plus `CREATE ... IF NOT EXISTS`
+        # provisioning, so re-running the seed job is safe. Use action_type=UPDATE instead if a
+        # spec changed after its group was first onboarded.
+        - task_key: onboard_all_samples
+          depends_on:
+            - task_key: setup_control_tables
+          run_job_task:
+            job_id: ${resources.jobs.framework_config_onboarding_job.id}
+            job_parameters:
+              spec_dir: "${workspace.file_path}/resources/sample_jobs/onboarding"
+              catalog: "{{job.parameters.catalog}}"
+              env: dev
+              action_type: "{{job.parameters.action_type}}"
+              fail_fast: "true"
+              exclude_specs: ""
+
         # ------------------------------------------- Sample 01: multi-strategy SCD suite
         # Iterations are cumulative: 2 mutates existing SCD1/SCD2 keys, 3 adds new keys, and
         # the FULL_SNAPSHOT_CDC parts feed is strictly additive (never a changed or removed
         # existing key) because an accumulating snapshot input cannot express a deletion.
         - task_key: seed_sample_01_iteration1
           depends_on:
-            - task_key: provision_sample_schema
+            - task_key: onboard_all_samples
           notebook_task:
             notebook_path: ../../notebooks/00_seed_sample_data/04_seed_sample_01_multi_scd_data.py
             base_parameters:
@@ -111,7 +157,7 @@ resources:
         # --------------------------------------------- Sample 02: glob-filtered ZIP ingestion
         - task_key: seed_sample_02_iteration1
           depends_on:
-            - task_key: provision_sample_schema
+            - task_key: onboard_all_samples
           notebook_task:
             notebook_path: ../../notebooks/00_seed_sample_data/04_seed_sample_02_zip_ingestion_data.py
             base_parameters:
@@ -144,7 +190,7 @@ resources:
         # iteration 1, iteration 3 omits 8 replica rows entirely.
         - task_key: seed_sample_03_iteration1
           depends_on:
-            - task_key: provision_sample_schema
+            - task_key: onboard_all_samples
           notebook_task:
             notebook_path: ../../notebooks/00_seed_sample_data/04_seed_sample_03_multi_table_recon_data.py
             base_parameters:
@@ -176,7 +222,7 @@ resources:
         # Needs the UC secret metaflow.metaflow_sample.sample_zip_passkey -- preflighted here.
         - task_key: seed_sample_04_iteration1
           depends_on:
-            - task_key: provision_sample_schema
+            - task_key: onboard_all_samples
           notebook_task:
             notebook_path: ../../notebooks/00_seed_sample_data/04_seed_sample_04_export_encrypt_zip_data.py
             base_parameters:
@@ -209,7 +255,7 @@ resources:
         # secret fails this chain at iteration 1 with a clear message.
         - task_key: seed_sample_05_iteration1
           depends_on:
-            - task_key: provision_sample_schema
+            - task_key: onboard_all_samples
           notebook_task:
             notebook_path: ../../notebooks/00_seed_sample_data/04_seed_sample_05_encrypted_ingestion_data.py
             base_parameters:
@@ -242,7 +288,7 @@ resources:
         # BER-encodes its Notification payloads on-cluster against that landed copy.
         - task_key: seed_sample_06_iteration1
           depends_on:
-            - task_key: provision_sample_schema
+            - task_key: onboard_all_samples
           notebook_task:
             notebook_path: ../../notebooks/00_seed_sample_data/04_seed_sample_06_asn1_tap3_data.py
             base_parameters:

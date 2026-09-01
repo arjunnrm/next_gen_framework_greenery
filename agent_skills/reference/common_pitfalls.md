@@ -839,7 +839,7 @@ release 3.10 spec):
 * `TransferBatch` *is* a `SEQUENCE`, but reaches `CallEventDetailList` → `CallEventDetail`, also a
   `CHOICE`. **Rejected**, one level deeper, which is the version of this that wastes an afternoon.
 * `Notification` (`[APPLICATION 2] SEQUENCE`) resolves completely — and is a real TAP3 file-level
-  PDU, not a contrivance. This is what `metaflow_testing/samples/sample_06_asn1_tap3_ingestion.json`
+  PDU, not a contrivance. This is what `resources/sample_jobs/onboarding/sample_06_asn1_tap3_ingestion.json`
   uses.
 
 **Do not read the module to find a candidate.** Ask the framework's own resolver, which is the

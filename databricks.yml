@@ -40,10 +40,10 @@ bundle:
 include:
   - resources/metaflow_app/*.yml
   - resources/metaflow_config_jobs/*.yml
-  - resources/observability/*.yml
-  - resources/bt_tests/*.yml
-  - resources/feature_tests/*.yml
-  - resources/stability_tests/*.yml
+#  - resources/observability/*.yml
+#  - resources/bt_tests/*.yml
+#  - resources/feature_tests/*.yml
+#  - resources/stability_tests/*.yml
   - resources/sample_jobs/*.yml
 
 # The framework wheel (a `.whl` -- a ZIP distribution) is built AND published by
@@ -83,8 +83,21 @@ include:
 #     deploy -- the hoped-for "a Volume never prunes" benefit is FALSE). A deploy issued while a
 #     Lakeflow update is installing the previous wheel can therefore still kill that update with
 #     ENVIRONMENT_PIP_INSTALL_ERROR, as seen on 2026-08-29 for TC-ING-004/TC-ING-005. The
-#     operational rule is the only mitigation and it is UNCHANGED: never `bundle deploy` while a
-#     test wave or pipeline is running (metaflow_testing/TESTING_PLAN.md section 0).
+#     operational rule is the primary mitigation and it is UNCHANGED: never `bundle deploy` while
+#     a test wave or pipeline is running (metaflow_testing/TESTING_PLAN.md section 0). Two things
+#     now back that rule up rather than replacing it:
+#
+#       ENFORCE IT -- `databricks bundle deploy -t <target> --fail-on-active-runs` refuses the
+#       deploy outright if any job or pipeline in the bundle is running, turning the silent
+#       mid-run kill into a clean upfront failure. Prefer this on every deploy.
+#
+#       RECOVER FROM IT -- `python scripts/archive_deployed_wheel.py --profile <profile>`, run
+#       AFTER a successful deploy, copies the published wheel into `<artifact_path>/archive/`.
+#       DABs does not manage anything outside `.internal/`, so archived wheels are never pruned
+#       and stay installable for rollback. NOTE what this does NOT do: deployed resources are
+#       pinned to the `.internal/` path, so an archived copy does not repair a pin whose target
+#       was pruned mid-install -- recovering means repointing the resource at the archived path
+#       by hand. It is a rollback/forensics net, not a substitute for --fail-on-active-runs.
 #
 # ONE-TIME BOOTSTRAP per workspace. `bundle validate` and `bundle deploy` (verified on CLI
 # v1.13.0) REFUSE an artifact_path pointing into a Volume that does not exist yet, even one
@@ -178,6 +191,19 @@ targets:
     workspace:
       host: https://dbc-8bb5bedf-1a4b.cloud.databricks.com
       profile: dev_metaflow
+      # v1.6.0: fixed, shared UC-Volume artifact path -- see the `artifacts` block above for the
+      # decision record and the never-deploy-mid-run rule that still applies.
+      artifact_path: /Volumes/${var.catalog}/config/wheels
+
+    variables:
+      catalog: metaflow
+      schema: dev      
+
+
+  arjun:
+    workspace:
+      host: https://dbc-aa517a4b-be89.cloud.databricks.com/
+      profile: arjun
       # v1.6.0: fixed, shared UC-Volume artifact path -- see the `artifacts` block above for the
       # decision record and the never-deploy-mid-run rule that still applies.
       artifact_path: /Volumes/${var.catalog}/config/wheels

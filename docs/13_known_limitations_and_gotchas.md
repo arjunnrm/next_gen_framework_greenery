@@ -1356,6 +1356,30 @@ previous wheel kills it with `ENVIRONMENT_PIP_INSTALL_ERROR`.
 Unique per-deploy wheel filenames prevent a wheel being **overwritten** in place, but not
 **removed**. The operational rule stands regardless of filenames.
 
+**Enforce it rather than remembering it.** `--fail-on-active-runs` refuses the deploy outright if
+any job or pipeline in the bundle is running, turning a silent mid-run kill into a clean upfront
+failure:
+
+```bash
+databricks bundle deploy -t <target> --fail-on-active-runs
+```
+
+**Keep a copy you can roll back to.** `scripts/archive_deployed_wheel.py`, run *after* a successful
+deploy, copies the published wheel into `<artifact_path>/archive/`. DABs manages only `.internal/`,
+so archived wheels are never pruned:
+
+```bash
+python scripts/archive_deployed_wheel.py --profile <profile>   # --prune-keep N to cap the archive
+```
+
+> ⚠️ The archive is **recovery, not prevention**. Deployed resources are pinned to the *absolute*
+> `.internal/` path, so an archived copy does not repair a pin whose target was pruned mid-install —
+> that means repointing the resource at the archived path by hand. `--fail-on-active-runs` is what
+> stops the incident; the archive is what you fall back on if one happens anyway.
+
+> 📌 A related claim that was **false and is now corrected**: `scripts/build_and_upload_wheel.py`
+> used to state that a UC Volume never prunes. It does. Only files *outside* `.internal/` are safe.
+
 ### <a id="o2"></a>O2 🔴 DABs' sync snapshot goes stale — notebooks silently do not update
 
 `.databricks/bundle/<target>/sync-snapshots/` tracks synced files and can go stale, reporting

@@ -35,7 +35,7 @@ pytest tests/integration/ -v
 
 ## 📚 Sample reference suite (`metaflow_sample`)
 
-Six self-contained **reference** jobs (not tests) under [`resources/sample_jobs/`](file:///c:/Databricks/NextGen_Metadata_Framework/resources/sample_jobs/), with specs in [`samples/`](file:///c:/Databricks/NextGen_Metadata_Framework/metaflow_testing/samples/). Every asset - landing files, `_schemas` checkpoints, targets, quarantine tables, recon datasets, exports, observability output, and a copy of each job's own spec (`sample_configs/`) - is isolated in the single UC schema **`metaflow.metaflow_sample`**. Seeds slice the Databricks `samples` catalog deterministically and fall back to inline literals when it isn't shared into the workspace.
+Six self-contained **reference** jobs (not tests) under [`resources/sample_jobs/`](file:///c:/Databricks/NextGen_Metadata_Framework/resources/sample_jobs/), with specs in [`samples/`](file:///c:/Databricks/NextGen_Metadata_Framework/resources/sample_jobs/onboarding/). Every asset - landing files, `_schemas` checkpoints, targets, quarantine tables, recon datasets, exports, observability output, and a copy of each job's own spec (`sample_configs/`) - is isolated in the single UC schema **`metaflow.metaflow_sample`**. Seeds slice the Databricks `samples` catalog deterministically and fall back to inline literals when it isn't shared into the workspace.
 
 | Job | Shows |
 |---|---|
@@ -58,7 +58,7 @@ databricks bundle run metaflow_sample_seed_job -t dev_metaflow -p dev_metaflow
 databricks bundle run metaflow_sample_01_multi_scd_job -t dev_metaflow -p dev_metaflow
 ```
 
-Each sample job is then just `setup_control_tables` -> `onboard_sample_NN` -> `run_pipeline` -> `store_sample_config` (Sample 03 adds `observability_export`), onboarding strictly through the generic `onboarding_job`, and storing its spec JSON into the one Volume `/Volumes/metaflow/metaflow_sample/sample_configs/` as its last task.
+Each sample job is then **exactly two tasks** — `pipeline_task` -> `observability_task` — the minimal blueprint a developer clones. All provisioning (schema, control tables, and a single `onboard_all_samples` task that onboards every spec in `resources/sample_jobs/onboarding/` through the generic bulk onboarding job) lives in `metaflow_sample_seed_job`, which must be run once first.
 
 Because all three iterations are seeded before a pipeline first runs, that **one** update ingests them together - which is why each sample job runs its pipeline once, not three times. The end state is unchanged (`apply_changes` still sequences SCD1/SCD2 versions within the single batch); what is no longer observable is the update-by-update progression. To watch a sample evolve, run the seed job's chain one iteration at a time with the sample's pipeline in between.
 
