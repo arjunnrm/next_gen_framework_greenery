@@ -1,0 +1,35 @@
+# Metaflow test scenario TC-SNK-002: "Pure Sink Export Without Table Materialization" --
+# proves target_type: "sink" (engine/sink_registration.py::register_sink_target) writes a
+# flow's streaming output directly to an egress Volume via genuine dlt.create_sink +
+# @dlt.append_flow, with NO Delta table ever registered in Unity Catalog for the sink itself --
+# distinct from target_type: "external_sink" (TC-SNK-001), which materializes a real queryable
+# table alongside its export. See metaflow_testing/040_snk_002_pure_sink.json and
+# docs/62_tc_snk_002.md.
+#
+# One dataflow group, two flows:
+#   ingestion_flows[0]  -> {{catalog}}.bronze_iot_snk002.sensor_readings_raw (real, queryable)
+#   transformation_flows[0] (target_type: "sink") -> /Volumes/{{catalog}}/egress_iot/partner_drops/
+#     (no table -- Delta files written straight to the Volume)
+
+resources:
+  pipelines:
+    metaflow_test_snk_002_pure_sink_pipeline:
+      name: metaflow_test_snk_002_pure_sink_pipeline_${bundle.target}
+      catalog: metaflow
+      schema: bronze_iot_snk002
+      serverless: true
+      photon: true
+      development: true
+      continuous: false
+
+      libraries:
+        - notebook:
+            path: ../../notebooks/03_engine/03_lakeflow_declarative_pipeline.py
+
+      environment:
+        dependencies:
+          - ../../dist/*.whl
+
+      configuration:
+        dataflow.group.id: dfg_snk_002_pure_sink
+        dataflow.control.catalog: metaflow

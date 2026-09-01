@@ -1,0 +1,76 @@
+# Wraps metaflow_test_flt_002_lifecycle_pipeline:
+#
+#   setup_control_tables -> seed_day1_customers -> onboard_flt_002 -> run_pipeline_day1
+#     -> seed_day2_customers -> run_pipeline_day2
+#
+# The pipeline runs TWICE, deliberately, as two separate job tasks against the same
+# pipeline_id -- TC-FLT-002 specifically verifies the transition ACROSS two independent
+# triggered updates (a real Day-1 run, then a real Day-2 run later), not just that
+# dlt.apply_changes sorts a single mixed batch correctly. seed_day2_customers only lands the
+# Day-2 file after run_pipeline_day1 has already completed, so run_pipeline_day2's Auto Loader
+# read genuinely sees an incremental batch on its second update, exactly like a real recurring
+# daily load would.
+
+resources:
+  jobs:
+    metaflow_test_flt_002_lifecycle_job:
+      name: Metaflow Test FLT-002 - Day-1 to Day-2 Lifecycle Cycle
+
+      tasks:
+        - task_key: setup_control_tables
+          notebook_task:
+            notebook_path: ../../notebooks/01_setup/01_setup_control_tables.py
+            base_parameters:
+              catalog: metaflow
+          environment_key: framework_env
+
+        - task_key: seed_day1_customers
+          depends_on:
+            - task_key: setup_control_tables
+          notebook_task:
+            notebook_path: ../../notebooks/00_seed_sample_data/03_seed_flt_002_lifecycle_data.py
+            base_parameters:
+              catalog: metaflow
+              stage: day1
+          environment_key: framework_env
+
+        - task_key: onboard_flt_002
+          depends_on:
+            - task_key: seed_day1_customers
+          notebook_task:
+            notebook_path: ../../notebooks/02_onboarding/02_onboarding_engine.py
+            base_parameters:
+              spec_file_path: "${workspace.file_path}/metaflow_testing/044_flt_002_lifecycle.json"
+              catalog: metaflow
+              env: dev
+              action_type: CREATE
+          environment_key: framework_env
+
+        - task_key: run_pipeline_day1
+          depends_on:
+            - task_key: onboard_flt_002
+          pipeline_task:
+            pipeline_id: ${resources.pipelines.metaflow_test_flt_002_lifecycle_pipeline.id}
+
+        - task_key: seed_day2_customers
+          depends_on:
+            - task_key: run_pipeline_day1
+          notebook_task:
+            notebook_path: ../../notebooks/00_seed_sample_data/03_seed_flt_002_lifecycle_data.py
+            base_parameters:
+              catalog: metaflow
+              stage: day2
+          environment_key: framework_env
+
+        - task_key: run_pipeline_day2
+          depends_on:
+            - task_key: seed_day2_customers
+          pipeline_task:
+            pipeline_id: ${resources.pipelines.metaflow_test_flt_002_lifecycle_pipeline.id}
+
+      environments:
+        - environment_key: framework_env
+          spec:
+            environment_version: "4"
+            dependencies:
+              - ../../dist/*.whl

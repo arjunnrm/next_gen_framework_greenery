@@ -1,0 +1,53 @@
+# Wraps metaflow_test_001_zip_join_export_pipeline:
+#
+#   setup_control_tables -> seed_metaflow_testing_data -> onboard_001 -> run_pipeline_update
+#
+# Self-contained: seeding is idempotent (ZIP archives regenerate identically, Delta
+# writes/merges are safe to repeat), so this job can be re-run on its own at any time.
+
+resources:
+  jobs:
+    metaflow_test_001_job:
+      name: Metaflow Test 001 - ZIP Join Export
+
+      tasks:
+        - task_key: setup_control_tables
+          notebook_task:
+            notebook_path: ../../notebooks/01_setup/01_setup_control_tables.py
+            base_parameters:
+              catalog: metaflow
+          environment_key: framework_env
+
+        - task_key: seed_metaflow_testing_data
+          depends_on:
+            - task_key: setup_control_tables
+          notebook_task:
+            notebook_path: ../../notebooks/00_seed_sample_data/02_seed_metaflow_testing_data.py
+            base_parameters:
+              catalog: metaflow
+          environment_key: framework_env
+
+        - task_key: onboard_001
+          depends_on:
+            - task_key: seed_metaflow_testing_data
+          notebook_task:
+            notebook_path: ../../notebooks/02_onboarding/02_onboarding_engine.py
+            base_parameters:
+              spec_file_path: "${workspace.file_path}/metaflow_testing/001_zip_file_onboarding.json"
+              catalog: metaflow
+              env: dev
+              action_type: CREATE
+          environment_key: framework_env
+
+        - task_key: run_pipeline_update
+          depends_on:
+            - task_key: onboard_001
+          pipeline_task:
+            pipeline_id: ${resources.pipelines.metaflow_test_001_zip_join_export_pipeline.id}
+
+      environments:
+        - environment_key: framework_env
+          spec:
+            environment_version: "4"
+            dependencies:
+              - ../../dist/*.whl

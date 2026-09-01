@@ -1,0 +1,28 @@
+# TC-REC-002: "Attribute Value Drift Detection (VALUE_DRIFT)" -- lands two small ingestion
+# flows (customer_baseline, customer_cdc), both carrying customer C001 but with a deliberately
+# drifted `status` value (SUSPENDED vs ACTIVE), so the reconciliation flow in the same spec can
+# classify C001 as VALUE_DRIFT once both land. See metaflow_testing/037_rec_002_drift.json and
+# docs/59_tc_rec_002.md.
+
+resources:
+  pipelines:
+    metaflow_test_rec_002_drift_pipeline:
+      name: metaflow_test_rec_002_drift_pipeline_${bundle.target}
+      catalog: metaflow
+      schema: silver_crm
+      serverless: true
+      photon: true
+      development: true
+      continuous: false
+
+      libraries:
+        - notebook:
+            path: ../../notebooks/03_engine/03_lakeflow_declarative_pipeline.py
+
+      environment:
+        dependencies:
+          - ../../dist/*.whl
+
+      configuration:
+        dataflow.group.id: dfg_rec_002_drift
+        dataflow.control.catalog: metaflow

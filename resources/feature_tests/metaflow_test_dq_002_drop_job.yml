@@ -1,0 +1,54 @@
+# Wraps metaflow_test_dq_002_drop_pipeline:
+#
+#   setup_control_tables -> seed_dq_002_drop_data -> onboard_dq_002 -> run_pipeline
+#
+# Self-contained and idempotent (control-table upsert + CREATE ... IF NOT EXISTS schema/volume
+# provisioning + fixture re-copy), so this job can be re-run on its own at any time. See
+# metaflow_testing/030_dq_002_drop.json and docs/51_tc_dq_002.md.
+
+resources:
+  jobs:
+    metaflow_test_dq_002_drop_job:
+      name: Metaflow Test DQ-002 - drop Silent Row Filtering
+
+      tasks:
+        - task_key: setup_control_tables
+          notebook_task:
+            notebook_path: ../../notebooks/01_setup/01_setup_control_tables.py
+            base_parameters:
+              catalog: metaflow
+          environment_key: framework_env
+
+        - task_key: seed_dq_002_drop_data
+          depends_on:
+            - task_key: setup_control_tables
+          notebook_task:
+            notebook_path: ../../notebooks/00_seed_sample_data/03_seed_dq_002_drop_data.py
+            base_parameters:
+              catalog: metaflow
+          environment_key: framework_env
+
+        - task_key: onboard_dq_002
+          depends_on:
+            - task_key: seed_dq_002_drop_data
+          notebook_task:
+            notebook_path: ../../notebooks/02_onboarding/02_onboarding_engine.py
+            base_parameters:
+              spec_file_path: "${workspace.file_path}/metaflow_testing/030_dq_002_drop.json"
+              catalog: metaflow
+              env: dev
+              action_type: CREATE
+          environment_key: framework_env
+
+        - task_key: run_pipeline
+          depends_on:
+            - task_key: onboard_dq_002
+          pipeline_task:
+            pipeline_id: ${resources.pipelines.metaflow_test_dq_002_drop_pipeline.id}
+
+      environments:
+        - environment_key: framework_env
+          spec:
+            environment_version: "4"
+            dependencies:
+              - ../../dist/*.whl

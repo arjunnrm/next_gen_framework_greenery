@@ -1,0 +1,28 @@
+# TC-ING-001: "Selective Glob Pattern ZIP Extraction" -- proves source_zip_handling's
+# zip_file_pattern glob (customer_*.zip) extracts and ingests only matching archives from
+# /Volumes/{{catalog}}/crm/landing_zip/incoming/, leaving a non-matching archive
+# (vendor_feed_20260828.zip) untouched. See metaflow_testing/010_ing_001_zip_filter.json and
+# docs/31_tc_ing_001.md.
+
+resources:
+  pipelines:
+    metaflow_test_ing_001_zip_filter_pipeline:
+      name: metaflow_test_ing_001_zip_filter_pipeline_${bundle.target}
+      catalog: metaflow
+      schema: bronze_crm
+      serverless: true
+      photon: true
+      development: true
+      continuous: false
+
+      libraries:
+        - notebook:
+            path: ../../notebooks/03_engine/03_lakeflow_declarative_pipeline.py
+
+      environment:
+        dependencies:
+          - ../../dist/*.whl
+
+      configuration:
+        dataflow.group.id: dfg_ing_001_zip_filter
+        dataflow.control.catalog: metaflow

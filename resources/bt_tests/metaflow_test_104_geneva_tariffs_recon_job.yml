@@ -1,0 +1,79 @@
+# Wraps metaflow_test_104_geneva_tariffs_recon_pipeline (TC-104, v1.5.0 Module 12):
+#
+#   setup_control_tables -> onboard_104 -> run_pipeline -> observability_export
+#
+# No seed task: unlike the synthetic scenarios elsewhere in this bundle, Geneva's ingestion
+# source is a real production landing volume
+# (/Volumes/{{catalog}}/geneva_admin/landing_tariffelementband_near/incoming/), not a fixture
+# this repo generates -- see the KNOWN LIMITATIONS note in
+# metaflow_test_104_geneva_tariffs_recon_pipeline.yml. This job structurally replays the
+# concrete production case (metaflow_testing/051_geneva_tariffs_recon.json) for onboarding/
+# validation purposes; a full live run additionally needs that landing path populated and the
+# separate dfg_zerobus_tariffelementband_cdc pipeline (this repo does not own it) already
+# producing bronze_excalibur.bronze_tariffelementband.
+#
+# observability_export follows the PARAMETER CONTRACT documented in
+# resources/observability/dlt_observability_job.yml (all four base_parameters required); this spec declares
+# no "observability" destinations array yet, so this task is expected to fail loudly with "No
+# enabled observability_config destinations resolved for dataflow_group_id=
+# 'dfg_geneva_tariffs_recon'" until one is added -- included now, failing loudly rather than
+# silently, to keep this job's shape consistent with every other scenario in this bundle (R3:
+# observability export stays a separate task, never folded into the pipeline).
+
+resources:
+  jobs:
+    metaflow_test_104_geneva_tariffs_recon_job:
+      name: Metaflow Test 104 - Geneva Tariff Element Band Reconciliation (Production Replay)
+
+      tasks:
+        - task_key: setup_control_tables
+          notebook_task:
+            notebook_path: ../../notebooks/01_setup/01_setup_control_tables.py
+            base_parameters:
+              catalog: metaflow
+          environment_key: framework_env
+
+        # Delegated to the generic resources/metaflow_config_jobs/onboarding_job.yml -- the single parameterised
+        # onboarding entrypoint for this bundle. Never inline a 02_onboarding_engine.py
+        # notebook_task in a new job.
+        - task_key: onboard_104
+          depends_on:
+            - task_key: setup_control_tables
+          run_job_task:
+            job_id: ${resources.jobs.onboarding_job.id}
+            job_parameters:
+              spec_file_path: "${workspace.file_path}/metaflow_testing/053_geneva_e41a47ba_recon_in_pipeline.json"
+              catalog: metaflow
+              env: dev
+              action_type: CREATE
+
+        - task_key: run_pipeline
+          depends_on:
+            - task_key: onboard_104
+          pipeline_task:
+            pipeline_id: ${resources.pipelines.metaflow_test_104_geneva_tariffs_recon_pipeline.id}
+
+        - task_key: observability_export
+          depends_on:
+            - task_key: run_pipeline
+          notebook_task:
+            notebook_path: ../../notebooks/08_observability/08_dlt_observability_engine.py
+            base_parameters:
+              # All four are REQUIRED -- see resources/observability/dlt_observability_job.yml's PARAMETER
+              # CONTRACT note. This spec has no "observability" destinations configured yet
+              # (see this file's header comment), so this task is expected to fail until one is
+              # added.
+              dataflow_group_id: dfg_geneva_tariffs_recon
+              catalog: metaflow
+              env: dev
+              pipeline_task_run_id: "{{tasks.run_pipeline.run_id}}"
+              service_name: dlt-observability-metaflow-test-104-geneva
+              fail_task_on_dispatch_error: "true"
+          environment_key: framework_env
+
+      environments:
+        - environment_key: framework_env
+          spec:
+            environment_version: "4"
+            dependencies:
+              - ../../dist/*.whl

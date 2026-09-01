@@ -1,0 +1,62 @@
+# Wraps metaflow_test_snk_003_pgp_zip_sink_pipeline:
+#
+#   setup_control_tables -> seed_snk_003_pgp_zip_sink_data -> onboard_snk_003 -> run_pipeline_task
+#
+# seed_snk_003_pgp_zip_sink_data (notebooks/00_seed_sample_data/03_seed_snk_003_pgp_zip_sink_data.py)
+# lands a small plaintext monthly_settlements.csv fixture (sample_data/metaflow_testing/
+# finance_egress_usecase/monthly_settlements.csv) -- no PGP/ZIP handling is needed on the INPUT
+# side; that's the whole point of this scenario, the framework does the PGP+ZIP work itself, on
+# EGRESS, via a genuine Lakeflow sink. Before run_pipeline_task can succeed, the recipient's
+# PUBLIC key half of a dedicated, disposable, test-only PGP keypair (sample_data/
+# metaflow_testing/finance_egress_usecase/pgp_egress_keypair_{public,private}.asc) must already be
+# provisioned as the UC secret {{catalog}}.security.pgp_public_key_finance_egress_test -- a
+# manual, admin-audited step external to this bundle, following the exact same "security"-scope
+# pattern metaflow_test_ing_005_pgp_decrypt_job establishes for TC-ING-005's private key -- see
+# docs/63_tc_snk_003.md for the exact `databricks secrets put-secret` command.
+
+resources:
+  jobs:
+    metaflow_test_snk_003_pgp_zip_sink_job:
+      name: Metaflow Test SNK-003 - PGP Encrypted ZIP Sink Export with Secret Key
+
+      tasks:
+        - task_key: setup_control_tables
+          notebook_task:
+            notebook_path: ../../notebooks/01_setup/01_setup_control_tables.py
+            base_parameters:
+              catalog: metaflow
+          environment_key: framework_env
+
+        - task_key: seed_snk_003_pgp_zip_sink_data
+          depends_on:
+            - task_key: setup_control_tables
+          notebook_task:
+            notebook_path: ../../notebooks/00_seed_sample_data/03_seed_snk_003_pgp_zip_sink_data.py
+            base_parameters:
+              catalog: metaflow
+          environment_key: framework_env
+
+        - task_key: onboard_snk_003
+          depends_on:
+            - task_key: seed_snk_003_pgp_zip_sink_data
+          notebook_task:
+            notebook_path: ../../notebooks/02_onboarding/02_onboarding_engine.py
+            base_parameters:
+              spec_file_path: "${workspace.file_path}/metaflow_testing/041_snk_003_pgp_zip_sink.json"
+              catalog: metaflow
+              env: dev
+              action_type: CREATE
+          environment_key: framework_env
+
+        - task_key: run_pipeline_task
+          depends_on:
+            - task_key: onboard_snk_003
+          pipeline_task:
+            pipeline_id: ${resources.pipelines.metaflow_test_snk_003_pgp_zip_sink_pipeline.id}
+
+      environments:
+        - environment_key: framework_env
+          spec:
+            environment_version: "4"
+            dependencies:
+              - ../../dist/*.whl

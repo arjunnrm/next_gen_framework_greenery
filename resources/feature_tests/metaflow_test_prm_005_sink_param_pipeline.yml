@@ -1,0 +1,34 @@
+# TC-PRM-005: "Parameterized Egress Sink Paths & Export File Naming" -- exercises this session's
+# new transformation/parameters.py::substitute_path_parameters capability on a SINK target this
+# time (TC-PRM-001 exercised it on an ingestion source). pipeline_parameters:
+# {"client_code": "ACME_CORP", "export_tier": "GOLD"} resolve ${client_code}/${export_tier}
+# placeholders in target_config.sink_config.path/post_export_archive.output_zip_path fresh on
+# every pipeline update -- NOT at onboarding time like {{catalog}}/{{env}} -- so the engine
+# notebook's genuine dlt.create_sink(format="pgp_zip") writes its finished archive to
+# /Volumes/metaflow/egress/ACME_CORP/output/. export_file_name_format
+# ("acme_export_{batch_id}_{timestamp}") is a wholly separate, pre-existing str.format()
+# mechanism (archive/pgp_zip_sink.py) -- see docs/69_tc_prm_005.md for why the two are kept
+# deliberately distinct. See metaflow_testing/047_prm_005_sink_param.json.
+
+resources:
+  pipelines:
+    metaflow_test_prm_005_sink_param_pipeline:
+      name: metaflow_test_prm_005_sink_param_pipeline_${bundle.target}
+      catalog: metaflow
+      schema: silver_exports
+      serverless: true
+      photon: true
+      development: true
+      continuous: false
+
+      libraries:
+        - notebook:
+            path: ../../notebooks/03_engine/03_lakeflow_declarative_pipeline.py
+
+      environment:
+        dependencies:
+          - ../../dist/*.whl
+
+      configuration:
+        dataflow.group.id: dfg_prm_005_sink_param
+        dataflow.control.catalog: metaflow

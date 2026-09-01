@@ -1,0 +1,52 @@
+# Continuous OTel streaming export pipeline: reads N event-log tables (each a real Unity
+# Catalog Delta table one *source* pipeline publishes its own event log to -- see
+# https://learn.microsoft.com/en-us/azure/databricks/ldp/observability) as streaming sources,
+# unions them tagging every row with a `source_pipeline` column, and continuously exports the
+# unified stream to an OpenTelemetry OTLP/HTTP endpoint (gated by
+# dataflow.otel_streaming.otel_export_enabled) -- see
+# notebooks/06_observability_streaming/06_event_log_otel_streaming_pipeline.py.
+#
+# `continuous: true` (not `false`, unlike every other pipeline resource in this project) is
+# what actually makes this pipeline run continuously rather than only for the duration of a
+# single triggered update -- Databricks manages a continuous pipeline's own lifecycle once
+# started via `databricks bundle run observability_otel_streaming_pipeline` directly (see
+# docs/05_deployment_guide.md §2 for how every standalone pipeline resource in this project is
+# already run this way, with no wrapping job resource). No job YAML is defined alongside this
+# pipeline -- a job that merely "starts" a continuous pipeline update would just duplicate
+# what `bundle run` already does directly, and Databricks itself keeps a continuous pipeline
+# running/restarting thereafter, not a job.
+#
+# Deliberately NOT control-table-driven and NOT part of the onboarding/control-plane system
+# (unlike every `dfg_*`-scoped pipeline elsewhere in resources/) -- this is a "meta" pipeline
+# observing other pipelines' event logs, configured entirely via its own `configuration:`
+# block below, following the same `dataflow.<namespace>.<key>` -> `spark.conf.get(...)`
+# mechanism the core engine already uses for `dataflow.group.id`/`dataflow.control.catalog`.
+#
+# `event_log_tables` below is a placeholder list -- replace with the actual fully-qualified
+# Unity Catalog Delta table names your source pipelines publish their event logs to (Pipeline
+# settings -> "Advanced" -> "Event log" -> a `catalog.schema.table` destination on each source
+# pipeline you want observed here).
+
+resources:
+  pipelines:
+    observability_otel_streaming_pipeline:
+      name: observability_otel_streaming_pipeline_${bundle.target}
+      catalog: metaflow
+      schema: observability_streaming
+      serverless: true
+      photon: true
+      development: true
+      continuous: true
+
+      libraries:
+        - notebook:
+            path: ../../notebooks/06_observability_streaming/06_event_log_otel_streaming_pipeline.py
+
+      environment:
+        dependencies:
+          - ../../dist/*.whl
+
+      configuration:
+        dataflow.otel_streaming.event_log_tables: '["observability.event_logs.pipeline_1", "observability.event_logs.pipeline_2"]'
+        dataflow.otel_streaming.otel_endpoint: https://otel-collector.example.com/v1/logs
+        dataflow.otel_streaming.otel_export_enabled: "false"

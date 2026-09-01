@@ -1,0 +1,91 @@
+# TC-OBS-003: Telemetry Export to Unity Catalog Volume (.jsonl.gz)
+#
+# Exercises the pre-existing *batch* DLT observability engine
+# (notebooks/08_observability/08_dlt_observability_engine.py,
+# observability/destination_dispatcher.py::dispatch_to_volume) end to end against a real
+# `DATABRICKS_VOLUME` destination -- NOT the separate continuous/streaming OTel design
+# (`observability_otel_streaming_pipeline`, docs/29). See docs/65_tc_obs_003.md.
+#
+# Reuses the already-onboarded scenario 100 pipeline (metaflow_test_100_zipcsv_pipeline,
+# dataflow.group.id = dfg_zip_csv_dataload) as "the pipeline being observed" -- no new Lakeflow
+# pipeline resource is defined here. Self-contained/idempotent, like metaflow_test_100_job.yml
+# and dlt_observability_job.yml: onboards scenario 100's own spec first (so this job can run on
+# its own, from a clean environment, without depending on any other job having run already),
+# then onboards this scenario's own dedicated spec
+# (metaflow_testing/043_obs_003_vol_export.json), which upserts a SECOND, TC-OBS-003-owned
+# observability_config row (destination id "dest-obs-003-vol-export") scoped to that same
+# dataflow_group_id -- additive alongside scenario 100's own "dest-dbx-volume" row, not a
+# replacement for it (see docs/65_tc_obs_003.md for why the spec also re-declares scenario 100's
+# ingestion flow verbatim: spec_validator.py requires at least one non-empty
+# ingestion/transformation/reconciliation_flows array, and observability-only specs get no
+# exemption from that rule).
+#
+#   setup_control_tables -> onboard_100 -> onboard_obs_003 -> run_pipeline_update -> observability_export
+
+resources:
+  jobs:
+    metaflow_test_obs_003_vol_export_job:
+      name: Metaflow Test OBS-003 - Telemetry Export to UC Volume (.jsonl.gz)
+
+      tasks:
+        - task_key: setup_control_tables
+          notebook_task:
+            notebook_path: ../../notebooks/01_setup/01_setup_control_tables.py
+            base_parameters:
+              catalog: metaflow
+          environment_key: framework_env
+
+        - task_key: onboard_100
+          depends_on:
+            - task_key: setup_control_tables
+          notebook_task:
+            notebook_path: ../../notebooks/02_onboarding/02_onboarding_engine.py
+            base_parameters:
+              spec_file_path: "${workspace.file_path}/metaflow_testing/100_zipcsv_onbaording.json"
+              catalog: metaflow
+              env: dev
+              action_type: CREATE
+          environment_key: framework_env
+
+        - task_key: onboard_obs_003
+          depends_on:
+            - task_key: onboard_100
+          notebook_task:
+            notebook_path: ../../notebooks/02_onboarding/02_onboarding_engine.py
+            base_parameters:
+              spec_file_path: "${workspace.file_path}/metaflow_testing/043_obs_003_vol_export.json"
+              catalog: metaflow
+              env: dev
+              action_type: CREATE
+          environment_key: framework_env
+
+        - task_key: run_pipeline_update
+          depends_on:
+            - task_key: onboard_obs_003
+          pipeline_task:
+            pipeline_id: ${resources.pipelines.metaflow_test_100_zipcsv_pipeline.id}
+
+        - task_key: observability_export
+          depends_on:
+            - task_key: run_pipeline_update
+          notebook_task:
+            notebook_path: ../../notebooks/08_observability/08_dlt_observability_engine.py
+            base_parameters:
+              # All four are REQUIRED (v1.4.0) -- see resources/observability/dlt_observability_job.yml's
+              # PARAMETER CONTRACT note. pipeline_task_run_id is a TASK parameter carrying the
+              # Jobs dynamic value {{tasks.<pipeline_task_key>.run_id}}; it is never declared in
+              # the pipeline's own configuration/pipeline_parameters block.
+              dataflow_group_id: dfg_zip_csv_dataload
+              catalog: metaflow
+              env: dev
+              pipeline_task_run_id: "{{tasks.run_pipeline_update.run_id}}"
+              service_name: dlt-observability-metaflow-test-obs-003
+              fail_task_on_dispatch_error: "true"
+          environment_key: framework_env
+
+      environments:
+        - environment_key: framework_env
+          spec:
+            environment_version: "4"
+            dependencies:
+              - ../../dist/*.whl

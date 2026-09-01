@@ -1,0 +1,99 @@
+# TC-ING-003: "Zerobus Streaming Delta Feed Ingestion" -- append-count assertion.
+#
+# Deliberately reuses the EXISTING metaflow_test_002_zerobus_pipeline /
+# dfg_metaflow_002_zerobus_bronze (see resources/feature_tests/metaflow_test_002_zerobus_pipeline.yml) rather
+# than standing up a dedicated pipeline of its own -- this test is about proving a large,
+# two-phase streaming append volume against that already-deployed Zerobus ingestion flow, not a
+# new DAG shape. This job is a thin wrapper only: it re-onboards the same dataflow group from its
+# own spec (so it's self-contained and doesn't require metaflow_test_002_003_job to have run
+# first), seeds 1,000 baseline synthetic customer rows into the shared
+# {catalog}.Excalibur_usecase.zerobus_source_bus table, runs the pipeline, appends 200 more rows,
+# then re-runs the pipeline:
+#
+#   setup_control_tables -> seed_metaflow_testing_data -> seed_ing_003_zerobus_baseline
+#     -> onboard_ing_003 -> run_pipeline_baseline
+#       -> seed_ing_003_zerobus_append -> run_pipeline_append
+#
+# Synthetic rows use a `TC003-NNNNNN` customer_id prefix (see
+# notebooks/00_seed_sample_data/03_seed_ing_003_zerobus_baseline.py) so they never collide with
+# scenario 002/003/004's own C001-C007 fixture ids or reconciliation-match assertions. See
+# metaflow_testing/012_ing_003_zerobus_append.json and docs/33_tc_ing_003.md for the full detail
+# and the expected row-count verification (delta-based: bronze row count grows by exactly 200
+# between run_pipeline_baseline and run_pipeline_append).
+
+resources:
+  jobs:
+    metaflow_test_ing_003_zerobus_append_job:
+      name: Metaflow Test ING-003 - Zerobus Streaming Append Count Assertion
+
+      tasks:
+        - task_key: setup_control_tables
+          notebook_task:
+            notebook_path: ../../notebooks/01_setup/01_setup_control_tables.py
+            base_parameters:
+              catalog: metaflow
+          environment_key: framework_env
+
+        - task_key: seed_metaflow_testing_data
+          depends_on:
+            - task_key: setup_control_tables
+          notebook_task:
+            notebook_path: ../../notebooks/00_seed_sample_data/02_seed_metaflow_testing_data.py
+            base_parameters:
+              catalog: metaflow
+          environment_key: framework_env
+
+        - task_key: seed_ing_003_zerobus_baseline
+          depends_on:
+            - task_key: seed_metaflow_testing_data
+          notebook_task:
+            notebook_path: ../../notebooks/00_seed_sample_data/03_seed_ing_003_zerobus_baseline.py
+            base_parameters:
+              catalog: metaflow
+              id_prefix: TC003
+              start_index: "1"
+              row_count: "1000"
+          environment_key: framework_env
+
+        - task_key: onboard_ing_003
+          depends_on:
+            - task_key: seed_ing_003_zerobus_baseline
+          notebook_task:
+            notebook_path: ../../notebooks/02_onboarding/02_onboarding_engine.py
+            base_parameters:
+              spec_file_path: "${workspace.file_path}/metaflow_testing/012_ing_003_zerobus_append.json"
+              catalog: metaflow
+              env: dev
+              action_type: CREATE
+          environment_key: framework_env
+
+        - task_key: run_pipeline_baseline
+          depends_on:
+            - task_key: onboard_ing_003
+          pipeline_task:
+            pipeline_id: ${resources.pipelines.metaflow_test_002_zerobus_pipeline.id}
+
+        - task_key: seed_ing_003_zerobus_append
+          depends_on:
+            - task_key: run_pipeline_baseline
+          notebook_task:
+            notebook_path: ../../notebooks/00_seed_sample_data/03_seed_ing_003_zerobus_baseline.py
+            base_parameters:
+              catalog: metaflow
+              id_prefix: TC003
+              start_index: "1001"
+              row_count: "200"
+          environment_key: framework_env
+
+        - task_key: run_pipeline_append
+          depends_on:
+            - task_key: seed_ing_003_zerobus_append
+          pipeline_task:
+            pipeline_id: ${resources.pipelines.metaflow_test_002_zerobus_pipeline.id}
+
+      environments:
+        - environment_key: framework_env
+          spec:
+            environment_version: "4"
+            dependencies:
+              - ../../dist/*.whl

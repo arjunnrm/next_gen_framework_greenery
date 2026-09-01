@@ -1,0 +1,37 @@
+# TC-CDC-007: "Full Snapshot Diffing" -- proves cdc_load_strategy "FULL_SNAPSHOT_CDC" diffs
+# successive full legacy-mainframe extracts on primary_keys=[customer_name] via
+# dlt.apply_changes_from_snapshot(), deriving insert/update/delete from the diff.
+#
+# REWRITTEN FOR v1.4.0. This scenario was "...Without PK": FULL_SNAPSHOT_CDC_NO_PK keyed the
+# diff on a generated __framework_surrogate_key (a SHA-256 over every payload column). That
+# strategy and the surrogate-key engine are removed. The fixture
+# (sample_mainframe_customer_master_day1/day2.csv: customer_name, customer_city,
+# customer_status) has customer_name unique across all 10 rows, so it is now the declared key --
+# which also makes the Day-2 assertion STRONGER: a changed customer_status is reported as an
+# UPDATE in place, where the payload hash reported it as a delete plus an insert. The resource
+# file names keep their _nopk suffix so existing bundle references and run history stay valid.
+# See
+# metaflow_testing/025_cdc_007_snapshot_nopk.json and docs/46_tc_cdc_007.md.
+
+resources:
+  pipelines:
+    metaflow_test_cdc_007_snapshot_nopk_pipeline:
+      name: metaflow_test_cdc_007_snapshot_nopk_pipeline_${bundle.target}
+      catalog: metaflow
+      schema: silver_legacy
+      serverless: true
+      photon: true
+      development: true
+      continuous: false
+
+      libraries:
+        - notebook:
+            path: ../../notebooks/03_engine/03_lakeflow_declarative_pipeline.py
+
+      environment:
+        dependencies:
+          - ../../dist/*.whl
+
+      configuration:
+        dataflow.group.id: dfg_cdc_007_snapshot_nopk
+        dataflow.control.catalog: metaflow

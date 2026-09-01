@@ -1,0 +1,28 @@
+# TC-TRF-002: "Multi-Regional Ingestion UNION ALL Consolidation" -- proves 2 independent
+# regional Bronze ingestion flows (orders_na_raw, orders_eu_raw) can be consolidated by one
+# transformation flow's `transformation_sql` UNION ALL into a single enterprise Silver
+# dataset (all_global_orders), with no rows lost, duplicated, or deduplicated away. See
+# metaflow_testing/027_trf_002_union_all.json and docs/48_tc_trf_002.md.
+
+resources:
+  pipelines:
+    metaflow_test_trf_002_union_all_pipeline:
+      name: metaflow_test_trf_002_union_all_pipeline_${bundle.target}
+      catalog: metaflow
+      schema: bronze_sales
+      serverless: true
+      photon: true
+      development: true
+      continuous: false
+
+      libraries:
+        - notebook:
+            path: ../../notebooks/03_engine/03_lakeflow_declarative_pipeline.py
+
+      environment:
+        dependencies:
+          - ../../dist/*.whl
+
+      configuration:
+        dataflow.group.id: dfg_trf_002_union_all
+        dataflow.control.catalog: metaflow

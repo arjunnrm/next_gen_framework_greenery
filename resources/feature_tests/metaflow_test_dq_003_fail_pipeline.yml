@@ -1,0 +1,29 @@
+# TC-DQ-003: "DQ Action: fail Pipeline Execution Abort" -- proves a dq_config rule with
+# action: "fail" (a native Lakeflow expect_or_fail expectation) genuinely halts the pipeline
+# update the moment a violating row is encountered, unlike "warn"/"drop"/"quarantine". The
+# landed fixture deliberately contains one row with a null account_id, so running this pipeline
+# is EXPECTED to end with update status FAILED -- that is this test case's correct, intended
+# outcome, not a bug. See metaflow_testing/031_dq_003_fail.json and docs/52_tc_dq_003.md.
+
+resources:
+  pipelines:
+    metaflow_test_dq_003_fail_pipeline:
+      name: metaflow_test_dq_003_fail_pipeline_${bundle.target}
+      catalog: metaflow
+      schema: bronze_banking
+      serverless: true
+      photon: true
+      development: true
+      continuous: false
+
+      libraries:
+        - notebook:
+            path: ../../notebooks/03_engine/03_lakeflow_declarative_pipeline.py
+
+      environment:
+        dependencies:
+          - ../../dist/*.whl
+
+      configuration:
+        dataflow.group.id: dfg_dq_003_fail
+        dataflow.control.catalog: metaflow
