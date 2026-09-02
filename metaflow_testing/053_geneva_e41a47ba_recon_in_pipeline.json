@@ -5,8 +5,7 @@
   "_difference_from_051": "metaflow_testing/051_geneva_tariffs_recon.json declares the same dataflow_group_id but a DIFFERENT ingestion flow (df_geneva_tariffs_near_ingest -> tariffelementband_near) and a different reconciliation_id. It is a synthetic mirror of this shape, not this pipeline's actual configuration; onboarding it would add flows to this group rather than update the existing ones. This file is the one that corresponds to the deployed pipeline.",
 
   "dataflow_group_id": "dfg_geneva_tariffs_recon",
-  "environment": "dev",
-  "catalog_name": "{{catalog}}",
+  "_removed_inert_keys": "environment / catalog_name were carried at spec root until v1.7.1 but were never read: catalog_name on dataflow_group_spec is derived from the onboarding job's --catalog parameter (control_plane/ddl_definitions.py), not from the spec. They are now rejected as unknown attributes.",
   "pipeline_parameters": {},
 
   "ingestion_flows": [

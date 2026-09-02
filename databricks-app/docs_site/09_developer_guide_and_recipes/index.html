@@ -1176,17 +1176,6 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#63-every-spec-lands-in-one-volume" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        6.3 Every spec lands in one Volume
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
   <a href="#64-sample-06-the-real-gsma-tap3-module-and-why-the-pdu-is-notification" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3999,17 +3988,6 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#63-every-spec-lands-in-one-volume" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        6.3 Every spec lands in one Volume
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
   <a href="#64-sample-06-the-real-gsma-tap3-module-and-why-the-pdu-is-notification" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -4163,10 +4141,20 @@ so every deploy produces a uniquely-named wheel.</p>
 <p>The deploy builds the wheel (Step 7 runs automatically) and uploads it to the target's
 <code>workspace.artifact_path</code> — <code>/Volumes/&lt;catalog&gt;/config/wheels/.internal/</code> as of v1.6.0, a UC
 Volume the bundle itself declares (<code>volumes.framework_wheels_volume</code> in
-<code>resources/metaflow_config_jobs/</code>), shared by all deployers of the target. One-time bootstrap: the
-CLI refuses an <code>artifact_path</code> inside a Volume that does not exist yet, so on a fresh workspace
-deploy <code>--select volumes.framework_wheels_volume</code> once with the target's <code>artifact_path:</code> line
-temporarily commented out, then restore it. DABs <strong>prunes</strong>
+<code>resources/metaflow_config_jobs/</code>), shared by all deployers of the target.</p>
+<p>As of v1.7.1 the schemas that Volume needs are declared too, in
+<code>resources/metaflow_bootstrap/</code> — so a deploy creates schema → volume in dependency order rather
+than failing on <code>Schema 'metaflow.config' does not exist</code>. The <strong>catalog is a prerequisite, not a
+resource</strong>: these accounts use UC Default Storage, so a <code>catalogs.*</code> resource cannot be created
+from YAML at all (see that folder's <code>README.md</code>) — create it in the UI once per workspace.</p>
+<p>The <code>artifact_path</code> bootstrap is a <em>separate</em> mechanism and survives: that check runs during config
+resolution, before any resource is created, so a Volume declared in the same bundle cannot satisfy
+it. On a fresh workspace, deploy
+<code>--select schemas.config_schema,volumes.framework_wheels_volume</code> once with the target's
+<code>artifact_path:</code> line commented out, then uncomment it. Where <code>metaflow.config</code> already exists
+outside the bundle (<code>dev_metaflow</code>, <code>hoonartek</code>), <code>bundle deployment bind</code> it instead — see
+<code>docs/onboarding/04_deploying.md</code>.</p>
+<p>DABs <strong>prunes</strong>
 superseded wheels from <code>.internal/</code> on each deploy — on a UC Volume exactly as in the workspace —
 so unique filenames protect against overwrite-in-place but not removal: <strong>never deploy while a
 pipeline or test wave is running</strong> (<code>metaflow_testing/TESTING_PLAN.md</code> §0).</p>
@@ -4180,6 +4168,16 @@ pipeline or test wave is running</strong> (<code>metaflow_testing/TESTING_PLAN.m
 </tr>
 </thead>
 <tbody>
+<tr>
+<td><code>resources/metaflow_bootstrap/</code></td>
+<td>the UC containers other resources live in: the <code>config</code>/<code>${var.schema}</code>/<code>metaflow_sample</code> schemas + the sample suite's four Volumes (<strong>not</strong> the catalog — a prerequisite)</td>
+<td>7</td>
+</tr>
+<tr>
+<td><code>resources/metaflow_bi/</code></td>
+<td>the AI/BI control-metadata dashboard</td>
+<td>1</td>
+</tr>
 <tr>
 <td><code>resources/metaflow_app/</code></td>
 <td>the Onboarding App + the UC Volume it stores authored specs in</td>
@@ -4543,7 +4541,7 @@ and neither is caused by v1.5.0:</p>
 <hr />
 <h2 id="6-the-metaflow_sample-reference-suite">6. The <code>metaflow_sample</code> Reference Suite<a class="headerlink" href="#6-the-metaflow_sample-reference-suite" title="Permanent link">&para;</a></h2>
 <p>Six self-contained <strong>reference</strong> jobs (not tests) under <code>resources/sample_jobs/</code>, with their
-onboarding specs in <code>metaflow_testing/samples/</code>. Every asset they produce - landing files,
+onboarding specs in <code>resources/sample_jobs/onboarding/</code>. Every asset they produce - landing files,
 <code>_schemas</code> checkpoints, target tables, quarantine tables, reconciliation datasets, ZIP exports,
 observability output, and a copy of each job's own spec - is isolated in the single Unity Catalog
 schema <strong><code>metaflow.metaflow_sample</code></strong>.</p>
@@ -4613,28 +4611,32 @@ chain of three iteration tasks per sample behind a serial <code>provision_sample
 <a id="__codelineno-25-5" name="__codelineno-25-5" href="#__codelineno-25-5"></a>databricks<span class="w"> </span>bundle<span class="w"> </span>run<span class="w"> </span>metaflow_sample_01_multi_scd_job<span class="w">  </span>-t<span class="w"> </span>dev_metaflow<span class="w"> </span>-p<span class="w"> </span>dev_metaflow
 <a id="__codelineno-25-6" name="__codelineno-25-6" href="#__codelineno-25-6"></a>databricks<span class="w"> </span>bundle<span class="w"> </span>run<span class="w"> </span>metaflow_sample_06_asn1_tap3_job<span class="w">  </span>-t<span class="w"> </span>dev_metaflow<span class="w"> </span>-p<span class="w"> </span>dev_metaflow
 </code></pre></div>
-<p>Each sample job is now just <code>setup_control_tables</code> -&gt; <code>onboard_sample_NN</code> -&gt; <code>run_pipeline</code> -&gt;
-<code>store_sample_config</code> (Sample 03 adds an <code>observability_export</code> before the last task). Onboarding is
-always <strong>delegated</strong> to the generic <code>onboarding_job</code> via <code>run_job_task</code> - never an inline
-<code>02_onboarding_engine.py</code> notebook task.</p>
+<p>Each sample job is now <strong>exactly two tasks</strong> — <code>pipeline_task</code> -&gt; <code>observability_task</code>. That is the
+developer blueprint: clone a sample job and you get the pipeline run plus its telemetry export, and
+nothing else to delete.</p>
+<p>All provisioning moved into the one suite-wide seed job, whose serial root is now a three-link
+chain:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-26-1" name="__codelineno-26-1" href="#__codelineno-26-1"></a>metaflow_sample_seed_job
+<a id="__codelineno-26-2" name="__codelineno-26-2" href="#__codelineno-26-2"></a>  provision_sample_schema -&gt; setup_control_tables -&gt; onboard_all_samples
+<a id="__codelineno-26-3" name="__codelineno-26-3" href="#__codelineno-26-3"></a>                                                       |
+<a id="__codelineno-26-4" name="__codelineno-26-4" href="#__codelineno-26-4"></a>                          six parallel seed chains  &lt;--+
+</code></pre></div>
+<p><code>onboard_all_samples</code> onboards <strong>all six specs in one run</strong> by pointing the generic
+<code>framework_config_onboarding_job</code> at the bundle's spec directory
+(<code>resources/sample_jobs/onboarding/</code>), replacing the six per-job <code>onboard_sample_NN</code> tasks.
+Onboarding is still delegated via <code>run_job_task</code> — never an inline <code>02_onboarding_engine.py</code>.</p>
 <blockquote>
-<p>[!NOTE]
-<strong>What seeding up front changes.</strong> All three iterations are on disk before a sample's pipeline
-first runs, so that <strong>one</strong> update ingests them together - which is why each sample job runs its
-pipeline once rather than three times. The end state is the same (<code>apply_changes</code> sequences the
-SCD1/SCD2 versions within the single batch, so SCD2 history is still built); what is no longer
-observable is the update-by-update <em>progression</em> - Sample 03's drift counters land on their final
-6-drift / 14-missing values instead of stepping 0 -&gt; 6 -&gt; 14. To watch a sample evolve, run the
-seed job's chain one iteration at a time with the sample's pipeline in between.</p>
+<p><strong>Why onboarding cannot simply be dropped.</strong> <code>pipeline_task</code> reads its configuration from the
+control tables. A group that was never onboarded fails in
+<code>control_plane/repository.py</code> with
+<code>FrameworkConfigError: No active dataflow_group_spec row found for dataflow_group_id=...</code>.
+Onboarding is provisioning, so it happens once in the seed job rather than on every developer run.</p>
 </blockquote>
-<h3 id="63-every-spec-lands-in-one-volume">6.3 Every spec lands in one Volume<a class="headerlink" href="#63-every-spec-lands-in-one-volume" title="Permanent link">&para;</a></h3>
-<p>The last task of every sample job is <code>store_sample_config</code>
-(<code>notebooks/09_sample_reference/09a_store_sample_config.py</code>), which copies that job's onboarding
-spec JSON into the single reference Volume <strong><code>/Volumes/metaflow/metaflow_sample/sample_configs/</code></strong>.
-A developer browsing the <code>metaflow_sample</code> schema therefore finds, next to every table the suite
-produced, the exact spec document that produced it. The notebook validates each spec with
-<code>json.loads</code> before publishing, so an unparseable document is refused loudly rather than stored as a
-broken reference.</p>
+<p>Run the seed job once, then any sample job as often as you like:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-27-1" name="__codelineno-27-1" href="#__codelineno-27-1"></a>databricks<span class="w"> </span>bundle<span class="w"> </span>run<span class="w"> </span>metaflow_sample_seed_job<span class="w">         </span>-t<span class="w"> </span>&lt;target&gt;<span class="w"> </span>-p<span class="w"> </span>&lt;profile&gt;<span class="w">   </span><span class="c1"># once</span>
+<a id="__codelineno-27-2" name="__codelineno-27-2" href="#__codelineno-27-2"></a>databricks<span class="w"> </span>bundle<span class="w"> </span>run<span class="w"> </span>metaflow_sample_01_multi_scd_job<span class="w"> </span>-t<span class="w"> </span>&lt;target&gt;<span class="w"> </span>-p<span class="w"> </span>&lt;profile&gt;
+</code></pre></div>
+<p>Pass <code>action_type=UPDATE</code> to the seed job to re-onboard specs that changed after first onboarding.</p>
 <h3 id="64-sample-06-the-real-gsma-tap3-module-and-why-the-pdu-is-notification">6.4 Sample 06: the real GSMA TAP3 module, and why the PDU is <code>Notification</code><a class="headerlink" href="#64-sample-06-the-real-gsma-tap3-module-and-why-the-pdu-is-notification" title="Permanent link">&para;</a></h3>
 <p>Sample 06 is the suite's ASN.1 case, and it deliberately uses the <strong>genuine</strong> GSMA TAP release 3.10
 specification already shipped in this repo at <code>metaflow_testing/BT_Testing/TAP.310.asn1</code> - 1597

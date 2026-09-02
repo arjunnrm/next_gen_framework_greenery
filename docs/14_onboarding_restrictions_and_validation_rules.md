@@ -281,6 +281,55 @@ Two different SQL surfaces, two different rules:
 
 ## 4. Forbidden and rejected configurations
 
+### 4.0 Unrecognised attributes — rejected on presence (v1.7.1)
+
+The rule in §4.1 below applies to attributes that *were* real and have been removed. Since
+v1.7.1 the same rule covers attributes that were **never** real: any key the framework does not
+read is a hard validation error, not a silent no-op.
+
+The motivation is identical, and the observed failures were worse — because an invented key
+looks plausible and nothing anywhere contradicts it:
+
+| Written in the spec | The real key | What actually happened before v1.7.1 |
+|---|---|---|
+| `data_quality` | `dq_config` | No data-quality rule ever ran |
+| `cdc_config: {keys: [...]}` | `target_config.cdc_load_strategy` (+ `primary_keys`) | CDC keys ignored |
+| `partition_by` | `target_config.partition_columns` | Table not partitioned |
+| `primary_key: "id"` | `target_config.primary_keys: ["id"]` | Key ignored; SCD strategies failed elsewhere or merged wrongly |
+| `infer_schema` | — (delete it) | Nothing; never a real key |
+
+A spec carrying six such keys previously validated with `valid: true` and `error_count: 0`.
+
+**Enforcement.** `spec_validator.py::reject_unknown_keys()` checks each authored container
+against its allowlist (`ALLOWED_ROOT_KEYS`, `ALLOWED_INGESTION_FLOW_KEYS`,
+`ALLOWED_TRANSFORMATION_FLOW_KEYS`, `ALLOWED_INGESTION_SOURCE_CONFIG_KEYS`,
+`ALLOWED_TARGET_CONFIG_KEYS`, `ALLOWED_DQ_CONFIG_KEYS`, `ALLOWED_GOVERNANCE_TAGS_KEYS`,
+`ALLOWED_SOURCE_INPUT_KEYS`, `ALLOWED_SINK_CONFIG_KEYS`, `ALLOWED_RECONCILIATION_FLOW_KEYS`).
+`onboarding_spec.schema.json` now also sets `additionalProperties: false` on every authored
+container, so an editor flags the same mistake before onboarding runs. The two are asserted
+equal by `tests/unit/test_unknown_key_rejection.py::test_allowed_key_sets_match_json_schema` —
+adding an attribute to one and not the other fails the build.
+
+**Message.** The error names the replacement wherever one is known, via `UNKNOWN_KEY_ALIASES`:
+
+```
+ingestion_flow[df_x].source_config.file_format: not a recognised attribute -- the framework
+never reads it, so leaving it in place silently does nothing. Use source_config.format.
+```
+
+Otherwise it offers the closest real key (`Did you mean 'target_table'?`) or lists the allowed
+keys for that container.
+
+**Exempt.** Any key matching `^_` is an author comment — JSON has no comment syntax, and specs
+in `metaflow_testing/` use `_scenario`, `_provenance` and `_test_case_note` extensively. `$schema`
+is exempt as an editor hint.
+
+**Migrating.** 56 of the 57 specs shipped in this repo were already clean. The one exception
+carried `environment` and `catalog_name` at the spec root; both were inert (a group's
+`catalog_name` comes from the onboarding job's `--catalog` parameter, never the spec) and have
+been deleted. `depends_on_dataflow_group_ids`, previously accepted-and-unread, is now rejected
+with a message pointing at Lakeflow Jobs `depends_on`.
+
 ### 4.1 Removed attributes — rejected on presence, never silently ignored
 
 The design rule, quoting `reject_removed_keys`' own rationale:
@@ -388,7 +437,29 @@ there is no in-graph cycle, and job-mode specs that have always onboarded must k
 
 ## 5. Testing a spec without onboarding it
 
-Three ways to run the full validator (or an approximation) with zero writes:
+Four ways to run the full validator (or an approximation) with zero writes. **Option 0 is the
+one to reach for when generating a spec** — it needs no workspace, no cluster and no bundle, so
+it is fast enough to loop on:
+
+0. **`agent_tools.validate_json` — offline, no Spark.** The real `validate_spec` behind a
+   text-in/dict-out wrapper that also accepts YAML, substitutes `{{catalog}}`/`{{env}}` and adds
+   governance warnings:
+
+   ```python
+   import sys; sys.path.insert(0, "src")
+   from NextGen_Metadata_Framework.lakeflow_framework.onboarding.agent_tools import validate_json
+
+   result = validate_json(open("my_spec.json", encoding="utf-8").read())
+   print(result["summary"])
+   for error in result["errors"]:
+       print(" ERROR:", error)
+   ```
+
+   Every flow type is supported as of v1.7.1. The only check that needs a live session is the
+   `EXPLAIN`-based structural validation of `transformation_sql`/`transform_sql`; without one it
+   is skipped (parameter substitution is still checked) and runs at onboarding time on the
+   cluster. Before v1.7.1 that call raised on `spark=None`, so transformation and reconciliation
+   flows could not be linted offline at all.
 
 1. **`action_type: "VALIDATE_ONLY"`** — run the generic onboarding job
    (`resources/metaflow_config_jobs/onboarding_job.yml`, backing notebook

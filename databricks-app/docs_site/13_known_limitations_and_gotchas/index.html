@@ -7210,13 +7210,31 @@ exactly as it does in the workspace. A deploy issued while a Lakeflow update is 
 previous wheel kills it with <code>ENVIRONMENT_PIP_INSTALL_ERROR</code>.</p>
 <p>Unique per-deploy wheel filenames prevent a wheel being <strong>overwritten</strong> in place, but not
 <strong>removed</strong>. The operational rule stands regardless of filenames.</p>
+<p><strong>Enforce it rather than remembering it.</strong> <code>--fail-on-active-runs</code> refuses the deploy outright if
+any job or pipeline in the bundle is running, turning a silent mid-run kill into a clean upfront
+failure:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a>databricks<span class="w"> </span>bundle<span class="w"> </span>deploy<span class="w"> </span>-t<span class="w"> </span>&lt;target&gt;<span class="w"> </span>--fail-on-active-runs
+</code></pre></div>
+<p><strong>Keep a copy you can roll back to.</strong> <code>scripts/archive_deployed_wheel.py</code>, run <em>after</em> a successful
+deploy, copies the published wheel into <code>&lt;artifact_path&gt;/archive/</code>. DABs manages only <code>.internal/</code>,
+so archived wheels are never pruned:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a>python<span class="w"> </span>scripts/archive_deployed_wheel.py<span class="w"> </span>--profile<span class="w"> </span>&lt;profile&gt;<span class="w">   </span><span class="c1"># --prune-keep N to cap the archive</span>
+</code></pre></div>
+<blockquote>
+<p>⚠️ The archive is <strong>recovery, not prevention</strong>. Deployed resources are pinned to the <em>absolute</em>
+<code>.internal/</code> path, so an archived copy does not repair a pin whose target was pruned mid-install —
+that means repointing the resource at the archived path by hand. <code>--fail-on-active-runs</code> is what
+stops the incident; the archive is what you fall back on if one happens anyway.</p>
+<p>📌 A related claim that was <strong>false and is now corrected</strong>: <code>scripts/build_and_upload_wheel.py</code>
+used to state that a UC Volume never prunes. It does. Only files <em>outside</em> <code>.internal/</code> are safe.</p>
+</blockquote>
 <h3 id="o2-dabs-sync-snapshot-goes-stale-notebooks-silently-do-not-update"><a id="o2"></a>O2 🔴 DABs' sync snapshot goes stale — notebooks silently do not update<a class="headerlink" href="#o2-dabs-sync-snapshot-goes-stale-notebooks-silently-do-not-update" title="Permanent link">&para;</a></h3>
 <p><code>.databricks/bundle/&lt;target&gt;/sync-snapshots/</code> tracks synced files and can go stale, reporting
 <code>Files: 0 uploaded</code> even when local notebooks genuinely changed. Resources still redeploy, so the
 run <em>looks</em> clean while the workspace keeps executing the <strong>old</strong> notebook.</p>
 <p><strong>Fix:</strong> <code>rm -rf .databricks/bundle/&lt;target&gt;/sync-snapshots</code> then redeploy.</p>
 <p><strong>Always verify a notebook edit landed</strong> before trusting a test result:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a>databricks<span class="w"> </span>workspace<span class="w"> </span><span class="nb">export</span><span class="w"> </span>&lt;file_path&gt;/notebooks/&lt;dir&gt;/&lt;name&gt;<span class="w"> </span>--format<span class="w"> </span>SOURCE<span class="w"> </span>-p<span class="w"> </span>&lt;profile&gt;
+<div class="highlight"><pre><span></span><code><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a>databricks<span class="w"> </span>workspace<span class="w"> </span><span class="nb">export</span><span class="w"> </span>&lt;file_path&gt;/notebooks/&lt;dir&gt;/&lt;name&gt;<span class="w"> </span>--format<span class="w"> </span>SOURCE<span class="w"> </span>-p<span class="w"> </span>&lt;profile&gt;
 </code></pre></div>
 <p>Note the deployed notebook path has <strong>no <code>.py</code> extension</strong> — exporting <code>&lt;name&gt;.py</code> returns
 "Path doesn't exist", which reads exactly like an empty file if you pipe it to <code>grep -c</code>.</p>
@@ -7225,8 +7243,8 @@ run <em>looks</em> clean while the workspace keeps executing the <strong>old</st
 transiently is retried and the update still reports SUCCESS, so intermittent instability is
 invisible in the run log.</p>
 <p>For any run whose purpose is to <strong>measure</strong> stability, set it explicitly:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a><span class="nt">configuration</span><span class="p">:</span>
-<a id="__codelineno-19-2" name="__codelineno-19-2" href="#__codelineno-19-2"></a><span class="w">  </span><span class="nt">pipelines.maxFlowRetryAttempts</span><span class="p">:</span><span class="w"> </span><span class="s">"0"</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a><span class="nt">configuration</span><span class="p">:</span>
+<a id="__codelineno-21-2" name="__codelineno-21-2" href="#__codelineno-21-2"></a><span class="w">  </span><span class="nt">pipelines.maxFlowRetryAttempts</span><span class="p">:</span><span class="w"> </span><span class="s">"0"</span>
 </code></pre></div>
 <p>and <code>max_retries: 0</code> on every job task. Retries are not attempted for ad-hoc editor updates or
 Validate updates in any case.</p>
@@ -7280,7 +7298,7 @@ builds a <strong>new, uniquely-named</strong> wheel, <strong>prunes</strong> the
 only the pipelines <strong>that target owns</strong>.</p>
 <p>A pipeline that reads its wheel from another target's (or another principal's) artifact path is
 therefore left pointing at a wheel that no longer exists, and fails with:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a>ENVIRONMENT_PIP_INSTALL_ERROR
+<div class="highlight"><pre><span></span><code><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a>ENVIRONMENT_PIP_INSTALL_ERROR
 </code></pre></div>
 <p><strong>No deploy of that target repairs it</strong> — the deploy that broke it does not know the pipeline
 exists, and a deploy of the pipeline's own bundle is not what is running. Unique per-deploy wheel
@@ -7295,7 +7313,7 @@ release.</p>
 <code>varadaraju@</code> only — <strong>not</strong> to <code>metaflow@nrmanalytix.com</code>, which is the identity the pipeline runs
 as. Schema-level access is fine (the same identity reads <code>bronze_excalibur.autoload_bronze</code>), so
 this is a <strong>table-level grant gap</strong>:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a><span class="k">GRANT</span><span class="w"> </span><span class="k">SELECT</span><span class="w"> </span><span class="k">ON</span><span class="w"> </span><span class="k">TABLE</span><span class="w"> </span><span class="n">metaflow</span><span class="p">.</span><span class="n">bronze_excalibur</span><span class="p">.</span><span class="n">bronze_tariffelementband</span><span class="w"> </span><span class="k">TO</span><span class="w"> </span><span class="o">`</span><span class="n">metaflow</span><span class="o">@</span><span class="n">nrmanalytix</span><span class="p">.</span><span class="n">com</span><span class="o">`</span><span class="p">;</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a><span class="k">GRANT</span><span class="w"> </span><span class="k">SELECT</span><span class="w"> </span><span class="k">ON</span><span class="w"> </span><span class="k">TABLE</span><span class="w"> </span><span class="n">metaflow</span><span class="p">.</span><span class="n">bronze_excalibur</span><span class="p">.</span><span class="n">bronze_tariffelementband</span><span class="w"> </span><span class="k">TO</span><span class="w"> </span><span class="o">`</span><span class="n">metaflow</span><span class="o">@</span><span class="n">nrmanalytix</span><span class="p">.</span><span class="n">com</span><span class="o">`</span><span class="p">;</span>
 </code></pre></div>
 <p>Until both are cleared, that scenario is verified <strong>offline only</strong> — validator plus
 <code>plan_source_plane</code>, pinned by <code>tests/unit/test_geneva_e41a47ba_topology.py</code> — and has never been
@@ -7336,9 +7354,9 @@ sample suite (<code>resources/sample_jobs/</code>) was born on v1.6.0 and is una
 <p><strong>Fixed in v1.6.1.</strong> <code>import dlt</code> is not free outside a Lakeflow pipeline. It calls into the
 runtime's notebook entry point, which in a plain <strong>job</strong> notebook task has no notebook id to
 return, and the import dies before any framework code runs:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a>Py4JJavaError: An error occurred while calling o36.get.
-<a id="__codelineno-22-2" name="__codelineno-22-2" href="#__codelineno-22-2"></a>: java.util.NoSuchElementException: None.get
-<a id="__codelineno-22-3" name="__codelineno-22-3" href="#__codelineno-22-3"></a>    at scala.None$.get(Option.scala:627)
+<div class="highlight"><pre><span></span><code><a id="__codelineno-24-1" name="__codelineno-24-1" href="#__codelineno-24-1"></a>Py4JJavaError: An error occurred while calling o36.get.
+<a id="__codelineno-24-2" name="__codelineno-24-2" href="#__codelineno-24-2"></a>: java.util.NoSuchElementException: None.get
+<a id="__codelineno-24-3" name="__codelineno-24-3" href="#__codelineno-24-3"></a>    at scala.None$.get(Option.scala:627)
 </code></pre></div>
 <p>Confirmed live 2026-09-01. <code>observability/reconciliation_export.py</code> imported one <em>pure</em>
 exception-inspection helper (<code>_is_table_not_found</code>) from <code>dq/quarantine.py</code>, which does a

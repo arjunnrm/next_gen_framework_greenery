@@ -131,10 +131,23 @@ databricks bundle deploy -t dev
 The deploy builds the wheel (Step 7 runs automatically) and uploads it to the target's
 `workspace.artifact_path` — `/Volumes/<catalog>/config/wheels/.internal/` as of v1.6.0, a UC
 Volume the bundle itself declares (`volumes.framework_wheels_volume` in
-`resources/metaflow_config_jobs/`), shared by all deployers of the target. One-time bootstrap: the
-CLI refuses an `artifact_path` inside a Volume that does not exist yet, so on a fresh workspace
-deploy `--select volumes.framework_wheels_volume` once with the target's `artifact_path:` line
-temporarily commented out, then restore it. DABs **prunes**
+`resources/metaflow_config_jobs/`), shared by all deployers of the target.
+
+As of v1.7.1 the schemas that Volume needs are declared too, in
+`resources/metaflow_bootstrap/` — so a deploy creates schema → volume in dependency order rather
+than failing on `Schema 'metaflow.config' does not exist`. The **catalog is a prerequisite, not a
+resource**: these accounts use UC Default Storage, so a `catalogs.*` resource cannot be created
+from YAML at all (see that folder's `README.md`) — create it in the UI once per workspace.
+
+The `artifact_path` bootstrap is a *separate* mechanism and survives: that check runs during config
+resolution, before any resource is created, so a Volume declared in the same bundle cannot satisfy
+it. On a fresh workspace, deploy
+`--select schemas.config_schema,volumes.framework_wheels_volume` once with the target's
+`artifact_path:` line commented out, then uncomment it. Where `metaflow.config` already exists
+outside the bundle (`dev_metaflow`, `hoonartek`), `bundle deployment bind` it instead — see
+`docs/onboarding/04_deploying.md`.
+
+DABs **prunes**
 superseded wheels from `.internal/` on each deploy — on a UC Volume exactly as in the workspace —
 so unique filenames protect against overwrite-in-place but not removal: **never deploy while a
 pipeline or test wave is running** (`metaflow_testing/TESTING_PLAN.md` §0).
@@ -143,6 +156,8 @@ pipeline or test wave is running** (`metaflow_testing/TESTING_PLAN.md` §0).
 
 | Folder | Holds | Resources |
 |---|---|---|
+| `resources/metaflow_bootstrap/` | the UC containers other resources live in: the `config`/`${var.schema}`/`metaflow_sample` schemas + the sample suite's four Volumes (**not** the catalog — a prerequisite) | 7 |
+| `resources/metaflow_bi/` | the AI/BI control-metadata dashboard | 1 |
 | `resources/metaflow_app/` | the Onboarding App + the UC Volume it stores authored specs in | 2 |
 | `resources/metaflow_config_jobs/` | `onboarding_job` (one spec per run) + `framework_config_onboarding_job` (a whole `spec_dir` per run) | 2 |
 | `resources/observability/` | DLT observability export job + the OTEL streaming pipeline | 2 |

@@ -18,6 +18,39 @@
 
 ---
 
+## 🚦 The non-negotiable loop for a generating agent
+
+Since **v1.7.1** the framework **rejects any attribute it does not read** — an unrecognised key
+is a hard validation error, not a silent no-op. (Previously `data_quality` instead of `dq_config`
+onboarded cleanly and ran the pipeline without ever executing a single DQ rule.) A generated spec
+that merely *looks* right is therefore not evidence of anything.
+
+1. **Copy**, don't compose. Start from the closest of the five machine-validated specs in
+   [`reference/golden_specs.json`](reference/golden_specs.json) — minimal autoloader, SCD2 + DQ +
+   tags, transformation join, zerobus SCD1, in-pipeline reconciliation. Each is asserted valid by
+   `tests/unit/test_golden_specs.py`, so they cannot rot.
+2. **Validate** with `validate_json` — offline, no Spark, no cluster, sub-second.
+3. **Fix from the message.** Errors name the correct attribute (`Use dq_config.`,
+   `Use target_config.partition_columns.`) via the validator's `UNKNOWN_KEY_ALIASES`. Repeat.
+4. **Show** the user the spec *and* the passing validation result.
+
+```python
+import sys; sys.path.insert(0, "src")
+from NextGen_Metadata_Framework.lakeflow_framework.onboarding.agent_tools import validate_json
+
+result = validate_json(open("my_spec.json", encoding="utf-8").read())
+print(result["summary"])
+for error in result["errors"]:
+    print(" ERROR:", error)
+```
+
+Keys starting with `_` are always allowed as author comments (JSON has no comment syntax), as is
+`$schema`. The discoverable Claude Code skill wrapping all of this lives at
+`.claude/skills/metaflow-onboarding/`; re-sync its reference copies with
+`python scripts/sync_agent_skill.py` after changing anything here.
+
+---
+
 ## 🛠️ Industry-Standard Integration Patterns
 
 ### 1. LangChain / LangGraph Integration

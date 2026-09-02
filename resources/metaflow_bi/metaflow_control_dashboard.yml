@@ -1,0 +1,37 @@
+# AI/BI (Lakeview) dashboard over the framework's control-metadata tables.
+#
+# WHY THE DASHBOARD JSON KEEPS BARE TABLE NAMES. Every dataset query in
+# databricks-bi/*.lvdash.json says `FROM dataflow_group_spec`, not
+# `FROM metaflow.config.dataflow_group_spec`. That is deliberate and it is what makes this
+# dashboard portable across targets: `dataset_catalog` / `dataset_schema` below supply the
+# missing catalog and schema at deploy time, the same way the `--dataset-catalog` /
+# `--dataset-schema` flags do for `databricks lakeview create`.
+#
+# These two fields only FILL IN what the query omits -- they do not rewrite a prefix that is
+# already there. So hardcoding a catalog or schema into a `FROM` clause silently defeats them
+# and pins the dashboard to one workspace. Leave the queries bare.
+#
+# The control schema is spelled `config` literally rather than ${var.spec_schema}, matching
+# framework_wheels_volume.yml: spec_schema is overridable and means "where authored specs
+# live", whereas the control tables that back these queries are created in <catalog>.config by
+# resources/metaflow_config_jobs (setup_control_tables). Reusing spec_schema would let an
+# override point the dashboard at a schema with no control tables in it.
+#
+# TABLES THE 7 DATASETS READ (all in ${var.catalog}.config):
+#   dataflow_group_spec, ingestion_flow_spec, transformation_flow_spec,
+#   reconciliation_flow_spec, onboarding_audit_log, reconciliation_run_log
+# The dashboard renders empty until the onboarding job has created and populated them.
+resources:
+  dashboards:
+    metaflow_control_dashboard:
+      display_name: "MetaFlow Control Metadata Dashboard"
+      warehouse_id: ${var.dashboard_warehouse_id}
+      dataset_catalog: ${var.catalog}
+      dataset_schema: config
+      parent_path: ${workspace.file_path}/databricks-bi
+      # Filename deliberately has NO SPACES. DABs resolves this relative path and the
+      # deployed workspace path from it, and a spaced segment is fragile in exactly that
+      # chain (tests/unit/test_resource_layout.py's path scanner truncates at the first
+      # space, and quoting rules differ between the shells used to drive a deploy). The
+      # human-facing name lives in display_name above, where spaces cost nothing.
+      file_path: ../../databricks-bi/metaflow_control_metadata_dashboard.lvdash.json

@@ -57,9 +57,13 @@
       "items": {
         "$ref": "#/$defs/observabilityDestination"
       }
+    },
+    "$schema": {
+      "type": "string",
+      "description": "Editor hint; ignored by the framework."
     }
   },
-  "additionalProperties": true,
+  "additionalProperties": false,
   "anyOf": [
     {
       "required": [
@@ -118,7 +122,12 @@
           "minLength": 1
         }
       },
-      "additionalProperties": true
+      "additionalProperties": false,
+      "patternProperties": {
+        "^_": {
+          "description": "Author comment; ignored by the framework."
+        }
+      }
     },
     "dqRule": {
       "type": "object",
@@ -146,7 +155,12 @@
           ]
         }
       },
-      "additionalProperties": true
+      "additionalProperties": false,
+      "patternProperties": {
+        "^_": {
+          "description": "Author comment; ignored by the framework."
+        }
+      }
     },
     "dqConfig": {
       "type": "object",
@@ -165,7 +179,12 @@
           "type": "string"
         }
       },
-      "additionalProperties": true
+      "additionalProperties": false,
+      "patternProperties": {
+        "^_": {
+          "description": "Author comment; ignored by the framework."
+        }
+      }
     },
     "sourcePlane": {
       "type": "object",
@@ -219,7 +238,12 @@
           "minProperties": 1
         }
       },
-      "additionalProperties": true
+      "additionalProperties": false,
+      "patternProperties": {
+        "^_": {
+          "description": "Author comment; ignored by the framework."
+        }
+      }
     },
     "governanceTags": {
       "type": "object",
@@ -238,7 +262,12 @@
           }
         }
       },
-      "additionalProperties": true
+      "additionalProperties": false,
+      "patternProperties": {
+        "^_": {
+          "description": "Author comment; ignored by the framework."
+        }
+      }
     },
     "tableProperties": {
       "type": "object",
@@ -256,7 +285,12 @@
           "description": "delta.universalFormat.enabledFormats=iceberg -- valid for ANY target_type, unlike storage_format:'iceberg' which is batch_table-only."
         }
       },
-      "additionalProperties": true
+      "additionalProperties": false,
+      "patternProperties": {
+        "^_": {
+          "description": "Author comment; ignored by the framework."
+        }
+      }
     },
     "autoTtl": {
       "type": "object",
@@ -305,7 +339,12 @@
           "$ref": "#/$defs/secretRef"
         }
       },
-      "additionalProperties": true
+      "additionalProperties": false,
+      "patternProperties": {
+        "^_": {
+          "description": "Author comment; ignored by the framework."
+        }
+      }
     },
     "decryptedColumn": {
       "type": "object",
@@ -341,7 +380,12 @@
           "$ref": "#/$defs/secretRef"
         }
       },
-      "additionalProperties": true
+      "additionalProperties": false,
+      "patternProperties": {
+        "^_": {
+          "description": "Author comment; ignored by the framework."
+        }
+      }
     },
     "cdcOperationMapping": {
       "type": "object",
@@ -383,7 +427,12 @@
           "description": "Default: 7. 0 is valid and distinct from omitting the field: it means NO age threshold at all -- a file becomes eligible for archive/delete as soon as Auto Loader has committed it (cloudFiles.cleanSource.retentionDuration = '0 days'). Omitting the field means 7 days, not 0."
         }
       },
-      "additionalProperties": true
+      "additionalProperties": false,
+      "patternProperties": {
+        "^_": {
+          "description": "Author comment; ignored by the framework."
+        }
+      }
     },
     "preExtractionDecryption": {
       "type": "object",
@@ -408,7 +457,12 @@
           "description": "AES password on the ZIP archive itself -- independent of 'type'. Omit for a plain, unprotected ZIP."
         }
       },
-      "additionalProperties": true
+      "additionalProperties": false,
+      "patternProperties": {
+        "^_": {
+          "description": "Author comment; ignored by the framework."
+        }
+      }
     },
     "sourceZipHandling": {
       "type": "object",
@@ -504,7 +558,12 @@
           }
         }
       ],
-      "additionalProperties": true
+      "additionalProperties": false,
+      "patternProperties": {
+        "^_": {
+          "description": "Author comment; ignored by the framework."
+        }
+      }
     },
     "pgpEncryption": {
       "type": "object",
@@ -559,7 +618,12 @@
           "$comment": "_validate_sink_config hard-errors when sign_passphrase_secret is set without sign_with_private_key_secret -- 'only meaningful alongside a signing key'."
         }
       ],
-      "additionalProperties": true
+      "additionalProperties": false,
+      "patternProperties": {
+        "^_": {
+          "description": "Author comment; ignored by the framework."
+        }
+      }
     },
     "postExportArchive": {
       "type": "object",
@@ -606,7 +670,12 @@
           }
         }
       ],
-      "additionalProperties": true
+      "additionalProperties": false,
+      "patternProperties": {
+        "^_": {
+          "description": "Author comment; ignored by the framework."
+        }
+      }
     },
     "sinkConfig": {
       "type": "object",
@@ -741,7 +810,12 @@
           }
         }
       ],
-      "additionalProperties": true
+      "additionalProperties": false,
+      "patternProperties": {
+        "^_": {
+          "description": "Author comment; ignored by the framework."
+        }
+      }
     },
     "targetConfig": {
       "type": "object",
@@ -956,7 +1030,12 @@
           }
         }
       ],
-      "additionalProperties": true
+      "additionalProperties": false,
+      "patternProperties": {
+        "^_": {
+          "description": "Author comment; ignored by the framework."
+        }
+      }
     },
     "watermark": {
       "type": "object",
@@ -1009,7 +1088,12 @@
           }
         }
       },
-      "additionalProperties": true
+      "additionalProperties": false,
+      "patternProperties": {
+        "^_": {
+          "description": "Author comment; ignored by the framework."
+        }
+      }
     },
     "dataStandardizationSql": {
       "type": "array",
@@ -1195,7 +1279,12 @@
           "description": "Path to an external JSON/YAML schema_config file (or a directory, resolved to its latest file) -- explicit type mapping, nullability documentation, Unity Catalog column comments, and source-to-target renames. See docs/28_ingestion_schema_config.md and ingestion/schema_config.py."
         }
       },
-      "additionalProperties": true
+      "additionalProperties": false,
+      "patternProperties": {
+        "^_": {
+          "description": "Author comment; ignored by the framework."
+        }
+      }
     },
     "ingestionFlow": {
       "type": "object",
@@ -1425,7 +1514,12 @@
           }
         }
       ],
-      "additionalProperties": true
+      "additionalProperties": false,
+      "patternProperties": {
+        "^_": {
+          "description": "Author comment; ignored by the framework."
+        }
+      }
     },
     "transformationFlow": {
       "type": "object",
@@ -1545,7 +1639,12 @@
           }
         }
       ],
-      "additionalProperties": true
+      "additionalProperties": false,
+      "patternProperties": {
+        "^_": {
+          "description": "Author comment; ignored by the framework."
+        }
+      }
     },
     "reconciliationDatasetConfig": {
       "type": "object",
@@ -1648,7 +1747,12 @@
           }
         }
       ],
-      "additionalProperties": true
+      "additionalProperties": false,
+      "patternProperties": {
+        "^_": {
+          "description": "Author comment; ignored by the framework."
+        }
+      }
     },
     "reconciliationTargetConfig": {
       "allOf": [
@@ -1806,7 +1910,12 @@
           "$ref": "#/$defs/reconciliationErrorHandling"
         }
       },
-      "additionalProperties": true
+      "additionalProperties": false,
+      "patternProperties": {
+        "^_": {
+          "description": "Author comment; ignored by the framework."
+        }
+      }
     },
     "observabilityDestination": {
       "type": "object",
@@ -2113,6 +2222,11 @@
           "default": 2.0
         }
       }
+    }
+  },
+  "patternProperties": {
+    "^_": {
+      "description": "Author comment; ignored by the framework."
     }
   }
 }

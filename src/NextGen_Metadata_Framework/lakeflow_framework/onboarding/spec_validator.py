@@ -53,6 +53,7 @@ and one addition: ``target_config.encrypted_columns[].source_data_type``, the de
 type of an encrypted column (see :func:`_validate_encrypted_columns`).
 """
 
+import difflib
 import json
 import logging
 import re
@@ -191,6 +192,163 @@ REMOVED_CDC_LOAD_STRATEGIES = {
         "source genuinely has no key to diff on."
     ),
 }
+
+
+# ---------------------------------------------------------------------------
+# Unknown-key rejection (v1.7.1)
+# ---------------------------------------------------------------------------
+# A key the framework does not read is not harmless: it onboards, writes its control-table row
+# and runs the pipeline while doing nothing at all. `data_quality` instead of `dq_config` means
+# DQ silently never runs; a v1-era `cdc_config` block means the CDC keys are silently ignored.
+# This is the same failure mode REMOVED_*_KEYS exists to prevent, for keys that were never real
+# in the first place -- overwhelmingly generated specs reconstructing field names from memory.
+# Presence is the trigger, exactly as for a removed key.
+#
+# These sets are asserted equivalent to onboarding_templates/onboarding_spec.schema.json by
+# tests/unit/test_unknown_key_rejection.py::test_allowed_key_sets_match_json_schema -- add an
+# attribute in one place and that test fails until it is added in the other. They are declared
+# here rather than read from the schema at import time because the schema file is not packaged
+# into the wheel that runs on Databricks.
+#
+# Keys beginning with "_" are always allowed as author comments (JSON has no comment syntax and
+# specs in metaflow_testing/ rely on `_scenario` / `_test_case_note` / `_provenance`), as is the
+# "$schema" editor hint.
+
+ALLOWED_ROOT_KEYS = {
+    "dataflow_group_id", "ingestion_flows", "observability", "pipeline_parameters",
+    "reconciliation_flows", "source_plane", "spark_config", "transformation_flows"
+}
+
+ALLOWED_INGESTION_FLOW_KEYS = {
+    "dataflow_id", "dq_config", "governance_tags", "source_config", "source_database",
+    "source_description", "source_system", "source_table_name", "source_type",
+    "target_catalog", "target_config", "target_schema", "target_table", "target_type"
+}
+
+ALLOWED_TRANSFORMATION_FLOW_KEYS = {
+    "dataflow_id", "dq_config", "flow_step_id", "governance_tags", "source_description",
+    "source_inputs", "target_catalog", "target_config", "target_schema", "target_table",
+    "target_type", "transformation_sql"
+}
+
+ALLOWED_INGESTION_SOURCE_CONFIG_KEYS = {
+    "asn1_codec", "asn1_pdu_name", "asn1_schema_path", "auto_flatten_all",
+    "capture_technical_metadata", "column_normalization", "data_standardization_sql",
+    "dedup_watermark", "explode_columns", "file_pattern", "format", "json_string_columns",
+    "landing_retention_policy", "max_bytes_per_trigger", "path", "reader_options",
+    "remove_dups", "schema_config_path", "schema_evolution_mode", "schema_location",
+    "source_catalog", "source_schema", "source_table", "source_zip_handling",
+    "starting_version"
+}
+
+ALLOWED_TARGET_CONFIG_KEYS = {
+    "auto_ttl", "capture_technical_metadata", "cdc_load_strategy", "cdc_operation_column",
+    "cdc_operation_mapping", "columns_to_check", "columns_to_exclude",
+    "empty_target_if_source_empty", "encrypted_columns", "generate_hash_columns",
+    "liquid_clustering_columns", "partition_columns", "primary_keys", "sequence_by_column",
+    "sink_config", "storage_format", "table_properties"
+}
+
+ALLOWED_DQ_CONFIG_KEYS = {
+    "quarantine_table", "record_id_column", "rules"
+}
+
+ALLOWED_GOVERNANCE_TAGS_KEYS = {
+    "column_tags", "table_tags"
+}
+
+ALLOWED_SOURCE_INPUT_KEYS = {
+    "decrypted_columns", "input_name", "is_streaming", "table", "watermark"
+}
+
+ALLOWED_SINK_CONFIG_KEYS = {
+    "format", "kafka_options", "kafka_secret_options", "path", "post_export_archive",
+    "staged_file_format", "write_mode"
+}
+
+ALLOWED_RECONCILIATION_FLOW_KEYS = {
+    "compare_columns", "dataflow_group_id", "dq_config", "error_handling", "execution_mode",
+    "logging_config", "match_keys", "publish_schema", "reconciliation_id", "source_config",
+    "target_configs", "transform_sql", "two_tier_verification"
+}
+
+
+# Known-wrong attribute names and what they should be, checked before difflib's fuzzy match.
+# Every entry here is a name observed in a real generated spec: either a v1-era key that a model
+# learned from an older document, or a plausible-sounding invention borrowed from another
+# framework (Spark reader options, dbt, Delta Live Tables prose). difflib alone gets several of
+# these wrong -- "cdc_config" is a closer string match to "dq_config" than to anything useful,
+# and "infer_schema" matches "source_schema" -- so an explicit mapping beats a fuzzy guess.
+UNKNOWN_KEY_ALIASES = {
+    "depends_on_dataflow_group_ids": (
+        "no replacement in the spec -- inter-group ordering is a Lakeflow Jobs concern. Express "
+        "it as a task dependency (depends_on) between the groups' jobs in the bundle, not here. "
+        "Until v1.7.1 this key was silently unread, so any ordering it appeared to declare was "
+        "never actually enforced"
+    ),
+    "cdc_config": (
+        "target_config.cdc_load_strategy (plus primary_keys / sequence_by_column alongside it) -- "
+        "the separate cdc_config block was a v1 shape and no longer exists"
+    ),
+    "data_quality": "dq_config",
+    "quality_config": "dq_config",
+    "expectations": "dq_config.rules",
+    "file_format": "source_config.format",
+    "infer_schema": (
+        "No replacement -- delete it. Auto Loader schema inference is always on; point "
+        "schema_location at a writable path, or pin types explicitly with schema_config_path"
+    ),
+    "schema_inference": (
+        "No replacement -- delete it; see schema_location / schema_config_path"
+    ),
+    "partition_by": "target_config.partition_columns",
+    "cluster_by": "target_config.liquid_clustering_columns",
+    "primary_key": "target_config.primary_keys (a list, even for a single column)",
+    "merge_keys": "target_config.primary_keys",
+    "sequence_by": "target_config.sequence_by_column",
+    "tags": "governance_tags.table_tags",
+    "table_comment": "target_config.table_properties",
+    "normalize_columns": "source_config.column_normalization ({enabled, case})",
+    "source_path": "source_config.path",
+    "target_path": "target_config.sink_config.path (sink targets only)",
+    "flow_id": "dataflow_id (ingestion) or flow_step_id (transformation)",
+    "sql": "transformation_sql (transformation flows) or transform_sql (reconciliation flows)",
+    "query": "transformation_sql",
+}
+
+
+def reject_unknown_keys(config: Any, path_prefix: str, errors: List[str], allowed: set) -> None:
+    """Append one error per key on ``config`` the framework does not read.
+
+    Author comments (any key starting with ``_``) and the ``$schema`` editor hint are exempt.
+    When an unknown key is a near-miss for a real one, the message names the real one --
+    ``dq_config`` for ``data_quality`` -- because the single most common source of these is a
+    generated spec that reconstructed the field name from memory, and the fix is almost always
+    a rename rather than a deletion.
+    """
+    if not isinstance(config, dict):
+        return
+    for key in config:
+        if key.startswith("_") or key == "$schema" or key in allowed:
+            continue
+        path = f"{path_prefix}.{key}" if path_prefix else key
+        # An alias is only a rename hint where the name is genuinely wrong. Some of these are
+        # real keys in a DIFFERENT container -- observability[].destination_config.file_format
+        # is legitimate -- so never offer the alias for a key the caller's own allowlist
+        # accepts, and let the allowlist decide before the alias table does.
+        if key in UNKNOWN_KEY_ALIASES:
+            hint = f" Use {UNKNOWN_KEY_ALIASES[key]}." if not UNKNOWN_KEY_ALIASES[key].startswith("No replacement") else f" {UNKNOWN_KEY_ALIASES[key]}."
+        else:
+            suggestion = difflib.get_close_matches(key, sorted(allowed), n=1, cutoff=0.6)
+            hint = (
+                f" Did you mean {suggestion[0]!r}?"
+                if suggestion
+                else f" Allowed keys here: {', '.join(sorted(allowed))}."
+            )
+        errors.append(
+            f"{path}: not a recognised attribute -- the framework never reads it, so "
+            f"leaving it in place silently does nothing.{hint}"
+        )
 
 
 def reject_removed_keys(config: Any, path_prefix: str, errors: List[str], removed: Dict[str, str]) -> None:
@@ -476,6 +634,7 @@ def _validate_dq_config(dq_config: Any, path_prefix: str, errors: List[str]) -> 
         return
     if not check_dict(dq_config, path_prefix, errors):
         return
+    reject_unknown_keys(dq_config, path_prefix, errors, ALLOWED_DQ_CONFIG_KEYS)
 
     rules = dq_config.get("rules")
     if rules is not None:
@@ -509,6 +668,7 @@ def _validate_governance_tags(governance_tags: Any, path_prefix: str, errors: Li
         return
     if not check_dict(governance_tags, path_prefix, errors):
         return
+    reject_unknown_keys(governance_tags, path_prefix, errors, ALLOWED_GOVERNANCE_TAGS_KEYS)
 
     column_tags = governance_tags.get("column_tags")
     if column_tags is not None:
@@ -867,6 +1027,7 @@ def _validate_target_config(
     # (v1.4.0) -- there is no __framework_surrogate_key to scope. Row identity is primary_keys and
     # nothing else; change detection is columns_to_check/columns_to_exclude.
     reject_removed_keys(target_config, path_prefix, errors, REMOVED_TARGET_CONFIG_KEYS)
+    reject_unknown_keys(target_config, path_prefix, errors, ALLOWED_TARGET_CONFIG_KEYS)
 
     if target_config.get("empty_target_if_source_empty") is not None:
         # TRUNCATE_AND_LOAD-only: it gates whether a zero-record source is allowed to blank the
@@ -1153,6 +1314,7 @@ def _validate_ingestion_source_config(
     if source_config.get("capture_technical_metadata") is not None:
         check_bool(source_config.get("capture_technical_metadata"), f"{path_prefix}.capture_technical_metadata", errors)
     reject_removed_keys(source_config, path_prefix, errors, REMOVED_SOURCE_CONFIG_KEYS)
+    reject_unknown_keys(source_config, path_prefix, errors, ALLOWED_INGESTION_SOURCE_CONFIG_KEYS)
     if source_config.get("column_normalization") is not None:
         _validate_column_normalization(
             source_config.get("column_normalization"), f"{path_prefix}.column_normalization", errors
@@ -1259,6 +1421,7 @@ def _validate_source_inputs(source_inputs: Any, path_prefix: str, errors: List[s
         input_path = f"{path_prefix}[{index}]"
         if not check_dict(input_config, input_path, errors):
             continue
+        reject_unknown_keys(input_config, input_path, errors, ALLOWED_SOURCE_INPUT_KEYS)
         check_string(input_config.get("input_name"), f"{input_path}.input_name", errors, required=True)
         check_string(input_config.get("table"), f"{input_path}.table", errors, required=True)
         if input_config.get("is_streaming") is not None:
@@ -1440,6 +1603,7 @@ def _validate_reconciliation_flows(
         # recon_mode and generate_surrogate_key are both gone (v1.4.0) -- reconciliation is
         # triggered-only, and there is no surrogate key to generate.
         reject_removed_keys(flow, label, errors, REMOVED_RECONCILIATION_FLOW_KEYS)
+        reject_unknown_keys(flow, label, errors, ALLOWED_RECONCILIATION_FLOW_KEYS)
         if flow.get("two_tier_verification") is not None:
             # Default true. Phase 1 is a cheap per-side (row_count, bit_xor of
             # __framework_hash_key, bit_xor of __framework_hash_value) fingerprint that
@@ -1818,6 +1982,21 @@ def _validate_sql_syntax(
         resolved_sql = substitute_dynamic_parameters(sql_text, parameters)
     except FrameworkConfigError as exc:
         errors.append(f"{flow_label}.{field_name}: {exc}")
+        return
+
+    if spark is None:
+        # Offline callers (agent_tools.validate_json, unit tests, any pre-deployment lint that
+        # has no cluster) pass spark=None deliberately. Parameter substitution above is the
+        # Spark-free half of this check and has already run; EXPLAIN-based structural
+        # validation needs a live session, so skip it rather than raising AttributeError and
+        # reporting it as "unexpected error during validation" -- which would make every
+        # transformation and reconciliation flow un-lintable offline.
+        logger.debug(
+            "%s.%s: no SparkSession -- parameter substitution checked, EXPLAIN-based structural "
+            "validation skipped (runs at onboarding time on the cluster).",
+            flow_label,
+            field_name,
+        )
         return
 
     try:
@@ -2324,6 +2503,7 @@ def validate_spec(
     """
     errors: List[str] = []
 
+    reject_unknown_keys(spec, "", errors, ALLOWED_ROOT_KEYS)
     check_string(spec.get("dataflow_group_id"), "dataflow_group_id", errors, required=True)
     pipeline_parameters = spec.get("pipeline_parameters") or {}
     if spec.get("pipeline_parameters") is not None:
@@ -2355,6 +2535,7 @@ def validate_spec(
         if not check_dict(flow, label, errors, required=True):
             continue
 
+        reject_unknown_keys(flow, label, errors, ALLOWED_INGESTION_FLOW_KEYS)
         check_string(flow.get("dataflow_id"), f"{label}.dataflow_id", errors, required=True)
         check_string(flow.get("source_type"), f"{label}.source_type", errors, required=True, allowed_values=ALLOWED_SOURCE_TYPES)
         check_string(flow.get("target_catalog"), f"{label}.target_catalog", errors, required=True)
@@ -2388,6 +2569,7 @@ def validate_spec(
         if not check_dict(flow, label, errors, required=True):
             continue
 
+        reject_unknown_keys(flow, label, errors, ALLOWED_TRANSFORMATION_FLOW_KEYS)
         check_string(flow.get("flow_step_id"), f"{label}.flow_step_id", errors, required=True)
         check_string(flow.get("dataflow_id"), f"{label}.dataflow_id", errors, required=True)
         check_string(flow.get("target_catalog"), f"{label}.target_catalog", errors, required=True)

@@ -5,7 +5,7 @@
       "type": "function",
       "function": {
         "name": "validate_json",
-        "description": "Validates a candidate Metaflow onboarding specification (JSON or YAML) immediately after generation and before downstream execution. Performs complete AST structural validation against control table contracts, allowed-value checks, CDC constraints (e.g. SCD3 transformation-only), restricted SQL grammar validation, secret path checks, and governance tag rule verification.",
+        "description": "Validates a candidate Metaflow onboarding specification (JSON or YAML) immediately after generation and before downstream execution. Runs OFFLINE -- no SparkSession, no cluster, sub-second -- so it is the mandatory last step of any spec-generation loop: generate, validate, fix from the error text, repeat until valid is true. Performs complete structural validation against control table contracts, allowed-value checks, CDC constraints (e.g. SCD3 transformation-only), restricted SQL grammar validation, secret path checks, governance tag rule verification, AND (v1.7.1) rejection of any attribute the framework does not read -- an unrecognised key is a hard error whose message names the correct attribute, because a silently ignored key onboards and runs while doing nothing. The only check needing a live session is the EXPLAIN-based structural validation of transformation_sql/transform_sql, which is skipped offline (parameter substitution is still checked) and runs at onboarding time on the cluster.",
         "implementation": "NextGen_Metadata_Framework.lakeflow_framework.onboarding.agent_tools.validate_json",
         "parameters": {
           "type": "object",
@@ -65,7 +65,8 @@
               "description": "Human-readable summary of the validation report."
             }
           }
-        }
+        },
+        "usage_notes": "Seed generation from agent_skills/reference/golden_specs.json (five complete, machine-validated specs) rather than composing attributes from memory -- inventing attribute names is the single most common cause of a rejected spec. Keys starting with '_' are always allowed as author comments."
       }
     },
     {

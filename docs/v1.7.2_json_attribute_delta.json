@@ -1,0 +1,326 @@
+{
+ "$comment": "MACHINE-READABLE ATTRIBUTE DELTA for the NextGen Metadata Framework (Metaflow) onboarding spec, v1.7.1 -> v1.7.2. Intended to be fed directly to an automated agent updating the Databricks App (databricks-app/) or any other spec-authoring surface. Every path below is expressed as it appears in an onboarding spec document, rooted at the spec object; `[]` denotes an array element. NO ATTRIBUTE IS ADDED, MODIFIED OR REMOVED in this release. What changes is enforcement: previously an unrecognised attribute was accepted and silently never read; it is now a hard validation error. Any surface that emits an attribute not in the allowlists below will now fail onboarding. The enforcing artefacts are onboarding_templates/onboarding_spec.schema.json (structure; additionalProperties:false on every authored container) and spec_validator.py::reject_unknown_keys (semantics, messages quoted verbatim below).",
+ "schema_version": "1.0",
+ "framework_version_from": "1.7.1",
+ "framework_version_to": "1.7.2",
+ "release_date": "2026-09-02",
+ "summary": {
+  "added": 0,
+  "modified": 0,
+  "removed": 0,
+  "enum_values_removed": 0,
+  "breaking": true,
+  "breaking_nature": "enforcement_only",
+  "migration_required_for": "Any spec (or any UI/template/generator that emits one) carrying an attribute the framework does not read. Previously accepted and ignored; now rejected at onboarding with a message naming the correct attribute. 56 of the 57 specs shipped in this repo were already clean; the one exception carried two inert root keys (environment, catalog_name) which have been deleted."
+ },
+ "enforcement_change": {
+  "id": "E01",
+  "title": "Unknown attributes are rejected, never silently ignored",
+  "rationale": "A key the framework does not read still onboards, still writes its control-table row and still runs the pipeline -- while doing nothing. `data_quality` instead of `dq_config` means data quality never runs, with no signal anywhere. This is the failure mode REMOVED_*_KEYS already prevented for deleted attributes; it now covers attributes that were never real, which is overwhelmingly what a generated spec produces.",
+  "trigger": "presence, not truthiness -- {\"infer_schema\": false} is rejected exactly like {\"infer_schema\": true}",
+  "exemptions": [
+   "any key matching ^_ (author comment; JSON has no comment syntax)",
+   "$schema (editor hint)"
+  ],
+  "validator_function": "src/NextGen_Metadata_Framework/lakeflow_framework/onboarding/spec_validator.py::reject_unknown_keys",
+  "message_template": "<json_path>: not a recognised attribute -- the framework never reads it, so leaving it in place silently does nothing.<hint>",
+  "hint_forms": [
+   "' Use <replacement>.' when the key is in UNKNOWN_KEY_ALIASES",
+   "' Did you mean <x>?' when difflib finds a close match at cutoff 0.6",
+   "' Allowed keys here: <comma-separated allowlist>.' otherwise"
+  ]
+ },
+ "allowlists": {
+  "$comment": "The exact set of attributes accepted in each container. Generated from spec_validator.py; asserted equal to the JSON schema by tests/unit/test_unknown_key_rejection.py::test_allowed_key_sets_match_json_schema.",
+  "<spec root>": [
+   "dataflow_group_id",
+   "ingestion_flows",
+   "observability",
+   "pipeline_parameters",
+   "reconciliation_flows",
+   "source_plane",
+   "spark_config",
+   "transformation_flows"
+  ],
+  "ingestion_flows[]": [
+   "dataflow_id",
+   "dq_config",
+   "governance_tags",
+   "source_config",
+   "source_database",
+   "source_description",
+   "source_system",
+   "source_table_name",
+   "source_type",
+   "target_catalog",
+   "target_config",
+   "target_schema",
+   "target_table",
+   "target_type"
+  ],
+  "transformation_flows[]": [
+   "dataflow_id",
+   "dq_config",
+   "flow_step_id",
+   "governance_tags",
+   "source_description",
+   "source_inputs",
+   "target_catalog",
+   "target_config",
+   "target_schema",
+   "target_table",
+   "target_type",
+   "transformation_sql"
+  ],
+  "ingestion_flows[].source_config": [
+   "asn1_codec",
+   "asn1_pdu_name",
+   "asn1_schema_path",
+   "auto_flatten_all",
+   "capture_technical_metadata",
+   "column_normalization",
+   "data_standardization_sql",
+   "dedup_watermark",
+   "explode_columns",
+   "file_pattern",
+   "format",
+   "json_string_columns",
+   "landing_retention_policy",
+   "max_bytes_per_trigger",
+   "path",
+   "reader_options",
+   "remove_dups",
+   "schema_config_path",
+   "schema_evolution_mode",
+   "schema_location",
+   "source_catalog",
+   "source_schema",
+   "source_table",
+   "source_zip_handling",
+   "starting_version"
+  ],
+  "*.target_config": [
+   "auto_ttl",
+   "capture_technical_metadata",
+   "cdc_load_strategy",
+   "cdc_operation_column",
+   "cdc_operation_mapping",
+   "columns_to_check",
+   "columns_to_exclude",
+   "empty_target_if_source_empty",
+   "encrypted_columns",
+   "generate_hash_columns",
+   "liquid_clustering_columns",
+   "partition_columns",
+   "primary_keys",
+   "sequence_by_column",
+   "sink_config",
+   "storage_format",
+   "table_properties"
+  ],
+  "*.target_config.sink_config": [
+   "format",
+   "kafka_options",
+   "kafka_secret_options",
+   "path",
+   "post_export_archive",
+   "staged_file_format",
+   "write_mode"
+  ],
+  "*.dq_config": [
+   "quarantine_table",
+   "record_id_column",
+   "rules"
+  ],
+  "*.governance_tags": [
+   "column_tags",
+   "table_tags"
+  ],
+  "transformation_flows[].source_inputs[]": [
+   "decrypted_columns",
+   "input_name",
+   "is_streaming",
+   "table",
+   "watermark"
+  ],
+  "reconciliation_flows[]": [
+   "compare_columns",
+   "dataflow_group_id",
+   "dq_config",
+   "error_handling",
+   "execution_mode",
+   "logging_config",
+   "match_keys",
+   "publish_schema",
+   "reconciliation_id",
+   "source_config",
+   "target_configs",
+   "transform_sql",
+   "two_tier_verification"
+  ]
+ },
+ "known_wrong_names": [
+  {
+   "wrong_name": "cdc_config",
+   "use_instead": "target_config.cdc_load_strategy (plus primary_keys / sequence_by_column alongside it) -- the separate cdc_config block was a v1 shape and no longer exists",
+   "verbatim_rejection_message": "<json_path>.cdc_config: not a recognised attribute -- the framework never reads it, so leaving it in place silently does nothing. Use target_config.cdc_load_strategy (plus primary_keys / sequence_by_column alongside it) -- the separate cdc_config block was a v1 shape and no longer exists.",
+   "ui_action": "If any registry field, template or generator emits this key, rename it to the replacement. If the replacement is 'No replacement', remove the field from the UI entirely."
+  },
+  {
+   "wrong_name": "cluster_by",
+   "use_instead": "target_config.liquid_clustering_columns",
+   "verbatim_rejection_message": "<json_path>.cluster_by: not a recognised attribute -- the framework never reads it, so leaving it in place silently does nothing. Use target_config.liquid_clustering_columns.",
+   "ui_action": "If any registry field, template or generator emits this key, rename it to the replacement. If the replacement is 'No replacement', remove the field from the UI entirely."
+  },
+  {
+   "wrong_name": "data_quality",
+   "use_instead": "dq_config",
+   "verbatim_rejection_message": "<json_path>.data_quality: not a recognised attribute -- the framework never reads it, so leaving it in place silently does nothing. Use dq_config.",
+   "ui_action": "If any registry field, template or generator emits this key, rename it to the replacement. If the replacement is 'No replacement', remove the field from the UI entirely."
+  },
+  {
+   "wrong_name": "depends_on_dataflow_group_ids",
+   "use_instead": "no replacement in the spec -- inter-group ordering is a Lakeflow Jobs concern. Express it as a task dependency (depends_on) between the groups' jobs in the bundle, not here. Until v1.7.1 this key was silently unread, so any ordering it appeared to declare was never actually enforced",
+   "verbatim_rejection_message": "<json_path>.depends_on_dataflow_group_ids: not a recognised attribute -- the framework never reads it, so leaving it in place silently does nothing. Use no replacement in the spec -- inter-group ordering is a Lakeflow Jobs concern. Express it as a task dependency (depends_on) between the groups' jobs in the bundle, not here. Until v1.7.1 this key was silently unread, so any ordering it appeared to declare was never actually enforced.",
+   "ui_action": "If any registry field, template or generator emits this key, rename it to the replacement. If the replacement is 'No replacement', remove the field from the UI entirely."
+  },
+  {
+   "wrong_name": "expectations",
+   "use_instead": "dq_config.rules",
+   "verbatim_rejection_message": "<json_path>.expectations: not a recognised attribute -- the framework never reads it, so leaving it in place silently does nothing. Use dq_config.rules.",
+   "ui_action": "If any registry field, template or generator emits this key, rename it to the replacement. If the replacement is 'No replacement', remove the field from the UI entirely."
+  },
+  {
+   "wrong_name": "file_format",
+   "use_instead": "source_config.format",
+   "verbatim_rejection_message": "<json_path>.file_format: not a recognised attribute -- the framework never reads it, so leaving it in place silently does nothing. Use source_config.format.",
+   "ui_action": "If any registry field, template or generator emits this key, rename it to the replacement. If the replacement is 'No replacement', remove the field from the UI entirely."
+  },
+  {
+   "wrong_name": "flow_id",
+   "use_instead": "dataflow_id (ingestion) or flow_step_id (transformation)",
+   "verbatim_rejection_message": "<json_path>.flow_id: not a recognised attribute -- the framework never reads it, so leaving it in place silently does nothing. Use dataflow_id (ingestion) or flow_step_id (transformation).",
+   "ui_action": "If any registry field, template or generator emits this key, rename it to the replacement. If the replacement is 'No replacement', remove the field from the UI entirely."
+  },
+  {
+   "wrong_name": "infer_schema",
+   "use_instead": "No replacement -- delete it. Auto Loader schema inference is always on; point schema_location at a writable path, or pin types explicitly with schema_config_path",
+   "verbatim_rejection_message": "<json_path>.infer_schema: not a recognised attribute -- the framework never reads it, so leaving it in place silently does nothing. No replacement -- delete it. Auto Loader schema inference is always on; point schema_location at a writable path, or pin types explicitly with schema_config_path.",
+   "ui_action": "If any registry field, template or generator emits this key, rename it to the replacement. If the replacement is 'No replacement', remove the field from the UI entirely."
+  },
+  {
+   "wrong_name": "merge_keys",
+   "use_instead": "target_config.primary_keys",
+   "verbatim_rejection_message": "<json_path>.merge_keys: not a recognised attribute -- the framework never reads it, so leaving it in place silently does nothing. Use target_config.primary_keys.",
+   "ui_action": "If any registry field, template or generator emits this key, rename it to the replacement. If the replacement is 'No replacement', remove the field from the UI entirely."
+  },
+  {
+   "wrong_name": "normalize_columns",
+   "use_instead": "source_config.column_normalization ({enabled, case})",
+   "verbatim_rejection_message": "<json_path>.normalize_columns: not a recognised attribute -- the framework never reads it, so leaving it in place silently does nothing. Use source_config.column_normalization ({enabled, case}).",
+   "ui_action": "If any registry field, template or generator emits this key, rename it to the replacement. If the replacement is 'No replacement', remove the field from the UI entirely."
+  },
+  {
+   "wrong_name": "partition_by",
+   "use_instead": "target_config.partition_columns",
+   "verbatim_rejection_message": "<json_path>.partition_by: not a recognised attribute -- the framework never reads it, so leaving it in place silently does nothing. Use target_config.partition_columns.",
+   "ui_action": "If any registry field, template or generator emits this key, rename it to the replacement. If the replacement is 'No replacement', remove the field from the UI entirely."
+  },
+  {
+   "wrong_name": "primary_key",
+   "use_instead": "target_config.primary_keys (a list, even for a single column)",
+   "verbatim_rejection_message": "<json_path>.primary_key: not a recognised attribute -- the framework never reads it, so leaving it in place silently does nothing. Use target_config.primary_keys (a list, even for a single column).",
+   "ui_action": "If any registry field, template or generator emits this key, rename it to the replacement. If the replacement is 'No replacement', remove the field from the UI entirely."
+  },
+  {
+   "wrong_name": "quality_config",
+   "use_instead": "dq_config",
+   "verbatim_rejection_message": "<json_path>.quality_config: not a recognised attribute -- the framework never reads it, so leaving it in place silently does nothing. Use dq_config.",
+   "ui_action": "If any registry field, template or generator emits this key, rename it to the replacement. If the replacement is 'No replacement', remove the field from the UI entirely."
+  },
+  {
+   "wrong_name": "query",
+   "use_instead": "transformation_sql",
+   "verbatim_rejection_message": "<json_path>.query: not a recognised attribute -- the framework never reads it, so leaving it in place silently does nothing. Use transformation_sql.",
+   "ui_action": "If any registry field, template or generator emits this key, rename it to the replacement. If the replacement is 'No replacement', remove the field from the UI entirely."
+  },
+  {
+   "wrong_name": "schema_inference",
+   "use_instead": "No replacement -- delete it; see schema_location / schema_config_path",
+   "verbatim_rejection_message": "<json_path>.schema_inference: not a recognised attribute -- the framework never reads it, so leaving it in place silently does nothing. No replacement -- delete it; see schema_location / schema_config_path.",
+   "ui_action": "If any registry field, template or generator emits this key, rename it to the replacement. If the replacement is 'No replacement', remove the field from the UI entirely."
+  },
+  {
+   "wrong_name": "sequence_by",
+   "use_instead": "target_config.sequence_by_column",
+   "verbatim_rejection_message": "<json_path>.sequence_by: not a recognised attribute -- the framework never reads it, so leaving it in place silently does nothing. Use target_config.sequence_by_column.",
+   "ui_action": "If any registry field, template or generator emits this key, rename it to the replacement. If the replacement is 'No replacement', remove the field from the UI entirely."
+  },
+  {
+   "wrong_name": "source_path",
+   "use_instead": "source_config.path",
+   "verbatim_rejection_message": "<json_path>.source_path: not a recognised attribute -- the framework never reads it, so leaving it in place silently does nothing. Use source_config.path.",
+   "ui_action": "If any registry field, template or generator emits this key, rename it to the replacement. If the replacement is 'No replacement', remove the field from the UI entirely."
+  },
+  {
+   "wrong_name": "sql",
+   "use_instead": "transformation_sql (transformation flows) or transform_sql (reconciliation flows)",
+   "verbatim_rejection_message": "<json_path>.sql: not a recognised attribute -- the framework never reads it, so leaving it in place silently does nothing. Use transformation_sql (transformation flows) or transform_sql (reconciliation flows).",
+   "ui_action": "If any registry field, template or generator emits this key, rename it to the replacement. If the replacement is 'No replacement', remove the field from the UI entirely."
+  },
+  {
+   "wrong_name": "table_comment",
+   "use_instead": "target_config.table_properties",
+   "verbatim_rejection_message": "<json_path>.table_comment: not a recognised attribute -- the framework never reads it, so leaving it in place silently does nothing. Use target_config.table_properties.",
+   "ui_action": "If any registry field, template or generator emits this key, rename it to the replacement. If the replacement is 'No replacement', remove the field from the UI entirely."
+  },
+  {
+   "wrong_name": "tags",
+   "use_instead": "governance_tags.table_tags",
+   "verbatim_rejection_message": "<json_path>.tags: not a recognised attribute -- the framework never reads it, so leaving it in place silently does nothing. Use governance_tags.table_tags.",
+   "ui_action": "If any registry field, template or generator emits this key, rename it to the replacement. If the replacement is 'No replacement', remove the field from the UI entirely."
+  },
+  {
+   "wrong_name": "target_path",
+   "use_instead": "target_config.sink_config.path (sink targets only)",
+   "verbatim_rejection_message": "<json_path>.target_path: not a recognised attribute -- the framework never reads it, so leaving it in place silently does nothing. Use target_config.sink_config.path (sink targets only).",
+   "ui_action": "If any registry field, template or generator emits this key, rename it to the replacement. If the replacement is 'No replacement', remove the field from the UI entirely."
+  }
+ ],
+ "ui_actions": [
+  {
+   "id": "A01",
+   "surface": "databricks-app/config/registry/*.json",
+   "action": "Verify every emitted attribute name appears in the matching allowlist above. Verified clean at v1.7.1: the non-matching identifiers in these files are UI section ids (src_auto, shared.target, gov, ...), not spec attributes.",
+   "status": "no_change_required"
+  },
+  {
+   "id": "A02",
+   "surface": "databricks-app/templates/pipeline_onboarding_template.json",
+   "action": "Must validate clean. Asserted by databricks-app/tests/test_framework_spec_agreement.py.",
+   "status": "passing"
+  },
+  {
+   "id": "A03",
+   "surface": "any spec-authoring UI",
+   "action": "Surface the rejection message verbatim. It already names the correct attribute, so echoing it is more useful than a generic 'invalid spec' error.",
+   "status": "recommended"
+  },
+  {
+   "id": "A04",
+   "surface": "any LLM spec generator",
+   "action": "Call onboarding.agent_tools.validate_json (offline, no Spark) after generating and before returning; loop on errors. Golden examples to seed from: agent_skills/reference/golden_specs.json.",
+   "status": "required"
+  }
+ ],
+ "validation": {
+  "offline_entrypoint": "NextGen_Metadata_Framework.lakeflow_framework.onboarding.agent_tools.validate_json(spec_content, catalog, env, strict_mode)",
+  "requires_spark": false,
+  "note": "validate_spec(None, spec) is supported for every flow type as of v1.7.1. The EXPLAIN-based transformation_sql/transform_sql structural check is skipped without a SparkSession (parameter substitution is still checked); it runs at onboarding time on the cluster."
+ },
+ "tests": [
+  "tests/unit/test_unknown_key_rejection.py (38 tests)",
+  "tests/unit/test_golden_specs.py (17 tests)",
+  "tests/unit/test_agent_skill_layout.py (10 tests)"
+ ]
+}

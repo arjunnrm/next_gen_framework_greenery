@@ -39,6 +39,8 @@ BUNDLE_FILE = REPO_ROOT / "databricks.yml"
 #: ``include:`` list -- ``test_every_group_folder_is_included`` asserts the two agree.
 EXPECTED_GROUPS = {
     "metaflow_app",
+    "metaflow_bootstrap",
+    "metaflow_bi",
     "metaflow_config_jobs",
     "observability",
     "bt_tests",
@@ -180,4 +182,157 @@ def test_usual_deploy_selection_names_real_resources(selector, relative_path):
     )
     assert selector in BUNDLE_FILE.read_text(encoding="utf-8"), (
         f"databricks.yml's THE USUAL DEPLOY --select example no longer names {selector}"
+    )
+
+
+# ---------------------------------------------------------------------------------------------
+# UC container hierarchy (resources/metaflow_bootstrap/)
+# ---------------------------------------------------------------------------------------------
+#
+# On 2026-09-02 a first deploy to a fresh workspace (`arjun_2`) failed with
+#
+#     Error: cannot create resources.volumes.framework_wheels_volume:
+#            Schema 'metaflow.config' does not exist
+#
+# because the bundle declared its Volumes but not the schemas holding them. `bundle validate`
+# cannot catch this -- the config shape is valid; only a deploy against a workspace missing the
+# container discovers it. So the invariant is asserted from disk: **every schema_name a declared
+# volume names must itself be a declared schema.**
+#
+# The catalog is deliberately NOT part of that chain -- it is a prerequisite created outside the
+# bundle, and a `catalogs.*` resource cannot succeed on these Default-Storage workspaces. See
+# `test_no_catalog_is_declared_as_a_bundle_resource` and
+# `resources/metaflow_bootstrap/README.md`.
+
+#: The variables these resources interpolate, resolved to the value every current target sets.
+#: ``catalog`` and ``schema`` are declared without a default in databricks.yml (each target must
+#: set them), so the values are pinned here rather than read from the bundle's ``variables:``.
+_VAR_VALUES = {"${var.catalog}": "metaflow", "${var.schema}": "dev", "${var.spec_schema}": "config"}
+
+
+def _resolve(value):
+    """Substitute the ``${var.x}`` forms these bootstrap resources use, leaving others intact."""
+    for token, resolved in _VAR_VALUES.items():
+        value = value.replace(token, resolved)
+    return value
+
+
+def _declared(resource_type):
+    """Map every declared resource of ``resource_type`` to its ``(key, body, file)``."""
+    out = {}
+    for path in _resource_files():
+        loaded = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+        for key, body in (loaded.get("resources") or {}).get(resource_type, {}).items():
+            out[key] = (body, path)
+    return out
+
+
+def test_every_declared_volume_sits_in_a_declared_schema():
+    """A Volume whose schema nothing declares fails the deploy, not the validate."""
+    schemas = {
+        f"{_resolve(body['catalog_name'])}.{_resolve(body['name'])}"
+        for body, _ in _declared("schemas").values()
+    }
+    missing = {}
+    for key, (body, path) in _declared("volumes").items():
+        parent = f"{_resolve(body['catalog_name'])}.{_resolve(body['schema_name'])}"
+        if parent not in schemas:
+            missing[f"volumes.{key} ({path.relative_to(REPO_ROOT)})"] = parent
+    assert not missing, (
+        "these volumes name a schema no resource declares, so a first deploy to a fresh "
+        f"workspace fails with \"Schema '<x>' does not exist\": {missing}. Declare each schema "
+        "in resources/metaflow_bootstrap/metaflow_schemas.yml."
+    )
+
+
+def test_no_catalog_is_declared_as_a_bundle_resource():
+    """``${var.catalog}`` is a PREREQUISITE, and a ``catalogs.*`` resource can only ever fail.
+
+    A catalog resource was added on 2026-09-02 as the apparent completion of the container
+    hierarchy, and removed the same day. Two independent blockers, verified live:
+
+    * These accounts use UC **Default Storage**, so ``CREATE CATALOG`` with no ``MANAGED
+      LOCATION`` is rejected outright -- ``Metastore storage root URL does not exist ...
+      (400 INVALID_STATE)``. Supplying one is not a fix either: a Default-Storage catalog's
+      ``storage_root`` is an account-managed bucket path containing metastore and catalog UUIDs
+      generated at create time, so it cannot be committed to YAML and differs per workspace.
+    * ``metaflow`` already exists on all three targets, each created outside this bundle.
+
+    And the failure is not contained: DABs propagates it down the dependency edge it creates, so
+    the failing catalog took the schemas with it (``cannot create resources.schemas.config_schema:
+    dependency failed: resources.catalogs.metaflow_catalog``) -- strictly worse than declaring no
+    catalog at all. See ``resources/metaflow_bootstrap/README.md``.
+    """
+    declared = _declared("catalogs")
+    assert declared == {}, (
+        f"a catalogs.* resource is declared again: {sorted(declared)}. It cannot succeed on these "
+        "workspaces -- UC Default Storage rejects CREATE CATALOG without a MANAGED LOCATION, the "
+        "storage_root is an account-managed path that cannot live in YAML, and the catalog already "
+        "exists on every target. Worse, its failure propagates down the dependency edge and takes "
+        "schemas.config_schema with it. Read resources/metaflow_bootstrap/README.md before "
+        "re-adding it; create the catalog in the UI instead."
+    )
+
+
+def test_declared_schemas_name_the_catalog_variable():
+    """With no catalog resource, every schema must still point at ``${var.catalog}``.
+
+    A hard-coded catalog name here would deploy the framework's schemas into the wrong catalog on
+    any target that overrides ``catalog`` -- silently, since the create would succeed.
+    """
+    offenders = {
+        f"schemas.{key} ({path.relative_to(REPO_ROOT)})": body["catalog_name"]
+        for key, (body, path) in _declared("schemas").items()
+        if body["catalog_name"] != "${var.catalog}"
+    }
+    assert not offenders, (
+        f"these schemas hard-code a catalog instead of using ${{var.catalog}}: {offenders}"
+    )
+
+
+def test_every_declared_schema_is_protected_from_destroy():
+    """``prevent_destroy`` is what stops an editing mistake becoming data loss.
+
+    DABs deletes any resource missing from the config (see databricks.yml's RESOURCE LAYOUT
+    header), and these schemas hold the control tables, the published wheels, the authored
+    onboarding specs and the sample datasets -- so removing a file must not be able to drop one.
+    """
+    unguarded = [
+        f"schemas.{key} ({path.relative_to(REPO_ROOT)})"
+        for key, (body, path) in _declared("schemas").items()
+        if (body.get("lifecycle") or {}).get("prevent_destroy") is not True
+    ]
+    assert not unguarded, (
+        f"these schemas do not set lifecycle.prevent_destroy: true: {unguarded}. Without it, "
+        "removing the file (or a bundle destroy) asks UC to drop the schema and everything in it."
+    )
+
+
+def test_sample_suite_volumes_match_the_provisioning_notebook():
+    """The declared Volumes and the seed notebook's ``VOLUMES`` tuple must not drift.
+
+    The notebook keeps its ``CREATE VOLUME IF NOT EXISTS`` calls so it stays runnable standalone.
+    If a volume is added there but not here, a deploy alone stops being enough to make the sample
+    suite runnable -- which is the whole property resources/metaflow_bootstrap/ adds.
+    """
+    notebook = (
+        REPO_ROOT
+        / "notebooks"
+        / "00_seed_sample_data"
+        / "04_seed_sample_00_provision_sample_schema.py"
+    )
+    if not notebook.exists():  # pragma: no cover - the notebook is expected to be present
+        pytest.skip(f"{notebook.name} is absent; nothing to compare against")
+    match = re.search(r"^VOLUMES\s*=\s*\(([^)]*)\)", notebook.read_text(encoding="utf-8"), re.M)
+    assert match, f"could not find a VOLUMES tuple in {notebook.name}"
+    in_notebook = set(re.findall(r'"([^"]+)"', match.group(1)))
+    declared = {
+        _resolve(body["name"])
+        for body, _ in _declared("volumes").values()
+        if _resolve(body["schema_name"]) == "metaflow_sample"
+    }
+    assert declared == in_notebook, (
+        "resources/metaflow_bootstrap/metaflow_sample_volumes.yml and "
+        f"{notebook.name}'s VOLUMES tuple disagree. Only the notebook has: "
+        f"{sorted(in_notebook - declared)}; only the bundle has: {sorted(declared - in_notebook)}."
     )

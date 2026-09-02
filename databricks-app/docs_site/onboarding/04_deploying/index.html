@@ -778,6 +778,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="The order that matters">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#the-uc-container-hierarchy-is-declared-v171" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The UC container hierarchy is declared (v1.7.1)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -3402,6 +3419,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="The order that matters">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#the-uc-container-hierarchy-is-declared-v171" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The UC container hierarchy is declared (v1.7.1)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -3481,14 +3515,80 @@ produces a uniquely-named wheel, then uploads it to the target's <code>workspace
 <code>/Volumes/&lt;catalog&gt;/config/wheels/.internal/</code> as of v1.6.0 (a UC Volume the bundle itself
 declares, <code>volumes.framework_wheels_volume</code>). Resources reference the wheel as
 <code>- ../../dist/*.whl</code>; DABs rewrites that to the uploaded path at deploy time.</p>
+<h3 id="the-uc-container-hierarchy-is-declared-v171">The UC container hierarchy is declared (v1.7.1)<a class="headerlink" href="#the-uc-container-hierarchy-is-declared-v171" title="Permanent link">&para;</a></h3>
+<p><code>resources/metaflow_bootstrap/</code> declares the schemas every other resource hangs off, so a deploy
+to a fresh workspace creates them itself:</p>
+<table>
+<thead>
+<tr>
+<th>Resource</th>
+<th>What</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>schemas.config_schema</code></td>
+<td><code>config</code> -- control tables, the wheels Volume, the onboarding-spec Volume</td>
+</tr>
+<tr>
+<td><code>schemas.working_schema</code></td>
+<td><code>${var.schema}</code></td>
+</tr>
+<tr>
+<td><code>schemas.sample_suite_schema</code></td>
+<td><code>metaflow_sample</code></td>
+</tr>
+<tr>
+<td><code>volumes.sample_{landing,exports,observability,configs}_volume</code></td>
+<td>the sample suite's four Volumes</td>
+</tr>
+</tbody>
+</table>
+<p>DABs rewrites each Volume's <code>schema_name</code> into a <code>${resources.schemas.*.name}</code> reference, so
+create order <strong>schema -&gt; volume</strong> is a real dependency edge, not a convention. Before this existed,
+a first deploy died on
+<code>cannot create resources.volumes.framework_wheels_volume: Schema 'metaflow.config' does not exist</code>.</p>
+<p>All three schemas set <code>lifecycle.prevent_destroy: true</code> -- DABs deletes any resource missing from
+the config, and these hold the control tables, the published wheels and the sample datasets.</p>
+<div class="admonition danger">
+<p class="admonition-title">The catalog is a prerequisite -- do NOT declare it as a resource</p>
+<p><code>${var.catalog}</code> must exist before the first deploy. Create it in the UI
+(<strong>Catalog -&gt; Create catalog -&gt; Default storage</strong>). A <code>catalogs.*</code> resource was tried on
+2026-09-02 and removed the same day: these accounts use UC <strong>Default Storage</strong>, so
+<code>CREATE CATALOG</code> without a <code>MANAGED LOCATION</code> is rejected with
+<code>Metastore storage root URL does not exist ... (400 INVALID_STATE)</code>, and a Default-Storage
+catalog's <code>storage_root</code> is an account-managed bucket path with generated UUIDs that cannot be
+committed to YAML. Worse, the failing catalog propagated <strong>down</strong> the dependency edge and took
+the schemas with it (<code>cannot create resources.schemas.config_schema: dependency failed</code>) --
+strictly worse than declaring no catalog. Full write-up in
+<code>resources/metaflow_bootstrap/README.md</code>; a unit test keeps it undeclared.</p>
+</div>
+<div class="admonition warning">
+<p class="admonition-title">Bind, do not re-create, a schema that already exists</p>
+<p><code>metaflow.config</code> predates this group on <code>dev_metaflow</code> and <code>hoonartek</code>, so DABs does not own
+it there and a create attempt fails with <code>Schema 'config' already exists</code>. Bind once per
+workspace:
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>databricks bundle deployment bind schemas.config_schema metaflow.config -t dev_metaflow -p dev_metaflow
+</code></pre></div>
+<code>bundle deployment unbind</code> reverses it without deleting anything. Not needed on <code>arjun_2</code> --
+the bundle created that schema on 2026-09-02 and owns it.</p>
+</div>
 <div class="admonition note">
-<p class="admonition-title">One-time bootstrap on a workspace that has never held the Volume</p>
-<p>The CLI refuses an <code>artifact_path</code> inside a Volume that does not exist yet -- even one the
-bundle itself declares (<code>Error: volume &lt;catalog&gt;.config.wheels does not exist</code>). Comment out
-that target's <code>artifact_path:</code> line in <code>databricks.yml</code> (safe -- it is a workspace setting,
-not a resource, so unsetting it deletes nothing), run
-<code>databricks bundle deploy --select volumes.framework_wheels_volume</code>, restore the line, and
-deploy normally. Once per workspace; <code>bundle validate</code> prints OK from then on.</p>
+<p class="admonition-title">One-time <code>artifact_path</code> bootstrap -- a <em>different</em> mechanism, and still required</p>
+<p>Declaring the Volume does <strong>not</strong> satisfy the <code>artifact_path</code> check, because that check runs
+during config resolution, <strong>before</strong> any resource is created (<code>Error: volume
+&lt;catalog&gt;.config.wheels does not exist at workspace.artifact_path</code> -- re-verified on CLI
+v1.13.0 with the catalog and schema resources in place). What changed in v1.7.1 is that the
+bootstrap is now a deploy of declared resources instead of hand-run <code>CREATE</code> statements:</p>
+<ol>
+<li>create the catalog in the UI, if it does not exist yet;</li>
+<li>comment out that target's <code>artifact_path:</code> line -- safe, it is a workspace setting, not a
+   resource, so unsetting it deletes nothing;</li>
+<li><code>databricks bundle deploy -t &lt;target&gt; -p &lt;profile&gt; --select schemas.config_schema,volumes.framework_wheels_volume</code></li>
+<li>uncomment the <code>artifact_path:</code> line and deploy normally.</li>
+</ol>
+<p>Once per workspace; <code>bundle validate</code> prints OK from then on. <strong>Completed for <code>arjun_2</code> on
+2026-09-02</strong> -- schemas and all six Volumes created, <code>artifact_path</code> restored, full deploy green.</p>
 </div>
 <div class="admonition danger">
 <p class="admonition-title">Never deploy while a pipeline or test wave is running</p>
@@ -3524,13 +3624,13 @@ mitigation is operational: never <code>bundle deploy</code> while a pipeline or 
 <p>Each target pairs with its own CLI profile. Deploying with a mismatched profile fails
 authentication rather than deploying somewhere unexpected.</p>
 <h2 id="verify">Verify<a class="headerlink" href="#verify" title="Permanent link">&para;</a></h2>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>databricks<span class="w"> </span>bundle<span class="w"> </span>validate<span class="w"> </span>-t<span class="w"> </span>dev_metaflow
-<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>databricks<span class="w"> </span>bundle<span class="w"> </span>summary<span class="w">  </span>-t<span class="w"> </span>dev_metaflow
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>databricks<span class="w"> </span>bundle<span class="w"> </span>validate<span class="w"> </span>-t<span class="w"> </span>dev_metaflow
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>databricks<span class="w"> </span>bundle<span class="w"> </span>summary<span class="w">  </span>-t<span class="w"> </span>dev_metaflow
 </code></pre></div>
 <h2 id="bulk-onboarding">Bulk onboarding<a class="headerlink" href="#bulk-onboarding" title="Permanent link">&para;</a></h2>
 <p>Point the onboarding job at a directory to process every spec in it:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>databricks<span class="w"> </span>bundle<span class="w"> </span>run<span class="w"> </span>framework_config_onboarding_job<span class="w"> </span>-t<span class="w"> </span>dev_metaflow<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="w">  </span>--params<span class="w"> </span><span class="nv">config_dir</span><span class="o">=</span>/Volumes/metaflow/framework/onboarding_specs/
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>databricks<span class="w"> </span>bundle<span class="w"> </span>run<span class="w"> </span>framework_config_onboarding_job<span class="w"> </span>-t<span class="w"> </span>dev_metaflow<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="w">  </span>--params<span class="w"> </span><span class="nv">config_dir</span><span class="o">=</span>/Volumes/metaflow/framework/onboarding_specs/
 </code></pre></div>
 <h2 id="common-failures">Common failures<a class="headerlink" href="#common-failures" title="Permanent link">&para;</a></h2>
 <table>

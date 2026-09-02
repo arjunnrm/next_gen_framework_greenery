@@ -1,0 +1,64 @@
+# The four UC Volumes the metaflow_sample reference suite reads and writes.
+#
+# These were created only by `notebooks/00_seed_sample_data/04_seed_sample_00_provision_sample_schema.py`
+# (the seed job's serial root task), which means they existed only AFTER someone remembered to
+# run `bundle run metaflow_sample_seed_job`. Declaring them in the bundle makes the storage part
+# of the deployment package rather than a side effect of running a job, so a fresh workspace has
+# somewhere to land data the moment the deploy finishes.
+#
+# THE PROVISION NOTEBOOK STAYS. Its `CREATE VOLUME IF NOT EXISTS` calls become no-ops once these
+# resources exist, and it must keep them: every `04_seed_sample_*` notebook has to remain
+# runnable standalone (outside the job, outside the bundle). Belt and braces here is deliberate,
+# and it does not reintroduce the concurrent-create race that notebook's serial-root design
+# exists to avoid -- a no-op `IF NOT EXISTS` cannot lose a race.
+#
+# WHICH FOUR, AND WHY THESE NAMES. The list is kept identical to `VOLUMES` in that notebook
+# (notebooks/00_seed_sample_data/04_seed_sample_00_provision_sample_schema.py:46). If a volume is
+# added there, add it here too -- the notebook would still create it at seed time, but a deploy
+# would no longer be enough to make the suite runnable, which is the property this file adds.
+#
+#   landing         source fixtures every sample job's pipeline ingests from
+#   exports         Sample 03/04 export + encrypt + ZIP output
+#   observability   the DLT observability exports the sample pipelines write
+#   sample_configs  each sample's published onboarding spec JSON
+#                   (notebooks/09_sample_reference/09a_store_sample_config.py)
+#
+# NO prevent_destroy, unlike the catalog and schemas in this group. These hold regenerable
+# fixtures and derived output -- re-running the seed job rebuilds all of it -- so guarding them
+# against destroy would only make the sample suite harder to reset. The schema ABOVE them is
+# guarded, so a stray edit cannot take out the sample tables.
+resources:
+  volumes:
+    sample_landing_volume:
+      catalog_name: ${var.catalog}
+      schema_name: metaflow_sample
+      name: landing
+      volume_type: MANAGED
+      comment: >-
+        Landing zone for the metaflow_sample suite -- source fixtures written by the seed job
+        and ingested by each sample pipeline.
+
+    sample_exports_volume:
+      catalog_name: ${var.catalog}
+      schema_name: metaflow_sample
+      name: exports
+      volume_type: MANAGED
+      comment: >-
+        Export output for the metaflow_sample suite -- Sample 03/04 export, PGP-encrypt and
+        ZIP artefacts.
+
+    sample_observability_volume:
+      catalog_name: ${var.catalog}
+      schema_name: metaflow_sample
+      name: observability
+      volume_type: MANAGED
+      comment: >-
+        DLT observability exports written by the metaflow_sample pipelines.
+
+    sample_configs_volume:
+      catalog_name: ${var.catalog}
+      schema_name: metaflow_sample
+      name: sample_configs
+      volume_type: MANAGED
+      comment: >-
+        Published onboarding spec JSON for each metaflow_sample reference job.

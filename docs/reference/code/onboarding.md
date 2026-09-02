@@ -103,6 +103,7 @@ Structural, type, allowed-value, and SQL-syntax validation for onboarding specs 
 
 | Signature | Purpose |
 |---|---|
+| `reject_unknown_keys(config: Any, path_prefix: str, errors: List[str], allowed: set) -> None` | Append one error per key on ``config`` the framework does not read. |
 | `reject_removed_keys(config: Any, path_prefix: str, errors: List[str], removed: Dict[str, str]) -> None` | Append one error per removed key present on ``config``. |
 | `reject_mode_incompatible_keys(config: Any, path_prefix: str, errors: List[str], incompatible: Dict[str, str], mode: str) -> None` | Append one error per key present on ``config`` that is incompatible with the ``mode`` the caller has already determined applies here -- e.g. |
 | `check_bool(value: Any, path: str, errors: List[str], required: bool = False) -> None` | Validate that `value` is a real Python bool -- catches the classic 'abc' / 'true' (string) mistake. |

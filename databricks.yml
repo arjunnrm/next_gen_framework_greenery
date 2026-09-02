@@ -11,6 +11,10 @@ bundle:
 # resources it used to declare on the next deploy, because DABs treats a resource missing
 # from the config as one to delete from the target.
 #
+#   resources/metaflow_bootstrap/   the UC containers other resources live in: the
+#                                   config/${var.schema}/metaflow_sample schemas and the sample
+#                                   suite's four Volumes. NOT the catalog -- that is a
+#                                   prerequisite, see the group's README.md
 #   resources/metaflow_app/         the Onboarding App + the UC Volume it stores specs in
 #   resources/metaflow_config_jobs/ onboarding_job (one spec per run) and
 #                                   framework_config_onboarding_job (bulk, a whole dir per run)
@@ -38,8 +42,10 @@ bundle:
 # that Volume, and selecting it keeps the Volume managed by the same deploy that uploads the
 # wheel into it.
 include:
+  - resources/metaflow_bootstrap/*.yml
   - resources/metaflow_app/*.yml
   - resources/metaflow_config_jobs/*.yml
+  - resources/metaflow_bi/*.yml
 #  - resources/observability/*.yml
 #  - resources/bt_tests/*.yml
 #  - resources/feature_tests/*.yml
@@ -110,6 +116,38 @@ include:
 # `databricks bundle deploy --select volumes.framework_wheels_volume`, restore the line, and
 # deploy normally. Once per workspace; validate prints OK from then on.
 #
+# resources/metaflow_bootstrap/ (added 2026-09-02) declares the SCHEMAS the Volumes live in, so
+# the deploy-order failure that motivated the group is gone for good:
+#
+#   Error: cannot create resources.volumes.framework_wheels_volume:
+#          Schema 'metaflow.config' does not exist
+#
+# DABs rewrites each Volume's schema_name into ${resources.schemas.config_schema.name} -- a real
+# dependency edge -- so schema-before-volume is enforced by DABs itself, not by convention.
+#
+# THE CATALOG IS NOT DECLARED, AND CANNOT BE. ${var.catalog} is a PREREQUISITE created once per
+# workspace in the UI. A catalogs.* resource was tried on 2026-09-02 and removed the same day:
+# these accounts use UC Default Storage, so CREATE CATALOG without a MANAGED LOCATION is rejected
+# ("Metastore storage root URL does not exist ... 400 INVALID_STATE"), and a Default-Storage
+# catalog's storage_root is an account-managed bucket path with generated UUIDs that cannot be
+# committed to YAML. Worse, the failing catalog propagated DOWN the dependency edge and took the
+# schemas with it ("cannot create resources.schemas.config_schema: dependency failed"). See
+# resources/metaflow_bootstrap/README.md; a unit test keeps it undeclared.
+#
+# The artifact_path pre-check is a SEPARATE mechanism from resource-creation order, and it still
+# fires: it runs during config resolution, BEFORE any resource is created, so a Volume declared
+# in this same bundle does not satisfy it (re-verified on CLI v1.13.0 against `arjun_2` on
+# 2026-09-02 with the schema resources in place -- "Error: volume metaflow.config.wheels does not
+# exist at workspace.artifact_path"). The one-time sequence on a fresh workspace is:
+#
+#   0. create the catalog in the UI (Catalog -> Create catalog -> Default storage)
+#   1. comment out that target's `artifact_path:` line
+#   2. databricks bundle deploy -t <target> -p <profile> #        --select schemas.config_schema,volumes.framework_wheels_volume
+#   3. uncomment the `artifact_path:` line and deploy normally
+#
+# COMPLETED for `arjun_2` on 2026-09-02: catalog pre-existed, schemas config/dev/metaflow_sample
+# and all six Volumes created by this bundle, artifact_path restored below, full deploy green.
+#
 # LIVE CAVEAT for the `dev` target: its workspace's metastore is at its 50-Volume ceiling
 # ("Cannot create 1 Volume(s) ... estimated count: 52, limit: 50") and its catalog at 51
 # schemas, so creating `framework_wheels_volume` there may fail outright. Deploys from this
@@ -155,6 +193,12 @@ variables:
       resources/metaflow_app/metaflow_onboarding_specs_volume.yml creates it; the app resource grants
       its service principal WRITE_VOLUME on it at deploy time.
     default: onboarding_specs
+  dashboard_warehouse_id:
+    description: >-
+      SQL warehouse that backs the AI/BI control-metadata dashboard
+      (resources/metaflow_bi/metaflow_control_dashboard.yml). A dashboard resource requires a
+      warehouse id and there is no portable default -- warehouse ids are per workspace -- so
+      each target sets its own. Find it with `databricks warehouses list -p <profile>`.
   dataflow_group_id:
     description: >-
       The metadata-driven dataflow_group_id the sample Lakeflow pipeline resource
@@ -197,17 +241,45 @@ targets:
 
     variables:
       catalog: metaflow
-      schema: dev      
+      schema: dev
+      dashboard_warehouse_id: f9e5f492103a22ad
 
 
-  arjun:
+  arjun_2:
     workspace:
-      host: https://dbc-aa517a4b-be89.cloud.databricks.com/
-      profile: arjun
+      host: https://dbc-31ca4b8a-2670.cloud.databricks.com/
+      profile: arjun_2
       # v1.6.0: fixed, shared UC-Volume artifact path -- see the `artifacts` block above for the
       # decision record and the never-deploy-mid-run rule that still applies.
       artifact_path: /Volumes/${var.catalog}/config/wheels
 
     variables:
       catalog: metaflow
-      schema: dev      
+      schema: dev
+      dashboard_warehouse_id: 2f404c0e2017eab7
+
+  arjun_3:
+    workspace:
+      host: https://dbc-54bb898c-098c.cloud.databricks.com/
+      profile: arjun_3
+      # v1.6.0: fixed, shared UC-Volume artifact path -- see the `artifacts` block above for the
+      # decision record and the never-deploy-mid-run rule that still applies.
+      artifact_path: /Volumes/${var.catalog}/config/wheels
+
+    variables:
+      catalog: metaflow
+      schema: dev
+      dashboard_warehouse_id: 2f404c0e2017eab7
+
+  hoonartek:
+    workspace:
+      host: https://8259560580035702.2.gcp.databricks.com/
+      profile: hoonartek
+      # v1.6.0: fixed, shared UC-Volume artifact path -- see the `artifacts` block above for the
+      # decision record and the never-deploy-mid-run rule that still applies.
+      artifact_path: /Volumes/${var.catalog}/config/wheels
+
+    variables:
+      catalog: metaflow
+      schema: dev
+      dashboard_warehouse_id: fe7871113e044faa

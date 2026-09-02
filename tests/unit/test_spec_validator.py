@@ -66,16 +66,22 @@ def test_invalid_source_type_reports_allowed_values():
     assert "autoloader" in matches[0]  # the allowed-values list should name the correct spelling
 
 
-def test_depends_on_dataflow_group_ids_is_silently_ignored():
-    """v1 field, removed -- orchestration/dependency ordering is a Lakeflow Jobs concern
-    now. A spec still carrying it (pre-migration) must not error -- it's just unread."""
+def test_depends_on_dataflow_group_ids_is_rejected_not_silently_ignored():
+    """v1 field -- orchestration/dependency ordering is a Lakeflow Jobs concern now.
+
+    Until v1.7.1 this key was accepted and simply left unread, which meant a spec could appear
+    to declare an ordering the framework never enforced. Unknown-key rejection makes that
+    visible: the key is now an error naming where the ordering actually belongs.
+    """
     spec = {
         "dataflow_group_id": "dfg_test",
         "depends_on_dataflow_group_ids": ["dfg_test"],
         "ingestion_flows": [_base_ingestion_flow()],
     }
     _, _, _, _, errors = validate_spec(None, spec)
-    assert errors == []
+    assert any(
+        e.startswith("depends_on_dataflow_group_ids:") and "Lakeflow Jobs" in e for e in errors
+    ), errors
 
 
 def test_scd3_rejected_on_ingestion_flow_scd3_is_transformation_only():
