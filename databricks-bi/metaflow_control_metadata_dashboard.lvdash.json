@@ -1,0 +1,1915 @@
+{
+  "datasets": [
+    {
+      "name": "filter_dataflow_groups",
+      "displayName": "Dataflow Groups Filter",
+      "queryLines": [
+        "SELECT DISTINCT\n",
+        "  dataflow_group_id\n",
+        "FROM\n",
+        "  dataflow_group_spec\n",
+        "WHERE\n",
+        "  dataflow_group_id IS NOT NULL\n",
+        "ORDER BY\n",
+        "  dataflow_group_id"
+      ],
+      "catalog": "metaflow",
+      "schema": "config"
+    },
+    {
+      "name": "main_audit_flow_unfiltered",
+      "displayName": "Main Audit & Flow Table",
+      "queryLines": [
+        "WITH ingestion_flows AS (\n",
+        "  SELECT\n",
+        "    i.dataflow_id AS flow_id,\n",
+        "    'INGESTION' AS flow_type,\n",
+        "    i.dataflow_group_id,\n",
+        "    NULL AS flow_step_id,\n",
+        "    CONCAT(\n",
+        "      i.source_type,\n",
+        "      ' -> ',\n",
+        "      i.target_catalog,\n",
+        "      '.',\n",
+        "      i.target_schema,\n",
+        "      '.',\n",
+        "      i.target_table\n",
+        "    ) AS source_sink_mapping,\n",
+        "    i.target_type,\n",
+        "    i.cdc_load_strategy,\n",
+        "    i.is_active AS flow_is_active,\n",
+        "    dg.environment,\n",
+        "    dg.catalog_name,\n",
+        "    dg.is_active AS group_is_active,\n",
+        "    dg.created_at AS group_created_at,\n",
+        "    dg.updated_at AS group_updated_at\n",
+        "  FROM\n",
+        "    ingestion_flow_spec i\n",
+        "      INNER JOIN dataflow_group_spec dg\n",
+        "        ON i.dataflow_group_id = dg.dataflow_group_id\n",
+        "),\n",
+        "transformation_flows AS (\n",
+        "  SELECT\n",
+        "    t.dataflow_id AS flow_id,\n",
+        "    'TRANSFORMATION' AS flow_type,\n",
+        "    t.dataflow_group_id,\n",
+        "    t.flow_step_id,\n",
+        "    CONCAT(t.target_catalog, '.', t.target_schema, '.', t.target_table) AS source_sink_mapping,\n",
+        "    t.target_type,\n",
+        "    t.cdc_load_strategy,\n",
+        "    t.is_active AS flow_is_active,\n",
+        "    dg.environment,\n",
+        "    dg.catalog_name,\n",
+        "    dg.is_active AS group_is_active,\n",
+        "    dg.created_at AS group_created_at,\n",
+        "    dg.updated_at AS group_updated_at\n",
+        "  FROM\n",
+        "    transformation_flow_spec t\n",
+        "      INNER JOIN dataflow_group_spec dg\n",
+        "        ON t.dataflow_group_id = dg.dataflow_group_id\n",
+        "),\n",
+        "all_flows AS (\n",
+        "  SELECT\n",
+        "    *\n",
+        "  FROM\n",
+        "    ingestion_flows\n",
+        "  UNION ALL\n",
+        "  SELECT\n",
+        "    *\n",
+        "  FROM\n",
+        "    transformation_flows\n",
+        ")\n",
+        "SELECT\n",
+        "  af.dataflow_group_id,\n",
+        "  af.flow_id,\n",
+        "  af.flow_step_id,\n",
+        "  af.flow_type,\n",
+        "  af.source_sink_mapping,\n",
+        "  af.target_type,\n",
+        "  af.cdc_load_strategy,\n",
+        "  af.flow_is_active,\n",
+        "  af.group_is_active,\n",
+        "  af.environment,\n",
+        "  af.catalog_name,\n",
+        "  af.group_created_at,\n",
+        "  af.group_updated_at,\n",
+        "  a.action_type AS audit_action,\n",
+        "  a.onboarded_by AS inserted_by,\n",
+        "  a.onboarded_at AS inserted_at,\n",
+        "  a.status AS audit_status,\n",
+        "  a.spec_version\n",
+        "FROM\n",
+        "  all_flows af\n",
+        "    LEFT JOIN onboarding_audit_log a\n",
+        "      ON af.dataflow_group_id = a.dataflow_group_id\n",
+        "ORDER BY\n",
+        "  af.group_created_at DESC,\n",
+        "  af.flow_id,\n",
+        "  a.onboarded_at DESC"
+      ],
+      "catalog": "metaflow",
+      "schema": "config"
+    },
+    {
+      "name": "kpi_metrics_filtered",
+      "displayName": "KPI Metrics Filtered",
+      "queryLines": [
+        "SELECT\n",
+        "  dg.dataflow_group_id,\n",
+        "  COUNT(DISTINCT\n",
+        "    CASE\n",
+        "      WHEN i.dataflow_id IS NOT NULL THEN i.dataflow_id\n",
+        "      WHEN t.flow_step_id IS NOT NULL THEN t.flow_step_id\n",
+        "    END\n",
+        "  ) AS total_flows,\n",
+        "  COUNT(DISTINCT\n",
+        "    CASE\n",
+        "      WHEN dg.is_active = TRUE THEN dg.dataflow_group_id\n",
+        "    END\n",
+        "  ) AS active_groups,\n",
+        "  COUNT(DISTINCT\n",
+        "    CASE\n",
+        "      WHEN a.action_type = 'INSERT' THEN a.audit_event_id\n",
+        "    END\n",
+        "  ) AS audit_insert_actions\n",
+        "FROM\n",
+        "  dataflow_group_spec dg\n",
+        "    LEFT JOIN ingestion_flow_spec i\n",
+        "      ON dg.dataflow_group_id = i.dataflow_group_id\n",
+        "    LEFT JOIN transformation_flow_spec t\n",
+        "      ON dg.dataflow_group_id = t.dataflow_group_id\n",
+        "    LEFT JOIN onboarding_audit_log a\n",
+        "      ON dg.dataflow_group_id = a.dataflow_group_id\n",
+        "GROUP BY\n",
+        "  dg.dataflow_group_id"
+      ],
+      "catalog": "metaflow",
+      "schema": "config"
+    },
+    {
+      "name": "ingestion_flows_detail",
+      "displayName": "Ingestion Flows Detail",
+      "queryLines": [
+        "SELECT\n",
+        "  i.dataflow_id,\n",
+        "  i.dataflow_group_id,\n",
+        "  i.source_type,\n",
+        "  i.target_catalog,\n",
+        "  i.target_schema,\n",
+        "  i.target_table,\n",
+        "  CONCAT(i.target_catalog, '.', i.target_schema, '.', i.target_table) AS full_target_path,\n",
+        "  i.target_type,\n",
+        "  i.cdc_load_strategy,\n",
+        "  i.source_config_json,\n",
+        "  i.target_config_json,\n",
+        "  i.dq_config_json,\n",
+        "  i.governance_tags_json,\n",
+        "  i.is_active,\n",
+        "  dg.environment,\n",
+        "  dg.is_active AS group_is_active,\n",
+        "  dg.created_at AS group_created_at,\n",
+        "  dg.updated_at AS group_updated_at\n",
+        "FROM\n",
+        "  ingestion_flow_spec i\n",
+        "    INNER JOIN dataflow_group_spec dg\n",
+        "      ON i.dataflow_group_id = dg.dataflow_group_id\n",
+        "ORDER BY\n",
+        "  i.dataflow_group_id,\n",
+        "  i.dataflow_id"
+      ],
+      "catalog": "metaflow",
+      "schema": "config"
+    },
+    {
+      "name": "reconciliation_detail",
+      "displayName": "Reconciliation Detail",
+      "queryLines": [
+        "SELECT\n",
+        "  r.reconciliation_id,\n",
+        "  r.dataflow_group_id,\n",
+        "  r.source_config_json,\n",
+        "  r.target_configs_json,\n",
+        "  r.match_keys_json,\n",
+        "  r.compare_columns_json,\n",
+        "  r.generate_surrogate_key,\n",
+        "  r.transform_sql,\n",
+        "  r.is_active,\n",
+        "  dg.environment,\n",
+        "  dg.is_active AS group_is_active,\n",
+        "  COUNT(DISTINCT rl.run_id) AS total_runs,\n",
+        "  MAX(rl.run_at) AS last_run_at,\n",
+        "  SUM(rl.matched_count) AS total_matched,\n",
+        "  SUM(rl.missing_in_target_count) AS total_missing_in_target,\n",
+        "  SUM(rl.missing_in_source_count) AS total_missing_in_source,\n",
+        "  SUM(rl.value_drift_count) AS total_value_drift\n",
+        "FROM\n",
+        "  reconciliation_flow_spec r\n",
+        "    INNER JOIN dataflow_group_spec dg\n",
+        "      ON r.dataflow_group_id = dg.dataflow_group_id\n",
+        "    LEFT JOIN reconciliation_run_log rl\n",
+        "      ON r.reconciliation_id = rl.reconciliation_id\n",
+        "GROUP BY\n",
+        "  ALL\n",
+        "ORDER BY\n",
+        "  r.dataflow_group_id,\n",
+        "  r.reconciliation_id"
+      ],
+      "catalog": "metaflow",
+      "schema": "config"
+    },
+    {
+      "name": "transformation_flows_detail",
+      "displayName": "Transformation Flows Detail",
+      "queryLines": [
+        "SELECT\n",
+        "  t.flow_step_id,\n",
+        "  t.dataflow_id,\n",
+        "  t.dataflow_group_id,\n",
+        "  t.target_catalog,\n",
+        "  t.target_schema,\n",
+        "  t.target_table,\n",
+        "  CONCAT(t.target_catalog, '.', t.target_schema, '.', t.target_table) AS full_target_path,\n",
+        "  t.target_type,\n",
+        "  t.cdc_load_strategy,\n",
+        "  t.source_inputs_json,\n",
+        "  t.transformation_sql,\n",
+        "  t.target_config_json,\n",
+        "  t.dq_config_json,\n",
+        "  t.governance_tags_json,\n",
+        "  t.is_active,\n",
+        "  dg.environment,\n",
+        "  dg.is_active AS group_is_active,\n",
+        "  dg.created_at AS group_created_at,\n",
+        "  dg.updated_at AS group_updated_at\n",
+        "FROM\n",
+        "  transformation_flow_spec t\n",
+        "    INNER JOIN dataflow_group_spec dg\n",
+        "      ON t.dataflow_group_id = dg.dataflow_group_id\n",
+        "ORDER BY\n",
+        "  t.dataflow_group_id,\n",
+        "  t.flow_step_id"
+      ],
+      "catalog": "metaflow",
+      "schema": "config"
+    },
+    {
+      "name": "audit_log_detail",
+      "displayName": "Audit Log Detail",
+      "queryLines": [
+        "SELECT\n",
+        "  a.audit_event_id,\n",
+        "  a.dataflow_group_id,\n",
+        "  a.action_type,\n",
+        "  a.onboarded_by,\n",
+        "  a.onboarded_at,\n",
+        "  a.spec_version,\n",
+        "  a.status,\n",
+        "  a.raw_spec_payload,\n",
+        "  dg.environment,\n",
+        "  dg.catalog_name,\n",
+        "  dg.is_active AS group_is_active\n",
+        "FROM\n",
+        "  onboarding_audit_log a\n",
+        "    INNER JOIN dataflow_group_spec dg\n",
+        "      ON a.dataflow_group_id = dg.dataflow_group_id\n",
+        "ORDER BY\n",
+        "  a.onboarded_at DESC"
+      ],
+      "catalog": "metaflow",
+      "schema": "config"
+    }
+  ],
+  "pages": [
+    {
+      "name": "5cd319b2",
+      "displayName": "📊 Overview",
+      "layout": [
+        {
+          "widget": {
+            "name": "total_flows_counter",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "kpi_metrics_filtered",
+                  "fields": [
+                    {
+                      "name": "sum(total_flows)",
+                      "expression": "SUM(`total_flows`)"
+                    }
+                  ],
+                  "filters": [
+                    {
+                      "expression": "`dataflow_group_id` IN (:dataflow_group_id)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": {
+                  "value": "Total Flows",
+                  "fields": []
+                }
+              },
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "sum(total_flows)",
+                  "rowNumber": 0
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 4,
+            "height": 4
+          }
+        },
+        {
+          "widget": {
+            "name": "active_groups_counter",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "kpi_metrics_filtered",
+                  "fields": [
+                    {
+                      "name": "sum(active_groups)",
+                      "expression": "SUM(`active_groups`)"
+                    }
+                  ],
+                  "filters": [
+                    {
+                      "expression": "`dataflow_group_id` IN (:dataflow_group_id)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": {
+                  "value": "Active Groups",
+                  "fields": []
+                }
+              },
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "sum(active_groups)",
+                  "rowNumber": 0
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 4,
+            "y": 0,
+            "width": 4,
+            "height": 4
+          }
+        },
+        {
+          "widget": {
+            "name": "audit_insert_counter",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "kpi_metrics_filtered",
+                  "fields": [
+                    {
+                      "name": "sum(audit_insert_actions)",
+                      "expression": "SUM(`audit_insert_actions`)"
+                    }
+                  ],
+                  "filters": [
+                    {
+                      "expression": "`dataflow_group_id` IN (:dataflow_group_id)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": {
+                  "value": "Audit Insert Actions",
+                  "fields": []
+                }
+              },
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "sum(audit_insert_actions)",
+                  "rowNumber": 0
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 8,
+            "y": 0,
+            "width": 4,
+            "height": 4
+          }
+        },
+        {
+          "widget": {
+            "name": "main_audit_flow_table",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "main_audit_flow_unfiltered",
+                  "fields": [
+                    {
+                      "name": "dataflow_group_id",
+                      "expression": "`dataflow_group_id`"
+                    },
+                    {
+                      "name": "flow_id",
+                      "expression": "`flow_id`"
+                    },
+                    {
+                      "name": "flow_step_id",
+                      "expression": "`flow_step_id`"
+                    },
+                    {
+                      "name": "flow_type",
+                      "expression": "`flow_type`"
+                    },
+                    {
+                      "name": "source_sink_mapping",
+                      "expression": "`source_sink_mapping`"
+                    },
+                    {
+                      "name": "target_type",
+                      "expression": "`target_type`"
+                    },
+                    {
+                      "name": "cdc_load_strategy",
+                      "expression": "`cdc_load_strategy`"
+                    },
+                    {
+                      "name": "flow_is_active",
+                      "expression": "`flow_is_active`"
+                    },
+                    {
+                      "name": "group_is_active",
+                      "expression": "`group_is_active`"
+                    },
+                    {
+                      "name": "environment",
+                      "expression": "`environment`"
+                    },
+                    {
+                      "name": "catalog_name",
+                      "expression": "`catalog_name`"
+                    },
+                    {
+                      "name": "group_created_at",
+                      "expression": "`group_created_at`"
+                    },
+                    {
+                      "name": "group_updated_at",
+                      "expression": "`group_updated_at`"
+                    },
+                    {
+                      "name": "audit_action",
+                      "expression": "`audit_action`"
+                    },
+                    {
+                      "name": "inserted_by",
+                      "expression": "`inserted_by`"
+                    },
+                    {
+                      "name": "inserted_at",
+                      "expression": "`inserted_at`"
+                    },
+                    {
+                      "name": "audit_status",
+                      "expression": "`audit_status`"
+                    },
+                    {
+                      "name": "spec_version",
+                      "expression": "`spec_version`"
+                    }
+                  ],
+                  "filters": [
+                    {
+                      "expression": "`dataflow_group_id` IN (:dataflow_group_id)"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": {
+                  "value": "MetaFlow Audit &amp; Flow Details",
+                  "fields": []
+                }
+              },
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "dataflow_group_id",
+                    "actions": {
+                      "click": {
+                        "type": "link",
+                        "urlTemplate": "/sql/dashboards/01f1a519046814bcb1a9990d7fae1d8b?p.dataflow_group_id={{ dataflow_group_id }}"
+                      }
+                    }
+                  },
+                  {
+                    "fieldName": "flow_id"
+                  },
+                  {
+                    "fieldName": "flow_step_id"
+                  },
+                  {
+                    "fieldName": "flow_type",
+                    "actions": {
+                      "click": {
+                        "type": "link",
+                        "urlTemplate": "/sql/dashboards/01f1a519046814bcb1a9990d7fae1d8b/pages/{{ CASE WHEN flow_type = 'INGESTION' THEN 'ingestion_flows' WHEN flow_type = 'TRANSFORMATION' THEN 'transformation_flows' ELSE '5cd319b2' END }}"
+                      }
+                    }
+                  },
+                  {
+                    "fieldName": "source_sink_mapping"
+                  },
+                  {
+                    "fieldName": "target_type"
+                  },
+                  {
+                    "fieldName": "cdc_load_strategy"
+                  },
+                  {
+                    "fieldName": "flow_is_active"
+                  },
+                  {
+                    "fieldName": "group_is_active"
+                  },
+                  {
+                    "fieldName": "environment"
+                  },
+                  {
+                    "fieldName": "catalog_name"
+                  },
+                  {
+                    "fieldName": "group_created_at"
+                  },
+                  {
+                    "fieldName": "group_updated_at"
+                  },
+                  {
+                    "fieldName": "audit_action"
+                  },
+                  {
+                    "fieldName": "inserted_by"
+                  },
+                  {
+                    "fieldName": "inserted_at"
+                  },
+                  {
+                    "fieldName": "audit_status"
+                  },
+                  {
+                    "fieldName": "spec_version"
+                  }
+                ]
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 4,
+            "width": 12,
+            "height": 12
+          }
+        }
+      ],
+      "pageType": "PAGE_TYPE_CANVAS",
+      "layoutVersion": "GRID_V1"
+    },
+    {
+      "name": "global_filters",
+      "displayName": "Global Filters",
+      "layout": [
+        {
+          "widget": {
+            "name": "dataflow_group_filter",
+            "queries": [
+              {
+                "name": "dashboards/01f1a519046814bcb1a9990d7fae1d8b/datasets/01f1a51b9c4a155d82b2aa00fa10502c_dataflow_group_id",
+                "query": {
+                  "datasetName": "filter_dataflow_groups",
+                  "fields": [
+                    {
+                      "name": "dataflow_group_id",
+                      "expression": "`dataflow_group_id`"
+                    },
+                    {
+                      "name": "dataflow_group_id_associativity",
+                      "expression": "COUNT_IF(`associative_filter_predicate_group`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "selection": {
+                "defaultSelection": {
+                  "values": {
+                    "dataType": "STRING",
+                    "values": [
+                      {
+                        "value": "dfg_bt_001_pgp_gzip_ingest"
+                      }
+                    ]
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": {
+                  "value": "Dataflow Group ID",
+                  "fields": []
+                }
+              },
+              "widgetType": "filter-single-select",
+              "encodings": {
+                "fields": [
+                  {
+                    "fieldName": "dataflow_group_id",
+                    "queryName": "dashboards/01f1a519046814bcb1a9990d7fae1d8b/datasets/01f1a51b9c4a155d82b2aa00fa10502c_dataflow_group_id"
+                  }
+                ]
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 12,
+            "height": 2
+          }
+        }
+      ],
+      "pageType": "PAGE_TYPE_GLOBAL_FILTERS",
+      "layoutVersion": "GRID_V1"
+    },
+    {
+      "name": "ingestion_flows",
+      "displayName": "📥 Ingestion Flows",
+      "layout": [
+        {
+          "widget": {
+            "name": "header",
+            "multilineTextboxSpec": {
+              "lines": [
+                "## 📥 Ingestion Flows\n",
+                "Complete view of all data ingestion pipelines with source configurations, target destinations, and CDC strategies."
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 12,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "total_ingestion",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ingestion_flows_detail",
+                  "fields": [
+                    {
+                      "name": "count(dataflow_id)",
+                      "expression": "COUNT(`dataflow_id`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": "Total Ingestion Flows"
+              },
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "count(dataflow_id)",
+                  "rowNumber": 0
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 2,
+            "width": 3,
+            "height": 4
+          }
+        },
+        {
+          "widget": {
+            "name": "active_ingestion",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ingestion_flows_detail",
+                  "fields": [
+                    {
+                      "name": "sum(is_active)",
+                      "expression": "SUM(`is_active`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": "Active Ingestion Flows"
+              },
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "sum(is_active)",
+                  "rowNumber": 0
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 3,
+            "y": 2,
+            "width": 3,
+            "height": 4
+          }
+        },
+        {
+          "widget": {
+            "name": "source_types",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ingestion_flows_detail",
+                  "fields": [
+                    {
+                      "name": "countdistinct(source_type)",
+                      "expression": "COUNT(DISTINCT `source_type`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": "Unique Source Types"
+              },
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "countdistinct(source_type)",
+                  "rowNumber": 0
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 2,
+            "width": 3,
+            "height": 4
+          }
+        },
+        {
+          "widget": {
+            "name": "target_tables",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ingestion_flows_detail",
+                  "fields": [
+                    {
+                      "name": "countdistinct(target_table)",
+                      "expression": "COUNT(DISTINCT `target_table`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": "Target Tables"
+              },
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "countdistinct(target_table)",
+                  "rowNumber": 0
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 9,
+            "y": 2,
+            "width": 3,
+            "height": 4
+          }
+        },
+        {
+          "widget": {
+            "name": "ingestion_table",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "ingestion_flows_detail",
+                  "fields": [
+                    {
+                      "name": "dataflow_id",
+                      "expression": "`dataflow_id`"
+                    },
+                    {
+                      "name": "dataflow_group_id",
+                      "expression": "`dataflow_group_id`"
+                    },
+                    {
+                      "name": "source_type",
+                      "expression": "`source_type`"
+                    },
+                    {
+                      "name": "full_target_path",
+                      "expression": "`full_target_path`"
+                    },
+                    {
+                      "name": "target_type",
+                      "expression": "`target_type`"
+                    },
+                    {
+                      "name": "cdc_load_strategy",
+                      "expression": "`cdc_load_strategy`"
+                    },
+                    {
+                      "name": "is_active",
+                      "expression": "`is_active`"
+                    },
+                    {
+                      "name": "environment",
+                      "expression": "`environment`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": "Ingestion Flow Details"
+              },
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "dataflow_id"
+                  },
+                  {
+                    "fieldName": "dataflow_group_id"
+                  },
+                  {
+                    "fieldName": "source_type"
+                  },
+                  {
+                    "fieldName": "full_target_path"
+                  },
+                  {
+                    "fieldName": "target_type"
+                  },
+                  {
+                    "fieldName": "cdc_load_strategy"
+                  },
+                  {
+                    "fieldName": "is_active"
+                  },
+                  {
+                    "fieldName": "environment"
+                  }
+                ]
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 6,
+            "width": 12,
+            "height": 10
+          }
+        }
+      ],
+      "pageType": "PAGE_TYPE_CANVAS",
+      "layoutVersion": "GRID_V1"
+    },
+    {
+      "name": "transformation_flows",
+      "displayName": "⚙️ Transformation Flows",
+      "layout": [
+        {
+          "widget": {
+            "name": "header",
+            "multilineTextboxSpec": {
+              "lines": [
+                "## ⚙️ Transformation Flows\n",
+                "Data transformation pipelines that process and enrich data with SQL logic, including source inputs and target configurations."
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 12,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "total_transformation",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "transformation_flows_detail",
+                  "fields": [
+                    {
+                      "name": "count(flow_step_id)",
+                      "expression": "COUNT(`flow_step_id`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": "Total Transformation Flows"
+              },
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "count(flow_step_id)",
+                  "rowNumber": 0
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 2,
+            "width": 3,
+            "height": 4
+          }
+        },
+        {
+          "widget": {
+            "name": "active_transformation",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "transformation_flows_detail",
+                  "fields": [
+                    {
+                      "name": "sum(is_active)",
+                      "expression": "SUM(`is_active`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": "Active Transformations"
+              },
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "sum(is_active)",
+                  "rowNumber": 0
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 3,
+            "y": 2,
+            "width": 3,
+            "height": 4
+          }
+        },
+        {
+          "widget": {
+            "name": "target_types",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "transformation_flows_detail",
+                  "fields": [
+                    {
+                      "name": "countdistinct(target_type)",
+                      "expression": "COUNT(DISTINCT `target_type`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": "Unique Target Types"
+              },
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "countdistinct(target_type)",
+                  "rowNumber": 0
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 2,
+            "width": 3,
+            "height": 4
+          }
+        },
+        {
+          "widget": {
+            "name": "cdc_strategies",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "transformation_flows_detail",
+                  "fields": [
+                    {
+                      "name": "countdistinct(cdc_load_strategy)",
+                      "expression": "COUNT(DISTINCT `cdc_load_strategy`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": "CDC Strategies"
+              },
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "countdistinct(cdc_load_strategy)",
+                  "rowNumber": 0
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 9,
+            "y": 2,
+            "width": 3,
+            "height": 4
+          }
+        },
+        {
+          "widget": {
+            "name": "transformation_table",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "transformation_flows_detail",
+                  "fields": [
+                    {
+                      "name": "flow_step_id",
+                      "expression": "`flow_step_id`"
+                    },
+                    {
+                      "name": "dataflow_id",
+                      "expression": "`dataflow_id`"
+                    },
+                    {
+                      "name": "dataflow_group_id",
+                      "expression": "`dataflow_group_id`"
+                    },
+                    {
+                      "name": "full_target_path",
+                      "expression": "`full_target_path`"
+                    },
+                    {
+                      "name": "target_type",
+                      "expression": "`target_type`"
+                    },
+                    {
+                      "name": "cdc_load_strategy",
+                      "expression": "`cdc_load_strategy`"
+                    },
+                    {
+                      "name": "is_active",
+                      "expression": "`is_active`"
+                    },
+                    {
+                      "name": "environment",
+                      "expression": "`environment`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": "Transformation Flow Details"
+              },
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "flow_step_id"
+                  },
+                  {
+                    "fieldName": "dataflow_id"
+                  },
+                  {
+                    "fieldName": "dataflow_group_id"
+                  },
+                  {
+                    "fieldName": "full_target_path"
+                  },
+                  {
+                    "fieldName": "target_type"
+                  },
+                  {
+                    "fieldName": "cdc_load_strategy"
+                  },
+                  {
+                    "fieldName": "is_active"
+                  },
+                  {
+                    "fieldName": "environment"
+                  }
+                ]
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 6,
+            "width": 12,
+            "height": 10
+          }
+        }
+      ],
+      "pageType": "PAGE_TYPE_CANVAS",
+      "layoutVersion": "GRID_V1"
+    },
+    {
+      "name": "reconciliation",
+      "displayName": "🔄 Reconciliation",
+      "layout": [
+        {
+          "widget": {
+            "name": "header",
+            "multilineTextboxSpec": {
+              "lines": [
+                "## 🔄 Reconciliation\n",
+                "Data quality reconciliation flows with run statistics showing matched records, mismatches, and data drift detection."
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 12,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "total_recon",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "reconciliation_detail",
+                  "fields": [
+                    {
+                      "name": "count(reconciliation_id)",
+                      "expression": "COUNT(`reconciliation_id`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": "Total Reconciliation Flows"
+              },
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "count(reconciliation_id)",
+                  "rowNumber": 0
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 2,
+            "width": 3,
+            "height": 4
+          }
+        },
+        {
+          "widget": {
+            "name": "total_runs",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "reconciliation_detail",
+                  "fields": [
+                    {
+                      "name": "sum(total_runs)",
+                      "expression": "SUM(`total_runs`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": "Total Runs"
+              },
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "sum(total_runs)",
+                  "rowNumber": 0
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 3,
+            "y": 2,
+            "width": 3,
+            "height": 4
+          }
+        },
+        {
+          "widget": {
+            "name": "total_matched",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "reconciliation_detail",
+                  "fields": [
+                    {
+                      "name": "sum(total_matched)",
+                      "expression": "SUM(`total_matched`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": "Total Matched Records"
+              },
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "sum(total_matched)",
+                  "rowNumber": 0
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 2,
+            "width": 3,
+            "height": 4
+          }
+        },
+        {
+          "widget": {
+            "name": "total_drift",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "reconciliation_detail",
+                  "fields": [
+                    {
+                      "name": "sum(total_value_drift)",
+                      "expression": "SUM(`total_value_drift`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": "Total Drift Detected"
+              },
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "sum(total_value_drift)",
+                  "rowNumber": 0
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 9,
+            "y": 2,
+            "width": 3,
+            "height": 4
+          }
+        },
+        {
+          "widget": {
+            "name": "recon_table",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "reconciliation_detail",
+                  "fields": [
+                    {
+                      "name": "reconciliation_id",
+                      "expression": "`reconciliation_id`"
+                    },
+                    {
+                      "name": "dataflow_group_id",
+                      "expression": "`dataflow_group_id`"
+                    },
+                    {
+                      "name": "is_active",
+                      "expression": "`is_active`"
+                    },
+                    {
+                      "name": "total_runs",
+                      "expression": "`total_runs`"
+                    },
+                    {
+                      "name": "last_run_at",
+                      "expression": "`last_run_at`"
+                    },
+                    {
+                      "name": "total_matched",
+                      "expression": "`total_matched`"
+                    },
+                    {
+                      "name": "total_missing_in_target",
+                      "expression": "`total_missing_in_target`"
+                    },
+                    {
+                      "name": "total_missing_in_source",
+                      "expression": "`total_missing_in_source`"
+                    },
+                    {
+                      "name": "total_value_drift",
+                      "expression": "`total_value_drift`"
+                    },
+                    {
+                      "name": "environment",
+                      "expression": "`environment`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": "Reconciliation Details"
+              },
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "reconciliation_id"
+                  },
+                  {
+                    "fieldName": "dataflow_group_id"
+                  },
+                  {
+                    "fieldName": "is_active"
+                  },
+                  {
+                    "fieldName": "total_runs"
+                  },
+                  {
+                    "fieldName": "last_run_at"
+                  },
+                  {
+                    "fieldName": "total_matched"
+                  },
+                  {
+                    "fieldName": "total_missing_in_target"
+                  },
+                  {
+                    "fieldName": "total_missing_in_source"
+                  },
+                  {
+                    "fieldName": "total_value_drift"
+                  },
+                  {
+                    "fieldName": "environment"
+                  }
+                ]
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 6,
+            "width": 12,
+            "height": 10
+          }
+        }
+      ],
+      "pageType": "PAGE_TYPE_CANVAS",
+      "layoutVersion": "GRID_V1"
+    },
+    {
+      "name": "observability",
+      "displayName": "👁️ Observability & Audit",
+      "layout": [
+        {
+          "widget": {
+            "name": "header",
+            "multilineTextboxSpec": {
+              "lines": [
+                "## 👁️ Observability & Audit\n",
+                "Comprehensive audit trail of all onboarding actions, status tracking, and historical changes across the metadata platform."
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 12,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "total_events",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "audit_log_detail",
+                  "fields": [
+                    {
+                      "name": "count(audit_event_id)",
+                      "expression": "COUNT(`audit_event_id`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": "Total Audit Events"
+              },
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "count(audit_event_id)",
+                  "rowNumber": 0
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 2,
+            "width": 3,
+            "height": 4
+          }
+        },
+        {
+          "widget": {
+            "name": "success_count",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "audit_log_detail",
+                  "fields": [
+                    {
+                      "name": "count(audit_event_id)",
+                      "expression": "COUNT(`audit_event_id`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": "Successful Actions"
+              },
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "count(audit_event_id)",
+                  "rowNumber": 0
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 3,
+            "y": 2,
+            "width": 3,
+            "height": 4
+          }
+        },
+        {
+          "widget": {
+            "name": "contributors",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "audit_log_detail",
+                  "fields": [
+                    {
+                      "name": "countdistinct(onboarded_by)",
+                      "expression": "COUNT(DISTINCT `onboarded_by`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": "Unique Contributors"
+              },
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "countdistinct(onboarded_by)",
+                  "rowNumber": 0
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 2,
+            "width": 3,
+            "height": 4
+          }
+        },
+        {
+          "widget": {
+            "name": "action_types",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "audit_log_detail",
+                  "fields": [
+                    {
+                      "name": "countdistinct(action_type)",
+                      "expression": "COUNT(DISTINCT `action_type`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": "Action Types"
+              },
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "countdistinct(action_type)",
+                  "rowNumber": 0
+                }
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 9,
+            "y": 2,
+            "width": 3,
+            "height": 4
+          }
+        },
+        {
+          "widget": {
+            "name": "audit_table",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "audit_log_detail",
+                  "fields": [
+                    {
+                      "name": "audit_event_id",
+                      "expression": "`audit_event_id`"
+                    },
+                    {
+                      "name": "dataflow_group_id",
+                      "expression": "`dataflow_group_id`"
+                    },
+                    {
+                      "name": "action_type",
+                      "expression": "`action_type`"
+                    },
+                    {
+                      "name": "onboarded_by",
+                      "expression": "`onboarded_by`"
+                    },
+                    {
+                      "name": "onboarded_at",
+                      "expression": "`onboarded_at`"
+                    },
+                    {
+                      "name": "status",
+                      "expression": "`status`"
+                    },
+                    {
+                      "name": "spec_version",
+                      "expression": "`spec_version`"
+                    },
+                    {
+                      "name": "environment",
+                      "expression": "`environment`"
+                    },
+                    {
+                      "name": "catalog_name",
+                      "expression": "`catalog_name`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": "Audit Log History"
+              },
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "audit_event_id"
+                  },
+                  {
+                    "fieldName": "dataflow_group_id"
+                  },
+                  {
+                    "fieldName": "action_type"
+                  },
+                  {
+                    "fieldName": "onboarded_by"
+                  },
+                  {
+                    "fieldName": "onboarded_at"
+                  },
+                  {
+                    "fieldName": "status"
+                  },
+                  {
+                    "fieldName": "spec_version"
+                  },
+                  {
+                    "fieldName": "environment"
+                  },
+                  {
+                    "fieldName": "catalog_name"
+                  }
+                ]
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 6,
+            "width": 12,
+            "height": 10
+          }
+        }
+      ],
+      "pageType": "PAGE_TYPE_CANVAS",
+      "layoutVersion": "GRID_V1"
+    }
+  ],
+  "uiSettings": {
+    "theme": {
+      "visualizationColors": [
+        "#1E88E5",
+        "#43A047",
+        "#FB8C00",
+        "#E53935",
+        "#8E24AA",
+        "#00ACC1",
+        "#FDD835",
+        "#3949AB",
+        "#C0CA33",
+        "#F4511E"
+      ],
+      "widgetHeaderAlignment": "ALIGNMENT_UNSPECIFIED",
+      "widgetPadding": 16,
+      "widgetCornerRadius": 8,
+      "widgetShadow": 15,
+      "fontSettings": {
+        "base": {
+          "fontFamily": "Inter",
+          "fontSize": 13
+        },
+        "widgetTitle": {
+          "fontFamily": "Inter",
+          "fontSize": 16,
+          "fontWeight": 600
+        },
+        "fieldTitle": {
+          "fontFamily": "Inter",
+          "fontSize": 12,
+          "fontWeight": 500
+        }
+      }
+    },
+    "applyModeEnabled": false
+  }
+}
