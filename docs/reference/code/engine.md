@@ -48,7 +48,7 @@ Shared Lakeflow dataset/sink identifier helpers.
 | Signature | Purpose |
 |---|---|
 | `sanitize_identifier(value: str) -> str` | Turn an arbitrary configured name into a valid Lakeflow dataset/sink identifier fragment. |
-| `stable_node_name(prefix: str, locator: str, suffix: str, max_core: int = 80) -> str` | Build a collision-safe Lakeflow dataset name fragment for a shared source-plane node. |
+| `stable_node_name(prefix: str, locator: str, suffix: str, max_core: int = 80, discriminator: str = '') -> str` | Build a collision-safe Lakeflow dataset name fragment for a shared source-plane node. |
 
 
 ## `lakeflow_framework/engine/run_context.py`
@@ -100,7 +100,7 @@ One dataset body's declared need for a read of ``identity``.
 
 ### class `PlaneNode`
 
-One materialized L0 source-plane node: a shared external read backing 2+ consumers (or every consumer, when ``materialize="always"``).
+One materialized L0 source-plane node: the single physical read of one external identity, backing every consumer of that identity.
 
 
 ### class `Binding`
@@ -117,7 +117,7 @@ The full plan output of :func:`plan_source_plane`.
 
 | Signature | Purpose |
 |---|---|
-| `plan_source_plane(ingestion_rows: List[Any], transformation_rows: List[Any], reconciliation_rows: List[Any], pipeline_parameters: Optional[Dict[str, Any]] = None, materialize: str = 'auto', node_catalog: Optional[str] = None, node_schema: Optional[str] = None) -> SourcePlanePlan` | Plan the L0 source plane for one dataflow-group pipeline update. |
+| `plan_source_plane(ingestion_rows: List[Any], transformation_rows: List[Any], reconciliation_rows: List[Any], pipeline_parameters: Optional[Dict[str, Any]] = None, materialize: str = 'always', node_catalog: Optional[str] = None, node_schema: Optional[str] = None) -> SourcePlanePlan` | Plan the L0 source plane for one dataflow-group pipeline update. |
 | `assert_acyclic(plan: SourcePlanePlan) -> None` | Kahn's algorithm over ``plan.edges`` (producer-owner -> consumer-owner). |
 | `register_source_plane(spark, plan: SourcePlanePlan) -> None` | Register one ``@dlt.table`` per :class:`PlaneNode` in ``plan.nodes``. |
 | `bind(plan: SourcePlanePlan, consumer_id: str, want_stream: bool)` | Resolve ``consumer_id`` to a ``DataFrame`` per its planned :class:`Binding`. |

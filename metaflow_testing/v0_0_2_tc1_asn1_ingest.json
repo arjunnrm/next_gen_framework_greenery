@@ -1,0 +1,66 @@
+{
+  "_test_case_note": "v0.0.2 TEST CASE 1 -- Ingestion & Schema Validation for an ASN.1 source. Proves an end-to-end load + schema mapping from real BER-encoded telecom CDR files: every record parses, every decoded field lands in the target table, and nothing is silently truncated. Source is the REAL PSGW schema (metaflow_testing/BT_Testing/PSGW.asn1), not a toy module. EXERCISES THE v0.0.2 CHOICE-ROOT SUPPORT: PSGW's root PDU CallEventRecord is a CHOICE with 13 arms, so the decoded frame carries one nullable column per arm (sgsnPDPRecord, ggsnPDPRecord, ... pGWRecord) PLUS the synthetic '_choice' discriminator column naming the arm actually selected -- without which a consumer cannot tell 'arm absent' from 'arm present but NULL'. All 10 fixtures select the pGWRecord arm (the richest, 18-24 populated leaf values per record), so _choice = 'pGWRecord' on every row. ON asn1_pdu_name AUTO-DETECTION: the task asked to omit asn1_pdu_name and let the framework auto-detect the root PDU. asn1/decoder.py DOES implement this (detect_root_pdu_name/resolve_pdu_name, and it correctly returns 'CallEventRecord' for PSGW.asn1 -- verified directly), BUT that capability is NOT REACHABLE FROM A SPEC in the current tree: onboarding/spec_validator.py:1451 still declares asn1_pdu_name required=True, and ingestion/readers.py:762 reads source_config['asn1_pdu_name'] by subscript, which raises FrameworkConfigError('asn1 source_config missing required key') when the key is absent. Omitting it here would make this spec fail validation AND fail at pipeline runtime, so asn1_pdu_name is set EXPLICITLY to the value auto-detection itself resolves ('CallEventRecord'). Making auto-detection usable requires editing those two files in src/, which is outside this task's file scope -- reported as a blocker rather than worked around. ON THE FIXTURES: metaflow_testing/BT_Testing/synthetic/psgw_synthetic.ber is NOT used, because it holds 10 records concatenated as back-to-back TLVs in ONE file, and the framework decoder calls compiled.decode() once on a whole file's bytes -- asn1tools then returns only the FIRST TLV silently, ingesting 1 row and dropping 9 while reporting success. notebooks/00_seed_sample_data/04_seed_asn1_psgw_cdr_fixture.py therefore writes each record as its own .ber file (10 files -> 10 rows) and self-checks that invariant at seed time. metaflow_testing/BT_Testing/tap311_sample.ber is likewise unused (malformed 16-byte payload matching no CHOICE arm). AUTO-DETECTION IS NOW EXERCISED: asn1_pdu_name is deliberately OMITTED from source_config, so asn1/decoder.py::detect_root_pdu_name resolves the root PDU from the module itself (PSGW.asn1 -> CallEventRecord, a 13-arm CHOICE). This was briefly unreachable from a spec -- spec_validator.py required the key and readers.py subscripted it -- both were made optional in 0.0.2 so the decoder's detection is actually usable. An explicitly supplied asn1_pdu_name still wins as an override.",
+  "_expected_result": "bronze_psgw.psgw_cdr_raw holds exactly 10 rows. Every row: _asn1_decode_error IS NULL, _choice = 'pGWRecord', pGWRecord IS NOT NULL, and all 12 non-selected arm columns NULL. The pGWRecord struct exposes the full CallEventRecord/PGWRecord member set derived from PSGW.asn1 with no schema mismatch or truncation; the 9 members present in all 10 source records (recordType, servedIMSI, pGWAddress, chargingID, servingNodeAddress, recordOpeningTime, duration, causeForRecClosing, chargingCharacteristics) are non-null on every row. Quarantine table psgw_cdr_raw_quarantine stays EMPTY.",
+  "dataflow_group_id": "dfg_v0_0_2_tc1_asn1_ingest",
+  "pipeline_parameters": {},
+  "ingestion_flows": [
+    {
+      "dataflow_id": "df_v0_0_2_tc1_psgw_cdr_ingest",
+      "source_system": "psgw_cdr_feed",
+      "source_database": "psgw",
+      "source_table_name": "psgw_call_event_record",
+      "source_description": "v0.0.2 TC1: BER-encoded PSGW packet-gateway call-event records decoded against the real PSGW.asn1 module. Root PDU CallEventRecord is a CHOICE (13 arms) -- decoding projects one column per arm plus the '_choice' discriminator. Fixtures are landed one record per .ber file by notebooks/00_seed_sample_data/04_seed_asn1_psgw_cdr_fixture.py.",
+      "source_type": "asn1",
+      "target_catalog": "{{catalog}}",
+      "target_schema": "bronze_psgw",
+      "target_table": "psgw_cdr_raw",
+      "target_type": "streaming_table",
+      "source_config": {
+        "path": "/Volumes/{{catalog}}/psgw/landing_cdr/incoming/",
+        "schema_location": "/Volumes/{{catalog}}/psgw/_schemas/psgw_cdr_raw/",
+        "file_pattern": "*.ber",
+        "asn1_schema_path": "/Volumes/{{catalog}}/psgw/schemas/PSGW.asn1",
+        "asn1_codec": "ber",
+        "capture_technical_metadata": true
+      },
+      "target_config": {
+        "cdc_load_strategy": "APPEND",
+        "storage_format": "delta"
+      },
+      "dq_config": {
+        "rules": [
+          {
+            "rule_id": "dq_asn1_decode_ok",
+            "expression": "_asn1_decode_error IS NULL",
+            "action": "quarantine"
+          },
+          {
+            "rule_id": "dq_choice_arm_selected",
+            "expression": "_choice IS NOT NULL AND _choice <> ''",
+            "action": "quarantine"
+          },
+          {
+            "rule_id": "dq_pgw_record_populated",
+            "expression": "_choice <> 'pGWRecord' OR pGWRecord IS NOT NULL",
+            "action": "quarantine"
+          },
+          {
+            "rule_id": "dq_pgw_mandatory_fields_present",
+            "expression": "_choice <> 'pGWRecord' OR (pGWRecord.recordType IS NOT NULL AND pGWRecord.servedIMSI IS NOT NULL AND pGWRecord.chargingID IS NOT NULL)",
+            "action": "quarantine"
+          },
+          {
+            "rule_id": "dq_pgw_duration_non_negative",
+            "expression": "_choice <> 'pGWRecord' OR pGWRecord.duration IS NULL OR pGWRecord.duration >= 0",
+            "action": "quarantine"
+          }
+        ],
+        "quarantine_table": "psgw_cdr_raw_quarantine",
+        "record_id_column": "_choice"
+      },
+      "governance_tags": {}
+    }
+  ],
+  "transformation_flows": [],
+  "reconciliation_flows": []
+}

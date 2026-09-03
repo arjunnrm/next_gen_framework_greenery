@@ -564,7 +564,13 @@ def register_reconciliation_flow(
         if mismatch_log_capture:
             _make_mismatch_table()
 
-        if _wants_heal(target_config):
+        # `needs_heal`, NOT `_wants_heal(target_config)` alone: the miss set exists ONLY to feed
+        # the L5 heal lane, and L5 does not register at all unless execution_mode is genuinely
+        # "pipeline" (see the `if not needs_heal: return` below). Gating on _wants_heal alone
+        # meant that under "pipeline_audit_only" this table still materialized a full left-semi
+        # join over the whole source that NOTHING in the update reads -- dead compute, once per
+        # update per healing target. `needs_heal` already ANDs in the execution-mode check.
+        if needs_heal and _wants_heal(target_config):
             missing_table_name = f"_recon__{sanitized_reconciliation_id}__{sanitized_target_id}__missing"
             missing_table_names[target_id] = missing_table_name
 

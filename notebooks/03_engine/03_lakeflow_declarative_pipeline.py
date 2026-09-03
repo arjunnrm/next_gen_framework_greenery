@@ -269,7 +269,13 @@ if not PIPELINE_SCHEMA:
 # -- the shared node becomes a pipeline-scoped temporary table (Intermediate Object Rule) --
 # whereas the old fallback made every L0 node a published table in the pipeline's target schema.
 _SOURCE_PLANE_KWARGS = {
-    "materialize": _SOURCE_PLANE_CONFIG.get("materialize", "auto"),
+    # v1.7.3 Single-Read mandate: "always" is the default. NOTE this dict is built from the
+    # PERSISTED dataflow_group_spec.source_plane_config_json row, which onboarding validation
+    # never re-inspects -- so a group onboarded before the mandate can still carry
+    # {"materialize": "never"} here. That value is deliberately passed through rather than
+    # silently coerced: plan_source_plane raises on it, which surfaces the stale row as a loud
+    # failure instead of a pipeline that quietly keeps doing per-consumer inline reads.
+    "materialize": _SOURCE_PLANE_CONFIG.get("materialize", "always"),
     "node_catalog": _SOURCE_PLANE_CONFIG.get("catalog"),
     "node_schema": _SOURCE_PLANE_CONFIG.get("schema"),
 }

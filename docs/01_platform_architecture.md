@@ -301,8 +301,8 @@ computes an identity, so plan and bind cannot disagree about what is shared with
 | Kind | When | What the consumer gets |
 |---|---|---|
 | `in_graph_sibling` | the locator is a table **this same group publishes** | `dlt.read(...)` / `dlt.read_stream(...)` — a real graph edge, same-update fresh by topological order, and no second physical read because the producer already materialized it. No plane node: one would be a *second* read of something the graph already produces. |
-| `shared_node` | external, fan-out ≥ 2 (or `materialize: "always"`) | one materialized `_src__<locator>__<8hex>__{stream,batch}` node. A **streaming table** if *any* consumer streams, a materialized view otherwise — never the reverse, because an MV emits update/delete commits and cannot be a streaming source. **v1.6.0:** the node is a pipeline-scoped `@dlt.table(temporary=True)` under its bare name — still materialized once per update (read-once holds; a view is still never used for a shared node), but never published to Unity Catalog — unless the spec sets **both** `source_plane.catalog` and `source_plane.schema`, which is the explicit opt-in for a published, durable, queryable node. |
-| `inline` | external, fan-out 1 (or `materialize: "never"`) | today's exact code path, which preserves predicate pushdown of that consumer's filter into the original source. |
+| `shared_node` | **every** external locator, at any fan-out (v1.7.3 Single-Read mandate) | one materialized `_src__<locator>__<8hex>__{stream,batch}` node. A **streaming table** if *any* consumer streams, a materialized view otherwise — never the reverse, because an MV emits update/delete commits and cannot be a streaming source. **v1.6.0:** the node is a pipeline-scoped `@dlt.table(temporary=True)` under its bare name — still materialized once per update (read-once holds; a view is still never used for a shared node), but never published to Unity Catalog — unless the spec sets **both** `source_plane.catalog` and `source_plane.schema`, which is the explicit opt-in for a published, durable, queryable node. |
+| `inline` | **never chosen since v1.7.3** | Formerly: external, fan-out 1 (or `materialize: "never"`) — the read evaluated inside the single consumer, preserving predicate pushdown of that consumer's filter into the original source. The `Binding.kind` value and its branch remain in the code as dead-code defence, but the planner no longer reaches them for any external identity. |
 
 ### What is in the identity, and what is not
 
@@ -345,12 +345,21 @@ sanitizing maps every non-identifier character to `_`, and `metaflow.bronze.a_b`
 `describe_plan(plan)` emits one structured `source_plane_node` event per node, so *"was my table
 actually read once?"* is answerable from the log stream rather than by inference.
 
-> **Materialization is a real cost, deliberately not hidden.** A shared node is a full physical
+> **Materialization is a real cost, deliberately accepted.** A shared node is a full physical
 > copy (pipeline-managed storage for a temporary node, UC storage for a published one), an extra
 > DAG step, and — the part usually missed — it destroys predicate
-> pushdown of a consumer's filter into the *original* source. That is why `source_plane.materialize`
-> defaults to `"auto"` (a node only at fan-out ≥ 2) and why `"never"` exists for a huge,
-> heavily-filtered table.
+> pushdown of a consumer's filter into the *original* source.
+>
+> Until v1.7.3 the framework tried to avoid paying that cost where it seemed unnecessary:
+> `materialize` defaulted to `"auto"` (a node only at fan-out ≥ 2) and `"never"` existed as an
+> escape hatch for a huge, heavily-filtered table. **v1.7.3's Single-Read architectural mandate
+> reverses that trade.** `materialize` now defaults to `"always"`: every external source identity
+> is materialized into its own base node, so N source tables produce N base ingestion nodes and
+> the "was this read once?" question has one answer everywhere instead of depending on fan-out.
+> `"never"` is prohibited and rejected at onboarding time (and again at plan time, for
+> control-table rows written before the mandate); `"auto"` is still accepted but resolves to
+> `"always"`. The pushdown cost is real and is now simply paid — a predictable graph is judged
+> worth more than a per-consumer optimization that made the topology depend on fan-out.
 
 ### Where a shared node lives — `source_plane.catalog` / `source_plane.schema` (semantics changed in v1.6.0)
 

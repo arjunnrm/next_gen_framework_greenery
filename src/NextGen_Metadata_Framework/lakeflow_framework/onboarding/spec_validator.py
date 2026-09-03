@@ -61,6 +61,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from pyspark.sql import SparkSession
 
+from NextGen_Metadata_Framework.lakeflow_framework.engine.source_plane import MATERIALIZE_NEVER_REJECTION
 from NextGen_Metadata_Framework.lakeflow_framework.exceptions import FrameworkConfigError
 from NextGen_Metadata_Framework.lakeflow_framework.storage.table_properties import qualified_table_name
 from NextGen_Metadata_Framework.lakeflow_framework.transformation.parameters import (
@@ -183,6 +184,19 @@ REMOVED_RECONCILIATION_FLOW_KEYS = {
     ),
 }
 
+# A removed VALUE of a surviving key, exactly like REMOVED_CDC_LOAD_STRATEGIES below -- NOT a
+# REMOVED_*_KEYS entry. `materialize` itself is still a legal attribute ("always", "auto"); only
+# the value "never" is prohibited. reject_removed_keys() triggers on KEY PRESENCE, so routing this
+# through it would reject the perfectly legal `materialize: "always"` as well.
+#
+# Imported from engine/source_plane.py rather than re-typed, because the same value is rejected on
+# two paths that must never drift: here at onboarding time, and inside plan_source_plane() at
+# pipeline runtime for control-table rows persisted before the mandate (which onboarding
+# validation never sees again).
+REMOVED_MATERIALIZE_POLICIES = {
+    "never": MATERIALIZE_NEVER_REJECTION,
+}
+
 REMOVED_CDC_LOAD_STRATEGIES = {
     "FULL_SNAPSHOT_CDC_NO_PK": (
         "removed in v1.4.0 -- it existed only to consume the surrogate-key engine, hashing every "
@@ -218,6 +232,33 @@ ALLOWED_ROOT_KEYS = {
     "dataflow_group_id", "ingestion_flows", "observability", "pipeline_parameters",
     "reconciliation_flows", "source_plane", "spark_config", "transformation_flows"
 }
+
+#: The implicit default for reconciliation's two log-capture flags, mirroring layer 3 of
+#: ``reconciliation/appender.py::resolve_log_capture_flags``. FALSE since v1.7.3 (was True):
+#: reconciliation is SILENT BY DEFAULT and auditing is opt-in.
+#:
+#: This MUST stay equal to that resolver's fallback. Onboarding-time validation and graph-time
+#: registration both branch on these flags, so a disagreement does not merely mis-report -- it
+#: lets a spec pass review and then fail on its first pipeline update, which is exactly the
+#: drift ``tests/unit/test_recon_logging_gates.py`` exists to prevent. It is asserted equal to
+#: the runtime resolver by a test rather than imported, because importing the reconciliation
+#: package here would pull Spark into onboarding-time validation.
+_DEFAULT_LOG_CAPTURE = False
+
+ALLOWED_SOURCE_PLANE_KEYS = {
+    "catalog", "materialize", "schema"
+}
+
+#: Legal values for ``source_plane.materialize`` after v1.7.3's Single-Read mandate.
+#:
+#: ``"never"`` is absent deliberately and is NOT reported through this set -- it gets its own
+#: named rejection from REMOVED_MATERIALIZE_POLICIES, so an author who used it is told it was
+#: withdrawn and why, rather than the generic "not one of [always, auto]" list. Same reasoning,
+#: and same ordering of the two checks, as REMOVED_CDC_LOAD_STRATEGIES.
+#:
+#: ``"auto"`` survives because it was never prohibited -- but it is no longer a distinct
+#: behaviour: plan_source_plane resolves it to "always".
+ALLOWED_MATERIALIZE_POLICIES = {"always", "auto"}
 
 ALLOWED_INGESTION_FLOW_KEYS = {
     "dataflow_id", "dq_config", "governance_tags", "source_config", "source_database",
@@ -1407,7 +1448,13 @@ def _validate_ingestion_source_config(
         check_string(
             source_config.get("asn1_codec"), f"{path_prefix}.asn1_codec", errors, required=True, allowed_values=ALLOWED_ASN1_CODECS
         )
-        check_string(source_config.get("asn1_pdu_name"), f"{path_prefix}.asn1_pdu_name", errors, required=True)
+        # OPTIONAL since 0.0.2: an absent/blank asn1_pdu_name means "auto-detect the root PDU"
+        # (asn1/decoder.py::detect_root_pdu_name walks the compiled module for the type nothing
+        # else references). required=True here would make that feature unreachable from a spec --
+        # the decoder supported it while onboarding still rejected the document. A value that IS
+        # supplied is still type-checked, and remains an explicit override that wins over detection.
+        if source_config.get("asn1_pdu_name") is not None:
+            check_string(source_config.get("asn1_pdu_name"), f"{path_prefix}.asn1_pdu_name", errors, required=False)
         _validate_source_zip_handling(source_config.get("source_zip_handling"), f"{path_prefix}.source_zip_handling", errors)
 
 
@@ -1730,8 +1777,12 @@ def _validate_logging_config(
     unified: an operator firefighting a runaway flow needs to silence log writes for one run
     without re-onboarding, and needs to be able to tell at a glance whether a value came from
     metadata or from the run they just launched."""
+    # NOTE: an ABSENT logging_config is not an early exit. Since v1.7.3 both flags default to
+    # FALSE, so omitting the block entirely is a real statement ("stay silent") that can itself
+    # contradict dq_config.rules or execution_mode='pipeline_audit_only'. Returning here is what
+    # let those two specs pass onboarding and then die at graph-definition time.
     if logging_config is None:
-        return
+        logging_config = {}
     if not check_dict(logging_config, label, errors):
         return
     if logging_config.get("run_log_capture") is not None:
@@ -1739,19 +1790,23 @@ def _validate_logging_config(
     if logging_config.get("mismatch_log_capture") is not None:
         check_bool(logging_config.get("mismatch_log_capture"), f"{label}.mismatch_log_capture", errors)
 
-    # Presence-aware cross-field rules -- evaluated on the DEFAULTED values (absent == true),
-    # matching resolve_log_capture_flags' precedence with no job-parameter layer at onboarding
-    # time. A runtime pipeline-conf override producing the same contradiction is caught again
-    # by the graph-time guards in reconciliation/graph_registration.py.
-    run_log_capture = logging_config.get("run_log_capture", True)
-    mismatch_log_capture = logging_config.get("mismatch_log_capture", True)
+    # Presence-aware cross-field rules -- evaluated on the DEFAULTED values. Since v1.7.3 the
+    # default is FALSE (absent == silent), matching resolve_log_capture_flags' layer 3 with no
+    # job-parameter layer at onboarding time. These MUST agree: hardcoding `True` here while the
+    # runtime resolves `False` is what made a spec that omits logging_config pass onboarding and
+    # then raise at graph-definition time. A runtime pipeline-conf override producing the same
+    # contradiction is caught again by the graph-time guards in reconciliation/graph_registration.py.
+    run_log_capture = logging_config.get("run_log_capture", _DEFAULT_LOG_CAPTURE)
+    mismatch_log_capture = logging_config.get("mismatch_log_capture", _DEFAULT_LOG_CAPTURE)
     dq_rules = dq_config.get("rules") if isinstance(dq_config, dict) else None
     if dq_rules and run_log_capture is False:
         errors.append(
-            f"{label}.run_log_capture: false is incompatible with dq_config.rules -- the flow's "
-            "expectations attach to its recon__*__metrics dataset, which is only registered "
-            "when run_log_capture is true (v1.6.0). Remove the dq_config rules or re-enable "
-            "run_log_capture."
+            f"{label}.run_log_capture resolves to false, which is incompatible with "
+            "dq_config.rules -- the flow's expectations attach to its recon__*__metrics dataset, "
+            "which is only registered when run_log_capture is true. NOTE: since v1.7.3 both "
+            "log-capture flags default to FALSE (reconciliation is silent by default), so this "
+            "fires even when the spec never wrote 'false' -- omitting logging_config is enough. "
+            "Set logging_config.run_log_capture: true explicitly, or remove the dq_config rules."
         )
     if (
         execution_mode == "pipeline_audit_only"
@@ -1760,9 +1815,12 @@ def _validate_logging_config(
     ):
         errors.append(
             f"{label}: execution_mode 'pipeline_audit_only' with both run_log_capture and "
-            "mismatch_log_capture false registers compute with no output at all (v1.6.0 -- the "
-            "audit-only mode exists solely to produce the metrics/mismatch datasets and their "
-            "control-table exports). Enable at least one capture flag, or use execution_mode "
+            "mismatch_log_capture resolving to false registers compute with no output at all -- "
+            "the audit-only mode exists solely to produce the metrics/mismatch datasets and their "
+            "control-table exports. NOTE: since v1.7.3 both flags default to FALSE "
+            "(reconciliation is silent by default), so this fires even when the spec never wrote "
+            "'false' -- omitting logging_config is enough. Set logging_config.run_log_capture: "
+            "true (and/or mismatch_log_capture: true) explicitly, or use execution_mode "
             "'job'/'pipeline'."
         )
 
@@ -2067,6 +2125,55 @@ def _validate_sql_syntax(
 # ---------------------------------------------------------------------------
 # Top-level entry point
 # ---------------------------------------------------------------------------
+
+
+def _validate_source_plane(value: Any, path: str, errors: List[str]) -> None:
+    """Validate the top-level ``source_plane`` block -- the L0 read-once plane's policy.
+
+    NEW in v1.7.3. Until this release ``source_plane`` was listed in ``ALLOWED_ROOT_KEYS`` and
+    then never looked at again: the block was accepted verbatim, so a typo'd key or an
+    unrecognised ``materialize`` value onboarded cleanly, wrote its control-table row and
+    silently fell back to the engine's default policy. ``onboarding_spec_full_reference.md``
+    documented that gap in as many words; this function closes it.
+
+    Two checks, deliberately different in kind:
+
+    * ``materialize`` -- a VALUE check. The key itself remains legal; only the value ``"never"``
+      is prohibited, under the Single-Read architectural mandate. It is tested BEFORE the
+      allowed-values check so an author who wrote ``"never"`` is told it was deliberately
+      withdrawn and what to do instead, rather than being handed the generic "not one of
+      [always, auto]" list, which reads as "you made a typo". This is the
+      ``REMOVED_CDC_LOAD_STRATEGIES`` pattern -- a removed value of a surviving key -- NOT the
+      ``REMOVED_*_KEYS`` pattern, whose ``reject_removed_keys()`` fires on key PRESENCE and
+      would therefore also reject the legal ``materialize: "always"``.
+    * ``catalog``/``schema`` -- publication location for L0 nodes, both optional and nullable
+      (v1.6.0's Intermediate Object Rule: absent means "do not publish", not "publish to the
+      pipeline's own catalog"). Only their type is checked here; the engine treats them as
+      meaningful only when BOTH are set.
+    """
+    if value is None:
+        return
+    if not check_dict(value, path, errors):
+        return
+
+    reject_unknown_keys(value, path, errors, ALLOWED_SOURCE_PLANE_KEYS)
+
+    materialize = value.get("materialize")
+    if materialize is not None:
+        if materialize in REMOVED_MATERIALIZE_POLICIES:
+            errors.append(f"{path}.materialize: {REMOVED_MATERIALIZE_POLICIES[materialize]}")
+        else:
+            check_string(
+                materialize,
+                f"{path}.materialize",
+                errors,
+                required=False,
+                allowed_values=ALLOWED_MATERIALIZE_POLICIES,
+            )
+
+    for key in ("catalog", "schema"):
+        if value.get(key) is not None:
+            check_string(value.get(key), f"{path}.{key}", errors, required=False)
 
 
 def _validate_spark_config(value: Any, path: str, errors: List[str]) -> None:
@@ -2510,6 +2617,8 @@ def validate_spec(
         check_dict(spec.get("pipeline_parameters"), "pipeline_parameters", errors)
     if spec.get("spark_config") is not None:
         _validate_spark_config(spec.get("spark_config"), "spark_config", errors)
+    if spec.get("source_plane") is not None:
+        _validate_source_plane(spec.get("source_plane"), "source_plane", errors)
 
     ingestion_flows = spec.get("ingestion_flows", []) or []
     transformation_flows = spec.get("transformation_flows", []) or []

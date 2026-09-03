@@ -17,11 +17,29 @@ IDENTITY" / "SHARING RULES" / "COLLISION HANDLING" sections). It runs in two dis
    control-table rows, it derives one :class:`ConsumerRequest` per external read a dataset
    body will need, groups them by :class:`ReadIdentity` (the read-once identity key), and
    decides -- per the SHARING RULES -- whether each request is served by an in-graph sibling
-   dataset this same pipeline already produces (``in_graph_sibling``), a new materialized
-   node shared by 2+ consumers (``shared_node``), or evaluated directly inside the one
-   consumer that needs it (``inline``, today's exact code path, preserving predicate
-   pushdown). It also runs the plan-time guards (G-STREAM, G-SIDE) and builds the
-   producer -> consumer dependency edges :func:`assert_acyclic` checks.
+   dataset this same pipeline already produces (``in_graph_sibling``) or by a materialized
+   base node of its own (``shared_node``). It also runs the plan-time guards (G-STREAM,
+   G-SIDE) and builds the producer -> consumer dependency edges :func:`assert_acyclic`
+   checks.
+
+   **Sharing rule (v1.7.3, the Single-Read architectural mandate).** Every external read
+   identity that is not already produced in-graph gets its own materialized ``shared_node``,
+   *unconditionally* -- fanout is no longer part of the decision. N distinct source
+   identities therefore yield N base ingestion nodes, and each consumer binds via
+   ``dlt.read``/``dlt.read_stream`` rather than re-reading the origin. This replaces the
+   pre-v1.7.3 fanout-threshold policy, under which a single-consumer read stayed ``inline``
+   (a per-consumer physical read) to preserve predicate pushdown into the origin. The
+   ``inline`` :class:`Binding` kind is retained in the code but is no longer reachable for an
+   external identity; it is kept as a declared kind so ``describe_plan`` output and the
+   binding vocabulary stay stable.
+
+   **Per-mode identity is retained.** "Read once" means read once per source *per execution
+   mode*. Nodes are keyed by ``(identity, mode)``, so one locator read as both a stream and a
+   batch is TWO nodes carrying the ``__stream`` and ``__batch`` suffixes, never one. They are
+   deliberately not collapsed: a materialized view cannot be read with ``dlt.read_stream``,
+   :func:`bind` raises when a ``mode="batch"`` binding is asked for a streaming read, and
+   forcing either binding onto the other's node drags in checkpoint-locking and full-refresh
+   side effects.
 2. **Register / bind** (:func:`register_source_plane`, :func:`bind`) -- the only functions in
    this module that import ``dlt`` (lazily, inside the function body, never at module scope,
    so this module stays importable and unit-testable outside a Lakeflow pipeline runtime).
@@ -37,10 +55,13 @@ its ``_BASE_READ_KEYS``). Everything downstream of the read -- ``schema_config``
 ``column_normalization``, technical metadata, JSON flattening, dedup, standardization SQL,
 decryption, watermarking, ``filter_condition``, DQ/quarantine columns -- is an OVERLAY,
 applied by each consumer on top of the shared (or inline) DataFrame :func:`bind` returns.
-``read_mode`` (streaming vs batch) is *deliberately* excluded from the identity: one
-materialized streaming table can legally serve both a ``dlt.read_stream`` and a ``dlt.read``
-consumer in the same update, so two consumers that differ only in how they want to read an
-otherwise-identical source still share one physical node.
+``read_mode`` (streaming vs batch) is excluded from :class:`ReadIdentity` itself but IS part of
+the node key, which is the pair ``(identity, mode)``. Two consumers differing only in read mode
+therefore get two nodes, not one -- see "Per-mode identity is retained" above. (Before v1.7.3
+they shared a single node under an "any consumer streams" rule, on the theory that a
+materialized streaming table serves ``dlt.read`` too; the Single-Read mandate replaced that with
+the stricter per-mode split, which avoids imposing a streaming node's checkpoint-locking and
+full-refresh semantics on a consumer that only ever wanted a batch read.)
 """
 
 import hashlib
@@ -60,6 +81,18 @@ from NextGen_Metadata_Framework.lakeflow_framework.ingestion.readers import (
 from NextGen_Metadata_Framework.lakeflow_framework.storage.table_properties import qualified_table_name
 
 logger = logging.getLogger("common.engine.source_plane")
+
+#: The verbatim rejection for ``materialize="never"``, shared with
+#: ``onboarding/spec_validator.py`` so the onboarding-time error and the pipeline-runtime error
+#: are the same sentence. Onboarding validation runs once, at onboarding; a group onboarded
+#: before v1.7.3 keeps its persisted ``source_plane_config_json`` and re-reads it on every
+#: pipeline update, so a validator-only rejection would leave existing groups quietly running the
+#: prohibited policy. This constant is the second half of that enforcement.
+MATERIALIZE_NEVER_REJECTION = (
+    "materialize='never' is deprecated and prohibited under the Single-Read architectural "
+    "mandate. Remove this setting to default to 'always', ensuring base tables are read once "
+    "and reused via dlt.read()."
+)
 
 #: ``cdc_load_strategy`` values under which an in-graph target is written by MERGE (SCD1/SCD2)
 #: or is not a plain append (SCD3's history table, FULL_SNAPSHOT_CDC's ``apply_changes_from_snapshot``,
@@ -149,13 +182,24 @@ class ConsumerRequest:
 
 @dataclass(frozen=True)
 class PlaneNode:
-    """One materialized L0 source-plane node: a shared external read backing 2+ consumers (or
-    every consumer, when ``materialize="always"``).
+    """One materialized L0 source-plane node: the single physical read of one external identity,
+    backing every consumer of that identity.
 
-    ``mode`` is ``"stream"`` if ANY consumer of this node requested a streaming read, else
-    ``"batch"`` -- a materialized streaming table is a legal source for both
-    ``dlt.read_stream`` and ``dlt.read`` in the same update, so "any consumer streams" is the
-    only rule that keeps every consumer servable from one node.
+    Since v1.7.3 (the Single-Read architectural mandate) a node exists for EVERY external read
+    identity, at any fanout -- N distinct source identities produce N base ingestion nodes, and
+    every downstream consumer binds to one via ``dlt.read``/``dlt.read_stream``. Fanout no longer
+    decides whether a node is created; it only decides how many consumer ids the node lists.
+
+    ``mode`` is part of the NODE KEY, not a property derived after the fact: nodes are keyed by
+    ``(identity, mode)``, so one locator read as both a stream and a batch is two nodes, and
+    every consumer of a given node requested that node's mode. The ``dataset_name`` carries the
+    matching ``__stream``/``__batch`` suffix.
+
+    This replaced (v1.7.3) an "any consumer streams" collapse rule, under which one node in
+    stream mode served batch consumers too -- legal in the narrow sense that a materialized
+    streaming table is a valid ``dlt.read`` source, but it imposed a streaming node's
+    checkpoint-locking and full-refresh semantics on consumers that only ever wanted a batch
+    read. Splitting by mode is what "read once per source PER EXECUTION MODE" means.
 
     ``published`` (v1.6.0): ``True`` only when the spec explicitly supplied
     ``source_plane.catalog``/``source_plane.schema`` -- the node is then a published
@@ -196,11 +240,11 @@ class SourcePlanePlan:
     consumer only ever needs ``bindings``.
     """
 
-    nodes: Dict[ReadIdentity, PlaneNode]
+    nodes: Dict[Tuple[ReadIdentity, str], PlaneNode]
     bindings: Dict[str, Binding]
     in_graph_targets: Set[str]
     edges: List[Tuple[str, str]]
-    node_reader_specs: Dict[ReadIdentity, Dict[str, Any]] = field(default_factory=dict)
+    node_reader_specs: Dict[Tuple[ReadIdentity, str], Dict[str, Any]] = field(default_factory=dict)
 
 
 # ---------------------------------------------------------------------------------------------
@@ -529,7 +573,7 @@ def plan_source_plane(
     transformation_rows: List[Any],
     reconciliation_rows: List[Any],
     pipeline_parameters: Optional[Dict[str, Any]] = None,
-    materialize: str = "auto",
+    materialize: str = "always",
     node_catalog: Optional[str] = None,
     node_schema: Optional[str] = None,
 ) -> SourcePlanePlan:
@@ -552,12 +596,29 @@ def plan_source_plane(
         have already had ``${param}``/``{{catalog}}`` substitution applied by
         ``onboarding/spec_loader.py`` before reaching the control tables.
     materialize:
-        ``"auto"`` (default) -- share a node only when 2+ distinct consumers request the same
-        external identity. ``"always"`` -- materialize every external identity into its own
-        node even at fanout 1 (useful for forcing an audit-friendly node per source).
-        ``"never"`` -- never materialize; every external identity is read inline by each of
-        its consumers, exactly as today, even at fanout >= 2 (an explicit opt-out of sharing,
-        e.g. to preserve per-consumer predicate pushdown at the cost of N physical reads).
+        ``"always"`` (default since v1.7.3) -- materialize EVERY external read identity into
+        its own base node, at any fanout, so N source identities yield N base ingestion nodes
+        and every consumer binds via ``dlt.read``/``dlt.read_stream``. This is the Single-Read
+        architectural mandate and the only policy the framework is designed around.
+
+        ``"auto"`` is the retained LEGACY policy and is genuinely distinct, not an alias: it
+        materializes an identity only at fanout >= 2 and leaves a single-consumer identity
+        ``inline``, re-read inside that consumer's own closure. Fanout is counted per
+        ``(identity, mode)`` -- the same key the node dict uses -- so a locator consumed once as
+        a stream and once as a batch is fanout 1 in EACH mode, not fanout 2; those two consumers
+        can never share one node anyway (a materialized view cannot be read with
+        ``dlt.read_stream``). It exists so a control-table row onboarded before v1.7.3 keeps the
+        DAG topology it was onboarded with rather than silently gaining base nodes on
+        re-onboarding. It is a strictly WEAKER guarantee than ``"always"`` and is not recommended
+        for new specs.
+
+        ``"never"`` is PROHIBITED. It is rejected at onboarding time by
+        ``onboarding/spec_validator.py`` and raised on here as well, because onboarding
+        validation only ever runs once: a group onboarded before v1.7.3 keeps its persisted
+        ``source_plane_config_json`` forever, and that row is read straight into this function
+        by ``notebooks/03_engine/03_lakeflow_declarative_pipeline.py``. Rejecting it in both
+        places is what makes the prohibition true for existing groups rather than only for new
+        ones.
     node_catalog, node_schema:
         Where a ``shared_node`` :class:`PlaneNode` is *published*, when the spec explicitly
         asks for publication (``source_plane.catalog`` + ``source_plane.schema`` both set).
@@ -577,6 +638,9 @@ def plan_source_plane(
     FrameworkConfigError
         On a G-STREAM or G-SIDE guard violation.
     """
+    if materialize == "never":
+        raise FrameworkConfigError(f"source_plane.materialize: {MATERIALIZE_NEVER_REJECTION}")
+
     in_graph_targets, producer_meta_by_locator, qualified_name_by_locator = _collect_in_graph_targets(
         ingestion_rows, transformation_rows
     )
@@ -609,10 +673,12 @@ def plan_source_plane(
     for request in all_requests:
         if request.identity.locator in in_graph_targets:
             continue
-        requests_by_identity[request.identity].append(request)
+        requests_by_identity[(request.identity, "stream" if request.want_stream else "batch")].append(request)
 
-    nodes: Dict[ReadIdentity, PlaneNode] = {}
-    node_reader_specs: Dict[ReadIdentity, Dict[str, Any]] = {}
+    # Keyed by (identity, mode): per-mode identity means one locator read as BOTH a stream and a
+    # batch is two distinct nodes, so the mode has to be part of the key (see the mandate rule 1).
+    nodes: Dict[Tuple[ReadIdentity, str], PlaneNode] = {}
+    node_reader_specs: Dict[Tuple[ReadIdentity, str], Dict[str, Any]] = {}
     bindings: Dict[str, Binding] = {}
     edges: List[Tuple[str, str]] = []
 
@@ -631,11 +697,33 @@ def plan_source_plane(
                 edges.append((producer["owner_node"], consumer_owner))
             continue
 
-        sibling_requests = requests_by_identity[request.identity]
+        request_mode = "stream" if request.want_stream else "batch"
+        node_key = (request.identity, request_mode)
+        sibling_requests = requests_by_identity[node_key]
+        # v1.7.3 Single-Read mandate: under the DEFAULT policy ("always") every external identity
+        # gets its own materialized base node regardless of fanout -- N source tables produce N
+        # base ingestion nodes, and `fanout` does not participate in the decision.
+        #
+        # "auto" is retained as a genuinely DISTINCT legacy policy, not an alias: it materializes
+        # only at fanout >= 2 and leaves a single-consumer identity `inline`, which is the
+        # pre-v1.7.3 shape. It exists so a control-table row onboarded before v1.7.3 keeps the DAG
+        # topology it was onboarded with instead of silently gaining nodes on re-onboarding. It is
+        # a strictly weaker guarantee than "always" (a fanout-1 identity is re-read in each
+        # consumer's own closure) and is not recommended for new specs.
+        #
+        # Fanout is counted PER (identity, mode) -- the same key the node dict uses -- so a locator
+        # consumed once as a stream and once as a batch is fanout 1 in each mode, not fanout 2.
+        # Counting it as 2 would materialize a node "because it is shared" for two consumers that
+        # never actually share one.
+        #
+        # "never" cannot reach here: it is rejected above.
         fanout = len(sibling_requests)
-        share = materialize == "always" or (materialize != "never" and fanout >= 2)
+        share = materialize != "auto" or fanout >= 2
 
-        if not share:
+        # Retained as dead-code defence only: no external identity reaches this branch now. (A
+        # request whose locator is in `in_graph_targets` short-circuits to `in_graph_sibling`
+        # long before this point, so `inline` is not how those are served either.)
+        if not share:  # pragma: no cover - unreachable under the Single-Read mandate
             bindings[request.consumer_id] = Binding(
                 kind="inline",
                 dataset_name=None,
@@ -645,11 +733,23 @@ def plan_source_plane(
             )
             continue
 
-        node = nodes.get(request.identity)
+        node = nodes.get(node_key)
         if node is None:
-            node_mode = "stream" if any(r.want_stream for r in sibling_requests) else "batch"
-            suffix = "stream" if node_mode == "stream" else "batch"
-            node_table_name = stable_node_name("_src", locator, suffix)
+            # Per-mode identity (AGENTS.md Single-Read mandate, rule 1): stream and batch of one
+            # locator are TWO nodes and are never collapsed. A materialized view cannot be read
+            # with dlt.read_stream, and forcing one binding onto the other introduces checkpoint
+            # locking / full-refresh side effects -- so the mode comes from THIS request, not
+            # from "does any sibling stream".
+            node_mode = request_mode
+            suffix = node_mode
+            # The digest must cover the FULL identity, not just the locator: two reads of one
+            # locator under different base-read options are two identities and therefore two
+            # nodes, and two nodes sharing a dataset name fail the Lakeflow update outright
+            # ("Cannot redefine dataset"). Unreachable before v1.7.3 -- such a pair was fanout 1
+            # apiece and stayed inline, so neither was ever named.
+            node_table_name = stable_node_name(
+                "_src", locator, suffix, discriminator=request.identity.options_fingerprint
+            )
             # v1.6.0 Intermediate Object Rule: a shared node is published to UC only when the
             # spec explicitly asked for it (source_plane.catalog + source_plane.schema both
             # set). Otherwise it stays a pipeline-scoped temporary table under its bare name
@@ -666,8 +766,8 @@ def plan_source_plane(
                 consumer_ids=[r.consumer_id for r in sibling_requests],
                 published=published,
             )
-            nodes[request.identity] = node
-            node_reader_specs[request.identity] = reader_spec_by_identity[request.identity]
+            nodes[node_key] = node
+            node_reader_specs[node_key] = reader_spec_by_identity[request.identity]
 
         bindings[request.consumer_id] = Binding(
             kind="shared_node",
@@ -805,8 +905,8 @@ def register_source_plane(spark, plan: SourcePlanePlan) -> None:
     """
     import dlt  # noqa: F401  -- lazy: this module must stay importable outside a DLT runtime.
 
-    for identity, node in plan.nodes.items():
-        reader_spec = plan.node_reader_specs[identity]
+    for node_key, node in plan.nodes.items():
+        reader_spec = plan.node_reader_specs[node_key]
         streaming = node.mode == "stream"
 
         def _make_source_plane_node(_spark=spark, _reader_spec=reader_spec, _streaming=streaming):
@@ -816,7 +916,7 @@ def register_source_plane(spark, plan: SourcePlanePlan) -> None:
             name=node.dataset_name,
             temporary=not node.published,
             comment=(
-                f"L0 source-plane node -- one shared read of '{identity.locator}' "
+                f"L0 source-plane node -- one shared read of '{node.identity.locator}' "
                 f"({'streaming table' if streaming else 'materialized view'}"
                 f"{'' if node.published else ', pipeline-scoped temporary'}), consumed by "
                 f"{len(node.consumer_ids)} downstream reader(s): {', '.join(sorted(node.consumer_ids))}."
@@ -875,7 +975,7 @@ def describe_plan(plan: SourcePlanePlan) -> List[Dict[str, Any]]:
                 "mode": binding.mode,
             }
         )
-    for identity, node in plan.nodes.items():
+    for (identity, _node_mode), node in plan.nodes.items():
         rows.append(
             {
                 "row_type": "node",

@@ -4,8 +4,8 @@ milliseconds, with no workspace, no Databricks Connect session and no real Spark
 
 WHY THIS TEST EXISTS
 --------------------
-``tests/unit/test_source_plane_plan.py`` proves the *plan* is right (identity grouping, fanout,
-mode collapse, guards). It stops at the plan. This test goes one step further and proves the
+``tests/unit/test_source_plane_plan.py`` proves the *plan* is right (identity grouping, per-mode
+node keying, the ``materialize`` policies, guards). It stops at the plan. This test goes one step further and proves the
 *wiring*: that when the plan is handed to ``register_source_plane`` and to the three flow
 generators (L1 ingestion staged view, L2 transformation input views, L3/L4/L5 reconciliation
 registrar), the datasets they actually register -- and the reads those dataset bodies actually
@@ -33,27 +33,44 @@ module object, so patching the module object covers ``engine/source_plane.py`` (
 ``reconciliation/graph_registration.py`` alike.
 
 ``source_plane._active_spark`` is monkeypatched to a :class:`_StubSpark`, which is what makes
-the *physical* read observable: an ``inline`` binding is the one binding kind that does not go
-through ``dlt.read``/``dlt.read_stream`` at all -- it calls ``spark.read(Stream)`` directly --
-so the stub session is the only place a genuine second scan of an origin could show up. It also
-keeps the test offline: ``tests/conftest.py`` eagerly warms a real ``DatabricksSession`` at
-collection time when credentials happen to be present, and an un-stubbed inline bind would
-otherwise issue a live remote read.
+the *physical* read observable. Under v1.7.3's default policy no binding is ``inline`` any more,
+but the stub is MORE load-bearing than before, not less: every physical read now happens inside a
+plane node's
+``@dlt.table`` closure, where ``_execute_reader`` calls ``spark.read(Stream)`` on exactly the
+identities the plan materialized. ``spark.physical_locators`` is therefore the direct evidence
+for R2 -- one scan per node, and a duplicate scan of any origin would show up here as a repeated
+locator. It also keeps the test offline: ``tests/conftest.py`` eagerly warms a real
+``DatabricksSession`` at collection time when credentials happen to be present, and an
+un-stubbed node body would otherwise issue a live remote read.
 
 THE SYNTHETIC GROUP
 -------------------
 One dataflow group; one in-graph sibling plus six distinct external read identities:
 
-* ``/Volumes/metaflow/landing/orders`` -- ``ing_orders:source``. Fanout 1 -> inline, NO node.
+Since v1.7.3 (the Single-Read architectural mandate) EVERY external identity is materialized
+regardless of fanout, and nodes are keyed by ``(identity, mode)``. Six external identities
+therefore yield SEVEN nodes -- ``metaflow.silver.events`` is read both ways and so splits into a
+``__stream`` and a ``__batch`` node -- and under the default policy no binding is ``inline`` at
+all. (The legacy ``materialize="auto"`` policy is still reachable and still leaves fanout-1
+identities inline; ``test_legacy_auto_policy_still_leaves_the_fanout_one_locators_inline`` plans
+this same group under it, which is why the ``inline`` machinery below is still exercised.)
+
+* ``/Volumes/metaflow/landing/orders`` -- ``ing_orders:source`` (streaming). Fanout 1, ONE
+  ``__stream`` node (pre-v1.7.3: inline, no node).
 * ``metaflow.bronze.orders`` -- IN-GRAPH (this group's own ``ing_orders`` target), consumed by
   ``tf_enrich:input:orders_in`` (streaming) and ``rec_orders_audit:source`` (batch).
   NO node; two ``dlt.read``/``dlt.read_stream`` references to the producer's qualified name.
+  In-graph still wins over a node -- a node here would be a SECOND read of something the graph
+  already materializes.
 * ``metaflow.silver.events`` -- ``tf_enrich:input:events_stream`` (streaming) and
-  ``tf_daily:input:events_batch`` (batch). ONE **streaming** node, read both ways.
-* ``metaflow.silver.lonely`` -- ``tf_daily:input:lonely_in``. Fanout 1 -> inline, NO node.
+  ``tf_daily:input:events_batch`` (batch). TWO nodes, one per mode (pre-v1.7.3: one streaming
+  node read both ways).
+* ``metaflow.silver.lonely`` -- ``tf_daily:input:lonely_in``. Fanout 1, ONE ``__batch`` node
+  (pre-v1.7.3: inline, no node).
 * ``metaflow.silver.customers`` -- ``rec_cust_a:source`` and ``rec_cust_b:source`` (the latter
   spelled ``metaflow.Silver.customers``). ONE materialized node; casefolding is load-bearing.
-* ``metaflow.gold.orders_ref`` -- ``rec_orders_audit:target:t_ref``. Fanout 1 -> inline, NO node.
+* ``metaflow.gold.orders_ref`` -- ``rec_orders_audit:target:t_ref``. Fanout 1, ONE ``__batch``
+  node (pre-v1.7.3: inline, no node).
 * ``metaflow.gold.customers_ref`` -- ``rec_cust_a:target:t_ref`` and ``rec_cust_b:target:t_ref``
   (the latter spelled ``metaflow.Gold.customers_ref``). ONE materialized node.
 
@@ -70,7 +87,9 @@ cannot contribute a physical source read either way -- executing them would test
 ``tests/unit/test_matcher.py``'s job, not this test's.
 """
 
+import hashlib
 import json
+from collections import Counter
 
 import dlt
 import dlt.api
@@ -119,6 +138,15 @@ EXPECTED_EXTERNAL_LOCATORS = {
     ORDERS_REF_TABLE,
     CUSTOMERS_REF_TABLE,
 }
+
+#: The ``options_fingerprint`` every plain-table :class:`ReadIdentity` carries: reading an
+#: existing Delta table takes no ``source_config``-shaped base-read options, so the fingerprint is
+#: ``sha256`` of canonical JSON over an EMPTY options dict. Since v1.7.3 ``stable_node_name`` is
+#: called with ``discriminator=identity.options_fingerprint``, so the 8-hex digest in a node's
+#: dataset name is derived from ``locator + this``, not from the locator alone. Spelled out here
+#: as an independent constant rather than read back off the plan, so a node-name assertion
+#: remains a real assertion instead of a restatement of whatever the engine produced.
+EMPTY_OPTIONS_FINGERPRINT = hashlib.sha256(json.dumps({}, sort_keys=True).encode("utf-8")).hexdigest()
 
 MATCH_KEYS = ["order_id"]
 COMPARE_COLUMNS = ["amount"]
@@ -198,9 +226,12 @@ class _StubReader:
 
 
 class _StubSpark:
-    """The only place a *physical* read can be observed: an ``inline`` binding, and every L0
-    plane node's own body, resolve their DataFrame through this session rather than through
-    ``dlt.read``/``dlt.read_stream``."""
+    """The only place a *physical* read can be observed: every L0 plane node's own body resolves
+    its DataFrame through this session rather than through ``dlt.read``/``dlt.read_stream``.
+
+    Under v1.7.3's default policy every physical read is a node body's, so this session's log is
+    a one-to-one record of the plan's nodes -- which is exactly what makes a duplicate scan
+    visible as a repeated locator."""
 
     def __init__(self):
         self.physical_reads = []
@@ -340,8 +371,8 @@ def recorder(monkeypatch, dlt_local_execution):
 
 @pytest.fixture()
 def stub_spark(monkeypatch):
-    """A stub session, also installed as ``source_plane._active_spark``'s answer so an
-    ``inline`` binding never reaches a real (or absent) ``SparkSession``."""
+    """A stub session, also installed as ``source_plane._active_spark``'s answer so a plane
+    node's body never reaches a real (or absent) ``SparkSession``."""
     spark = _StubSpark()
     monkeypatch.setattr(source_plane, "_active_spark", lambda: spark)
     return spark
@@ -417,7 +448,13 @@ def _reconciliation_row(reconciliation_id, source_table, target_table):
         match_keys_json=json.dumps(MATCH_KEYS),
         compare_columns_json=json.dumps(COMPARE_COLUMNS),
         error_handling_json=json.dumps({}),
-        logging_config_json=json.dumps({}),
+        # run_log_capture stated EXPLICITLY since v1.7.3: the capture flags now default to FALSE
+        # (reconciliation is silent by default), and pipeline_audit_only with both flags resolving
+        # false is rejected outright -- that mode exists solely to produce __metrics/__mismatch, so
+        # it would register compute with no output. An empty logging_config therefore no longer
+        # describes a legal audit-only flow. Stating it keeps this fixture about read-once wiring
+        # rather than silently depending on whatever the logging default happens to be.
+        logging_config_json=json.dumps({"run_log_capture": True}),
         dq_config_json=json.dumps({}),
         transform_sql=None,
         publish_schema=None,
@@ -520,10 +557,10 @@ def test_exactly_one_plane_node_registration_per_distinct_read_identity(wiring):
     plan = wiring.plan
     node_names = [node.dataset_name for node in plan.nodes.values()]
 
-    # One PlaneNode per shared identity, one dataset name each, no name reused. Three of the six
-    # external identities are shared (events, customers, customers_ref); the other three are
-    # fanout-1 and stay inline.
-    assert len(plan.nodes) == 3
+    # One PlaneNode per (identity, mode), one dataset name each, no name reused. v1.7.3: all six
+    # external identities are materialized regardless of fanout, and metaflow.silver.events is
+    # read both ways so it splits into a __stream and a __batch node -- 7 nodes, not 3.
+    assert len(plan.nodes) == 7
     assert len(node_names) == len(set(node_names)) == len(plan.nodes)
 
     node_name_set = set(node_names)
@@ -537,15 +574,35 @@ def test_exactly_one_plane_node_registration_per_distinct_read_identity(wiring):
         assert wiring.recorder.by_name(name).kind == "table"
 
 
-def test_every_external_locator_is_physically_read_exactly_once_per_update(wiring):
-    """The headline R2 assertion: eleven consumers across three flow kinds, seven distinct
-    locators (six external + one in-graph), six physical reads -- no locator scanned twice."""
+def test_every_external_locator_is_physically_read_once_per_execution_mode(wiring):
+    """The headline R2 assertion, in its v1.7.3 form: read once per source PER EXECUTION MODE.
+
+    Eleven consumers across three flow kinds, seven distinct locators (six external + one
+    in-graph), seven physical reads. Six of the seven are a locator's only scan. The seventh is
+    ``metaflow.silver.events``, which is read exactly twice -- once as a stream, once as a batch
+    -- because per-mode identity makes those two separate nodes.
+
+    That second scan is a deliberate, bounded cost, not a read-once regression: a materialized
+    view cannot be read with ``dlt.read_stream``, so the alternative is forcing one consumer
+    onto the other's node and imposing a streaming node's checkpoint-locking and full-refresh
+    semantics on a consumer that asked for neither. What R2 still forbids is a SECOND scan
+    within one mode, which is what the per-mode counting below pins.
+    """
     assert len(wiring.plan.bindings) == 11, sorted(wiring.plan.bindings)
 
     locators = wiring.spark.physical_locators
-    assert len(locators) == len(EXPECTED_EXTERNAL_LOCATORS)
-    assert sorted(locators) == sorted(EXPECTED_EXTERNAL_LOCATORS)
-    assert len(locators) == len(set(locators)), f"a locator was physically read more than once: {locators}"
+    assert set(locators) == EXPECTED_EXTERNAL_LOCATORS
+    assert len(locators) == len(wiring.plan.nodes) == 7
+
+    # Exactly one scan per locator, except the one read in both modes.
+    counts = Counter(locators)
+    assert counts[EVENTS_TABLE] == 2, f"the dual-mode locator must be scanned once per mode: {counts}"
+    for locator in EXPECTED_EXTERNAL_LOCATORS - {EVENTS_TABLE}:
+        assert counts[locator] == 1, f"{locator} was physically read more than once: {counts}"
+
+    # The stricter statement: no (locator, mode) pair is ever scanned twice.
+    per_mode = Counter((node.identity.locator, node.mode) for node in wiring.plan.nodes.values())
+    assert all(count == 1 for count in per_mode.values()), per_mode
 
 
 def test_shared_locator_case_variants_collapse_to_one_read(wiring):
@@ -602,8 +659,16 @@ def test_two_consumer_external_locator_produces_exactly_one_materialized_node(wi
     assert node.mode == "batch"  # every consumer is batch (both flows are pipeline_audit_only)
     assert sorted(node.consumer_ids) == ["rec_cust_a:source", "rec_cust_b:source"]
 
+    # The expected dataset name is recomputed from scratch, not read back off the node: since
+    # v1.7.3 the 8-hex digest covers ``locator + options_fingerprint``, not the locator alone
+    # (``stable_node_name(..., discriminator=identity.options_fingerprint)``), so the
+    # discriminator has to be reproduced here too. For a plain table read no source_config-shaped
+    # base-read options apply, so the fingerprint is sha256 over an EMPTY options dict -- an
+    # independent constant, so this stays a real assertion rather than a restatement of the node.
     assert node.dataset_name == qualified_table_name(
-        NODE_CATALOG, NODE_SCHEMA, stable_node_name("_src", CUSTOMERS_TABLE, "batch")
+        NODE_CATALOG,
+        NODE_SCHEMA,
+        stable_node_name("_src", CUSTOMERS_TABLE, "batch", discriminator=EMPTY_OPTIONS_FINGERPRINT),
     )
     assert wiring.recorder.names.count(node.dataset_name) == 1
 
@@ -616,73 +681,155 @@ def test_two_consumer_external_locator_produces_exactly_one_materialized_node(wi
 
 
 # ---------------------------------------------------------------------------------------------
-# Mixed streaming/batch external locator: ONE streaming node, read both ways
+# Mixed streaming/batch external locator: ONE NODE PER MODE (v1.7.3 per-mode identity)
 # ---------------------------------------------------------------------------------------------
 
 
-def test_mixed_stream_and_batch_locator_produces_one_streaming_node_read_both_ways(wiring):
-    nodes = [node for node in wiring.plan.nodes.values() if node.identity.locator == EVENTS_TABLE]
+def test_mixed_stream_and_batch_locator_produces_one_node_per_mode(wiring):
+    """v1.7.3 replaced the mode-collapse rule with per-mode identity.
+
+    Pre-v1.7.3 this locator produced ONE streaming node serving both consumers, on the (true)
+    reasoning that a materialized streaming table is a legal ``dlt.read`` source as well. The
+    mandate splits it instead: forcing a batch consumer onto a streaming node hands it that
+    node's checkpoint-locking and full-refresh semantics, which it never asked for. The cost is
+    a second scan of this one origin, which
+    ``test_every_external_locator_is_physically_read_once_per_execution_mode`` accounts for
+    explicitly.
+    """
+    nodes = {node.mode: node for node in wiring.plan.nodes.values() if node.identity.locator == EVENTS_TABLE}
+    assert set(nodes) == {"stream", "batch"}
+
+    for mode, node in nodes.items():
+        assert node.materialized is True
+        assert node.dataset_name == qualified_table_name(
+            NODE_CATALOG,
+            NODE_SCHEMA,
+            # Same independent discriminator as the customers node -- another plain table read,
+            # so the fingerprint is again sha256 over an empty base-read options dict. Taken from
+            # the constant rather than from ``node.identity`` so the name is genuinely predicted.
+            stable_node_name("_src", EVENTS_TABLE, mode, discriminator=EMPTY_OPTIONS_FINGERPRINT),
+        )
+        assert wiring.recorder.names.count(node.dataset_name) == 1
+
+    # Each consumer binds to the node matching the mode it asked for, and reads it by name.
+    assert wiring.plan.bindings["tf_enrich:input:events_stream"].dataset_name == nodes["stream"].dataset_name
+    assert wiring.plan.bindings["tf_daily:input:events_batch"].dataset_name == nodes["batch"].dataset_name
+    assert wiring.recorder.read_streams.count(nodes["stream"].dataset_name) == 1
+    assert wiring.recorder.reads.count(nodes["batch"].dataset_name) == 1
+
+    # The batch node is NOT read as a stream -- an MV cannot serve dlt.read_stream, and bind()
+    # raises on that combination.
+    assert nodes["batch"].dataset_name not in wiring.recorder.read_streams
+
+    # Two physical reads of the origin, one per mode, each in its own node body.
+    events_reads = [r for r in wiring.spark.physical_reads if r["locator"].casefold() == EVENTS_TABLE]
+    assert len(events_reads) == 2
+    assert sorted(r["streaming"] for r in events_reads) == [False, True]
+
+
+# ---------------------------------------------------------------------------------------------
+# Fanout-1: a materialized base node anyway (v1.7.3 Single-Read mandate)
+# ---------------------------------------------------------------------------------------------
+
+
+def test_fanout_one_locator_still_produces_a_materialized_node(wiring):
+    """``metaflow.silver.lonely`` has exactly one consumer and is materialized regardless.
+
+    This is the exact inversion of the pre-v1.7.3 contract, which left a single-consumer read
+    inline to preserve its predicate pushdown into the origin. Under the Single-Read mandate
+    every external identity is a base node, so the consumer reads it by name via ``dlt.read``
+    rather than issuing its own scan -- and the origin is still scanned exactly once, now from
+    the node's body instead of the consumer's.
+    """
+    nodes = [node for node in wiring.plan.nodes.values() if node.identity.locator == LONELY_TABLE]
     assert len(nodes) == 1
     node = nodes[0]
-
-    # Collapsed to a streaming table, never split into a stream node plus a batch node: a
-    # materialized streaming table is legally readable by dlt.read_stream AND dlt.read, while a
-    # materialized view can serve neither pair.
-    assert node.mode == "stream"
     assert node.materialized is True
-    assert node.dataset_name == qualified_table_name(
-        NODE_CATALOG, NODE_SCHEMA, stable_node_name("_src", EVENTS_TABLE, "stream")
-    )
-    assert wiring.recorder.names.count(node.dataset_name) == 1
-
-    assert wiring.recorder.read_streams.count(node.dataset_name) == 1  # tf_enrich:input:events_stream
-    assert wiring.recorder.reads.count(node.dataset_name) == 1  # tf_daily:input:events_batch
-
-    # One physical read of the origin -- issued by the node's own body, streaming.
-    events_reads = [r for r in wiring.spark.physical_reads if r["locator"].casefold() == EVENTS_TABLE]
-    assert len(events_reads) == 1
-    assert events_reads[0]["streaming"] is True
-
-
-# ---------------------------------------------------------------------------------------------
-# Fanout-1: no node at all
-# ---------------------------------------------------------------------------------------------
-
-
-def test_fanout_one_locator_produces_no_node(wiring):
-    """``metaflow.silver.lonely`` has exactly one consumer, so materializing it would buy a full
-    physical copy and cost that consumer's predicate pushdown -- it stays inline."""
-    for node in wiring.plan.nodes.values():
-        assert node.identity.locator != LONELY_TABLE
+    assert node.mode == "batch"
+    assert node.consumer_ids == ["tf_daily:input:lonely_in"]
 
     binding = wiring.plan.bindings["tf_daily:input:lonely_in"]
-    assert binding.kind == "inline"
-    assert binding.dataset_name is None
+    assert binding.kind == "shared_node"
+    assert binding.dataset_name == node.dataset_name
+    # No reader_spec: the consumer must not retain a way to re-read the origin directly.
+    assert binding.reader_spec is None
 
-    for mode in ("stream", "batch"):
-        forbidden = qualified_table_name(NODE_CATALOG, NODE_SCHEMA, stable_node_name("_src", LONELY_TABLE, mode))
-        assert forbidden not in wiring.recorder.names
+    assert wiring.recorder.by_name(node.dataset_name).kind == "table"
+    assert wiring.recorder.names.count(node.dataset_name) == 1
+    assert wiring.recorder.reads.count(node.dataset_name) == 1
 
-    # Inline means the read happens in the consumer's own closure, through the session --
-    # exactly once, because there is exactly one consumer.
+    # Still exactly one physical scan of the origin -- read-once holds at fanout 1 too.
     assert wiring.spark.physical_locators.count(LONELY_TABLE) == 1
     assert LONELY_TABLE not in wiring.recorder.graph_reads
 
 
-def test_fanout_one_ingestion_path_produces_no_node(wiring):
-    """The same rule for the ingestion flow's own raw landing path: one ingestion flow reads it,
-    so there is no node -- and exactly one Auto Loader stream is opened over it."""
-    for node in wiring.plan.nodes.values():
-        assert node.identity.locator != LANDING_PATH
+def test_fanout_one_ingestion_path_still_produces_a_materialized_node(wiring):
+    """The same inversion for the ingestion flow's own raw landing path.
+
+    Worth its own test because a path source is where a duplicated read is most expensive: two
+    Auto Loader streams over one directory would share a ``cloudFiles.schemaLocation`` and race
+    on it. Exactly one stream is opened over the path, now from the node body.
+    """
+    nodes = [node for node in wiring.plan.nodes.values() if node.identity.locator == LANDING_PATH]
+    assert len(nodes) == 1
+    node = nodes[0]
+    assert node.materialized is True
+    assert node.mode == "stream"
 
     binding = wiring.plan.bindings["ing_orders:source"]
-    assert binding.kind == "inline"
+    assert binding.kind == "shared_node"
     assert binding.mode == "stream"
+    assert binding.dataset_name == node.dataset_name
 
     landing_reads = [r for r in wiring.spark.physical_reads if r["locator"].rstrip("/") == LANDING_PATH]
     assert len(landing_reads) == 1
     assert landing_reads[0]["streaming"] is True
     assert landing_reads[0]["kind"] == "path"
+
+
+def test_legacy_auto_policy_still_leaves_the_fanout_one_locators_inline():
+    """The pre-v1.7.3 ``"auto"`` policy is still reachable and still does the old thing.
+
+    ``"auto"`` survives so that a group onboarded before v1.7.3 with an explicit
+    ``source_plane.materialize`` keeps planning exactly as it did -- its persisted
+    ``source_plane_config_json`` is fed straight back into :func:`plan_source_plane` on every
+    update. Pinning it here is what makes the DEFAULT change above a real behavioural change
+    rather than a rename: under ``"auto"`` this same synthetic group leaves all four fanout-1
+    identities ``inline`` and materializes only the two genuinely shared ones.
+
+    This test plans directly rather than using the :func:`wiring` fixture, because the fixture
+    deliberately exercises the default policy end to end; a second full wiring run under a legacy
+    policy would test ``"auto"``'s registration path, which no supported group uses.
+    """
+    plan = plan_source_plane(
+        _ingestion_rows(),
+        _transformation_rows(),
+        _reconciliation_rows(),
+        node_catalog=NODE_CATALOG,
+        node_schema=NODE_SCHEMA,
+        materialize="auto",
+    )
+
+    # Only the two fanout-2 identities become nodes; nothing splits by mode because the only
+    # dual-mode locator (EVENTS_TABLE) is fanout 1 in each mode under "auto".
+    assert {node.identity.locator for node in plan.nodes.values()} == {CUSTOMERS_TABLE, CUSTOMERS_REF_TABLE}
+
+    for consumer_id in (
+        "ing_orders:source",
+        "tf_daily:input:lonely_in",
+        "tf_enrich:input:events_stream",
+        "tf_daily:input:events_batch",
+        "rec_orders_audit:target:t_ref",
+    ):
+        binding = plan.bindings[consumer_id]
+        assert binding.kind == "inline", f"{consumer_id} should stay inline under materialize='auto'"
+        assert binding.dataset_name is None
+        # An inline binding keeps its own reader_spec -- that is how it re-reads the origin in
+        # the consumer's own closure, and it is precisely what the default policy removed.
+        assert binding.reader_spec is not None
+
+    # The in-graph sibling is unaffected by the policy: it was never a node under either.
+    assert plan.bindings["rec_orders_audit:source"].kind == "in_graph_sibling"
 
 
 # ---------------------------------------------------------------------------------------------

@@ -1,0 +1,146 @@
+{
+  "_scenario": "TEST CASE 3 (v0.0.2) -- full BATCH path with telemetry fully dormant. Two CSV sources are batch-ingested into Bronze staging; one payload column arrives as a JSON STRING and is converted to a NATIVE struct type by source_config.json_string_columns (the framework's real JSON-conversion mechanism -- ingestion/json_flattening.py::parse_json_string_columns -- not an invented key); a CDC transformation flow resolves the latest record state per order with cdc_load_strategy SCD1 (inserts/updates applied in place, rows carrying cdc_op 'D'/'DELETE' physically removed via apply_as_deletes); a custom SQL transformation joins the CDC-resolved dimension to the status Bronze table with explicit column mappings, a WHERE filter and derived columns; and the result is APPENDed to a Delta target. A pipeline-mode reconciliation flow compares that appended Delta target against the status Bronze table.",
+  "_metrics_off_contract": "THIS IS THE POINT OF THE TEST CASE. Under v1.7.3 reconciliation is SILENT BY DEFAULT -- run_log_capture and mismatch_log_capture both default to FALSE (spec_validator._DEFAULT_LOG_CAPTURE, mirroring reconciliation/appender.py::resolve_log_capture_flags layer 3). Rather than rely on that implicit default, this document states the intent EXPLICITLY: logging_config = {run_log_capture: false, mismatch_log_capture: false}. Expected observable outcome of a pipeline update: ZERO rows written to reconciliation_run_log, ZERO rows written to the mismatch log, and no recon__*__metrics dataset registered at all.",
+  "_metrics_off_constraints_honoured": "With both flags resolving false the validator forbids two things, and neither appears below: (1) NO dq_config on the reconciliation flow -- dq expectations attach to the __metrics dataset, which is not registered when run_log_capture is false; (2) NOT execution_mode 'pipeline_audit_only' -- audit-only with both flags false registers compute with no output at all and is rejected. execution_mode is 'pipeline', which keeps the L3/L4 comparison and the L5 heal/append lane inside this group's own Lakeflow update while producing no telemetry rows.",
+  "_recon_source_is_append_only": "V-CYC-7 rejects a pipeline-mode reconciliation whose source resolves to an in-group producer using SCD1/SCD2/SCD3/FULL_SNAPSHOT_CDC (those dispatch through dlt.apply_changes -- real MERGE/UPDATE/DELETE, not append-only). The recon source below is therefore the APPEND Delta target of the SQL transformation flow (tf_tc3_order_enriched -> silver_tc3.tc3_order_enriched), NOT the SCD1 dimension. V-CYC-1 is satisfied because that table is a target this same dataflow group actually publishes.",
+  "dataflow_group_id": "dfg_v0_0_2_tc3_metrics_off",
+  "pipeline_parameters": {},
+  "ingestion_flows": [
+    {
+      "dataflow_id": "df_tc3_orders_cdc_ingest",
+      "source_system": "tc3_order_management",
+      "source_database": "tc3_usecase",
+      "source_table_name": "orders_cdc_feed",
+      "source_description": "TC3 (a) batch ingest 1 of 2: Auto Loader CSV order CDC feed landed into Bronze staging, APPEND (append-only Bronze, so CDC resolution happens downstream in a transformation flow rather than collapsing history at the Bronze boundary). (d) JSON CONVERSION happens here: order_payload arrives as a STRING holding a JSON document and json_string_columns parses it into a native struct via from_json, with schema_ddl supplied so the parse is deterministic on batch reads.",
+      "source_type": "autoloader",
+      "target_catalog": "{{catalog}}",
+      "target_schema": "bronze_tc3",
+      "target_table": "tc3_orders_bronze",
+      "target_type": "streaming_table",
+      "source_config": {
+        "path": "/Volumes/{{catalog}}/tc3_usecase/landing_orders/incoming/",
+        "format": "csv",
+        "schema_location": "/Volumes/{{catalog}}/tc3_usecase/_schemas/tc3_orders_bronze/",
+        "reader_options": {
+          "header": "true",
+          "cloudFiles.inferColumnTypes": "true"
+        },
+        "json_string_columns": [
+          {
+            "column": "order_payload",
+            "schema_ddl": "struct<channel:string,coupon_code:string,line_item_count:int,ship_country:string>"
+          }
+        ],
+        "capture_technical_metadata": true
+      },
+      "target_config": {
+        "cdc_load_strategy": "APPEND",
+        "storage_format": "delta"
+      },
+      "dq_config": {
+        "rules": []
+      },
+      "governance_tags": {}
+    },
+    {
+      "dataflow_id": "df_tc3_order_status_ingest",
+      "source_system": "tc3_order_management",
+      "source_database": "tc3_usecase",
+      "source_table_name": "order_status_feed",
+      "source_description": "TC3 (a) batch ingest 2 of 2: Auto Loader CSV order-status reference feed landed into Bronze staging, APPEND. This is the second physical table the test case requires; it is the join partner of the CDC-resolved order dimension in the SQL transformation, and also the reconciliation flow's comparison target side.",
+      "source_type": "autoloader",
+      "target_catalog": "{{catalog}}",
+      "target_schema": "bronze_tc3",
+      "target_table": "tc3_order_status_bronze",
+      "target_type": "streaming_table",
+      "source_config": {
+        "path": "/Volumes/{{catalog}}/tc3_usecase/landing_order_status/incoming/",
+        "format": "csv",
+        "schema_location": "/Volumes/{{catalog}}/tc3_usecase/_schemas/tc3_order_status_bronze/",
+        "reader_options": {
+          "header": "true",
+          "cloudFiles.inferColumnTypes": "true"
+        },
+        "capture_technical_metadata": true
+      },
+      "target_config": {
+        "cdc_load_strategy": "APPEND",
+        "storage_format": "delta"
+      },
+      "dq_config": {
+        "rules": []
+      },
+      "governance_tags": {}
+    }
+  ],
+  "transformation_flows": [
+    {
+      "flow_step_id": "tf_tc3_order_current_scd1",
+      "dataflow_id": "df_tc3_orders_cdc_ingest",
+      "source_description": "TC3 (b) CDC RECONCILIATION OF RECORD STATE: collapses the append-only Bronze CDC feed to the LATEST state per order_id using cdc_load_strategy SCD1 -- dlt.apply_changes keyed on order_id, sequenced by updated_at. Inserts land as new rows, updates overwrite in place (no history retained), and a row whose cdc_op is 'D' or 'DELETE' is physically removed from the target via apply_as_deletes rather than upserted. The transformation_sql is the projection fed into apply_changes; the native-JSON order_payload struct parsed at ingestion is carried through and its fields addressed with dotted paths.",
+      "target_catalog": "{{catalog}}",
+      "target_schema": "silver_tc3",
+      "target_table": "tc3_order_current",
+      "target_type": "streaming_table",
+      "source_inputs": [
+        {
+          "input_name": "tc3_orders_bronze_stream",
+          "table": "{{catalog}}.bronze_tc3.tc3_orders_bronze",
+          "is_streaming": true
+        }
+      ],
+      "transformation_sql": "SELECT order_id, customer_id, order_status, CAST(order_amount AS DECIMAL(18,2)) AS order_amount, currency_code, order_payload.channel AS order_channel, order_payload.coupon_code AS coupon_code, order_payload.line_item_count AS line_item_count, order_payload.ship_country AS ship_country, updated_at, cdc_op FROM tc3_orders_bronze_stream",
+      "target_config": {
+        "cdc_load_strategy": "SCD1",
+        "primary_keys": [
+          "order_id"
+        ],
+        "sequence_by_column": "updated_at",
+        "cdc_operation_column": "cdc_op",
+        "cdc_operation_mapping": {
+          "delete_values": [
+            "D",
+            "DELETE"
+          ]
+        },
+        "storage_format": "delta"
+      },
+      "dq_config": {
+        "rules": []
+      },
+      "governance_tags": {}
+    },
+    {
+      "flow_step_id": "tf_tc3_order_enriched",
+      "dataflow_id": "df_tc3_orders_cdc_ingest",
+      "source_description": "TC3 (c) CUSTOM SQL TRANSFORMATION + (e) APPEND TO A DELTA TARGET. Joins the SCD1-resolved current order dimension to the order-status Bronze reference table and exercises all three transformation shapes the test case calls for: COLUMN MAPPINGS (order_id -> order_key, customer_id -> customer_key, s.status_description -> order_status_description), a FILTER (WHERE order_amount > 0 AND ship_country IS NOT NULL, dropping zero/negative-value and unshippable orders), and DERIVATIONS (net_order_amount from the status discount rate, is_discounted flag, order_amount_band CASE bucket, avg_line_item_value, and load_timestamp). Written APPEND into a Delta table, which is also what makes it a legal pipeline-mode reconciliation source (V-CYC-7 requires an append-only producer). NOTE (fixed after a real pipeline failure): tc3_order_current is written by SCD1 (dlt.apply_changes, a MERGE), so it MUST be read as a BATCH input here. A streaming read of a MERGE-written target raises Delta's DELTA_SOURCE_TABLE_IGNORE_CHANGES at execution time; source_plane.py's G-STREAM guard catches it at plan time instead, and refuses skipChangeCommits as a workaround because that silently drops changed rows. NOTE (fixed after a second real pipeline failure): the description column is aliased status_description, NOT order_status_description. reconciliation compare_columns must resolve by the SAME NAME on BOTH sides -- there is no per-side column mapping -- and the target side (bronze_tc3.tc3_order_status_bronze) carries the raw seeded name status_description. Aliasing it to order_status_description made the column exist only on the source, and matcher.prepare_dataset_for_matching rejected the target at runtime. NOTE (third fix): target_type is materialized_view, NOT streaming_table. Every input to this flow is BATCH (tc3_order_current must be read as a batch because SCD1 writes it with a MERGE), and a streaming_table requires at least one streaming input -- Lakeflow raised 'View _tc3_order_enriched_staged is not a streaming view and must be referenced using read'. An MV is still a legal pipeline-mode reconciliation source here because the append-only rule rejects materialized_view only for TRUNCATE_AND_LOAD, and this flow is APPEND; the recon reads this side with read_mode 'batch' regardless.",
+      "target_catalog": "{{catalog}}",
+      "target_schema": "silver_tc3",
+      "target_table": "tc3_order_enriched",
+      "target_type": "materialized_view",
+      "source_inputs": [
+        {
+          "input_name": "tc3_order_current_in",
+          "table": "{{catalog}}.silver_tc3.tc3_order_current",
+          "is_streaming": false
+        },
+        {
+          "input_name": "tc3_order_status_in",
+          "table": "{{catalog}}.bronze_tc3.tc3_order_status_bronze",
+          "is_streaming": false
+        }
+      ],
+      "transformation_sql": "SELECT o.order_id AS order_key, o.customer_id AS customer_key, o.order_status, s.status_description AS status_description, o.order_channel, o.ship_country, o.currency_code, o.order_amount, CAST(o.order_amount * (1 - COALESCE(s.discount_rate, 0)) AS DECIMAL(18,2)) AS net_order_amount, CASE WHEN o.coupon_code IS NOT NULL AND o.coupon_code <> '' THEN true ELSE false END AS is_discounted, CASE WHEN o.order_amount >= 1000 THEN 'HIGH' WHEN o.order_amount >= 100 THEN 'MEDIUM' ELSE 'LOW' END AS order_amount_band, o.line_item_count, CAST(o.order_amount / NULLIF(o.line_item_count, 0) AS DECIMAL(18,2)) AS avg_line_item_value, o.updated_at, current_timestamp() AS load_timestamp FROM tc3_order_current_in o LEFT JOIN tc3_order_status_in s ON o.order_status = s.order_status WHERE o.order_amount > 0 AND o.ship_country IS NOT NULL",
+      "target_config": {
+        "cdc_load_strategy": "APPEND",
+        "storage_format": "delta"
+      },
+      "dq_config": {
+        "rules": []
+      },
+      "governance_tags": {}
+    }
+  ],
+  "reconciliation_flows": [],
+  "_test_case_note": " RECONCILIATION FLOW REMOVED (operator decision, after a real constraint conflict): this test case's objective is Logs OFF AND Metrics OFF, and an in-pipeline reconciliation cannot satisfy that here. The recon source (silver_tc3.tc3_order_enriched) must be a materialized_view because every input feeding it is batch -- the SCD1 table it reads is MERGE-written and cannot be read as a stream. But execution_mode 'pipeline' FORCES a streaming read of the recon source (it registers the L5 heal lane, and dlt.foreach_batch_sink accepts streaming queries only), while the batch-source alternative 'pipeline_audit_only' is rejected when both capture flags are false (that mode exists solely to produce __metrics/__mismatch, so it would register compute with no output). The removed flow never healed anyway -- no append_target_table, direction target_to_source -- so 'pipeline' mode bought it nothing. CDC RECONCILIATION OF RECORD STATE is still exercised, by the SCD1 apply_changes flow (tf_tc3_order_current_scd1), which is what step 3 of the test case actually asks for. In-pipeline reconciliation with metrics on vs off is covered by v0_0_2_tc4_metrics_on.json / v0_0_2_tc5_metrics_off.json."
+}

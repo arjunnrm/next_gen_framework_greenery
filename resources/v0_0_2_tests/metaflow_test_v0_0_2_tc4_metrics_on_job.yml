@@ -1,0 +1,91 @@
+# TC4 (v0.0.2) -- "Metrics ON". The telemetry-ON half of the TC4/TC5 matched pair.
+#
+#   setup_control_tables -> seed_metaflow_testing_data -> onboard_tc4 -> run_tc4_pipeline
+#
+# HOW TO USE THE PAIR. Run this job and metaflow_test_v0_0_2_tc5_metrics_off_job, then compare:
+#   * PARITY  -- row counts and a two-way EXCEPT over the business columns between
+#     metaflow.silver_tc4_metrics.tc4_customer_payload_json and
+#     metaflow.silver_tc5_metrics.tc5_customer_payload_json (and the two bronze pairs).
+#     Exclude the __framework_* technical columns: run ids and ingest timestamps differ
+#     between any two runs and are not part of the parity claim.
+#   * TELEMETRY -- reconciliation_run_log/reconciliation_mismatch_log carry rows for
+#     recon_tc4_primary_vs_replica and NONE for recon_tc5_primary_vs_replica.
+#   * PERFORMANCE -- see below.
+#
+# WHERE THE DURATION COMES FROM. Nothing in this job or its spec times itself; a timing
+# mechanism inside the pipeline would add the very overhead it is trying to measure. Take the
+# numbers from the platform's own run history: the Jobs run history for this job vs the TC5 job
+# (Workflows > job > Runs, which breaks the run down per task), or the queryable form,
+# system.lakeflow.job_run_timeline / system.lakeflow.job_task_run_timeline
+# (period_start_time -> period_end_time). Compare the run_tc4_pipeline task against
+# run_tc5_pipeline ONLY -- setup, seed and onboard are identical work in both jobs and
+# including them just dilutes the signal. Use the median of at least two runs each; a single
+# serverless run's start-up variance is larger than the effect being measured.
+#
+# setup_control_tables is load-bearing, not boilerplate: it runs the additive control-table
+# migration (execution_mode / publish_schema / dq_config_json on reconciliation_flow_spec),
+# without which onboarding a pipeline-mode reconciliation flow fails with UNRESOLVED_COLUMN on
+# a workspace provisioned before v1.5.0. `databricks bundle deploy` does not apply it.
+#
+# seed_metaflow_testing_data lands sample_data/metaflow_testing/excalibur_usecase/
+# autoload_batch1.csv at /Volumes/metaflow/Excalibur_usecase/landing_autoload/incoming/. Both
+# of this spec's ingestion flows read that one batch, so the APPEND and SCD1 tables are
+# identical by construction and the reconciliation's expected result is zero mismatches -- in
+# both halves of the pair. A parity test whose two halves disagree about the data is not
+# measuring telemetry.
+#
+# ONBOARDING IS DELEGATED, NEVER INLINED. onboard_tc4 is a run_job_task against the generic
+# resources/metaflow_config_jobs/onboarding_job.yml -- the single parameterised onboarding
+# entrypoint for the whole bundle. The older metaflow_test_*_job.yml files that each pin their
+# own 02_onboarding_engine.py notebook_task are legacy drift; do not copy them.
+#
+# There is deliberately no standalone reconciliation task here. Under execution_mode "pipeline"
+# the L3/L4/L5 datasets are registered by run_tc4_pipeline itself; a 05_reconciliation_engine.py
+# task would run the comparison a second time, double-append into the heal landing table, and
+# add work to exactly the task whose duration this test case is measuring.
+
+resources:
+  jobs:
+    metaflow_test_v0_0_2_tc4_metrics_on_job:
+      name: Metaflow Test v0.0.2 - TC4 Metrics ON Batch Recon Pipeline
+
+      tasks:
+        - task_key: setup_control_tables
+          notebook_task:
+            notebook_path: ../../notebooks/01_setup/01_setup_control_tables.py
+            base_parameters:
+              catalog: metaflow
+          environment_key: framework_env
+
+        - task_key: seed_metaflow_testing_data
+          depends_on:
+            - task_key: setup_control_tables
+          notebook_task:
+            notebook_path: ../../notebooks/00_seed_sample_data/02_seed_metaflow_testing_data.py
+            base_parameters:
+              catalog: metaflow
+          environment_key: framework_env
+
+        - task_key: onboard_tc4
+          depends_on:
+            - task_key: seed_metaflow_testing_data
+          run_job_task:
+            job_id: ${resources.jobs.onboarding_job.id}
+            job_parameters:
+              spec_file_path: "${workspace.file_path}/metaflow_testing/v0_0_2_tc4_metrics_on.json"
+              catalog: metaflow
+              env: dev
+              action_type: CREATE
+
+        - task_key: run_tc4_pipeline
+          depends_on:
+            - task_key: onboard_tc4
+          pipeline_task:
+            pipeline_id: ${resources.pipelines.metaflow_test_v0_0_2_tc4_metrics_on_pipeline.id}
+
+      environments:
+        - environment_key: framework_env
+          spec:
+            environment_version: "4"
+            dependencies:
+              - ../../dist/*.whl

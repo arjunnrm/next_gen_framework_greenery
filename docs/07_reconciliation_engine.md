@@ -669,9 +669,13 @@ Two related properties, neither of them new:
   fly would also get no `CLUSTER BY (__framework_hash_key)` — pre-create it with clustering where
   that matters.
 * **Materialization is not free.** Every L3/L4 node is a real physical copy in UC storage plus an
-  extra DAG step (and a checkpoint, for the streaming ones). This is why the L0 source plane
-  defaults to `materialize: "auto"` — a shared node only at fan-out ≥ 2 — and why `"never"` exists
-  for a huge, heavily-filtered table whose pushdown is worth more than the saved scan.
+  extra DAG step (and a checkpoint, for the streaming ones). The L0 source plane used to hedge
+  against that cost — `materialize: "auto"` gave a shared node only at fan-out ≥ 2, and `"never"`
+  existed for a huge, heavily-filtered table whose pushdown was worth more than the saved scan.
+  **Since v1.7.3 it does not:** `materialize` defaults to `"always"`, so every external source
+  identity is materialized regardless of fan-out, and `"never"` is prohibited. The cost above is
+  therefore paid on every source — budget for it when sizing a group with many single-consumer
+  sources.
 * **Delete the flow's standalone job task when you opt in.** Switching a flow to `"pipeline"` does
   not remove anything from your DABs resources. A `run_<n>_reconciliation` notebook task left in
   place beside a now-pipeline-mode flow makes the comparison run **twice per cycle** — once inside

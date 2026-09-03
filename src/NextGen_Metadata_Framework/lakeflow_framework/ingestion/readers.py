@@ -759,7 +759,11 @@ def read_asn1_source(spark: SparkSession, source_config: Dict[str, Any]) -> Data
             raw_df,
             source_config["asn1_schema_path"],
             source_config["asn1_codec"],
-            source_config["asn1_pdu_name"],
+            # .get(), not [...]: an absent/blank asn1_pdu_name is the documented request to
+            # auto-detect the root PDU, not a missing required key. Subscripting here raised
+            # KeyError -> "missing required key" and made detection unreachable at runtime even
+            # once onboarding accepted the spec.
+            source_config.get("asn1_pdu_name"),
             binary_column="content",
         )
     except KeyError as exc:

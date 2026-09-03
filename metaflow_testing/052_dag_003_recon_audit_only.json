@@ -46,6 +46,7 @@
     {
       "reconciliation_id": "recon_dag_003_bronze_vs_downstream_audit_only",
       "execution_mode": "pipeline_audit_only",
+      "logging_config": {"run_log_capture": true},
       "dataflow_group_id": "dfg_dag_003_recon_audit_only",
       "publish_schema": "recon_dag_003",
       "two_tier_verification": true,

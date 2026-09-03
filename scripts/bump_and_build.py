@@ -10,16 +10,29 @@ Steps, in order:
 1. Archive (never delete) any wheel(s) already in dist/ so the subsequent `uv build`
    is the only *.whl dist/ contains -- resources/**/*.yml's `../../dist/*.whl` glob must
    only ever match one file.
-2. Stamp pyproject.toml's patch version to the current UTC epoch-milliseconds, so
-   the new wheel's filename is guaranteed unique (hatch-vcs/setuptools_scm-style
-   git-derived versioning isn't usable here -- this project has no .git history).
+2. Leave pyproject.toml's version ALONE. The version is a real 3-part semantic version
+   (``X.Y.Z``) owned by a human and bumped deliberately -- it is NOT stamped to
+   epoch-milliseconds any more.
+
+   Pre-0.0.2 this script rewrote the patch component to ``int(time.time() * 1000)``, so
+   every deploy produced a filename nothing else could predict (e.g.
+   ``nextgen_metadata_framework-0.0.1788350054326-py3-none-any.whl``). That bought
+   filename uniqueness, but at the cost of the version meaning anything: two builds of
+   identical source got different versions, and no deployed artifact could be traced back
+   to a release. Uniqueness is now provided by the VERSION-SCOPED artifact_path instead
+   (``/Volumes/<catalog>/config/wheels/<version>`` -- see databricks.yml), which is the
+   property that actually matters: `bundle deploy` prunes superseded artifacts from
+   ``<artifact_path>/.internal/``, so two releases sharing one directory means deploying
+   0.0.3 deletes the wheel a running 0.0.2 pipeline is still resolving. Separate
+   directories make that impossible; a unique filename never prevented it.
+
+   To release, bump ``version`` in pyproject.toml by hand, then deploy.
 3. Run `uv build --wheel`.
 """
 
 import re
 import shutil
 import subprocess
-import time
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -38,19 +51,29 @@ def archive_old_wheels() -> None:
         shutil.move(str(wheel), str(ARCHIVE / wheel.name))
 
 
-def stamp_version() -> str:
+def read_version() -> str:
+    """Return the declared 3-part version, validating its shape. Never writes to pyproject.toml.
+
+    The shape check is load-bearing, not cosmetic: ``databricks.yml``'s ``artifact_path`` is
+    ``/Volumes/${var.catalog}/config/wheels/${var.framework_version}``, and that variable is set
+    from this same value. A malformed or accidentally epoch-stamped version would silently
+    publish into a directory nobody expects, and the next release would not prune it.
+    """
     text = PYPROJECT.read_text(encoding="utf-8")
-    epoch_millis = int(time.time() * 1000)
-
-    def replace(match: "re.Match[str]") -> str:
-        prefix, major, minor, _patch, suffix = match.groups()
-        return f"{prefix}{major}.{minor}.{epoch_millis}{suffix}"
-
-    new_text, count = VERSION_LINE_RE.subn(replace, text, count=1)
-    if count != 1:
-        raise RuntimeError(f'Could not find a `version = "X.Y.Z"` line to stamp in {PYPROJECT}')
-    PYPROJECT.write_text(new_text, encoding="utf-8")
-    return VERSION_LINE_RE.search(new_text).group(0)
+    match = VERSION_LINE_RE.search(text)
+    if match is None:
+        raise RuntimeError(f'Could not find a `version = "X.Y.Z"` line in {PYPROJECT}')
+    _prefix, major, minor, patch, _suffix = match.groups()
+    version = f"{major}.{minor}.{patch}"
+    # An epoch-millis patch is what this script used to write; refuse to build one now so a
+    # stale local checkout cannot resurrect the old scheme unnoticed.
+    if len(patch) > 6:
+        raise RuntimeError(
+            f"pyproject.toml version {version!r} looks epoch-stamped (patch component "
+            f"{patch!r} is {len(patch)} digits). Versions are now hand-managed 3-part semantic "
+            f"versions -- set a real X.Y.Z and re-run."
+        )
+    return version
 
 
 def build_wheel() -> None:
@@ -66,8 +89,8 @@ def build_wheel() -> None:
 
 def main() -> None:
     archive_old_wheels()
-    new_version_line = stamp_version()
-    print(f"[bump_and_build] {new_version_line}")
+    version = read_version()
+    print(f"[bump_and_build] building version {version} (hand-managed; not epoch-stamped)")
     build_wheel()
 
 

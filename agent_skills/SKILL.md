@@ -135,9 +135,10 @@ Concretely, in file terms:
      `assert_acyclic` → `register_source_plane`), so every physical source table/path in the
      group is read **exactly once** per update and reused by every consumer. Each consumer then
      calls `bind(plan, consumer_id, want_stream)` instead of reading directly, and gets back a
-     sibling reference to an in-graph table, one shared materialized node, or today's inline
-     read (fanout 1 — `source_plane.materialize` defaults to `"auto"`, so nothing already
-     deployed changes shape);
+     sibling reference to an in-graph table, or one materialized L0 node. **Since v1.7.3's
+     Single-Read mandate `source_plane.materialize` defaults to `"always"`**, so EVERY external
+     identity gets its own base node regardless of fanout (N source tables → N base ingestion
+     nodes); the old `"auto"` fanout-≥-2 gate is gone and `"never"` is rejected outright;
    - for each **ingestion** row: reads the source
      (`ingestion/readers.py::read_ingestion_source`), attaches technical metadata, applies
      `explode_columns`/`data_standardization_sql`, then hands off to the shared tail;
@@ -445,13 +446,21 @@ and the two published audit datasets, `recon__<reconciliation_id>__<target_id>__
 `__mismatch`, land in `publish_schema` (defaults to the pipeline's own schema) **only when their
 `logging_config` capture flag resolves true**. `run_log_capture` also gates `reconciliation_result`
 (previously unconditional); both flags false == the flow persists only to its business targets.
+**v1.7.3 BREAKING: both flags now default to `false` (was `true`)** — reconciliation is SILENT BY
+DEFAULT, so a flow that omits `logging_config` registers neither audit dataset and writes no
+`run_log`/`mismatch_log`/`result` rows. Auditing is opt-in: write
+`"logging_config": {"run_log_capture": true, "mismatch_log_capture": true}` explicitly. Only the
+implicit fallback changed; an explicit `true`/`false` and the job-parameter layer are unaffected.
 The imperative half — the fingerprint-guarded append plus the control-table writes — is re-hosted
 verbatim inside **one** `dlt.foreach_batch_sink` handler per flow. Mode-scoped spec rules, all
 rejected on **presence**: `read_mode: "streaming"`, `task_run_id_column`, and a missing
 `dataflow_group_id` are each errors in pipeline mode; `publish_schema` and `dq_config` are errors
-in `"job"` mode; and (v1.6.0) `dq_config.rules` with `run_log_capture: false`, or
-`pipeline_audit_only` with **both** capture flags false, are rejected at onboarding *and* at graph
-definition — see `reference/common_pitfalls.md` **36**.
+in `"job"` mode; and (v1.6.0) `dq_config.rules` with `run_log_capture` resolving false, or
+`pipeline_audit_only` with **both** capture flags resolving false, are rejected at onboarding *and*
+at graph definition — and since v1.7.3 both are reachable by **omitting** `logging_config`, not only
+by writing `false`, so a flow with `dq_config.rules` MUST now state `run_log_capture: true`. The
+error names whether the flag was written false, defaulted false (v1.7.3), or overridden false by a
+pipeline-conf key — see `reference/common_pitfalls.md` **36**.
 `dq_config` on the one-row `__metrics` dataset (e.g. `{"expr": "value_drift_count = 0", "action":
 "fail"}`) is the first declarative way a reconciliation threshold can fail a pipeline update; it is
 **additive** and does not repurpose `error_handling.on_failure`, which keeps its try/except meaning
@@ -725,7 +734,7 @@ not guess at a fix; the validator's error text is generated to be actionable on 
 | "How do I wire onboarding into a new job?" | Never inline a `02_onboarding_engine.py` `notebook_task`. Delegate via `run_job_task` to `resources/metaflow_config_jobs/onboarding_job.yml` (one spec) or `resources/metaflow_config_jobs/framework_config_onboarding_job.yml` (a whole `spec_dir`). The ~20 legacy `metaflow_test_*_job.yml` files keep their inline copies deliberately. `reference/common_pitfalls.md` 33. |
 | "Where do I put a new resource YAML, and how do I deploy only the app?" | `resources/` is grouped: `metaflow_app/`, `metaflow_config_jobs/`, `observability/`, `bt_tests/`, `feature_tests/`, `sample_jobs/` (the `metaflow_sample` reference suite — six sample jobs, six pipelines, and the one common `metaflow_sample_seed_job` that lands every fixture they consume), `stability_tests/` (each globbed by `databricks.yml`'s `include:`). Paths inside a resource are `../../`, not `../`. Scope a deploy with `databricks bundle deploy --select apps.metaflow_onboarding_app,jobs.onboarding_job,jobs.framework_config_onboarding_job,volumes.onboarding_specs_volume,volumes.framework_wheels_volume` — **never** by commenting out an `include:` line, which makes DABs delete those resources. `reference/common_pitfalls.md` 34. |
 | "Why don't the `_staged`/`_src__*`/`_recon__*` tables show up in the catalog?" | v1.6.0 Intermediate Object Rule: intermediates are views or pipeline-scoped `temporary` tables, never published — only final sinks and the conditional `__metrics`/`__mismatch` audit datasets are. Upgrading an existing deployment renames/unpublishes them (streaming state resets). `reference/common_pitfalls.md` 35, `docs/13` O7. |
-| "How do I switch reconciliation logging fully off, and why was my spec rejected?" | `logging_config` both-false persists to business targets only — no `__metrics`/`__mismatch` datasets, no `run_log`/`mismatch_log`/**`result`** rows. `dq_config.rules` + `run_log_capture: false` and `pipeline_audit_only` + both-false are rejected at onboarding and graph definition. `reference/common_pitfalls.md` 36, `docs/07` §6/§11.10. |
+| "How do I switch reconciliation logging fully off, and why was my spec rejected?" | **v1.7.3: off is the DEFAULT** — omit `logging_config` (both flags now default false) and the flow persists to business targets only: no `__metrics`/`__mismatch` datasets, no `run_log`/`mismatch_log`/**`result`** rows. Auditing is opt-in via explicit `true`. `dq_config.rules` + `run_log_capture` false and `pipeline_audit_only` + both false are rejected at onboarding and graph definition — now reachable by omission. `reference/common_pitfalls.md` 36, `docs/07` §6/§11.10. |
 | "Where does the read-once guarantee live?" | `engine/source_plane.py` — `plan_source_plane` (pure, no Spark) → `assert_acyclic` → `register_source_plane` → `bind`, plus the `G-STREAM`/`G-SIDE` plan-time guards. `reference/module_map.md`'s `engine/` section; `reference/common_pitfalls.md` 24–25, 31. |
 
 ---

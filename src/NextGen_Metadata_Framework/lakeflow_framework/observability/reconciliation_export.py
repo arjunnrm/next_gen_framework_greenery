@@ -24,6 +24,10 @@ to be logged** whether or not the handler fired. A flow whose flags both resolve
 no L4 audit datasets, writes no control rows anywhere, and is deliberately skipped here --
 reconciliation then persists only to its business targets (the v1.6.0 contract; this includes
 ``reconciliation_result``, which is now gated by ``run_log_capture`` instead of unconditional).
+**Since v1.7.3 that is the DEFAULT**: both flags fall back to ``False`` rather than ``True``, so a
+flow that never declared a ``logging_config`` is skipped here too. Nothing is lost by the export
+in that case -- there was nothing published to back-fill from -- but an operator expecting rows
+must opt the flow in with ``run_log_capture``/``mismatch_log_capture: true``.
 
 **Idempotency is the whole contract.** Every write is keyed on
 ``(reconciliation_id, target_id, pipeline_update_id)`` -- the update id is threaded through as each
@@ -376,6 +380,10 @@ def export_reconciliation_control_rows(
             if not run_log_capture and not mismatch_log_capture:
                 # v1.6.0: with both captures suppressed the flow registers no __metrics/
                 # __mismatch datasets and writes no control rows at all -- nothing to export.
+                # v1.7.3: both flags default to FALSE, so this branch is now the DEFAULT path
+                # for any flow that never declared a logging_config -- the export correctly has
+                # nothing to back-fill, because the pipeline published nothing to back-fill it
+                # from. This is the expected shape of "silent by default", not a missing export.
                 logger.info(
                     "Reconciliation flow '%s': both log captures resolve false -- nothing to export.",
                     reconciliation_id,

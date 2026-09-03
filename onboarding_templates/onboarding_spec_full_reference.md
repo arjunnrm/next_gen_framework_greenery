@@ -58,30 +58,31 @@ literal via `str()` at substitution time (strings single-quoted; everything else
 through bare). The baseline template only ever used string values; this file shows a
 non-string value is equally valid.
 
-`source_plane` is **new in v1.5.0** — the read-once threshold policy for this dataflow
-group's Lakeflow pipeline (see the CANONICAL IDENTITY / SHARING RULES sections of
-[`docs/13`](../docs/13_known_limitations_and_gotchas.md)). This file sets `materialize: "always"`
-(forcing a materialized L0 node for every external locator, not just the fanout-`>=`-2
-default) and a dedicated `schema` for those nodes, to show a non-default configuration; the
-baseline template shows the all-default `{"materialize": "auto", "catalog": null, "schema":
-null}` shape instead. Persisted to the new nullable
+`source_plane` is **new in v1.5.0** — the read-once policy for this dataflow group's Lakeflow
+pipeline (see the CANONICAL IDENTITY / SHARING RULES sections of
+[`docs/13`](../docs/13_known_limitations_and_gotchas.md)). This file sets `materialize: "always"`,
+which since **v1.7.3** is simply the DEFAULT: under the Single-Read architectural mandate a
+materialized L0 node is created for every external locator regardless of fanout (N sources → N
+base nodes). The non-default part shown here is the dedicated `schema` for those nodes, which
+opts them in to publication. Persisted to the nullable
 `dataflow_group_spec.source_plane_config_json` column.
 
 | Attribute | Type | Required | Default, and what an absent key / SQL `NULL` means | Lands in |
 |---|---|---|---|---|
 | `source_plane` | object | no | Absent ⇒ the column is written as `{}` (`json.dumps(spec.get("source_plane", {}))`), and a row or table predating the column reads back as `{}` via `getattr(GROUP_ROW, "source_plane_config_json", None) or "{}"` — either way, all defaults | `dataflow_group_spec.source_plane_config_json` (nullable `STRING`) |
-| `source_plane.materialize` | string enum `auto`\|`always`\|`never` | no | `"auto"` — a shared L0 node is materialized only at fanout `>=` 2, so a single-consumer read keeps the pre-v1.5.0 inline path and its predicate pushdown | same column, `materialize` key |
+| `source_plane.materialize` | string enum `always`\|`auto` | no | `"always"` (changed from `"auto"` in v1.7.3) — every external identity is materialized into its own L0 base node regardless of fanout. `"auto"` is still accepted but resolves to `"always"`; it formerly meant "a node only at fanout `>=` 2". The value `"never"` was **removed** in v1.7.3 and is rejected | same column, `materialize` key |
 | `source_plane.catalog` | string \| null | no | `null` ⇒ the hosting pipeline's own catalog (`spark.catalog.currentCatalog()`, falling back to `dataflow_group_spec.catalog_name`) | same column, `catalog` key |
 | `source_plane.schema` | string \| null | no | `null` ⇒ the hosting pipeline's own schema (`resolve_pipeline_schema`: `pipelines.schema` → `pipelines.target` → current database → the group row's `target_schema`) | same column, `schema` key |
 
-**Honest caveat — `source_plane` is the one v1.5.0 block `spec_validator.py` does *not*
-check.** The string `source_plane` does not appear anywhere in `spec_validator.py`; the block
-is persisted verbatim by `metadata_upsert.py` and only `onboarding_spec.schema.json` (which
-`02_onboarding_engine.py` does not run) constrains it. The practical consequence is that a
-misspelled key, or an unrecognized `materialize` value, is **not rejected at onboarding**: the
-runtime decision is `share = materialize == "always" or (materialize != "never" and fanout >= 2)`
-in `engine/source_plane.py`, so anything that is neither `"always"` nor `"never"` silently
-behaves as `"auto"`. Validate this block against the JSON Schema yourself if you rely on it.
+**Validated since v1.7.3.** This block used to be the one v1.5.0 block `spec_validator.py` did
+not check at all — it was persisted verbatim by `metadata_upsert.py`, so a misspelled key or an
+unrecognized `materialize` value onboarded cleanly and silently fell back to the engine default.
+`_validate_source_plane` now closes that gap: unknown keys are rejected by name (with a
+did-you-mean suggestion), `materialize` is restricted to `always`/`auto`, and `materialize:
+"never"` gets its own migration message rather than a generic "not one of" list. The removed
+value is rejected **twice** — once at onboarding, and again inside `plan_source_plane`, because
+onboarding validation runs only once and a `dataflow_group_spec.source_plane_config_json` row
+written before v1.7.3 is never re-validated.
 
 ---
 
@@ -432,7 +433,7 @@ file actually cover field X" lookup; every row was cross-checked line-by-line ag
 | Field | Demonstrated in |
 |---|---|
 | `dataflow_group_id`, `pipeline_parameters` | top level |
-| `source_plane.{materialize,catalog,schema}` (**new in v1.5.0** — the read-once threshold policy; `materialize` default `"auto"`, shown here as `"always"`) | top level |
+| `source_plane.{materialize,catalog,schema}` (**new in v1.5.0** — the read-once policy; `materialize` default `"always"` since v1.7.3, shown here at that default) | top level |
 | `source_zip_handling` on `autoloader` | `df_ref_autoloader_full` |
 | `source_zip_handling` on `asn1` | `df_ref_asn1_full` |
 | `pre_extraction_decryption.passphrase_secret` | both zip-handling blocks above |

@@ -74,14 +74,14 @@
         "label": "logging_config.run_log_capture",
         "widget": "boolean",
         "type": "boolean",
-        "description": "Per-flow gate on run-log writes. Overridable at runtime by recon_run_log_capture parameter."
+        "description": "Per-flow gate on run-log writes. DEFAULT false since v1.7.3 (was true through v1.7.2) -- reconciliation is silent by default, so leaving this unset means NO reconciliation_run_log or reconciliation_result rows and no recon__*__metrics dataset. Set true to opt in; required true when the flow declares dq_config.rules. Overridable at runtime by the recon_run_log_capture parameter."
       },
       {
         "path": "logging_config.mismatch_log_capture",
         "label": "logging_config.mismatch_log_capture",
         "widget": "boolean",
         "type": "boolean",
-        "description": "Per-flow gate on mismatch-log writes. Overridable at runtime by recon_mismatch_log parameter."
+        "description": "Per-flow gate on mismatch-log writes. DEFAULT false since v1.7.3 (was true through v1.7.2) -- leaving this unset means NO reconciliation_mismatch_log rows and no recon__*__mismatch dataset. Set true to opt in. Overridable at runtime by the recon_mismatch_log parameter."
       },
       {
         "path": "error_handling.on_failure",

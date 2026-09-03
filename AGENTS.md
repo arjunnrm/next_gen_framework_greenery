@@ -57,15 +57,42 @@ See `REMOVED_SOURCE_CONFIG_KEYS` / `REMOVED_TARGET_CONFIG_KEYS` /
 `REMOVED_RECONCILIATION_FLOW_KEYS` / `REMOVED_CDC_LOAD_STRATEGIES` and `reject_removed_keys()` in
 `spec_validator.py` for the established pattern.
 
-### Reconciliation now runs inside the DAG (v1.5.0) — two rules that follow from it
+### The Single-Read DAG mandate — four rules
 
-- **Route every read through `engine/source_plane.py`.** Requirement R2 is that each physical source
-  table/path is read exactly once per pipeline update and reused by every consumer. Never add a new
-  direct read in a flow body: call `bind(plan, consumer_id, want_stream)`. A `@dlt.view` is inlined
-  into each consumer, so "declared once" is **not** "read once" — only materialization makes R2
-  true. And a fully-qualified three-part name is a *sibling reference*, not an escape hatch:
-  `spark.read.table("cat.sch.tbl")` on a table this same pipeline publishes creates a real graph
-  edge, exactly as `dlt.read` does.
+- **1. Ingestion boundary: one external read per source table, per execution mode.** An external read
+  (`spark.read`/`spark.readStream` against a storage path, Delta location or external catalog) must
+  occur **exactly once per pipeline per required source table**. Five source tables means five base
+  `@dlt.table` ingestion nodes. Never define two datasets that read the same raw path or external
+  location. The one deliberate exception: identity is keyed **per execution mode** — a source consumed
+  both as a stream and as a batch legitimately yields two nodes (`__stream` and `__batch`), because
+  streaming and batch run on different primitives (checkpointed continuous state vs. point-in-time
+  snapshot) and forcing one binding onto the other introduces checkpoint locking and full-refresh side
+  effects. `bind()` raises rather than silently reading an MV as a stream.
+- **2. Downstream lineage goes through `dlt.read()`.** Once a source is ingested into a base
+  `@dlt.table`, every downstream transformation, enrichment, join, union and aggregation consumes it
+  **exclusively** via `dlt.read("<name>")` / `dlt.read_stream("<name>")`. Let Lakeflow track lineage
+  natively. A downstream node must never bypass the DAG to re-read the source path. In this framework
+  that means: never add a direct read in a flow body — call `bind(plan, consumer_id, want_stream)`,
+  which resolves to the base node. A fully-qualified three-part name is a *sibling reference*, not an
+  escape hatch: `spark.read.table("cat.sch.tbl")` on a table this same pipeline publishes creates a
+  real graph edge, exactly as `dlt.read` does.
+- **3. "No intermediate tables" means no throwaway staging tables.** The prohibition targets persistent
+  `@dlt.table` objects created *solely* to filter a status code, rename two columns, or stage a
+  transient join before passing data along. Do that filtering, renaming and join prep directly inside
+  the final consuming `@dlt.table`. Where a staging step genuinely aids readability and needs no
+  independent analytical exposure, use `@dlt.view`. This does **not** apply to the rule-1 base
+  ingestion nodes: those are the read-once boundary, and a `@dlt.view` cannot serve there, because a
+  view is inlined into *each* consumer — "declared once" is not "read once", only materialization is.
+  Shared base nodes stay pipeline-scoped `@dlt.table(temporary=True)` unless the spec explicitly asks
+  for publication (the Intermediate Object Rule).
+- **4. `materialize` policy.** The default is `"always"`: every external identity gets its own base
+  node regardless of fanout. `"never"` is **hard-rejected** at onboarding validation — it would
+  reintroduce silent redundant scans at fanout ≥ 2. `"auto"` is retained as a genuinely distinct
+  *legacy* policy (materialize only at fanout ≥ 2, counted per `(identity, mode)`; a fanout-1
+  identity stays `inline`), so a group onboarded before v1.7.3 keeps the topology it was onboarded
+  with instead of silently gaining nodes on re-onboarding. It is a strictly weaker guarantee than
+  `"always"` — do not use it for new specs. See `engine/source_plane.py` and the
+  `reject_removed_keys()` pattern in `spec_validator.py`.
 - **"Never put an eager action inside a dataset query definition" is wrong as stated.** The real
   prohibitions are eager-on-a-**streaming**-plan, self-read, and side-effecting writes. The batch
   branch of `dq/quarantine.py::_quarantine_table` runs `.agg(...).collect()[0]` inside a live

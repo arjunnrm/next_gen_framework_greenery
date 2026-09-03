@@ -47,6 +47,7 @@ EXPECTED_GROUPS = {
     "feature_tests",
     "stability_tests",
     "sample_jobs",
+    "v0_0_2_tests",
 }
 
 #: Groups whose ``include:`` line must exist even while the folder itself is still landing (or

@@ -11,7 +11,7 @@
     "spark.databricks.delta.optimizeWrite.enabled": "true"
   },
   "source_plane": {
-    "materialize": "auto",
+    "materialize": "always",
     "catalog": null,
     "schema": null
   },

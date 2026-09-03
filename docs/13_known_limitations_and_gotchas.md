@@ -1235,11 +1235,16 @@ Two concrete consequences seen in this repo:
   and ZIP handling PGP-decrypts, unzips and writes `.__framework_extracted__` markers.
 
 **Only materialization makes "read once" literally true.** That is what `engine/source_plane.py`
-does: at fan-out ≥ 2 it registers one materialized `_src__…` node — a **streaming table** if any
-consumer streams, a materialized view otherwise — and every consumer binds to it. At fan-out 1 it
-deliberately stays inline, because materializing a single-consumer read would cost a full physical
-copy and destroy predicate pushdown of that consumer's filter into the original source. This is why
-`source_plane.materialize` defaults to `"auto"` rather than `"always"`.
+does: it registers one materialized `_src__…` node per external read identity — a **streaming
+table** if any consumer streams, a materialized view otherwise — and every consumer binds to it.
+
+**Since v1.7.3 this happens at every fan-out, including 1** (the Single-Read architectural
+mandate): N distinct source tables produce N base ingestion nodes. Previously fan-out 1 stayed
+inline, because materializing a single-consumer read costs a full physical copy and destroys
+predicate pushdown of that consumer's filter into the original source — which is why
+`source_plane.materialize` used to default to `"auto"`. It now defaults to `"always"`; that
+pushdown cost is knowingly paid in exchange for a topology that does not change shape with
+fan-out. `"never"` was removed and is rejected at onboarding time and again at plan time.
 
 **Materialized ≠ published (v1.6.0).** Since v1.6.0 these shared nodes are
 `@dlt.table(temporary=True)` under their bare names — materialized once per update, so everything

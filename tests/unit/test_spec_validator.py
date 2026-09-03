@@ -1503,3 +1503,76 @@ def test_observability_volume_path_parameter_is_deliberately_out_of_scope():
     }
     _, _, _, _, errors = validate_spec(None, spec)
     assert not any("run_date" in e or "${env}" in e or "undefined parameter" in e for e in errors)
+
+
+# ---------------------------------------------------------------------------------------------
+# source_plane (v1.7.3 Single-Read architectural mandate)
+#
+# Until v1.7.3 `source_plane` was listed in ALLOWED_ROOT_KEYS and then never inspected again --
+# the block was accepted verbatim, so a typo'd key or an unrecognised materialize value onboarded
+# cleanly and silently fell back to the engine default. These tests pin its first validator.
+# ---------------------------------------------------------------------------------------------
+
+MATERIALIZE_NEVER_MESSAGE = (
+    "materialize='never' is deprecated and prohibited under the Single-Read architectural "
+    "mandate. Remove this setting to default to 'always', ensuring base tables are read once "
+    "and reused via dlt.read()."
+)
+
+
+def _spec_with_source_plane(source_plane):
+    return {
+        "dataflow_group_id": "dfg_test",
+        "ingestion_flows": [_base_ingestion_flow()],
+        "source_plane": source_plane,
+    }
+
+
+def test_source_plane_materialize_never_is_rejected_with_the_exact_message():
+    """The removed VALUE is reported with its verbatim migration message, not the generic
+    "not one of [...]" list -- an author who wrote 'never' needs to know it was deliberately
+    withdrawn and what replaces it, not to think they made a typo.
+    """
+    _, _, _, _, errors = validate_spec(None, _spec_with_source_plane({"materialize": "never"}))
+    assert f"source_plane.materialize: {MATERIALIZE_NEVER_MESSAGE}" in errors
+
+
+def test_source_plane_materialize_never_is_rejected_alongside_other_keys():
+    """Presence of the prohibited value is the trigger regardless of what else the block sets --
+    catalog/schema being present must not mask it.
+    """
+    spec = _spec_with_source_plane({"materialize": "never", "catalog": "c", "schema": "s"})
+    _, _, _, _, errors = validate_spec(None, spec)
+    assert any(MATERIALIZE_NEVER_MESSAGE in e for e in errors)
+
+
+def test_source_plane_materialize_always_and_auto_are_accepted():
+    """'always' is the new default and 'auto' was never prohibited -- neither may be rejected.
+
+    This is the regression guard for the reject_removed_keys() trap: that helper fires on KEY
+    PRESENCE, so wiring `materialize` through it would reject these two legal values as well.
+    """
+    for value in ("always", "auto"):
+        _, _, _, _, errors = validate_spec(None, _spec_with_source_plane({"materialize": value}))
+        assert not any("materialize" in e for e in errors), (value, errors)
+
+
+def test_source_plane_unknown_materialize_value_reports_allowed_values():
+    _, _, _, _, errors = validate_spec(None, _spec_with_source_plane({"materialize": "sometimes"}))
+    assert any("source_plane.materialize" in e and "always" in e and "auto" in e for e in errors)
+
+
+def test_source_plane_unknown_key_is_rejected():
+    """additionalProperties is false for this block in the JSON schema; the validator must agree."""
+    _, _, _, _, errors = validate_spec(None, _spec_with_source_plane({"materialise": "always"}))
+    assert any("source_plane.materialise" in e and "not a recognised attribute" in e for e in errors)
+
+
+def test_source_plane_absent_or_empty_is_valid():
+    """The block is optional, and an empty one simply takes the defaults."""
+    for block in ({}, None):
+        spec = _spec_with_source_plane(block)
+        if block is None:
+            del spec["source_plane"]
+        _, _, _, _, errors = validate_spec(None, spec)
+        assert errors == [], (block, errors)

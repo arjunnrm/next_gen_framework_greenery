@@ -476,8 +476,12 @@ Two corollaries worth memorizing:
   physical copy in UC storage, an extra DAG step, a checkpoint in the streaming case, and — the part
   usually missed — it **destroys predicate pushdown** of a consumer's `filter_condition` into the
   original source, which `reconciliation/matcher.py` explicitly relies on. That is why
-  `source_plane.materialize` defaults to `"auto"` (a node only at fanout ≥ 2) and why `"never"`
-  exists for a huge, heavily-filtered table.
+  `source_plane.materialize` USED to default to `"auto"` (a node only at fanout ≥ 2), with
+  `"never"` as an escape hatch for a huge, heavily-filtered table. **v1.7.3's Single-Read
+  architectural mandate reverses that trade:** the default is now `"always"` — every external
+  identity is materialized regardless of fanout — and `"never"` is prohibited (rejected at
+  onboarding, and again at plan time for rows persisted before the mandate). `"auto"` is still
+  accepted but resolves to `"always"`. The pushdown cost above is now knowingly paid.
 
 ---
 
@@ -787,7 +791,7 @@ schema".
 
 ---
 
-### 36. `reconciliation_result` is no longer unconditional — `run_log_capture` gates it, plus dataset registration
+### 36. Reconciliation logging: `run_log_capture` gates `reconciliation_result` + dataset registration (v1.6.0), and both flags default to FALSE (v1.7.3)
 
 Pre-v1.6.0, `logging_config` gated only `reconciliation_run_log`/`reconciliation_mismatch_log`
 rows; `reconciliation_result` was written for every run "so a silenced flow still leaves a
@@ -813,6 +817,27 @@ Two things break if you assume the old contract:
    would not exist — silently dropping declared DQ checks is the thing this framework never does),
    and `execution_mode: "pipeline_audit_only"` with both flags false (audit-only exists solely to
    produce the audit datasets — that combination is compute with no output).
+
+**v1.7.3 raises the stakes: these flags now DEFAULT TO FALSE.** Through v1.7.2 a flow that never
+mentioned `logging_config` got both flags `true`, so everything above described an opt-OUT. It is
+now an opt-IN: silence is the default, and every consequence above applies to flows whose authors
+wrote nothing at all. Concretely:
+
+- Any **BI dashboard, alert or monitoring query** over `reconciliation_run_log`,
+  `reconciliation_mismatch_log` or `reconciliation_result` goes **empty** for every flow that has
+  not explicitly opted in — including flows onboarded before v1.7.3 and re-onboarded after it.
+- The two rejected combinations become reachable **by omission**. A flow with `dq_config.rules`
+  and no `logging_config` is now rejected, as is a `pipeline_audit_only` flow with no
+  `logging_config`. This is deliberate — the alternative is silently dropping declared DQ
+  expectations — and the error message names whether the flag was written `false`, left unset (and
+  defaulted false by v1.7.3), or forced false by a `dataflow.recon.*` pipeline-conf override, then
+  tells you to set `run_log_capture: true`.
+- **Migration:** add `"logging_config": {"run_log_capture": true, "mismatch_log_capture": true}` to
+  every reconciliation flow whose audit trail anything depends on, and re-onboard.
+
+Only the implicit fallback moved. A flow that already writes an explicit `true`/`false`, and any
+run that sets the `recon_run_log_capture`/`recon_mismatch_log` job parameters, resolve exactly as
+before.
 
 The backstop export (`observability/reconciliation_export.py`) follows the same contract: it
 probes `__metrics` when `run_log_capture` is on (else `__mismatch`), skips both-flags-false flows,

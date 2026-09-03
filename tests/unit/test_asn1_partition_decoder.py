@@ -18,7 +18,10 @@ from unittest.mock import patch
 
 import pandas as pd
 
-from NextGen_Metadata_Framework.lakeflow_framework.asn1.decoder import make_partition_decoder
+from NextGen_Metadata_Framework.lakeflow_framework.asn1.decoder import (
+    CHOICE_DISCRIMINATOR_FIELD,
+    make_partition_decoder,
+)
 
 
 class _FakeCompiled:
@@ -33,7 +36,18 @@ def _batches(*row_lists):
         yield pd.DataFrame(rows, columns=["path", "content"])
 
 
-FIELD_DEFS = [{"name": "imsi", "spark_type": "string"}, {"name": "callDurationSeconds", "spark_type": "long"}]
+# ``asn1_node`` is what makes normalization schema-aware: it is the asn1tools parse node the
+# column was derived from, so _normalize_decoded_value dispatches on the DECLARED ASN.1 type
+# rather than guessing from the decoded value's Python shape (a BIT STRING and a CHOICE both
+# decode to a bare 2-tuple and are otherwise indistinguishable).
+FIELD_DEFS = [
+    {"name": "imsi", "spark_type": "string", "asn1_node": {"type": "IA5String", "name": "imsi"}},
+    {
+        "name": "callDurationSeconds",
+        "spark_type": "long",
+        "asn1_node": {"type": "INTEGER", "name": "callDurationSeconds"},
+    },
+]
 
 
 def test_compile_files_called_exactly_once_per_partition_across_multiple_batches():
@@ -136,12 +150,30 @@ class _FakeCompiledWithBitString:
         }
 
 
+# The ASN.1 shapes _FakeCompiledWithBitString's decoded values correspond to. Normalization
+# walks these in lockstep with the value, so a BIT STRING nested inside a SEQUENCE or a
+# SEQUENCE OF at any depth is still reshaped.
+_NESTED_BIT_STRING_NODE = {
+    "type": "SEQUENCE",
+    "name": "nested",
+    "members": [
+        {"type": "BIT STRING", "name": "bs"},
+        {"type": "INTEGER", "name": "x"},
+    ],
+}
+_LIST_OF_BITS_NODE = {
+    "type": "SEQUENCE OF",
+    "name": "listOfBits",
+    "element": {"type": "BIT STRING", "name": "item"},
+}
+
+
 def test_bit_string_tuple_is_normalized_to_a_bytes_and_bit_length_dict():
     decoder = make_partition_decoder(
         module_files=["/x.asn"],
         codec="ber",
         pdu_name="Rec",
-        field_defs=[{"name": "flags", "spark_type": "unused"}],
+        field_defs=[{"name": "flags", "spark_type": "unused", "asn1_node": {"type": "BIT STRING", "name": "flags"}}],
         binary_column="content",
         passthrough_columns=["path"],
     )
@@ -160,7 +192,10 @@ def test_bit_string_nested_inside_a_struct_and_a_list_is_also_normalized():
         module_files=["/x.asn"],
         codec="ber",
         pdu_name="Rec",
-        field_defs=[{"name": "nested", "spark_type": "unused"}, {"name": "listOfBits", "spark_type": "unused"}],
+        field_defs=[
+            {"name": "nested", "spark_type": "unused", "asn1_node": _NESTED_BIT_STRING_NODE},
+            {"name": "listOfBits", "spark_type": "unused", "asn1_node": _LIST_OF_BITS_NODE},
+        ],
         binary_column="content",
         passthrough_columns=["path"],
     )
@@ -189,3 +224,135 @@ def test_output_columns_are_passthrough_plus_decoded_fields_plus_error_no_binary
 
     assert list(result.columns) == ["path", "modificationTime", "imsi", "callDurationSeconds", "_asn1_decode_error"]
     assert "content" not in result.columns
+
+
+class _FakeCompiledWithChoice:
+    """Simulates asn1tools' real decode shape for CHOICE: a bare ``(member_name, value)``
+    tuple (confirmed live).
+
+    ``adversarial`` is the case that proves the old shape-guessing normalization is genuinely
+    gone: a CHOICE arm whose *value* is itself a ``(bytes, int)`` 2-tuple. Under the previous
+    implementation -- "any (bytes|bytearray, int) 2-tuple is a BIT STRING" -- that value would
+    be silently rewritten into ``{"bytes": ..., "bit_length": ...}`` even though the schema
+    says OCTET STRING. Only a schema-driven walk gets it right."""
+
+    def decode(self, pdu_name, raw_bytes):
+        return {
+            "payload": ("text", "hello"),
+            "adversarial": ("raw", (b"\xff", 8)),
+        }
+
+
+_CHOICE_NODE = {
+    "type": "CHOICE",
+    "name": "payload",
+    "members": [
+        {"type": "UTF8String", "name": "text"},
+        {"type": "INTEGER", "name": "number"},
+        None,  # ASN.1 extension marker "..." -- asn1tools emits a bare None here
+    ],
+}
+
+_ADVERSARIAL_CHOICE_NODE = {
+    "type": "CHOICE",
+    "name": "adversarial",
+    "members": [
+        {"type": "OCTET STRING", "name": "raw"},
+        {"type": "INTEGER", "name": "number"},
+    ],
+}
+
+
+def test_choice_tuple_is_normalized_to_discriminator_plus_nullable_arms():
+    """A decoded CHOICE becomes {discriminator: selected arm name, selected arm: value, every
+    other arm: None} -- the shape derive_asn1_field_defs declared for it."""
+    decoder = make_partition_decoder(
+        module_files=["/x.asn"],
+        codec="ber",
+        pdu_name="Rec",
+        field_defs=[{"name": "payload", "spark_type": "unused", "asn1_node": _CHOICE_NODE}],
+        binary_column="content",
+        passthrough_columns=["path"],
+    )
+    with patch(
+        "NextGen_Metadata_Framework.lakeflow_framework.asn1.decoder.asn1tools.compile_files",
+        return_value=_FakeCompiledWithChoice(),
+    ):
+        result = list(decoder(_batches([{"path": "f1.bin", "content": b"ABC"}])))[0]
+
+    assert result.iloc[0]["payload"] == {
+        CHOICE_DISCRIMINATOR_FIELD: "text",
+        "text": "hello",
+        "number": None,
+    }
+
+
+def test_choice_arm_holding_a_bytes_int_tuple_is_not_mistaken_for_a_bit_string():
+    """The collision case, and the regression guard that proves normalization is schema-aware
+    rather than shape-guessing. The arm's declared type is OCTET STRING, so its ``(b'\xff', 8)``
+    value must pass through verbatim -- NOT be rewritten as a BIT STRING struct."""
+    decoder = make_partition_decoder(
+        module_files=["/x.asn"],
+        codec="ber",
+        pdu_name="Rec",
+        field_defs=[
+            {"name": "adversarial", "spark_type": "unused", "asn1_node": _ADVERSARIAL_CHOICE_NODE}
+        ],
+        binary_column="content",
+        passthrough_columns=["path"],
+    )
+    with patch(
+        "NextGen_Metadata_Framework.lakeflow_framework.asn1.decoder.asn1tools.compile_files",
+        return_value=_FakeCompiledWithChoice(),
+    ):
+        result = list(decoder(_batches([{"path": "f1.bin", "content": b"ABC"}])))[0]
+
+    value = result.iloc[0]["adversarial"]
+    assert value[CHOICE_DISCRIMINATOR_FIELD] == "raw"
+    assert value["raw"] == (b"\xff", 8), "an OCTET STRING arm must not be reshaped as a BIT STRING"
+    assert value["number"] is None
+
+
+class _FakeCompiledRootChoice:
+    """A ROOT CHOICE decodes to a bare ``(arm_name, value)`` tuple, not a dict -- so the
+    decoder cannot ``.get(column_name)`` its way to the columns and must spread the tuple."""
+
+    def decode(self, pdu_name, raw_bytes):
+        return ("notification", {"sender": "BT", "seq": 4})
+
+
+def test_root_choice_pdu_spreads_the_selected_arm_across_arm_columns():
+    """Mirrors TAP's DataInterChange / 3GPP's CallEventRecord: the selected arm column is
+    populated, every other arm column is NULL, and the discriminator names which arm it was."""
+    field_defs = [
+        {"name": CHOICE_DISCRIMINATOR_FIELD, "spark_type": "string", "asn1_node": None},
+        {"name": "transferBatch", "spark_type": "unused", "asn1_node": {"type": "TransferBatch"}},
+        {
+            "name": "notification",
+            "spark_type": "unused",
+            "asn1_node": {
+                "type": "SEQUENCE",
+                "members": [{"type": "UTF8String", "name": "sender"}, {"type": "INTEGER", "name": "seq"}],
+            },
+        },
+    ]
+    decoder = make_partition_decoder(
+        module_files=["/x.asn"],
+        codec="ber",
+        pdu_name="DataInterChange",
+        field_defs=field_defs,
+        binary_column="content",
+        passthrough_columns=["path"],
+        root_is_choice=True,
+    )
+    with patch(
+        "NextGen_Metadata_Framework.lakeflow_framework.asn1.decoder.asn1tools.compile_files",
+        return_value=_FakeCompiledRootChoice(),
+    ):
+        result = list(decoder(_batches([{"path": "f1.bin", "content": b"ABC"}])))[0]
+
+    row = result.iloc[0]
+    assert row[CHOICE_DISCRIMINATOR_FIELD] == "notification"
+    assert row["notification"] == {"sender": "BT", "seq": 4}
+    assert row["transferBatch"] is None, "an unselected CHOICE arm must be NULL"
+    assert row["_asn1_decode_error"] is None

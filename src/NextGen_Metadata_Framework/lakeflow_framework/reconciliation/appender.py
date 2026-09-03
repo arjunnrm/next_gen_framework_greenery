@@ -491,7 +491,13 @@ def resolve_log_capture_flags(
        metadata rather than being forced to restate it on every run.
     2. This flow's own ``logging_config.run_log_capture`` / ``logging_config.mismatch_log_capture``
        -- the onboarded, per-flow layer.
-    3. ``True``.
+    3. ``False`` (**since v1.7.3** -- was ``True``). Reconciliation is SILENT BY DEFAULT: a flow
+       that states no preference at either layer above writes no ``reconciliation_run_log`` /
+       ``reconciliation_result`` / ``reconciliation_mismatch_log`` rows and, in pipeline mode,
+       registers neither the ``__metrics`` nor the ``__mismatch`` dataset. This is a BREAKING
+       change for any flow that relied on the old implicit ``True``: it must now set
+       ``logging_config.run_log_capture: true`` (and/or ``mismatch_log_capture: true``)
+       explicitly to keep populating those tables.
 
     The two naming schemes are deliberately distinct rather than unified: ``recon_*`` names a
     runtime job/pipeline parameter (it lives on a job run, is set by whoever launches it, and
@@ -517,11 +523,15 @@ def resolve_log_capture_flags(
         reconciliation persists only to its business targets.
     """
     config = logging_config or {}
+    # v1.7.3: the implicit fallback is FALSE -- reconciliation is SILENT BY DEFAULT. Layers 1 and
+    # 2 (job parameter, then this flow's own logging_config) are untouched; only the value used
+    # when NEITHER layer states a preference changed. A flow that wants audit rows must now say
+    # so explicitly with logging_config.run_log_capture / .mismatch_log_capture = true.
     run_log_capture = (
-        recon_run_log_capture if recon_run_log_capture is not None else config.get("run_log_capture", True)
+        recon_run_log_capture if recon_run_log_capture is not None else config.get("run_log_capture", False)
     )
     mismatch_log_capture = (
-        recon_mismatch_log if recon_mismatch_log is not None else config.get("mismatch_log_capture", True)
+        recon_mismatch_log if recon_mismatch_log is not None else config.get("mismatch_log_capture", False)
     )
     return bool(run_log_capture), bool(mismatch_log_capture)
 

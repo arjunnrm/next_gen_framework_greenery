@@ -31,7 +31,7 @@ spark_config:
   spark.sql.shuffle.partitions: auto
   spark.databricks.delta.optimizeWrite.enabled: 'true'
 source_plane:
-  materialize: auto
+  materialize: always
   catalog: null
   schema: null
 ingestion_flows:

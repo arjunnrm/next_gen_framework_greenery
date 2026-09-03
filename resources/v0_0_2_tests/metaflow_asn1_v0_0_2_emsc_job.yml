@@ -1,0 +1,62 @@
+# Wraps metaflow_asn1_v0_0_2_emsc_pipeline:
+#
+#   setup_control_tables -> seed_emsc_fixture -> onboard_emsc -> run_emsc_pipeline
+#
+# seed_emsc_fixture (notebooks/00_seed_sample_data/05_seed_asn1_emsc_fixture.py) lands the real
+# EMSC ASN.1 module file at /Volumes/metaflow/emsc/schemas/EMSC.asn1, then generates 10 genuine
+# BER-encoded CallDataRecord fixtures directly on-cluster into
+# /Volumes/metaflow/emsc/landing_cdr/incoming/ -- binary files do not survive Databricks Workspace
+# Files sync reliably. Crucially it writes ONE RECORD PER FILE: the framework decoder decodes a
+# whole file's bytes as a single record, so a concatenated multi-record .ber (which is what
+# BT_Testing/synthetic/emsc_synthetic.ber is) would ingest 1 row and silently drop 9. The notebook
+# self-checks that invariant before finishing. Idempotent, so this job can be re-run.
+#
+# onboard_emsc DELEGATES to the generic onboarding_job via run_job_task rather than inlining a
+# 02_onboarding_engine.py notebook_task, which is the pattern the older per-suite job files use and
+# which this suite deliberately does not copy.
+
+resources:
+  jobs:
+    metaflow_asn1_v0_0_2_emsc_job:
+      name: Metaflow ASN.1 v0.0.2 - EMSC Decode and Load
+
+      tasks:
+        - task_key: setup_control_tables
+          notebook_task:
+            notebook_path: ../../notebooks/01_setup/01_setup_control_tables.py
+            base_parameters:
+              catalog: metaflow
+          environment_key: framework_env
+
+        - task_key: seed_emsc_fixture
+          depends_on:
+            - task_key: setup_control_tables
+          notebook_task:
+            notebook_path: ../../notebooks/00_seed_sample_data/05_seed_asn1_emsc_fixture.py
+            base_parameters:
+              catalog: metaflow
+          environment_key: framework_env
+
+        - task_key: onboard_emsc
+          depends_on:
+            - task_key: seed_emsc_fixture
+          run_job_task:
+            job_id: ${resources.jobs.onboarding_job.id}
+            job_parameters:
+              spec_file_path: "${workspace.file_path}/metaflow_testing/v0_0_2_asn1_emsc.json"
+              catalog: metaflow
+              env: dev
+              action_type: CREATE
+
+        - task_key: run_emsc_pipeline
+          depends_on:
+            - task_key: onboard_emsc
+          pipeline_task:
+            pipeline_id: ${resources.pipelines.metaflow_asn1_v0_0_2_emsc_pipeline.id}
+
+      environments:
+        - environment_key: framework_env
+          spec:
+            environment_version: "4"
+            dependencies:
+              - ../../dist/*.whl

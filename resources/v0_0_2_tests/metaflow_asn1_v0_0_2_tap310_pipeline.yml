@@ -1,0 +1,43 @@
+# v0.0.2 ASN.1 TAP.310 pipeline -- decodes real BER-encoded TAP 3.10 transferred-account-procedure data interchange records
+# (source_type: "asn1") against the real metaflow_testing/BT_Testing/TAP.310.asn1 module into
+# metaflow.bronze_tap310.tap310_raw.
+#
+# The spec OMITS asn1_pdu_name, so asn1/decoder.py::detect_root_pdu_name resolves the root PDU from
+# the module itself: TAP.310.asn1 -> DataInterChange, a 2-arm CHOICE. The decoded frame therefore
+# carries one nullable column per arm (transferBatch, notification) plus the synthetic "_choice" discriminator naming the
+# arm actually selected (3 columns in total). All 10 fixtures select notification.
+#
+# These records are THIN: Notification's members are ALL OPTIONAL and not one of them
+# is present in all 10 records (the best is recipient / rapFileSequenceNumber at
+# 7/10), with 2-8 leaf values per record. The spec's DQ rules therefore assert no
+# individual subfield -- only that decode succeeded, an arm was selected, it is the
+# expected arm, and the arm struct is non-null. A 'mandatory fields present' rule
+# would false-quarantine most of these valid records.
+#
+# Isolated from every other protocol pipeline: its own dataflow group (dfg_v0_0_2_asn1_tap310), its
+# own schema (bronze_tap310) and its own /Volumes/metaflow/tap310/... volume tree.
+#
+# See metaflow_testing/v0_0_2_asn1_tap310.json for the spec and the expected result.
+
+resources:
+  pipelines:
+    metaflow_asn1_v0_0_2_tap310_pipeline:
+      name: metaflow_asn1_v0_0_2_tap310_pipeline_${bundle.target}
+      catalog: metaflow
+      schema: bronze_tap310
+      serverless: true
+      photon: true
+      development: true
+      continuous: false
+
+      libraries:
+        - notebook:
+            path: ../../notebooks/03_engine/03_lakeflow_declarative_pipeline.py
+
+      environment:
+        dependencies:
+          - ../../dist/*.whl
+
+      configuration:
+        dataflow.group.id: dfg_v0_0_2_asn1_tap310
+        dataflow.control.catalog: metaflow

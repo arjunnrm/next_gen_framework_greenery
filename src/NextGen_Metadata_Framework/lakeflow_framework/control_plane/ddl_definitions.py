@@ -35,7 +35,7 @@ CREATE TABLE IF NOT EXISTS {control_schema}.dataflow_group_spec (
     has_transformation_flows    BOOLEAN NOT NULL COMMENT 'True when this group defines one or more transformation flows',
     pipeline_parameters_json    STRING COMMENT 'JSON object of dynamic runtime parameters substituted into ${{param}} placeholders in SQL and paths (transformation/parameters.py) -- string substitution, NOT Spark configuration; see spark_config_json for the latter',
     spark_config_json           STRING COMMENT 'JSON object of Spark configuration applied to the pipeline session for this group -- see engine/spark_config.py for the precedence chain (framework defaults < this < the pipeline resource configuration: dataflow.spark.conf). Distinct from pipeline_parameters_json, which is ${{param}} string substitution.',
-    source_plane_config_json    STRING COMMENT 'JSON: {{materialize: enum ["auto","always","never"] default "auto", catalog: string|null, schema: string|null}} -- the read-once source-plane threshold policy. "auto" materializes a shared node only when fanout >= 2, so a single-consumer read keeps today''s inline path and its predicate pushdown into the origin table. "never" is the escape hatch for a huge, heavily-filtered table where losing that pushdown costs more than the saved scan; "always" forces read-once everywhere. Null catalog/schema mean the hosting pipeline''s own. Read via getattr(GROUP_ROW, "source_plane_config_json", None) -- see engine/source_plane.py.',
+    source_plane_config_json    STRING COMMENT 'JSON: {{materialize: enum ["always","auto"] default "always", catalog: string|null, schema: string|null}} -- the read-once source-plane policy. Since v1.7.3''s Single-Read architectural mandate "always" is the default and the only behaviour: every external read identity is materialized into its own L0 base node regardless of fanout, so N source tables produce N base ingestion nodes and consumers bind via dlt.read()/dlt.read_stream(). "auto" is still accepted but resolves to "always" (it formerly meant "materialize only at fanout >= 2"). The value "never" was REMOVED in v1.7.3 and is rejected at onboarding time and again at plan time. Null catalog/schema mean the node is not published at all (Intermediate Object Rule). Read via getattr(GROUP_ROW, "source_plane_config_json", None) -- see engine/source_plane.py.',
     is_active                   BOOLEAN NOT NULL COMMENT 'Soft-disable flag; inactive groups are skipped by the engine',
     created_at                  TIMESTAMP NOT NULL COMMENT 'Row creation timestamp (UTC)',
     updated_at                  TIMESTAMP NOT NULL COMMENT 'Last upsert timestamp (UTC)',
@@ -464,7 +464,8 @@ ADDITIVE_CONTROL_TABLE_COLUMNS: Dict[str, List[Tuple[str, str, str]]] = {
             "source_plane_config_json",
             "STRING",
             "JSON tuning for the read-once source plane: per-group overrides such as materialize "
-            "always/auto/never. NULL means the default auto policy.",
+            "always/auto ('never' was removed in v1.7.3). NULL means the default 'always' policy "
+            "-- every external source identity gets its own materialized base node.",
         ),
     ],
 }

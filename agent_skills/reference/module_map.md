@@ -245,7 +245,9 @@ only for a healing flow's `_src`/healing `_tgt` (the L5 handler reads them back 
 included), land in `publish_schema`, and carry `dq_config` expectations on the one-row `__metrics`
 dataset (the first declarative way a reconciliation threshold can fail a pipeline update). Two
 contradictions raise `FrameworkConfigError` at graph definition (mirrored by the validator):
-`dq_config.rules` with `run_log_capture` false, and `pipeline_audit_only` with both flags false.
+`dq_config.rules` with `run_log_capture` false, and `pipeline_audit_only` with both flags false --
+both reachable by OMITTING `logging_config` since v1.7.3, when the flags began defaulting to
+`false` (silent by default) instead of `true`.
 L5 is the heal lane: the fingerprint-ledger-guarded append plus the control-table writes
 (`reconciliation_result` gated by `run_log_capture` since v1.6.0), re-hosted verbatim inside
 **one** `dlt.foreach_batch_sink` handler per flow, keeping notebook 05's sequential per-target

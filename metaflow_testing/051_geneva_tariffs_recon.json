@@ -34,6 +34,7 @@
     {
       "reconciliation_id": "recon_geneva_tariffelementband",
       "execution_mode": "pipeline",
+      "logging_config": {"run_log_capture": true},
       "dataflow_group_id": "dfg_geneva_tariffs_recon",
       "publish_schema": "geneva_admin",
       "two_tier_verification": true,

@@ -826,7 +826,11 @@ def test_reconciliation_binds_source_and_target_consumer_ids(recorder, bind_reco
         match_keys_json=json.dumps(["order_id"]),
         compare_columns_json=json.dumps(["amount"]),
         error_handling_json=json.dumps({}),
-        logging_config_json=json.dumps({}),
+        # run_log_capture stated explicitly: since v1.7.3 the capture flags default to
+        # FALSE, and pipeline_audit_only with both resolving false is rejected outright
+        # (it would register compute with no output). This fixture is about consumer-id
+        # binding, not logging, so it opts in rather than depending on the default.
+        logging_config_json=json.dumps({"run_log_capture": True}),
         dq_config_json=json.dumps({}),
         transform_sql=None,
         publish_schema=None,

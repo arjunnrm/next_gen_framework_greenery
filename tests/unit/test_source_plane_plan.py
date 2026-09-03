@@ -20,8 +20,10 @@ proves it again at registration time, against a locally-executing ``dlt``). Cove
     twin) -- casefolding is load-bearing, not cosmetic: a case-sensitive miss here silently
     falls through to a second, duplicate physical read;
   * fanout counting; the any-consumer-streams MODE COLLAPSE; ``in_graph_sibling`` winning over
-    ``shared_node``; fanout == 1 falling back to ``inline``; ``materialize="always"`` /
-    ``"never"``;
+    ``shared_node``; the v1.7.3 Single-Read mandate under which the DEFAULT ``materialize``
+    (``"always"``) materializes a node at ANY fanout, fanout 1 included, while stream and
+    batch of one locator stay two DISTINCT nodes; the legacy ``"auto"`` policy still falling
+    back to ``inline`` at fanout 1; and ``materialize="never"`` being REJECTED outright;
   * the :func:`stable_node_name` COLLISION MATRIX -- ``"metaflow.bronze.a_b"`` and
     ``"metaflow.bronze_a.b"`` sanitize identically and MUST still get different node names,
     or Lakeflow fails the whole update with "Cannot redefine dataset";
@@ -248,7 +250,13 @@ _BASE_READ_DIFFERENCES = [
 @pytest.mark.parametrize("key,left,right", _BASE_READ_DIFFERENCES, ids=[c[0] for c in _BASE_READ_DIFFERENCES])
 def test_base_read_option_difference_is_not_shared(key, left, right):
     """Each BASE-READ option changes WHICH BYTES ARE SCANNED, so two consumers differing in one
-    of them must NOT collapse: no shared node, and each falls back to its own ``inline`` read.
+    of them must NOT collapse into a single shared node.
+
+    Under the v1.7.3 Single-Read mandate the non-collapse shows up as TWO nodes rather than
+    zero: every external identity is materialized regardless of fanout, so what this test
+    guards is that the two requests are two identities -- if the differing option were dropped
+    from :class:`ReadIdentity`, they would fold into ONE node and one consumer would silently
+    be served bytes read under the other's options.
     """
     rows = [
         _ingestion_row("df_left", _autoloader_config(**{key: left}), "left_target"),
@@ -256,9 +264,12 @@ def test_base_read_option_difference_is_not_shared(key, left, right):
     ]
     plan = _plan(ingestion=rows)
 
-    assert plan.nodes == {}
-    assert plan.bindings["df_left:source"].kind == "inline"
-    assert plan.bindings["df_right:source"].kind == "inline"
+    assert len(plan.nodes) == 2
+    left_binding = plan.bindings["df_left:source"]
+    right_binding = plan.bindings["df_right:source"]
+    assert left_binding.kind == "shared_node"
+    assert right_binding.kind == "shared_node"
+    assert left_binding.dataset_name != right_binding.dataset_name
 
 
 # ---------------------------------------------------------------------------------------------
@@ -314,11 +325,21 @@ def test_fanout_counts_every_consumer_of_one_identity():
     assert [r["fanout"] for r in node_rows] == [3]
 
 
-def test_any_streaming_consumer_collapses_the_node_to_stream():
-    """Mode collapse: ANY consumer wanting a stream makes the shared node a STREAMING table.
+def test_streaming_consumer_no_longer_collapses_a_batch_consumer_onto_its_node():
+    """The v1.7.3 replacement for the old mode-collapse rule -- asserted as its inverse.
 
-    Never the reverse -- a materialized streaming table legally serves both ``dlt.read_stream``
-    and ``dlt.read`` in one update, whereas a materialized view serves neither pair.
+    Until v1.7.3 a mixed-mode locator produced ONE node, in stream mode, on the reasoning that a
+    materialized streaming table legally serves ``dlt.read`` as well as ``dlt.read_stream``.
+    That is true as far as it goes, but it silently imposed a streaming node's
+    checkpoint-locking and full-refresh semantics on a consumer that only ever wanted a batch
+    read. Under "read once per source PER EXECUTION MODE" the node key is ``(identity, mode)``,
+    so each consumer gets a node in the mode it actually asked for.
+
+    Kept as its own test (rather than folded into
+    ``test_stream_and_batch_of_one_locator_stay_two_distinct_nodes``) because this is the
+    specific REGRESSION direction: a future "optimisation" that reintroduces the collapse would
+    still satisfy a bare two-node count if it merged the other way, but it cannot satisfy the
+    per-binding mode assertions below.
     """
     external = f"{CATALOG}.external.shared_events"
     rows = [
@@ -327,11 +348,14 @@ def test_any_streaming_consumer_collapses_the_node_to_stream():
     ]
     plan = _plan(transformation=rows)
 
-    node = next(iter(plan.nodes.values()))
-    assert node.mode == "stream"
-    assert node.dataset_name.endswith("__stream")
+    assert {node.mode for node in plan.nodes.values()} == {"stream", "batch"}
     assert plan.bindings["fs_stream:input:e"].mode == "stream"
-    assert plan.bindings["fs_batch:input:e"].mode == "stream"
+    assert plan.bindings["fs_batch:input:e"].mode == "batch"
+    # Each node lists ONLY the consumers that asked for its mode -- the collapse used to show up
+    # here as a stream node carrying the batch consumer's id.
+    by_mode = {node.mode: node for node in plan.nodes.values()}
+    assert by_mode["stream"].consumer_ids == ["fs_stream:input:e"]
+    assert by_mode["batch"].consumer_ids == ["fs_batch:input:e"]
 
 
 def test_in_graph_sibling_wins_over_shared_node():
@@ -355,22 +379,47 @@ def test_in_graph_sibling_wins_over_shared_node():
     assert (produced.casefold(), f"{CATALOG}.silver.out_a".casefold()) in plan.edges
 
 
-def test_fanout_one_external_read_stays_inline():
-    """A single-consumer external read is left INLINE -- today's exact code path, preserving
-    predicate pushdown into the origin, with nothing gained by materializing it.
+def test_default_policy_materializes_a_node_at_fanout_one():
+    """v1.7.3 Single-Read mandate: the DEFAULT policy materializes a base node for a
+    single-consumer external read, with no ``materialize`` argument passed at all.
+
+    This is the inversion of the pre-v1.7.3 contract, where fanout 1 stayed ``inline`` to keep
+    predicate pushdown into the origin. Asserting it via the signature default (rather than an
+    explicit ``materialize="always"``) is the point of the test: the default is the thing that
+    changed, and a regression to ``"auto"`` would be invisible to a test that passes the value.
     """
     inputs = [{"input_name": "d", "table": f"{CATALOG}.ext.dim", "is_streaming": False}]
     plan = _plan(transformation=[_transformation_row("fs_only", inputs, "out")])
 
-    assert plan.nodes == {}
+    assert len(plan.nodes) == 1
     binding = plan.bindings["fs_only:input:d"]
-    assert binding.kind == "inline"
-    assert binding.dataset_name is None
-    assert binding.reader_spec == {"origin": "table", "table": f"{CATALOG}.ext.dim"}
+    assert binding.kind == "shared_node"
+    assert binding.dataset_name is not None
+    # A consumer of a materialized node reads it by name via dlt.read/dlt.read_stream; it must
+    # NOT also carry a reader_spec, which is what would let it re-read the origin directly.
+    assert binding.reader_spec is None
+
+
+def test_n_source_identities_yield_n_base_nodes():
+    """The mandate stated as a count: N distinct external identities => N base ingestion nodes,
+    every one of them materialized, at fanout 1 apiece.
+    """
+    rows = [
+        _transformation_row("fs_a", [{"input_name": "d", "table": f"{CATALOG}.ext.dim_a", "is_streaming": False}], "out_a"),
+        _transformation_row("fs_b", [{"input_name": "d", "table": f"{CATALOG}.ext.dim_b", "is_streaming": False}], "out_b"),
+        _transformation_row("fs_c", [{"input_name": "d", "table": f"{CATALOG}.ext.dim_c", "is_streaming": False}], "out_c"),
+    ]
+    plan = _plan(transformation=rows)
+
+    assert len(plan.nodes) == 3
+    assert {b.kind for b in plan.bindings.values()} == {"shared_node"}
+    assert len({b.dataset_name for b in plan.bindings.values()}) == 3
 
 
 def test_materialize_always_shares_even_at_fanout_one():
-    """``materialize="always"`` forces a node per external identity even at fanout 1."""
+    """``materialize="always"`` passed EXPLICITLY behaves identically to the default -- it is
+    now the default, so this pins that passing it is a no-op rather than a different path.
+    """
     inputs = [{"input_name": "d", "table": f"{CATALOG}.ext.dim", "is_streaming": False}]
     plan = _plan(transformation=[_transformation_row("fs_only", inputs, "out")], materialize="always")
 
@@ -378,19 +427,127 @@ def test_materialize_always_shares_even_at_fanout_one():
     assert plan.bindings["fs_only:input:d"].kind == "shared_node"
 
 
-def test_materialize_never_stays_inline_even_at_fanout_two():
-    """``materialize="never"`` is the explicit opt-out of sharing: N physical reads, no node,
-    even when the fanout would otherwise qualify.
+def test_stream_and_batch_of_one_locator_stay_two_distinct_nodes():
+    """"Read once" means read once per source PER EXECUTION MODE.
+
+    One locator wanted as a stream by one consumer and as a batch by another is NOT collapsed
+    into a single node: nodes are keyed by ``(identity, mode)``, so this yields two nodes with
+    the ``__stream`` and ``__batch`` suffixes. Collapsing them would be a real defect, not an
+    optimisation -- a materialized view cannot be read with ``dlt.read_stream``, :func:`bind`
+    raises when a ``mode="batch"`` binding is asked for a streaming read, and forcing either
+    binding onto the other's node drags in checkpoint-locking and full-refresh side effects.
+    """
+    external = f"{CATALOG}.ext.dim"
+    rows = [
+        _transformation_row("fs_stream", [{"input_name": "d", "table": external, "is_streaming": True}], "out_s"),
+        _transformation_row("fs_batch", [{"input_name": "d", "table": external, "is_streaming": False}], "out_b"),
+    ]
+    plan = _plan(transformation=rows)
+
+    assert len(plan.nodes) == 2
+    stream_binding = plan.bindings["fs_stream:input:d"]
+    batch_binding = plan.bindings["fs_batch:input:d"]
+    assert stream_binding.kind == batch_binding.kind == "shared_node"
+    assert stream_binding.dataset_name != batch_binding.dataset_name
+    assert stream_binding.dataset_name.endswith("__stream")
+    assert batch_binding.dataset_name.endswith("__batch")
+    assert {node.mode for node in plan.nodes.values()} == {"stream", "batch"}
+    assert stream_binding.mode == "stream"
+    assert batch_binding.mode == "batch"
+
+
+def test_materialize_never_is_rejected_at_plan_time():
+    """``materialize="never"`` is prohibited under the Single-Read mandate and raises HERE, not
+    only at onboarding.
+
+    The runtime raise is the half of the prohibition that covers existing groups: onboarding
+    validation runs once, so a group onboarded before v1.7.3 keeps its persisted
+    ``source_plane_config_json`` and feeds it straight into this function on every pipeline
+    update. Without this raise, those groups would keep running the prohibited policy silently
+    -- a validator-only rejection would make the prohibition true for new specs only.
     """
     external = f"{CATALOG}.ext.dim"
     rows = [
         _transformation_row("fs_a", [{"input_name": "d", "table": external, "is_streaming": False}], "out_a"),
         _transformation_row("fs_b", [{"input_name": "d", "table": external, "is_streaming": False}], "out_b"),
     ]
-    plan = _plan(transformation=rows, materialize="never")
+
+    with pytest.raises(FrameworkConfigError) as excinfo:
+        _plan(transformation=rows, materialize="never")
+
+    assert str(excinfo.value) == (
+        "source_plane.materialize: materialize='never' is deprecated and prohibited under the "
+        "Single-Read architectural mandate. Remove this setting to default to 'always', "
+        "ensuring base tables are read once and reused via dlt.read()."
+    )
+
+
+def test_materialize_auto_is_a_distinct_legacy_policy_not_an_alias_for_always():
+    """``"auto"`` is a genuinely DIFFERENT policy from the default, not an accepted synonym.
+
+    It materializes only at fanout >= 2 and leaves a single-consumer identity ``inline`` -- the
+    pre-v1.7.3 shape. It is retained so a control-table row onboarded before v1.7.3 keeps the DAG
+    topology it was onboarded with, instead of silently gaining base nodes the moment its group is
+    re-onboarded. It is a strictly WEAKER guarantee than ``"always"`` (a fanout-1 identity is
+    re-read inside each consumer's own closure) and is not recommended for new specs.
+
+    This test is the seam that keeps the two policies from quietly converging: if ``"auto"`` were
+    ever collapsed back into ``"always"``, the fanout-1 assertions below would flip to
+    ``shared_node`` and fail here rather than being discovered as an unexplained topology change
+    in a deployed pipeline.
+    """
+    inputs = [{"input_name": "d", "table": f"{CATALOG}.ext.dim", "is_streaming": False}]
+    row = _transformation_row("fs_only", inputs, "out")
+
+    explicit_auto = _plan(transformation=[row], materialize="auto")
+    default = _plan(transformation=[row])
+
+    # Fanout 1 under "auto": no node, the consumer re-reads the origin inline.
+    assert explicit_auto.nodes == {}
+    auto_binding = explicit_auto.bindings["fs_only:input:d"]
+    assert auto_binding.kind == "inline"
+    assert auto_binding.dataset_name is None
+    assert auto_binding.reader_spec is not None
+
+    # ...whereas the DEFAULT policy materializes that same fanout-1 identity.
+    assert len(default.nodes) == 1
+    assert default.bindings["fs_only:input:d"].kind == "shared_node"
+
+
+def test_materialize_auto_still_shares_at_fanout_two():
+    """The other half of the legacy contract: ``"auto"`` DOES materialize once two distinct
+    consumers request the same identity in the same mode -- that is the threshold it is named for.
+    """
+    external = f"{CATALOG}.ext.dim"
+    rows = [
+        _transformation_row("fs_a", [{"input_name": "d", "table": external, "is_streaming": False}], "out_a"),
+        _transformation_row("fs_b", [{"input_name": "d", "table": external, "is_streaming": False}], "out_b"),
+    ]
+    plan = _plan(transformation=rows, materialize="auto")
+
+    assert len(plan.nodes) == 1
+    assert plan.bindings["fs_a:input:d"].kind == "shared_node"
+    assert plan.bindings["fs_b:input:d"].kind == "shared_node"
+    assert plan.bindings["fs_a:input:d"].dataset_name == plan.bindings["fs_b:input:d"].dataset_name
+
+
+def test_materialize_auto_counts_fanout_per_mode_not_per_locator():
+    """Fanout under ``"auto"`` is counted per (identity, MODE), matching the node key.
+
+    One locator consumed once as a stream and once as a batch is fanout 1 in EACH mode, not
+    fanout 2 -- those two consumers can never share a node (a materialized view cannot be read
+    with ``dlt.read_stream``), so counting them as "shared" would materialize a node on behalf of
+    a sharing that cannot happen.
+    """
+    external = f"{CATALOG}.ext.dim"
+    rows = [
+        _transformation_row("fs_s", [{"input_name": "d", "table": external, "is_streaming": True}], "out_s"),
+        _transformation_row("fs_b", [{"input_name": "d", "table": external, "is_streaming": False}], "out_b"),
+    ]
+    plan = _plan(transformation=rows, materialize="auto")
 
     assert plan.nodes == {}
-    assert plan.bindings["fs_a:input:d"].kind == "inline"
+    assert plan.bindings["fs_s:input:d"].kind == "inline"
     assert plan.bindings["fs_b:input:d"].kind == "inline"
 
 
@@ -661,9 +818,13 @@ def test_assert_acyclic_accepts_the_geneva_shape():
     recon_owner = "__reconciliation__recon_geneva_tariffelementband"
     assert plan.bindings["recon_geneva_tariffelementband:source"].kind == "in_graph_sibling"
     assert (near.casefold(), recon_owner) in plan.edges
-    # The far side is genuinely external to this group -- fanout 1, so inline.
+    # The far side is genuinely external to this group -- so under the v1.7.3 Single-Read
+    # mandate it gets its own materialized base node despite being read by only one consumer.
+    # Being a NODE rather than an inline read is what keeps it out of the dependency graph:
+    # an external node has no in-graph producer, so it contributes no edge and cannot close a
+    # cycle -- which is why the shape stays acyclic under the new policy too.
     far_binding = plan.bindings["recon_geneva_tariffelementband:target:bronze_tariffelementband_far"]
-    assert far_binding.kind == "inline"
+    assert far_binding.kind == "shared_node"
 
     assert_acyclic(plan)  # must not raise
 

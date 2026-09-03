@@ -1,0 +1,181 @@
+{
+  "$comment": "MACHINE-READABLE ATTRIBUTE DELTA for the NextGen Metadata Framework (Metaflow) onboarding spec, v1.7.2 -> v1.7.3. Written for an automated agent updating the Databricks App (databricks-app/). Every path below is expressed as it appears in an onboarding spec document, rooted at the spec object; [] denotes an array element. This delta covers TWO INDEPENDENT CHANGES shipped in the same release: (A) the reconciliation log-capture default flip, and (B) the source_plane Single-Read architectural mandate (materialize default auto->always, enum value 'never' removed, and the first-ever validator for the source_plane block). Consumers MUST NOT treat 'no attribute added/removed' as 'no action required': default-seeding logic and help text change for both.",
+  "schema_version": "1",
+  "framework_version_from": "1.7.2",
+  "framework_version_to": "1.7.3",
+  "spec_surface_changed": true,
+  "default_values_changed": true,
+  "summary": {
+    "added": 0,
+    "modified": 3,
+    "removed": 0,
+    "enum_values_removed": 1,
+    "rejections_added": 2,
+    "rejections_widened": 2,
+    "breaking": [
+      "logging_config.run_log_capture now defaults to false (was true). A reconciliation flow that omits the key writes NO reconciliation_run_log rows, NO reconciliation_result rows, and in pipeline mode does not register the recon__<rid>__<tid>__metrics dataset at all.",
+      "logging_config.mismatch_log_capture now defaults to false (was true). A flow that omits the key writes NO reconciliation_mismatch_log rows and does not register the recon__<rid>__<tid>__mismatch dataset.",
+      "Two pre-existing rejections are now reachable by OMISSION rather than only by an explicit false: dq_config.rules with run_log_capture unset, and execution_mode=pipeline_audit_only with both flags unset. Specs that validated under v1.7.2 can fail validation under v1.7.3 without being edited.",
+      "source_plane.materialize now defaults to 'always' (was 'auto'). EVERY external source identity is materialized into its own L0 base @dlt.table node regardless of fanout, so N distinct source tables now produce N base ingestion nodes where previously only fanout>=2 identities did. This changes pipeline topology, dataset count and storage footprint for already-onboarded groups that did not set the key. The 'inline' binding kind is no longer chosen for any external identity.",
+      "source_plane.materialize='never' is REMOVED and hard-rejected at onboarding time, and again at plan time (engine/source_plane.py::plan_source_plane) for dataflow_group_spec.source_plane_config_json rows persisted before the mandate, which onboarding never re-validates."
+    ],
+    "headline": "v1.7.3: reconciliation is SILENT BY DEFAULT. The implicit fallback in resolve_log_capture_flags flipped from true to false, so control-table auditing and the published __metrics/__mismatch datasets become opt-in. The job-parameter layer and any explicitly written true/false are UNCHANGED.",
+    "see_also": [
+      "src/NextGen_Metadata_Framework/lakeflow_framework/reconciliation/appender.py::resolve_log_capture_flags",
+      "docs/07_reconciliation_engine.md#6-runtime-log-controls",
+      "docs/14_onboarding_restrictions_and_validation_rules.md",
+      "agent_skills/reference/common_pitfalls.md#36"
+    ]
+  },
+  "attributes": [
+    {
+      "path": "reconciliation_flows[].logging_config.run_log_capture",
+      "change": "modified",
+      "change_kind": "default_value_flip",
+      "type": "boolean",
+      "required": false,
+      "default_before": true,
+      "default_after": false,
+      "allowed_values": [
+        true,
+        false
+      ],
+      "resolution_precedence": [
+        "1. recon_run_log_capture job parameter / dataflow.recon.run_log_capture pipeline conf (null or '' means unset) -- UNCHANGED",
+        "2. this key on the flow's own logging_config -- UNCHANGED",
+        "3. implicit fallback -- CHANGED from true to false"
+      ],
+      "gates": [
+        "control table reconciliation_run_log (row writes)",
+        "control table reconciliation_result (row writes; gated since v1.6.0)",
+        "registration of the published dataset recon__<reconciliation_id>__<target_id>__metrics in pipeline / pipeline_audit_only mode"
+      ],
+      "migration": "To retain v1.7.2 behaviour, add \"run_log_capture\": true to the flow's logging_config and re-onboard. For a single run without re-onboarding, set the recon_run_log_capture job parameter to \"true\" (pipeline mode: the dataflow.recon.run_log_capture pipeline conf key).",
+      "ui_action": "In databricks-app: the boolean control for logging_config.run_log_capture must render UNCHECKED when the key is absent (it already emits no key when untouched -- do NOT seed a default value into the exported JSON). Update its help text to state that the default is now false and that auditing is opt-in. A warning affordance is recommended when dq_config.rules is populated while this control is unchecked, because that spec will be rejected at onboarding.",
+      "app_state": "config/registry/reconciliation.json and web/src/registry.js description strings were updated in this change. web/dist/ has NOT been rebuilt -- run `npm run build` in databricks-app/web before deploying the app."
+    },
+    {
+      "path": "reconciliation_flows[].logging_config.mismatch_log_capture",
+      "change": "modified",
+      "change_kind": "default_value_flip",
+      "type": "boolean",
+      "required": false,
+      "default_before": true,
+      "default_after": false,
+      "allowed_values": [
+        true,
+        false
+      ],
+      "resolution_precedence": [
+        "1. recon_mismatch_log job parameter / dataflow.recon.mismatch_log pipeline conf (null or '' means unset) -- UNCHANGED",
+        "2. this key on the flow's own logging_config -- UNCHANGED",
+        "3. implicit fallback -- CHANGED from true to false"
+      ],
+      "gates": [
+        "control table reconciliation_mismatch_log (row writes)",
+        "registration of the published dataset recon__<reconciliation_id>__<target_id>__mismatch in pipeline / pipeline_audit_only mode"
+      ],
+      "migration": "To retain v1.7.2 behaviour, add \"mismatch_log_capture\": true to the flow's logging_config and re-onboard. For a single run, set the recon_mismatch_log job parameter to \"true\" (pipeline mode: dataflow.recon.mismatch_log).",
+      "ui_action": "Same as run_log_capture: render UNCHECKED when absent, emit no key when untouched, and update help text to state the default is now false.",
+      "app_state": "Description strings updated; web/dist/ not rebuilt."
+    },
+    {
+      "path": "source_plane.materialize",
+      "change": "modified",
+      "change_kind": "default_value_change_and_enum_value_removal",
+      "type": "string",
+      "required": false,
+      "default_before": "auto",
+      "default_after": "always",
+      "allowed_values_before": [
+        "auto",
+        "always",
+        "never"
+      ],
+      "allowed_values": [
+        "always",
+        "auto"
+      ],
+      "enum_values_removed": [
+        "never"
+      ],
+      "semantics_after": "'always' (default): every external physical read identity is materialized into its own L0 base node regardless of fanout; consumers bind via dlt.read()/dlt.read_stream(). 'auto': still ACCEPTED (it was never prohibited) but no longer a distinct behaviour -- it resolves to 'always'. It formerly meant 'materialize only at fanout >= 2'.",
+      "per_mode_identity_retained": "Read-once means once per source PER EXECUTION MODE. The __stream/__batch node-name suffix is deliberately RETAINED and must not be collapsed: bind() raises when a batch-bound materialized view is read as a stream.",
+      "enforced_at": [
+        "onboarding: onboarding/spec_validator.py::_validate_source_plane (NEW in v1.7.3 -- this block had no validator at all before; it was in ALLOWED_ROOT_KEYS and then never inspected)",
+        "plan time: engine/source_plane.py::plan_source_plane (raises FrameworkConfigError on 'never')",
+        "schema: onboarding_templates/onboarding_spec.schema.json $defs.sourcePlane.materialize"
+      ],
+      "ui_action": "The Databricks App has NO source_plane field in config/registry/*.json, config/attribute_knowledge*.json, config/validation/rules.json, web/src/registry.js or web/src/Builder.jsx -- this block was never exposed in the UI. The ONLY app-side change is the bundled template databricks-app/templates/pipeline_onboarding_template.json, whose source_plane.materialize seed value changes 'auto' -> 'always'. If a source_plane editor is ever added, offer exactly ['always','auto'] and never 'never'."
+    }
+  ],
+  "rejections": [
+    {
+      "id": "RECON-LOG-DQ",
+      "status": "widened",
+      "rule": "A reconciliation flow declaring dq_config.rules while run_log_capture RESOLVES false is rejected.",
+      "what_changed": "The rule itself is unchanged since v1.6.0. What changed is reachability: run_log_capture now resolves false when the key is simply absent, so a flow with dq_config.rules and NO logging_config at all is now rejected. Under v1.7.2 the same spec was accepted.",
+      "enforced_at": [
+        "onboarding: onboarding/spec_validator.py::_validate_logging_config",
+        "graph definition: reconciliation/graph_registration.py::register_reconciliation_flow (also catches the pipeline-conf override)"
+      ],
+      "message_template_defaulted": "reconciliation_flows[N].logging_config.run_log_capture is not set, and since v1.7.3 it DEFAULTS TO FALSE (reconciliation is silent by default; through v1.7.2 it defaulted to true), which is incompatible with dq_config.rules -- the flow's expectations attach to its recon__*__metrics dataset, which is only registered when run_log_capture resolves true. Fix: set reconciliation_flows[N].logging_config.run_log_capture: true, or remove dq_config.rules from this reconciliation flow.",
+      "message_template_explicit_false": "reconciliation_flows[N].logging_config.run_log_capture is set to false, which is incompatible with dq_config.rules -- the flow's expectations attach to its recon__*__metrics dataset, which is only registered when run_log_capture resolves true. Fix: set reconciliation_flows[N].logging_config.run_log_capture: true, or remove dq_config.rules from this reconciliation flow.",
+      "message_note": "The message varies by PROVENANCE of the false value: written false, defaulted false (v1.7.3), or forced false by the dataflow.recon.run_log_capture pipeline-conf override. An automated consumer matching on message text must handle all three variants; the stable substrings are 'dq_config' plus one of 'is set to false' / 'is not set, and since v1.7.3 it DEFAULTS TO FALSE' / 'pipeline-conf override is set to false'.",
+      "migration": "Add \"run_log_capture\": true to the flow's logging_config.",
+      "ui_action": "Validate client-side: if dq_config.rules is non-empty and the run_log_capture control is unchecked, block export and surface the migration message."
+    },
+    {
+      "id": "RECON-LOG-AUDIT-ONLY",
+      "status": "widened",
+      "rule": "execution_mode 'pipeline_audit_only' with BOTH run_log_capture and mismatch_log_capture resolving false is rejected.",
+      "what_changed": "Reachability only. A pipeline_audit_only flow with no logging_config at all is now rejected; under v1.7.2 it was accepted and produced both audit datasets.",
+      "enforced_at": [
+        "onboarding: onboarding/spec_validator.py::_validate_logging_config",
+        "graph definition: reconciliation/graph_registration.py::register_reconciliation_flow"
+      ],
+      "message_template_defaulted": "reconciliation_flows[N].logging_config: execution_mode 'pipeline_audit_only' requires at least one capture flag to resolve true, but both resolve false -- reconciliation_flows[N].logging_config.run_log_capture is not set, and since v1.7.3 it DEFAULTS TO FALSE (reconciliation is silent by default; through v1.7.2 it defaulted to true); reconciliation_flows[N].logging_config.mismatch_log_capture is not set, and since v1.7.3 it DEFAULTS TO FALSE (reconciliation is silent by default; through v1.7.2 it defaulted to true). Audit-only mode exists solely to produce the recon__*__metrics/recon__*__mismatch datasets and their control-table exports, so this combination registers compute with no output at all. Fix: set reconciliation_flows[N].logging_config.run_log_capture: true (and/or reconciliation_flows[N].logging_config.mismatch_log_capture: true), or use execution_mode 'job'/'pipeline'.",
+      "message_note": "As above, each of the two flags is described by its own provenance clause, so a run of this message can mix 'is set to false' and 'is not set, and since v1.7.3 it DEFAULTS TO FALSE'.",
+      "migration": "Add \"run_log_capture\": true and/or \"mismatch_log_capture\": true, or move the flow to execution_mode 'job'/'pipeline'.",
+      "ui_action": "Validate client-side: if execution_mode is pipeline_audit_only and both capture controls are unchecked, block export and surface the migration message."
+    },
+    {
+      "id": "SRCPLANE-MATERIALIZE-NEVER",
+      "status": "added",
+      "rule": "source_plane.materialize == 'never' is rejected. Trigger is the VALUE, not key presence.",
+      "what_changed": "New in v1.7.3. NOTE for implementers: this is a removed VALUE of a SURVIVING key, so it follows the REMOVED_CDC_LOAD_STRATEGIES pattern, NOT the REMOVED_*_KEYS / reject_removed_keys() pattern -- that helper fires on key PRESENCE and would also reject the legal materialize:'always' and materialize:'auto'.",
+      "enforced_at": [
+        "onboarding: onboarding/spec_validator.py::_validate_source_plane",
+        "plan time: engine/source_plane.py::plan_source_plane (same message, for stale control-table rows)"
+      ],
+      "message_verbatim": "materialize='never' is deprecated and prohibited under the Single-Read architectural mandate. Remove this setting to default to 'always', ensuring base tables are read once and reused via dlt.read().",
+      "message_as_emitted_by_validator": "source_plane.materialize: materialize='never' is deprecated and prohibited under the Single-Read architectural mandate. Remove this setting to default to 'always', ensuring base tables are read once and reused via dlt.read().",
+      "message_note": "The verbatim text above is the user-approved message. The validator and the plan-time raise both prefix it with 'source_plane.materialize: ' per this repo's existing path-prefix convention. Match on the verbatim substring, not the whole emitted string. It is declared ONCE as engine/source_plane.py::MATERIALIZE_NEVER_REJECTION and imported by the validator so the two paths cannot drift."
+    },
+    {
+      "id": "SRCPLANE-UNKNOWN-KEY",
+      "status": "added",
+      "rule": "Any key in the source_plane block outside {materialize, catalog, schema} is rejected by name, with a difflib did-you-mean suggestion.",
+      "what_changed": "New in v1.7.3 and the more consequential half of this change: before it, source_plane was accepted VERBATIM with zero validation, so 'materialise' (British spelling) or any other typo onboarded cleanly, wrote its control-table row, and silently fell back to the engine default. onboarding_spec_full_reference.md documented this gap explicitly; that caveat is now false and has been rewritten.",
+      "enforced_at": [
+        "onboarding: onboarding/spec_validator.py::_validate_source_plane (reject_unknown_keys)"
+      ],
+      "allowlist": [
+        "catalog",
+        "materialize",
+        "schema"
+      ],
+      "pinned_by_test": "tests/unit/test_unknown_key_rejection.py::test_allowed_key_sets_match_json_schema now pins ALLOWED_SOURCE_PLANE_KEYS to $defs.sourcePlane.properties in the JSON schema."
+    }
+  ],
+  "consumer_checklist": [
+    "Do NOT add a `default: true` (or any default) for these two keys anywhere in the app -- an untouched control must emit no key, and the framework now resolves an absent key to false.",
+    "If the app or any template seeds logging_config with true values, that is now a MEANINGFUL opt-in rather than a redundant restatement -- keep it only where the audit trail is genuinely wanted, and say so in the template comment.",
+    "Any dashboard, alert, or query over reconciliation_run_log / reconciliation_mismatch_log / reconciliation_result must be reviewed: it returns no rows for flows that have not opted in.",
+    "Run `npm run build` in databricks-app/web after updating registry.js -- Databricks Apps does not build at deploy time.",
+    "databricks-app: change the bundled template seed source_plane.materialize 'auto' -> 'always' in databricks-app/templates/pipeline_onboarding_template.json. Do NOT ship a template that still seeds 'auto' -- it is accepted but is now a no-op alias, and it misrepresents the policy.",
+    "There is NO source_plane field anywhere in the app UI (registry.js, Builder.jsx, config/registry/*.json, config/attribute_knowledge*.json, config/validation/rules.json). Do not search for one; do not conclude from its absence that no app change is needed -- the bundled template above still requires the edit.",
+    "If any generator or fixture emits source_plane.materialize:'never', it must be migrated: delete the key. It is now rejected at onboarding AND at pipeline plan time.",
+    "Expect more datasets per pipeline: every external source identity is now its own base @dlt.table node. Any UI, doc or dashboard that states 'a shared node appears only at fanout >= 2' is stale."
+  ]
+}

@@ -27,6 +27,10 @@ bundle:
 #                                   A1-G4 cases; no resource built yet (see its README.md)
 #   resources/sample_jobs/          five metaflow_sample reference jobs, one schema-isolated
 #                                   sample suite
+#   resources/v0_0_2_tests/         the v0.0.2 release test suite (TC1-TC5): one job + one
+#                                   pipeline per case, each onboarding its
+#                                   metaflow_testing/v0_0_2_*.json spec via run_job_task
+#                                   against the generic onboarding_job
 #
 # THE USUAL DEPLOY -- app + both config jobs + wheel, nothing else. `--select` (CLI >= v1.13.0)
 # limits the deploy to the named resources; the wheel is still built and uploaded by the
@@ -51,6 +55,7 @@ include:
 #  - resources/feature_tests/*.yml
 #  - resources/stability_tests/*.yml
   - resources/sample_jobs/*.yml
+  - resources/v0_0_2_tests/*.yml
 
 # The framework wheel (a `.whl` -- a ZIP distribution) is built AND published by
 # `bundle deploy` itself. There is no separate upload step, and no pinned-path variable to keep
@@ -174,6 +179,20 @@ artifacts:
 
 # Variable declarations. These variables are assigned in the dev/prod targets below.
 variables:
+  framework_version:
+    description: >-
+      The framework wheel's 3-part semantic version (X.Y.Z), which MUST equal `version` in
+      pyproject.toml -- scripts/bump_and_build.py reads that file and refuses an epoch-stamped
+      value. It is the last path segment of `workspace.artifact_path`
+      (/Volumes/<catalog>/config/wheels/<framework_version>), which is what makes one release's
+      wheel deploy unable to disturb another's: `bundle deploy` PRUNES superseded artifacts from
+      `<artifact_path>/.internal/`, so while every release shared one flat directory, deploying a
+      new version deleted the wheel that a still-running pipeline from the previous version was
+      resolving (ENVIRONMENT_PIP_INSTALL_ERROR). Per-version directories make that structurally
+      impossible rather than merely unlikely -- unique wheel FILENAMES never prevented it, because
+      pruning removes by directory scan, not by name collision. Bump this and pyproject.toml
+      together, in the same commit.
+    default: 0.0.2
   catalog:
     description: The catalog to use
   schema:
@@ -237,7 +256,7 @@ targets:
       profile: dev_metaflow
       # v1.6.0: fixed, shared UC-Volume artifact path -- see the `artifacts` block above for the
       # decision record and the never-deploy-mid-run rule that still applies.
-      artifact_path: /Volumes/${var.catalog}/config/wheels
+      artifact_path: /Volumes/${var.catalog}/config/wheels/${var.framework_version}
 
     variables:
       catalog: metaflow
@@ -251,7 +270,7 @@ targets:
       profile: arjun_2
       # v1.6.0: fixed, shared UC-Volume artifact path -- see the `artifacts` block above for the
       # decision record and the never-deploy-mid-run rule that still applies.
-      artifact_path: /Volumes/${var.catalog}/config/wheels
+      artifact_path: /Volumes/${var.catalog}/config/wheels/${var.framework_version}
 
     variables:
       catalog: metaflow
@@ -264,7 +283,7 @@ targets:
       profile: arjun_3
       # v1.6.0: fixed, shared UC-Volume artifact path -- see the `artifacts` block above for the
       # decision record and the never-deploy-mid-run rule that still applies.
-      artifact_path: /Volumes/${var.catalog}/config/wheels
+      artifact_path: /Volumes/${var.catalog}/config/wheels/${var.framework_version}
 
     variables:
       catalog: metaflow
@@ -277,7 +296,7 @@ targets:
       profile: hoonartek
       # v1.6.0: fixed, shared UC-Volume artifact path -- see the `artifacts` block above for the
       # decision record and the never-deploy-mid-run rule that still applies.
-      artifact_path: /Volumes/${var.catalog}/config/wheels
+      artifact_path: /Volumes/${var.catalog}/config/wheels/${var.framework_version}
 
     variables:
       catalog: metaflow

@@ -18,6 +18,7 @@ from NextGen_Metadata_Framework.lakeflow_framework.onboarding.spec_validator imp
     ALLOWED_INGESTION_FLOW_KEYS,
     ALLOWED_INGESTION_SOURCE_CONFIG_KEYS,
     ALLOWED_RECONCILIATION_FLOW_KEYS,
+    ALLOWED_SOURCE_PLANE_KEYS,
     ALLOWED_ROOT_KEYS,
     ALLOWED_SINK_CONFIG_KEYS,
     ALLOWED_SOURCE_INPUT_KEYS,
@@ -209,6 +210,11 @@ def test_allowed_key_sets_match_json_schema():
         "sourceInput": ALLOWED_SOURCE_INPUT_KEYS,
         "sinkConfig": ALLOWED_SINK_CONFIG_KEYS,
         "reconciliationFlow": ALLOWED_RECONCILIATION_FLOW_KEYS,
+        # v1.7.3: source_plane gained its first validator (_validate_source_plane), so its
+        # allowlist is pinned to the schema like every other one. Before that release the block
+        # was in ALLOWED_ROOT_KEYS and then never inspected again -- accepted verbatim, typos
+        # and all.
+        "sourcePlane": ALLOWED_SOURCE_PLANE_KEYS,
     }
     for def_name, allowed in expected.items():
         assert set(defs[def_name]["properties"]) == allowed, def_name

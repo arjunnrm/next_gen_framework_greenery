@@ -1,8 +1,131 @@
 # Release Notes — NextGen Metadata Framework (Metaflow)
 
-Semantic versioning: `MAJOR.MINOR.PATCH`. `pyproject.toml`'s `version` field is a build stamp
-(UTC epoch-millis, rewritten by `scripts/bump_and_build.py` on every wheel build) and is
-deliberately **not** the semantic version — that lives here and in `enhancement_logs/`.
+Semantic versioning: `MAJOR.MINOR.PATCH`. Since **0.0.2**, `pyproject.toml`'s `version` IS the
+real 3-part semantic version and is hand-managed — `scripts/bump_and_build.py` only reads and
+validates it, and refuses to build an epoch-stamped value. It must match `framework_version` in
+`databricks.yml`, which is the last segment of the wheel's `artifact_path`
+(`/Volumes/<catalog>/config/wheels/<X.Y.Z>`); bump the two together in one commit.
+
+Previously the patch component was rewritten to UTC epoch-millis on every build, so the version
+was a build stamp rather than a version. That bought a unique wheel filename but did not do what
+it was relied on to do: `bundle deploy` prunes superseded artifacts from `<artifact_path>/.internal/`
+by scanning the directory, not by filename collision, so while every release shared one flat
+directory a new deploy still deleted the wheel a running pipeline of the previous release was
+resolving. Per-version directories fix that structurally.
+
+---
+
+## 0.0.2 — Hand-managed versions, per-version wheel directories, v0.0.2 test suite — 2026-09-03
+
+**Breaking (build/deploy).** `scripts/bump_and_build.py` no longer rewrites `pyproject.toml`'s
+patch component to UTC epoch-millis. The version is a hand-managed 3-part semantic version; the
+script reads and validates it, and **refuses to build** when the patch component exceeds 6 digits,
+so a stale checkout cannot silently resurrect the old scheme. Wheels are now named
+`nextgen_metadata_framework-0.0.2-py3-none-any.whl`.
+
+**Breaking (deploy layout).** `workspace.artifact_path` on all four targets is now
+`/Volumes/${var.catalog}/config/wheels/${var.framework_version}` — version-scoped. `framework_version`
+is a new top-level variable in `databricks.yml` and MUST equal `pyproject.toml`'s `version`.
+
+*Why:* `bundle deploy` prunes superseded artifacts from `<artifact_path>/.internal/` by scanning the
+directory, not by filename collision. While every release shared one flat directory, deploying a new
+version deleted the wheel a still-running pipeline of the previous version was resolving
+(`ENVIRONMENT_PIP_INSTALL_ERROR`). Unique filenames never prevented that; separate per-version
+directories make it structurally impossible. The standing rule still applies WITHIN a version: never
+deploy while a pipeline or test wave is running.
+
+**Fixed — ASN.1 root-PDU auto-detection was unreachable from a spec.** `asn1/decoder.py` implemented
+`detect_root_pdu_name`, but `spec_validator.py` declared `asn1_pdu_name` `required=True` and
+`ingestion/readers.py` read it by subscript, so omitting it failed BOTH onboarding validation and
+pipeline runtime. Both are now optional: an absent/null/blank value requests auto-detection, an
+explicitly supplied value is still type-checked and still wins as an override.
+
+**New — the v0.0.2 test suite** (`resources/v0_0_2_tests/`, specs `metaflow_testing/v0_0_2_tc*.json`).
+Five jobs and five pipelines, each carrying `v0.0.2` in its name so a run traces to a release:
+
+| Case | Covers | Verified in `dev_metaflow` |
+|---|---|---|
+| TC1 | ASN.1 ingestion + schema validation, root-PDU auto-detection | 10 rows, 0 quarantined; PSGW `CallEventRecord` CHOICE root resolved with no `asn1_pdu_name` in the spec |
+| TC2 | ZeroBus -> Bronze, two single-JSON-column tables, payloads intact | 50 rows each into `orders_events_bronze` / `devices_events_bronze` |
+| TC3 | Batch + CDC + SQL transform + native JSON + Delta append, logs/metrics OFF | see the defect below |
+| TC4 | Same pipeline with metrics **ON** | 18 datasets incl. `__metrics` + `__mismatch` |
+| TC5 | Same pipeline with metrics **OFF** | 16 datasets, **neither** registered — identical row counts |
+
+TC4/TC5 are deliberately structurally identical apart from the two capture flags, on separate
+`dataflow_group_id`s and target tables, so a row-count comparison is meaningful and the runs cannot
+overwrite each other's control-table rows.
+
+**Defect found by TC3 (spec authoring, not framework).** Its second transformation read an SCD1
+(MERGE-written) target as a *stream*, which raises Delta's `DELTA_SOURCE_TABLE_IGNORE_CHANGES` at
+execution time. `source_plane.py`'s G-STREAM guard rejected it at plan time with a message naming
+the fix, and refused `skipChangeCommits` as a workaround because it silently drops changed rows.
+The spec now reads that input as a batch.
+
+**Defect found while authoring TC1 (fixture, not framework).** The pre-existing
+`metaflow_testing/BT_Testing/synthetic/psgw_synthetic.ber` holds its 10 records concatenated as
+back-to-back TLVs in one file, and `asn1tools` returns only the FIRST record from such a buffer with
+no error — ingesting 1 row, silently dropping 9, and reporting success. The seed notebook therefore
+lands one record per `.ber` file and asserts at seed time that each decode consumes the whole file.
+
+**Known gap.** A full `bundle deploy` is blocked by pre-existing drift unrelated to this release:
+`resources.schemas.sample_suite_schema` fails with `Schema 'metaflow_sample' already exists` because
+the schema exists in the workspace but not in bundle state, which cascades to the `sample_jobs`
+group. Deploy the test resources with `--select` until that schema is imported into bundle state.
+
+---
+
+## v1.7.3 — The read-once source plane becomes a mandate — 2026-09-03
+
+**Breaking (behavioural).** `source_plane.materialize` now defaults to **`"always"`** (was
+`"auto"`). Every external source identity is materialized into its own L0 base `@dlt.table` node
+**regardless of fan-out**, so N distinct source tables now produce N base ingestion nodes and every
+consumer binds to one via `dlt.read()` / `dlt.read_stream()`. Previously a single-consumer read
+stayed `inline` — the consumer issued its own scan of the origin, preserving its predicate
+pushdown, and a shared node appeared only at fan-out ≥ 2.
+
+This is a real trade, not a free win. Materializing a fan-out-1 source costs a full physical copy,
+an extra DAG step, and the predicate pushdown of that consumer's filter into the original source.
+The framework now pays that cost everywhere, in exchange for a topology that does not change shape
+with fan-out and a "was this source read once?" question with one answer. **An already-onboarded
+group that never set the key will gain base nodes, datasets and storage on its next update.**
+
+**Breaking (validation).** `materialize: "never"` is removed and hard-rejected:
+
+> materialize='never' is deprecated and prohibited under the Single-Read architectural mandate.
+> Remove this setting to default to 'always', ensuring base tables are read once and reused via
+> dlt.read().
+
+It is rejected in **two** places, because onboarding validation runs only once: at onboarding by
+`spec_validator.py`, and again inside `plan_source_plane` — a
+`dataflow_group_spec.source_plane_config_json` row written before this release is never
+re-validated and is read straight into the planner by the pipeline notebook. Rejecting it only at
+onboarding would have left existing groups silently running the prohibited policy forever.
+
+`"auto"` remains an **accepted** value (it was never prohibited) but is no longer a distinct
+behaviour — it resolves to `"always"`. Keeping it as a live fan-out threshold would have
+reintroduced precisely what the mandate removes.
+
+**`source_plane` gets its first validator.** Until now the block was listed in `ALLOWED_ROOT_KEYS`
+and then never inspected — persisted verbatim, so a misspelled key (`materialise`) or an
+unrecognised `materialize` value onboarded cleanly, wrote its control-table row, and silently fell
+back to the engine default. `onboarding_spec_full_reference.md` documented that gap in as many
+words; `_validate_source_plane` closes it and that caveat has been rewritten.
+
+**Latent defect fixed.** `stable_node_name`'s digest covered only the locator, but a read identity
+is `(locator_kind, locator, options_fingerprint)`. Two reads of one path under different base-read
+options (a different `format`, `schema_location`, `file_pattern`, `reader_options` or
+`starting_version`) are deliberately distinct identities — and would have been declared under one
+dataset name, failing the whole Lakeflow update with *"Cannot redefine dataset"*. This was
+unreachable before this release (each such read was fan-out 1 and stayed inline, so neither was
+ever named); making materialization unconditional is exactly what turns it into a real collision.
+The digest now covers the fingerprint too.
+
+**Per-mode identity is retained.** Read-once means once per source *per execution mode*: the
+`__stream` / `__batch` node-name suffix stays, and stream and batch nodes are never collapsed —
+`bind()` raises when a batch-bound materialized view is read as a stream.
+
+**Also in this release:** the reconciliation log-capture defaults change — see
+`enhancement_logs/v1.7.03_enhancement_log.md` and `docs/v1.7.3_json_attribute_delta.json`.
 
 ---
 

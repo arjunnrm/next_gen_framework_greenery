@@ -194,12 +194,11 @@
         "materialize": {
           "type": "string",
           "enum": [
-            "auto",
             "always",
-            "never"
+            "auto"
           ],
-          "default": "auto",
-          "description": "'auto' (default): a shared L0 source-plane node is materialized only when an external physical read locator has fanout >= 2 within this pipeline update, so a single-consumer read keeps today's inline code path and its predicate pushdown into the origin table. 'always': forces a materialized read-once node for every external locator regardless of fanout -- a full physical copy and an extra DAG step even at fanout 1. 'never': escape hatch -- every consumer reads the locator inline even at fanout >= 2, for a huge, heavily-filtered table where losing pushdown into the origin costs more than the duplicated scan."
+          "default": "always",
+          "description": "'always' (default, and the only policy since v1.7.3's Single-Read architectural mandate): every external physical read locator is materialized into its own L0 base node regardless of fanout, so N distinct source tables produce N base ingestion nodes and every consumer binds to one via dlt.read()/dlt.read_stream() instead of re-reading the origin. 'auto' is the retained LEGACY policy and is genuinely distinct, not an alias: it materializes an external identity only at fanout >= 2 within this pipeline update and leaves a single-consumer identity inline (re-read inside that consumer's own closure). Fanout is counted per (identity, execution mode), so a locator consumed once as a stream and once as a batch is fanout 1 in EACH mode, not fanout 2 -- those two consumers can never share one node anyway, since a materialized view cannot be read with dlt.read_stream. Use it only to keep a group onboarded before v1.7.3 on the DAG topology it was onboarded with; it is a strictly weaker guarantee than 'always' and is not recommended for new specs. 'never' was REMOVED in v1.7.3 and is now hard-rejected at onboarding time by spec_validator.py (_validate_source_plane) with a migration message, and again at plan time by engine/source_plane.py::plan_source_plane for control-table rows persisted before the mandate. Note that read-once means once per source PER EXECUTION MODE: streaming and batch nodes stay distinct (the __stream/__batch node-name suffix), because a batch-bound materialized view cannot be read as a stream."
         },
         "catalog": {
           "type": [
@@ -1865,15 +1864,17 @@
         "logging_config": {
           "type": "object",
           "additionalProperties": false,
-          "description": "Per-flow log-write gates, both default true. Overridden at run time by the recon_run_log_capture / recon_mismatch_log job parameters -- see notebooks/05_reconciliation/05_reconciliation_engine.py. v1.6.0 contract: run_log_capture=false skips reconciliation_run_log AND reconciliation_result (previously unconditional), and in pipeline mode skips registering the recon__*__metrics dataset entirely; mismatch_log_capture=false skips reconciliation_mismatch_log and the recon__*__mismatch dataset. Both false == reconciliation persists ONLY to its business target tables -- no metric/log dataset is created and no control-table row is written; the run's job/pipeline state is then the only failure signal. Rejected combinations: dq_config.rules with run_log_capture=false (the expectations attach to __metrics, which would not exist), and execution_mode=pipeline_audit_only with both flags false (the flow would register compute with no output).",
+          "description": "Per-flow log-write gates. BREAKING CHANGE in v1.7.3: both now default to FALSE (they defaulted to true through v1.7.2) -- reconciliation is SILENT BY DEFAULT and auditing is opt-in. A flow that omits logging_config entirely writes NO reconciliation_run_log, reconciliation_result or reconciliation_mismatch_log rows, and in pipeline mode registers NEITHER the recon__*__metrics NOR the recon__*__mismatch dataset. To keep pre-v1.7.3 behaviour, set both flags to true explicitly. Overridden at run time by the recon_run_log_capture / recon_mismatch_log job parameters (tri-state; unset defers to this block) -- see notebooks/05_reconciliation/05_reconciliation_engine.py. Contract: run_log_capture gates reconciliation_run_log AND reconciliation_result, and in pipeline mode whether the recon__*__metrics dataset is registered at all; mismatch_log_capture gates reconciliation_mismatch_log and the recon__*__mismatch dataset. Both false == reconciliation persists ONLY to its business target tables; the run's job/pipeline state is then the only failure signal. Rejected combinations -- and note that since v1.7.3 both are reachable by OMITTING logging_config, not only by writing false: dq_config.rules while run_log_capture resolves false (the expectations attach to __metrics, which would not exist), and execution_mode=pipeline_audit_only with both flags resolving false (the flow would register compute with no output). Either way the fix is to set run_log_capture: true explicitly.",
           "properties": {
             "run_log_capture": {
               "type": "boolean",
-              "default": true
+              "default": false,
+              "description": "Default: false since v1.7.3 (was true through v1.7.2). When true, gates reconciliation_run_log AND reconciliation_result rows and, in pipeline mode, registration of the recon__*__metrics dataset. Must be set true explicitly when the flow declares dq_config.rules."
             },
             "mismatch_log_capture": {
               "type": "boolean",
-              "default": true
+              "default": false,
+              "description": "Default: false since v1.7.3 (was true through v1.7.2). When true, gates reconciliation_mismatch_log rows and, in pipeline mode, registration of the recon__*__mismatch dataset."
             }
           }
         },
