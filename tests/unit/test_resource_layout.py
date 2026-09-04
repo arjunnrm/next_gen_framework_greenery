@@ -337,3 +337,46 @@ def test_sample_suite_volumes_match_the_provisioning_notebook():
         f"{notebook.name}'s VOLUMES tuple disagree. Only the notebook has: "
         f"{sorted(in_notebook - declared)}; only the bundle has: {sorted(declared - in_notebook)}."
     )
+
+
+# --- The new-workspace `wheels_root` bootstrap (v1.7.4) ---------------------------------------
+#
+# `workspace.artifact_path` points into a UC Volume that this same bundle declares, and DABs
+# refuses such a path until the Volume exists -- the check runs during config resolution, before
+# any resource is created, so the deploy that would create it is the one being rejected. The
+# escape hatch is `${var.wheels_root}`: one `--var` override moves the wheel out of the Volume
+# for a single bootstrap deploy. That only works while EVERY target composes its artifact_path
+# from the variable; a target that hardcodes the literal path silently opts out of the fix and
+# resurrects the hand-edit that v1.7.4 removed. These two tests keep that from happening.
+
+
+def test_every_target_composes_artifact_path_from_wheels_root():
+    bundle = yaml.safe_load(BUNDLE_FILE.read_text(encoding="utf-8"))
+    offenders = {
+        name: target["workspace"]["artifact_path"]
+        for name, target in (bundle.get("targets") or {}).items()
+        if "artifact_path" in (target.get("workspace") or {})
+        and "${var.wheels_root}" not in target["workspace"]["artifact_path"]
+    }
+    assert not offenders, (
+        "these targets hardcode artifact_path instead of composing it from ${var.wheels_root}: "
+        f"{offenders}. That opts them out of the one-command new-workspace bootstrap "
+        "(docs/onboarding/05_new_workspace_bootstrap.md) and forces the old hand-edit of "
+        "databricks.yml. Use `artifact_path: ${var.wheels_root}/${var.framework_version}`."
+    )
+
+
+def test_wheels_root_defaults_into_the_declared_wheels_volume():
+    """The default must resolve to the Volume the bundle declares, not to a workspace path.
+
+    An override is a *bootstrap-only* argument. If the committed default ever pointed outside
+    the Volume, every ordinary deploy would quietly publish the wheel somewhere unmanaged and
+    the v1.6.0 shared-artifact-path guarantee would be gone with no error anywhere.
+    """
+    bundle = yaml.safe_load(BUNDLE_FILE.read_text(encoding="utf-8"))
+    default = (bundle["variables"]["wheels_root"] or {}).get("default")
+    assert default == "/Volumes/${var.catalog}/config/wheels", (
+        f"wheels_root's committed default is {default!r}. It must be the declared wheels Volume "
+        "(/Volumes/${var.catalog}/config/wheels) -- an override belongs on the command line for "
+        "the one-time bootstrap, never in the file."
+    )

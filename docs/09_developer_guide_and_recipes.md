@@ -141,9 +141,16 @@ from YAML at all (see that folder's `README.md`) — create it in the UI once pe
 
 The `artifact_path` bootstrap is a *separate* mechanism and survives: that check runs during config
 resolution, before any resource is created, so a Volume declared in the same bundle cannot satisfy
-it. On a fresh workspace, deploy
-`--select schemas.config_schema,volumes.framework_wheels_volume` once with the target's
-`artifact_path:` line commented out, then uncomment it. Where `flowx.config` already exists
+it. Since v1.7.4 that one-time step is a **flag, not a file edit** — every target composes
+`artifact_path` from `${var.wheels_root}`, so a fresh workspace is brought up with
+
+```bash
+databricks bundle deploy -t <target> -p <profile>   --select schemas.config_schema,volumes.framework_wheels_volume   --var="wheels_root=/Workspace/Users/<you>/.bundle/flowx/<target>/artifacts"
+```
+
+followed by an ordinary deploy. `python scripts/bootstrap_workspace.py -t <target> -p <profile>`
+runs the whole sequence; the step-by-step runbook is
+`docs/onboarding/05_new_workspace_bootstrap.md`. Where `flowx.config` already exists
 outside the bundle (`dev_flowx`, `hoonartek`), `bundle deployment bind` it instead — see
 `docs/onboarding/04_deploying.md`.
 

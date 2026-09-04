@@ -69,13 +69,21 @@ the config, and these hold the control tables, the published wheels and the samp
     bootstrap is now a deploy of declared resources instead of hand-run `CREATE` statements:
 
     0. create the catalog in the UI, if it does not exist yet;
-    1. comment out that target's `artifact_path:` line -- safe, it is a workspace setting, not a
-       resource, so unsetting it deletes nothing;
-    2. `databricks bundle deploy -t <target> -p <profile> --select schemas.config_schema,volumes.framework_wheels_volume`
-    3. uncomment the `artifact_path:` line and deploy normally.
+    1. deploy the schema and the Volume with `wheels_root` overridden away from the Volume --
+       a FLAG, not a file edit (v1.7.4):
+       ```
+       databricks bundle deploy -t <target> -p <profile>          --select schemas.config_schema,volumes.framework_wheels_volume          --var="wheels_root=/Workspace/Users/<you>/.bundle/flowx/<target>/artifacts"
+       ```
+    2. deploy normally -- `wheels_root` is back at its default and resolves into the Volume
+       that step 1 just created.
 
-    Once per workspace; `bundle validate` prints OK from then on. **Completed for `arjun_2` on
-    2026-09-02** -- schemas and all six Volumes created, `artifact_path` restored, full deploy green.
+    Once per workspace; `bundle validate` prints OK from then on. `python
+    scripts/bootstrap_workspace.py -t <target> -p <profile>` runs both steps for you, and the
+    full runbook is [5 · New-workspace bootstrap](05_new_workspace_bootstrap.md).
+
+    Before v1.7.4 step 1 meant commenting out each target's `artifact_path:` line and restoring
+    it afterwards; the override replaces that, so no half-finished edit can be committed.
+    **Completed for `arjun_2` on 2026-09-02** and for `metaflow_v7` on 2026-09-04.
 
 !!! danger "Never deploy while a pipeline or test wave is running"
     Unique per-deploy filenames stop a redeploy overwriting the exact file a running update is

@@ -1,6 +1,6 @@
 # Get started
 
-Four short steps from an empty workspace to a running pipeline. Each ends with something you
+Short steps from an empty workspace to a running pipeline. Each ends with something you
 can actually check.
 
 <div class="grid cards" markdown>
@@ -9,6 +9,7 @@ can actually check.
 - **2 · [Your first pipeline](02_first_pipeline.md)** — land a CSV, ingest it into Bronze.
 - **3 · [Using the Spec Builder](03_spec_builder_app.md)** — author and validate without hand-writing JSON.
 - **4 · [Deploying with DABs](04_deploying.md)** — publish the wheel, deploy, run onboarding.
+- **5 · [New-workspace bootstrap](05_new_workspace_bootstrap.md)** — the first-time runbook for a workspace that has never held this bundle.
 
 </div>
 

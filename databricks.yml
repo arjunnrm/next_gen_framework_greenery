@@ -54,8 +54,8 @@ include:
 #  - resources/bt_tests/*.yml
 #  - resources/feature_tests/*.yml
 #  - resources/stability_tests/*.yml
-  - resources/sample_jobs/*.yml
-  - resources/v0_0_2_tests/*.yml
+# - resources/sample_jobs/*.yml
+#  - resources/v0_0_2_tests/*.yml
 
 # The framework wheel (a `.whl` -- a ZIP distribution) is built AND published by
 # `bundle deploy` itself. There is no separate upload step, and no pinned-path variable to keep
@@ -114,12 +114,12 @@ include:
 # v1.13.0) REFUSE an artifact_path pointing into a Volume that does not exist yet, even one
 # declared in this same bundle: "volume <catalog>.config.wheels does not exist ... Please first
 # deploy the volume using 'bundle deploy' and then switch over to using it in the artifact_path".
-# DABs does NOT create the Volume before the artifact upload. On a workspace where
-# <catalog>.config.wheels is missing, comment out that target's `artifact_path:` line below
-# (safe -- artifact_path is a workspace setting, not a resource, so unsetting it deletes
-# nothing; deploys fall back to the standard workspace path), run
-# `databricks bundle deploy --select volumes.framework_wheels_volume`, restore the line, and
-# deploy normally. Once per workspace; validate prints OK from then on.
+# DABs does NOT create the Volume before the artifact upload. Since v1.7.4 the workaround is a
+# FLAG, NOT A FILE EDIT: every target composes artifact_path from `${var.wheels_root}`, so a
+# fresh workspace is bootstrapped by overriding that one variable for a single command
+# (`--var="wheels_root=..."`, full recipe under `wheels_root` in the variables block below and
+# in docs/onboarding/05_new_workspace_bootstrap.md). Once per workspace; validate prints OK from
+# then on. `scripts/bootstrap_workspace.py` runs the whole sequence end to end.
 #
 # resources/flowx_bootstrap/ (added 2026-09-02) declares the SCHEMAS the Volumes live in, so
 # the deploy-order failure that motivated the group is gone for good:
@@ -146,9 +146,15 @@ include:
 # exist at workspace.artifact_path"). The one-time sequence on a fresh workspace is:
 #
 #   0. create the catalog in the UI (Catalog -> Create catalog -> Default storage)
-#   1. comment out that target's `artifact_path:` line
-#   2. databricks bundle deploy -t <target> -p <profile> #        --select schemas.config_schema,volumes.framework_wheels_volume
-#   3. uncomment the `artifact_path:` line and deploy normally
+#   1. databricks bundle deploy -t <target> -p <profile>
+#        --select schemas.config_schema,volumes.framework_wheels_volume
+#        --var="wheels_root=/Workspace/Users/<you>/.bundle/flowx/<target>/artifacts"
+#   2. databricks bundle deploy -t <target> -p <profile>      # normal, no --var
+#
+# Step 1 overrides wheels_root away from the Volume for that ONE command, so the pre-check has
+# nothing to reject while the Volume is being created; step 2 uses the default and lands in it.
+# No file is edited, so there is no half-finished edit to commit by mistake.
+# `python scripts/bootstrap_workspace.py -t <target> -p <profile>` does both steps for you.
 #
 # COMPLETED for `arjun_2` on 2026-09-02: catalog pre-existed, schemas config/dev/flowx_sample
 # and all six Volumes created by this bundle, artifact_path restored below, full deploy green.
@@ -193,6 +199,26 @@ variables:
       pruning removes by directory scan, not by name collision. Bump this and pyproject.toml
       together, in the same commit.
     default: 0.0.3
+  wheels_root:
+    description: >-
+      Parent directory of the version-scoped wheel artifact path; every target composes
+      `workspace.artifact_path` as `${var.wheels_root}/${var.framework_version}`.
+
+      IT EXISTS TO MAKE THE ONE-TIME FRESH-WORKSPACE BOOTSTRAP A FLAG, NOT A FILE EDIT.
+      `bundle validate`/`deploy` refuse an artifact_path inside a UC Volume that does not exist
+      yet -- that check runs during config resolution, BEFORE any resource is created, so the
+      `volumes.framework_wheels_volume` declared in this very bundle cannot satisfy it. The old
+      workaround was to comment out each target's `artifact_path:` line, deploy, then uncomment
+      it: three manual edits to a shared file, easy to half-finish and easy to commit by mistake.
+      Now the bootstrap overrides this variable for exactly one command and touches no file:
+
+        databricks bundle deploy -t <target> -p <profile>           --select schemas.config_schema,volumes.framework_wheels_volume           --var="wheels_root=/Workspace/Users/$(whoami)/.bundle/flowx/<target>/artifacts"
+
+      then deploy normally -- the default below points back into the Volume the step above just
+      created. Overriding this in day-to-day use is NOT supported: the fixed, shared Volume path
+      is what makes a deploy reproducible regardless of who runs it (see the v1.6.0 decision
+      record above). See docs/onboarding/05_new_workspace_bootstrap.md.
+    default: /Volumes/${var.catalog}/config/wheels
   catalog:
     description: The catalog to use
   schema:
@@ -256,7 +282,7 @@ targets:
       profile: dev_metaflow
       # v1.6.0: fixed, shared UC-Volume artifact path -- see the `artifacts` block above for the
       # decision record and the never-deploy-mid-run rule that still applies.
-      artifact_path: /Volumes/${var.catalog}/config/wheels/${var.framework_version}
+      artifact_path: ${var.wheels_root}/${var.framework_version}
 
     variables:
       catalog: flowx
@@ -270,7 +296,7 @@ targets:
       profile: arjun_2
       # v1.6.0: fixed, shared UC-Volume artifact path -- see the `artifacts` block above for the
       # decision record and the never-deploy-mid-run rule that still applies.
-      artifact_path: /Volumes/${var.catalog}/config/wheels/${var.framework_version}
+      artifact_path: ${var.wheels_root}/${var.framework_version}
 
     variables:
       catalog: flowx
@@ -283,7 +309,7 @@ targets:
       profile: arjun_3
       # v1.6.0: fixed, shared UC-Volume artifact path -- see the `artifacts` block above for the
       # decision record and the never-deploy-mid-run rule that still applies.
-      artifact_path: /Volumes/${var.catalog}/config/wheels/${var.framework_version}
+      artifact_path: ${var.wheels_root}/${var.framework_version}
 
     variables:
       catalog: flowx
@@ -296,9 +322,22 @@ targets:
       profile: hoonartek
       # v1.6.0: fixed, shared UC-Volume artifact path -- see the `artifacts` block above for the
       # decision record and the never-deploy-mid-run rule that still applies.
-      artifact_path: /Volumes/${var.catalog}/config/wheels/${var.framework_version}
+      artifact_path: ${var.wheels_root}/${var.framework_version}
 
     variables:
       catalog: flowx
       schema: dev
       dashboard_warehouse_id: fe7871113e044faa
+
+  metaflow_v7:
+    workspace:
+      host: https://dbc-bc553b65-f05f.cloud.databricks.com/
+      profile: metaflow_v7
+      # v1.6.0: fixed, shared UC-Volume artifact path -- see the `artifacts` block above for the
+      # decision record and the never-deploy-mid-run rule that still applies.
+      artifact_path: ${var.wheels_root}/${var.framework_version}
+
+    variables:
+      catalog: flowx
+      schema: dev
+      dashboard_warehouse_id: 3942c176e8c4dee8

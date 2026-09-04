@@ -15,6 +15,50 @@ resolving. Per-version directories fix that structurally.
 
 ---
 
+## 0.0.3a — New-workspace bootstrap is a flag, not a file edit — 2026-09-04
+
+**Deployment ergonomics.** Standing FlowX up on a workspace that has never held the bundle used to
+require hand-editing `databricks.yml`. Every target publishes its wheel into a UC Volume that the
+bundle itself declares, and DABs refuses such an `artifact_path` until the Volume exists — the
+check runs during config resolution, *before* any resource is created, so the deploy that would
+create the Volume is the one being rejected. The documented workaround was: comment the
+`artifact_path:` line out, deploy the Volume, comment it back in.
+
+`artifact_path` now composes from a new **`wheels_root`** variable on all five targets, so the
+bootstrap is a single override that touches no file:
+
+```bash
+databricks bundle deploy -t <target> -p <profile>   --select schemas.config_schema,volumes.framework_wheels_volume   --var="wheels_root=/Workspace/Users/<you>/.bundle/flowx/<target>/artifacts"
+```
+
+then deploy normally. The pre-check itself is **not** weakened — verified explicitly: against a
+genuinely absent Volume, the literal path and the `${var…}` path both still fail. Only an explicit
+per-command override moves the path out of the way, and `wheels_root`'s committed default stays
+inside the Volume, so ordinary deploys are unchanged.
+
+**New:** `python scripts/bootstrap_workspace.py -t <target> -p <profile> [--run-app]` runs the
+whole sequence — catalog pre-flight, bootstrap deploy, full deploy, app start. Idempotent, with
+`--dry-run`.
+
+**New:** [`docs/onboarding/05_new_workspace_bootstrap.md`](docs/onboarding/05_new_workspace_bootstrap.md),
+a step-by-step runbook with a troubleshooting table. `04_deploying.md`, the developer guide and
+`databricks.yml`'s own comments were updated with it; no "comment out `artifact_path:`"
+instruction survives in the repo.
+
+**Fixed:** the `metaflow_v7` target carried `hoonartek`'s `dashboard_warehouse_id`. Warehouse ids
+are per workspace — the runbook now warns against copying them between targets.
+
+**Known external issue:** re-deploying the Databricks App fails with
+`Invalid update mask … forward_user_access_token` (400). The Databricks CLI sends a field the Apps
+*update* endpoint rejects but *create* accepts, so the first deploy to a workspace succeeds and
+later ones fail on the app alone. Not caused by this bundle; every other resource deploys normally
+and `databricks bundle run flowx_onboarding_app` still rolls the app's code forward. Needs a newer
+CLI.
+
+Full detail: `enhancement_logs/v1.7.04_enhancement_log.md`.
+
+---
+
 ## 0.0.3 — Framework renamed to FlowX — 2026-09-04
 
 **Breaking (everything).** The framework is renamed from **Metaflow** / **NextGen Metadata
