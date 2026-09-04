@@ -2,7 +2,7 @@
 # MAGIC %md
 # MAGIC # Seed TC-SEC-002 -- SHA-256 Hash Key & Value Determinism Fixtures
 # MAGIC
-# MAGIC Dedicated seed notebook for `metaflow_testing/034_sec_002_hashing.json` only --
+# MAGIC Dedicated seed notebook for `flowx_testing/034_sec_002_hashing.json` only --
 # MAGIC intentionally separate from every other scenario's own seed notebook, so this test case's
 # MAGIC build/run stays isolated.
 # MAGIC
@@ -15,9 +15,9 @@
 # MAGIC distinct `__framework_hash_key`. See `docs/55_tc_sec_002.md` for the full scenario writeup
 # MAGIC and verification queries.
 # MAGIC
-# MAGIC Built from `sample_data/metaflow_testing/sec_usecase/accounts_hashed_batch1.csv`.
+# MAGIC Built from `sample_data/flowx_testing/sec_usecase/accounts_hashed_batch1.csv`.
 # MAGIC
-# MAGIC Run once per environment before onboarding `metaflow_testing/034_sec_002_hashing.json`.
+# MAGIC Run once per environment before onboarding `flowx_testing/034_sec_002_hashing.json`.
 
 # COMMAND ----------
 
@@ -27,7 +27,7 @@ import os
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger("seed_sec_002_hashing_data")
 
-dbutils.widgets.text("catalog", "metaflow", "Target Unity Catalog")
+dbutils.widgets.text("catalog", "flowx", "Target Unity Catalog")
 CATALOG = dbutils.widgets.get("catalog").strip()
 
 if not CATALOG:
@@ -35,7 +35,7 @@ if not CATALOG:
 
 _this_dir = os.path.dirname(os.path.abspath(__file__)) if "__file__" in globals() else os.getcwd()
 REPO_ROOT = os.path.abspath(os.path.join(_this_dir, "..", ".."))
-FIXTURE_DIR = os.path.join(REPO_ROOT, "sample_data", "metaflow_testing", "sec_usecase")
+FIXTURE_DIR = os.path.join(REPO_ROOT, "sample_data", "flowx_testing", "sec_usecase")
 
 if not os.path.isdir(FIXTURE_DIR):
     raise FileNotFoundError(f"Expected fixture directory at '{FIXTURE_DIR}' -- is sample_data/ synced alongside this notebook?")
@@ -84,7 +84,7 @@ logger.info(
 # MAGIC %md
 # MAGIC ## Done
 # MAGIC
-# MAGIC `metaflow_testing/034_sec_002_hashing.json` can now be onboarded and its pipeline run --
+# MAGIC `flowx_testing/034_sec_002_hashing.json` can now be onboarded and its pipeline run --
 # MAGIC `{{catalog}}.silver_accounts.accounts_hashed` should end up with 6 rows, each carrying a
 # MAGIC `__framework_hash_key` equal to `sha2(concat_ws('||', region, account_id), 256)`. See
 # MAGIC `docs/55_tc_sec_002.md` for the full verification query.

@@ -1,0 +1,127 @@
+{
+  "dataflow_group_id": "dfg_flowx_snk_001_external_sink",
+  "pipeline_parameters": {},
+  "ingestion_flows": [
+    {
+      "dataflow_id": "df_snk001_assignments_ingest",
+      "source_system": "ea_enterprise_architecture",
+      "source_database": "ea_reference_data",
+      "source_table_name": "assignments",
+      "source_description": "TC-SNK-001: EA employee-to-project assignment facts, streamed via plain Auto Loader CSV (the streaming driving side of the 4-way inner join feeding the dual-materialization external_sink) -- employee E005 deliberately has no row here, reusing TC-TRF-001's own fixture/landing-volume shape",
+      "source_type": "autoloader",
+      "target_catalog": "{{catalog}}",
+      "target_schema": "bronze_ea",
+      "target_table": "snk001_assignments_raw",
+      "target_type": "streaming_table",
+      "source_config": {
+        "path": "/Volumes/{{catalog}}/ea/landing_assignments/incoming/",
+        "format": "csv",
+        "schema_location": "/Volumes/{{catalog}}/ea/_schemas/snk001_assignments/",
+        "reader_options": {"header": "true", "cloudFiles.inferColumnTypes": "true"},
+        "capture_technical_metadata": true
+      },
+      "target_config": {"cdc_load_strategy": "APPEND", "storage_format": "delta"},
+      "dq_config": {"rules": []},
+      "governance_tags": {}
+    },
+    {
+      "dataflow_id": "df_snk001_employees_ingest",
+      "source_system": "ea_enterprise_architecture",
+      "source_database": "ea_reference_data",
+      "source_table_name": "employees",
+      "source_description": "TC-SNK-001: EA employee reference data, autoloaded as a plain CSV -- one of the 3 batch-joined dimension tables; includes E005, who has no assignment row",
+      "source_type": "autoloader",
+      "target_catalog": "{{catalog}}",
+      "target_schema": "bronze_ea",
+      "target_table": "snk001_employees_raw",
+      "target_type": "streaming_table",
+      "source_config": {
+        "path": "/Volumes/{{catalog}}/ea/landing_employees/incoming/",
+        "format": "csv",
+        "schema_location": "/Volumes/{{catalog}}/ea/_schemas/snk001_employees/",
+        "reader_options": {"header": "true", "cloudFiles.inferColumnTypes": "true"},
+        "capture_technical_metadata": true
+      },
+      "target_config": {"cdc_load_strategy": "APPEND", "storage_format": "delta"},
+      "dq_config": {"rules": []},
+      "governance_tags": {}
+    },
+    {
+      "dataflow_id": "df_snk001_departments_ingest",
+      "source_system": "ea_enterprise_architecture",
+      "source_database": "ea_reference_data",
+      "source_table_name": "departments",
+      "source_description": "TC-SNK-001: EA department reference data, autoloaded as a plain CSV -- one of the 3 batch-joined dimension tables",
+      "source_type": "autoloader",
+      "target_catalog": "{{catalog}}",
+      "target_schema": "bronze_ea",
+      "target_table": "snk001_departments_raw",
+      "target_type": "streaming_table",
+      "source_config": {
+        "path": "/Volumes/{{catalog}}/ea/landing_departments/incoming/",
+        "format": "csv",
+        "schema_location": "/Volumes/{{catalog}}/ea/_schemas/snk001_departments/",
+        "reader_options": {"header": "true", "cloudFiles.inferColumnTypes": "true"},
+        "capture_technical_metadata": true
+      },
+      "target_config": {"cdc_load_strategy": "APPEND", "storage_format": "delta"},
+      "dq_config": {"rules": []},
+      "governance_tags": {}
+    },
+    {
+      "dataflow_id": "df_snk001_projects_ingest",
+      "source_system": "ea_enterprise_architecture",
+      "source_database": "ea_reference_data",
+      "source_table_name": "projects",
+      "source_description": "TC-SNK-001: EA project reference data, autoloaded as a plain CSV -- one of the 3 batch-joined dimension tables",
+      "source_type": "autoloader",
+      "target_catalog": "{{catalog}}",
+      "target_schema": "bronze_ea",
+      "target_table": "snk001_projects_raw",
+      "target_type": "streaming_table",
+      "source_config": {
+        "path": "/Volumes/{{catalog}}/ea/landing_projects/incoming/",
+        "format": "csv",
+        "schema_location": "/Volumes/{{catalog}}/ea/_schemas/snk001_projects/",
+        "reader_options": {"header": "true", "cloudFiles.inferColumnTypes": "true"},
+        "capture_technical_metadata": true
+      },
+      "target_config": {"cdc_load_strategy": "APPEND", "storage_format": "delta"},
+      "dq_config": {"rules": []},
+      "governance_tags": {}
+    }
+  ],
+  "transformation_flows": [
+    {
+      "flow_step_id": "ts_snk001_ea_joined_assignments_sink",
+      "dataflow_id": "df_snk001_assignments_ingest",
+      "target_catalog": "{{catalog}}",
+      "target_schema": "silver_ea",
+      "target_table": "snk001_ea_joined_assignments",
+      "target_type": "external_sink",
+      "source_inputs": [
+        {"input_name": "snk001_assignments_raw", "table": "{{catalog}}.bronze_ea.snk001_assignments_raw", "is_streaming": true},
+        {"input_name": "snk001_employees_raw", "table": "{{catalog}}.bronze_ea.snk001_employees_raw", "is_streaming": false},
+        {"input_name": "snk001_departments_raw", "table": "{{catalog}}.bronze_ea.snk001_departments_raw", "is_streaming": false},
+        {"input_name": "snk001_projects_raw", "table": "{{catalog}}.bronze_ea.snk001_projects_raw", "is_streaming": false}
+      ],
+      "transformation_sql": "SELECT a.employee_id, a.project_id, a.hours_allocated, e.employee_name, e.role, e.dept_id, d.dept_name, d.region, p.project_name, p.budget FROM snk001_assignments_raw a JOIN snk001_employees_raw e ON a.employee_id = e.employee_id JOIN snk001_departments_raw d ON e.dept_id = d.dept_id JOIN snk001_projects_raw p ON a.project_id = p.project_id",
+      "target_config": {
+        "cdc_load_strategy": "APPEND",
+        "storage_format": "delta",
+        "sink_config": {
+          "path": "/Volumes/{{catalog}}/egress_ea/export_zips/_staging/snk001/",
+          "format": "pgp_zip",
+          "post_export_archive": {
+            "enabled": true,
+            "output_zip_path": "/Volumes/{{catalog}}/egress_ea/export_zips/output/snk001/",
+            "export_file_name_format": "snk001_ea_joined_export_{batch_id}"
+          }
+        }
+      },
+      "dq_config": {"rules": []},
+      "governance_tags": {}
+    }
+  ],
+  "reconciliation_flows": []
+}

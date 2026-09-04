@@ -1,0 +1,47 @@
+# v0.0.2 ASN.1 TAP.311 pipeline -- decodes real BER-encoded TAP 3.11 transferred-account-procedure data interchange records
+# (source_type: "asn1") against the real flowx_testing/BT_Testing/TAP.311.asn1 module into
+# flowx.bronze_tap311.tap311_raw.
+#
+# The spec OMITS asn1_pdu_name, so asn1/decoder.py::detect_root_pdu_name resolves the root PDU from
+# the module itself: TAP.311.asn1 -> DataInterChange, a 2-arm CHOICE. The decoded frame therefore
+# carries one nullable column per arm (transferBatch, notification) plus the synthetic "_choice" discriminator naming the
+# arm actually selected (3 columns in total). All 10 fixtures select notification.
+#
+# These records are THIN: Notification's members are ALL OPTIONAL and not one of them
+# is present in all 10 records (the best is recipient at 6/10), with 2-8 leaf values
+# per record. The spec's DQ rules therefore assert no individual subfield -- only that
+# decode succeeded, an arm was selected, it is the expected arm, and the arm struct is
+# non-null. A 'mandatory fields present' rule would false-quarantine most of these
+# valid records.
+#
+# Note this pipeline reads the 10 fixtures the seed notebook generates, NOT
+# flowx_testing/BT_Testing/tap311_sample.ber -- that file is a malformed 16-byte
+# payload whose high-tag-number outer tag (7f01) matches no CHOICE arm.
+#
+# Isolated from every other protocol pipeline: its own dataflow group (dfg_v0_0_2_asn1_tap311), its
+# own schema (bronze_tap311) and its own /Volumes/flowx/tap311/... volume tree.
+#
+# See flowx_testing/v0_0_2_asn1_tap311.json for the spec and the expected result.
+
+resources:
+  pipelines:
+    flowx_asn1_v0_0_2_tap311_pipeline:
+      name: flowx_asn1_v0_0_2_tap311_pipeline_${bundle.target}
+      catalog: flowx
+      schema: bronze_tap311
+      serverless: true
+      photon: true
+      development: true
+      continuous: false
+
+      libraries:
+        - notebook:
+            path: ../../notebooks/03_engine/03_lakeflow_declarative_pipeline.py
+
+      environment:
+        dependencies:
+          - ../../dist/*.whl
+
+      configuration:
+        dataflow.group.id: dfg_v0_0_2_asn1_tap311
+        dataflow.control.catalog: flowx

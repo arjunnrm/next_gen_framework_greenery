@@ -2,8 +2,8 @@
 # MAGIC %md
 # MAGIC # Seed TC-DQ-004 -- `quarantine` Routing & Diagnostics Fixtures
 # MAGIC
-# MAGIC Dedicated seed notebook for `metaflow_testing/032_dq_004_quarantine.json` only -- intentionally
-# MAGIC separate from `02_seed_metaflow_testing_data.py` (scenarios 001/002/003) and every other
+# MAGIC Dedicated seed notebook for `flowx_testing/032_dq_004_quarantine.json` only -- intentionally
+# MAGIC separate from `02_seed_flowx_testing_data.py` (scenarios 001/002/003) and every other
 # MAGIC `03_seed_*` notebook, so this test case's build/run stays isolated from those other
 # MAGIC scenarios' own fixtures.
 # MAGIC
@@ -14,13 +14,13 @@
 # MAGIC fixture, per this pass's "minimal, real, onboardable" convention.
 # MAGIC
 # MAGIC NOTE: this scenario's target (`{{catalog}}.bronze_test.customer_raw`) intentionally reuses
-# MAGIC the same schema as the pre-existing `metaflow_test_100_zipcsv_pipeline` scenario, per
+# MAGIC the same schema as the pre-existing `flowx_test_100_zipcsv_pipeline` scenario, per
 # MAGIC `TESTING_PLAN.md`'s own "Databricks Object Names" column for TC-DQ-004 -- see this test
 # MAGIC case's own doc (`docs/53_tc_dq_004.md`) for the real table-name collision this creates
 # MAGIC against scenario 100's own `customer_raw` table, flagged there rather than silently worked
 # MAGIC around here.
 # MAGIC
-# MAGIC Run once per environment before onboarding `metaflow_testing/032_dq_004_quarantine.json`.
+# MAGIC Run once per environment before onboarding `flowx_testing/032_dq_004_quarantine.json`.
 
 # COMMAND ----------
 
@@ -30,7 +30,7 @@ import os
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger("seed_dq_004_quarantine_data")
 
-dbutils.widgets.text("catalog", "metaflow", "Target Unity Catalog")
+dbutils.widgets.text("catalog", "flowx", "Target Unity Catalog")
 CATALOG = dbutils.widgets.get("catalog").strip()
 
 if not CATALOG:
@@ -38,7 +38,7 @@ if not CATALOG:
 
 _this_dir = os.path.dirname(os.path.abspath(__file__)) if "__file__" in globals() else os.getcwd()
 REPO_ROOT = os.path.abspath(os.path.join(_this_dir, "..", ".."))
-FIXTURE_DIR = os.path.join(REPO_ROOT, "sample_data", "metaflow_testing", "crm_usecase")
+FIXTURE_DIR = os.path.join(REPO_ROOT, "sample_data", "flowx_testing", "crm_usecase")
 
 if not os.path.isdir(FIXTURE_DIR):
     raise FileNotFoundError(f"Expected fixture directory at '{FIXTURE_DIR}' -- is sample_data/ synced alongside this notebook?")
@@ -91,6 +91,6 @@ logger.info(
 # MAGIC %md
 # MAGIC ## Done
 # MAGIC
-# MAGIC `metaflow_testing/032_dq_004_quarantine.json` can now be onboarded and its pipeline run.
+# MAGIC `flowx_testing/032_dq_004_quarantine.json` can now be onboarded and its pipeline run.
 # MAGIC Re-running this notebook is safe: the CSV fixture is copied fresh each time (Auto Loader
 # MAGIC itself, not this notebook, tracks which files it has already ingested via its checkpoint).

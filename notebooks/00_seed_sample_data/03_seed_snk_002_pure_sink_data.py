@@ -2,7 +2,7 @@
 # MAGIC %md
 # MAGIC # Seed TC-SNK-002 -- Pure Sink Export Without Table Materialization Fixtures
 # MAGIC
-# MAGIC Dedicated seed notebook for `metaflow_testing/040_snk_002_pure_sink.json` only --
+# MAGIC Dedicated seed notebook for `flowx_testing/040_snk_002_pure_sink.json` only --
 # MAGIC intentionally separate from every other scenario's own seed notebook, so this test case's
 # MAGIC build/run stays isolated.
 # MAGIC
@@ -17,15 +17,15 @@
 # MAGIC   ingestion/transformation target schema, this Volume is never auto-provisioned by the
 # MAGIC   pipeline itself (`dlt.create_sink` writes files into an existing Volume path, it does not
 # MAGIC   create one) -- so it must be created here, same as scenario 001/002/003's own
-# MAGIC   `egress_ea`/`export_zips` precedent (`02_seed_metaflow_testing_data.py`).
+# MAGIC   `egress_ea`/`export_zips` precedent (`02_seed_flowx_testing_data.py`).
 # MAGIC
 # MAGIC Then lands a small, 5-row IoT sensor readings fixture
 # MAGIC (`sensor_readings_snk002.csv`) in the incoming Volume. See `docs/62_tc_snk_002.md` for the
 # MAGIC full scenario writeup and verification queries.
 # MAGIC
-# MAGIC Built from `sample_data/metaflow_testing/iot_usecase/sensor_readings_snk002.csv`.
+# MAGIC Built from `sample_data/flowx_testing/iot_usecase/sensor_readings_snk002.csv`.
 # MAGIC
-# MAGIC Run once per environment before onboarding `metaflow_testing/040_snk_002_pure_sink.json`.
+# MAGIC Run once per environment before onboarding `flowx_testing/040_snk_002_pure_sink.json`.
 
 # COMMAND ----------
 
@@ -35,7 +35,7 @@ import os
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger("seed_snk_002_pure_sink_data")
 
-dbutils.widgets.text("catalog", "metaflow", "Target Unity Catalog")
+dbutils.widgets.text("catalog", "flowx", "Target Unity Catalog")
 CATALOG = dbutils.widgets.get("catalog").strip()
 
 if not CATALOG:
@@ -43,7 +43,7 @@ if not CATALOG:
 
 _this_dir = os.path.dirname(os.path.abspath(__file__)) if "__file__" in globals() else os.getcwd()
 REPO_ROOT = os.path.abspath(os.path.join(_this_dir, "..", ".."))
-FIXTURE_DIR = os.path.join(REPO_ROOT, "sample_data", "metaflow_testing", "iot_usecase")
+FIXTURE_DIR = os.path.join(REPO_ROOT, "sample_data", "flowx_testing", "iot_usecase")
 
 if not os.path.isdir(FIXTURE_DIR):
     raise FileNotFoundError(f"Expected fixture directory at '{FIXTURE_DIR}' -- is sample_data/ synced alongside this notebook?")
@@ -92,7 +92,7 @@ logger.info("Landed IoT sensor readings fixture at '%s/sensor_readings_snk002.cs
 # MAGIC %md
 # MAGIC ## Done
 # MAGIC
-# MAGIC `metaflow_testing/040_snk_002_pure_sink.json` can now be onboarded and its pipeline run --
+# MAGIC `flowx_testing/040_snk_002_pure_sink.json` can now be onboarded and its pipeline run --
 # MAGIC `{{catalog}}.bronze_iot_snk002.sensor_readings_raw` should end up with 5 rows, and
 # MAGIC `/Volumes/{{catalog}}/egress_iot/partner_drops/` should receive exported Delta files with NO
 # MAGIC corresponding table ever registered in `information_schema.tables`. See

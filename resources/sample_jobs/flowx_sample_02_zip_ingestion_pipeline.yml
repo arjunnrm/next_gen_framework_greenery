@@ -1,0 +1,29 @@
+# Sample 02 -- "Glob-Filtered ZIP Ingestion with Quarantine DQ" (reference, not a test): the
+# Lakeflow Declarative Pipeline hosting dfg_sample_02_zip_ingestion's single Auto Loader flow
+# (source_zip_handling pre-extraction of sample_orders_*.zip archives, quarantine DQ routing
+# into sample_zip_orders_raw_quarantine). Everything publishes into the single
+# flowx.flowx_sample schema. See resources/sample_jobs/onboarding/sample_02_zip_ingestion.json
+# and resources/sample_jobs/flowx_sample_02_zip_ingestion_job.yml.
+
+resources:
+  pipelines:
+    flowx_sample_02_zip_ingestion_pipeline:
+      name: flowx_sample_02_zip_ingestion_pipeline_${bundle.target}
+      catalog: flowx
+      schema: flowx_sample
+      serverless: true
+      photon: true
+      development: true
+      continuous: false
+
+      libraries:
+        - notebook:
+            path: ../../notebooks/03_engine/03_lakeflow_declarative_pipeline.py
+
+      environment:
+        dependencies:
+          - ../../dist/*.whl
+
+      configuration:
+        dataflow.group.id: dfg_sample_02_zip_ingestion
+        dataflow.control.catalog: flowx

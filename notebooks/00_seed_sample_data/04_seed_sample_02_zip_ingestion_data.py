@@ -4,7 +4,7 @@
 # MAGIC
 # MAGIC Dedicated seed notebook for `resources/sample_jobs/onboarding/sample_02_zip_ingestion.json` only.
 # MAGIC Parameterized by `iteration`; the common seed job
-# MAGIC (`resources/sample_jobs/metaflow_sample_seed_job.yml`) invokes it once per iteration
+# MAGIC (`resources/sample_jobs/flowx_sample_seed_job.yml`) invokes it once per iteration
 # MAGIC (1 -> 2 -> 3, chained) before any sample pipeline runs.
 # MAGIC
 # MAGIC Each iteration builds ONE ZIP archive **in-process** (`zipfile` over an in-memory
@@ -30,7 +30,7 @@ import zipfile
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger("seed_sample_02_zip_ingestion")
 
-dbutils.widgets.text("catalog", "metaflow", "Target Unity Catalog")
+dbutils.widgets.text("catalog", "flowx", "Target Unity Catalog")
 dbutils.widgets.text("iteration", "1", "Which iteration to land (1, 2, or 3)")
 
 CATALOG = dbutils.widgets.get("catalog").strip()
@@ -41,7 +41,7 @@ if not CATALOG:
 if ITERATION not in ("1", "2", "3"):
     raise ValueError(f"The 'iteration' widget must be '1', '2', or '3' -- got '{ITERATION}'.")
 
-SAMPLE_SCHEMA = "metaflow_sample"
+SAMPLE_SCHEMA = "flowx_sample"
 LANDING_ROOT = f"/Volumes/{CATALOG}/{SAMPLE_SCHEMA}/landing"
 ORDER_DATE = {"1": "2026-09-01", "2": "2026-09-02", "3": "2026-09-03"}[ITERATION]
 

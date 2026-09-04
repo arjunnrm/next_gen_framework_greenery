@@ -1,0 +1,30 @@
+{
+  "dataflow_group_id": "dfg_prm_006_negative_param",
+  "pipeline_parameters": {
+    "region_code": "APAC"
+  },
+  "ingestion_flows": [],
+  "transformation_flows": [
+    {
+      "flow_step_id": "ts_prm_006_invalid_param_table",
+      "dataflow_id": "df_prm_006_employee_dept_filter",
+      "source_description": "FlowX test TC-PRM-006: DELIBERATELY INVALID spec -- transformation_sql references ${dept_code}, but pipeline_parameters (above) only declares region_code and omits dept_code entirely. Expected to be REJECTED at onboarding validation time by onboarding/spec_validator.py::_validate_sql_syntax, which calls transformation/parameters.py::substitute_dynamic_parameters and lets its FrameworkConfigError ('Transformation SQL references undefined parameter(s): [...]') surface as a collected validation error, so 02_onboarding_engine.py raises OnboardingValidationError and never reaches upsert_transformation_flow_spec. See docs/70_tc_prm_006.md.",
+      "target_catalog": "{{catalog}}",
+      "target_schema": "silver_hr",
+      "target_table": "invalid_param_table",
+      "target_type": "streaming_table",
+      "source_inputs": [
+        {
+          "input_name": "employee_raw_input",
+          "table": "{{catalog}}.bronze_hr.employee_raw",
+          "is_streaming": false
+        }
+      ],
+      "transformation_sql": "SELECT employee_id, employee_name, department_id FROM employee_raw_input WHERE department_id = ${dept_code} AND region = ${region_code}",
+      "target_config": {"cdc_load_strategy": "APPEND", "storage_format": "delta"},
+      "dq_config": {"rules": []},
+      "governance_tags": {}
+    }
+  ],
+  "reconciliation_flows": []
+}

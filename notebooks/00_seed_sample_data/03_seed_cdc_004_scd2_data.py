@@ -2,14 +2,14 @@
 # MAGIC %md
 # MAGIC # Seed TC-CDC-004 -- SCD Type 2 Full History & Active Companion View Fixtures
 # MAGIC
-# MAGIC Dedicated seed notebook for `metaflow_testing/022_cdc_004_scd2.json` only --
-# MAGIC intentionally separate from `02_seed_metaflow_testing_data.py` and every other test
+# MAGIC Dedicated seed notebook for `flowx_testing/022_cdc_004_scd2.json` only --
+# MAGIC intentionally separate from `02_seed_flowx_testing_data.py` and every other test
 # MAGIC case's own seed notebook so this test case's build/run stays isolated.
 # MAGIC
 # MAGIC Provisions the `hr`/`silver_hr` schemas and the `landing_emp`/`_schemas` Volumes, then
 # MAGIC lands 2 employee-dimension CSV "day" extracts directly in the incoming Volume (no ZIP
 # MAGIC handling needed -- plain Auto Loader CSV ingestion is the whole point of this scenario),
-# MAGIC built from the fixtures under `sample_data/metaflow_testing/hr_usecase/`:
+# MAGIC built from the fixtures under `sample_data/flowx_testing/hr_usecase/`:
 # MAGIC
 # MAGIC * `dim_employee_day1.csv` -- 3 employees, including `E101` in dept `D1`.
 # MAGIC * `dim_employee_day2.csv` -- same 3 employees re-sent (as a daily dimension extract would)
@@ -23,7 +23,7 @@
 # MAGIC arrival order, so both "days" land in one micro-batch and still resolve to the correct
 # MAGIC history (`E101`: `D1` closed, `D2` current).
 # MAGIC
-# MAGIC Run once per environment before onboarding `metaflow_testing/022_cdc_004_scd2.json`.
+# MAGIC Run once per environment before onboarding `flowx_testing/022_cdc_004_scd2.json`.
 
 # COMMAND ----------
 
@@ -33,7 +33,7 @@ import os
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger("seed_cdc_004_scd2_data")
 
-dbutils.widgets.text("catalog", "metaflow", "Target Unity Catalog")
+dbutils.widgets.text("catalog", "flowx", "Target Unity Catalog")
 CATALOG = dbutils.widgets.get("catalog").strip()
 
 if not CATALOG:
@@ -41,7 +41,7 @@ if not CATALOG:
 
 _this_dir = os.path.dirname(os.path.abspath(__file__)) if "__file__" in globals() else os.getcwd()
 REPO_ROOT = os.path.abspath(os.path.join(_this_dir, "..", ".."))
-FIXTURE_DIR = os.path.join(REPO_ROOT, "sample_data", "metaflow_testing", "hr_usecase")
+FIXTURE_DIR = os.path.join(REPO_ROOT, "sample_data", "flowx_testing", "hr_usecase")
 
 if not os.path.isdir(FIXTURE_DIR):
     raise FileNotFoundError(f"Expected fixture directory at '{FIXTURE_DIR}' -- is sample_data/ synced alongside this notebook?")
@@ -84,7 +84,7 @@ for _batch_filename in ("dim_employee_day1.csv", "dim_employee_day2.csv"):
 # MAGIC %md
 # MAGIC ## Done
 # MAGIC
-# MAGIC `metaflow_testing/022_cdc_004_scd2.json` can now be onboarded and its pipeline run.
+# MAGIC `flowx_testing/022_cdc_004_scd2.json` can now be onboarded and its pipeline run.
 # MAGIC Re-running this notebook is safe: both CSV "day" extracts are copied fresh each time
 # MAGIC (Auto Loader itself, not this notebook, tracks which files it has already ingested via
 # MAGIC its checkpoint, so re-landing the same filenames does not re-ingest or re-open history

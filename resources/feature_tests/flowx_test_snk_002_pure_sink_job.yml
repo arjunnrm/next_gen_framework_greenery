@@ -1,0 +1,54 @@
+# Wraps flowx_test_snk_002_pure_sink_pipeline:
+#
+#   setup_control_tables -> seed_snk_002_pure_sink_data -> onboard_snk_002 -> run_pipeline
+#
+# Self-contained and idempotent (control-table upsert + CREATE ... IF NOT EXISTS schema/volume
+# provisioning + idempotent fixture copy), so this job can be re-run on its own at any time. See
+# flowx_testing/040_snk_002_pure_sink.json and docs/62_tc_snk_002.md.
+
+resources:
+  jobs:
+    flowx_test_snk_002_pure_sink_job:
+      name: FlowX Test SNK-002 - Pure Sink Export Without Table Materialization
+
+      tasks:
+        - task_key: setup_control_tables
+          notebook_task:
+            notebook_path: ../../notebooks/01_setup/01_setup_control_tables.py
+            base_parameters:
+              catalog: flowx
+          environment_key: framework_env
+
+        - task_key: seed_snk_002_pure_sink_data
+          depends_on:
+            - task_key: setup_control_tables
+          notebook_task:
+            notebook_path: ../../notebooks/00_seed_sample_data/03_seed_snk_002_pure_sink_data.py
+            base_parameters:
+              catalog: flowx
+          environment_key: framework_env
+
+        - task_key: onboard_snk_002
+          depends_on:
+            - task_key: seed_snk_002_pure_sink_data
+          notebook_task:
+            notebook_path: ../../notebooks/02_onboarding/02_onboarding_engine.py
+            base_parameters:
+              spec_file_path: "${workspace.file_path}/flowx_testing/040_snk_002_pure_sink.json"
+              catalog: flowx
+              env: dev
+              action_type: CREATE
+          environment_key: framework_env
+
+        - task_key: run_pipeline
+          depends_on:
+            - task_key: onboard_snk_002
+          pipeline_task:
+            pipeline_id: ${resources.pipelines.flowx_test_snk_002_pure_sink_pipeline.id}
+
+      environments:
+        - environment_key: framework_env
+          spec:
+            environment_version: "4"
+            dependencies:
+              - ../../dist/*.whl

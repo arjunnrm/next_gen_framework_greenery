@@ -1,0 +1,141 @@
+{
+  "_test_case_note": "TC5 (v0.0.2) -- METRICS OFF. The 'OFF' half of a matched pair with flowx_testing/v0_0_2_tc4_metrics_on.json. OBJECTIVE: functional parity + performance comparison across the two telemetry modes. The pair must be read together; neither file means anything on its own.\n\nTHE ONLY INTENDED DIFFERENCE IS TELEMETRY. This file sets reconciliation_flows[0].logging_config to {run_log_capture: false, mismatch_log_capture: false} -- reconciliation runs silently, which is the v1.7.3 default; TC4 sets both to true. Flow structure, flow count, source_type, cdc_load_strategy on every flow, source_config shape, json_string_columns/from_json payload handling, transformation_sql, match_keys, compare_columns, comparison_direction, execution_mode and error_handling are byte-for-byte the same in both files apart from the identifier/table renames described next. This file was generated from TC4 by a mechanical tc4->tc5 rename plus the two-flag flip, precisely so no other difference could creep in. Any further divergence confounds the comparison and invalidates the run.\n\nWHY THE IDENTIFIERS AND TARGETS DIFFER (this is required, not a divergence): dataflow_group_id, every dataflow_id/flow_step_id/reconciliation_id, every target_schema and every target_table are distinct between TC4 and TC5. The control tables (flowx.config.dataflow_group_spec / ingestion_flow_spec / transformation_flow_spec / reconciliation_flow_spec) are keyed on those ids, and a Lakeflow dataset has exactly one owning pipeline -- so sharing them would make the second onboarding MERGE over the first's rows and make the two pipelines fight over the same tables' transaction logs. The two runs would then overwrite each other's results and there would be nothing left to compare. TC5 owns the *_tc5_* ids and the bronze_tc5_metrics / silver_tc5_metrics schemas; TC4 owns the *_tc4_* ids and the bronze_tc4_metrics / silver_tc4_metrics / recon_tc4_metrics schemas.\n\nTHE ACTUAL ASSERTION IS A CROSS-TARGET COMPARISON, NOT AN IN-SPEC ONE. Nothing inside this spec proves parity. After both jobs have run, compare the two target tables directly:\n  - row counts equal: SELECT (SELECT count(*) FROM flowx.bronze_tc4_metrics.tc4_customer_primary) AS tc4, (SELECT count(*) FROM flowx.bronze_tc5_metrics.tc5_customer_primary) AS tc5;\n  - same for tc4_customer_replica vs tc5_customer_replica and for the silver payload tables tc4_customer_payload_json vs tc5_customer_payload_json;\n  - data consistency: an EXCEPT in both directions over the business columns (customer_id, customer_name, status, payload_tier, payload_score) between flowx.silver_tc4_metrics.tc4_customer_payload_json and flowx.silver_tc5_metrics.tc5_customer_payload_json must return zero rows both ways. Exclude the __framework_* technical columns from that EXCEPT -- ingestion timestamps and run ids legitimately differ between two separate runs and are not part of the parity claim.\n\nA SECOND, TC5-SPECIFIC ASSERTION -- THE ABSENCE OF LOG ROWS. With both flags false this flow writes NOTHING to flowx.config.reconciliation_run_log or flowx.config.reconciliation_mismatch_log, and registers no recon__*__metrics dataset. Assert that: SELECT count(*) FROM flowx.config.reconciliation_run_log WHERE reconciliation_id = 'recon_tc5_primary_vs_replica' must be 0, while the same query for 'recon_tc4_primary_vs_replica' must be non-zero. That contrast is what makes the duration delta attributable to telemetry rather than to noise.\n\nWHERE THE DURATION/LATENCY NUMBERS COME FROM -- NOT FROM THIS SPEC. This spec deliberately declares no timing mechanism; inventing one inside the pipeline would itself add overhead and bias the very measurement it is trying to take. Read the durations from the platform's own run history:\n  - Jobs run history for 'FlowX Test v0.0.2 - TC5 Metrics OFF Batch Recon Pipeline' vs '... TC4 Metrics ON ...' (Workflows > job > Runs gives per-task duration, so the run_<slug>_pipeline task can be isolated from setup/seed/onboard);\n  - system.lakeflow.job_run_timeline and system.lakeflow.job_task_run_timeline for the same two job ids (period_start_time/period_end_time), which is the queryable form of the same data and the one to use for repeated trials;\n  - the pipeline update's own event log for per-flow latency (the update's flow_progress events).\nCompare the run_<slug>_pipeline task duration only. The telemetry overhead being measured is the cost of TC4's reconciliation_run_log / reconciliation_mismatch_log writes, which happen inside that pipeline update; the setup, seed and onboard tasks are identical work in both jobs and including them only dilutes the signal. Run both jobs at least twice and compare medians -- a single serverless run's start-up variance is larger than the effect being measured. Expect TC5 <= TC4; a TC5 that is not faster is a legitimate finding (the log writes are small), not a broken test.\n\nWHY THERE IS NO dq_config ON THE RECONCILIATION FLOW IN EITHER FILE. Under the v1.7.3 logging contract, dq_config.rules on a pipeline-mode reconciliation flow attach dlt expectations to the recon__*__metrics dataset, which is only registered when run_log_capture resolves true. This file, with both flags false, is therefore forbidden from carrying dq_config.rules at all -- spec_validator.py::_validate_logging_config rejects that combination outright. TC4 could legally carry them, but if it did, the pair would differ in expectation evaluation as well as in log writes and the measured duration delta would no longer be attributable to telemetry alone. So dq_config is omitted from BOTH reconciliation flows on purpose. For the same reason neither file uses execution_mode 'pipeline_audit_only': that mode with both flags resolving false is rejected (it would register compute with no output), so this file could not mirror it and both use 'pipeline'.\n\nWHY THE RECON SOURCE IS THE APPEND TABLE AND THE CDC TABLE IS THE COMPARE TARGET. execution_mode 'pipeline' puts this flow's L3/L4/L5 datasets inside this group's own pipeline update, and V-CYC-7 requires the reconciliation SOURCE to be produced by an append-only producer (SCD1/SCD2/SCD3/FULL_SNAPSHOT_CDC all dispatch through dlt.apply_changes, i.e. real MERGE writes, and are rejected as a recon source in pipeline mode). So the APPEND streaming table is the source and the SCD1 CDC table is the compared target -- still a CDC reconciliation, and the only arrangement of these two that pipeline mode accepts. V-CYC-1 is satisfied because the source is this group's own ingestion target. append_target_table points at {{catalog}}.tc5_remediation.tc5_heal_landing: not an in-spec target (V-CYC-2), not this group's raw ingestion source (V-CYC-3/4), and not either compared side (V-CYC-5).\n\nSEEDING. Both jobs seed via notebooks/00_seed_sample_data/02_seed_flowx_testing_data.py, which lands sample_data/flowx_testing/excalibur_usecase/autoload_batch1.csv (customer_id, customer_name, status) at /Volumes/{{catalog}}/Excalibur_usecase/landing_autoload/incoming/. Both ingestion flows below read that one landed batch: this is a batch load of two tables from one fixture, so the two tables are identical by construction and the reconciliation has a known-good expected outcome (zero mismatches) in BOTH test cases. That matters -- a parity test whose two halves disagree about the data is not measuring telemetry.",
+
+  "dataflow_group_id": "dfg_v0_0_2_tc5_metrics_off",
+  "pipeline_parameters": {},
+
+  "ingestion_flows": [
+    {
+      "dataflow_id": "df_tc5_customer_primary_ingest",
+      "source_system": "excalibur_customer_extract",
+      "source_database": "Excalibur_usecase",
+      "source_table_name": "autoload_batch",
+      "source_description": "TC5 (metrics OFF) table 1 of 2: batch Auto Loader load of the Excalibur customer extract into an APPEND streaming table. This is the reconciliation SOURCE -- it must be append-only, because execution_mode 'pipeline' rejects a MERGE-writing (SCD*/FULL_SNAPSHOT_CDC) producer as a recon source under V-CYC-7. Structurally identical to v0_0_2_tc4_metrics_on.json's df_tc4_customer_primary_ingest apart from the target schema/table rename.",
+      "source_type": "autoloader",
+      "target_catalog": "{{catalog}}",
+      "target_schema": "bronze_tc5_metrics",
+      "target_table": "tc5_customer_primary",
+      "target_type": "streaming_table",
+      "source_config": {
+        "path": "/Volumes/{{catalog}}/Excalibur_usecase/landing_autoload/incoming/",
+        "format": "csv",
+        "schema_location": "/Volumes/{{catalog}}/Excalibur_usecase/_schemas/tc5_customer_primary/",
+        "reader_options": {
+          "header": "true",
+          "cloudFiles.inferColumnTypes": "true"
+        },
+        "capture_technical_metadata": true
+      },
+      "target_config": {
+        "cdc_load_strategy": "APPEND",
+        "storage_format": "delta"
+      },
+      "dq_config": {
+        "rules": []
+      },
+      "governance_tags": {}
+    },
+    {
+      "dataflow_id": "df_tc5_customer_replica_ingest",
+      "source_system": "excalibur_customer_extract",
+      "source_database": "Excalibur_usecase",
+      "source_table_name": "autoload_batch",
+      "source_description": "TC5 (metrics OFF) table 2 of 2: the SAME landed batch loaded a second time under an SCD1 CDC strategy (dlt.apply_changes keyed on customer_id), giving the pair a genuine CDC target for the reconciliation to compare against. Because both tables derive from one fixture, the expected recon outcome is zero mismatches in BOTH test cases -- the comparison between TC4 and TC5 is then about telemetry cost, not about differing data.",
+      "source_type": "autoloader",
+      "target_catalog": "{{catalog}}",
+      "target_schema": "bronze_tc5_metrics",
+      "target_table": "tc5_customer_replica",
+      "target_type": "streaming_table",
+      "source_config": {
+        "path": "/Volumes/{{catalog}}/Excalibur_usecase/landing_autoload/incoming/",
+        "format": "csv",
+        "schema_location": "/Volumes/{{catalog}}/Excalibur_usecase/_schemas/tc5_customer_replica/",
+        "reader_options": {
+          "header": "true",
+          "cloudFiles.inferColumnTypes": "true"
+        },
+        "capture_technical_metadata": true
+      },
+      "target_config": {
+        "cdc_load_strategy": "SCD1",
+        "primary_keys": [
+          "customer_id"
+        ],
+        "storage_format": "delta"
+      },
+      "dq_config": {
+        "rules": []
+      },
+      "governance_tags": {}
+    }
+  ],
+
+  "transformation_flows": [
+    {
+      "flow_step_id": "ts_tc5_customer_payload_json",
+      "dataflow_id": "df_tc5_customer_primary_ingest",
+      "source_description": "TC5 (metrics OFF): SQL transformation that builds a JSON payload string per customer and then parses it back to a NATIVE STRUCT (from_json with an explicit schema), so the silver table carries payload_tier/payload_score as real typed columns rather than an opaque string. Appended to Delta. Identical SQL and identical column set in v0_0_2_tc4_metrics_on.json.",
+      "target_catalog": "{{catalog}}",
+      "target_schema": "silver_tc5_metrics",
+      "target_table": "tc5_customer_payload_json",
+      "target_type": "streaming_table",
+      "source_inputs": [
+        {
+          "input_name": "tc5_primary_stream",
+          "table": "{{catalog}}.bronze_tc5_metrics.tc5_customer_primary",
+          "is_streaming": true
+        }
+      ],
+      "transformation_sql": "SELECT customer_id, customer_name, status, from_json(to_json(struct(CASE WHEN status = 'ACTIVE' THEN 'GOLD' ELSE 'STANDARD' END AS tier, length(customer_name) AS score)), 'tier STRING, score INT').tier AS payload_tier, from_json(to_json(struct(CASE WHEN status = 'ACTIVE' THEN 'GOLD' ELSE 'STANDARD' END AS tier, length(customer_name) AS score)), 'tier STRING, score INT').score AS payload_score FROM tc5_primary_stream",
+      "target_config": {
+        "cdc_load_strategy": "APPEND",
+        "storage_format": "delta"
+      },
+      "dq_config": {
+        "rules": []
+      },
+      "governance_tags": {}
+    }
+  ],
+
+  "reconciliation_flows": [
+    {
+      "reconciliation_id": "recon_tc5_primary_vs_replica",
+      "_flag_note": "THE ONE INTENDED DIFFERENCE FROM TC4. Both capture flags are FALSE here, so no recon__*__metrics dataset is registered and no reconciliation_run_log / reconciliation_mismatch_log rows are written -- the v1.7.3 silent-by-default behaviour, stated explicitly rather than by omitting logging_config, so the intent is visible in the document. In v0_0_2_tc4_metrics_on.json this same block is {run_log_capture: true, mismatch_log_capture: true}. The duration delta between the two jobs' run_<slug>_pipeline tasks is the cost of those writes; read it from the Jobs run history / system.lakeflow.job_task_run_timeline, never from anything declared in this spec. No dq_config here: with both flags false the validator rejects dq_config.rules outright, and TC4 omits it too so the pair differs only in telemetry.",
+      "execution_mode": "pipeline",
+      "dataflow_group_id": "dfg_v0_0_2_tc5_metrics_off",
+      "logging_config": {
+        "run_log_capture": false,
+        "mismatch_log_capture": false
+      },
+      "source_config": {
+        "type": "table",
+        "table": "{{catalog}}.bronze_tc5_metrics.tc5_customer_primary",
+        "read_mode": "batch",
+        "hash_precomputed": false
+      },
+      "target_configs": [
+        {
+          "target_id": "tc5_cdc_replica_target",
+          "type": "table",
+          "table": "{{catalog}}.bronze_tc5_metrics.tc5_customer_replica",
+          "read_mode": "batch",
+          "hash_precomputed": false,
+          "comparison_direction": "source_to_target",
+          "append_target_table": "{{catalog}}.tc5_remediation.tc5_heal_landing"
+        }
+      ],
+      "match_keys": [
+        "customer_id"
+      ],
+      "compare_columns": [
+        "customer_name",
+        "status"
+      ],
+      "transform_sql": "SELECT customer_id, customer_name, status, current_timestamp() AS healed_at FROM _reconciliation_unmatched_records",
+      "error_handling": {
+        "on_failure": "warn"
+      }
+    }
+  ]
+}

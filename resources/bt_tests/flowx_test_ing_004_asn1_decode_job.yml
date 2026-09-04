@@ -1,0 +1,58 @@
+# Wraps flowx_test_ing_004_asn1_decode_pipeline:
+#
+#   setup_control_tables -> seed_asn1_gsm_cdr_fixture -> onboard_ing_004 -> run_ing_004_pipeline
+#
+# seed_asn1_gsm_cdr_fixture (notebooks/00_seed_sample_data/03_seed_asn1_gsm_cdr_fixture.py)
+# lands the real ASN.1 module file (sample_data/asn1_schema/gsm_cdr.asn) at
+# /Volumes/flowx/telecom/schemas/gsm_cdr.asn, then generates 3 genuine BER-encoded
+# GsmCallDetailRecord fixtures directly on-cluster into
+# /Volumes/flowx/telecom/landing_cdr/incoming/ (binary files don't survive Databricks
+# Workspace Files sync reliably -- see that notebook's own header comment). Self-contained and
+# idempotent, so this job can be re-run on its own at any time.
+
+resources:
+  jobs:
+    flowx_test_ing_004_asn1_decode_job:
+      name: FlowX Test TC-ING-004 - ASN.1 Binary Telecom CDR Decoding
+
+      tasks:
+        - task_key: setup_control_tables
+          notebook_task:
+            notebook_path: ../../notebooks/01_setup/01_setup_control_tables.py
+            base_parameters:
+              catalog: flowx
+          environment_key: framework_env
+
+        - task_key: seed_asn1_gsm_cdr_fixture
+          depends_on:
+            - task_key: setup_control_tables
+          notebook_task:
+            notebook_path: ../../notebooks/00_seed_sample_data/03_seed_asn1_gsm_cdr_fixture.py
+            base_parameters:
+              catalog: flowx
+          environment_key: framework_env
+
+        - task_key: onboard_ing_004
+          depends_on:
+            - task_key: seed_asn1_gsm_cdr_fixture
+          notebook_task:
+            notebook_path: ../../notebooks/02_onboarding/02_onboarding_engine.py
+            base_parameters:
+              spec_file_path: "${workspace.file_path}/flowx_testing/013_ing_004_asn1_decode.json"
+              catalog: flowx
+              env: dev
+              action_type: CREATE
+          environment_key: framework_env
+
+        - task_key: run_ing_004_pipeline
+          depends_on:
+            - task_key: onboard_ing_004
+          pipeline_task:
+            pipeline_id: ${resources.pipelines.flowx_test_ing_004_asn1_decode_pipeline.id}
+
+      environments:
+        - environment_key: framework_env
+          spec:
+            environment_version: "4"
+            dependencies:
+              - ../../dist/*.whl

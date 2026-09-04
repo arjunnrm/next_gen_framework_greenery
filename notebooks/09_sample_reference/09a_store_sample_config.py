@@ -5,8 +5,8 @@
 # MAGIC Tiny reusable utility -- the LAST task of every `resources/sample_jobs/*_job.yml` sample
 # MAGIC job. Copies each workspace-synced onboarding spec JSON named in `spec_paths`
 # MAGIC (comma-separated) into the Unity Catalog Volume
-# MAGIC `/Volumes/<catalog>/metaflow_sample/sample_configs/`, so a developer browsing the
-# MAGIC `metaflow_sample` schema finds, next to every table the sample suite produced, the exact
+# MAGIC `/Volumes/<catalog>/flowx_sample/sample_configs/`, so a developer browsing the
+# MAGIC `flowx_sample` schema finds, next to every table the sample suite produced, the exact
 # MAGIC spec document that produced it.
 # MAGIC
 # MAGIC Idempotent: the schema/Volume are provisioned `IF NOT EXISTS` and each spec is copied
@@ -24,7 +24,7 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(me
 logger = logging.getLogger("store_sample_config")
 
 dbutils.widgets.text("spec_paths", "", "Comma-separated workspace paths of onboarding spec JSONs")
-dbutils.widgets.text("catalog", "metaflow", "Target Unity Catalog")
+dbutils.widgets.text("catalog", "flowx", "Target Unity Catalog")
 
 SPEC_PATHS = [path.strip() for path in dbutils.widgets.get("spec_paths").split(",") if path.strip()]
 CATALOG = dbutils.widgets.get("catalog").strip()
@@ -34,7 +34,7 @@ if not SPEC_PATHS:
 if not CATALOG:
     raise ValueError("The 'catalog' widget must be set to a valid Unity Catalog name.")
 
-SAMPLE_SCHEMA = "metaflow_sample"
+SAMPLE_SCHEMA = "flowx_sample"
 TARGET_DIR = f"/Volumes/{CATALOG}/{SAMPLE_SCHEMA}/sample_configs"
 
 # COMMAND ----------
@@ -92,4 +92,4 @@ logger.info("Stored %d spec(s) in '%s'.", len(SPEC_PATHS), TARGET_DIR)
 # MAGIC ## Done
 # MAGIC
 # MAGIC Every spec named in `spec_paths` is now browsable at
-# MAGIC `/Volumes/<catalog>/metaflow_sample/sample_configs/`.
+# MAGIC `/Volumes/<catalog>/flowx_sample/sample_configs/`.

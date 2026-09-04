@@ -51,7 +51,7 @@
 # MAGIC `libraries:` block.
 # MAGIC
 # MAGIC All business logic lives in
-# MAGIC `NextGen_Metadata_Framework.lakeflow_framework.observability` (see that package's
+# MAGIC `flowx.lakeflow_framework.observability` (see that package's
 # MAGIC `__init__.py` for the 5-module breakdown) -- this notebook is deliberately thin
 # MAGIC orchestration, per this repo's own convention (`AGENTS.md`/`SKILL.md`).
 # MAGIC
@@ -73,54 +73,54 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(me
 logger = logging.getLogger("dlt_observability_engine")
 
 try:
-    import NextGen_Metadata_Framework.lakeflow_framework  # noqa: F401
+    import flowx.lakeflow_framework  # noqa: F401
 except ImportError:
     try:
         this_dir = os.path.dirname(os.path.abspath(__file__)) if "__file__" in globals() else os.getcwd()
         dev_src_root = os.path.abspath(os.path.join(this_dir, "..", "..", "src"))
         if dev_src_root not in sys.path:
             sys.path.insert(0, dev_src_root)
-        import NextGen_Metadata_Framework.lakeflow_framework  # noqa: F401
-        logger.warning("Loaded 'NextGen_Metadata_Framework' from local 'src/' (dev fallback) -- not from an installed wheel.")
+        import flowx.lakeflow_framework  # noqa: F401
+        logger.warning("Loaded 'flowx' from local 'src/' (dev fallback) -- not from an installed wheel.")
     except ImportError as exc:
         raise ImportError(
-            "Could not import 'NextGen_Metadata_Framework'. In production this must be attached as a "
+            "Could not import 'flowx'. In production this must be attached as a "
             "wheel library (see resources/*.yml); for local development, run from within the repo so "
             f"'../../src' resolves. Original error: {exc}"
         ) from exc
 
 from databricks.sdk import WorkspaceClient  # noqa: E402
 
-from NextGen_Metadata_Framework.lakeflow_framework.exceptions import (  # noqa: E402
+from flowx.lakeflow_framework.exceptions import (  # noqa: E402
     ObservabilityConfigError,
     ObservabilityDispatchError,
 )
-from NextGen_Metadata_Framework.lakeflow_framework.observability.config_loader import (  # noqa: E402
+from flowx.lakeflow_framework.observability.config_loader import (  # noqa: E402
     filter_destinations_by_mode,
     load_destination_configs,
 )
-from NextGen_Metadata_Framework.lakeflow_framework.observability.destination_dispatcher import (
+from flowx.lakeflow_framework.observability.destination_dispatcher import (
     dispatch_all,  # noqa: E402
 )
-from NextGen_Metadata_Framework.lakeflow_framework.observability.event_log_extractor import (  # noqa: E402
+from flowx.lakeflow_framework.observability.event_log_extractor import (  # noqa: E402
     aggregate_flow_metrics,
     extract_raw_events,
     resolve_dataflow_group_id,
     resolve_update_ids_for_window,
 )
-from NextGen_Metadata_Framework.lakeflow_framework.observability.otel_payload_builder import (  # noqa: E402
+from flowx.lakeflow_framework.observability.otel_payload_builder import (  # noqa: E402
     build_resource_logs,
     validate_resource_logs,
 )
-from NextGen_Metadata_Framework.lakeflow_framework.observability.reconciliation_export import (  # noqa: E402
+from flowx.lakeflow_framework.observability.reconciliation_export import (  # noqa: E402
     export_reconciliation_control_rows,
 )
-from NextGen_Metadata_Framework.lakeflow_framework.observability.runtime_params import (  # noqa: E402
+from flowx.lakeflow_framework.observability.runtime_params import (  # noqa: E402
     assert_dataflow_group_id_matches,
     resolve_triggered_run_parameters,
 )
-from NextGen_Metadata_Framework.lakeflow_framework.observability.structured_logger import logged_operation  # noqa: E402
-from NextGen_Metadata_Framework.lakeflow_framework.observability.task_context_resolver import (
+from flowx.lakeflow_framework.observability.structured_logger import logged_operation  # noqa: E402
+from flowx.lakeflow_framework.observability.task_context_resolver import (
     resolve_task_context,  # noqa: E402
 )
 

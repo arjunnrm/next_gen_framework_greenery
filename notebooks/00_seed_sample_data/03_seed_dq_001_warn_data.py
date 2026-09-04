@@ -2,8 +2,8 @@
 # MAGIC %md
 # MAGIC # Seed TC-DQ-001 -- `warn` Non-Blocking Validation Fixtures
 # MAGIC
-# MAGIC Dedicated seed notebook for `metaflow_testing/029_dq_001_warn.json` only -- intentionally
-# MAGIC separate from `02_seed_metaflow_testing_data.py` (scenarios 001/002/003) and
+# MAGIC Dedicated seed notebook for `flowx_testing/029_dq_001_warn.json` only -- intentionally
+# MAGIC separate from `02_seed_flowx_testing_data.py` (scenarios 001/002/003) and
 # MAGIC `03_seed_ing_001_zip_filter_data.py` (TC-ING-001), so this test case's build/run stays
 # MAGIC isolated from those other scenarios' own fixtures.
 # MAGIC
@@ -14,7 +14,7 @@
 # MAGIC template's 100/15 to a minimal 10/2 fixture, per this pass's "minimal, real, onboardable"
 # MAGIC convention.
 # MAGIC
-# MAGIC Run once per environment before onboarding `metaflow_testing/029_dq_001_warn.json`.
+# MAGIC Run once per environment before onboarding `flowx_testing/029_dq_001_warn.json`.
 
 # COMMAND ----------
 
@@ -24,7 +24,7 @@ import os
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger("seed_dq_001_warn_data")
 
-dbutils.widgets.text("catalog", "metaflow", "Target Unity Catalog")
+dbutils.widgets.text("catalog", "flowx", "Target Unity Catalog")
 CATALOG = dbutils.widgets.get("catalog").strip()
 
 if not CATALOG:
@@ -32,7 +32,7 @@ if not CATALOG:
 
 _this_dir = os.path.dirname(os.path.abspath(__file__)) if "__file__" in globals() else os.getcwd()
 REPO_ROOT = os.path.abspath(os.path.join(_this_dir, "..", ".."))
-FIXTURE_DIR = os.path.join(REPO_ROOT, "sample_data", "metaflow_testing", "crm_usecase")
+FIXTURE_DIR = os.path.join(REPO_ROOT, "sample_data", "flowx_testing", "crm_usecase")
 
 if not os.path.isdir(FIXTURE_DIR):
     raise FileNotFoundError(f"Expected fixture directory at '{FIXTURE_DIR}' -- is sample_data/ synced alongside this notebook?")
@@ -82,6 +82,6 @@ logger.info("Landed DQ 'warn' fixture at '%s/customer_dq_warn.csv' (10 rows, 2 w
 # MAGIC %md
 # MAGIC ## Done
 # MAGIC
-# MAGIC `metaflow_testing/029_dq_001_warn.json` can now be onboarded and its pipeline run.
+# MAGIC `flowx_testing/029_dq_001_warn.json` can now be onboarded and its pipeline run.
 # MAGIC Re-running this notebook is safe: the CSV fixture is copied fresh each time (Auto Loader
 # MAGIC itself, not this notebook, tracks which files it has already ingested via its checkpoint).

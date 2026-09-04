@@ -3,7 +3,7 @@
 # MAGIC # Seed v0.0.2 TC-2 -- Two Zerobus JSON-Payload Source Bus Tables
 # MAGIC
 # MAGIC Creates and populates the TWO Zerobus-style source tables that
-# MAGIC `metaflow_testing/v0_0_2_tc2_zerobus_bronze.json` streams into Bronze:
+# MAGIC `flowx_testing/v0_0_2_tc2_zerobus_bronze.json` streams into Bronze:
 # MAGIC
 # MAGIC | Table | Payload shape |
 # MAGIC |---|---|
@@ -17,7 +17,7 @@
 # MAGIC document and the Bronze row carries the byte-identical string it was given.
 # MAGIC
 # MAGIC **Why no existing seed was reused.** `03_seed_ing_003_zerobus_baseline.py` and
-# MAGIC `02_seed_metaflow_testing_data.py::seed_zerobus_style_table_from_csv` both seed
+# MAGIC `02_seed_flowx_testing_data.py::seed_zerobus_style_table_from_csv` both seed
 # MAGIC `Excalibur_usecase.zerobus_source_bus`, which is a *typed, multi-column*
 # MAGIC (`customer_id`/`customer_name`/`status`) table -- the opposite of the single
 # MAGIC opaque-JSON-column shape this test exists to prove, and a table whose row
@@ -42,7 +42,7 @@ import logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger("seed_v0_0_2_tc2_zerobus_json_bus")
 
-dbutils.widgets.text("catalog", "metaflow", "Target Unity Catalog")
+dbutils.widgets.text("catalog", "flowx", "Target Unity Catalog")
 dbutils.widgets.text("source_schema", "zerobus_v0_0_2", "Source schema holding both bus tables")
 dbutils.widgets.text("row_count", "50", "Events to generate per bus table")
 
@@ -205,7 +205,7 @@ seed_json_event_bus(DEVICES_TABLE, _device_payload, ROW_COUNT)
 # MAGIC ## Done
 # MAGIC
 # MAGIC Both bus tables now exist with a single `payload_json STRING` column.
-# MAGIC `metaflow_test_v0_0_2_tc2_zerobus_bronze_pipeline`'s next update streams them
+# MAGIC `flowx_test_v0_0_2_tc2_zerobus_bronze_pipeline`'s next update streams them
 # MAGIC into `{catalog}.bronze_v0_0_2_tc2.orders_events_bronze` and
 # MAGIC `{catalog}.bronze_v0_0_2_tc2.devices_events_bronze` unparsed.
 

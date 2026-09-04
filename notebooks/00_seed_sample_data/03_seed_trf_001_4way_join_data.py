@@ -2,10 +2,10 @@
 # MAGIC %md
 # MAGIC # Seed TC-TRF-001 -- Multi-Source Streaming-to-Batch 4-Way Inner Join Fixtures
 # MAGIC
-# MAGIC Dedicated seed notebook for `metaflow_testing/026_trf_001_4way_join.json` only --
-# MAGIC intentionally separate from `02_seed_metaflow_testing_data.py` (scenario 001), even
+# MAGIC Dedicated seed notebook for `flowx_testing/026_trf_001_4way_join.json` only --
+# MAGIC intentionally separate from `02_seed_flowx_testing_data.py` (scenario 001), even
 # MAGIC though both reuse the exact same underlying CSV fixtures under
-# MAGIC `sample_data/metaflow_testing/ea_usecase/`. Scenario 001 zips those same 4 files into
+# MAGIC `sample_data/flowx_testing/ea_usecase/`. Scenario 001 zips those same 4 files into
 # MAGIC `EA_usecase.landing_zip` and ingests them into `bronze_ea.{departments,employees,
 # MAGIC projects,assignments}_raw`; this test case instead lands them as **plain, unzipped**
 # MAGIC CSVs (no `source_zip_handling` -- ZIP extraction isn't what TC-TRF-001 is testing) under
@@ -22,7 +22,7 @@
 # MAGIC * `departments.csv` / `projects.csv` -- reference dimensions, every `dept_id`/`project_id`
 # MAGIC   referenced by `assignments.csv`/`employees.csv` resolves in both.
 # MAGIC
-# MAGIC Run once per environment before onboarding `metaflow_testing/026_trf_001_4way_join.json`.
+# MAGIC Run once per environment before onboarding `flowx_testing/026_trf_001_4way_join.json`.
 
 # COMMAND ----------
 
@@ -32,7 +32,7 @@ import os
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger("seed_trf_001_4way_join_data")
 
-dbutils.widgets.text("catalog", "metaflow", "Target Unity Catalog")
+dbutils.widgets.text("catalog", "flowx", "Target Unity Catalog")
 CATALOG = dbutils.widgets.get("catalog").strip()
 
 if not CATALOG:
@@ -40,7 +40,7 @@ if not CATALOG:
 
 _this_dir = os.path.dirname(os.path.abspath(__file__)) if "__file__" in globals() else os.getcwd()
 REPO_ROOT = os.path.abspath(os.path.join(_this_dir, "..", ".."))
-FIXTURE_DIR = os.path.join(REPO_ROOT, "sample_data", "metaflow_testing", "ea_usecase")
+FIXTURE_DIR = os.path.join(REPO_ROOT, "sample_data", "flowx_testing", "ea_usecase")
 
 if not os.path.isdir(FIXTURE_DIR):
     raise FileNotFoundError(f"Expected fixture directory at '{FIXTURE_DIR}' -- is sample_data/ synced alongside this notebook?")
@@ -91,7 +91,7 @@ for _csv_filename, _volume_name in _LANDING_VOLUME_BY_FIXTURE.items():
 # MAGIC %md
 # MAGIC ## Done
 # MAGIC
-# MAGIC `metaflow_testing/026_trf_001_4way_join.json` can now be onboarded and its pipeline run.
+# MAGIC `flowx_testing/026_trf_001_4way_join.json` can now be onboarded and its pipeline run.
 # MAGIC Re-running this notebook is safe: each CSV is copied fresh each time (Auto Loader itself,
 # MAGIC not this notebook, tracks which files it has already ingested via its checkpoint, so
 # MAGIC re-landing the same filenames does not re-ingest or duplicate rows).

@@ -1,0 +1,69 @@
+# Wraps flowx_test_rec_003_precomputed_hash_pipeline:
+#
+#   setup_control_tables -> seed_rec_003_precomputed_hash_data -> onboard_rec_003
+#     -> run_pipeline -> run_reconciliation
+#
+# run_reconciliation is a standalone job task (reconciliation is not a Lakeflow Declarative
+# Pipeline flow type -- see docs/07_reconciliation.md), executed after both orders_src/orders_tgt
+# targets have been materialized by the pipeline above, comparing them via
+# recon_rec_003_orders_precomputed_hash's hash_precomputed: true on both sides. Self-contained and
+# idempotent (control-table upsert + CREATE ... IF NOT EXISTS schema/volume provisioning +
+# idempotent fixture copy), so this job can be re-run on its own at any time. See
+# flowx_testing/038_rec_003_precomputed_hash.json and docs/60_tc_rec_003.md.
+
+resources:
+  jobs:
+    flowx_test_rec_003_precomputed_hash_job:
+      name: FlowX Test REC-003 - Pre-Computed Hash Matcher Plan Assertion
+
+      tasks:
+        - task_key: setup_control_tables
+          notebook_task:
+            notebook_path: ../../notebooks/01_setup/01_setup_control_tables.py
+            base_parameters:
+              catalog: flowx
+          environment_key: framework_env
+
+        - task_key: seed_rec_003_precomputed_hash_data
+          depends_on:
+            - task_key: setup_control_tables
+          notebook_task:
+            notebook_path: ../../notebooks/00_seed_sample_data/03_seed_rec_003_precomputed_hash_data.py
+            base_parameters:
+              catalog: flowx
+          environment_key: framework_env
+
+        - task_key: onboard_rec_003
+          depends_on:
+            - task_key: seed_rec_003_precomputed_hash_data
+          notebook_task:
+            notebook_path: ../../notebooks/02_onboarding/02_onboarding_engine.py
+            base_parameters:
+              spec_file_path: "${workspace.file_path}/flowx_testing/038_rec_003_precomputed_hash.json"
+              catalog: flowx
+              env: dev
+              action_type: CREATE
+          environment_key: framework_env
+
+        - task_key: run_pipeline
+          depends_on:
+            - task_key: onboard_rec_003
+          pipeline_task:
+            pipeline_id: ${resources.pipelines.flowx_test_rec_003_precomputed_hash_pipeline.id}
+
+        - task_key: run_reconciliation
+          depends_on:
+            - task_key: run_pipeline
+          notebook_task:
+            notebook_path: ../../notebooks/05_reconciliation/05_reconciliation_engine.py
+            base_parameters:
+              catalog: flowx
+              reconciliation_id: recon_rec_003_orders_precomputed_hash
+          environment_key: framework_env
+
+      environments:
+        - environment_key: framework_env
+          spec:
+            environment_version: "4"
+            dependencies:
+              - ../../dist/*.whl

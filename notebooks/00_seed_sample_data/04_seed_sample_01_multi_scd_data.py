@@ -4,7 +4,7 @@
 # MAGIC
 # MAGIC Dedicated seed notebook for `resources/sample_jobs/onboarding/sample_01_multi_scd.json` only.
 # MAGIC Parameterized by `iteration`; the common seed job
-# MAGIC (`resources/sample_jobs/metaflow_sample_seed_job.yml`) invokes it once per iteration
+# MAGIC (`resources/sample_jobs/flowx_sample_seed_job.yml`) invokes it once per iteration
 # MAGIC (1 -> 2 -> 3, chained) before any sample pipeline runs. Data comes from the
 # MAGIC Databricks `samples` catalog (`samples.tpch.customer/supplier/part/orders`) as
 # MAGIC deterministic key-range slices, falling back to small inline literal DataFrames when
@@ -37,7 +37,7 @@ import os
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger("seed_sample_01_multi_scd")
 
-dbutils.widgets.text("catalog", "metaflow", "Target Unity Catalog")
+dbutils.widgets.text("catalog", "flowx", "Target Unity Catalog")
 dbutils.widgets.text("iteration", "1", "Which iteration to land (1, 2, or 3)")
 
 CATALOG = dbutils.widgets.get("catalog").strip()
@@ -48,7 +48,7 @@ if not CATALOG:
 if ITERATION not in ("1", "2", "3"):
     raise ValueError(f"The 'iteration' widget must be '1', '2', or '3' -- got '{ITERATION}'.")
 
-SAMPLE_SCHEMA = "metaflow_sample"
+SAMPLE_SCHEMA = "flowx_sample"
 LANDING_ROOT = f"/Volumes/{CATALOG}/{SAMPLE_SCHEMA}/landing"
 EVENT_TS = {"1": "2026-09-01 00:00:00", "2": "2026-09-02 00:00:00", "3": "2026-09-03 00:00:00"}[ITERATION]
 
@@ -57,7 +57,7 @@ EVENT_TS = {"1": "2026-09-01 00:00:00", "2": "2026-09-02 00:00:00", "3": "2026-0
 # MAGIC %md
 # MAGIC ## 1. Provision the Single Sample Schema & Its Volumes
 # MAGIC
-# MAGIC Everything Sample 01 touches lives in `metaflow_sample`: landing files, `_schemas`
+# MAGIC Everything Sample 01 touches lives in `flowx_sample`: landing files, `_schemas`
 # MAGIC checkpoint dirs (inside the `landing` Volume), targets, and the observability export
 # MAGIC Volume the spec's `DATABRICKS_VOLUME` destination writes under.
 

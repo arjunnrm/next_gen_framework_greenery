@@ -9,7 +9,7 @@
 # MAGIC CDC/Zerobus source table feeding that target's own downstream materialization cycle, so a
 # MAGIC subsequent pipeline run picks the correction up. `target_to_source` misses are logged for
 # MAGIC audit only and never appended/remediated. All business logic lives in
-# MAGIC `NextGen_Metadata_Framework.lakeflow_framework.reconciliation` (`dataset_reader`,
+# MAGIC `flowx.lakeflow_framework.reconciliation` (`dataset_reader`,
 # MAGIC `matcher`, `appender`, `mismatch_logging`, `streaming`) -- see
 # MAGIC `docs/07_reconciliation.md` for the matching/key strategy and assumptions.
 # MAGIC
@@ -69,18 +69,18 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(me
 logger = logging.getLogger("reconciliation_engine")
 
 try:
-    import NextGen_Metadata_Framework.lakeflow_framework  # noqa: F401
+    import flowx.lakeflow_framework  # noqa: F401
 except ImportError:
     try:
         this_dir = os.path.dirname(os.path.abspath(__file__)) if "__file__" in globals() else os.getcwd()
         dev_src_root = os.path.abspath(os.path.join(this_dir, "..", "..", "src"))
         if dev_src_root not in sys.path:
             sys.path.insert(0, dev_src_root)
-        import NextGen_Metadata_Framework.lakeflow_framework  # noqa: F401
-        logger.warning("Loaded 'NextGen_Metadata_Framework' from local 'src/' (dev fallback) -- not from an installed wheel.")
+        import flowx.lakeflow_framework  # noqa: F401
+        logger.warning("Loaded 'flowx' from local 'src/' (dev fallback) -- not from an installed wheel.")
     except ImportError as exc:
         raise ImportError(
-            "Could not import 'NextGen_Metadata_Framework'. In production this must be attached as a "
+            "Could not import 'flowx'. In production this must be attached as a "
             "wheel library (see resources/*.yml); for local development, run from within the repo so "
             f"'../../src' resolves. Original error: {exc}"
         ) from exc
@@ -89,18 +89,18 @@ import json  # noqa: E402
 import uuid  # noqa: E402
 from typing import Optional  # noqa: E402
 
-from NextGen_Metadata_Framework.lakeflow_framework.control_plane.schema_provisioner import ensure_control_schema_exists  # noqa: E402
-from NextGen_Metadata_Framework.lakeflow_framework.exceptions import FrameworkConfigError, FrameworkError  # noqa: E402
-from NextGen_Metadata_Framework.lakeflow_framework.reconciliation.appender import (  # noqa: E402
+from flowx.lakeflow_framework.control_plane.schema_provisioner import ensure_control_schema_exists  # noqa: E402
+from flowx.lakeflow_framework.exceptions import FrameworkConfigError, FrameworkError  # noqa: E402
+from flowx.lakeflow_framework.reconciliation.appender import (  # noqa: E402
     resolve_log_capture_flags,
     run_target_reconciliation,
     write_reconciliation_result,
     write_run_log_entry,
 )
-from NextGen_Metadata_Framework.lakeflow_framework.reconciliation.dataset_reader import read_reconciliation_dataset  # noqa: E402
-from NextGen_Metadata_Framework.lakeflow_framework.reconciliation.matcher import prepare_dataset_for_matching  # noqa: E402
-from NextGen_Metadata_Framework.lakeflow_framework.reconciliation.streaming import run_streaming_target_reconciliation  # noqa: E402
-from NextGen_Metadata_Framework.lakeflow_framework.transformation.parameters import substitute_path_parameters  # noqa: E402
+from flowx.lakeflow_framework.reconciliation.dataset_reader import read_reconciliation_dataset  # noqa: E402
+from flowx.lakeflow_framework.reconciliation.matcher import prepare_dataset_for_matching  # noqa: E402
+from flowx.lakeflow_framework.reconciliation.streaming import run_streaming_target_reconciliation  # noqa: E402
+from flowx.lakeflow_framework.transformation.parameters import substitute_path_parameters  # noqa: E402
 
 # COMMAND ----------
 

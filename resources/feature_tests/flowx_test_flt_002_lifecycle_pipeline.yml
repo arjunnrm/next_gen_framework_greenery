@@ -1,0 +1,30 @@
+# FlowX test scenario TC-FLT-002: "Continuous Day-1 to Day-2 Incremental Ingestion Cycle" --
+# a single Auto Loader ingestion flow, cdc_load_strategy SCD1, landing customer dimension
+# extracts at /Volumes/{{catalog}}/crm/landing_lifecycle/incoming/ into
+# flowx.silver_crm.dim_customer_lifecycle. Run twice by its owning job -- once after the
+# Day-1 seed load lands, once after the Day-2 update/insert batch lands -- to prove the same
+# triggered pipeline picks up an incremental batch seamlessly on a later, separate update. See
+# flowx_testing/044_flt_002_lifecycle.json.
+
+resources:
+  pipelines:
+    flowx_test_flt_002_lifecycle_pipeline:
+      name: flowx_test_flt_002_lifecycle_pipeline_${bundle.target}
+      catalog: flowx
+      schema: silver_crm
+      serverless: true
+      photon: true
+      development: true
+      continuous: false
+
+      libraries:
+        - notebook:
+            path: ../../notebooks/03_engine/03_lakeflow_declarative_pipeline.py
+
+      environment:
+        dependencies:
+          - ../../dist/*.whl
+
+      configuration:
+        dataflow.group.id: dfg_flt_002_lifecycle
+        dataflow.control.catalog: flowx

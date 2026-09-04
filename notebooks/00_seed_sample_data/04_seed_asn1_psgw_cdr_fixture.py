@@ -2,9 +2,9 @@
 # MAGIC %md
 # MAGIC # Seed ASN.1 PSGW CDR Fixture (v0.0.2 TC1)
 # MAGIC
-# MAGIC Provisions the two real inputs `metaflow_testing/v0_0_2_tc1_asn1_ingest.json` needs:
+# MAGIC Provisions the two real inputs `flowx_testing/v0_0_2_tc1_asn1_ingest.json` needs:
 # MAGIC
-# MAGIC * The real PSGW ASN.1 module file (`metaflow_testing/BT_Testing/PSGW.asn1`), copied
+# MAGIC * The real PSGW ASN.1 module file (`flowx_testing/BT_Testing/PSGW.asn1`), copied
 # MAGIC   verbatim into `/Volumes/{catalog}/psgw/schemas/PSGW.asn1`. Plain text, so an ordinary
 # MAGIC   Workspace-Files-synced copy survives the trip fine.
 # MAGIC * 10 genuine BER-encoded `CallEventRecord` fixtures, generated **directly on-cluster**
@@ -15,7 +15,7 @@
 # MAGIC
 # MAGIC ## ONE RECORD PER FILE -- the thing this notebook gets right
 # MAGIC
-# MAGIC `metaflow_testing/BT_Testing/synthetic/psgw_synthetic.ber` holds 10 records **concatenated**
+# MAGIC `flowx_testing/BT_Testing/synthetic/psgw_synthetic.ber` holds 10 records **concatenated**
 # MAGIC as 10 back-to-back TLVs in a single file. The framework decoder
 # MAGIC (`asn1/decoder.py::make_partition_decoder`) calls `compiled.decode(pdu_name, raw_bytes)` on
 # MAGIC the **whole file content** exactly once per Auto Loader file, and `asn1tools.decode` on a
@@ -36,7 +36,7 @@
 # MAGIC (`scripts/generate_synthetic_ber.py`, seeded `random.Random(SEED + index)`), reused rather
 # MAGIC than reimplemented, so re-running this notebook reproduces byte-identical payloads.
 # MAGIC
-# MAGIC Run once per environment before onboarding `metaflow_testing/v0_0_2_tc1_asn1_ingest.json`.
+# MAGIC Run once per environment before onboarding `flowx_testing/v0_0_2_tc1_asn1_ingest.json`.
 
 # COMMAND ----------
 
@@ -51,7 +51,7 @@ import os
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger("seed_asn1_psgw_cdr_fixture")
 
-dbutils.widgets.text("catalog", "metaflow", "Target Unity Catalog")
+dbutils.widgets.text("catalog", "flowx", "Target Unity Catalog")
 CATALOG = dbutils.widgets.get("catalog").strip()
 
 if not CATALOG:
@@ -59,13 +59,13 @@ if not CATALOG:
 
 _this_dir = os.path.dirname(os.path.abspath(__file__)) if "__file__" in globals() else os.getcwd()
 REPO_ROOT = os.path.abspath(os.path.join(_this_dir, "..", ".."))
-SCHEMA_FIXTURE_PATH = os.path.join(REPO_ROOT, "metaflow_testing", "BT_Testing", "PSGW.asn1")
+SCHEMA_FIXTURE_PATH = os.path.join(REPO_ROOT, "flowx_testing", "BT_Testing", "PSGW.asn1")
 GENERATOR_DIR = os.path.join(REPO_ROOT, "scripts")
 
 if not os.path.isfile(SCHEMA_FIXTURE_PATH):
     raise FileNotFoundError(
         f"Expected PSGW ASN.1 module file at '{SCHEMA_FIXTURE_PATH}' -- is "
-        "metaflow_testing/BT_Testing/ synced alongside this notebook?"
+        "flowx_testing/BT_Testing/ synced alongside this notebook?"
     )
 
 logger.info("Resolved PSGW.asn1 fixture at: %s", SCHEMA_FIXTURE_PATH)
@@ -132,7 +132,7 @@ dbutils.fs.mkdirs(PSGW_LANDING_INCOMING)
 
 compiled = asn1tools.compile_files([PSGW_SCHEMA_VOLUME_PATH], CODEC)
 
-# build_records() resolves the schema out of metaflow_testing/BT_Testing/ by name and returns
+# build_records() resolves the schema out of flowx_testing/BT_Testing/ by name and returns
 # 10 deterministic (arm_name, value) tuples for the root CHOICE.
 records, _index, _chosen = build_records("PSGW.asn1", ROOT_PDU, CHOICE_ARM)
 logger.info("Built %d deterministic %s/%s records", len(records), ROOT_PDU, CHOICE_ARM)
@@ -200,7 +200,7 @@ logger.info(
 # MAGIC %md
 # MAGIC ## Done
 # MAGIC
-# MAGIC `metaflow_testing/v0_0_2_tc1_asn1_ingest.json` can now be onboarded and its pipeline run.
+# MAGIC `flowx_testing/v0_0_2_tc1_asn1_ingest.json` can now be onboarded and its pipeline run.
 # MAGIC Expect **10 rows** in `bronze_psgw.psgw_cdr_raw`, every row carrying
 # MAGIC `_choice = 'pGWRecord'` and `_asn1_decode_error IS NULL`.
 # MAGIC

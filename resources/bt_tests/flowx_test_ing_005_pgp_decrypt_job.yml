@@ -1,0 +1,60 @@
+# Wraps flowx_test_ing_005_pgp_decrypt_pipeline:
+#
+#   setup_control_tables -> seed_pgp_decrypt_test_data -> onboard_ing_005 -> run_pipeline_task
+#
+# seed_pgp_decrypt_test_data (notebooks/00_seed_sample_data/03_seed_pgp_decrypt_test_data.py)
+# builds this scenario's own PGP+ZIP fixture on-cluster from a plaintext CSV
+# (sample_data/flowx_testing/finance_usecase/txns_raw.csv) and a committed, disposable,
+# test-only PGP public key (sample_data/flowx_testing/finance_usecase/
+# pgp_test_keypair_public.asc). Before this job's run_pipeline_task can succeed, the matching
+# private key half of that same keypair must already be provisioned as the UC secret
+# {{catalog}}.security.pgp_private_key_finance_test -- a manual, one-time, admin-audited step
+# external to this bundle -- see docs/35_tc_ing_005.md for the exact
+# `databricks secrets put-secret` command.
+
+resources:
+  jobs:
+    flowx_test_ing_005_pgp_decrypt_job:
+      name: FlowX Test ING-005 - Landing PGP Decryption via UC Secrets
+
+      tasks:
+        - task_key: setup_control_tables
+          notebook_task:
+            notebook_path: ../../notebooks/01_setup/01_setup_control_tables.py
+            base_parameters:
+              catalog: flowx
+          environment_key: framework_env
+
+        - task_key: seed_pgp_decrypt_test_data
+          depends_on:
+            - task_key: setup_control_tables
+          notebook_task:
+            notebook_path: ../../notebooks/00_seed_sample_data/03_seed_pgp_decrypt_test_data.py
+            base_parameters:
+              catalog: flowx
+          environment_key: framework_env
+
+        - task_key: onboard_ing_005
+          depends_on:
+            - task_key: seed_pgp_decrypt_test_data
+          notebook_task:
+            notebook_path: ../../notebooks/02_onboarding/02_onboarding_engine.py
+            base_parameters:
+              spec_file_path: "${workspace.file_path}/flowx_testing/014_ing_005_pgp_decrypt.json"
+              catalog: flowx
+              env: dev
+              action_type: CREATE
+          environment_key: framework_env
+
+        - task_key: run_pipeline_task
+          depends_on:
+            - task_key: onboard_ing_005
+          pipeline_task:
+            pipeline_id: ${resources.pipelines.flowx_test_ing_005_pgp_decrypt_pipeline.id}
+
+      environments:
+        - environment_key: framework_env
+          spec:
+            environment_version: "4"
+            dependencies:
+              - ../../dist/*.whl

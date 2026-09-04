@@ -2,8 +2,8 @@
 # MAGIC %md
 # MAGIC # Seed TC-SNK-003 -- PGP Encrypted ZIP Sink Export Fixtures
 # MAGIC
-# MAGIC Dedicated seed notebook for `metaflow_testing/041_snk_003_pgp_zip_sink.json` only --
-# MAGIC intentionally separate from `02_seed_metaflow_testing_data.py` and
+# MAGIC Dedicated seed notebook for `flowx_testing/041_snk_003_pgp_zip_sink.json` only --
+# MAGIC intentionally separate from `02_seed_flowx_testing_data.py` and
 # MAGIC `03_seed_pgp_decrypt_test_data.py` so this test case's build/run stays isolated from those
 # MAGIC other scenarios' own fixtures.
 # MAGIC
@@ -18,19 +18,19 @@
 # MAGIC plaintext CSV.
 # MAGIC
 # MAGIC Also provisions the `finance_egress`/`secure_drops` schema+Volume the sink writes its
-# MAGIC finished `.zip.pgp` archives into, mirroring `02_seed_metaflow_testing_data.py`'s own
+# MAGIC finished `.zip.pgp` archives into, mirroring `02_seed_flowx_testing_data.py`'s own
 # MAGIC `egress_ea`/`export_zips` provisioning for TC-SNK-001's plain-ZIP sink -- a sink's
 # MAGIC destination Volume is never auto-created by the pipeline itself (only the pipeline's own
-# MAGIC default `catalog`/`schema` -- here `metaflow.silver_finance` -- gets that treatment).
+# MAGIC default `catalog`/`schema` -- here `flowx.silver_finance` -- gets that treatment).
 # MAGIC
-# MAGIC Before `metaflow_test_snk_003_pgp_zip_sink_job`'s `run_pipeline_task` can succeed, the
+# MAGIC Before `flowx_test_snk_003_pgp_zip_sink_job`'s `run_pipeline_task` can succeed, the
 # MAGIC recipient's PUBLIC key half of a dedicated, disposable, test-only PGP keypair
-# MAGIC (`sample_data/metaflow_testing/finance_egress_usecase/
+# MAGIC (`sample_data/flowx_testing/finance_egress_usecase/
 # MAGIC pgp_egress_keypair_{public,private}.asc`) must already be provisioned as the UC secret
 # MAGIC `{{catalog}}.security.pgp_public_key_finance_egress_test` -- see `docs/63_tc_snk_003.md` for
 # MAGIC the exact `databricks secrets put-secret` command.
 # MAGIC
-# MAGIC Run once per environment before onboarding `metaflow_testing/041_snk_003_pgp_zip_sink.json`.
+# MAGIC Run once per environment before onboarding `flowx_testing/041_snk_003_pgp_zip_sink.json`.
 
 # COMMAND ----------
 
@@ -40,7 +40,7 @@ import os
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger("seed_snk_003_pgp_zip_sink_data")
 
-dbutils.widgets.text("catalog", "metaflow", "Target Unity Catalog")
+dbutils.widgets.text("catalog", "flowx", "Target Unity Catalog")
 CATALOG = dbutils.widgets.get("catalog").strip()
 
 if not CATALOG:
@@ -48,7 +48,7 @@ if not CATALOG:
 
 _this_dir = os.path.dirname(os.path.abspath(__file__)) if "__file__" in globals() else os.getcwd()
 REPO_ROOT = os.path.abspath(os.path.join(_this_dir, "..", ".."))
-FIXTURE_DIR = os.path.join(REPO_ROOT, "sample_data", "metaflow_testing", "finance_egress_usecase")
+FIXTURE_DIR = os.path.join(REPO_ROOT, "sample_data", "flowx_testing", "finance_egress_usecase")
 
 if not os.path.isdir(FIXTURE_DIR):
     raise FileNotFoundError(f"Expected fixture directory at '{FIXTURE_DIR}' -- is sample_data/ synced alongside this notebook?")
@@ -103,7 +103,7 @@ logger.info("Landed settlements fixture at '%s/monthly_settlements.csv'", SETTLE
 # MAGIC %md
 # MAGIC ## Done
 # MAGIC
-# MAGIC `metaflow_testing/041_snk_003_pgp_zip_sink.json` can now be onboarded and its pipeline run
+# MAGIC `flowx_testing/041_snk_003_pgp_zip_sink.json` can now be onboarded and its pipeline run
 # MAGIC -- provided the recipient public key has already been provisioned as the UC secret
 # MAGIC `{{catalog}}.security.pgp_public_key_finance_egress_test` (see `docs/63_tc_snk_003.md`).
 # MAGIC Re-running this notebook is safe: the CSV fixture is copied fresh each time (Auto Loader

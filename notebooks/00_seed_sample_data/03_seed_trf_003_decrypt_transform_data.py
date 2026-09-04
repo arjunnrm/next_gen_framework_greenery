@@ -2,8 +2,8 @@
 # MAGIC %md
 # MAGIC # Seed TC-TRF-003 -- In-DAG Column Decryption for Business Computations Fixtures
 # MAGIC
-# MAGIC Dedicated seed notebook for `metaflow_testing/028_trf_003_decrypt_transform.json` only --
-# MAGIC intentionally separate from `02_seed_metaflow_testing_data.py` and every other scenario's
+# MAGIC Dedicated seed notebook for `flowx_testing/028_trf_003_decrypt_transform.json` only --
+# MAGIC intentionally separate from `02_seed_flowx_testing_data.py` and every other scenario's
 # MAGIC own seed notebook, so this test case's build/run stays isolated.
 # MAGIC
 # MAGIC Provisions the `health`/`bronze_health`/`silver_health` schemas and the
@@ -11,7 +11,7 @@
 # MAGIC the incoming Volume (no ZIP handling needed here -- plain Auto Loader CSV ingestion is the
 # MAGIC on-ramp, the actual point of this scenario is AES-GCM `billing_amount` encryption in Bronze
 # MAGIC + `decrypted_columns` decryption in the downstream transformation), built from the fixture
-# MAGIC under `sample_data/metaflow_testing/health_usecase/`:
+# MAGIC under `sample_data/flowx_testing/health_usecase/`:
 # MAGIC
 # MAGIC * `patient_visits_batch1.csv` -- 5 rows, known plaintext `billing_amount` values
 # MAGIC   (250.00, 175.50, 320.25, 99.75, 410.50) summing to exactly **1256.00** -- the number the
@@ -25,7 +25,7 @@
 # MAGIC section already documents provisioning for this project's other encryption scenarios; it is
 # MAGIC never re-provisioned or overwritten here. See `docs/49_tc_trf_003.md` for the full command.
 # MAGIC
-# MAGIC Run once per environment before onboarding `metaflow_testing/028_trf_003_decrypt_transform.json`.
+# MAGIC Run once per environment before onboarding `flowx_testing/028_trf_003_decrypt_transform.json`.
 
 # COMMAND ----------
 
@@ -35,7 +35,7 @@ import os
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger("seed_trf_003_decrypt_transform_data")
 
-dbutils.widgets.text("catalog", "metaflow", "Target Unity Catalog")
+dbutils.widgets.text("catalog", "flowx", "Target Unity Catalog")
 CATALOG = dbutils.widgets.get("catalog").strip()
 
 if not CATALOG:
@@ -43,7 +43,7 @@ if not CATALOG:
 
 _this_dir = os.path.dirname(os.path.abspath(__file__)) if "__file__" in globals() else os.getcwd()
 REPO_ROOT = os.path.abspath(os.path.join(_this_dir, "..", ".."))
-FIXTURE_DIR = os.path.join(REPO_ROOT, "sample_data", "metaflow_testing", "health_usecase")
+FIXTURE_DIR = os.path.join(REPO_ROOT, "sample_data", "flowx_testing", "health_usecase")
 
 if not os.path.isdir(FIXTURE_DIR):
     raise FileNotFoundError(f"Expected fixture directory at '{FIXTURE_DIR}' -- is sample_data/ synced alongside this notebook?")
@@ -91,7 +91,7 @@ logger.info("Landed patient visits fixture at '%s/%s'", VISITS_INCOMING_ZONE, _f
 # MAGIC %md
 # MAGIC ## Done
 # MAGIC
-# MAGIC `metaflow_testing/028_trf_003_decrypt_transform.json` can now be onboarded and its pipeline
+# MAGIC `flowx_testing/028_trf_003_decrypt_transform.json` can now be onboarded and its pipeline
 # MAGIC run -- provided `{{catalog}}.security.pii_encryption_key` has already been provisioned (see
 # MAGIC `docs/49_tc_trf_003.md`). Re-running this notebook is safe: the CSV is copied fresh each
 # MAGIC time (Auto Loader itself, not this notebook, tracks which files it has already ingested via

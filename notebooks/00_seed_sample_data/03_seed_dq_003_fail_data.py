@@ -2,7 +2,7 @@
 # MAGIC %md
 # MAGIC # Seed TC-DQ-003 -- `fail` Pipeline Execution Abort Fixtures
 # MAGIC
-# MAGIC Dedicated seed notebook for `metaflow_testing/031_dq_003_fail.json` only -- kept isolated
+# MAGIC Dedicated seed notebook for `flowx_testing/031_dq_003_fail.json` only -- kept isolated
 # MAGIC from every other scenario's own fixtures, following the same per-test-case seed-notebook
 # MAGIC convention as `03_seed_dq_001_warn_data.py`.
 # MAGIC
@@ -12,7 +12,7 @@
 # MAGIC this is the row the onboarding spec's `dq_config` rule (`account_id IS NOT NULL`,
 # MAGIC `action: "fail"`) is designed to catch, aborting the pipeline update.
 # MAGIC
-# MAGIC Run once per environment before onboarding `metaflow_testing/031_dq_003_fail.json`.
+# MAGIC Run once per environment before onboarding `flowx_testing/031_dq_003_fail.json`.
 # MAGIC
 # MAGIC **This scenario is deliberately expected to make its own pipeline run FAIL** -- see
 # MAGIC `docs/52_tc_dq_003.md`'s Expected Results section. That is the correct, intended outcome of
@@ -26,7 +26,7 @@ import os
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger("seed_dq_003_fail_data")
 
-dbutils.widgets.text("catalog", "metaflow", "Target Unity Catalog")
+dbutils.widgets.text("catalog", "flowx", "Target Unity Catalog")
 CATALOG = dbutils.widgets.get("catalog").strip()
 
 if not CATALOG:
@@ -34,7 +34,7 @@ if not CATALOG:
 
 _this_dir = os.path.dirname(os.path.abspath(__file__)) if "__file__" in globals() else os.getcwd()
 REPO_ROOT = os.path.abspath(os.path.join(_this_dir, "..", ".."))
-FIXTURE_DIR = os.path.join(REPO_ROOT, "sample_data", "metaflow_testing", "banking_usecase")
+FIXTURE_DIR = os.path.join(REPO_ROOT, "sample_data", "flowx_testing", "banking_usecase")
 
 if not os.path.isdir(FIXTURE_DIR):
     raise FileNotFoundError(f"Expected fixture directory at '{FIXTURE_DIR}' -- is sample_data/ synced alongside this notebook?")
@@ -79,7 +79,7 @@ logger.info("Landed DQ 'fail' fixture at '%s/accounts_dq_fail.csv' (5 rows, 1 wi
 # MAGIC %md
 # MAGIC ## Done
 # MAGIC
-# MAGIC `metaflow_testing/031_dq_003_fail.json` can now be onboarded and its pipeline run.
+# MAGIC `flowx_testing/031_dq_003_fail.json` can now be onboarded and its pipeline run.
 # MAGIC Re-running this notebook is safe: the CSV fixture is copied fresh each time. Note that the
 # MAGIC downstream pipeline run (`run_pipeline` task) is expected to FAIL every time this fixture
 # MAGIC is used, by design -- see `docs/52_tc_dq_003.md`.

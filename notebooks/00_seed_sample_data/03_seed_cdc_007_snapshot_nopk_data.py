@@ -2,8 +2,8 @@
 # MAGIC %md
 # MAGIC # Seed TC-CDC-007 -- Legacy Mainframe Full Snapshot Diffing Fixtures
 # MAGIC
-# MAGIC Dedicated seed notebook for `metaflow_testing/025_cdc_007_snapshot_nopk.json` only --
-# MAGIC intentionally separate from `02_seed_metaflow_testing_data.py` and every other scenario's
+# MAGIC Dedicated seed notebook for `flowx_testing/025_cdc_007_snapshot_nopk.json` only --
+# MAGIC intentionally separate from `02_seed_flowx_testing_data.py` and every other scenario's
 # MAGIC own seed notebook, so this test case's build/run stays isolated. (The `_nopk` in the file
 # MAGIC names is historical and deliberately kept so the spec, resources and notebook still line
 # MAGIC up; since v1.4.0 the scenario is `FULL_SNAPSHOT_CDC` keyed on `customer_name`.)
@@ -30,7 +30,7 @@
 # MAGIC authoring new ones -- their shape (a naturally unique `customer_name`, with two updates,
 # MAGIC one delete and one insert between Day-1 and Day-2) is exactly what this scenario needs.
 # MAGIC
-# MAGIC Run once per environment before onboarding `metaflow_testing/025_cdc_007_snapshot_nopk.json`.
+# MAGIC Run once per environment before onboarding `flowx_testing/025_cdc_007_snapshot_nopk.json`.
 
 # COMMAND ----------
 
@@ -40,7 +40,7 @@ import os
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger("seed_cdc_007_snapshot_nopk_data")
 
-dbutils.widgets.text("catalog", "metaflow", "Target Unity Catalog")
+dbutils.widgets.text("catalog", "flowx", "Target Unity Catalog")
 CATALOG = dbutils.widgets.get("catalog").strip()
 
 if not CATALOG:
@@ -97,7 +97,7 @@ logger.info(
 # MAGIC %md
 # MAGIC ## Done
 # MAGIC
-# MAGIC `metaflow_testing/025_cdc_007_snapshot_nopk.json` can now be onboarded and its pipeline run
+# MAGIC `flowx_testing/025_cdc_007_snapshot_nopk.json` can now be onboarded and its pipeline run
 # MAGIC for the Day-1 baseline (10 rows, one per `customer_name`). See
 # MAGIC `docs/archive/legacy_docs/46_tc_cdc_007.md` for the manual Day-2 step (copying
 # MAGIC `sample_mainframe_customer_master_day2.csv` into this same landing Volume and re-running

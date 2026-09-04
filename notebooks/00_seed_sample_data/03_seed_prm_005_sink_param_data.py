@@ -2,7 +2,7 @@
 # MAGIC %md
 # MAGIC # Seed TC-PRM-005 -- Parameterized Egress Sink Paths & Export File Naming Fixture
 # MAGIC
-# MAGIC Dedicated seed notebook for `metaflow_testing/047_prm_005_sink_param.json` only -- lands a
+# MAGIC Dedicated seed notebook for `flowx_testing/047_prm_005_sink_param.json` only -- lands a
 # MAGIC small (5-row) `acme_export_staging.csv` fixture into the INPUT landing Volume and provisions
 # MAGIC the `egress` schema plus a **per-client** Unity Catalog Volume named after
 # MAGIC `pipeline_parameters.client_code` (`ACME_CORP`) -- the exact Volume
@@ -21,7 +21,7 @@
 # MAGIC actually materialized) is created automatically by the pipeline's own `CREATE SCHEMA IF NOT
 # MAGIC EXISTS` at deployment time, same as every other scenario in this repo -- not seeded here.
 # MAGIC
-# MAGIC Run once per environment before onboarding `metaflow_testing/047_prm_005_sink_param.json`.
+# MAGIC Run once per environment before onboarding `flowx_testing/047_prm_005_sink_param.json`.
 
 # COMMAND ----------
 
@@ -31,7 +31,7 @@ import os
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger("seed_prm_005_sink_param_data")
 
-dbutils.widgets.text("catalog", "metaflow", "Target Unity Catalog")
+dbutils.widgets.text("catalog", "flowx", "Target Unity Catalog")
 dbutils.widgets.text("client_code", "ACME_CORP", "Client code (must match the spec's pipeline_parameters.client_code)")
 dbutils.widgets.text("export_tier", "GOLD", "Export tier (must match the spec's pipeline_parameters.export_tier)")
 
@@ -48,7 +48,7 @@ if not EXPORT_TIER:
 
 _this_dir = os.path.dirname(os.path.abspath(__file__)) if "__file__" in globals() else os.getcwd()
 REPO_ROOT = os.path.abspath(os.path.join(_this_dir, "..", ".."))
-FIXTURE_DIR = os.path.join(REPO_ROOT, "sample_data", "metaflow_testing", "acme_export_usecase")
+FIXTURE_DIR = os.path.join(REPO_ROOT, "sample_data", "flowx_testing", "acme_export_usecase")
 
 if not os.path.isdir(FIXTURE_DIR):
     raise FileNotFoundError(f"Expected fixture directory at '{FIXTURE_DIR}' -- is sample_data/ synced alongside this notebook?")
@@ -99,7 +99,7 @@ logger.info("Landed ACME export-staging fixture at '%s/acme_export_staging.csv'"
 # MAGIC %md
 # MAGIC ## Done
 # MAGIC
-# MAGIC `metaflow_testing/047_prm_005_sink_param.json` can now be onboarded and its pipeline run.
+# MAGIC `flowx_testing/047_prm_005_sink_param.json` can now be onboarded and its pipeline run.
 # MAGIC Re-running this notebook is safe: schema/Volume provisioning is idempotent and the fixture
 # MAGIC file is copied fresh each time (Auto Loader itself, not this notebook, tracks which files it
 # MAGIC has already ingested via its checkpoint/schema location).

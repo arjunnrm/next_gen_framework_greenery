@@ -4,8 +4,8 @@
 # MAGIC
 # MAGIC Thin registration notebook: resolves an active `dataflow_group_id` from the control
 # MAGIC tables and dynamically registers the corresponding Lakeflow Declarative Pipeline graph.
-# MAGIC All business logic lives in the loosely-coupled `NextGen_Metadata_Framework.lakeflow_framework`
-# MAGIC package (see `src/NextGen_Metadata_Framework/lakeflow_framework/`) -- this notebook
+# MAGIC All business logic lives in the loosely-coupled `flowx.lakeflow_framework`
+# MAGIC package (see `src/flowx/lakeflow_framework/`) -- this notebook
 # MAGIC only wires metadata rows to `@dlt.table`/`@dlt.view` registrations, since that wiring
 # MAGIC must execute at notebook top level for Lakeflow's graph-definition phase to see it.
 # MAGIC
@@ -85,7 +85,7 @@
 # MAGIC closure, at Lakeflow execution time -- not here at graph-definition time).
 # MAGIC
 # MAGIC ## DEPLOYING A CHANGE TO THIS FILE
-# MAGIC `metaflow_testing/TESTING_PLAN.md` section 0, rule 5: a stale DABs sync snapshot makes
+# MAGIC `flowx_testing/TESTING_PLAN.md` section 0, rule 5: a stale DABs sync snapshot makes
 # MAGIC `bundle deploy` report **"Files: 0 uploaded"** while the workspace keeps running the
 # MAGIC *old* notebook -- and this notebook is the file that has actually been bitten by it.
 # MAGIC After editing this file, confirm the deploy reported a non-zero upload count (or force a
@@ -99,7 +99,7 @@
 # MAGIC ## Module Bootstrap
 # MAGIC
 # MAGIC Lakeflow Declarative Pipeline source notebooks do not support `%run`. In production,
-# MAGIC attach `NextGen_Metadata_Framework`'s wheel to this pipeline via
+# MAGIC attach `flowx`'s wheel to this pipeline via
 # MAGIC `resources/lakeflow_metadata_pipeline.yml`'s `environment.dependencies` -- once
 # MAGIC installed that way, a plain `import` resolves it like any other site-packages library.
 # MAGIC The fallback below only kicks in for local, wheel-less notebook development.
@@ -116,45 +116,45 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(me
 logger = logging.getLogger("lakeflow_declarative_pipeline")
 
 try:
-    import NextGen_Metadata_Framework.lakeflow_framework  # noqa: F401
+    import flowx.lakeflow_framework  # noqa: F401
 except ImportError:
     try:
         this_dir = os.path.dirname(os.path.abspath(__file__)) if "__file__" in globals() else os.getcwd()
         dev_src_root = os.path.abspath(os.path.join(this_dir, "..", "..", "src"))
         if dev_src_root not in sys.path:
             sys.path.insert(0, dev_src_root)
-        import NextGen_Metadata_Framework.lakeflow_framework  # noqa: F401
-        logger.warning("Loaded 'NextGen_Metadata_Framework' from local 'src/' (dev fallback) -- not from an installed wheel.")
+        import flowx.lakeflow_framework  # noqa: F401
+        logger.warning("Loaded 'flowx' from local 'src/' (dev fallback) -- not from an installed wheel.")
     except ImportError as exc:
         raise ImportError(
-            "Could not import 'NextGen_Metadata_Framework'. In production this must be attached as a "
+            "Could not import 'flowx'. In production this must be attached as a "
             "wheel library (see resources/lakeflow_metadata_pipeline.yml); for local development, run "
             f"from within the repo so '../../src' resolves. Original error: {exc}"
         ) from exc
 
-from NextGen_Metadata_Framework.lakeflow_framework.control_plane.repository import (
+from flowx.lakeflow_framework.control_plane.repository import (
     load_active_group_metadata,  # noqa: E402
 )
-from NextGen_Metadata_Framework.lakeflow_framework.engine.flow_generators import (  # noqa: E402
+from flowx.lakeflow_framework.engine.flow_generators import (  # noqa: E402
     generate_ingestion_flow,
     generate_reconciliation_flow,
     generate_transformation_flow,
     resolve_pipeline_schema,
 )
-from NextGen_Metadata_Framework.lakeflow_framework.engine.run_context import resolve_pipeline_run_id  # noqa: E402
-from NextGen_Metadata_Framework.lakeflow_framework.engine.source_plane import (  # noqa: E402
+from flowx.lakeflow_framework.engine.run_context import resolve_pipeline_run_id  # noqa: E402
+from flowx.lakeflow_framework.engine.source_plane import (  # noqa: E402
     assert_acyclic,
     describe_plan,
     plan_source_plane,
     register_source_plane,
 )
-from NextGen_Metadata_Framework.lakeflow_framework.engine.spark_config import (  # noqa: E402
+from flowx.lakeflow_framework.engine.spark_config import (  # noqa: E402
     apply_spark_conf,
     read_pipeline_spark_config,
     resolve_spark_conf,
 )
-from NextGen_Metadata_Framework.lakeflow_framework.exceptions import FrameworkConfigError  # noqa: E402
-from NextGen_Metadata_Framework.lakeflow_framework.observability.structured_logger import (  # noqa: E402
+from flowx.lakeflow_framework.exceptions import FrameworkConfigError  # noqa: E402
+from flowx.lakeflow_framework.observability.structured_logger import (  # noqa: E402
     log_flow_event,
 )
 
@@ -430,7 +430,7 @@ for _reconciliation_row in MD.reconciliation_rows:
 # MAGIC ## Post-Deployment Governance
 # MAGIC
 # MAGIC Governance tag application is implemented in
-# MAGIC `NextGen_Metadata_Framework.lakeflow_framework.control_plane.post_deployment`
+# MAGIC `flowx.lakeflow_framework.control_plane.post_deployment`
 # MAGIC (`apply_all_governance_tags`) rather than here, so a dedicated job task can call it
 # MAGIC *after* this pipeline's update completes without re-triggering the
 # MAGIC `@dlt.table`/`@dlt.view` graph-definition code above. See

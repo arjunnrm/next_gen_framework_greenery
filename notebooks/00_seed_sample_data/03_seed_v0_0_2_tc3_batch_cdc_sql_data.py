@@ -2,8 +2,8 @@
 # MAGIC %md
 # MAGIC # Seed v0.0.2 TEST CASE 3 -- Batch + CDC + SQL Transformation + JSON, METRICS/LOGS OFF
 # MAGIC
-# MAGIC Dedicated seed notebook for `metaflow_testing/v0_0_2_tc3_batch_cdc_sql_metrics_off.json`
-# MAGIC only -- deliberately separate from `02_seed_metaflow_testing_data.py` and from every other
+# MAGIC Dedicated seed notebook for `flowx_testing/v0_0_2_tc3_batch_cdc_sql_metrics_off.json`
+# MAGIC only -- deliberately separate from `02_seed_flowx_testing_data.py` and from every other
 # MAGIC scenario's own seed notebook, so this test case's build/run stays isolated.
 # MAGIC
 # MAGIC ## What this provisions
@@ -45,7 +45,7 @@
 # MAGIC them would destroy the assertion the test case exists to make.
 # MAGIC
 # MAGIC Run once per environment before onboarding
-# MAGIC `metaflow_testing/v0_0_2_tc3_batch_cdc_sql_metrics_off.json`.
+# MAGIC `flowx_testing/v0_0_2_tc3_batch_cdc_sql_metrics_off.json`.
 
 # COMMAND ----------
 
@@ -54,7 +54,7 @@ import logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger("seed_v0_0_2_tc3_batch_cdc_sql_data")
 
-dbutils.widgets.text("catalog", "metaflow", "Target Unity Catalog")
+dbutils.widgets.text("catalog", "flowx", "Target Unity Catalog")
 CATALOG = dbutils.widgets.get("catalog").strip()
 
 if not CATALOG:

@@ -25,12 +25,12 @@
 # runtime_params.py checks for exactly that and names it.
 #
 # Destinations come from the SAME onboarding spec as everything else -- see the
-# "observability": [...] array in metaflow_testing/100_zipcsv_onbaording.json, upserted into
+# "observability": [...] array in flowx_testing/100_zipcsv_onbaording.json, upserted into
 # observability_config by onboard_100 alongside its ingestion_flows -- there is no separate
 # seed step or config file (see docs/25_dlt_observability_module.md).
 #
-# Reuses the existing metaflow_test_100_zipcsv_pipeline (see
-# resources/feature_tests/metaflow_test_100_zipcsv_pipeline.yml) rather than defining a new pipeline --
+# Reuses the existing flowx_test_100_zipcsv_pipeline (see
+# resources/feature_tests/flowx_test_100_zipcsv_pipeline.yml) rather than defining a new pipeline --
 # referencing an already-defined pipeline resource from a second job is ordinary DAB usage and
 # keeps this file purely additive (no existing resources/*.yml touched). To add observability
 # to any OTHER existing job in this project, add an "observability": [...] array to that job's
@@ -44,14 +44,14 @@
 resources:
   jobs:
     dlt_observability_job:
-      name: Metaflow Test 100 - ZIP CSV + DLT Observability Export
+      name: FlowX Test 100 - ZIP CSV + DLT Observability Export
 
       tasks:
         - task_key: setup_control_tables
           notebook_task:
             notebook_path: ../../notebooks/01_setup/01_setup_control_tables.py
             base_parameters:
-              catalog: metaflow
+              catalog: flowx
           environment_key: framework_env
 
         - task_key: onboard_100
@@ -60,8 +60,8 @@ resources:
           notebook_task:
             notebook_path: ../../notebooks/02_onboarding/02_onboarding_engine.py
             base_parameters:
-              spec_file_path: "${workspace.file_path}/metaflow_testing/100_zipcsv_onbaording.json"
-              catalog: metaflow
+              spec_file_path: "${workspace.file_path}/flowx_testing/100_zipcsv_onbaording.json"
+              catalog: flowx
               env: dev
               action_type: CREATE
           environment_key: framework_env
@@ -70,7 +70,7 @@ resources:
           depends_on:
             - task_key: onboard_100
           pipeline_task:
-            pipeline_id: ${resources.pipelines.metaflow_test_100_zipcsv_pipeline.id}
+            pipeline_id: ${resources.pipelines.flowx_test_100_zipcsv_pipeline.id}
 
         - task_key: observability_export
           depends_on:
@@ -80,10 +80,10 @@ resources:
             base_parameters:
               # All four are REQUIRED -- see the PARAMETER CONTRACT note at the top of this file.
               dataflow_group_id: dfg_zip_csv_dataload
-              catalog: metaflow
+              catalog: flowx
               env: dev
               pipeline_task_run_id: "{{tasks.run_pipeline_update.run_id}}"
-              service_name: dlt-observability-metaflow-test-100
+              service_name: dlt-observability-flowx-test-100
               fail_task_on_dispatch_error: "true"
           environment_key: framework_env
 

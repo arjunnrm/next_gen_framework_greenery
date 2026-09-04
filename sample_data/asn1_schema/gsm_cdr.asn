@@ -5,7 +5,7 @@ GsmCdrModule DEFINITIONS ::= BEGIN
 -- and telecom_cdr_v2.asn for how this was discovered the first time; also note a comment
 -- closes at the next literal double hyphen it finds, even mid line, so never write one
 -- inside comment text itself, a mistake made drafting this very note the first time).
--- Used by metaflow_testing/013_ing_004_asn1_decode.json, test case TC ING 004 (ASN.1
+-- Used by flowx_testing/013_ing_004_asn1_decode.json, test case TC ING 004 (ASN.1
 -- Binary Telecom CDR Decoding): a small GSM call detail record SEQUENCE with a device
 -- identity pair (imsi/imei), call duration, cell, and a roaming flag.
 GsmCallDetailRecord ::= SEQUENCE {

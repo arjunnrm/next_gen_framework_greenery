@@ -4,7 +4,7 @@
 # MAGIC
 # MAGIC Dedicated seed notebook for `resources/sample_jobs/onboarding/sample_06_asn1_tap3_ingestion.json`
 # MAGIC only. Parameterized by `iteration`; the common seed job
-# MAGIC (`resources/sample_jobs/metaflow_sample_seed_job.yml`) invokes it once per iteration
+# MAGIC (`resources/sample_jobs/flowx_sample_seed_job.yml`) invokes it once per iteration
 # MAGIC (1 -> 2 -> 3, chained) before any sample pipeline runs.
 # MAGIC
 # MAGIC Unlike every other seed in this suite there is no `samples`-catalog slice to take: a TAP3
@@ -14,15 +14,15 @@
 # MAGIC
 # MAGIC ## The two things this notebook provisions
 # MAGIC
-# MAGIC 1. **The real ASN.1 module.** `metaflow_testing/BT_Testing/TAP.310.asn1` -- the genuine
+# MAGIC 1. **The real ASN.1 module.** `flowx_testing/BT_Testing/TAP.310.asn1` -- the genuine
 # MAGIC    GSMA TAP release 3.10 specification already shipped in this repo, 1597 lines, 375
 # MAGIC    types -- copied verbatim into
-# MAGIC    `/Volumes/{catalog}/metaflow_sample/landing/sample06_asn1/schemas/TAP.310.asn1`. Plain
+# MAGIC    `/Volumes/{catalog}/flowx_sample/landing/sample06_asn1/schemas/TAP.310.asn1`. Plain
 # MAGIC    text, so an ordinary Workspace-Files-synced copy survives the trip fine (identical
 # MAGIC    rationale to `03_seed_asn1_gsm_cdr_fixture.py`).
 # MAGIC 2. **BER-encoded `Notification` fixtures**, generated **directly on-cluster** with
 # MAGIC    `asn1tools` (a declared project dependency -- see `pyproject.toml`) straight into
-# MAGIC    `/Volumes/{catalog}/metaflow_sample/landing/sample06_asn1/incoming/` -- **never**
+# MAGIC    `/Volumes/{catalog}/flowx_sample/landing/sample06_asn1/incoming/` -- **never**
 # MAGIC    synced as pre-built binary files, since Databricks Workspace Files sync can mangle a
 # MAGIC    raw `.ber` upload. The module is compiled from the copy landed in step 1, so the
 # MAGIC    compiled schema identity the seed encodes with is byte-identical to the one the
@@ -64,7 +64,7 @@ import os
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger("seed_sample_06_asn1_tap3")
 
-dbutils.widgets.text("catalog", "metaflow", "Target Unity Catalog")
+dbutils.widgets.text("catalog", "flowx", "Target Unity Catalog")
 dbutils.widgets.text("iteration", "1", "Which iteration to land (1, 2, or 3)")
 
 CATALOG = dbutils.widgets.get("catalog").strip()
@@ -75,7 +75,7 @@ if not CATALOG:
 if ITERATION not in ("1", "2", "3"):
     raise ValueError(f"The 'iteration' widget must be '1', '2', or '3' -- got '{ITERATION}'.")
 
-SAMPLE_SCHEMA = "metaflow_sample"
+SAMPLE_SCHEMA = "flowx_sample"
 LANDING_ROOT = f"/Volumes/{CATALOG}/{SAMPLE_SCHEMA}/landing"
 SAMPLE06_ROOT = f"{LANDING_ROOT}/sample06_asn1"
 SCHEMA_DIR = f"{SAMPLE06_ROOT}/schemas"
@@ -87,7 +87,7 @@ LANDED_MODULE_PATH = f"{SCHEMA_DIR}/TAP.310.asn1"
 # fallback, exactly as 03_seed_asn1_gsm_cdr_fixture.py does; several candidate roots are tried
 # because a notebook's working directory is not guaranteed to be its own directory.
 _this_dir = os.path.dirname(os.path.abspath(__file__)) if "__file__" in globals() else os.getcwd()
-_MODULE_RELATIVE_PATH = os.path.join("metaflow_testing", "BT_Testing", "TAP.310.asn1")
+_MODULE_RELATIVE_PATH = os.path.join("flowx_testing", "BT_Testing", "TAP.310.asn1")
 _candidate_roots = [
     os.path.abspath(os.path.join(_this_dir, "..", "..")),
     os.path.abspath(os.path.join(os.getcwd(), "..", "..")),
@@ -104,7 +104,7 @@ for _root in _candidate_roots:
 if SOURCE_MODULE_PATH is None:
     raise FileNotFoundError(
         f"Expected the GSMA TAP release 3.10 module at '{_MODULE_RELATIVE_PATH}' under one of "
-        f"{_candidate_roots} -- is metaflow_testing/BT_Testing/ synced alongside this notebook?"
+        f"{_candidate_roots} -- is flowx_testing/BT_Testing/ synced alongside this notebook?"
     )
 
 logger.info("Resolved TAP.310.asn1 at: %s", SOURCE_MODULE_PATH)
@@ -181,7 +181,7 @@ for _offset in range(_RECORDS_PER_ITERATION):
             "releaseVersionNumber": 10,
             "fileTypeIndicator": "T",
             "operatorSpecInformation": [
-                f"METAFLOW-SAMPLE-06 ITERATION {ITERATION}",
+                f"FLOWX-SAMPLE-06 ITERATION {ITERATION}",
                 f"NOTIFICATION SEQ {_sequence:05d}",
             ],
         }

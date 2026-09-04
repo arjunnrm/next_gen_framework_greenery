@@ -1,0 +1,58 @@
+# NEW in v1.5.0 (Module 12): dfg_flowx_004_recon_features is a recon-ONLY dataflow group
+# (flowx_testing/004_recon_features_test.json has empty ingestion_flows[]/
+# transformation_flows[] -- only reconciliation_flows[]), which is why it had no Lakeflow
+# pipeline resource of its own before this change (see flowx_test_004_recon_features_job.yml's
+# own pre-v1.5.0 header comment: "reconciliation is not a Lakeflow Declarative Pipeline flow
+# type ... this scenario needs no dedicated pipeline resource of its own"). As of v1.5.0,
+# reconciliation IS a first-class pipeline flow type (execution_mode "pipeline"/
+# "pipeline_audit_only" -- see onboarding/spec_validator.py's ALLOWED_RECONCILIATION_EXECUTION_
+# MODES and docs/13), so a recon-only group now has somewhere to build a graph too. This
+# resource is that target.
+#
+# KNOWN LIMITATION -- DELIBERATELY UNWIRED. This step leaves ALL THREE of
+# 004_recon_features_test.json's reconciliation_flows (recon_004_logging_on,
+# recon_004_logging_off, recon_004_streaming) at execution_mode "job" (the default, unchanged)
+# and flowx_test_004_recon_features_job.yml untouched -- both deliberately out of scope for
+# this build step. onboarding/spec_validator.py's V-CYC-6 only requires a dataflow_group_id
+# (and therefore a pipeline to register into) once a flow's execution_mode is actually
+# "pipeline"/"pipeline_audit_only"; a "job"-mode flow needs neither, and none of 004's three
+# flows declare one today. Consequently:
+#
+#   * This pipeline resource is NOT referenced by any pipeline_task in ANY job.yml in this
+#     bundle yet -- it builds ZERO Lakeflow datasets if started as-is (an empty-graph pipeline;
+#     Lakeflow requires at least one table/view to start successfully).
+#   * `bundle validate` accepts this file (it is a structurally valid, if presently unused,
+#     pipeline resource declaration); actually starting it is out of scope for this step and
+#     would fail today for exactly that reason.
+#
+# It exists now as the declared infrastructure a FUTURE flip of one or more of 004's
+# reconciliation flows to execution_mode "pipeline" (or "pipeline_audit_only") would populate
+# and wire into a new `run_pipeline` task in flowx_test_004_recon_features_job.yml -- the
+# same migration TC-R2-001 already performed for scenario 003 (compare
+# flowx_test_003_autoload_recon_pipeline.yml / flowx_test_002_003_job.yml, where
+# run_003_reconciliation was removed once recon_excalibur_autoload_vs_zerobus moved in-pipeline).
+# Do not start this pipeline until at least one 004 reconciliation flow is re-onboarded with
+# execution_mode "pipeline"/"pipeline_audit_only" and a dataflow_group_id.
+
+resources:
+  pipelines:
+    flowx_test_004_recon_features_pipeline:
+      name: flowx_test_004_recon_features_pipeline_${bundle.target}
+      catalog: flowx
+      schema: bronze_excalibur
+      serverless: true
+      photon: true
+      development: true
+      continuous: false
+
+      libraries:
+        - notebook:
+            path: ../../notebooks/03_engine/03_lakeflow_declarative_pipeline.py
+
+      environment:
+        dependencies:
+          - ../../dist/*.whl
+
+      configuration:
+        dataflow.group.id: dfg_flowx_004_recon_features
+        dataflow.control.catalog: flowx

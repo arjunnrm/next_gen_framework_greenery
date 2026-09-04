@@ -4,10 +4,10 @@
 # MAGIC
 # MAGIC Provisions the `finance_ops`/`bronze_finance` schemas + `finance_ops.landing`/
 # MAGIC `finance_ops._schemas` Volumes and lands
-# MAGIC `sample_data/metaflow_testing/finance_usecase/daily_txns_batch1.csv` -- 4 daily
+# MAGIC `sample_data/flowx_testing/finance_usecase/daily_txns_batch1.csv` -- 4 daily
 # MAGIC transaction records -- directly under the **date-partitioned** landing path
 # MAGIC `/Volumes/{{catalog}}/finance_ops/landing/2026-08-28/`, i.e. the exact path
-# MAGIC `metaflow_testing/045_prm_001_path_param.json`'s `pipeline_parameters` (`data_domain:
+# MAGIC `flowx_testing/045_prm_001_path_param.json`'s `pipeline_parameters` (`data_domain:
 # MAGIC "finance_ops"`, `batch_date: "2026-08-28"`) resolve to once
 # MAGIC `transformation/parameters.py::substitute_path_parameters` substitutes
 # MAGIC `${data_domain}`/`${batch_date}` into `source_config.path` at pipeline-update time.
@@ -17,7 +17,7 @@
 # MAGIC changed -- the job task that invokes this notebook passes the same literal values the
 # MAGIC spec declares.
 # MAGIC
-# MAGIC Run once per environment before onboarding `metaflow_testing/045_prm_001_path_param.json`.
+# MAGIC Run once per environment before onboarding `flowx_testing/045_prm_001_path_param.json`.
 
 # COMMAND ----------
 
@@ -27,7 +27,7 @@ import os
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger("seed_prm_001_path_param_data")
 
-dbutils.widgets.text("catalog", "metaflow", "Target Unity Catalog")
+dbutils.widgets.text("catalog", "flowx", "Target Unity Catalog")
 dbutils.widgets.text("data_domain", "finance_ops", "Data domain (must match the spec's pipeline_parameters.data_domain)")
 dbutils.widgets.text("batch_date", "2026-08-28", "Batch date (must match the spec's pipeline_parameters.batch_date)")
 
@@ -44,7 +44,7 @@ if not BATCH_DATE:
 
 _this_dir = os.path.dirname(os.path.abspath(__file__)) if "__file__" in globals() else os.getcwd()
 REPO_ROOT = os.path.abspath(os.path.join(_this_dir, "..", ".."))
-FIXTURE_DIR = os.path.join(REPO_ROOT, "sample_data", "metaflow_testing", "finance_usecase")
+FIXTURE_DIR = os.path.join(REPO_ROOT, "sample_data", "flowx_testing", "finance_usecase")
 
 if not os.path.isdir(FIXTURE_DIR):
     raise FileNotFoundError(f"Expected fixture directory at '{FIXTURE_DIR}' -- is sample_data/ synced alongside this notebook?")
@@ -98,7 +98,7 @@ logger.info("Landed daily transactions fixture at '%s/daily_txns_batch1.csv'", F
 # MAGIC %md
 # MAGIC ## Done
 # MAGIC
-# MAGIC `metaflow_testing/045_prm_001_path_param.json` can now be onboarded and its pipeline
+# MAGIC `flowx_testing/045_prm_001_path_param.json` can now be onboarded and its pipeline
 # MAGIC run. Re-running this notebook is safe: schema/Volume provisioning is idempotent and the
 # MAGIC fixture file is copied fresh each time (Auto Loader itself, not this notebook, tracks
 # MAGIC which files it has already ingested via its checkpoint/schema location).

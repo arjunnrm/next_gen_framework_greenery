@@ -2,8 +2,8 @@
 # MAGIC %md
 # MAGIC # Seed TC-PRM-004 -- Parameterized DQ Rule Expression Fixture
 # MAGIC
-# MAGIC Dedicated seed notebook for `metaflow_testing/046_prm_004_dq_param.json` only -- kept
-# MAGIC separate from `02_seed_metaflow_testing_data.py` and every other test case's own seed
+# MAGIC Dedicated seed notebook for `flowx_testing/046_prm_004_dq_param.json` only -- kept
+# MAGIC separate from `02_seed_flowx_testing_data.py` and every other test case's own seed
 # MAGIC notebook (e.g. `03_seed_dq_002_drop_data.py`), so this test case's build/run stays
 # MAGIC isolated from those other scenarios' own fixtures.
 # MAGIC
@@ -15,7 +15,7 @@
 # MAGIC fails both -- so quarantine routing is exercised for either half of the combined
 # MAGIC expression independently, not just the amount bound.
 # MAGIC
-# MAGIC Run once per environment before onboarding `metaflow_testing/046_prm_004_dq_param.json`.
+# MAGIC Run once per environment before onboarding `flowx_testing/046_prm_004_dq_param.json`.
 
 # COMMAND ----------
 
@@ -25,7 +25,7 @@ import os
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger("seed_prm_004_dq_param_data")
 
-dbutils.widgets.text("catalog", "metaflow", "Target Unity Catalog")
+dbutils.widgets.text("catalog", "flowx", "Target Unity Catalog")
 CATALOG = dbutils.widgets.get("catalog").strip()
 
 if not CATALOG:
@@ -33,7 +33,7 @@ if not CATALOG:
 
 _this_dir = os.path.dirname(os.path.abspath(__file__)) if "__file__" in globals() else os.getcwd()
 REPO_ROOT = os.path.abspath(os.path.join(_this_dir, "..", ".."))
-FIXTURE_DIR = os.path.join(REPO_ROOT, "sample_data", "metaflow_testing", "txns_usecase")
+FIXTURE_DIR = os.path.join(REPO_ROOT, "sample_data", "flowx_testing", "txns_usecase")
 
 if not os.path.isdir(FIXTURE_DIR):
     raise FileNotFoundError(f"Expected fixture directory at '{FIXTURE_DIR}' -- is sample_data/ synced alongside this notebook?")
@@ -87,6 +87,6 @@ logger.info(
 # MAGIC %md
 # MAGIC ## Done
 # MAGIC
-# MAGIC `metaflow_testing/046_prm_004_dq_param.json` can now be onboarded and its pipeline run.
+# MAGIC `flowx_testing/046_prm_004_dq_param.json` can now be onboarded and its pipeline run.
 # MAGIC Re-running this notebook is safe: the CSV fixture is copied fresh each time (Auto Loader
 # MAGIC itself, not this notebook, tracks which files it has already ingested via its checkpoint).

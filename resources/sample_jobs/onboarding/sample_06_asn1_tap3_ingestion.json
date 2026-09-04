@@ -1,24 +1,24 @@
 {
-  "_sample_note": "Sample 06 (reference suite): ASN.1 BER ingestion of real GSMA TAP3 roaming records, all assets isolated in the {{catalog}}.metaflow_sample schema. The ASN.1 module is the genuine GSMA TAP release 3.10 specification shipped in this repo at metaflow_testing/BT_Testing/TAP.310.asn1 -- NOT a hand-written toy module (contrast metaflow_testing/013_ing_004_asn1_decode.json, which uses the 5-field sample_data/asn1_schema/gsm_cdr.asn). The seed notebook (notebooks/00_seed_sample_data/04_seed_sample_06_asn1_tap3_data.py) copies that module verbatim into the sample landing Volume and BER-encodes every fixture ON-CLUSTER against the landed copy, so the compiled schema identity the seed encodes with is byte-identical to the one asn1_schema_path points the pipeline at. PDU CHOICE: 'Notification' -- TAP.310's DataInterChange is an ASN.1 CHOICE and TransferBatch reaches CallEventDetail (also a CHOICE), and asn1/decoder.py::derive_asn1_field_defs supports neither; Notification is a top-level [APPLICATION 2] SEQUENCE whose whole member tree resolves cleanly, and it is a real TAP3 file-level PDU (the notification file a roaming partner sends when it has no chargeable events to transfer). It exercises three Spark shapes at once: scalars (sender/recipient/fileSequenceNumber), a nested SEQUENCE -> struct (the three DateTimeLong timestamps), and a SEQUENCE OF -> array (operatorSpecInformation). Each iteration also lands 2 deliberately truncated .ber payloads so the decoder's per-row _asn1_decode_error capture is visible: they are quarantined into sample_tap3_notification_raw_quarantine rather than failing the micro-batch.",
+  "_sample_note": "Sample 06 (reference suite): ASN.1 BER ingestion of real GSMA TAP3 roaming records, all assets isolated in the {{catalog}}.flowx_sample schema. The ASN.1 module is the genuine GSMA TAP release 3.10 specification shipped in this repo at flowx_testing/BT_Testing/TAP.310.asn1 -- NOT a hand-written toy module (contrast flowx_testing/013_ing_004_asn1_decode.json, which uses the 5-field sample_data/asn1_schema/gsm_cdr.asn). The seed notebook (notebooks/00_seed_sample_data/04_seed_sample_06_asn1_tap3_data.py) copies that module verbatim into the sample landing Volume and BER-encodes every fixture ON-CLUSTER against the landed copy, so the compiled schema identity the seed encodes with is byte-identical to the one asn1_schema_path points the pipeline at. PDU CHOICE: 'Notification' -- TAP.310's DataInterChange is an ASN.1 CHOICE and TransferBatch reaches CallEventDetail (also a CHOICE), and asn1/decoder.py::derive_asn1_field_defs supports neither; Notification is a top-level [APPLICATION 2] SEQUENCE whose whole member tree resolves cleanly, and it is a real TAP3 file-level PDU (the notification file a roaming partner sends when it has no chargeable events to transfer). It exercises three Spark shapes at once: scalars (sender/recipient/fileSequenceNumber), a nested SEQUENCE -> struct (the three DateTimeLong timestamps), and a SEQUENCE OF -> array (operatorSpecInformation). Each iteration also lands 2 deliberately truncated .ber payloads so the decoder's per-row _asn1_decode_error capture is visible: they are quarantined into sample_tap3_notification_raw_quarantine rather than failing the micro-batch.",
   "dataflow_group_id": "dfg_sample_06_asn1_tap3",
   "pipeline_parameters": {},
   "ingestion_flows": [
     {
       "dataflow_id": "df_sample_06_tap3_notification_ingest",
       "source_system": "gsma_tap3_roaming_clearing",
-      "source_database": "metaflow_sample",
+      "source_database": "flowx_sample",
       "source_table_name": "sample_tap3_notification",
       "source_description": "Sample 06: BER-encoded GSMA TAP release 3.10 Notification records (tap3_notification_iter<N>_<seq>.ber, built on-cluster by the seed notebook against the landed TAP.310.asn1 module) are read as binary by Auto Loader and decoded by asn1/decoder.py into sender/recipient/fileSequenceNumber scalars, three DateTimeLong structs, and the operatorSpecInformation array. Each iteration also lands 2 truncated payloads whose _asn1_decode_error routes them to sample_tap3_notification_raw_quarantine.",
       "source_type": "asn1",
       "target_catalog": "{{catalog}}",
-      "target_schema": "metaflow_sample",
+      "target_schema": "flowx_sample",
       "target_table": "sample_tap3_notification_raw",
       "target_type": "streaming_table",
       "source_config": {
-        "path": "/Volumes/{{catalog}}/metaflow_sample/landing/sample06_asn1/incoming/",
-        "schema_location": "/Volumes/{{catalog}}/metaflow_sample/landing/_schemas/sample_tap3_notification_raw/",
+        "path": "/Volumes/{{catalog}}/flowx_sample/landing/sample06_asn1/incoming/",
+        "schema_location": "/Volumes/{{catalog}}/flowx_sample/landing/_schemas/sample_tap3_notification_raw/",
         "file_pattern": "*.ber",
-        "asn1_schema_path": "/Volumes/{{catalog}}/metaflow_sample/landing/sample06_asn1/schemas/TAP.310.asn1",
+        "asn1_schema_path": "/Volumes/{{catalog}}/flowx_sample/landing/sample06_asn1/schemas/TAP.310.asn1",
         "asn1_codec": "ber",
         "asn1_pdu_name": "Notification",
         "capture_technical_metadata": true

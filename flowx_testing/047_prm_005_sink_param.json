@@ -1,0 +1,45 @@
+{
+  "dataflow_group_id": "dfg_prm_005_sink_param",
+  "pipeline_parameters": {
+    "client_code": "ACME_CORP",
+    "export_tier": "GOLD"
+  },
+  "ingestion_flows": [
+    {
+      "dataflow_id": "df_prm_005_acme_export_ingest",
+      "source_system": "acme_corp_export_feed",
+      "source_database": "acme_exports",
+      "source_table_name": "export_staging",
+      "source_description": "TC-PRM-005: small ACME Corp export-staging batch, Auto Loader-ingested into a genuine streaming table (target_type 'external_sink') and, inside the SAME Lakeflow Declarative Pipeline update, additionally exported as a plain (unencrypted) ZIP via a genuine dlt.create_sink(format='pgp_zip') + @dlt.append_flow -- no post_export_archive.pgp_encryption block is set here, since this scenario is about path/filename parameterization, not encryption (contrast TC-SNK-003). Exercises TWO DIFFERENT, easily-conflated templating mechanisms at once: (1) transformation/parameters.py::substitute_path_parameters -- THIS session's new feature -- resolves the ${client_code}/${export_tier} placeholders found anywhere in this flow's target_config_json text (both sink_config.path and post_export_archive.output_zip_path below) fresh on every pipeline update, from this spec's own pipeline_parameters, before json.loads (see docs/17_onboarding_template_reference.md Sec 3.4); (2) archive/pgp_zip_sink.py's export_file_name_format is a wholly separate, PRE-EXISTING str.format() mechanism with its own placeholders, {batch_id}/{timestamp} -- resolved at commit time by the sink's driver-side writer directly from the microbatch id/UTC clock, NEVER from pipeline_parameters. ${client_code}/${export_tier} are deliberately NOT placed inside export_file_name_format here, unlike flowx_testing/TESTING_PLAN.md's own drafted TC-PRM-005 row (which combined both mechanisms into one 'export_file_name_format': '${client_code}_${export_tier}_export_{batch_id}' string) -- this build keeps the two mechanisms cleanly separate on purpose; see docs/69_tc_prm_005.md's 'Known gaps / judgment calls' section for the full rationale. Verify: post_export_archive.output_zip_path resolves to /Volumes/flowx/egress/ACME_CORP/output/ and a plain .zip archive lands there.",
+      "source_type": "autoloader",
+      "target_catalog": "{{catalog}}",
+      "target_schema": "silver_exports",
+      "target_table": "acme_export_staging",
+      "target_type": "external_sink",
+      "source_config": {
+        "path": "/Volumes/{{catalog}}/exports_ingest/landing/incoming/",
+        "format": "csv",
+        "schema_location": "/Volumes/{{catalog}}/exports_ingest/_schemas/acme_export_staging/",
+        "reader_options": {"header": "true", "cloudFiles.inferColumnTypes": "true"},
+        "capture_technical_metadata": true
+      },
+      "target_config": {
+        "cdc_load_strategy": "APPEND",
+        "storage_format": "delta",
+        "sink_config": {
+          "path": "/Volumes/{{catalog}}/egress/${client_code}/_staging/${export_tier}/",
+          "format": "pgp_zip",
+          "post_export_archive": {
+            "enabled": true,
+            "output_zip_path": "/Volumes/{{catalog}}/egress/${client_code}/output/",
+            "export_file_name_format": "acme_export_{batch_id}_{timestamp}"
+          }
+        }
+      },
+      "dq_config": {"rules": []},
+      "governance_tags": {}
+    }
+  ],
+  "transformation_flows": [],
+  "reconciliation_flows": []
+}

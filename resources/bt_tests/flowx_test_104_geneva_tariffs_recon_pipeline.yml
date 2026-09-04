@@ -1,0 +1,62 @@
+# TC-104: the concrete production reconciliation case, brought into version control (v1.5.0
+# Module 12). Pipeline e41a47ba (dataflow_group_id dfg_geneva_tariffs_recon) is deployed live
+# in dev_flowx from another user's bundle and has no resources/*.yml in THIS repo, so this
+# pipeline+job pair is what lets the verification wave replay it. See
+# flowx_testing/051_geneva_tariffs_recon.json and TESTING_PLAN.md's Module 12 supporting-
+# fixture note (which names exactly this filename as "a separate, later build step" -- this is
+# that step).
+#
+# ingestion_flows[0] (df_geneva_tariffs_near_ingest) Auto Loader-ingests Geneva's tariff-
+# element-band extract into geneva_admin.tariffelementband_near (the reconciliation flow's NEAR
+# side). reconciliation_flows[0] (recon_geneva_tariffelementband) sets execution_mode:
+# "pipeline", dataflow_group_id: dfg_geneva_tariffs_recon (this same group) and an EXPLICIT
+# publish_schema: "geneva_admin" -- overriding the default (this pipeline's own hosting
+# schema), because an operator would not want geneva's reconciliation results published into
+# bronze_excalibur. `schema:` below is set to geneva_admin to match the near-side ingestion
+# target for consistency, even though the recon flow does not rely on the default for its own
+# publish location.
+#
+# The comparison's FAR side (target_configs[0].table,
+# {{catalog}}.bronze_excalibur.bronze_tariffelementband) is produced by a SEPARATE pipeline
+# (1d44cca6, dataflow_group_id dfg_zerobus_tariffelementband_cdc) that is NOT part of this repo
+# -- read once per update, externally, and materialized as this flow's L3 far-side node.
+# target_configs[0].append_target_table (geneva_admin.landing_tariffelementband) is the raw
+# landing/bus table THAT OTHER pipeline's zerobus ingestion consumes -- a real cross-group
+# landing -> zerobus -> bronze -> recon -> landing correction loop. onboarding/spec_validator.py
+# validates this spec cleanly (neither a V-CYC-3 error nor a V-CYC-4 warning), because it only
+# ever sees this one document's own ingestion_flows -- see 051's own header comment and docs/13's
+# "A CROSS-PIPELINE FEEDBACK LOOP IS INVISIBLE TO LAKEFLOW" section.
+#
+# KNOWN LIMITATIONS (documented, not fixed by this resource -- see 051's own header comment and
+# flowx_testing/TESTING_PLAN.md): no seed notebook lands sample files at
+# /Volumes/{{catalog}}/geneva_admin/landing_tariffelementband_near/incoming/; the far-side
+# bronze_tariffelementband table and its producing dfg_zerobus_tariffelementband_cdc pipeline
+# are entirely outside this repo (that group's live control-table row also still carries the
+# v1.4.0-removed normalize_column_names: true and will fail re-onboarding until migrated); and
+# this spec declares no "observability" destinations array, so the paired job's
+# observability_export task (flowx_test_104_geneva_tariffs_recon_job.yml) is expected to
+# fail loudly until one is added. This pipeline resource exists so the group can be onboarded
+# and validated structurally; a full live run additionally needs all of the above in place.
+
+resources:
+  pipelines:
+    flowx_test_104_geneva_tariffs_recon_pipeline:
+      name: flowx_test_104_geneva_tariffs_recon_pipeline_${bundle.target}
+      catalog: flowx
+      schema: geneva_admin
+      serverless: true
+      photon: true
+      development: true
+      continuous: false
+
+      libraries:
+        - notebook:
+            path: ../../notebooks/03_engine/03_lakeflow_declarative_pipeline.py
+
+      environment:
+        dependencies:
+          - ../../dist/*.whl
+
+      configuration:
+        dataflow.group.id: dfg_geneva_tariffs_recon
+        dataflow.control.catalog: flowx

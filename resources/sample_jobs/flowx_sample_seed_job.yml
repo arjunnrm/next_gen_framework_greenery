@@ -1,0 +1,324 @@
+# FlowX Sample Suite -- THE common data seed job.
+#
+# ONE job that lands every fixture the six `flowx_sample_*` reference jobs consume. Before
+# this existed, each sample job inlined its own three `seed_iteration<N>` notebook tasks and
+# interleaved them with three pipeline updates; the seeds are now lifted out into this single
+# job, and the sample jobs onboard and run their pipeline only.
+#
+#   provision_sample_schema                       (serial root -- see below)
+#     |-- seed_sample_01_iteration1 -> _iteration2 -> _iteration3
+#     |-- seed_sample_02_iteration1 -> _iteration2 -> _iteration3
+#     |-- seed_sample_03_iteration1 -> _iteration2 -> _iteration3
+#     |-- seed_sample_04_iteration1 -> _iteration2 -> _iteration3
+#     |-- seed_sample_05_iteration1 -> _iteration2 -> _iteration3
+#     `-- seed_sample_06_iteration1 -> _iteration2 -> _iteration3
+#
+# Six independent chains, run in PARALLEL. Within a chain the three iterations stay STRICTLY
+# ORDERED: several seeds are cumulative by design (Sample 01's FULL_SNAPSHOT_CDC parts feed is
+# additive across iterations, Sample 03's replica drift is applied on top of the previous
+# slice), so iteration 2 landing before iteration 1 would produce fixtures that do not match
+# what the specs describe.
+#
+# WHY A SERIAL ROOT TASK. `provision_sample_schema` creates the schema and all four Volumes up
+# front. Every `04_seed_sample_*` notebook still issues its own `CREATE ... IF NOT EXISTS` (each
+# must stay runnable standalone), but `IF NOT EXISTS` is idempotent in intent, NOT atomic --
+# Unity Catalog lets two concurrent creates of the same object race and the loser fails
+# outright (pitfall 7 in agent_skills/reference/common_pitfalls.md, discovered live on
+# concurrent `CREATE OR REPLACE FUNCTION`). Six chains starting simultaneously is exactly that
+# race; creating everything first makes every downstream `IF NOT EXISTS` a no-op that cannot
+# lose one.
+#
+# ORDER OF OPERATIONS -- run this job to completion BEFORE any sample job:
+#
+#   databricks bundle run flowx_sample_seed_job          -t dev_flowx -p dev_flowx
+#   databricks bundle run flowx_sample_01_multi_scd_job  -t dev_flowx -p dev_flowx
+#   ... (each sample job is independent of the others once seeded)
+#
+# CONSEQUENCE OF SEEDING EVERYTHING UP FRONT. All three iterations of a sample are on disk
+# before its pipeline's first update, so that ONE update ingests all three at once -- which is
+# why each sample job now runs its pipeline exactly once instead of three times. The end state
+# is the same (`apply_changes` sequences the SCD1/SCD2 versions within the single batch, so
+# SCD2 history is still built); what is no longer observable is the update-by-update
+# PROGRESSION -- e.g. Sample 03's reconciliation drift counters go straight to their final
+# 6-drift / 14-missing values rather than stepping 0 -> 6 -> 14. To watch a sample evolve
+# instead, run this job's chain one iteration at a time and its sample job's pipeline in
+# between, which is exactly what the pre-seed-job layout did.
+#
+# UC SECRET PREREQUISITE (Samples 04 & 05 only, one secret serves both). The Unity Catalog
+# secret `flowx.flowx_sample.sample_zip_passkey` must exist before
+# `seed_sample_05_iteration1` runs -- Sample 05's seed needs the passphrase to BUILD its
+# encrypted archives, and Sample 04's preflights the same secret so the failure lands here
+# rather than mid-pipeline-update. Both fail fast with a clear message when it is unresolvable;
+# the other four chains are unaffected and still complete. Provisioning it is a one-time,
+# admin-audited step external to this bundle -- see flowx_testing/README.md's "Sample
+# reference suite" section.
+#
+# `catalog` is a job parameter so a run can be retargeted without editing the file; its default
+# matches the `flowx` catalog every other resource in resources/sample_jobs/ is pinned to.
+
+resources:
+  jobs:
+    flowx_sample_seed_job:
+      name: FlowX Sample Suite - Common Data Seed (6 samples x 3 iterations)
+
+      parameters:
+        - name: catalog
+          default: flowx
+        # CREATE on first run; pass UPDATE to re-onboard specs that changed since.
+        - name: action_type
+          default: CREATE
+
+      tasks:
+        # ---------------------------------------------------------------- serial root
+        #
+        # PROVISIONING ROOT -- three strictly-ordered tasks that must complete before any
+        # fixture lands, and before ANY sample job is run:
+        #
+        #   provision_sample_schema -> setup_control_tables -> onboard_all_samples
+        #
+        # These moved OUT of the individual sample jobs so each of those is exactly two tasks
+        # (pipeline_task + observability_task). They are provisioning, not per-run work: doing
+        # them once here is both cheaper and the reason a cloned sample job stays minimal.
+        # The chain is serial on purpose -- UC's `CREATE ... IF NOT EXISTS` is idempotent in
+        # intent but NOT atomic, and concurrent creators reproduce the `[ROUTINE_ALREADY_EXISTS]`
+        # race documented in agent_skills/reference/common_pitfalls.md (pitfall 7).
+        - task_key: provision_sample_schema
+          notebook_task:
+            notebook_path: ../../notebooks/00_seed_sample_data/04_seed_sample_00_provision_sample_schema.py
+            base_parameters:
+              catalog: "{{job.parameters.catalog}}"
+          environment_key: framework_env
+
+        # Control tables must exist before any spec can be onboarded into them.
+        - task_key: setup_control_tables
+          depends_on:
+            - task_key: provision_sample_schema
+          notebook_task:
+            notebook_path: ../../notebooks/01_setup/01_setup_control_tables.py
+            base_parameters:
+              catalog: "{{job.parameters.catalog}}"
+          environment_key: framework_env
+
+        # Onboards ALL SIX sample specs in ONE run by pointing the generic bulk onboarding job
+        # at the bundle's spec directory. This replaces the six per-job `onboard_sample_NN`
+        # tasks. Delegated via run_job_task to `framework_config_onboarding_job` -- never an
+        # inline 02_onboarding_engine.py notebook_task (see AGENTS.md).
+        #
+        # Idempotent: onboarding is a control-table upsert plus `CREATE ... IF NOT EXISTS`
+        # provisioning, so re-running the seed job is safe. Use action_type=UPDATE instead if a
+        # spec changed after its group was first onboarded.
+        - task_key: onboard_all_samples
+          depends_on:
+            - task_key: setup_control_tables
+          run_job_task:
+            job_id: ${resources.jobs.framework_config_onboarding_job.id}
+            job_parameters:
+              spec_dir: "${workspace.file_path}/resources/sample_jobs/onboarding"
+              catalog: "{{job.parameters.catalog}}"
+              env: dev
+              action_type: "{{job.parameters.action_type}}"
+              fail_fast: "true"
+              exclude_specs: ""
+
+        # ------------------------------------------- Sample 01: multi-strategy SCD suite
+        # Iterations are cumulative: 2 mutates existing SCD1/SCD2 keys, 3 adds new keys, and
+        # the FULL_SNAPSHOT_CDC parts feed is strictly additive (never a changed or removed
+        # existing key) because an accumulating snapshot input cannot express a deletion.
+        - task_key: seed_sample_01_iteration1
+          depends_on:
+            - task_key: onboard_all_samples
+          notebook_task:
+            notebook_path: ../../notebooks/00_seed_sample_data/04_seed_sample_01_multi_scd_data.py
+            base_parameters:
+              catalog: "{{job.parameters.catalog}}"
+              iteration: "1"
+          environment_key: framework_env
+
+        - task_key: seed_sample_01_iteration2
+          depends_on:
+            - task_key: seed_sample_01_iteration1
+          notebook_task:
+            notebook_path: ../../notebooks/00_seed_sample_data/04_seed_sample_01_multi_scd_data.py
+            base_parameters:
+              catalog: "{{job.parameters.catalog}}"
+              iteration: "2"
+          environment_key: framework_env
+
+        - task_key: seed_sample_01_iteration3
+          depends_on:
+            - task_key: seed_sample_01_iteration2
+          notebook_task:
+            notebook_path: ../../notebooks/00_seed_sample_data/04_seed_sample_01_multi_scd_data.py
+            base_parameters:
+              catalog: "{{job.parameters.catalog}}"
+              iteration: "3"
+          environment_key: framework_env
+
+        # --------------------------------------------- Sample 02: glob-filtered ZIP ingestion
+        - task_key: seed_sample_02_iteration1
+          depends_on:
+            - task_key: onboard_all_samples
+          notebook_task:
+            notebook_path: ../../notebooks/00_seed_sample_data/04_seed_sample_02_zip_ingestion_data.py
+            base_parameters:
+              catalog: "{{job.parameters.catalog}}"
+              iteration: "1"
+          environment_key: framework_env
+
+        - task_key: seed_sample_02_iteration2
+          depends_on:
+            - task_key: seed_sample_02_iteration1
+          notebook_task:
+            notebook_path: ../../notebooks/00_seed_sample_data/04_seed_sample_02_zip_ingestion_data.py
+            base_parameters:
+              catalog: "{{job.parameters.catalog}}"
+              iteration: "2"
+          environment_key: framework_env
+
+        - task_key: seed_sample_02_iteration3
+          depends_on:
+            - task_key: seed_sample_02_iteration2
+          notebook_task:
+            notebook_path: ../../notebooks/00_seed_sample_data/04_seed_sample_02_zip_ingestion_data.py
+            base_parameters:
+              catalog: "{{job.parameters.catalog}}"
+              iteration: "3"
+          environment_key: framework_env
+
+        # ------------------------------- Sample 03: concurrent multi-table load + recon drift
+        # Iterations are cumulative: iteration 2 adds 6 fare-drifted replica rows on top of
+        # iteration 1, iteration 3 omits 8 replica rows entirely.
+        - task_key: seed_sample_03_iteration1
+          depends_on:
+            - task_key: onboard_all_samples
+          notebook_task:
+            notebook_path: ../../notebooks/00_seed_sample_data/04_seed_sample_03_multi_table_recon_data.py
+            base_parameters:
+              catalog: "{{job.parameters.catalog}}"
+              iteration: "1"
+          environment_key: framework_env
+
+        - task_key: seed_sample_03_iteration2
+          depends_on:
+            - task_key: seed_sample_03_iteration1
+          notebook_task:
+            notebook_path: ../../notebooks/00_seed_sample_data/04_seed_sample_03_multi_table_recon_data.py
+            base_parameters:
+              catalog: "{{job.parameters.catalog}}"
+              iteration: "2"
+          environment_key: framework_env
+
+        - task_key: seed_sample_03_iteration3
+          depends_on:
+            - task_key: seed_sample_03_iteration2
+          notebook_task:
+            notebook_path: ../../notebooks/00_seed_sample_data/04_seed_sample_03_multi_table_recon_data.py
+            base_parameters:
+              catalog: "{{job.parameters.catalog}}"
+              iteration: "3"
+          environment_key: framework_env
+
+        # ------------------------------------- Sample 04: encrypted ZIP export egress (source)
+        # Needs the UC secret flowx.flowx_sample.sample_zip_passkey -- preflighted here.
+        - task_key: seed_sample_04_iteration1
+          depends_on:
+            - task_key: onboard_all_samples
+          notebook_task:
+            notebook_path: ../../notebooks/00_seed_sample_data/04_seed_sample_04_export_encrypt_zip_data.py
+            base_parameters:
+              catalog: "{{job.parameters.catalog}}"
+              iteration: "1"
+          environment_key: framework_env
+
+        - task_key: seed_sample_04_iteration2
+          depends_on:
+            - task_key: seed_sample_04_iteration1
+          notebook_task:
+            notebook_path: ../../notebooks/00_seed_sample_data/04_seed_sample_04_export_encrypt_zip_data.py
+            base_parameters:
+              catalog: "{{job.parameters.catalog}}"
+              iteration: "2"
+          environment_key: framework_env
+
+        - task_key: seed_sample_04_iteration3
+          depends_on:
+            - task_key: seed_sample_04_iteration2
+          notebook_task:
+            notebook_path: ../../notebooks/00_seed_sample_data/04_seed_sample_04_export_encrypt_zip_data.py
+            base_parameters:
+              catalog: "{{job.parameters.catalog}}"
+              iteration: "3"
+          environment_key: framework_env
+
+        # ----------------------------------- Sample 05: encrypted ZIP ingestion (same secret)
+        # The seed itself needs the passphrase to BUILD each AES-256 archive, so an absent
+        # secret fails this chain at iteration 1 with a clear message.
+        - task_key: seed_sample_05_iteration1
+          depends_on:
+            - task_key: onboard_all_samples
+          notebook_task:
+            notebook_path: ../../notebooks/00_seed_sample_data/04_seed_sample_05_encrypted_ingestion_data.py
+            base_parameters:
+              catalog: "{{job.parameters.catalog}}"
+              iteration: "1"
+          environment_key: framework_env
+
+        - task_key: seed_sample_05_iteration2
+          depends_on:
+            - task_key: seed_sample_05_iteration1
+          notebook_task:
+            notebook_path: ../../notebooks/00_seed_sample_data/04_seed_sample_05_encrypted_ingestion_data.py
+            base_parameters:
+              catalog: "{{job.parameters.catalog}}"
+              iteration: "2"
+          environment_key: framework_env
+
+        - task_key: seed_sample_05_iteration3
+          depends_on:
+            - task_key: seed_sample_05_iteration2
+          notebook_task:
+            notebook_path: ../../notebooks/00_seed_sample_data/04_seed_sample_05_encrypted_ingestion_data.py
+            base_parameters:
+              catalog: "{{job.parameters.catalog}}"
+              iteration: "3"
+          environment_key: framework_env
+
+        # ------------------------------------------- Sample 06: real GSMA TAP3 ASN.1 fixtures
+        # Lands flowx_testing/BT_Testing/TAP.310.asn1 into the sample landing Volume and
+        # BER-encodes its Notification payloads on-cluster against that landed copy.
+        - task_key: seed_sample_06_iteration1
+          depends_on:
+            - task_key: onboard_all_samples
+          notebook_task:
+            notebook_path: ../../notebooks/00_seed_sample_data/04_seed_sample_06_asn1_tap3_data.py
+            base_parameters:
+              catalog: "{{job.parameters.catalog}}"
+              iteration: "1"
+          environment_key: framework_env
+
+        - task_key: seed_sample_06_iteration2
+          depends_on:
+            - task_key: seed_sample_06_iteration1
+          notebook_task:
+            notebook_path: ../../notebooks/00_seed_sample_data/04_seed_sample_06_asn1_tap3_data.py
+            base_parameters:
+              catalog: "{{job.parameters.catalog}}"
+              iteration: "2"
+          environment_key: framework_env
+
+        - task_key: seed_sample_06_iteration3
+          depends_on:
+            - task_key: seed_sample_06_iteration2
+          notebook_task:
+            notebook_path: ../../notebooks/00_seed_sample_data/04_seed_sample_06_asn1_tap3_data.py
+            base_parameters:
+              catalog: "{{job.parameters.catalog}}"
+              iteration: "3"
+          environment_key: framework_env
+
+      environments:
+        - environment_key: framework_env
+          spec:
+            environment_version: "4"
+            dependencies:
+              - ../../dist/*.whl

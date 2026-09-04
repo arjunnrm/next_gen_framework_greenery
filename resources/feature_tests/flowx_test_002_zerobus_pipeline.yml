@@ -1,0 +1,29 @@
+# FlowX test scenario 002: "Zerobus data load" -- streams from a Zerobus-style source Delta
+# table (flowx.Excalibur_usecase.zerobus_source_bus, seeded by
+# notebooks/00_seed_sample_data/02_seed_flowx_testing_data.py) into a Bronze table via
+# source_type: "zerobus" (see ingestion/readers.py::read_zerobus_source). Deliberately its own
+# pipeline/dataflow_group, separate from scenario 003, since scenario 003's reconciliation flow
+# reads this pipeline's output as an independent input.
+
+resources:
+  pipelines:
+    flowx_test_002_zerobus_pipeline:
+      name: flowx_test_002_zerobus_pipeline_${bundle.target}
+      catalog: flowx
+      schema: bronze_excalibur
+      serverless: true
+      photon: true
+      development: true
+      continuous: false
+
+      libraries:
+        - notebook:
+            path: ../../notebooks/03_engine/03_lakeflow_declarative_pipeline.py
+
+      environment:
+        dependencies:
+          - ../../dist/*.whl
+
+      configuration:
+        dataflow.group.id: dfg_flowx_002_zerobus_bronze
+        dataflow.control.catalog: flowx

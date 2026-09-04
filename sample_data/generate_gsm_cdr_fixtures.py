@@ -1,5 +1,5 @@
 """Generates the 3 BER-encoded GSM CDR sample fixtures for TC-ING-004 (ASN.1 Binary Telecom
-CDR Decoding, metaflow_testing/013_ing_004_asn1_decode.json).
+CDR Decoding, flowx_testing/013_ing_004_asn1_decode.json).
 
 Run locally: ``python sample_data/generate_gsm_cdr_fixtures.py`` (requires ``asn1tools``,
 already a declared project dependency -- see pyproject.toml). Mirrors

@@ -2,8 +2,8 @@
 # MAGIC %md
 # MAGIC # Seed TC-CDC-003 -- SCD1 Overwrite with Delete Mapping Fixtures
 # MAGIC
-# MAGIC Dedicated seed notebook for `metaflow_testing/021_cdc_003_scd1.json` only --
-# MAGIC intentionally separate from `02_seed_metaflow_testing_data.py` (scenarios 001/002/003) and
+# MAGIC Dedicated seed notebook for `flowx_testing/021_cdc_003_scd1.json` only --
+# MAGIC intentionally separate from `02_seed_flowx_testing_data.py` (scenarios 001/002/003) and
 # MAGIC every other scenario's own seed notebook, so this test case's build/run stays isolated.
 # MAGIC
 # MAGIC Provisions the `crm` schema and `landing_customer`/`_schemas` Volumes, then lands **only**
@@ -14,9 +14,9 @@
 # MAGIC manually as a second step, per `docs/42_tc_cdc_003.md`, to prove the SCD1 overwrite-in-place
 # MAGIC and delete-mapping behavior across two separate pipeline updates.
 # MAGIC
-# MAGIC Built from the fixtures under `sample_data/metaflow_testing/crm_usecase/`.
+# MAGIC Built from the fixtures under `sample_data/flowx_testing/crm_usecase/`.
 # MAGIC
-# MAGIC Run once per environment before onboarding `metaflow_testing/021_cdc_003_scd1.json`.
+# MAGIC Run once per environment before onboarding `flowx_testing/021_cdc_003_scd1.json`.
 
 # COMMAND ----------
 
@@ -26,7 +26,7 @@ import os
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger("seed_cdc_003_scd1_data")
 
-dbutils.widgets.text("catalog", "metaflow", "Target Unity Catalog")
+dbutils.widgets.text("catalog", "flowx", "Target Unity Catalog")
 CATALOG = dbutils.widgets.get("catalog").strip()
 
 if not CATALOG:
@@ -34,7 +34,7 @@ if not CATALOG:
 
 _this_dir = os.path.dirname(os.path.abspath(__file__)) if "__file__" in globals() else os.getcwd()
 REPO_ROOT = os.path.abspath(os.path.join(_this_dir, "..", ".."))
-FIXTURE_DIR = os.path.join(REPO_ROOT, "sample_data", "metaflow_testing", "crm_usecase")
+FIXTURE_DIR = os.path.join(REPO_ROOT, "sample_data", "flowx_testing", "crm_usecase")
 
 if not os.path.isdir(FIXTURE_DIR):
     raise FileNotFoundError(f"Expected fixture directory at '{FIXTURE_DIR}' -- is sample_data/ synced alongside this notebook?")
@@ -80,7 +80,7 @@ logger.info("Landed Day-1 customer fixture at '%s/customer_scd1_day1.csv' (C001 
 # MAGIC %md
 # MAGIC ## Done
 # MAGIC
-# MAGIC `metaflow_testing/021_cdc_003_scd1.json` can now be onboarded and its pipeline run for the
+# MAGIC `flowx_testing/021_cdc_003_scd1.json` can now be onboarded and its pipeline run for the
 # MAGIC Day-1 baseline (`C001` @ `tier=SILVER`, 1 row). See `docs/42_tc_cdc_003.md` for the manual
 # MAGIC Day-2 step (copying `customer_scd1_day2.csv` into this same incoming Volume and re-running
 # MAGIC the pipeline) that this notebook deliberately does not automate.

@@ -2,7 +2,7 @@
 # MAGIC %md
 # MAGIC # Seed TC-REC-003 -- Pre-Computed Hash Matcher Fixtures
 # MAGIC
-# MAGIC Dedicated seed notebook for `metaflow_testing/038_rec_003_precomputed_hash.json` only --
+# MAGIC Dedicated seed notebook for `flowx_testing/038_rec_003_precomputed_hash.json` only --
 # MAGIC intentionally separate from every other scenario's own seed notebook, so this test case's
 # MAGIC build/run stays isolated.
 # MAGIC
@@ -15,9 +15,9 @@
 # MAGIC reconciliation flow's `hash_precomputed: true` matcher has a real MATCHED / VALUE_DRIFT /
 # MAGIC MISSING_IN_TARGET / MISSING_IN_SOURCE mix to classify, not just an all-MATCHED trivial case.
 # MAGIC
-# MAGIC Built from `sample_data/metaflow_testing/rec_orders_usecase/orders_{src,tgt}_batch1.csv`.
+# MAGIC Built from `sample_data/flowx_testing/rec_orders_usecase/orders_{src,tgt}_batch1.csv`.
 # MAGIC
-# MAGIC Run once per environment before onboarding `metaflow_testing/038_rec_003_precomputed_hash.json`.
+# MAGIC Run once per environment before onboarding `flowx_testing/038_rec_003_precomputed_hash.json`.
 
 # COMMAND ----------
 
@@ -27,7 +27,7 @@ import os
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger("seed_rec_003_precomputed_hash_data")
 
-dbutils.widgets.text("catalog", "metaflow", "Target Unity Catalog")
+dbutils.widgets.text("catalog", "flowx", "Target Unity Catalog")
 CATALOG = dbutils.widgets.get("catalog").strip()
 
 if not CATALOG:
@@ -35,7 +35,7 @@ if not CATALOG:
 
 _this_dir = os.path.dirname(os.path.abspath(__file__)) if "__file__" in globals() else os.getcwd()
 REPO_ROOT = os.path.abspath(os.path.join(_this_dir, "..", ".."))
-FIXTURE_DIR = os.path.join(REPO_ROOT, "sample_data", "metaflow_testing", "rec_orders_usecase")
+FIXTURE_DIR = os.path.join(REPO_ROOT, "sample_data", "flowx_testing", "rec_orders_usecase")
 
 if not os.path.isdir(FIXTURE_DIR):
     raise FileNotFoundError(f"Expected fixture directory at '{FIXTURE_DIR}' -- is sample_data/ synced alongside this notebook?")
@@ -95,7 +95,7 @@ logger.info(
 # MAGIC %md
 # MAGIC ## Done
 # MAGIC
-# MAGIC `metaflow_testing/038_rec_003_precomputed_hash.json` can now be onboarded and its pipeline
+# MAGIC `flowx_testing/038_rec_003_precomputed_hash.json` can now be onboarded and its pipeline
 # MAGIC run, followed by `05_reconciliation_engine.py` with
 # MAGIC `reconciliation_id=recon_rec_003_orders_precomputed_hash` -- see `docs/60_tc_rec_003.md` for
 # MAGIC the full expected classification breakdown and `EXPLAIN` plan verification query.

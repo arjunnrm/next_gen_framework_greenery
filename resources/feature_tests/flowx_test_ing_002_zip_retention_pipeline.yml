@@ -1,0 +1,32 @@
+# TC-ING-002: "ZIP Source Purge Retention Policy" -- a single ZIP archive
+# (orders_batch_01.zip) autoloaded via source_zip_handling with
+# delete_source_after_extract: true, into bronze_sales.orders_raw (plain APPEND, no CDC).
+# Proves the source ZIP is purged from the incoming Volume once its contents are
+# successfully extracted, while the extracted CSV remains in the extract Volume.
+#
+# Targets the `flowx` catalog (control tables live in flowx.config, same as every other
+# flowx_testing/*.json spec) -- see flowx_testing/011_ing_002_zip_retention.json and
+# notebooks/00_seed_sample_data/03_seed_ing_002_zip_retention_data.py for the fixture data.
+
+resources:
+  pipelines:
+    flowx_test_ing_002_zip_retention_pipeline:
+      name: flowx_test_ing_002_zip_retention_pipeline_${bundle.target}
+      catalog: flowx
+      schema: bronze_sales
+      serverless: true
+      photon: true
+      development: true
+      continuous: false
+
+      libraries:
+        - notebook:
+            path: ../../notebooks/03_engine/03_lakeflow_declarative_pipeline.py
+
+      environment:
+        dependencies:
+          - ../../dist/*.whl
+
+      configuration:
+        dataflow.group.id: dfg_flowx_ing_002_zip_retention
+        dataflow.control.catalog: flowx

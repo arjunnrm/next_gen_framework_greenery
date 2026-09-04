@@ -1,0 +1,97 @@
+# Sample 03 -- Concurrent Multi-Table Load + In-DAG Reconciliation (reference, not a test):
+# two Auto Loader flows load primary/replica NYC-taxi trip tables concurrently inside ONE
+# pipeline update, and a reconciliation flow (execution_mode 'pipeline_audit_only') compares
+# them in the same Lakeflow DAG -- classified/metrics/mismatch datasets published to
+# flowx.flowx_sample, healing left to the standalone job engine. Everything isolated in
+# the flowx.flowx_sample schema.
+#
+#     -> store_sample_config
+#
+# SEED FIRST. This job lands no data of its own. Its fixtures come from the suite-wide
+# resources/sample_jobs/flowx_sample_seed_job.yml (tasks seed_sample_03_iteration1..3), which
+# must have completed at least once:
+#
+#   databricks bundle run flowx_sample_seed_job                 -t dev_flowx -p dev_flowx
+#   databricks bundle run flowx_sample_03_multi_table_recon_job -t dev_flowx -p dev_flowx
+#
+# Controlled drift (each seeded iteration lands a fresh 40-row slice; both tables are APPEND, so
+# the reconciliation compares the CUMULATIVE tables):
+#   iteration 1: replica identical to primary        -> contributes 0 drift, 0 missing
+#   iteration 2: 6 replica rows get fare_amount +5.0 -> contributes 6 VALUE_DRIFT rows
+#   iteration 3: 8 replica rows omitted entirely     -> contributes 8 genuinely missing rows
+# With all three iterations seeded before this job runs, the single pipeline update below sees
+# the fully-drifted state directly: value_drift_count 6 and missing_in_target_count 14 (6 drift
+# + 8 missing -- missing_in_target_count counts VALUE_DRIFT rows too). The recon flow's
+# dq_config warn-rules (missing_in_target_count = 0, value_drift_count = 0) therefore WARN, by
+# design, on that update. To watch the counters step 0 -> 6 -> 14 instead, run the seed job's
+# Sample 03 chain one iteration at a time with this pipeline in between.
+#
+# observability_export runs the triggered DLT observability engine against the spec's
+# DATABRICKS_VOLUME destination and lands run_log/mismatch/result rows in the flowx.config
+# control tables -- the same 4-parameter contract as
+# resources/feature_tests/flowx_test_dag_001_unified_job.yml / resources/observability/
+# dlt_observability_job.yml (observability export stays a separate job task, never a step baked
+# into the pipeline itself).
+#
+# Onboarding is DELEGATED to the generic onboarding_job
+# (resources/flowx_config_jobs/onboarding_job.yml) via run_job_task -- never an inline
+# 02_onboarding_engine.py notebook_task. Self-contained and idempotent, so this job can be
+# re-run on its own at any time. See resources/sample_jobs/onboarding/sample_03_multi_table_recon.json.
+
+# ---------------------------------------------------------------------------------------------
+# DEVELOPER BLUEPRINT -- the 2-task sample template. Clone this file.
+#
+#   pipeline_task       runs the Lakeflow pipeline (the transformation logic)
+#   observability_task  exports telemetry, DQ results and execution metrics for that update
+#
+# THAT IS THE WHOLE JOB. Provisioning is deliberately NOT here. Control-table setup, spec
+# onboarding and fixture seeding all live in the ONE suite-wide provisioning job,
+# resources/sample_jobs/flowx_sample_seed_job.yml, which must have run at least once:
+#
+#   databricks bundle run flowx_sample_seed_job -t <target> -p <profile>   # once
+#   databricks bundle run flowx_sample_03_multi_table_recon_job -t <target> -p <profile>
+#
+# WHY ONBOARDING MOVED OUT. `pipeline_task` reads its configuration from the control tables;
+# a group that was never onboarded fails in repository.py with
+# `FrameworkConfigError: No active dataflow_group_spec row found for dataflow_group_id=...`.
+# Onboarding is provisioning -- the same category as seeding -- so it is done once by the seed
+# job for all six samples, not re-done on every developer run.
+#
+# The onboarding spec for this sample lives in the bundle at
+# resources/sample_jobs/onboarding/sample_03_multi_table_recon.json
+# ---------------------------------------------------------------------------------------------
+
+resources:
+  jobs:
+    flowx_sample_03_multi_table_recon_job:
+      name: FlowX Sample 03 - Concurrent Multi-Table Load with In-DAG Reconciliation
+
+      tasks:
+        # 1/2 -- core pipeline / transformation logic.
+        - task_key: pipeline_task
+          pipeline_task:
+            pipeline_id: ${resources.pipelines.flowx_sample_03_multi_table_recon_pipeline.id}
+
+        # 2/2 -- telemetry, data-quality validation and execution monitoring for the update
+        # `pipeline_task` just completed. All four base_parameters below are REQUIRED -- see
+        # resources/observability/dlt_observability_job.yml's PARAMETER CONTRACT note.
+        - task_key: observability_task
+          depends_on:
+            - task_key: pipeline_task
+          notebook_task:
+            notebook_path: ../../notebooks/08_observability/08_dlt_observability_engine.py
+            base_parameters:
+              dataflow_group_id: dfg_sample_03_multi_table_recon
+              catalog: flowx
+              env: dev
+              pipeline_task_run_id: "{{tasks.pipeline_task.run_id}}"
+              service_name: dlt-observability-flowx-sample-03
+              fail_task_on_dispatch_error: "true"
+          environment_key: framework_env
+
+      environments:
+        - environment_key: framework_env
+          spec:
+            environment_version: "4"
+            dependencies:
+              - ../../dist/*.whl

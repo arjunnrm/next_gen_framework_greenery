@@ -5,12 +5,12 @@
 # MAGIC Provisions the `sales` schema/Volumes and lands a single `orders_batch_01.zip` archive
 # MAGIC into the incoming landing zone, generated on-cluster from the existing
 # MAGIC `sample_data/sample_raw_orders.csv` fixture (10 order rows -- reused as-is, no new sample
-# MAGIC data needed for this scenario). See `metaflow_testing/011_ing_002_zip_retention.json`,
+# MAGIC data needed for this scenario). See `flowx_testing/011_ing_002_zip_retention.json`,
 # MAGIC whose `source_zip_handling.delete_source_after_extract: true` is what this scenario
 # MAGIC exists to prove: after a successful pipeline update, this ZIP should be gone from
 # MAGIC `incoming/` while its extracted CSV remains under `extracted/orders/`.
 # MAGIC
-# MAGIC Run once per environment before onboarding `metaflow_testing/011_ing_002_zip_retention.json`.
+# MAGIC Run once per environment before onboarding `flowx_testing/011_ing_002_zip_retention.json`.
 
 # COMMAND ----------
 
@@ -27,7 +27,7 @@ import zipfile
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger("seed_ing_002_zip_retention_data")
 
-dbutils.widgets.text("catalog", "metaflow", "Target Unity Catalog")
+dbutils.widgets.text("catalog", "flowx", "Target Unity Catalog")
 CATALOG = dbutils.widgets.get("catalog").strip()
 
 if not CATALOG:
@@ -63,7 +63,7 @@ logger.info("Provisioned catalog '%s'.sales with landing_zip/_schemas volumes.",
 # MAGIC Built directly in-process (never synced as a pre-built `.zip` through the bundle --
 # MAGIC Workspace Files auto-extracts `.zip` uploads on sync, see
 # MAGIC `docs/12_zip_ingestion_pipeline.md`'s platform-gotchas section and this same pattern in
-# MAGIC `02_seed_metaflow_testing_data.py`), then written to the Volume with one plain
+# MAGIC `02_seed_flowx_testing_data.py`), then written to the Volume with one plain
 # MAGIC sequential write (Volumes' FUSE mount doesn't support seeking on an open-for-write handle,
 # MAGIC which a ZIP writer needs -- hence building the archive in an in-memory buffer first).
 
@@ -94,7 +94,7 @@ except Exception as exc:  # noqa: BLE001
 # MAGIC %md
 # MAGIC ## Done
 # MAGIC
-# MAGIC `metaflow_testing/011_ing_002_zip_retention.json` can now be onboarded and its pipeline
+# MAGIC `flowx_testing/011_ing_002_zip_retention.json` can now be onboarded and its pipeline
 # MAGIC run. Re-running this notebook is safe/idempotent: `orders_batch_01.zip` regenerates with
 # MAGIC identical content, overwriting any prior copy in `incoming/` -- if a previous pipeline
 # MAGIC run already purged it (the behavior this scenario tests), this step re-lands a fresh copy

@@ -2,7 +2,7 @@
 # MAGIC %md
 # MAGIC # Seed TC-SEC-001 -- Column-Level AES-GCM Encryption Fixtures
 # MAGIC
-# MAGIC Dedicated seed notebook for `metaflow_testing/033_sec_001_aes_encrypt.json` only --
+# MAGIC Dedicated seed notebook for `flowx_testing/033_sec_001_aes_encrypt.json` only --
 # MAGIC intentionally separate from every other scenario's own seed notebook, so this test case's
 # MAGIC build/run stays isolated.
 # MAGIC
@@ -14,7 +14,7 @@
 # MAGIC notebook only lands the raw, still-plaintext source file; it does not touch encryption at
 # MAGIC all. See `docs/54_tc_sec_001.md` for the full scenario writeup.
 # MAGIC
-# MAGIC Built from `sample_data/metaflow_testing/sec_usecase/customer_pii_day1.csv`.
+# MAGIC Built from `sample_data/flowx_testing/sec_usecase/customer_pii_day1.csv`.
 # MAGIC
 # MAGIC **Does not provision the `security` secret scope/`pii_encryption_key` secret** -- this
 # MAGIC scenario deliberately reuses the same Unity Catalog secret every other encryption spec in
@@ -22,7 +22,7 @@
 # MAGIC secret must already exist in the target workspace/catalog before this job's pipeline task
 # MAGIC runs, exactly as it must for every other encryption scenario.
 # MAGIC
-# MAGIC Run once per environment before onboarding `metaflow_testing/033_sec_001_aes_encrypt.json`.
+# MAGIC Run once per environment before onboarding `flowx_testing/033_sec_001_aes_encrypt.json`.
 
 # COMMAND ----------
 
@@ -32,7 +32,7 @@ import os
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger("seed_sec_001_aes_encrypt_data")
 
-dbutils.widgets.text("catalog", "metaflow", "Target Unity Catalog")
+dbutils.widgets.text("catalog", "flowx", "Target Unity Catalog")
 CATALOG = dbutils.widgets.get("catalog").strip()
 
 if not CATALOG:
@@ -40,7 +40,7 @@ if not CATALOG:
 
 _this_dir = os.path.dirname(os.path.abspath(__file__)) if "__file__" in globals() else os.getcwd()
 REPO_ROOT = os.path.abspath(os.path.join(_this_dir, "..", ".."))
-FIXTURE_DIR = os.path.join(REPO_ROOT, "sample_data", "metaflow_testing", "sec_usecase")
+FIXTURE_DIR = os.path.join(REPO_ROOT, "sample_data", "flowx_testing", "sec_usecase")
 
 if not os.path.isdir(FIXTURE_DIR):
     raise FileNotFoundError(f"Expected fixture directory at '{FIXTURE_DIR}' -- is sample_data/ synced alongside this notebook?")
@@ -86,7 +86,7 @@ logger.info("Landed customer PII fixture at '%s/customer_pii_day1.csv' (3 rows, 
 # MAGIC %md
 # MAGIC ## Done
 # MAGIC
-# MAGIC `metaflow_testing/033_sec_001_aes_encrypt.json` can now be onboarded and its pipeline run --
+# MAGIC `flowx_testing/033_sec_001_aes_encrypt.json` can now be onboarded and its pipeline run --
 # MAGIC `{{catalog}}.bronze_customers.customer_pii_encrypted` should end up with 3 rows, `ssn`/
 # MAGIC `credit_card` stored as AES-GCM ciphertext, never the plaintext values landed here. See
 # MAGIC `docs/54_tc_sec_001.md` for the full verification query.

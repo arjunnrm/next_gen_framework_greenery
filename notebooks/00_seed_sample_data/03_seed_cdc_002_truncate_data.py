@@ -2,14 +2,14 @@
 # MAGIC %md
 # MAGIC # Seed TC-CDC-002 -- Full Materialized View Snapshot (TRUNCATE_AND_LOAD) Fixtures
 # MAGIC
-# MAGIC Dedicated seed notebook for `metaflow_testing/020_cdc_002_truncate.json` only --
-# MAGIC intentionally separate from `02_seed_metaflow_testing_data.py` (scenarios 001/002/003) and
+# MAGIC Dedicated seed notebook for `flowx_testing/020_cdc_002_truncate.json` only --
+# MAGIC intentionally separate from `02_seed_flowx_testing_data.py` (scenarios 001/002/003) and
 # MAGIC every other scenario's own seed notebook, so this test case's build/run stays isolated.
 # MAGIC
 # MAGIC Provisions the `ref`/`bronze_ref`/`silver_ref` schemas and the `landing_fx`/`_schemas`
 # MAGIC Volumes, then lands one 50-row FX currency rate extract directly in the incoming Volume
 # MAGIC (no ZIP handling needed here -- plain Auto Loader CSV ingestion is the whole point of this
-# MAGIC scenario), built from the fixture under `sample_data/metaflow_testing/ref_usecase/`:
+# MAGIC scenario), built from the fixture under `sample_data/flowx_testing/ref_usecase/`:
 # MAGIC
 # MAGIC * `fx_rates_batch1.csv` -- 50 rows, one per distinct ISO currency code, all dated the same
 # MAGIC   `rate_date` (2026-08-28) -- a single day's full-replacement extract.
@@ -21,7 +21,7 @@
 # MAGIC exactly 50 rows no matter how many times the pipeline is triggered, since a materialized
 # MAGIC view is a full recompute, never an incremental append.
 # MAGIC
-# MAGIC Run once per environment before onboarding `metaflow_testing/020_cdc_002_truncate.json`.
+# MAGIC Run once per environment before onboarding `flowx_testing/020_cdc_002_truncate.json`.
 
 # COMMAND ----------
 
@@ -31,7 +31,7 @@ import os
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger("seed_cdc_002_truncate_data")
 
-dbutils.widgets.text("catalog", "metaflow", "Target Unity Catalog")
+dbutils.widgets.text("catalog", "flowx", "Target Unity Catalog")
 CATALOG = dbutils.widgets.get("catalog").strip()
 
 if not CATALOG:
@@ -39,7 +39,7 @@ if not CATALOG:
 
 _this_dir = os.path.dirname(os.path.abspath(__file__)) if "__file__" in globals() else os.getcwd()
 REPO_ROOT = os.path.abspath(os.path.join(_this_dir, "..", ".."))
-FIXTURE_DIR = os.path.join(REPO_ROOT, "sample_data", "metaflow_testing", "ref_usecase")
+FIXTURE_DIR = os.path.join(REPO_ROOT, "sample_data", "flowx_testing", "ref_usecase")
 
 if not os.path.isdir(FIXTURE_DIR):
     raise FileNotFoundError(f"Expected fixture directory at '{FIXTURE_DIR}' -- is sample_data/ synced alongside this notebook?")
@@ -87,7 +87,7 @@ logger.info("Landed FX rates fixture at '%s/%s'", FX_INCOMING_ZONE, _fixture_fil
 # MAGIC %md
 # MAGIC ## Done
 # MAGIC
-# MAGIC `metaflow_testing/020_cdc_002_truncate.json` can now be onboarded and its pipeline run.
+# MAGIC `flowx_testing/020_cdc_002_truncate.json` can now be onboarded and its pipeline run.
 # MAGIC Re-running this notebook is safe: the CSV is copied fresh each time (Auto Loader itself,
 # MAGIC not this notebook, tracks which files it has already ingested via its checkpoint, so
 # MAGIC re-landing the same filename does not re-ingest or duplicate rows in the Bronze table --

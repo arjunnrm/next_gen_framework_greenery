@@ -2,7 +2,7 @@
 # MAGIC %md
 # MAGIC # Seed TC-CDC-005 -- SCD Type 3 Current & Previous State Fixtures
 # MAGIC
-# MAGIC Dedicated seed notebook for `metaflow_testing/023_cdc_005_scd3.json` only -- kept
+# MAGIC Dedicated seed notebook for `flowx_testing/023_cdc_005_scd3.json` only -- kept
 # MAGIC separate from every other scenario's own seed notebook so this test case's build/run
 # MAGIC stays isolated.
 # MAGIC
@@ -19,14 +19,14 @@
 # MAGIC | `2` | `subscription_batch2.csv` | `ACTIVE` | 2nd | `ACTIVE` / `TRIAL` |
 # MAGIC | `3` | `subscription_batch3.csv` | `CHURNED` | 3rd | `CHURNED` / `ACTIVE` |
 # MAGIC
-# MAGIC Each fixture (`sample_data/metaflow_testing/sub_usecase/subscription_batch{1,2,3}.csv`) is
+# MAGIC Each fixture (`sample_data/flowx_testing/sub_usecase/subscription_batch{1,2,3}.csv`) is
 # MAGIC a single row for `sub_id = S100`, differing only in `status` and `event_ts` -- landed one
 # MAGIC at a time so Auto Loader's checkpoint (and the downstream SCD3 transformation's own
 # MAGIC hidden `_dim_subscription_scd3_scd2_history` streaming table) only ever see one new event
 # MAGIC per pipeline update, exactly matching a real subscription lifecycle arriving over time.
 # MAGIC
 # MAGIC Run once per batch, immediately before that batch's pipeline update -- see
-# MAGIC `resources/feature_tests/metaflow_test_cdc_005_scd3_job.yml` for the full
+# MAGIC `resources/feature_tests/flowx_test_cdc_005_scd3_job.yml` for the full
 # MAGIC `seed(1) -> run -> seed(2) -> run -> seed(3) -> run` task chain and docs/44_tc_cdc_005.md
 # MAGIC for the full 3-batch drop-and-rerun narrative.
 
@@ -38,7 +38,7 @@ import os
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger("seed_cdc_005_scd3_data")
 
-dbutils.widgets.text("catalog", "metaflow", "Target Unity Catalog")
+dbutils.widgets.text("catalog", "flowx", "Target Unity Catalog")
 dbutils.widgets.text("batch_number", "1", "Which batch to land (1, 2, or 3)")
 
 CATALOG = dbutils.widgets.get("catalog").strip()
@@ -51,7 +51,7 @@ if BATCH_NUMBER not in ("1", "2", "3"):
 
 _this_dir = os.path.dirname(os.path.abspath(__file__)) if "__file__" in globals() else os.getcwd()
 REPO_ROOT = os.path.abspath(os.path.join(_this_dir, "..", ".."))
-FIXTURE_DIR = os.path.join(REPO_ROOT, "sample_data", "metaflow_testing", "sub_usecase")
+FIXTURE_DIR = os.path.join(REPO_ROOT, "sample_data", "flowx_testing", "sub_usecase")
 
 if not os.path.isdir(FIXTURE_DIR):
     raise FileNotFoundError(f"Expected fixture directory at '{FIXTURE_DIR}' -- is sample_data/ synced alongside this notebook?")
@@ -103,7 +103,7 @@ logger.info("Landed subscription batch %s fixture at '%s/%s'", BATCH_NUMBER, SUB
 # MAGIC
 # MAGIC Batch `{{BATCH_NUMBER}}`'s single-row status-change event is now landed at
 # MAGIC `/Volumes/{catalog}/sub/landing_sub/incoming/subscription_batch{N}.csv`. Trigger this
-# MAGIC batch's pipeline update next (see `resources/feature_tests/metaflow_test_cdc_005_scd3_job.yml`) before
+# MAGIC batch's pipeline update next (see `resources/feature_tests/flowx_test_cdc_005_scd3_job.yml`) before
 # MAGIC re-running this notebook for the next batch -- landing all 3 files before any pipeline
 # MAGIC update would collapse all 3 status changes into a single Auto Loader micro-batch, defeating
 # MAGIC the point of this scenario (proving SCD3's current/previous pivot advances correctly across

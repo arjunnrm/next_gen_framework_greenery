@@ -5,12 +5,12 @@
 # MAGIC Onboards **every** spec in a directory in one run, rather than one spec per run like its
 # MAGIC sibling `02_onboarding_engine.py`. Entirely generic -- point `spec_dir` at any folder of
 # MAGIC onboarding specs (JSON or YAML). It is *not* test-specific; the test corpus
-# MAGIC (`metaflow_testing/`) is simply its default target because that is the directory most
+# MAGIC (`flowx_testing/`) is simply its default target because that is the directory most
 # MAGIC often onboarded wholesale.
 # MAGIC
 # MAGIC Like every notebook in this repo it is a **thin orchestration layer**: discovery,
 # MAGIC iteration and reporting live in
-# MAGIC `NextGen_Metadata_Framework.lakeflow_framework.onboarding.bulk_onboarding`, and each
+# MAGIC `flowx.lakeflow_framework.onboarding.bulk_onboarding`, and each
 # MAGIC individual spec goes through the exact same `load_and_template_spec` -> `validate_spec`
 # MAGIC -> `upsert_*` -> `write_audit_log_entry` path `02_onboarding_engine.py` uses. Nothing
 # MAGIC about onboarding *semantics* differs between the two notebooks.
@@ -26,8 +26,8 @@
 # MAGIC %md
 # MAGIC ## Module Bootstrap
 # MAGIC
-# MAGIC In production `NextGen_Metadata_Framework` is installed as a wheel attached to this job
-# MAGIC (see `resources/metaflow_config_jobs/framework_config_onboarding_job.yml`), so a plain `import` resolves from
+# MAGIC In production `flowx` is installed as a wheel attached to this job
+# MAGIC (see `resources/flowx_config_jobs/framework_config_onboarding_job.yml`), so a plain `import` resolves from
 # MAGIC site-packages. The fallback below only kicks in for local, wheel-less notebook
 # MAGIC development.
 
@@ -41,39 +41,39 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(me
 logger = logging.getLogger("bulk_config_onboarding_engine")
 
 try:
-    import NextGen_Metadata_Framework.lakeflow_framework  # noqa: F401
+    import flowx.lakeflow_framework  # noqa: F401
 except ImportError:
     try:
         this_dir = os.path.dirname(os.path.abspath(__file__)) if "__file__" in globals() else os.getcwd()
         dev_src_root = os.path.abspath(os.path.join(this_dir, "..", "..", "src"))
         if dev_src_root not in sys.path:
             sys.path.insert(0, dev_src_root)
-        import NextGen_Metadata_Framework.lakeflow_framework  # noqa: F401
-        logger.warning("Loaded 'NextGen_Metadata_Framework' from local 'src/' (dev fallback) -- not from an installed wheel.")
+        import flowx.lakeflow_framework  # noqa: F401
+        logger.warning("Loaded 'flowx' from local 'src/' (dev fallback) -- not from an installed wheel.")
     except ImportError as exc:
         raise ImportError(
-            "Could not import 'NextGen_Metadata_Framework'. In production this must be attached as a "
+            "Could not import 'flowx'. In production this must be attached as a "
             "wheel library (see resources/*.yml); for local development, run from within the repo so "
             f"'../../src' resolves. Original error: {exc}"
         ) from exc
 
 import json  # noqa: E402
 
-from NextGen_Metadata_Framework.lakeflow_framework.control_plane.schema_provisioner import (
+from flowx.lakeflow_framework.control_plane.schema_provisioner import (
     ensure_control_schema_exists,  # noqa: E402
 )
-from NextGen_Metadata_Framework.lakeflow_framework.exceptions import OnboardingValidationError  # noqa: E402
-from NextGen_Metadata_Framework.lakeflow_framework.onboarding.bulk_onboarding import (  # noqa: E402
+from flowx.lakeflow_framework.exceptions import OnboardingValidationError  # noqa: E402
+from flowx.lakeflow_framework.onboarding.bulk_onboarding import (  # noqa: E402
     ALLOWED_ACTION_TYPES,
     discover_spec_files,
     format_results_table,
     onboard_single_spec,
     summarize_results,
 )
-from NextGen_Metadata_Framework.lakeflow_framework.onboarding.client_context import (
+from flowx.lakeflow_framework.onboarding.client_context import (
     build_client_context_json,  # noqa: E402
 )
-from NextGen_Metadata_Framework.lakeflow_framework.onboarding.spec_validator import validate_spec  # noqa: E402
+from flowx.lakeflow_framework.onboarding.spec_validator import validate_spec  # noqa: E402
 
 # COMMAND ----------
 
@@ -88,7 +88,7 @@ from NextGen_Metadata_Framework.lakeflow_framework.onboarding.spec_validator imp
 # COMMAND ----------
 
 dbutils.widgets.text("spec_dir", "", "Directory of onboarding specs (Workspace Files / UC Volume)")
-dbutils.widgets.text("catalog", "metaflow", "Target Unity Catalog")
+dbutils.widgets.text("catalog", "flowx", "Target Unity Catalog")
 dbutils.widgets.text("env", "dev", "Target environment")
 dbutils.widgets.dropdown("action_type", "CREATE", ["CREATE", "UPDATE", "VALIDATE_ONLY"], "Onboarding action")
 dbutils.widgets.dropdown("fail_fast", "false", ["true", "false"], "Abort on first failure")

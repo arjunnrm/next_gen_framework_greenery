@@ -1,0 +1,63 @@
+# Wraps flowx_asn1_v0_0_2_ggsn_pipeline:
+#
+#   setup_control_tables -> seed_ggsn_fixture -> onboard_ggsn -> run_ggsn_pipeline
+#
+# seed_ggsn_fixture (notebooks/00_seed_sample_data/05_seed_asn1_ggsn_fixture.py) lands the real
+# GGSN ASN.1 module file at /Volumes/flowx/ggsn/schemas/GGSN.asn1, then generates 10
+# genuine BER-encoded CallEventRecord fixtures directly on-cluster into
+# /Volumes/flowx/ggsn/landing_cdr/incoming/ -- binary files do not survive Databricks Workspace
+# Files sync reliably. Crucially it writes ONE RECORD PER FILE: the framework decoder decodes a
+# whole file's bytes as a single record, so a concatenated multi-record .ber (which is what
+# BT_Testing/synthetic/ggsn_synthetic.ber is) would ingest 1 row and silently drop 9. The notebook
+# self-checks that invariant before finishing by re-encoding each decode and asserting the byte
+# length matches the file length. Idempotent, so this job can be re-run.
+#
+# onboard_ggsn DELEGATES to the generic onboarding_job via run_job_task rather than inlining a
+# 02_onboarding_engine.py notebook_task, which is the pattern the older per-suite job files use and
+# which this suite deliberately does not copy.
+
+resources:
+  jobs:
+    flowx_asn1_v0_0_2_ggsn_job:
+      name: FlowX ASN.1 v0.0.2 - GGSN Decode and Load
+
+      tasks:
+        - task_key: setup_control_tables
+          notebook_task:
+            notebook_path: ../../notebooks/01_setup/01_setup_control_tables.py
+            base_parameters:
+              catalog: flowx
+          environment_key: framework_env
+
+        - task_key: seed_ggsn_fixture
+          depends_on:
+            - task_key: setup_control_tables
+          notebook_task:
+            notebook_path: ../../notebooks/00_seed_sample_data/05_seed_asn1_ggsn_fixture.py
+            base_parameters:
+              catalog: flowx
+          environment_key: framework_env
+
+        - task_key: onboard_ggsn
+          depends_on:
+            - task_key: seed_ggsn_fixture
+          run_job_task:
+            job_id: ${resources.jobs.onboarding_job.id}
+            job_parameters:
+              spec_file_path: "${workspace.file_path}/flowx_testing/v0_0_2_asn1_ggsn.json"
+              catalog: flowx
+              env: dev
+              action_type: CREATE
+
+        - task_key: run_ggsn_pipeline
+          depends_on:
+            - task_key: onboard_ggsn
+          pipeline_task:
+            pipeline_id: ${resources.pipelines.flowx_asn1_v0_0_2_ggsn_pipeline.id}
+
+      environments:
+        - environment_key: framework_env
+          spec:
+            environment_version: "4"
+            dependencies:
+              - ../../dist/*.whl

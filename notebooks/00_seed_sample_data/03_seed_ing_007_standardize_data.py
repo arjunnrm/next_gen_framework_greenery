@@ -3,11 +3,11 @@
 # MAGIC # Seed TC-ING-007 -- Inline Data Standardization SQL Fixture
 # MAGIC
 # MAGIC Provisions the `master`/`bronze_master` schemas + `landing_companies`/`_schemas` volumes
-# MAGIC and lands `sample_data/metaflow_testing/master_usecase/companies_batch1.csv` -- 3 dirty
+# MAGIC and lands `sample_data/flowx_testing/master_usecase/companies_batch1.csv` -- 3 dirty
 # MAGIC company records (extra leading/trailing whitespace, mixed-case region and email values)
 # MAGIC -- into `/Volumes/{{catalog}}/master/landing_companies/` for Auto Loader to pick up.
 # MAGIC
-# MAGIC Run once per environment before onboarding `metaflow_testing/016_ing_007_standardize.json`.
+# MAGIC Run once per environment before onboarding `flowx_testing/016_ing_007_standardize.json`.
 
 # COMMAND ----------
 
@@ -17,7 +17,7 @@ import os
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger("seed_ing_007_standardize_data")
 
-dbutils.widgets.text("catalog", "metaflow", "Target Unity Catalog")
+dbutils.widgets.text("catalog", "flowx", "Target Unity Catalog")
 CATALOG = dbutils.widgets.get("catalog").strip()
 
 if not CATALOG:
@@ -25,7 +25,7 @@ if not CATALOG:
 
 _this_dir = os.path.dirname(os.path.abspath(__file__)) if "__file__" in globals() else os.getcwd()
 REPO_ROOT = os.path.abspath(os.path.join(_this_dir, "..", ".."))
-FIXTURE_DIR = os.path.join(REPO_ROOT, "sample_data", "metaflow_testing", "master_usecase")
+FIXTURE_DIR = os.path.join(REPO_ROOT, "sample_data", "flowx_testing", "master_usecase")
 
 if not os.path.isdir(FIXTURE_DIR):
     raise FileNotFoundError(f"Expected fixture directory at '{FIXTURE_DIR}' -- is sample_data/ synced alongside this notebook?")
@@ -65,7 +65,7 @@ logger.info("Landed dirty companies fixture at '%s/companies_batch1.csv'", MASTE
 # MAGIC %md
 # MAGIC ## Done
 # MAGIC
-# MAGIC `metaflow_testing/016_ing_007_standardize.json` can now be onboarded and its pipeline
+# MAGIC `flowx_testing/016_ing_007_standardize.json` can now be onboarded and its pipeline
 # MAGIC run. Re-running this notebook is safe: the fixture file is copied fresh each time (Auto
 # MAGIC Loader itself, not this notebook, tracks which files it has already ingested via its
 # MAGIC checkpoint/schema location).

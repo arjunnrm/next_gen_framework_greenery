@@ -1,0 +1,35 @@
+# FlowX test scenario TC-DQ-004: "DQ Action: quarantine Routing & Diagnostics" -- a single
+# plain-CSV Auto Loader ingestion flow with two dq_config rules (Country IS NOT NULL, Email
+# format RLIKE), both action: "quarantine", routing failing rows into an auto-generated
+# customer_raw_quarantine companion table while passing rows land in customer_raw.
+#
+# Targets the `flowx` catalog (control tables live in flowx.config, same as every other
+# flowx_testing/*.json spec) -- see flowx_testing/032_dq_004_quarantine.json.
+#
+# NOTE: this pipeline's target (bronze_test.customer_raw) intentionally reuses the same
+# catalog.schema.table coordinates as the pre-existing flowx_test_100_zipcsv_pipeline, per
+# TESTING_PLAN.md's own "Databricks Object Names" column for TC-DQ-004 -- see docs/53_tc_dq_004.md
+# for the real table-ownership collision this creates and why it was not silently renamed around.
+
+resources:
+  pipelines:
+    flowx_test_dq_004_quarantine_pipeline:
+      name: flowx_test_dq_004_quarantine_pipeline_${bundle.target}
+      catalog: flowx
+      schema: bronze_test
+      serverless: true
+      photon: true
+      development: true
+      continuous: false
+
+      libraries:
+        - notebook:
+            path: ../../notebooks/03_engine/03_lakeflow_declarative_pipeline.py
+
+      environment:
+        dependencies:
+          - ../../dist/*.whl
+
+      configuration:
+        dataflow.group.id: dfg_dq_004_quarantine
+        dataflow.control.catalog: flowx

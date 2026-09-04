@@ -1,0 +1,82 @@
+{
+  "_test_case_note": "TC-DAG-003 (positive): the missing third leg of execution_mode coverage -- 049/051/003 cover 'pipeline', 050 covers the negative cycle case, and this spec is the only fixture exercising 'pipeline_audit_only'. One dataflow group, all three flow kinds in ONE Lakeflow DAG (R1): zerobus ingestion of {{catalog}}.dag_003_usecase.audit_source_bus into bronze, a batch transformation over the SAME physical locator via source_inputs[0] ('audit_source_direct'), and a reconciliation_flows[0] whose execution_mode is 'pipeline_audit_only'. Fanout on that one locator is 2 (>= the source_plane 'auto' threshold) with one streaming consumer, so engine/source_plane.py registers exactly ONE materialized L0 node and both consumers bind() to it -- one physical read per update (R2). Observability is untouched and stays a job task (R3). WHAT MAKES THIS DIFFERENT FROM 049: reconciliation/graph_registration.py computes `needs_heal = execution_mode == _PIPELINE_EXECUTION_MODE and bool(heal_targets)` (line 349), so 'pipeline_audit_only' registers the L3 prepare and L4 compare datasets (recon__<id>__<target>__classified/__metrics/__mismatch, plus the dq_config expectations attached to the one-row __metrics dataset) and then returns at the `if not needs_heal` guard (line 534) WITHOUT registering the L5 pulse/append_flow/foreach_batch_sink heal lane. append_target_table is therefore deliberately PRESENT here and is NOT rejected: spec_validator.py::_validate_reconciliation_target_configs REQUIRES it for any comparison_direction of 'source_to_target'/'both' with no exemption for audit-only mode (line 1396), and _wants_heal (graph_registration.py line 237) still reads it -- it is what the STANDALONE 05_reconciliation_engine.py job task will use to heal, which is exactly the point of audit-only: comparison in-pipeline, healing left in job mode. That is the documented fallback for a source that cannot be read as an append-only stream or a runtime without dlt.foreach_batch_sink. Mode-conditional rules still bite in audit-only mode because it is in _RECONCILIATION_PIPELINE_MODES: dataflow_group_id is mandatory (V-CYC-6), source_config.table must be a target THIS group produces (V-CYC-1) via an append-only producer (V-CYC-7 -- hence APPEND into a streaming_table, never a merge CDC strategy or a TRUNCATE_AND_LOAD materialized_view), read_mode 'streaming' is rejected on both sides, task_run_id_column is rejected on both sides, and publish_schema/dq_config are permitted (they would be rejected under execution_mode 'job'). append_target_table points at {{catalog}}.dag_003_remediation.audit_heal_landing -- neither an in-spec target (V-CYC-2), nor this group's raw ingestion source (V-CYC-3), nor either compared side (V-CYC-5). See flowx_testing/TESTING_PLAN.md and docs/07_reconciliation_engine.md.",
+  "dataflow_group_id": "dfg_dag_003_recon_audit_only",
+  "pipeline_parameters": {},
+  "ingestion_flows": [
+    {
+      "dataflow_id": "df_dag_003_audit_zerobus_ingest",
+      "source_system": "dag_003_audit_source",
+      "source_database": "dag_003_usecase",
+      "source_table_name": "audit_source_bus",
+      "source_description": "TC-DAG-003: zerobus ingestion of {{catalog}}.dag_003_usecase.audit_source_bus into an APPEND streaming_table -- an append-only producer, which is what V-CYC-7 requires of the dataset reconciliation_flows[0] reads as its source in a pipeline execution_mode. transformation_flows[0] reads the SAME physical locator directly, so the read-once source plane serves both from one scan per update.",
+      "source_type": "zerobus",
+      "target_catalog": "{{catalog}}",
+      "target_schema": "bronze_dag_003",
+      "target_table": "audit_source_bronze",
+      "target_type": "streaming_table",
+      "source_config": {
+        "source_catalog": "{{catalog}}",
+        "source_schema": "dag_003_usecase",
+        "source_table": "audit_source_bus"
+      },
+      "target_config": {"cdc_load_strategy": "APPEND", "storage_format": "delta"},
+      "dq_config": {"rules": []},
+      "governance_tags": {}
+    }
+  ],
+  "transformation_flows": [
+    {
+      "flow_step_id": "tf_dag_003_audit_source_direct_view",
+      "dataflow_id": "df_dag_003_audit_zerobus_ingest",
+      "source_description": "TC-DAG-003: reads {{catalog}}.dag_003_usecase.audit_source_bus directly as a batch transformation input -- the SAME external locator ingestion_flows[0] streams via zerobus -- so the audit-only recon case still proves the cross-flow-kind source-plane dedup, not merely the recon registration path.",
+      "target_catalog": "{{catalog}}",
+      "target_schema": "silver_dag_003",
+      "target_table": "audit_source_snapshot",
+      "target_type": "materialized_view",
+      "source_inputs": [
+        {"input_name": "audit_source_direct", "table": "{{catalog}}.dag_003_usecase.audit_source_bus", "is_streaming": false}
+      ],
+      "transformation_sql": "SELECT * FROM audit_source_direct",
+      "target_config": {"cdc_load_strategy": "TRUNCATE_AND_LOAD", "storage_format": "delta"},
+      "dq_config": {"rules": []},
+      "governance_tags": {}
+    }
+  ],
+  "reconciliation_flows": [
+    {
+      "reconciliation_id": "recon_dag_003_bronze_vs_downstream_audit_only",
+      "execution_mode": "pipeline_audit_only",
+      "logging_config": {"run_log_capture": true},
+      "dataflow_group_id": "dfg_dag_003_recon_audit_only",
+      "publish_schema": "recon_dag_003",
+      "two_tier_verification": true,
+      "dq_config": {
+        "rules": [
+          {"rule_id": "no_missing_in_target", "expression": "missing_in_target_count = 0", "action": "warn"}
+        ]
+      },
+      "source_config": {
+        "type": "table",
+        "table": "{{catalog}}.bronze_dag_003.audit_source_bronze",
+        "read_mode": "batch",
+        "hash_precomputed": false
+      },
+      "target_configs": [
+        {
+          "target_id": "downstream_audit_copy",
+          "type": "table",
+          "table": "{{catalog}}.dag_003_downstream.audit_target_copy",
+          "read_mode": "batch",
+          "hash_precomputed": false,
+          "comparison_direction": "source_to_target",
+          "append_target_table": "{{catalog}}.dag_003_remediation.audit_heal_landing"
+        }
+      ],
+      "match_keys": ["record_id"],
+      "compare_columns": ["value"],
+      "error_handling": {
+        "on_failure": "warn"
+      }
+    }
+  ]
+}

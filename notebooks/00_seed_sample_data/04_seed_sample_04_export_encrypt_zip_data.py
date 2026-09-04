@@ -4,14 +4,14 @@
 # MAGIC
 # MAGIC Dedicated seed notebook for `resources/sample_jobs/onboarding/sample_04_export_encrypt_zip.json`
 # MAGIC only. Parameterized by `iteration`; the common seed job
-# MAGIC (`resources/sample_jobs/metaflow_sample_seed_job.yml`) invokes it once per iteration
+# MAGIC (`resources/sample_jobs/flowx_sample_seed_job.yml`) invokes it once per iteration
 # MAGIC (1 -> 2 -> 3, chained) before any sample pipeline runs.
 # MAGIC
 # MAGIC Lands plain-CSV order/customer slices from `samples.tpch.orders` / `samples.tpch.customer`
 # MAGIC (a DISTINCT deterministic 50-row order slice per iteration; the customer dimension grows
 # MAGIC by a few new keys per iteration) -- the ENCRYPTION happens on the way OUT, inside the
 # MAGIC pipeline's two `pgp_zip` sinks, whose `post_export_archive.secret` resolves the UC secret
-# MAGIC `<catalog>.metaflow_sample.sample_zip_passkey` at export time. Falls back to small inline
+# MAGIC `<catalog>.flowx_sample.sample_zip_passkey` at export time. Falls back to small inline
 # MAGIC literal DataFrames when the `samples` catalog is not shared into this workspace (the log
 # MAGIC says which path was taken).
 # MAGIC
@@ -20,7 +20,7 @@
 # MAGIC and raises a clear, actionable error if it is unresolvable, failing at the first task
 # MAGIC that could know instead of mid-pipeline-update. Provisioning that secret is a manual,
 # MAGIC one-time, admin-audited step external to this bundle -- see the job resource header and
-# MAGIC `metaflow_testing/README.md`'s "Sample reference suite" section.
+# MAGIC `flowx_testing/README.md`'s "Sample reference suite" section.
 # MAGIC
 # MAGIC Idempotent: re-running an iteration overwrites the same landing files with the same
 # MAGIC deterministic content.
@@ -35,7 +35,7 @@ import os
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger("seed_sample_04_export_encrypt_zip")
 
-dbutils.widgets.text("catalog", "metaflow", "Target Unity Catalog")
+dbutils.widgets.text("catalog", "flowx", "Target Unity Catalog")
 dbutils.widgets.text("iteration", "1", "Which iteration to land (1, 2, or 3)")
 
 CATALOG = dbutils.widgets.get("catalog").strip()
@@ -46,7 +46,7 @@ if not CATALOG:
 if ITERATION not in ("1", "2", "3"):
     raise ValueError(f"The 'iteration' widget must be '1', '2', or '3' -- got '{ITERATION}'.")
 
-SAMPLE_SCHEMA = "metaflow_sample"
+SAMPLE_SCHEMA = "flowx_sample"
 ZIP_PASSKEY_SECRET = "sample_zip_passkey"
 LANDING_ROOT = f"/Volumes/{CATALOG}/{SAMPLE_SCHEMA}/landing"
 ORDER_DATE = {"1": "2026-09-01", "2": "2026-09-02", "3": "2026-09-03"}[ITERATION]
@@ -72,7 +72,7 @@ except Exception as exc:  # noqa: BLE001
         "exported ZIP, so without it run_pipeline would fail mid-update. Provision it once "
         "per workspace (manual, admin-audited, external to this bundle; any non-empty string works -- "
         "pyzipper derives the AES key from the passphrase) and grant this job's principal READ SECRET "
-        "on it, then re-run. See metaflow_testing/README.md's 'Sample reference suite' section for the "
+        "on it, then re-run. See flowx_testing/README.md's 'Sample reference suite' section for the "
         f"provisioning command. Original error: {exc}"
     ) from exc
 
@@ -220,6 +220,6 @@ _write_csv(
 # MAGIC
 # MAGIC Iteration landed. After this iteration's pipeline update, expect one new AES-256
 # MAGIC password-protected archive per export sink per micro-batch under
-# MAGIC `/Volumes/<catalog>/metaflow_sample/exports/{customer_orders,high_value_orders}/output/`
+# MAGIC `/Volumes/<catalog>/flowx_sample/exports/{customer_orders,high_value_orders}/output/`
 # MAGIC (openable with the `sample_zip_passkey` secret's value). Re-running this notebook with
 # MAGIC the same `iteration` is safe: both landing files regenerate idempotently.

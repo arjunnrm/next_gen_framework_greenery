@@ -50,7 +50,7 @@
 # MAGIC ## Module Bootstrap
 # MAGIC
 # MAGIC Lakeflow Declarative Pipeline source notebooks do not support `%run`. In production,
-# MAGIC attach `NextGen_Metadata_Framework`'s wheel to this pipeline via
+# MAGIC attach `flowx`'s wheel to this pipeline via
 # MAGIC `resources/observability/observability_otel_streaming_pipeline.yml`'s `environment.dependencies` --
 # MAGIC once installed that way, a plain `import` resolves it like any other site-packages
 # MAGIC library. The fallback below only kicks in for local, wheel-less notebook development.
@@ -68,18 +68,18 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(me
 logger = logging.getLogger("event_log_otel_streaming_pipeline")
 
 try:
-    import NextGen_Metadata_Framework.lakeflow_framework  # noqa: F401
+    import flowx.lakeflow_framework  # noqa: F401
 except ImportError:
     try:
         this_dir = os.path.dirname(os.path.abspath(__file__)) if "__file__" in globals() else os.getcwd()
         dev_src_root = os.path.abspath(os.path.join(this_dir, "..", "..", "src"))
         if dev_src_root not in sys.path:
             sys.path.insert(0, dev_src_root)
-        import NextGen_Metadata_Framework.lakeflow_framework  # noqa: F401
-        logger.warning("Loaded 'NextGen_Metadata_Framework' from local 'src/' (dev fallback) -- not from an installed wheel.")
+        import flowx.lakeflow_framework  # noqa: F401
+        logger.warning("Loaded 'flowx' from local 'src/' (dev fallback) -- not from an installed wheel.")
     except ImportError as exc:
         raise ImportError(
-            "Could not import 'NextGen_Metadata_Framework'. In production this must be attached as a "
+            "Could not import 'flowx'. In production this must be attached as a "
             "wheel library (see resources/observability/observability_otel_streaming_pipeline.yml); for local "
             f"development, run from within the repo so '../../src' resolves. Original error: {exc}"
         ) from exc
@@ -88,17 +88,17 @@ import dlt  # noqa: E402
 from pyspark.sql import functions as F  # noqa: E402
 from pyspark.sql.utils import AnalysisException  # noqa: E402
 
-from NextGen_Metadata_Framework.lakeflow_framework.exceptions import (  # noqa: E402
+from flowx.lakeflow_framework.exceptions import (  # noqa: E402
     FrameworkConfigError,
     ObservabilityConfigError,
 )
-from NextGen_Metadata_Framework.lakeflow_framework.observability.config_loader import (  # noqa: E402
+from flowx.lakeflow_framework.observability.config_loader import (  # noqa: E402
     DestinationConfig,
     filter_destinations_by_mode,
     load_destination_configs,
     resolve_event_log_tables,
 )
-from NextGen_Metadata_Framework.lakeflow_framework.observability.otel_streaming_sink import (  # noqa: E402
+from flowx.lakeflow_framework.observability.otel_streaming_sink import (  # noqa: E402
     OtelStreamingDataSource,
 )
 

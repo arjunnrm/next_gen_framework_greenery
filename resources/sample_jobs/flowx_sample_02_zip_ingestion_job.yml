@@ -1,0 +1,82 @@
+# Sample 02 -- Glob-Filtered ZIP Ingestion with Quarantine DQ (reference, not a test):
+# source_zip_handling extracts only sample_orders_*.zip from the incoming Volume and Auto Loader
+# ingests the contained CSV into an APPEND streaming table, with 3 deliberately broken rows
+# (NULL customer_id) per seeded iteration routed to sample_zip_orders_raw_quarantine by the
+# quarantine DQ rule. Everything isolated in the flowx.flowx_sample schema.
+#
+#
+# SEED FIRST. This job lands no data of its own. Its fixtures come from the suite-wide
+# resources/sample_jobs/flowx_sample_seed_job.yml (tasks seed_sample_02_iteration1..3), which
+# must have completed at least once:
+#
+#   databricks bundle run flowx_sample_seed_job            -t dev_flowx -p dev_flowx
+#   databricks bundle run flowx_sample_02_zip_ingestion_job -t dev_flowx -p dev_flowx
+#
+# The seed builds ONE ZIP archive per iteration IN-PROCESS (never a pre-built .zip fixture --
+# bundle sync mangles binary uploads) from a distinct samples.tpch.orders slice. All three
+# archives are on disk before this job runs, so the single pipeline update below extracts and
+# ingests all three at once: 90 clean rows in sample_zip_orders_raw and 9 in
+# sample_zip_orders_raw_quarantine.
+#
+# Onboarding is DELEGATED to the generic onboarding_job
+# (resources/flowx_config_jobs/onboarding_job.yml) via run_job_task -- never an inline
+# 02_onboarding_engine.py notebook_task. Self-contained and idempotent, so this job can be
+# re-run on its own at any time. See resources/sample_jobs/onboarding/sample_02_zip_ingestion.json.
+
+# ---------------------------------------------------------------------------------------------
+# DEVELOPER BLUEPRINT -- the 2-task sample template. Clone this file.
+#
+#   pipeline_task       runs the Lakeflow pipeline (the transformation logic)
+#   observability_task  exports telemetry, DQ results and execution metrics for that update
+#
+# THAT IS THE WHOLE JOB. Provisioning is deliberately NOT here. Control-table setup, spec
+# onboarding and fixture seeding all live in the ONE suite-wide provisioning job,
+# resources/sample_jobs/flowx_sample_seed_job.yml, which must have run at least once:
+#
+#   databricks bundle run flowx_sample_seed_job -t <target> -p <profile>   # once
+#   databricks bundle run flowx_sample_02_zip_ingestion_job -t <target> -p <profile>
+#
+# WHY ONBOARDING MOVED OUT. `pipeline_task` reads its configuration from the control tables;
+# a group that was never onboarded fails in repository.py with
+# `FrameworkConfigError: No active dataflow_group_spec row found for dataflow_group_id=...`.
+# Onboarding is provisioning -- the same category as seeding -- so it is done once by the seed
+# job for all six samples, not re-done on every developer run.
+#
+# The onboarding spec for this sample lives in the bundle at
+# resources/sample_jobs/onboarding/sample_02_zip_ingestion.json
+# ---------------------------------------------------------------------------------------------
+
+resources:
+  jobs:
+    flowx_sample_02_zip_ingestion_job:
+      name: FlowX Sample 02 - Glob-Filtered ZIP Ingestion with Quarantine DQ
+
+      tasks:
+        # 1/2 -- core pipeline / transformation logic.
+        - task_key: pipeline_task
+          pipeline_task:
+            pipeline_id: ${resources.pipelines.flowx_sample_02_zip_ingestion_pipeline.id}
+
+        # 2/2 -- telemetry, data-quality validation and execution monitoring for the update
+        # `pipeline_task` just completed. All four base_parameters below are REQUIRED -- see
+        # resources/observability/dlt_observability_job.yml's PARAMETER CONTRACT note.
+        - task_key: observability_task
+          depends_on:
+            - task_key: pipeline_task
+          notebook_task:
+            notebook_path: ../../notebooks/08_observability/08_dlt_observability_engine.py
+            base_parameters:
+              dataflow_group_id: dfg_sample_02_zip_ingestion
+              catalog: flowx
+              env: dev
+              pipeline_task_run_id: "{{tasks.pipeline_task.run_id}}"
+              service_name: dlt-observability-flowx-sample-02
+              fail_task_on_dispatch_error: "true"
+          environment_key: framework_env
+
+      environments:
+        - environment_key: framework_env
+          spec:
+            environment_version: "4"
+            dependencies:
+              - ../../dist/*.whl

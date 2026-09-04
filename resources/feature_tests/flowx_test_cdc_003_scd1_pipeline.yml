@@ -1,0 +1,28 @@
+# TC-CDC-003: "SCD Type 1 Overwrite with Delete Mapping" -- proves cdc_load_strategy "SCD1"
+# upserts the latest customer tier in place by primary key (customer_id), keeping no history,
+# and that a row carrying the configured delete operation code (cdc_op = DELETED) is removed
+# from/never lands in the target via apply_as_deletes. See
+# flowx_testing/021_cdc_003_scd1.json and docs/42_tc_cdc_003.md.
+
+resources:
+  pipelines:
+    flowx_test_cdc_003_scd1_pipeline:
+      name: flowx_test_cdc_003_scd1_pipeline_${bundle.target}
+      catalog: flowx
+      schema: silver_crm
+      serverless: true
+      photon: true
+      development: true
+      continuous: false
+
+      libraries:
+        - notebook:
+            path: ../../notebooks/03_engine/03_lakeflow_declarative_pipeline.py
+
+      environment:
+        dependencies:
+          - ../../dist/*.whl
+
+      configuration:
+        dataflow.group.id: dfg_cdc_003_scd1
+        dataflow.control.catalog: flowx

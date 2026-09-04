@@ -1,0 +1,28 @@
+# TC-OBS-001: "In-Pipeline Structured JSON Logging Validation" -- a single Auto Loader ingestion
+# flow combining a quarantine-action dq_config rule with an SCD1 cdc_load_strategy, so this
+# pipeline update exercises the ingestion_read, dq_staging, and flow_registration structured
+# JSON log events (observability/structured_logger.py::log_flow_event) all in one run. See
+# flowx_testing/042_obs_001_json_log.json and docs/64_tc_obs_001.md.
+
+resources:
+  pipelines:
+    flowx_test_obs_001_json_log_pipeline:
+      name: flowx_test_obs_001_json_log_pipeline_${bundle.target}
+      catalog: flowx
+      schema: bronze_ea
+      serverless: true
+      photon: true
+      development: true
+      continuous: false
+
+      libraries:
+        - notebook:
+            path: ../../notebooks/03_engine/03_lakeflow_declarative_pipeline.py
+
+      environment:
+        dependencies:
+          - ../../dist/*.whl
+
+      configuration:
+        dataflow.group.id: dfg_obs_001_json_log
+        dataflow.control.catalog: flowx

@@ -1,0 +1,64 @@
+# Wraps flowx_test_v0_0_2_tc2_zerobus_bronze_pipeline:
+#
+#   setup_control_tables -> seed_tc2_zerobus_json_bus -> onboard_tc2_zerobus_bronze
+#     -> run_tc2_zerobus_bronze_pipeline
+#
+# seed_tc2_zerobus_json_bus (notebooks/00_seed_sample_data/03_seed_v0_0_2_tc2_zerobus_json_bus.py)
+# creates and populates BOTH single-JSON-column source bus tables
+# (flowx.zerobus_v0_0_2.orders_event_bus / .devices_event_bus). It is append-only and
+# idempotent -- it never emits an update/delete commit, which would break the Delta
+# streaming read with DELTA_SOURCE_TABLE_IGNORE_CHANGES -- so this job is safe to re-run.
+#
+# Onboarding is DELEGATED to the generic, parameterised onboarding_job
+# (resources/flowx_config_jobs/onboarding_job.yml) via run_job_task rather than inlining
+# notebooks/02_onboarding/02_onboarding_engine.py as a notebook_task. Inlining is the drift
+# this convention exists to stop: the onboarding entrypoint's parameters and environment
+# then live in ~20 copies that each have to be updated by hand.
+
+resources:
+  jobs:
+    flowx_test_v0_0_2_tc2_zerobus_bronze_job:
+      name: FlowX Test v0.0.2 - TC2 ZeroBus Ingestion to Bronze (Two JSON Payload Tables)
+
+      tasks:
+        - task_key: setup_control_tables
+          notebook_task:
+            notebook_path: ../../notebooks/01_setup/01_setup_control_tables.py
+            base_parameters:
+              catalog: flowx
+          environment_key: framework_env
+
+        - task_key: seed_tc2_zerobus_json_bus
+          depends_on:
+            - task_key: setup_control_tables
+          notebook_task:
+            notebook_path: ../../notebooks/00_seed_sample_data/03_seed_v0_0_2_tc2_zerobus_json_bus.py
+            base_parameters:
+              catalog: flowx
+              source_schema: zerobus_v0_0_2
+              row_count: "50"
+          environment_key: framework_env
+
+        - task_key: onboard_tc2_zerobus_bronze
+          depends_on:
+            - task_key: seed_tc2_zerobus_json_bus
+          run_job_task:
+            job_id: ${resources.jobs.onboarding_job.id}
+            job_parameters:
+              spec_file_path: "${workspace.file_path}/flowx_testing/v0_0_2_tc2_zerobus_bronze.json"
+              catalog: flowx
+              env: dev
+              action_type: CREATE
+
+        - task_key: run_tc2_zerobus_bronze_pipeline
+          depends_on:
+            - task_key: onboard_tc2_zerobus_bronze
+          pipeline_task:
+            pipeline_id: ${resources.pipelines.flowx_test_v0_0_2_tc2_zerobus_bronze_pipeline.id}
+
+      environments:
+        - environment_key: framework_env
+          spec:
+            environment_version: "4"
+            dependencies:
+              - ../../dist/*.whl

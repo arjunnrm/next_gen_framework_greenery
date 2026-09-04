@@ -2,8 +2,8 @@
 # MAGIC %md
 # MAGIC # Seed TC-DQ-002 -- `drop` Silent Row Filtering Fixtures
 # MAGIC
-# MAGIC Dedicated seed notebook for `metaflow_testing/030_dq_002_drop.json` only -- intentionally
-# MAGIC separate from `02_seed_metaflow_testing_data.py` and every other test case's own seed
+# MAGIC Dedicated seed notebook for `flowx_testing/030_dq_002_drop.json` only -- intentionally
+# MAGIC separate from `02_seed_flowx_testing_data.py` and every other test case's own seed
 # MAGIC notebook (e.g. `03_seed_dq_001_warn_data.py`), so this test case's build/run stays isolated
 # MAGIC from those other scenarios' own fixtures.
 # MAGIC
@@ -14,7 +14,7 @@
 # MAGIC TESTING_PLAN.md template's 100/10 to a minimal 10/2 fixture, per this pass's "minimal,
 # MAGIC real, onboardable" convention.
 # MAGIC
-# MAGIC Run once per environment before onboarding `metaflow_testing/030_dq_002_drop.json`.
+# MAGIC Run once per environment before onboarding `flowx_testing/030_dq_002_drop.json`.
 
 # COMMAND ----------
 
@@ -24,7 +24,7 @@ import os
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger("seed_dq_002_drop_data")
 
-dbutils.widgets.text("catalog", "metaflow", "Target Unity Catalog")
+dbutils.widgets.text("catalog", "flowx", "Target Unity Catalog")
 CATALOG = dbutils.widgets.get("catalog").strip()
 
 if not CATALOG:
@@ -32,7 +32,7 @@ if not CATALOG:
 
 _this_dir = os.path.dirname(os.path.abspath(__file__)) if "__file__" in globals() else os.getcwd()
 REPO_ROOT = os.path.abspath(os.path.join(_this_dir, "..", ".."))
-FIXTURE_DIR = os.path.join(REPO_ROOT, "sample_data", "metaflow_testing", "txns_usecase")
+FIXTURE_DIR = os.path.join(REPO_ROOT, "sample_data", "flowx_testing", "txns_usecase")
 
 if not os.path.isdir(FIXTURE_DIR):
     raise FileNotFoundError(f"Expected fixture directory at '{FIXTURE_DIR}' -- is sample_data/ synced alongside this notebook?")
@@ -80,6 +80,6 @@ logger.info("Landed DQ 'drop' fixture at '%s/txns_dq_drop.csv' (10 rows, 2 with 
 # MAGIC %md
 # MAGIC ## Done
 # MAGIC
-# MAGIC `metaflow_testing/030_dq_002_drop.json` can now be onboarded and its pipeline run.
+# MAGIC `flowx_testing/030_dq_002_drop.json` can now be onboarded and its pipeline run.
 # MAGIC Re-running this notebook is safe: the CSV fixture is copied fresh each time (Auto Loader
 # MAGIC itself, not this notebook, tracks which files it has already ingested via its checkpoint).

@@ -1,0 +1,107 @@
+{
+  "dataflow_group_id": "dfg_flowx_004_recon_features",
+  "pipeline_parameters": {},
+  "ingestion_flows": [],
+  "transformation_flows": [],
+  "reconciliation_flows": [
+    {
+      "reconciliation_id": "recon_004_logging_on",
+      "source_config": {
+        "type": "table",
+        "table": "{{catalog}}.bronze_excalibur.autoload_bronze",
+        "read_mode": "batch",
+        "hash_precomputed": false
+      },
+      "target_configs": [
+        {
+          "target_id": "zerobus_bronze_target_logging_on",
+          "type": "table",
+          "table": "{{catalog}}.bronze_excalibur.zerobus_bronze",
+          "read_mode": "batch",
+          "hash_precomputed": false,
+          "comparison_direction": "target_to_source"
+        }
+      ],
+      "match_keys": [
+        "customer_id"
+      ],
+      "compare_columns": [
+        "customer_name",
+        "status"
+      ],
+      "error_handling": {
+        "on_failure": "warn"
+      },
+      "logging_config": {
+        "run_log_capture": true,
+        "mismatch_log_capture": true
+      }
+    },
+    {
+      "reconciliation_id": "recon_004_logging_off",
+      "source_config": {
+        "type": "table",
+        "table": "{{catalog}}.bronze_excalibur.autoload_bronze",
+        "read_mode": "batch",
+        "hash_precomputed": false
+      },
+      "target_configs": [
+        {
+          "target_id": "zerobus_bronze_target_logging_off",
+          "type": "table",
+          "table": "{{catalog}}.bronze_excalibur.zerobus_bronze",
+          "read_mode": "batch",
+          "hash_precomputed": false,
+          "comparison_direction": "target_to_source"
+        }
+      ],
+      "match_keys": [
+        "customer_id"
+      ],
+      "compare_columns": [
+        "customer_name",
+        "status"
+      ],
+      "error_handling": {
+        "on_failure": "warn"
+      },
+      "logging_config": {
+        "run_log_capture": false,
+        "mismatch_log_capture": false
+      }
+    },
+    {
+      "reconciliation_id": "recon_004_streaming",
+      "source_config": {
+        "type": "table",
+        "table": "{{catalog}}.bronze_excalibur.autoload_bronze",
+        "read_mode": "batch",
+        "hash_precomputed": false
+      },
+      "target_configs": [
+        {
+          "target_id": "zerobus_bronze_target_streaming",
+          "type": "table",
+          "table": "{{catalog}}.bronze_excalibur.zerobus_bronze",
+          "read_mode": "streaming",
+          "hash_precomputed": false,
+          "comparison_direction": "target_to_source"
+        }
+      ],
+      "match_keys": [
+        "customer_id"
+      ],
+      "compare_columns": [
+        "customer_name",
+        "status"
+      ],
+      "error_handling": {
+        "on_failure": "warn"
+      },
+      "logging_config": {
+        "run_log_capture": true,
+        "mismatch_log_capture": true
+      }
+    }
+  ]
+}

@@ -2,9 +2,9 @@
 # MAGIC %md
 # MAGIC # Seed ASN.1 GGSN CDR Fixture (v0.0.2)
 # MAGIC
-# MAGIC Provisions the two real inputs `metaflow_testing/v0_0_2_asn1_ggsn.json` needs:
+# MAGIC Provisions the two real inputs `flowx_testing/v0_0_2_asn1_ggsn.json` needs:
 # MAGIC
-# MAGIC * The real GGSN ASN.1 module file (`metaflow_testing/BT_Testing/GGSN.asn1`), copied
+# MAGIC * The real GGSN ASN.1 module file (`flowx_testing/BT_Testing/GGSN.asn1`), copied
 # MAGIC   verbatim into `/Volumes/{catalog}/ggsn/schemas/GGSN.asn1`. Plain text, so an ordinary
 # MAGIC   Workspace-Files-synced copy survives the trip fine.
 # MAGIC * 10 genuine BER-encoded `CallEventRecord` fixtures, generated **directly on-cluster**
@@ -14,7 +14,7 @@
 # MAGIC
 # MAGIC ## ONE RECORD PER FILE -- the thing this notebook gets right
 # MAGIC
-# MAGIC `metaflow_testing/BT_Testing/synthetic/ggsn_synthetic.ber` holds its 10 records
+# MAGIC `flowx_testing/BT_Testing/synthetic/ggsn_synthetic.ber` holds its 10 records
 # MAGIC **concatenated** as 10 back-to-back TLVs in a single file. The framework decoder
 # MAGIC (`asn1/decoder.py::make_partition_decoder`) calls `compiled.decode(pdu_name, raw_bytes)` on
 # MAGIC the **whole file content** exactly once per Auto Loader file, and `asn1tools.decode` on a
@@ -39,7 +39,7 @@
 # MAGIC (`scripts/generate_synthetic_ber.py`, seeded `random.Random(SEED + index)`), reused rather
 # MAGIC than reimplemented, so re-running this notebook reproduces byte-identical payloads.
 # MAGIC
-# MAGIC Run once per environment before onboarding `metaflow_testing/v0_0_2_asn1_ggsn.json`.
+# MAGIC Run once per environment before onboarding `flowx_testing/v0_0_2_asn1_ggsn.json`.
 
 # COMMAND ----------
 
@@ -54,7 +54,7 @@ import os
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger("seed_asn1_ggsn_fixture")
 
-dbutils.widgets.text("catalog", "metaflow", "Target Unity Catalog")
+dbutils.widgets.text("catalog", "flowx", "Target Unity Catalog")
 CATALOG = dbutils.widgets.get("catalog").strip()
 
 if not CATALOG:
@@ -62,13 +62,13 @@ if not CATALOG:
 
 _this_dir = os.path.dirname(os.path.abspath(__file__)) if "__file__" in globals() else os.getcwd()
 REPO_ROOT = os.path.abspath(os.path.join(_this_dir, "..", ".."))
-SCHEMA_FIXTURE_PATH = os.path.join(REPO_ROOT, "metaflow_testing", "BT_Testing", "GGSN.asn1")
+SCHEMA_FIXTURE_PATH = os.path.join(REPO_ROOT, "flowx_testing", "BT_Testing", "GGSN.asn1")
 GENERATOR_DIR = os.path.join(REPO_ROOT, "scripts")
 
 if not os.path.isfile(SCHEMA_FIXTURE_PATH):
     raise FileNotFoundError(
         f"Expected GGSN ASN.1 module file at '{SCHEMA_FIXTURE_PATH}' -- is "
-        "metaflow_testing/BT_Testing/ synced alongside this notebook?"
+        "flowx_testing/BT_Testing/ synced alongside this notebook?"
     )
 
 logger.info("Resolved GGSN.asn1 fixture at: %s", SCHEMA_FIXTURE_PATH)
@@ -138,7 +138,7 @@ dbutils.fs.mkdirs(GGSN_LANDING_INCOMING)
 
 compiled = asn1tools.compile_files([GGSN_SCHEMA_VOLUME_PATH], CODEC)
 
-# build_records() resolves the schema out of metaflow_testing/BT_Testing/ by name and returns
+# build_records() resolves the schema out of flowx_testing/BT_Testing/ by name and returns
 # 10 deterministic (arm_name, value) tuples for the root CHOICE.
 records, _index, _chosen = build_records("GGSN.asn1", ROOT_PDU, CHOICE_ARM)
 logger.info("Built %d deterministic %s/%s records", len(records), ROOT_PDU, CHOICE_ARM)
@@ -229,7 +229,7 @@ logger.info(
 # MAGIC %md
 # MAGIC ## Done
 # MAGIC
-# MAGIC `metaflow_testing/v0_0_2_asn1_ggsn.json` can now be onboarded and its pipeline run.
+# MAGIC `flowx_testing/v0_0_2_asn1_ggsn.json` can now be onboarded and its pipeline run.
 # MAGIC Expect **10 rows** in `bronze_ggsn.ggsn_cdr_raw`, every row carrying
 # MAGIC `_choice = 'sgsnMMRecord'` and `_asn1_decode_error IS NULL`.
 # MAGIC

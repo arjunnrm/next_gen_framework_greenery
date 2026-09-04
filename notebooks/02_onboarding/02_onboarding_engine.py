@@ -3,7 +3,7 @@
 # MAGIC # Onboarding & Perception Engine
 # MAGIC
 # MAGIC Thin orchestration notebook: reads a declarative onboarding spec (JSON), delegates to
-# MAGIC `NextGen_Metadata_Framework.lakeflow_framework.onboarding.*` for templating,
+# MAGIC `flowx.lakeflow_framework.onboarding.*` for templating,
 # MAGIC validation, client-context capture, metadata upsert, and audit logging. Run as a
 # MAGIC Databricks Job/Workflow task, parameterized with the widgets below (e.g. from a CI/CD
 # MAGIC pipeline onboarding a new `dataflow_group_id`).
@@ -22,7 +22,7 @@
 # MAGIC %md
 # MAGIC ## Module Bootstrap
 # MAGIC
-# MAGIC In production, `NextGen_Metadata_Framework` is installed as a wheel library attached
+# MAGIC In production, `flowx` is installed as a wheel library attached
 # MAGIC to this job (see `resources/metadata_framework_job.yml` -- `environment.dependencies`),
 # MAGIC so a plain `import` resolves it from site-packages with no path tricks needed. The
 # MAGIC fallback below only kicks in for local, wheel-less notebook development: it adds the
@@ -39,44 +39,44 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(me
 logger = logging.getLogger("onboarding_engine")
 
 try:
-    import NextGen_Metadata_Framework.lakeflow_framework  # noqa: F401
+    import flowx.lakeflow_framework  # noqa: F401
 except ImportError:
     try:
         this_dir = os.path.dirname(os.path.abspath(__file__)) if "__file__" in globals() else os.getcwd()
         dev_src_root = os.path.abspath(os.path.join(this_dir, "..", "..", "src"))
         if dev_src_root not in sys.path:
             sys.path.insert(0, dev_src_root)
-        import NextGen_Metadata_Framework.lakeflow_framework  # noqa: F401
-        logger.warning("Loaded 'NextGen_Metadata_Framework' from local 'src/' (dev fallback) -- not from an installed wheel.")
+        import flowx.lakeflow_framework  # noqa: F401
+        logger.warning("Loaded 'flowx' from local 'src/' (dev fallback) -- not from an installed wheel.")
     except ImportError as exc:
         raise ImportError(
-            "Could not import 'NextGen_Metadata_Framework'. In production this must be attached as a "
+            "Could not import 'flowx'. In production this must be attached as a "
             "wheel library (see resources/*.yml); for local development, run from within the repo so "
             f"'../../src' resolves. Original error: {exc}"
         ) from exc
 
 import json  # noqa: E402
 
-from NextGen_Metadata_Framework.lakeflow_framework.control_plane.schema_provisioner import (
+from flowx.lakeflow_framework.control_plane.schema_provisioner import (
     ensure_control_schema_exists,  # noqa: E402
 )
-from NextGen_Metadata_Framework.lakeflow_framework.exceptions import (  # noqa: E402
+from flowx.lakeflow_framework.exceptions import (  # noqa: E402
     FrameworkError,
     OnboardingValidationError,
 )
-from NextGen_Metadata_Framework.lakeflow_framework.onboarding.audit_logger import write_audit_log_entry  # noqa: E402
-from NextGen_Metadata_Framework.lakeflow_framework.onboarding.client_context import (
+from flowx.lakeflow_framework.onboarding.audit_logger import write_audit_log_entry  # noqa: E402
+from flowx.lakeflow_framework.onboarding.client_context import (
     build_client_context_json,  # noqa: E402
 )
-from NextGen_Metadata_Framework.lakeflow_framework.onboarding.metadata_upsert import (  # noqa: E402
+from flowx.lakeflow_framework.onboarding.metadata_upsert import (  # noqa: E402
     upsert_dataflow_group_spec,
     upsert_ingestion_flow_spec,
     upsert_observability_config,
     upsert_reconciliation_flow_spec,
     upsert_transformation_flow_spec,
 )
-from NextGen_Metadata_Framework.lakeflow_framework.onboarding.spec_loader import load_and_template_spec  # noqa: E402
-from NextGen_Metadata_Framework.lakeflow_framework.onboarding.spec_validator import validate_spec  # noqa: E402
+from flowx.lakeflow_framework.onboarding.spec_loader import load_and_template_spec  # noqa: E402
+from flowx.lakeflow_framework.onboarding.spec_validator import validate_spec  # noqa: E402
 
 # COMMAND ----------
 

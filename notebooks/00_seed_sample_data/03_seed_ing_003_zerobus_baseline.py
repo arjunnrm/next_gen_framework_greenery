@@ -7,12 +7,12 @@
 # MAGIC value over generated data) and MERGEs them into the same
 # MAGIC `{catalog}.Excalibur_usecase.zerobus_source_bus` table scenario 002/003 already seed a
 # MAGIC handful of illustrative `C001`-`C007` rows into (see
-# MAGIC `02_seed_metaflow_testing_data.py::seed_zerobus_style_table_from_csv`). Synthetic rows are
+# MAGIC `02_seed_flowx_testing_data.py::seed_zerobus_style_table_from_csv`). Synthetic rows are
 # MAGIC namespaced under a `<id_prefix>-NNNNNN` `customer_id` (default prefix `TC003`) so they
 # MAGIC never collide with those existing fixture ids or scenario 003/004's own
 # MAGIC reconciliation-match assertions, which key off the real `C00N` ids specifically.
 # MAGIC
-# MAGIC Called twice by `metaflow_test_ing_003_zerobus_append_job`, with different
+# MAGIC Called twice by `flowx_test_ing_003_zerobus_append_job`, with different
 # MAGIC `start_index`/`row_count` widget values:
 # MAGIC * **Baseline**: `start_index=1`, `row_count=1000` -> `TC003-000001`..`TC003-001000`.
 # MAGIC * **Append**: `start_index=1001`, `row_count=200` -> `TC003-001001`..`TC003-001200`.
@@ -29,7 +29,7 @@ import logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger("seed_ing_003_zerobus_baseline")
 
-dbutils.widgets.text("catalog", "metaflow", "Target Unity Catalog")
+dbutils.widgets.text("catalog", "flowx", "Target Unity Catalog")
 dbutils.widgets.text("id_prefix", "TC003", "Synthetic customer_id prefix")
 dbutils.widgets.text("start_index", "1", "First synthetic row's 1-based index")
 dbutils.widgets.text("row_count", "1000", "How many rows to generate this call")
@@ -63,7 +63,7 @@ from pyspark.sql import functions as F
 def seed_synthetic_zerobus_rows(target_table: str, id_prefix: str, start_index: int, row_count: int) -> None:
     if not spark.catalog.tableExists(target_table):
         raise RuntimeError(
-            f"'{target_table}' does not exist yet -- run 02_seed_metaflow_testing_data.py first "
+            f"'{target_table}' does not exist yet -- run 02_seed_flowx_testing_data.py first "
             "(it provisions the Excalibur_usecase schema and this table's baseline shape)."
         )
 
@@ -96,7 +96,7 @@ def seed_synthetic_zerobus_rows(target_table: str, id_prefix: str, start_index: 
         # table can genuinely have MORE columns than this batch (e.g. scenario 003's own
         # reconciliation self-healing appends an extra `updated_at` column). Same
         # dynamic-column MERGE idiom as
-        # 02_seed_metaflow_testing_data.py::seed_zerobus_style_table_from_csv.
+        # 02_seed_flowx_testing_data.py::seed_zerobus_style_table_from_csv.
         from delta.tables import DeltaTable
 
         target = DeltaTable.forName(spark, target_table)
@@ -143,5 +143,5 @@ seed_synthetic_zerobus_rows(TARGET_TABLE, ID_PREFIX, START_INDEX, ROW_COUNT)
 # MAGIC ## Done
 # MAGIC
 # MAGIC `{catalog}.Excalibur_usecase.zerobus_source_bus` now carries this call's synthetic row
-# MAGIC range. `metaflow_test_002_zerobus_pipeline`'s next update streams any new rows into
+# MAGIC range. `flowx_test_002_zerobus_pipeline`'s next update streams any new rows into
 # MAGIC `{catalog}.bronze_excalibur.zerobus_bronze` as usual.

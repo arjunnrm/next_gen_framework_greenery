@@ -31,7 +31,7 @@ resources:
   pipelines:
     observability_otel_streaming_pipeline:
       name: observability_otel_streaming_pipeline_${bundle.target}
-      catalog: metaflow
+      catalog: flowx
       schema: observability_streaming
       serverless: true
       photon: true

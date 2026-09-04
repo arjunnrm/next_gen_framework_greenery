@@ -1,7 +1,7 @@
 # `resources/stability_tests/` — reserved, not yet built
 
 This folder holds the bundle resources for
-[`metaflow_testing/STABILITY_TEST_PLAN.md`](../../metaflow_testing/STABILITY_TEST_PLAN.md) —
+[`flowx_testing/STABILITY_TEST_PLAN.md`](../../flowx_testing/STABILITY_TEST_PLAN.md) —
 the plan that asks *"does feature X produce the **same** answer every time"* by running each
 case 4–5 times under a fixed protocol, as opposed to `TESTING_PLAN.md`'s one-run-per-feature
 `TC-*` corpus (whose resources live in [`../feature_tests/`](../feature_tests/)).
@@ -27,6 +27,6 @@ isolating cases by *folder*, never by new schema or volume). Do not let a new st
 create a schema or volume pair per case: that sprawl is what exhausted the UC volume quota on
 the previous workspaces.
 
-Name resources `metaflow_stab_<case>_<slug>_{job,pipeline}.yml` (e.g.
-`metaflow_stab_g4_update_in_place_job.yml`) so a stability resource is never mistaken for a
+Name resources `flowx_stab_<case>_<slug>_{job,pipeline}.yml` (e.g.
+`flowx_stab_g4_update_in_place_job.yml`) so a stability resource is never mistaken for a
 `TC-*` feature test in the Jobs UI.

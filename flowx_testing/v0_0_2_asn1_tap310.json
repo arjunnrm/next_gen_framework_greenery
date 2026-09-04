@@ -1,0 +1,61 @@
+{
+  "_test_case_note": "v0.0.2 ASN.1 TAP310 -- one self-contained job+pipeline decoding the real TAP.310.asn1 module (flowx_testing/BT_Testing/TAP.310.asn1) into flowx.bronze_tap310.tap310_raw. ROOT PDU AUTO-DETECTION IS THE HEADLINE: asn1_pdu_name is deliberately OMITTED from source_config, so asn1/decoder.py::detect_root_pdu_name resolves the root PDU out of the module itself -- TAP.310.asn1 -> DataInterChange, verified by calling resolve_pdu_name(schema, None) directly against this schema. asn1_pdu_name became OPTIONAL in 0.0.2 (spec_validator.py no longer requires it and ingestion/readers.py no longer subscripts it); an explicitly supplied value still wins as an override, but this spec exercises the detection path. CHOICE ROOT: DataInterChange is a CHOICE with 2 arms, so the decoded frame carries one nullable column per arm (transferBatch, notification) PLUS the synthetic '_choice' discriminator naming the arm actually selected -- 3 columns in total, confirmed by derive_asn1_field_defs(schema, None). All 10 fixtures select notification, so transferBatch is NULL on every row. ON THE FIXTURES: flowx_testing/BT_Testing/synthetic/tap310_synthetic.ber is NOT used, because it holds 10 records concatenated as back-to-back TLVs in ONE file, and the framework decoder calls compiled.decode() once on a whole file's bytes -- asn1tools then returns only the FIRST TLV silently, ingesting 1 row and dropping 9 while reporting success. notebooks/00_seed_sample_data/06_seed_asn1_tap310_fixture.py therefore writes each record as its own .ber file (10 files -> 10 rows) and self-checks that invariant at seed time by re-encoding each decode and asserting the byte length matches the file length. flowx_testing/BT_Testing/tap311_sample.ber is likewise unused (malformed 16-byte payload whose high-tag-number outer tag 7f01 matches no CHOICE arm). ON THE DQ RULES BEING DELIBERATELY THIN: Notification is a SEQUENCE whose members are ALL OPTIONAL. Measured over these exact 10 deterministic records (random.Random(20260903 + i)), the most-populated members are only `recipient` 7/10, `rapFileSequenceNumber` 7/10, `fileSequenceNumber` 5/10, `fileCreationTimeStamp` 5/10, `fileAvailableTimeStamp` 5/10, and transferCutOffTimeStamp in just 1/10 -- NOT ONE member is present in all 10, and leaf values run 2-8 per record. Asserting any individual subfield non-null would false-quarantine real, valid records, so the rules below assert only what actually holds on all 10: decode succeeded, a CHOICE arm was selected, the arm is the expected one, and the selected arm decoded to a non-null struct. record_id_column is '_choice', a genuine top-level column -- dq/quarantine.py requires the column to be in df.columns and silently ignores a dotted struct path.",
+  "_expected_result": "bronze_tap310.tap310_raw holds exactly 10 rows. Every row: _asn1_decode_error IS NULL, _choice = 'notification', notification IS NOT NULL, and transferBatch NULL. The notification struct exposes the full member set derived from TAP.310.asn1 with no schema mismatch or truncation; its members are ALL OPTIONAL and legitimately sparse (no single member appears on more than 7 of the 10 rows), which is correct behaviour and not a defect. Quarantine table tap310_raw_quarantine stays EMPTY.",
+  "dataflow_group_id": "dfg_v0_0_2_asn1_tap310",
+  "pipeline_parameters": {},
+  "ingestion_flows": [
+    {
+      "dataflow_id": "df_v0_0_2_tap310_ingest",
+      "source_system": "tap310_tap_feed",
+      "source_database": "tap310",
+      "source_table_name": "tap310_data_interchange",
+      "source_description": "v0.0.2: BER-encoded TAP 3.10 transferred-account-procedure data interchange records decoded against the real TAP.310.asn1 module. Root PDU is auto-detected (asn1_pdu_name omitted) as DataInterChange, a 2-arm CHOICE -- decoding projects one column per arm plus the '_choice' discriminator. Fixtures are landed one record per .ber file by notebooks/00_seed_sample_data/06_seed_asn1_tap310_fixture.py.",
+      "source_type": "asn1",
+      "target_catalog": "{{catalog}}",
+      "target_schema": "bronze_tap310",
+      "target_table": "tap310_raw",
+      "target_type": "streaming_table",
+      "source_config": {
+        "path": "/Volumes/{{catalog}}/tap310/landing_cdr/incoming/",
+        "schema_location": "/Volumes/{{catalog}}/tap310/_schemas/tap310_raw/",
+        "file_pattern": "*.ber",
+        "asn1_schema_path": "/Volumes/{{catalog}}/tap310/schemas/TAP.310.asn1",
+        "asn1_codec": "ber",
+        "capture_technical_metadata": true
+      },
+      "target_config": {
+        "cdc_load_strategy": "APPEND",
+        "storage_format": "delta"
+      },
+      "dq_config": {
+        "rules": [
+          {
+            "rule_id": "dq_asn1_decode_ok",
+            "expression": "_asn1_decode_error IS NULL",
+            "action": "quarantine"
+          },
+          {
+            "rule_id": "dq_choice_arm_selected",
+            "expression": "_choice IS NOT NULL AND _choice <> ''",
+            "action": "quarantine"
+          },
+          {
+            "rule_id": "dq_tap310_expected_arm",
+            "expression": "_choice = 'notification'",
+            "action": "quarantine"
+          },
+          {
+            "rule_id": "dq_tap310_arm_populated",
+            "expression": "_choice <> 'notification' OR notification IS NOT NULL",
+            "action": "quarantine"
+          }
+        ],
+        "quarantine_table": "tap310_raw_quarantine",
+        "record_id_column": "_choice"
+      },
+      "governance_tags": {}
+    }
+  ],
+  "transformation_flows": [],
+  "reconciliation_flows": []
+}

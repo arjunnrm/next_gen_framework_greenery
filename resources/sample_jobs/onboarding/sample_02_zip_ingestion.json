@@ -1,30 +1,30 @@
 {
-  "_sample_note": "Sample 02 (reference suite): glob-filtered ZIP ingestion, all assets isolated in the {{catalog}}.metaflow_sample schema. The seed notebook (notebooks/00_seed_sample_data/04_seed_sample_02_zip_ingestion_data.py) builds one ZIP archive per iteration IN-PROCESS (never a pre-built .zip fixture -- workspace-bundle sync can mangle binary uploads) from a distinct samples.tpch.orders slice, and deliberately injects a few rows with a NULL customer_id per iteration so the quarantine DQ rule visibly routes them into sample_zip_orders_raw_quarantine instead of the clean table (order_id stays populated on those rows -- it is the record_id_column that identifies each quarantined record). source_zip_handling extracts only archives matching sample_orders_*.zip from the incoming landing directory into the extracted directory Auto Loader actually reads; delete_source_after_extract is false so a developer can inspect the original archives after a run.",
+  "_sample_note": "Sample 02 (reference suite): glob-filtered ZIP ingestion, all assets isolated in the {{catalog}}.flowx_sample schema. The seed notebook (notebooks/00_seed_sample_data/04_seed_sample_02_zip_ingestion_data.py) builds one ZIP archive per iteration IN-PROCESS (never a pre-built .zip fixture -- workspace-bundle sync can mangle binary uploads) from a distinct samples.tpch.orders slice, and deliberately injects a few rows with a NULL customer_id per iteration so the quarantine DQ rule visibly routes them into sample_zip_orders_raw_quarantine instead of the clean table (order_id stays populated on those rows -- it is the record_id_column that identifies each quarantined record). source_zip_handling extracts only archives matching sample_orders_*.zip from the incoming landing directory into the extracted directory Auto Loader actually reads; delete_source_after_extract is false so a developer can inspect the original archives after a run.",
   "dataflow_group_id": "dfg_sample_02_zip_ingestion",
   "pipeline_parameters": {},
   "ingestion_flows": [
     {
       "dataflow_id": "df_sample_02_orders_zip_ingest",
       "source_system": "databricks_samples_tpch",
-      "source_database": "metaflow_sample",
+      "source_database": "flowx_sample",
       "source_table_name": "sample_zip_orders",
       "source_description": "Sample 02: per-iteration ZIP archives (sample_orders_iter1..3.zip, built in-process by the seed notebook from distinct samples.tpch.orders slices) are extracted by source_zip_handling and the contained CSV is Auto Loader-ingested into an APPEND streaming table. Each iteration's CSV carries 3 deliberately broken rows (NULL customer_id) that the quarantine rule routes to sample_zip_orders_raw_quarantine.",
       "source_type": "autoloader",
       "target_catalog": "{{catalog}}",
-      "target_schema": "metaflow_sample",
+      "target_schema": "flowx_sample",
       "target_table": "sample_zip_orders_raw",
       "target_type": "streaming_table",
       "source_config": {
-        "path": "/Volumes/{{catalog}}/metaflow_sample/landing/sample02_zip/extracted/orders/",
+        "path": "/Volumes/{{catalog}}/flowx_sample/landing/sample02_zip/extracted/orders/",
         "format": "csv",
-        "schema_location": "/Volumes/{{catalog}}/metaflow_sample/landing/_schemas/sample_zip_orders_raw/",
+        "schema_location": "/Volumes/{{catalog}}/flowx_sample/landing/_schemas/sample_zip_orders_raw/",
         "reader_options": {"header": "true", "cloudFiles.inferColumnTypes": "true"},
         "capture_technical_metadata": true,
         "source_zip_handling": {
           "enabled": true,
-          "source_zip_path": "/Volumes/{{catalog}}/metaflow_sample/landing/sample02_zip/incoming/",
+          "source_zip_path": "/Volumes/{{catalog}}/flowx_sample/landing/sample02_zip/incoming/",
           "zip_file_pattern": "sample_orders_*.zip",
-          "target_volume_path": "/Volumes/{{catalog}}/metaflow_sample/landing/sample02_zip/extracted/orders/",
+          "target_volume_path": "/Volumes/{{catalog}}/flowx_sample/landing/sample02_zip/extracted/orders/",
           "delete_source_after_extract": false
         }
       },

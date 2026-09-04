@@ -1,0 +1,29 @@
+# FlowX test scenario 100: "ZIP CSV onboarding" -- a single PGP-then-password-protected
+# ZIP (customer*.zip) autoloaded via source_zip_handling + pre_extraction_decryption into
+# bronze_test.customer_raw with SCD1, quarantine, and column exclusion.
+#
+# Targets the `flowx` catalog (control tables live in flowx.config, same as every other
+# flowx_testing/*.json spec) -- see flowx_testing/100_zipcsv_onbaording.json.
+
+resources:
+  pipelines:
+    flowx_test_100_zipcsv_pipeline:
+      name: flowx_test_100_zipcsv_pipeline_${bundle.target}
+      catalog: flowx
+      schema: bronze_test
+      serverless: true
+      photon: true
+      development: true
+      continuous: false
+
+      libraries:
+        - notebook:
+            path: ../../notebooks/03_engine/03_lakeflow_declarative_pipeline.py
+
+      environment:
+        dependencies:
+          - ../../dist/*.whl
+
+      configuration:
+        dataflow.group.id: dfg_zip_csv_dataload
+        dataflow.control.catalog: flowx

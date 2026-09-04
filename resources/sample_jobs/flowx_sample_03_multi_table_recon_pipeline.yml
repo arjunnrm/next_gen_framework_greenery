@@ -1,0 +1,31 @@
+# Sample 03 -- "Concurrent Multi-Table Load with In-DAG Reconciliation" (reference, not a
+# test): the Lakeflow Declarative Pipeline hosting dfg_sample_03_multi_table_recon's two
+# concurrent Auto Loader flows AND the pipeline_audit_only reconciliation flow's L3/L4 compare
+# datasets (recon__recon_sample_03_trips_primary_vs_replica__trips_replica__classified/
+# __metrics/__mismatch, published to flowx_sample) in one DAG. Everything publishes into the
+# single flowx.flowx_sample schema. See
+# resources/sample_jobs/onboarding/sample_03_multi_table_recon.json and
+# resources/sample_jobs/flowx_sample_03_multi_table_recon_job.yml.
+
+resources:
+  pipelines:
+    flowx_sample_03_multi_table_recon_pipeline:
+      name: flowx_sample_03_multi_table_recon_pipeline_${bundle.target}
+      catalog: flowx
+      schema: flowx_sample
+      serverless: true
+      photon: true
+      development: true
+      continuous: false
+
+      libraries:
+        - notebook:
+            path: ../../notebooks/03_engine/03_lakeflow_declarative_pipeline.py
+
+      environment:
+        dependencies:
+          - ../../dist/*.whl
+
+      configuration:
+        dataflow.group.id: dfg_sample_03_multi_table_recon
+        dataflow.control.catalog: flowx

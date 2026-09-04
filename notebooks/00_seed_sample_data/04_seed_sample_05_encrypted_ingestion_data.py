@@ -5,7 +5,7 @@
 # MAGIC Dedicated seed notebook for
 # MAGIC `resources/sample_jobs/onboarding/sample_05_encrypted_ingestion.json` only. Parameterized by
 # MAGIC `iteration`; the common seed job
-# MAGIC (`resources/sample_jobs/metaflow_sample_seed_job.yml`) invokes it once per iteration
+# MAGIC (`resources/sample_jobs/flowx_sample_seed_job.yml`) invokes it once per iteration
 # MAGIC (1 -> 2 -> 3, chained) before any sample pipeline runs.
 # MAGIC
 # MAGIC Each iteration builds ONE AES-256 password-protected ZIP **in-process with `pyzipper`**
@@ -13,7 +13,7 @@
 # MAGIC pipeline runtime -- and never a pre-built binary fixture, workspace-bundle sync can mangle
 # MAGIC those) from a DISTINCT deterministic 40-row transaction slice derived from
 # MAGIC `samples.tpch.orders` (rows 0-39 / 40-79 / 80-119 of a 120-row window), protected with
-# MAGIC the UC secret `<catalog>.metaflow_sample.sample_zip_passkey` -- the SAME secret the
+# MAGIC the UC secret `<catalog>.flowx_sample.sample_zip_passkey` -- the SAME secret the
 # MAGIC spec's `source_zip_handling.pre_extraction_decryption.secret_passphrase` resolves to
 # MAGIC decrypt it on ingestion, and the same one Sample 04 uses on its export side. Each built
 # MAGIC archive is round-trip-verified (re-opened with the same passphrase) before landing.
@@ -21,7 +21,7 @@
 # MAGIC **Fail-fast:** the passphrase is REQUIRED to build the archives, so this seed resolves
 # MAGIC the secret first thing and raises a clear, actionable error if it is unresolvable.
 # MAGIC Provisioning it is a manual, one-time, admin-audited step external to this bundle -- see
-# MAGIC the job resource header and `metaflow_testing/README.md`'s "Sample reference suite"
+# MAGIC the job resource header and `flowx_testing/README.md`'s "Sample reference suite"
 # MAGIC section. Falls back to a small inline literal DataFrame when the `samples` catalog is not
 # MAGIC shared into this workspace (the log says which path was taken). Idempotent per iteration.
 
@@ -34,7 +34,7 @@ import logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger("seed_sample_05_encrypted_ingestion")
 
-dbutils.widgets.text("catalog", "metaflow", "Target Unity Catalog")
+dbutils.widgets.text("catalog", "flowx", "Target Unity Catalog")
 dbutils.widgets.text("iteration", "1", "Which iteration to land (1, 2, or 3)")
 
 CATALOG = dbutils.widgets.get("catalog").strip()
@@ -45,7 +45,7 @@ if not CATALOG:
 if ITERATION not in ("1", "2", "3"):
     raise ValueError(f"The 'iteration' widget must be '1', '2', or '3' -- got '{ITERATION}'.")
 
-SAMPLE_SCHEMA = "metaflow_sample"
+SAMPLE_SCHEMA = "flowx_sample"
 ZIP_PASSKEY_SECRET = "sample_zip_passkey"
 LANDING_ROOT = f"/Volumes/{CATALOG}/{SAMPLE_SCHEMA}/landing"
 TXN_TS = {"1": "2026-09-01 00:00:00", "2": "2026-09-02 00:00:00", "3": "2026-09-03 00:00:00"}[ITERATION]
@@ -74,7 +74,7 @@ except Exception as exc:  # noqa: BLE001
         "source_zip_handling.pre_extraction_decryption.secret_passphrase resolves the same secret to "
         "decrypt them. Provision it once per workspace (manual, admin-audited, external to this "
         "bundle; any non-empty string works -- pyzipper derives the AES key from the passphrase) and "
-        "grant this job's principal READ SECRET on it, then re-run. See metaflow_testing/README.md's "
+        "grant this job's principal READ SECRET on it, then re-run. See flowx_testing/README.md's "
         f"'Sample reference suite' section for the provisioning command. Original error: {exc}"
     ) from exc
 

@@ -11,7 +11,7 @@
 # MAGIC **Phase 7:** this notebook no longer runs `external_sink` egress. Every
 # MAGIC `external_sink`/`sink` export is now a genuine `dlt.create_sink`/`@dlt.append_flow`
 # MAGIC registered *inside* the pipeline's own graph (see
-# MAGIC `NextGen_Metadata_Framework.lakeflow_framework.engine.sink_registration`), executed as
+# MAGIC `flowx.lakeflow_framework.engine.sink_registration`), executed as
 # MAGIC part of the pipeline update itself -- there is no longer a separate post-deployment
 # MAGIC egress step for it to run here. See
 # MAGIC `control_plane/post_deployment.py`'s module docstring for the full rationale.
@@ -38,23 +38,23 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(me
 logger = logging.getLogger("apply_governance_and_egress")
 
 try:
-    import NextGen_Metadata_Framework.lakeflow_framework  # noqa: F401
+    import flowx.lakeflow_framework  # noqa: F401
 except ImportError:
     try:
         this_dir = os.path.dirname(os.path.abspath(__file__)) if "__file__" in globals() else os.getcwd()
         dev_src_root = os.path.abspath(os.path.join(this_dir, "..", "..", "src"))
         if dev_src_root not in sys.path:
             sys.path.insert(0, dev_src_root)
-        import NextGen_Metadata_Framework.lakeflow_framework  # noqa: F401
-        logger.warning("Loaded 'NextGen_Metadata_Framework' from local 'src/' (dev fallback) -- not from an installed wheel.")
+        import flowx.lakeflow_framework  # noqa: F401
+        logger.warning("Loaded 'flowx' from local 'src/' (dev fallback) -- not from an installed wheel.")
     except ImportError as exc:
         raise ImportError(
-            "Could not import 'NextGen_Metadata_Framework'. In production this must be attached as a "
+            "Could not import 'flowx'. In production this must be attached as a "
             "wheel library (see resources/*.yml); for local development, run from within the repo so "
             f"'../../src' resolves. Original error: {exc}"
         ) from exc
 
-from NextGen_Metadata_Framework.lakeflow_framework.control_plane.post_deployment import (  # noqa: E402
+from flowx.lakeflow_framework.control_plane.post_deployment import (  # noqa: E402
     apply_all_governance_tags,
     capture_all_scd_change_counts,
 )

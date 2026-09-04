@@ -4,7 +4,7 @@
 # MAGIC
 # MAGIC Thin orchestration notebook: reads a `zip_ingestion_configs/*.json` config describing
 # MAGIC a batch of input ZIP archives, and delegates to
-# MAGIC `NextGen_Metadata_Framework.lakeflow_framework.archive.zip_ingestion_pipeline` for
+# MAGIC `flowx.lakeflow_framework.archive.zip_ingestion_pipeline` for
 # MAGIC validation, extraction, staging, the configured join/transform, and re-archiving the
 # MAGIC result. See `docs/12_zip_ingestion_pipeline.md`.
 # MAGIC
@@ -29,27 +29,27 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(me
 logger = logging.getLogger("zip_ingestion_pipeline")
 
 try:
-    import NextGen_Metadata_Framework.lakeflow_framework  # noqa: F401
+    import flowx.lakeflow_framework  # noqa: F401
 except ImportError:
     try:
         this_dir = os.path.dirname(os.path.abspath(__file__)) if "__file__" in globals() else os.getcwd()
         dev_src_root = os.path.abspath(os.path.join(this_dir, "..", "..", "src"))
         if dev_src_root not in sys.path:
             sys.path.insert(0, dev_src_root)
-        import NextGen_Metadata_Framework.lakeflow_framework  # noqa: F401
-        logger.warning("Loaded 'NextGen_Metadata_Framework' from local 'src/' (dev fallback) -- not from an installed wheel.")
+        import flowx.lakeflow_framework  # noqa: F401
+        logger.warning("Loaded 'flowx' from local 'src/' (dev fallback) -- not from an installed wheel.")
     except ImportError as exc:
         raise ImportError(
-            "Could not import 'NextGen_Metadata_Framework'. In production this must be attached as a "
+            "Could not import 'flowx'. In production this must be attached as a "
             "wheel library (see resources/*.yml); for local development, run from within the repo so "
             f"'../../src' resolves. Original error: {exc}"
         ) from exc
 
 import json  # noqa: E402
 
-from NextGen_Metadata_Framework.lakeflow_framework.archive.zip_ingestion_pipeline import ingest_zip_batch  # noqa: E402
-from NextGen_Metadata_Framework.lakeflow_framework.exceptions import FrameworkConfigError  # noqa: E402
-from NextGen_Metadata_Framework.lakeflow_framework.onboarding.spec_loader import (  # noqa: E402
+from flowx.lakeflow_framework.archive.zip_ingestion_pipeline import ingest_zip_batch  # noqa: E402
+from flowx.lakeflow_framework.exceptions import FrameworkConfigError  # noqa: E402
+from flowx.lakeflow_framework.onboarding.spec_loader import (  # noqa: E402
     read_raw_spec_text,
     substitute_environment_placeholders,
 )

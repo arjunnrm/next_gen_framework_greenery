@@ -6,7 +6,7 @@
           {
             "key": "service.name",
             "value": {
-              "stringValue": "metaflow-lakeflow-telemetry"
+              "stringValue": "flowx-lakeflow-telemetry"
             }
           },
           {
@@ -74,13 +74,13 @@
       "scopeMetrics": [
         {
           "scope": {
-            "name": "NextGen_Metadata_Framework.lakeflow_framework.observability.metrics",
+            "name": "flowx.lakeflow_framework.observability.metrics",
             "version": "1.3.0",
             "attributes": [
               {
                 "key": "instrumentation.library",
                 "value": {
-                  "stringValue": "metaflow-otel-exporter"
+                  "stringValue": "flowx-otel-exporter"
                 }
               }
             ]

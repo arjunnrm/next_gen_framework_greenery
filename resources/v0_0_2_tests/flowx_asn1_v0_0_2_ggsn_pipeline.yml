@@ -1,0 +1,42 @@
+# v0.0.2 ASN.1 GGSN pipeline -- decodes real BER-encoded GGSN gateway-GPRS-support-node call event records
+# (source_type: "asn1") against the real flowx_testing/BT_Testing/GGSN.asn1 module into
+# flowx.bronze_ggsn.ggsn_cdr_raw.
+#
+# The spec OMITS asn1_pdu_name, so asn1/decoder.py::detect_root_pdu_name resolves the root PDU from
+# the module itself: GGSN.asn1 -> CallEventRecord, a 13-arm CHOICE. The decoded frame therefore
+# carries one nullable column per arm (13 of them) plus the synthetic "_choice" discriminator naming the
+# arm actually selected (14 columns in total). All 10 fixtures select sgsnMMRecord.
+#
+# Unlike EMSC and the two TAP protocols, these records are genuinely RICH -- 9-21
+# populated leaf values each -- so the spec can and does assert the five sgsnMMRecord
+# members measured present on all 10 records (recordType, servedIMSI,
+# recordOpeningTime, causeForRecClosing, chargingCharacteristics). Every other member
+# is OPTIONAL and appears in only 2-6 of the 10, so none of those is asserted.
+#
+# Isolated from every other protocol pipeline: its own dataflow group (dfg_v0_0_2_asn1_ggsn), its
+# own schema (bronze_ggsn) and its own /Volumes/flowx/ggsn/... volume tree.
+#
+# See flowx_testing/v0_0_2_asn1_ggsn.json for the spec and the expected result.
+
+resources:
+  pipelines:
+    flowx_asn1_v0_0_2_ggsn_pipeline:
+      name: flowx_asn1_v0_0_2_ggsn_pipeline_${bundle.target}
+      catalog: flowx
+      schema: bronze_ggsn
+      serverless: true
+      photon: true
+      development: true
+      continuous: false
+
+      libraries:
+        - notebook:
+            path: ../../notebooks/03_engine/03_lakeflow_declarative_pipeline.py
+
+      environment:
+        dependencies:
+          - ../../dist/*.whl
+
+      configuration:
+        dataflow.group.id: dfg_v0_0_2_asn1_ggsn
+        dataflow.control.catalog: flowx

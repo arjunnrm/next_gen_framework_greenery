@@ -1,0 +1,32 @@
+# TC-SNK-003: "PGP Encrypted ZIP Sink Export with Secret Key" -- a single ingestion flow lands
+# a small monthly financial settlements batch straight into
+# flowx.silver_finance.monthly_settlements (target_type: "external_sink", cdc_load_strategy
+# APPEND) and, inside the SAME Lakeflow Declarative Pipeline update, additionally exports it via
+# a genuine dlt.create_sink(format="pgp_zip") + @dlt.append_flow
+# (engine/sink_registration.py::register_external_sink_export) -- each micro-batch's ZIP archive
+# is PGP-encrypted for a recipient public key resolved from the UC secret
+# {{catalog}}.security.pgp_public_key_finance_egress_test at graph-definition time. See
+# flowx_testing/041_snk_003_pgp_zip_sink.json and docs/63_tc_snk_003.md.
+
+resources:
+  pipelines:
+    flowx_test_snk_003_pgp_zip_sink_pipeline:
+      name: flowx_test_snk_003_pgp_zip_sink_pipeline_${bundle.target}
+      catalog: flowx
+      schema: silver_finance
+      serverless: true
+      photon: true
+      development: true
+      continuous: false
+
+      libraries:
+        - notebook:
+            path: ../../notebooks/03_engine/03_lakeflow_declarative_pipeline.py
+
+      environment:
+        dependencies:
+          - ../../dist/*.whl
+
+      configuration:
+        dataflow.group.id: dfg_snk_003_pgp_zip_sink
+        dataflow.control.catalog: flowx

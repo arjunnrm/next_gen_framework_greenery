@@ -2,7 +2,7 @@
 # MAGIC %md
 # MAGIC # Seed TC-SEC-003 -- Secret Masking & Redaction in Telemetry Fixtures
 # MAGIC
-# MAGIC Dedicated seed notebook for `metaflow_testing/035_sec_003_redaction.json` only --
+# MAGIC Dedicated seed notebook for `flowx_testing/035_sec_003_redaction.json` only --
 # MAGIC intentionally separate from every other scenario's own seed notebook, so this test case's
 # MAGIC build/run stays isolated.
 # MAGIC
@@ -31,22 +31,22 @@
 # MAGIC test case is expected to currently surface (not silently pass around) a known, unresolved
 # MAGIC secret-redaction gap in `crypto/column_crypto.py`.
 # MAGIC
-# MAGIC Built from `sample_data/metaflow_testing/sec_usecase/secrets_audit_batch1.csv`.
+# MAGIC Built from `sample_data/flowx_testing/sec_usecase/secrets_audit_batch1.csv`.
 # MAGIC
 # MAGIC **Does not provision either Unity Catalog secret this scenario depends on** -- both are
 # MAGIC reused verbatim from earlier scenarios, not newly provisioned here:
 # MAGIC * `{{catalog}}.security.pii_encryption_key` -- see `docs/05_deployment_guide.md` Sec.0
 # MAGIC   prerequisites (every encryption scenario in this project already depends on this one).
 # MAGIC * `{{catalog}}.security.pgp_public_key_finance_egress_test` -- provisioned by
-# MAGIC   `metaflow_test_snk_003_pgp_zip_sink_job` (see `docs/63_tc_snk_003.md`) from the disposable
-# MAGIC   test keypair at `sample_data/metaflow_testing/finance_egress_usecase/
+# MAGIC   `flowx_test_snk_003_pgp_zip_sink_job` (see `docs/63_tc_snk_003.md`) from the disposable
+# MAGIC   test keypair at `sample_data/flowx_testing/finance_egress_usecase/
 # MAGIC   pgp_egress_keypair_public.asc`. See `docs/56_tc_sec_003.md` for the fallback command if
 # MAGIC   TC-SNK-003 hasn't been run against this workspace yet.
 # MAGIC
 # MAGIC Both secrets must already exist in the target workspace/catalog before this job's
 # MAGIC `run_pipeline` task runs, exactly as for every other encryption/PGP scenario in this project.
 # MAGIC
-# MAGIC Run once per environment before onboarding `metaflow_testing/035_sec_003_redaction.json`.
+# MAGIC Run once per environment before onboarding `flowx_testing/035_sec_003_redaction.json`.
 
 # COMMAND ----------
 
@@ -56,7 +56,7 @@ import os
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger("seed_sec_003_redaction_data")
 
-dbutils.widgets.text("catalog", "metaflow", "Target Unity Catalog")
+dbutils.widgets.text("catalog", "flowx", "Target Unity Catalog")
 CATALOG = dbutils.widgets.get("catalog").strip()
 
 if not CATALOG:
@@ -64,7 +64,7 @@ if not CATALOG:
 
 _this_dir = os.path.dirname(os.path.abspath(__file__)) if "__file__" in globals() else os.getcwd()
 REPO_ROOT = os.path.abspath(os.path.join(_this_dir, "..", ".."))
-FIXTURE_DIR = os.path.join(REPO_ROOT, "sample_data", "metaflow_testing", "sec_usecase")
+FIXTURE_DIR = os.path.join(REPO_ROOT, "sample_data", "flowx_testing", "sec_usecase")
 
 if not os.path.isdir(FIXTURE_DIR):
     raise FileNotFoundError(f"Expected fixture directory at '{FIXTURE_DIR}' -- is sample_data/ synced alongside this notebook?")
@@ -136,7 +136,7 @@ logger.info(
 # MAGIC %md
 # MAGIC ## Done
 # MAGIC
-# MAGIC `metaflow_testing/035_sec_003_redaction.json` can now be onboarded and its pipeline run --
+# MAGIC `flowx_testing/035_sec_003_redaction.json` can now be onboarded and its pipeline run --
 # MAGIC `{{catalog}}.bronze_sec.secrets_audit_raw` should end up with 5 rows, `secret_value` stored
 # MAGIC as AES-GCM ciphertext, plus a `.zip.pgp` archive under
 # MAGIC `/Volumes/{catalog}/egress_sec/audit_zips_export/` containing that SAME ciphertext row set

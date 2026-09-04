@@ -2,23 +2,23 @@
 # MAGIC %md
 # MAGIC # Seed TC-ING-001 -- Selective Glob Pattern ZIP Extraction Fixtures
 # MAGIC
-# MAGIC Dedicated seed notebook for `metaflow_testing/010_ing_001_zip_filter.json` only --
-# MAGIC intentionally separate from `02_seed_metaflow_testing_data.py` (which seeds scenarios
+# MAGIC Dedicated seed notebook for `flowx_testing/010_ing_001_zip_filter.json` only --
+# MAGIC intentionally separate from `02_seed_flowx_testing_data.py` (which seeds scenarios
 # MAGIC 001/002/003) so this test case's build/run stays isolated from those other scenarios'
 # MAGIC own fixtures.
 # MAGIC
 # MAGIC Provisions the `crm`/`bronze_crm` schemas and the `landing_zip`/`_schemas` Volumes, then
 # MAGIC lands 2 ZIP archives directly in the incoming Volume, built in-process from the CSV
-# MAGIC fixtures under `sample_data/metaflow_testing/crm_usecase/` (workspace-bundle sync can
+# MAGIC fixtures under `sample_data/flowx_testing/crm_usecase/` (workspace-bundle sync can
 # MAGIC mangle a pre-built `.zip` upload, so this notebook builds the archive bytes itself --
-# MAGIC same convention as `02_seed_metaflow_testing_data.py`'s own scenario-001 EA ZIPs):
+# MAGIC same convention as `02_seed_flowx_testing_data.py`'s own scenario-001 EA ZIPs):
 # MAGIC
 # MAGIC * `customer_data_20260828.zip` -- 100 rows, filename matches the onboarding spec's
 # MAGIC   `zip_file_pattern: "customer_*.zip"`. Expected to be extracted and ingested.
 # MAGIC * `vendor_feed_20260828.zip` -- 50 rows, filename does NOT match that pattern. Expected
 # MAGIC   to remain untouched in the incoming Volume -- never extracted, never ingested.
 # MAGIC
-# MAGIC Run once per environment before onboarding `metaflow_testing/010_ing_001_zip_filter.json`.
+# MAGIC Run once per environment before onboarding `flowx_testing/010_ing_001_zip_filter.json`.
 
 # COMMAND ----------
 
@@ -31,7 +31,7 @@ import zipfile
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger("seed_ing_001_zip_filter_data")
 
-dbutils.widgets.text("catalog", "metaflow", "Target Unity Catalog")
+dbutils.widgets.text("catalog", "flowx", "Target Unity Catalog")
 CATALOG = dbutils.widgets.get("catalog").strip()
 
 if not CATALOG:
@@ -39,7 +39,7 @@ if not CATALOG:
 
 _this_dir = os.path.dirname(os.path.abspath(__file__)) if "__file__" in globals() else os.getcwd()
 REPO_ROOT = os.path.abspath(os.path.join(_this_dir, "..", ".."))
-FIXTURE_DIR = os.path.join(REPO_ROOT, "sample_data", "metaflow_testing", "crm_usecase")
+FIXTURE_DIR = os.path.join(REPO_ROOT, "sample_data", "flowx_testing", "crm_usecase")
 
 if not os.path.isdir(FIXTURE_DIR):
     raise FileNotFoundError(f"Expected fixture directory at '{FIXTURE_DIR}' -- is sample_data/ synced alongside this notebook?")
@@ -70,7 +70,7 @@ logger.info("Provisioned catalog '%s' with crm/bronze_crm schemas + landing_zip/
 
 def _write_csv_zip_to_volume_from_fixture(zip_path: str, csv_filename: str, fixture_csv_path: str) -> None:
     """Read an already-CSV-shaped fixture file and re-zip it directly into a landing Volume --
-    avoids syncing a pre-built .zip through the bundle (see 02_seed_metaflow_testing_data.py's
+    avoids syncing a pre-built .zip through the bundle (see 02_seed_flowx_testing_data.py's
     identical note on why that's unreliable)."""
     try:
         with open(fixture_csv_path, "r", encoding="utf-8", newline="") as fixture_file:
@@ -108,6 +108,6 @@ _write_csv_zip_to_volume_from_fixture(
 # MAGIC %md
 # MAGIC ## Done
 # MAGIC
-# MAGIC `metaflow_testing/010_ing_001_zip_filter.json` can now be onboarded and its pipeline run.
+# MAGIC `flowx_testing/010_ing_001_zip_filter.json` can now be onboarded and its pipeline run.
 # MAGIC Re-running this notebook is safe: both ZIP archives regenerate idempotently (same
 # MAGIC content, overwritten each time).

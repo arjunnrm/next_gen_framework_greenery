@@ -1,0 +1,27 @@
+# TC-REC-003: "Pre-Computed Hash Matcher (hash_precomputed) Plan Assertion" -- materializes the
+# two CDC-dispatched (SCD1, generate_hash_columns) targets the reconciliation flow in
+# flowx_testing/038_rec_003_precomputed_hash.json compares via hash_precomputed: true on both
+# sides: {{catalog}}.silver_sales.orders_src and orders_tgt. See docs/60_tc_rec_003.md.
+
+resources:
+  pipelines:
+    flowx_test_rec_003_precomputed_hash_pipeline:
+      name: flowx_test_rec_003_precomputed_hash_pipeline_${bundle.target}
+      catalog: flowx
+      schema: silver_sales
+      serverless: true
+      photon: true
+      development: true
+      continuous: false
+
+      libraries:
+        - notebook:
+            path: ../../notebooks/03_engine/03_lakeflow_declarative_pipeline.py
+
+      environment:
+        dependencies:
+          - ../../dist/*.whl
+
+      configuration:
+        dataflow.group.id: dfg_rec_003_precomputed_hash
+        dataflow.control.catalog: flowx

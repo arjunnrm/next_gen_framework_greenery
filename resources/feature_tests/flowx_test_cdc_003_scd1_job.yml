@@ -1,0 +1,58 @@
+# Wraps flowx_test_cdc_003_scd1_pipeline:
+#
+#   setup_control_tables -> seed_cdc_003_scd1_data -> onboard_cdc_003 -> run_pipeline
+#
+# This job's own run only ever lands and processes the Day-1 fixture (C001 @ tier=SILVER) --
+# proving the Day-2 overwrite/delete-mapping behavior requires a second, manual pipeline update
+# after copying customer_scd1_day2.csv into the same incoming Volume. See
+# flowx_testing/021_cdc_003_scd1.json and docs/42_tc_cdc_003.md for that second step.
+#
+# Self-contained and idempotent (control-table upsert + CREATE ... IF NOT EXISTS schema/volume
+# provisioning + idempotent fixture copy), so this job can be re-run on its own at any time.
+
+resources:
+  jobs:
+    flowx_test_cdc_003_scd1_job:
+      name: FlowX Test CDC-003 - SCD1 Overwrite with Delete Mapping
+
+      tasks:
+        - task_key: setup_control_tables
+          notebook_task:
+            notebook_path: ../../notebooks/01_setup/01_setup_control_tables.py
+            base_parameters:
+              catalog: flowx
+          environment_key: framework_env
+
+        - task_key: seed_cdc_003_scd1_data
+          depends_on:
+            - task_key: setup_control_tables
+          notebook_task:
+            notebook_path: ../../notebooks/00_seed_sample_data/03_seed_cdc_003_scd1_data.py
+            base_parameters:
+              catalog: flowx
+          environment_key: framework_env
+
+        - task_key: onboard_cdc_003
+          depends_on:
+            - task_key: seed_cdc_003_scd1_data
+          notebook_task:
+            notebook_path: ../../notebooks/02_onboarding/02_onboarding_engine.py
+            base_parameters:
+              spec_file_path: "${workspace.file_path}/flowx_testing/021_cdc_003_scd1.json"
+              catalog: flowx
+              env: dev
+              action_type: CREATE
+          environment_key: framework_env
+
+        - task_key: run_pipeline
+          depends_on:
+            - task_key: onboard_cdc_003
+          pipeline_task:
+            pipeline_id: ${resources.pipelines.flowx_test_cdc_003_scd1_pipeline.id}
+
+      environments:
+        - environment_key: framework_env
+          spec:
+            environment_version: "4"
+            dependencies:
+              - ../../dist/*.whl

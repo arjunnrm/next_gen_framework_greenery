@@ -1,0 +1,45 @@
+# TC-SNK-001: "External Sink Dual Materialization & Plain ZIP Export" -- reuses TC-TRF-001's
+# own 4-way streaming/batch inner-join shape (1 streaming Auto Loader fact table,
+# assignments_raw, joined against 3 batch-read dimension tables) but publishes the join result
+# via target_type: "external_sink" instead of "streaming_table": a real, governed Delta table
+# is materialized (flowx.silver_ea.snk001_ea_joined_assignments) via the unchanged
+# register_main_and_quarantine_tables + CDC-dispatch path, AND that same table is additionally
+# exported as a plain (unencrypted) ZIP archive via a second, independent
+# dlt.create_sink(format="pgp_zip") + @dlt.append_flow reading dlt.read_stream(qualified_main_table)
+# -- see engine/sink_registration.py::register_external_sink_export and docs/23_lakeflow_sinks.md.
+#
+# NAMING-COLLISION NOTE (judgment call -- see docs/61_tc_snk_001.md): the TC's own literal target
+# table name ("flowx.silver_ea.ea_joined_assignments") is already owned, verbatim, by the
+# already-existing/deployed flowx_test_001_zip_join_export_pipeline (see
+# flowx_testing/001_zip_file_onboarding.json), which publishes that exact table via this same
+# external_sink + pgp_zip mechanism already. Two different Lakeflow pipelines cannot both own the
+# same managed table, so this pipeline instead targets its own dedicated
+# silver_ea.snk001_ea_joined_assignments / bronze_ea.snk001_*_raw names -- the same
+# naming-collision precedent flowx_test_trf_001_4way_join_pipeline.yml itself already
+# established for the identical reason.
+#
+# Targets the `flowx` catalog (control tables live in flowx.config, same as every other
+# flowx_testing/*.json spec). See flowx_testing/039_snk_001_external_sink.json.
+
+resources:
+  pipelines:
+    flowx_test_snk_001_external_sink_pipeline:
+      name: flowx_test_snk_001_external_sink_pipeline_${bundle.target}
+      catalog: flowx
+      schema: bronze_ea
+      serverless: true
+      photon: true
+      development: true
+      continuous: false
+
+      libraries:
+        - notebook:
+            path: ../../notebooks/03_engine/03_lakeflow_declarative_pipeline.py
+
+      environment:
+        dependencies:
+          - ../../dist/*.whl
+
+      configuration:
+        dataflow.group.id: dfg_flowx_snk_001_external_sink
+        dataflow.control.catalog: flowx

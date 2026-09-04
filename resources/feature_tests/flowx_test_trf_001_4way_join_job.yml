@@ -1,0 +1,54 @@
+# Wraps flowx_test_trf_001_4way_join_pipeline:
+#
+#   setup_control_tables -> seed_trf_001_4way_join_data -> onboard_trf_001 -> run_pipeline
+#
+# Self-contained and idempotent (control-table upsert + CREATE ... IF NOT EXISTS schema/volume
+# provisioning + fresh-copy-each-time CSV landing), so this job can be re-run on its own at any
+# time. See flowx_testing/026_trf_001_4way_join.json and docs/47_tc_trf_001.md.
+
+resources:
+  jobs:
+    flowx_test_trf_001_4way_join_job:
+      name: FlowX Test TRF-001 - 4-Way Streaming/Batch Inner Join
+
+      tasks:
+        - task_key: setup_control_tables
+          notebook_task:
+            notebook_path: ../../notebooks/01_setup/01_setup_control_tables.py
+            base_parameters:
+              catalog: flowx
+          environment_key: framework_env
+
+        - task_key: seed_trf_001_4way_join_data
+          depends_on:
+            - task_key: setup_control_tables
+          notebook_task:
+            notebook_path: ../../notebooks/00_seed_sample_data/03_seed_trf_001_4way_join_data.py
+            base_parameters:
+              catalog: flowx
+          environment_key: framework_env
+
+        - task_key: onboard_trf_001
+          depends_on:
+            - task_key: seed_trf_001_4way_join_data
+          notebook_task:
+            notebook_path: ../../notebooks/02_onboarding/02_onboarding_engine.py
+            base_parameters:
+              spec_file_path: "${workspace.file_path}/flowx_testing/026_trf_001_4way_join.json"
+              catalog: flowx
+              env: dev
+              action_type: CREATE
+          environment_key: framework_env
+
+        - task_key: run_pipeline
+          depends_on:
+            - task_key: onboard_trf_001
+          pipeline_task:
+            pipeline_id: ${resources.pipelines.flowx_test_trf_001_4way_join_pipeline.id}
+
+      environments:
+        - environment_key: framework_env
+          spec:
+            environment_version: "4"
+            dependencies:
+              - ../../dist/*.whl

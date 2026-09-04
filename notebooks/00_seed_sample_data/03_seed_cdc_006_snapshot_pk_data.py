@@ -2,8 +2,8 @@
 # MAGIC %md
 # MAGIC # Seed TC-CDC-006 -- Full Snapshot Diffing With Natural PK Fixtures
 # MAGIC
-# MAGIC Dedicated seed notebook for `metaflow_testing/024_cdc_006_snapshot_pk.json` only --
-# MAGIC intentionally separate from `02_seed_metaflow_testing_data.py` and every other scenario's
+# MAGIC Dedicated seed notebook for `flowx_testing/024_cdc_006_snapshot_pk.json` only --
+# MAGIC intentionally separate from `02_seed_flowx_testing_data.py` and every other scenario's
 # MAGIC own seed notebook, so this test case's build/run stays isolated.
 # MAGIC
 # MAGIC Provisions the `inventory` schema and `landing_dumps`/`_schemas` Volumes, then lands
@@ -16,14 +16,14 @@
 # MAGIC insert/update/delete diffing across two separate pipeline updates.
 # MAGIC
 # MAGIC Uses 2 new, hand-authored fixtures under
-# MAGIC `sample_data/metaflow_testing/inventory_usecase/` -- a compact, integer-keyed
+# MAGIC `sample_data/flowx_testing/inventory_usecase/` -- a compact, integer-keyed
 # MAGIC (`item_id`) full-snapshot pair whose Day-2 file is a textbook one-delete/one-update/
 # MAGIC one-insert diff. The other `FULL_SNAPSHOT_CDC` pair in the repo,
 # MAGIC `sample_mainframe_customer_master_day1/2.csv`, is deliberately left to TC-CDC-007: it is
 # MAGIC keyed on a wide string column (`customer_name`) over 10 rows, which exercises a different
 # MAGIC shape of the same strategy rather than duplicating this one.
 # MAGIC
-# MAGIC Run once per environment before onboarding `metaflow_testing/024_cdc_006_snapshot_pk.json`.
+# MAGIC Run once per environment before onboarding `flowx_testing/024_cdc_006_snapshot_pk.json`.
 
 # COMMAND ----------
 
@@ -33,7 +33,7 @@ import os
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger("seed_cdc_006_snapshot_pk_data")
 
-dbutils.widgets.text("catalog", "metaflow", "Target Unity Catalog")
+dbutils.widgets.text("catalog", "flowx", "Target Unity Catalog")
 CATALOG = dbutils.widgets.get("catalog").strip()
 
 if not CATALOG:
@@ -41,7 +41,7 @@ if not CATALOG:
 
 _this_dir = os.path.dirname(os.path.abspath(__file__)) if "__file__" in globals() else os.getcwd()
 REPO_ROOT = os.path.abspath(os.path.join(_this_dir, "..", ".."))
-FIXTURE_DIR = os.path.join(REPO_ROOT, "sample_data", "metaflow_testing", "inventory_usecase")
+FIXTURE_DIR = os.path.join(REPO_ROOT, "sample_data", "flowx_testing", "inventory_usecase")
 
 if not os.path.isdir(FIXTURE_DIR):
     raise FileNotFoundError(f"Expected fixture directory at '{FIXTURE_DIR}' -- is sample_data/ synced alongside this notebook?")
@@ -90,7 +90,7 @@ logger.info(
 # MAGIC %md
 # MAGIC ## Done
 # MAGIC
-# MAGIC `metaflow_testing/024_cdc_006_snapshot_pk.json` can now be onboarded and its pipeline run
+# MAGIC `flowx_testing/024_cdc_006_snapshot_pk.json` can now be onboarded and its pipeline run
 # MAGIC for the Day-1 baseline (3 rows, keys `[1, 2, 3]`). See
 # MAGIC `docs/archive/legacy_docs/45_tc_cdc_006.md` for the manual Day-2 step (copying
 # MAGIC `inventory_snapshot_day2.csv` into this same landing Volume and re-running the pipeline)

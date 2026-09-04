@@ -1,0 +1,42 @@
+{
+  "dataflow_group_id": "dfg_flowx_gov_001_tagging",
+  "pipeline_parameters": {},
+  "ingestion_flows": [
+    {
+      "dataflow_id": "df_gov_001_tagging_customer_raw",
+      "source_system": "oracle",
+      "source_database": "crm",
+      "source_table_name": "customer",
+      "source_description": "FlowX test GOV-001: re-onboarded against scenario 100's already-deployed {{catalog}}.bronze_test.customer_raw table solely to attach governance_tags (table + column tags) for post-deployment Unity Catalog tag application -- no new pipeline, no new data movement. See docs/57_tc_gov_001.md.",
+      "source_type": "autoloader",
+      "target_catalog": "{{catalog}}",
+      "target_schema": "bronze_test",
+      "target_table": "customer_raw",
+      "target_type": "streaming_table",
+      "source_config": {
+        "path": "/Volumes/{{catalog}}/landing/input/customer/",
+        "format": "csv",
+        "schema_location": "/Volumes/{{catalog}}/landing/_schemas/customer_raw/",
+        "reader_options": {"header": "true", "cloudFiles.inferColumnTypes": "true"},
+        "capture_technical_metadata": true
+      },
+      "target_config": {
+        "cdc_load_strategy": "SCD1",
+        "primary_keys": ["CustomerID"],
+        "generate_hash_columns": true,
+        "storage_format": "delta"
+      },
+      "dq_config": {
+        "rules": []
+      },
+      "governance_tags": {
+        "table_tags": {"domain": "finance", "compliance": "sox"},
+        "column_tags": [
+          {"column": "CustomerID", "tags": {"classification": "restricted", "mask": "PII"}}
+        ]
+      }
+    }
+  ],
+  "transformation_flows": [],
+  "reconciliation_flows": []
+}

@@ -1,0 +1,59 @@
+# Wraps flowx_test_cdc_006_snapshot_pk_pipeline:
+#
+#   setup_control_tables -> seed_cdc_006_snapshot_pk_data -> onboard_cdc_006 -> run_pipeline
+#
+# This job's own run only ever lands and processes the Day-1 inventory dump (3 rows, keys
+# [1, 2, 3]) -- proving the Day-2 insert/update/delete diffing behavior requires a second,
+# manual pipeline update after copying inventory_snapshot_day2.csv into the same landing
+# Volume. See flowx_testing/024_cdc_006_snapshot_pk.json and docs/45_tc_cdc_006.md for that
+# second step.
+#
+# Self-contained and idempotent (control-table upsert + CREATE ... IF NOT EXISTS schema/volume
+# provisioning + idempotent fixture copy), so this job can be re-run on its own at any time.
+
+resources:
+  jobs:
+    flowx_test_cdc_006_snapshot_pk_job:
+      name: FlowX Test CDC-006 - Full Snapshot Diffing With Natural PK
+
+      tasks:
+        - task_key: setup_control_tables
+          notebook_task:
+            notebook_path: ../../notebooks/01_setup/01_setup_control_tables.py
+            base_parameters:
+              catalog: flowx
+          environment_key: framework_env
+
+        - task_key: seed_cdc_006_snapshot_pk_data
+          depends_on:
+            - task_key: setup_control_tables
+          notebook_task:
+            notebook_path: ../../notebooks/00_seed_sample_data/03_seed_cdc_006_snapshot_pk_data.py
+            base_parameters:
+              catalog: flowx
+          environment_key: framework_env
+
+        - task_key: onboard_cdc_006
+          depends_on:
+            - task_key: seed_cdc_006_snapshot_pk_data
+          notebook_task:
+            notebook_path: ../../notebooks/02_onboarding/02_onboarding_engine.py
+            base_parameters:
+              spec_file_path: "${workspace.file_path}/flowx_testing/024_cdc_006_snapshot_pk.json"
+              catalog: flowx
+              env: dev
+              action_type: CREATE
+          environment_key: framework_env
+
+        - task_key: run_pipeline
+          depends_on:
+            - task_key: onboard_cdc_006
+          pipeline_task:
+            pipeline_id: ${resources.pipelines.flowx_test_cdc_006_snapshot_pk_pipeline.id}
+
+      environments:
+        - environment_key: framework_env
+          spec:
+            environment_version: "4"
+            dependencies:
+              - ../../dist/*.whl

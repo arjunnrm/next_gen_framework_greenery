@@ -2,7 +2,7 @@
 # MAGIC %md
 # MAGIC # Seed ASN.1 GSM CDR Fixture (TC-ING-004)
 # MAGIC
-# MAGIC Provisions the two real inputs `metaflow_testing/013_ing_004_asn1_decode.json` needs:
+# MAGIC Provisions the two real inputs `flowx_testing/013_ing_004_asn1_decode.json` needs:
 # MAGIC
 # MAGIC * The real ASN.1 module file (`sample_data/asn1_schema/gsm_cdr.asn`), copied verbatim
 # MAGIC   into `/Volumes/{catalog}/telecom/schemas/gsm_cdr.asn` -- a plain text file, so an
@@ -12,12 +12,12 @@
 # MAGIC   into `/Volumes/{catalog}/telecom/landing_cdr/incoming/` -- **not** synced as pre-built
 # MAGIC   binary files, since Databricks Workspace Files sync can mangle a raw `.ber` upload
 # MAGIC   (identical rationale to `sample_data/generate_asn1_dq_fixtures.py`'s note, and
-# MAGIC   `02_seed_metaflow_testing_data.py`'s own ZIP-archive generation).
+# MAGIC   `02_seed_flowx_testing_data.py`'s own ZIP-archive generation).
 # MAGIC * All 3 records are valid, decodable `GsmCallDetailRecord` instances -- TC-ING-004 proves
 # MAGIC   a clean decode (`imsi`/`callDurationSeconds` populated, zero `_asn1_decode_error` rows),
 # MAGIC   not the decode-failure path (already covered by `docs/13_asn1_dq_quarantine.md`).
 # MAGIC
-# MAGIC Run once per environment before onboarding `metaflow_testing/013_ing_004_asn1_decode.json`.
+# MAGIC Run once per environment before onboarding `flowx_testing/013_ing_004_asn1_decode.json`.
 
 # COMMAND ----------
 
@@ -32,7 +32,7 @@ import os
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger("seed_asn1_gsm_cdr_fixture")
 
-dbutils.widgets.text("catalog", "metaflow", "Target Unity Catalog")
+dbutils.widgets.text("catalog", "flowx", "Target Unity Catalog")
 CATALOG = dbutils.widgets.get("catalog").strip()
 
 if not CATALOG:
@@ -137,7 +137,7 @@ for _filename, _record in _records.items():
 # MAGIC %md
 # MAGIC ## Done
 # MAGIC
-# MAGIC `metaflow_testing/013_ing_004_asn1_decode.json` can now be onboarded and its pipeline run.
+# MAGIC `flowx_testing/013_ing_004_asn1_decode.json` can now be onboarded and its pipeline run.
 # MAGIC Re-running this notebook is safe: the schema file is re-copied (overwritten) and the 3
 # MAGIC CDR fixtures regenerate with identical content -- Auto Loader itself, not this notebook,
 # MAGIC tracks which files it has already ingested via its checkpoint.

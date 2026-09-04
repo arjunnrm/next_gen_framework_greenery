@@ -1,8 +1,8 @@
 # Databricks notebook source
 # MAGIC %md
-# MAGIC # Provision the `metaflow_sample` Schema and Its Volumes (Sample Suite Root Task)
+# MAGIC # Provision the `flowx_sample` Schema and Its Volumes (Sample Suite Root Task)
 # MAGIC
-# MAGIC The single root task of `resources/sample_jobs/metaflow_sample_seed_job.yml`. Creates the
+# MAGIC The single root task of `resources/sample_jobs/flowx_sample_seed_job.yml`. Creates the
 # MAGIC one schema and the four Volumes the whole reference suite shares, **once, serially**,
 # MAGIC before the six per-sample seed chains fan out in parallel.
 # MAGIC
@@ -36,13 +36,13 @@ import logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger("provision_sample_schema")
 
-dbutils.widgets.text("catalog", "metaflow", "Target Unity Catalog")
+dbutils.widgets.text("catalog", "flowx", "Target Unity Catalog")
 
 CATALOG = dbutils.widgets.get("catalog").strip()
 if not CATALOG:
     raise ValueError("The 'catalog' widget must be set to a valid Unity Catalog name.")
 
-SAMPLE_SCHEMA = "metaflow_sample"
+SAMPLE_SCHEMA = "flowx_sample"
 VOLUMES = ("landing", "exports", "observability", "sample_configs")
 
 # COMMAND ----------

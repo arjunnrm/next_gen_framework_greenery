@@ -1,0 +1,30 @@
+# TC-SEC-001: "Column-Level AES-GCM Encryption with Random IV" -- proves
+# target_config.encrypted_columns encrypts the ssn/credit_card columns with AES-GCM (a random IV
+# per call, so identical plaintext never re-encrypts to the same ciphertext) before the target
+# table is ever materialized, keyed off the project's existing {{catalog}}.security.pii_encryption_key
+# Unity Catalog secret (see docs/05_deployment_guide.md prerequisites) -- no new secret scope/key
+# is provisioned by this scenario. See flowx_testing/033_sec_001_aes_encrypt.json and
+# docs/54_tc_sec_001.md.
+
+resources:
+  pipelines:
+    flowx_test_sec_001_aes_encrypt_pipeline:
+      name: flowx_test_sec_001_aes_encrypt_pipeline_${bundle.target}
+      catalog: flowx
+      schema: bronze_customers
+      serverless: true
+      photon: true
+      development: true
+      continuous: false
+
+      libraries:
+        - notebook:
+            path: ../../notebooks/03_engine/03_lakeflow_declarative_pipeline.py
+
+      environment:
+        dependencies:
+          - ../../dist/*.whl
+
+      configuration:
+        dataflow.group.id: dfg_sec_001_aes_encrypt
+        dataflow.control.catalog: flowx

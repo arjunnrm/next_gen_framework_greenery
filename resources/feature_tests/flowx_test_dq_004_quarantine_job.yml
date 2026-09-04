@@ -1,0 +1,53 @@
+# Wraps flowx_test_dq_004_quarantine_pipeline:
+#
+#   setup_control_tables -> seed_dq_004_quarantine_data -> onboard_dq_004 -> run_pipeline
+#
+# Self-contained and idempotent (control-table upsert + CREATE ... IF NOT EXISTS schema
+# provisioning + fresh-copy CSV seed), so this job can be re-run on its own at any time.
+
+resources:
+  jobs:
+    flowx_test_dq_004_quarantine_job:
+      name: FlowX Test DQ-004 - Quarantine Routing & Diagnostics
+
+      tasks:
+        - task_key: setup_control_tables
+          notebook_task:
+            notebook_path: ../../notebooks/01_setup/01_setup_control_tables.py
+            base_parameters:
+              catalog: flowx
+          environment_key: framework_env
+
+        - task_key: seed_dq_004_quarantine_data
+          depends_on:
+            - task_key: setup_control_tables
+          notebook_task:
+            notebook_path: ../../notebooks/00_seed_sample_data/03_seed_dq_004_quarantine_data.py
+            base_parameters:
+              catalog: flowx
+          environment_key: framework_env
+
+        - task_key: onboard_dq_004
+          depends_on:
+            - task_key: seed_dq_004_quarantine_data
+          notebook_task:
+            notebook_path: ../../notebooks/02_onboarding/02_onboarding_engine.py
+            base_parameters:
+              spec_file_path: "${workspace.file_path}/flowx_testing/032_dq_004_quarantine.json"
+              catalog: flowx
+              env: dev
+              action_type: CREATE
+          environment_key: framework_env
+
+        - task_key: run_pipeline
+          depends_on:
+            - task_key: onboard_dq_004
+          pipeline_task:
+            pipeline_id: ${resources.pipelines.flowx_test_dq_004_quarantine_pipeline.id}
+
+      environments:
+        - environment_key: framework_env
+          spec:
+            environment_version: "4"
+            dependencies:
+              - ../../dist/*.whl

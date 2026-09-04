@@ -1,0 +1,49 @@
+# UC Volume that `bundle deploy` publishes the framework wheel into (v1.6.0).
+#
+# Every target points `workspace.artifact_path` at /Volumes/<catalog>/config/wheels (see the
+# `artifacts` block in databricks.yml for the decision record). Declaring the Volume HERE keeps
+# it created and managed by the same bundle that uploads wheels into it -- but the CLI does NOT
+# create it before the artifact upload: on a workspace where the Volume does not exist yet,
+# `bundle validate`/`deploy` refuse the artifact_path outright ("volume ... does not exist"),
+# and the one-time bootstrap documented in databricks.yml's `artifacts` comment block is
+# required first. It sits in resources/flowx_config_jobs/ because that group holds the
+# bundle's own configuration/infrastructure resources.
+#
+# Two properties of this Volume to keep in mind:
+#
+#   * It is SHARED by all deployers of a target -- the path has no per-user component, so two
+#     engineers deploying the same target publish to the same place.
+#   * DABs PRUNES superseded artifacts from `<artifact_path>/.internal/` on a UC Volume exactly
+#     as it does in the workspace (verified 2026-08-30). A deploy issued while a Lakeflow update
+#     is installing the previous wheel can kill it with ENVIRONMENT_PIP_INSTALL_ERROR, so the
+#     standing rule is unchanged: never `bundle deploy` while a pipeline or test wave is running
+#     (flowx_testing/TESTING_PLAN.md section 0).
+#   * SINCE 0.0.2 the artifact_path is VERSION-SCOPED -- /Volumes/<catalog>/config/wheels/<X.Y.Z>,
+#     from `${var.framework_version}` -- so the pruning above can only ever touch the release
+#     being deployed. Deploying 0.0.3 cannot remove the 0.0.2 wheel a running pipeline is still
+#     resolving, because they live in different directories.
+#
+#     This REPLACES the previous mechanism, which stamped pyproject.toml's patch component to
+#     epoch-milliseconds so every deploy produced a uniquely-named wheel. A unique FILENAME never
+#     actually solved this: pruning removes superseded artifacts by scanning the directory, not by
+#     name collision, so same-directory releases still deleted each other's wheels. It also made
+#     the version meaningless (two builds of identical source differed, and no deployed artifact
+#     traced back to a release). Versions are now hand-managed 3-part semantic versions; bump
+#     `version` in pyproject.toml and `framework_version` in databricks.yml together.
+#
+# schema_name is the literal `config`, NOT ${var.spec_schema}. spec_schema defaults to `config`
+# but is semantically "the schema the app's onboarding specs live in" and is overridable per
+# target; the artifact_path in databricks.yml spells `config` literally, so this file must too --
+# reusing spec_schema would let an override move the Volume out from under the artifact_path.
+resources:
+  volumes:
+    framework_wheels_volume:
+      catalog_name: ${var.catalog}
+      schema_name: config
+      name: wheels
+      volume_type: MANAGED
+      comment: >-
+        Framework wheels published by `databricks bundle deploy` -- every target's
+        workspace.artifact_path points here. DABs uploads each deploy's uniquely-named wheel
+        under .internal/ and prunes superseded ones; wheels placed in the Volume root by hand
+        are not managed or pruned by DABs.

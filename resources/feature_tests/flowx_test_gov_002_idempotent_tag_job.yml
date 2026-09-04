@@ -1,0 +1,69 @@
+# FlowX test scenario TC-GOV-002: "Governance Tag Application Idempotency" -- proves that
+# re-running notebooks/04_governance/04_apply_governance_and_egress.py against an ALREADY-TAGGED
+# table is safe: `ALTER TABLE ... SET TAGS`/`ALTER TABLE ... ALTER COLUMN ... SET TAGS` is a plain
+# key-value upsert (see docs/06_governance_integration.md §4 "Idempotency: why no ledger is
+# needed"), so re-applying identical tags three times in a row must succeed every time with no DDL
+# conflict, metadata lock, or corrupted tag state.
+#
+# Deliberately reuses TC-GOV-001's own already-onboarded dataflow group and already-materialized
+# target table -- this scenario is about repeat-invocation safety of the tagging step itself, not
+# about onboarding or pipeline-graph behavior, so it needs no onboarding spec and no dedicated
+# Lakeflow pipeline of its own (see flowx_test_gov_001_tagging_job.yml /
+# flowx_test_gov_001_tagging_pipeline.yml, and flowx_testing/TESTING_PLAN.md Module 6):
+# catalog `flowx`, schema `bronze_crm`, target table `customer_raw`, dataflow_group_id
+# `dfg_gov_001_tagging` (table_tags {"domain": "finance", "compliance": "sox"}, a `CustomerID`
+# column_tags entry {"classification": "restricted", "mask": "PII"}).
+#
+# This job assumes flowx_test_gov_001_tagging_job has already been run at least once in the
+# target environment -- i.e. `customer_raw` exists and already carries TC-GOV-001's tags before
+# this job's first task starts. It does not re-run setup/seed/onboard/pipeline itself, on purpose:
+# doing so would make this a re-test of onboarding/pipeline-build behavior (already covered by
+# TC-GOV-001), not a focused test of the tagging task's own idempotency.
+#
+#   apply_governance_run_1 -> apply_governance_run_2 -> apply_governance_run_3
+#
+# All three tasks call the exact same notebook with the exact same parameters against the exact
+# same table -- verification is that all 3 task runs end SUCCESS (exit code 0) and that
+# information_schema.table_tags/column_tags for customer_raw are unchanged (still exactly
+# TC-GOV-001's original tag values) after the 3rd run. See docs/58_tc_gov_002.md.
+
+resources:
+  jobs:
+    flowx_test_gov_002_idempotent_tag_job:
+      name: FlowX Test GOV-002 - Governance Tag Application Idempotency (3x Repeat Run)
+
+      tasks:
+        - task_key: apply_governance_run_1
+          notebook_task:
+            notebook_path: ../../notebooks/04_governance/04_apply_governance_and_egress.py
+            base_parameters:
+              catalog: flowx
+              dataflow_group_id: dfg_gov_001_tagging
+          environment_key: framework_env
+
+        - task_key: apply_governance_run_2
+          depends_on:
+            - task_key: apply_governance_run_1
+          notebook_task:
+            notebook_path: ../../notebooks/04_governance/04_apply_governance_and_egress.py
+            base_parameters:
+              catalog: flowx
+              dataflow_group_id: dfg_gov_001_tagging
+          environment_key: framework_env
+
+        - task_key: apply_governance_run_3
+          depends_on:
+            - task_key: apply_governance_run_2
+          notebook_task:
+            notebook_path: ../../notebooks/04_governance/04_apply_governance_and_egress.py
+            base_parameters:
+              catalog: flowx
+              dataflow_group_id: dfg_gov_001_tagging
+          environment_key: framework_env
+
+      environments:
+        - environment_key: framework_env
+          spec:
+            environment_version: "4"
+            dependencies:
+              - ../../dist/*.whl
