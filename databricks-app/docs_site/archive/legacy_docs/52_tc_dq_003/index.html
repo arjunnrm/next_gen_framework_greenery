@@ -23,7 +23,7 @@
     
     
       
-        <title>Test Pipeline: DQ Action fail Pipeline Execution Abort (TC-DQ-003) - NextGen Metadata Framework (Metaflow)</title>
+        <title>Test Pipeline: DQ Action fail Pipeline Execution Abort (TC-DQ-003) - FlowX</title>
       
     
     
@@ -88,7 +88,7 @@
 
 <header class="md-header" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href="../../.." title="NextGen Metadata Framework (Metaflow)" class="md-header__button md-logo" aria-label="NextGen Metadata Framework (Metaflow)" data-md-component="logo">
+    <a href="../../.." title="FlowX" class="md-header__button md-logo" aria-label="FlowX" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
@@ -102,7 +102,7 @@
       <div class="md-header__ellipsis">
         <div class="md-header__topic">
           <span class="md-ellipsis">
-            NextGen Metadata Framework (Metaflow)
+            FlowX
           </span>
         </div>
         <div class="md-header__topic" data-md-component="header-topic">
@@ -405,13 +405,13 @@
 
 <nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href="../../.." title="NextGen Metadata Framework (Metaflow)" class="md-nav__button md-logo" aria-label="NextGen Metadata Framework (Metaflow)" data-md-component="logo">
+    <a href="../../.." title="FlowX" class="md-nav__button md-logo" aria-label="FlowX" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
 
     </a>
-    NextGen Metadata Framework (Metaflow)
+    FlowX
   </label>
   
   <ul class="md-nav__list" data-md-scrollfix>
@@ -3379,7 +3379,7 @@
 
 <h1 id="test-pipeline-dq-action-fail-pipeline-execution-abort-tc-dq-003">Test Pipeline: DQ Action <code>fail</code> Pipeline Execution Abort (TC-DQ-003)<a class="headerlink" href="#test-pipeline-dq-action-fail-pipeline-execution-abort-tc-dq-003" title="Permanent link">&para;</a></h1>
 <blockquote>
-<p>See also: <a href="README.md">Documentation index</a>, <a href="../metaflow_testing/TESTING_PLAN.md">metaflow_testing/TESTING_PLAN.md</a> (Module 4, TC-DQ-003), <a href="../metaflow_testing/TESTING_STATUS.md">metaflow_testing/TESTING_STATUS.md</a>.</p>
+<p>See also: <a href="README.md">Documentation index</a>, <a href="../flowx_testing/TESTING_PLAN.md">flowx_testing/TESTING_PLAN.md</a> (Module 4, TC-DQ-003), <a href="../flowx_testing/TESTING_STATUS.md">flowx_testing/TESTING_STATUS.md</a>.</p>
 </blockquote>
 <h2 id="purpose">Purpose<a class="headerlink" href="#purpose" title="Permanent link">&para;</a></h2>
 <p>Prove that a <code>dq_config</code> rule with <code>action: "fail"</code> genuinely <strong>aborts the Lakeflow pipeline
@@ -3390,7 +3390,7 @@ this framework's own extension that reroutes the row to a companion table). This
 action where the pipeline update itself is expected to end in a <code>FAILED</code> state -- that is this
 test case's correct, intended outcome, not a defect to fix.</p>
 <p><strong>This test case is deliberately designed to fail its own pipeline run.</strong> Anyone re-running
-<code>metaflow_test_dq_003_fail_job</code> and seeing the <code>run_pipeline</code> task end in <code>FAILED</code> (with a
+<code>flowx_test_dq_003_fail_job</code> and seeing the <code>run_pipeline</code> task end in <code>FAILED</code> (with a
 Lakeflow expectation-violation / <code>ExpectationViolationException</code>-style error referencing
 <code>dq_accounts_account_id_not_null_fail</code>) is seeing this scenario work exactly as designed.</p>
 <h2 id="responsibilities">Responsibilities<a class="headerlink" href="#responsibilities" title="Permanent link">&para;</a></h2>
@@ -3407,9 +3407,9 @@ Lakeflow expectation-violation / <code>ExpectationViolationException</code>-styl
 </ul>
 <h2 id="inputs">Inputs<a class="headerlink" href="#inputs" title="Permanent link">&para;</a></h2>
 <ul>
-<li><code>metaflow_testing/031_dq_003_fail.json</code> -- single-ingestion-flow onboarding spec (no
+<li><code>flowx_testing/031_dq_003_fail.json</code> -- single-ingestion-flow onboarding spec (no
   <code>transformation_flows</code>/<code>reconciliation_flows</code>).</li>
-<li><code>sample_data/metaflow_testing/banking_usecase/accounts_dq_fail.csv</code> (5 rows, columns
+<li><code>sample_data/flowx_testing/banking_usecase/accounts_dq_fail.csv</code> (5 rows, columns
   <code>account_id, account_holder_name, balance, opened_at</code>) -- new fixture, added alongside this
   test case's build (see Build notes).</li>
 <li><code>notebooks/00_seed_sample_data/03_seed_dq_003_fail_data.py</code> -- a <strong>new, dedicated</strong> seed
@@ -3435,7 +3435,7 @@ Lakeflow expectation-violation / <code>ExpectationViolationException</code>-styl
   expectation.</li>
 </ul>
 <h2 id="configuration">Configuration<a class="headerlink" href="#configuration" title="Permanent link">&para;</a></h2>
-<p><code>metaflow_testing/031_dq_003_fail.json</code>'s one <code>ingestion_flows[]</code> entry:</p>
+<p><code>flowx_testing/031_dq_003_fail.json</code>'s one <code>ingestion_flows[]</code> entry:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nt">"source_config"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
 <a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="w">  </span><span class="nt">"path"</span><span class="p">:</span><span class="w"> </span><span class="s2">"/Volumes/{{catalog}}/banking/landing_dq_fail/"</span><span class="p">,</span>
 <a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="w">  </span><span class="nt">"format"</span><span class="p">:</span><span class="w"> </span><span class="s2">"csv"</span><span class="p">,</span>
@@ -3452,7 +3452,7 @@ Lakeflow expectation-violation / <code>ExpectationViolationException</code>-styl
 </code></pre></div>
 <h2 id="main-execution-flow">Main execution flow<a class="headerlink" href="#main-execution-flow" title="Permanent link">&para;</a></h2>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>databricks<span class="w"> </span>bundle<span class="w"> </span>deploy<span class="w"> </span>--target<span class="w"> </span>dev
-<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>databricks<span class="w"> </span>bundle<span class="w"> </span>run<span class="w"> </span>metaflow_test_dq_003_fail_job<span class="w"> </span>--target<span class="w"> </span>dev
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>databricks<span class="w"> </span>bundle<span class="w"> </span>run<span class="w"> </span>flowx_test_dq_003_fail_job<span class="w"> </span>--target<span class="w"> </span>dev
 </code></pre></div>
 <p>Task chain: <code>setup_control_tables → seed_dq_003_fail_data → onboard_dq_003 → run_pipeline</code>.</p>
 <p><strong>Expect the overall job run to end in a <code>FAILED</code> state</strong>, with <code>run_pipeline</code> as the failing
@@ -3480,7 +3480,7 @@ defect. Verification is about <em>how</em> it failed, not working around the fai
 <a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="c1">-- is the 3rd data row of accounts_dq_fail.csv -- "Ama Boateng" with an empty account_id field)</span>
 </code></pre></div>
 <p><strong>This pass's actual verification status</strong>: see
-<a href="../metaflow_testing/TESTING_STATUS.md"><code>metaflow_testing/TESTING_STATUS.md</code></a> for whether this
+<a href="../flowx_testing/TESTING_STATUS.md"><code>flowx_testing/TESTING_STATUS.md</code></a> for whether this
 job was actually run against the live workspace and what the real result was -- this document
 describes what <em>should</em> happen structurally; the status tracker records what <em>did</em> happen, if
 anything, each time this scenario is executed. (Per this project's build convention, that
@@ -3504,7 +3504,7 @@ tracker is updated centrally in a later phase, not by this build itself.)</p>
   this build's own scope instructions, a TC whose "Expected Output &amp; Verification Logic"
   describes the pipeline failing is built to genuinely fail (via a real <code>action: "fail"</code> DQ
   rule against a fixture with a real violating row), not given a fake success path. The
-  <code>metaflow_test_dq_003_fail_job</code> resource is fully valid and deployable; it is the <em>pipeline
+  <code>flowx_test_dq_003_fail_job</code> resource is fully valid and deployable; it is the <em>pipeline
   update it triggers</em> that is expected to fail, every time it runs against this fixture, by
   design.</li>
 <li><strong><code>quarantine_table</code>/<code>record_id_column</code> omitted.</strong> Both are DQ-quarantine-only fields (see

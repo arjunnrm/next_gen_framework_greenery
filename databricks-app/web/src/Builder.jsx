@@ -32,8 +32,8 @@ export default class Builder extends React.Component {
     openOpen:false, openErr:"", openBusy:false, openSrc:"volume", openFiles:null, openDir:"",
     openPath:"", openDirs:[], openCheck:null, openChecking:false,
     discovered:[], knowledge:null, tplTab:"builtin",
-    saveOpen:false, dest:"local", wsPath:"/Workspace/Shared/metaflow/specs",
-    volPath:"/Volumes/main/metaflow/onboarding_specs/", savedTo:"", cloneFrom:""
+    saveOpen:false, dest:"local", wsPath:"/Workspace/Shared/flowx/specs",
+    volPath:"/Volumes/main/flowx/onboarding_specs/", savedTo:"", cloneFrom:""
   };
 
   trackHeader(){
@@ -718,7 +718,7 @@ export default class Builder extends React.Component {
 
   workspacePath(){
     var spec=this.spec();
-    var base=(this.state.wsPath||"/Workspace/Shared/metaflow/specs").replace(/\/+$/,"");
+    var base=(this.state.wsPath||"/Workspace/Shared/flowx/specs").replace(/\/+$/,"");
     return base+"/"+(spec.dataflow_group_id||"onboarding")+"."+this.state.fmt;
   }
 
@@ -1082,7 +1082,7 @@ export default class Builder extends React.Component {
           go:function(){ self.listSpecs(d[0]); }};
       }),
       openPath:s.openPath, onOpenPath:function(ev){ self.setState({openPath:ev.target.value,openCheck:null}); },
-      openPathPlaceholder:s.openSrc==="workspace"?"/Workspace/Shared/metaflow/specs/my_spec.json":"/Volumes/<catalog>/<schema>/<volume>/my_spec.json",
+      openPathPlaceholder:s.openSrc==="workspace"?"/Workspace/Shared/flowx/specs/my_spec.json":"/Volumes/<catalog>/<schema>/<volume>/my_spec.json",
       browseHere:function(){ self.listSpecs(s.openSrc,(s.openPath||"").trim()); },
       openTypedPath:function(){ self.openTypedPath(); },
       checkPath:function(){ self.checkPath(); },
@@ -1255,7 +1255,7 @@ export default class Builder extends React.Component {
       runFinished:s.runDone,
       jobRunUrl:self._jobRunUrl(s.runNonce||"1"),
       jobRunLabel:"Open job run in Databricks ↗",
-      jobRunSub:"Pipeline metaflow_"+((s.root.v["@dataflow_group_id"]||"spec").replace(/[^a-z0-9_]+/gi,"_"))+" · run "+(s.runNonce||"1")
+      jobRunSub:"Pipeline flowx_"+((s.root.v["@dataflow_group_id"]||"spec").replace(/[^a-z0-9_]+/gi,"_"))+" · run "+(s.runNonce||"1")
     };
   }
   // ───────────────────────────── Databricks integration ─────────────────────────────
@@ -1380,7 +1380,7 @@ export default class Builder extends React.Component {
         discovered:cfg.templates||[],
         knowledge:(cfg.attribute_knowledge)||((cfg.app||{}).attribute_knowledge)||null,
         roots:roots,
-        volPath:(vol&&vol.path ? vol.path.replace("{{catalog}}", (cfg.template_variables&&cfg.template_variables.catalog&&cfg.template_variables.catalog.default)||"metaflow") : (self.state.volPath||"/Volumes/metaflow/geneva_admin/onboarding_specs/")),
+        volPath:(vol&&vol.path ? vol.path.replace("{{catalog}}", (cfg.template_variables&&cfg.template_variables.catalog&&cfg.template_variables.catalog.default)||"flowx") : (self.state.volPath||"/Volumes/flowx/geneva_admin/onboarding_specs/")),
         wsPath:(ws&&ws.path)||self.state.wsPath
       },function(){ self.refreshAccess(); });
     }).catch(function(e){
@@ -1432,7 +1432,7 @@ export default class Builder extends React.Component {
     var s=this.state, spec=this.spec();
     var cfg=s.cfg||{};
     var tv=cfg.template_variables||{};
-    var defaultCat=(tv.catalog&&tv.catalog.default)||"metaflow";
+    var defaultCat=(tv.catalog&&tv.catalog.default)||"flowx";
     var defaultGid=spec.dataflow_group_id||(s.root&&s.root.v&&s.root.v["@dataflow_group_id"])||"dfg_sample";
     var defaultJobId=(cfg.actions&&cfg.actions.onboard&&cfg.actions.onboard.job_id)||cfg.onboarding_job_id||"";
     this.setState({
@@ -1517,7 +1517,7 @@ export default class Builder extends React.Component {
 
   confirmSaveAndRun(){
     var self=this, s=this.state, spec=this.spec();
-    var cat=(this.state.paramCatalog||"metaflow").trim();
+    var cat=(this.state.paramCatalog||"flowx").trim();
     var env="DEV";
     var gid=(this.state.paramGroupId||"dfg_sample").trim();
     var act=this.state.paramActionType||"CREATE";
@@ -1706,7 +1706,7 @@ export default class Builder extends React.Component {
     });
     V.isRemote=s.dest!=="local";
     V.pathLabel=s.dest==="volume"?"Volume directory":"Workspace folder";
-    V.pathPlaceholder=s.dest==="volume"?"/Volumes/main/metaflow/onboarding_specs/":"/Workspace/Shared/metaflow/specs";
+    V.pathPlaceholder=s.dest==="volume"?"/Volumes/main/flowx/onboarding_specs/":"/Workspace/Shared/flowx/specs";
     V.wsPath=s.dest==="volume"?(s.volPath||""):(s.wsPath||"");
     V.hasTarget=!!this.saveTargetPath();
     V.onWsPath=function(e){

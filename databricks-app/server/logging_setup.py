@@ -1,5 +1,5 @@
 """
-Structured JSON Logger for Metaflow Onboarding App (§9.3).
+Structured JSON Logger for FlowX Onboarding App (§9.3).
 One JSON object per line:
   ts, level, request_id, user, event, action_id, run_id, duration_ms, outcome, detail
 """
@@ -41,10 +41,10 @@ class JSONFormatter(logging.Formatter):
 def setup_logging(level_name: Optional[str] = None) -> logging.Logger:
     """Initialize structured logging on root logger."""
     if level_name is None:
-        level_name = os.environ.get("METAFLOW_LOG_LEVEL", "INFO").upper()
+        level_name = os.environ.get("FLOWX_LOG_LEVEL", "INFO").upper()
 
     level = getattr(logging, level_name, logging.INFO)
-    logger = logging.getLogger("metaflow_app")
+    logger = logging.getLogger("flowx_app")
     logger.setLevel(level)
 
     if not logger.handlers:

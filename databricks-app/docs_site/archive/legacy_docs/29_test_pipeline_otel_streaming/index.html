@@ -23,7 +23,7 @@
     
     
       
-        <title>Test Pipeline: Continuous Event-Log → OTel Streaming Export - NextGen Metadata Framework (Metaflow)</title>
+        <title>Test Pipeline: Continuous Event-Log → OTel Streaming Export - FlowX</title>
       
     
     
@@ -88,7 +88,7 @@
 
 <header class="md-header" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href="../../.." title="NextGen Metadata Framework (Metaflow)" class="md-header__button md-logo" aria-label="NextGen Metadata Framework (Metaflow)" data-md-component="logo">
+    <a href="../../.." title="FlowX" class="md-header__button md-logo" aria-label="FlowX" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
@@ -102,7 +102,7 @@
       <div class="md-header__ellipsis">
         <div class="md-header__topic">
           <span class="md-ellipsis">
-            NextGen Metadata Framework (Metaflow)
+            FlowX
           </span>
         </div>
         <div class="md-header__topic" data-md-component="header-topic">
@@ -405,13 +405,13 @@
 
 <nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href="../../.." title="NextGen Metadata Framework (Metaflow)" class="md-nav__button md-logo" aria-label="NextGen Metadata Framework (Metaflow)" data-md-component="logo">
+    <a href="../../.." title="FlowX" class="md-nav__button md-logo" aria-label="FlowX" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
 
     </a>
-    NextGen Metadata Framework (Metaflow)
+    FlowX
   </label>
   
   <ul class="md-nav__list" data-md-scrollfix>
@@ -3368,7 +3368,7 @@
 
 <h1 id="test-pipeline-continuous-event-log-otel-streaming-export">Test Pipeline: Continuous Event-Log → OTel Streaming Export<a class="headerlink" href="#test-pipeline-continuous-event-log-otel-streaming-export" title="Permanent link">&para;</a></h1>
 <blockquote>
-<p>See also: <a href="README.md">Documentation index</a>, <a href="../metaflow_testing/TESTING_PLAN.md">metaflow_testing/TESTING_PLAN.md</a> (Module 9: Observability &amp; Telemetry Framework).</p>
+<p>See also: <a href="README.md">Documentation index</a>, <a href="../flowx_testing/TESTING_PLAN.md">flowx_testing/TESTING_PLAN.md</a> (Module 9: Observability &amp; Telemetry Framework).</p>
 </blockquote>
 <h2 id="purpose">Purpose<a class="headerlink" href="#purpose" title="Permanent link">&para;</a></h2>
 <p>Prove the new <strong>Design 1</strong> capability: a genuinely continuous Lakeflow Declarative Pipeline that
@@ -3395,8 +3395,8 @@ for this scenario; it is configured entirely through its own pipeline resource's
 <ul>
 <li><strong>This scenario has no ingestion/onboarding fixtures of its own.</strong> It reads whichever tables
   you list in <code>event_log_tables</code> — normally the <em>published event log tables</em> of other pipelines
-  already deployed in this project (e.g. <code>metaflow_test_002_zerobus_pipeline</code>,
-  <code>metaflow_test_003_autoload_recon_pipeline</code>). A source pipeline only has a queryable event-log
+  already deployed in this project (e.g. <code>flowx_test_002_zerobus_pipeline</code>,
+  <code>flowx_test_003_autoload_recon_pipeline</code>). A source pipeline only has a queryable event-log
   <strong>table</strong> (as opposed to only the <code>event_log(pipeline_id)</code> TVF every pipeline already has) once
   you explicitly turn on Pipeline settings → Advanced → "Event log" → a <code>catalog.schema.table</code>
   destination for it — this is a one-time manual step per source pipeline, not something this

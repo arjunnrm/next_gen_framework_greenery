@@ -27,7 +27,7 @@
     
     
       
-        <title>Observability & OpenTelemetry - NextGen Metadata Framework (Metaflow)</title>
+        <title>Observability & OpenTelemetry - FlowX</title>
       
     
     
@@ -78,7 +78,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#metaflow-observability-opentelemetry-engine" class="md-skip">
+        <a href="#flowx-observability-opentelemetry-engine" class="md-skip">
           Skip to content
         </a>
       
@@ -92,7 +92,7 @@
 
 <header class="md-header" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href=".." title="NextGen Metadata Framework (Metaflow)" class="md-header__button md-logo" aria-label="NextGen Metadata Framework (Metaflow)" data-md-component="logo">
+    <a href=".." title="FlowX" class="md-header__button md-logo" aria-label="FlowX" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
@@ -106,7 +106,7 @@
       <div class="md-header__ellipsis">
         <div class="md-header__topic">
           <span class="md-ellipsis">
-            NextGen Metadata Framework (Metaflow)
+            FlowX
           </span>
         </div>
         <div class="md-header__topic" data-md-component="header-topic">
@@ -411,13 +411,13 @@
 
 <nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href=".." title="NextGen Metadata Framework (Metaflow)" class="md-nav__button md-logo" aria-label="NextGen Metadata Framework (Metaflow)" data-md-component="logo">
+    <a href=".." title="FlowX" class="md-nav__button md-logo" aria-label="FlowX" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
 
     </a>
-    NextGen Metadata Framework (Metaflow)
+    FlowX
   </label>
   
   <ul class="md-nav__list" data-md-scrollfix>
@@ -3812,13 +3812,13 @@
 
 
 
-<h1 id="metaflow-observability-opentelemetry-engine">📊 Metaflow — Observability &amp; OpenTelemetry Engine<a class="headerlink" href="#metaflow-observability-opentelemetry-engine" title="Permanent link">&para;</a></h1>
+<h1 id="flowx-observability-opentelemetry-engine">📊 FlowX — Observability &amp; OpenTelemetry Engine<a class="headerlink" href="#flowx-observability-opentelemetry-engine" title="Permanent link">&para;</a></h1>
 <blockquote>
 <p><strong>Audience</strong>: Site Reliability Engineers (SREs), DevOps teams, and platform architects responsible for monitoring Lakeflow pipeline health, SLA tracking, and OpenTelemetry integration.</p>
 </blockquote>
 <hr />
 <h2 id="1-observability-architecture-overview">1. Observability Architecture Overview<a class="headerlink" href="#1-observability-architecture-overview" title="Permanent link">&para;</a></h2>
-<p>Metaflow includes an enterprise telemetry engine that captures pipeline lifecycle metrics, data quality statistics, and operational event logs from the native Databricks Lakeflow Event Log and formats them into OpenTelemetry (OTel) standard payloads.</p>
+<p>FlowX includes an enterprise telemetry engine that captures pipeline lifecycle metrics, data quality statistics, and operational event logs from the native Databricks Lakeflow Event Log and formats them into OpenTelemetry (OTel) standard payloads.</p>
 <p>As of <strong>v1.3.0</strong> there are two independent export engines, and every destination is served by exactly one of them — never both, and there is no single entrypoint that switches between them. A bounded downstream job task and an always-on <code>continuous: true</code> pipeline have fundamentally different lifecycles, so which engine owns a destination is decided by the destination's own <code>mode</code> field, resolved once at read time:</p>
 <table>
 <thead>
@@ -3933,7 +3933,7 @@ export.</p>
 <a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="w">    </span><span class="nt">notebook_path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">../notebooks/08_observability/08_dlt_observability_engine.py</span>
 <a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="w">    </span><span class="nt">base_parameters</span><span class="p">:</span>
 <a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="w">      </span><span class="nt">dataflow_group_id</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">dfg_zip_csv_dataload</span>
-<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="w">      </span><span class="nt">catalog</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">metaflow</span>
+<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="w">      </span><span class="nt">catalog</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">flowx</span>
 <a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="w">      </span><span class="nt">env</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">dev</span>
 <a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="w">      </span><span class="nt">pipeline_task_run_id</span><span class="p">:</span><span class="w"> </span><span class="s">"{{tasks.run_pipeline_update.run_id}}"</span>
 </code></pre></div>
@@ -4383,8 +4383,8 @@ which is not the pipeline task's own run and resolves to a different <code>pipel
 <p>This mapping describes the <strong>triggered</strong> engine's <code>ResourceLogs</code> output only (<code>otel_payload_builder.py::build_resource_logs</code>). It does <strong>not</strong> describe the <strong>continuous</strong> engine, whose OTLP sink uses a different builder — <code>build_resource_logs_from_event_rows</code> — that emits one flat <code>databricks.event_log.{column}</code> attribute per raw event-log row column plus <code>service.name</code>: a wholesale row dump rather than this curated per-field mapping. The continuous Volume sink likewise writes raw, un-shaped event-log rows — see §6.2.</p>
 <hr />
 <h2 id="4-in-pipeline-structured-json-logging">4. In-Pipeline Structured JSON Logging<a class="headerlink" href="#4-in-pipeline-structured-json-logging" title="Permanent link">&para;</a></h2>
-<p>For custom operational steps, use the framework's structured logger (<code>NextGen_Metadata_Framework.lakeflow_framework.observability.structured_logger</code>):</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">NextGen_Metadata_Framework.lakeflow_framework.observability.structured_logger</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+<p>For custom operational steps, use the framework's structured logger (<code>flowx.lakeflow_framework.observability.structured_logger</code>):</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">flowx.lakeflow_framework.observability.structured_logger</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
 <a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>    <span class="n">log_flow_event</span><span class="p">,</span>
 <a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>    <span class="n">logged_operation</span><span class="p">,</span>
 <a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="p">)</span>
@@ -4490,7 +4490,7 @@ A continuous <code>DATABRICKS_VOLUME</code> destination writes <strong>raw event
 <p>Add both new pipeline <code>configuration:</code> keys to <code>resources/observability/observability_otel_streaming_pipeline.yml</code> (or your own copy of it) so the pipeline can reach <code>observability_config</code>:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="nt">configuration</span><span class="p">:</span>
 <a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="w">  </span><span class="nt">dataflow.group.id</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">dfg_orders_cdc</span>
-<a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="w">  </span><span class="nt">dataflow.control.catalog</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">metaflow</span>
+<a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="w">  </span><span class="nt">dataflow.control.catalog</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">flowx</span>
 <a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="w">  </span><span class="c1"># existing dataflow.otel_streaming.* keys remain a fully-supported fallback</span>
 </code></pre></div>
 <p>Then onboard one or more <code>observability[]</code> destinations with <code>"mode": "continuous"</code> and a populated <code>destination_config.event_log_tables</code>, as shown in §2.5.</p>

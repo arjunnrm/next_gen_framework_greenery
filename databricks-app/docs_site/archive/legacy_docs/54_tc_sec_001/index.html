@@ -23,7 +23,7 @@
     
     
       
-        <title>Test Pipeline: Column-Level AES-GCM Encryption with Random IV (TC-SEC-001) - NextGen Metadata Framework (Metaflow)</title>
+        <title>Test Pipeline: Column-Level AES-GCM Encryption with Random IV (TC-SEC-001) - FlowX</title>
       
     
     
@@ -88,7 +88,7 @@
 
 <header class="md-header" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href="../../.." title="NextGen Metadata Framework (Metaflow)" class="md-header__button md-logo" aria-label="NextGen Metadata Framework (Metaflow)" data-md-component="logo">
+    <a href="../../.." title="FlowX" class="md-header__button md-logo" aria-label="FlowX" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
@@ -102,7 +102,7 @@
       <div class="md-header__ellipsis">
         <div class="md-header__topic">
           <span class="md-ellipsis">
-            NextGen Metadata Framework (Metaflow)
+            FlowX
           </span>
         </div>
         <div class="md-header__topic" data-md-component="header-topic">
@@ -405,13 +405,13 @@
 
 <nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href="../../.." title="NextGen Metadata Framework (Metaflow)" class="md-nav__button md-logo" aria-label="NextGen Metadata Framework (Metaflow)" data-md-component="logo">
+    <a href="../../.." title="FlowX" class="md-nav__button md-logo" aria-label="FlowX" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
 
     </a>
-    NextGen Metadata Framework (Metaflow)
+    FlowX
   </label>
   
   <ul class="md-nav__list" data-md-scrollfix>
@@ -3379,7 +3379,7 @@
 
 <h1 id="test-pipeline-column-level-aes-gcm-encryption-with-random-iv-tc-sec-001">Test Pipeline: Column-Level AES-GCM Encryption with Random IV (TC-SEC-001)<a class="headerlink" href="#test-pipeline-column-level-aes-gcm-encryption-with-random-iv-tc-sec-001" title="Permanent link">&para;</a></h1>
 <blockquote>
-<p>See also: <a href="README.md">Documentation index</a>, <a href="../metaflow_testing/TESTING_PLAN.md">metaflow_testing/TESTING_PLAN.md</a> (Module 5, TC-SEC-001), <a href="../metaflow_testing/TESTING_STATUS.md">metaflow_testing/TESTING_STATUS.md</a>, <a href="../16_encryption_and_secrets/">16_encryption_and_secrets.md</a>, <a href="../01_control_metadata_schema/#4-target_config-ingestion-and-transformation-flows">01_control_metadata_schema.md §4.3</a>.</p>
+<p>See also: <a href="README.md">Documentation index</a>, <a href="../flowx_testing/TESTING_PLAN.md">flowx_testing/TESTING_PLAN.md</a> (Module 5, TC-SEC-001), <a href="../flowx_testing/TESTING_STATUS.md">flowx_testing/TESTING_STATUS.md</a>, <a href="../16_encryption_and_secrets/">16_encryption_and_secrets.md</a>, <a href="../01_control_metadata_schema/#4-target_config-ingestion-and-transformation-flows">01_control_metadata_schema.md §4.3</a>.</p>
 </blockquote>
 <h2 id="purpose">Purpose<a class="headerlink" href="#purpose" title="Permanent link">&para;</a></h2>
 <p>Prove that <code>target_config.encrypted_columns</code> genuinely encrypts sensitive PII columns with
@@ -3412,9 +3412,9 @@ encrypt them, but that:</p>
 </ul>
 <h2 id="inputs">Inputs<a class="headerlink" href="#inputs" title="Permanent link">&para;</a></h2>
 <ul>
-<li><code>metaflow_testing/033_sec_001_aes_encrypt.json</code> -- single-ingestion-flow onboarding spec (no
+<li><code>flowx_testing/033_sec_001_aes_encrypt.json</code> -- single-ingestion-flow onboarding spec (no
   <code>transformation_flows</code>/<code>reconciliation_flows</code>).</li>
-<li><code>sample_data/metaflow_testing/sec_usecase/customer_pii_day1.csv</code> (3 rows) -- hand-authored;
+<li><code>sample_data/flowx_testing/sec_usecase/customer_pii_day1.csv</code> (3 rows) -- hand-authored;
   <code>customer_id</code>, <code>customer_name</code>, <code>ssn</code>, <code>credit_card</code> (well-known dummy card numbers -- the
   standard Visa/Mastercard/Amex test-number patterns, not real card data).</li>
 <li><code>notebooks/00_seed_sample_data/03_seed_sec_001_aes_encrypt_data.py</code> -- a <strong>new, dedicated</strong> seed
@@ -3435,7 +3435,7 @@ encrypt them, but that:</p>
   (not CDC-dispatched -- <code>APPEND</code> never gets them).</li>
 </ul>
 <h2 id="configuration">Configuration<a class="headerlink" href="#configuration" title="Permanent link">&para;</a></h2>
-<p><code>metaflow_testing/033_sec_001_aes_encrypt.json</code>'s one <code>ingestion_flows[]</code> entry:</p>
+<p><code>flowx_testing/033_sec_001_aes_encrypt.json</code>'s one <code>ingestion_flows[]</code> entry:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nt">"source_config"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
 <a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="w">  </span><span class="nt">"path"</span><span class="p">:</span><span class="w"> </span><span class="s2">"/Volumes/{{catalog}}/customers/landing_pii/incoming/"</span><span class="p">,</span>
 <a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="w">  </span><span class="nt">"format"</span><span class="p">:</span><span class="w"> </span><span class="s2">"csv"</span><span class="p">,</span>
@@ -3466,7 +3466,7 @@ encrypt them, but that:</p>
 <p>Target: <code>{{catalog}}.bronze_customers.customer_pii_encrypted</code>, <code>target_type: "streaming_table"</code>.</p>
 <h2 id="main-execution-flow">Main execution flow<a class="headerlink" href="#main-execution-flow" title="Permanent link">&para;</a></h2>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>databricks<span class="w"> </span>bundle<span class="w"> </span>deploy<span class="w"> </span>--target<span class="w"> </span>dev
-<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>databricks<span class="w"> </span>bundle<span class="w"> </span>run<span class="w"> </span>metaflow_test_sec_001_aes_encrypt_job<span class="w"> </span>--target<span class="w"> </span>dev
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>databricks<span class="w"> </span>bundle<span class="w"> </span>run<span class="w"> </span>flowx_test_sec_001_aes_encrypt_job<span class="w"> </span>--target<span class="w"> </span>dev
 </code></pre></div>
 <p>Task chain: <code>setup_control_tables -&gt; seed_sec_001_aes_encrypt_data -&gt; onboard_sec_001 -&gt;
 run_pipeline</code>.</p>
@@ -3498,10 +3498,10 @@ resolving the key via <code>dbutils.secrets.get(catalog=, schema=, key=)</code> 
 mirrors that exact, already-proven-correct pattern instead of reintroducing a broken one:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">pyspark.sql</span><span class="w"> </span><span class="kn">import</span> <span class="n">functions</span> <span class="k">as</span> <span class="n">F</span>
 <a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>
-<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="n">pii_key</span> <span class="o">=</span> <span class="n">dbutils</span><span class="o">.</span><span class="n">secrets</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">catalog</span><span class="o">=</span><span class="s2">"metaflow"</span><span class="p">,</span> <span class="n">schema</span><span class="o">=</span><span class="s2">"security"</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="s2">"pii_encryption_key"</span><span class="p">)</span>
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="n">pii_key</span> <span class="o">=</span> <span class="n">dbutils</span><span class="o">.</span><span class="n">secrets</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">catalog</span><span class="o">=</span><span class="s2">"flowx"</span><span class="p">,</span> <span class="n">schema</span><span class="o">=</span><span class="s2">"security"</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="s2">"pii_encryption_key"</span><span class="p">)</span>
 <a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>
 <a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="n">verify_df</span> <span class="o">=</span> <span class="p">(</span>
-<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>    <span class="n">spark</span><span class="o">.</span><span class="n">table</span><span class="p">(</span><span class="s2">"metaflow.bronze_customers.customer_pii_encrypted"</span><span class="p">)</span>
+<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>    <span class="n">spark</span><span class="o">.</span><span class="n">table</span><span class="p">(</span><span class="s2">"flowx.bronze_customers.customer_pii_encrypted"</span><span class="p">)</span>
 <a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>    <span class="o">.</span><span class="n">withColumn</span><span class="p">(</span><span class="s2">"ssn_plaintext"</span><span class="p">,</span> <span class="n">F</span><span class="o">.</span><span class="n">aes_decrypt</span><span class="p">(</span><span class="n">F</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">"ssn"</span><span class="p">),</span> <span class="n">F</span><span class="o">.</span><span class="n">lit</span><span class="p">(</span><span class="n">pii_key</span><span class="p">),</span> <span class="n">F</span><span class="o">.</span><span class="n">lit</span><span class="p">(</span><span class="s2">"GCM"</span><span class="p">))</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="s2">"string"</span><span class="p">))</span>
 <a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>    <span class="o">.</span><span class="n">withColumn</span><span class="p">(</span><span class="s2">"credit_card_plaintext"</span><span class="p">,</span> <span class="n">F</span><span class="o">.</span><span class="n">aes_decrypt</span><span class="p">(</span><span class="n">F</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="s2">"credit_card"</span><span class="p">),</span> <span class="n">F</span><span class="o">.</span><span class="n">lit</span><span class="p">(</span><span class="n">pii_key</span><span class="p">),</span> <span class="n">F</span><span class="o">.</span><span class="n">lit</span><span class="p">(</span><span class="s2">"GCM"</span><span class="p">))</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="s2">"string"</span><span class="p">))</span>
 <a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a>    <span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="s2">"customer_id"</span><span class="p">,</span> <span class="s2">"ssn_plaintext"</span><span class="p">,</span> <span class="s2">"credit_card_plaintext"</span><span class="p">)</span>
@@ -3514,7 +3514,7 @@ mirrors that exact, already-proven-correct pattern instead of reintroducing a br
 <a id="__codelineno-3-16" name="__codelineno-3-16" href="#__codelineno-3-16"></a><span class="c1"># CUST003 | 345-67-8901 | 340000000000009</span>
 </code></pre></div>
 <p><strong>This pass's actual verification status</strong>: see
-<a href="../metaflow_testing/TESTING_STATUS.md"><code>metaflow_testing/TESTING_STATUS.md</code></a> for whether this
+<a href="../flowx_testing/TESTING_STATUS.md"><code>flowx_testing/TESTING_STATUS.md</code></a> for whether this
 job was actually run against the live workspace and what the real result was -- this document
 describes what <em>should</em> happen structurally; the status tracker records what <em>did</em> happen, if
 anything, each time this scenario is executed. (Per this project's build convention, that
@@ -3523,7 +3523,7 @@ tracker is updated centrally in a later phase, not by this build itself.)</p>
 <ul>
 <li><strong>Secret name follows the task's own instruction and this repo's real, already-provisioned
   secret, not <code>TESTING_PLAN.md</code>'s placeholder names.</strong> <code>TESTING_PLAN.md</code>'s own TC-SEC-001 row
-  names a <code>metaflow_sec_scope</code>/<code>aes_gcm_256_key</code> secret scope/key that doesn't exist anywhere
+  names a <code>flowx_sec_scope</code>/<code>aes_gcm_256_key</code> secret scope/key that doesn't exist anywhere
   else in this project -- every real encryption spec already built (<code>spec_08</code>, <code>spec_20</code>,
   <code>spec_22</code>, <code>spec_24</code>, the onboarding template) uses the one shared
   <code>{secret_catalog, secret_schema, secret_key} = {"{{catalog}}", "security", "pii_encryption_key"}</code>

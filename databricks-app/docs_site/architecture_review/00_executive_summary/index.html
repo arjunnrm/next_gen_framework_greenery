@@ -27,7 +27,7 @@
     
     
       
-        <title>Executive summary - NextGen Metadata Framework (Metaflow)</title>
+        <title>Executive summary - FlowX</title>
       
     
     
@@ -78,7 +78,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#metaflow-framework-executive-architectural-review-platform-audit" class="md-skip">
+        <a href="#flowx-framework-executive-architectural-review-platform-audit" class="md-skip">
           Skip to content
         </a>
       
@@ -92,7 +92,7 @@
 
 <header class="md-header" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href="../.." title="NextGen Metadata Framework (Metaflow)" class="md-header__button md-logo" aria-label="NextGen Metadata Framework (Metaflow)" data-md-component="logo">
+    <a href="../.." title="FlowX" class="md-header__button md-logo" aria-label="FlowX" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
@@ -106,7 +106,7 @@
       <div class="md-header__ellipsis">
         <div class="md-header__topic">
           <span class="md-ellipsis">
-            NextGen Metadata Framework (Metaflow)
+            FlowX
           </span>
         </div>
         <div class="md-header__topic" data-md-component="header-topic">
@@ -413,13 +413,13 @@
 
 <nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href="../.." title="NextGen Metadata Framework (Metaflow)" class="md-nav__button md-logo" aria-label="NextGen Metadata Framework (Metaflow)" data-md-component="logo">
+    <a href="../.." title="FlowX" class="md-nav__button md-logo" aria-label="FlowX" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
 
     </a>
-    NextGen Metadata Framework (Metaflow)
+    FlowX
   </label>
   
   <ul class="md-nav__list" data-md-scrollfix>
@@ -3162,10 +3162,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#4-end-to-end-metaflow-architecture-map" class="md-nav__link">
+  <a href="#4-end-to-end-flowx-architecture-map" class="md-nav__link">
     <span class="md-ellipsis">
       
-        4. End-to-End MetaFlow Architecture Map
+        4. End-to-End FlowX Architecture Map
       
     </span>
   </a>
@@ -3560,10 +3560,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#4-end-to-end-metaflow-architecture-map" class="md-nav__link">
+  <a href="#4-end-to-end-flowx-architecture-map" class="md-nav__link">
     <span class="md-ellipsis">
       
-        4. End-to-End MetaFlow Architecture Map
+        4. End-to-End FlowX Architecture Map
       
     </span>
   </a>
@@ -3598,15 +3598,15 @@
 
 
 
-<h1 id="metaflow-framework-executive-architectural-review-platform-audit">MetaFlow Framework — Executive Architectural Review &amp; Platform Audit<a class="headerlink" href="#metaflow-framework-executive-architectural-review-platform-audit" title="Permanent link">&para;</a></h1>
+<h1 id="flowx-framework-executive-architectural-review-platform-audit">FlowX Framework — Executive Architectural Review &amp; Platform Audit<a class="headerlink" href="#flowx-framework-executive-architectural-review-platform-audit" title="Permanent link">&para;</a></h1>
 <p><strong>Document Version:</strong> 1.0.0<br />
 <strong>Audit Date:</strong> August 2026<br />
 <strong>Auditor Persona:</strong> Principal Databricks Solutions Architect &amp; Senior Data Platform Reviewer<br />
-<strong>Target System:</strong> <code>NextGen_Metadata_Framework</code> (MetaFlow)<br />
+<strong>Target System:</strong> FlowX (<code>flowx</code>)<br />
 <strong>Evaluation Scope:</strong> End-to-end metadata-driven Lakeflow Declarative Pipelines framework, Control Plane, Ingestion, Transformation, CDC/SCD Engine, Data Quality/Quarantine, Cryptography/Security, Governance, Observability, Reconciliation, and Extensible Code Architecture.</p>
 <hr />
 <h2 id="1-executive-summary-platform-health-score">1. Executive Summary &amp; Platform Health Score<a class="headerlink" href="#1-executive-summary-platform-health-score" title="Permanent link">&para;</a></h2>
-<p>MetaFlow is an enterprise-grade, metadata-driven data platform built on <strong>Databricks Lakeflow Declarative Pipelines</strong> (formerly Delta Live Tables / DLT), <strong>Unity Catalog</strong>, <strong>Delta Lake</strong>, and <strong>Declarative Automation Bundles (DABs)</strong>. The framework abstracts complex pipeline engineering into a declarative control-plane model, allowing data engineers and domain teams to onboard ingestion, transformation, data quality, encryption, and reconciliation workflows purely via JSON/YAML specifications without writing procedural Spark boilerplate.</p>
+<p>FlowX is an enterprise-grade, metadata-driven data platform built on <strong>Databricks Lakeflow Declarative Pipelines</strong> (formerly Delta Live Tables / DLT), <strong>Unity Catalog</strong>, <strong>Delta Lake</strong>, and <strong>Declarative Automation Bundles (DABs)</strong>. The framework abstracts complex pipeline engineering into a declarative control-plane model, allowing data engineers and domain teams to onboard ingestion, transformation, data quality, encryption, and reconciliation workflows purely via JSON/YAML specifications without writing procedural Spark boilerplate.</p>
 <h3 id="overall-platform-health-score-78-10">Overall Platform Health Score: 7.8 / 10<a class="headerlink" href="#overall-platform-health-score-78-10" title="Permanent link">&para;</a></h3>
 <table>
 <thead>
@@ -3728,7 +3728,7 @@
 <li><strong>Remediation:</strong> Require explicit opt-in for array exploding and struct flattening (e.g., <code>explode_columns: ["*"]</code> or <code>auto_flatten_json: true</code>), defaulting to schema preservation.</li>
 </ul>
 <hr />
-<h2 id="4-end-to-end-metaflow-architecture-map">4. End-to-End MetaFlow Architecture Map<a class="headerlink" href="#4-end-to-end-metaflow-architecture-map" title="Permanent link">&para;</a></h2>
+<h2 id="4-end-to-end-flowx-architecture-map">4. End-to-End FlowX Architecture Map<a class="headerlink" href="#4-end-to-end-flowx-architecture-map" title="Permanent link">&para;</a></h2>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>flowchart TD
 <a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>    subgraph ControlPlane["1. Control Plane &amp; Onboarding"]
 <a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>        A[Onboarding Spec: JSON/YAML] --&gt;|spec_validator.py| B[validate_spec]

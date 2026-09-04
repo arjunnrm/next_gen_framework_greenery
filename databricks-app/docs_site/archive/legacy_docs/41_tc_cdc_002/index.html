@@ -23,7 +23,7 @@
     
     
       
-        <title>Test Pipeline: Full Materialized View Snapshot (TC-CDC-002) - NextGen Metadata Framework (Metaflow)</title>
+        <title>Test Pipeline: Full Materialized View Snapshot (TC-CDC-002) - FlowX</title>
       
     
     
@@ -88,7 +88,7 @@
 
 <header class="md-header" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href="../../.." title="NextGen Metadata Framework (Metaflow)" class="md-header__button md-logo" aria-label="NextGen Metadata Framework (Metaflow)" data-md-component="logo">
+    <a href="../../.." title="FlowX" class="md-header__button md-logo" aria-label="FlowX" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
@@ -102,7 +102,7 @@
       <div class="md-header__ellipsis">
         <div class="md-header__topic">
           <span class="md-ellipsis">
-            NextGen Metadata Framework (Metaflow)
+            FlowX
           </span>
         </div>
         <div class="md-header__topic" data-md-component="header-topic">
@@ -405,13 +405,13 @@
 
 <nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href="../../.." title="NextGen Metadata Framework (Metaflow)" class="md-nav__button md-logo" aria-label="NextGen Metadata Framework (Metaflow)" data-md-component="logo">
+    <a href="../../.." title="FlowX" class="md-nav__button md-logo" aria-label="FlowX" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
 
     </a>
-    NextGen Metadata Framework (Metaflow)
+    FlowX
   </label>
   
   <ul class="md-nav__list" data-md-scrollfix>
@@ -3379,7 +3379,7 @@
 
 <h1 id="test-pipeline-full-materialized-view-snapshot-tc-cdc-002">Test Pipeline: Full Materialized View Snapshot (TC-CDC-002)<a class="headerlink" href="#test-pipeline-full-materialized-view-snapshot-tc-cdc-002" title="Permanent link">&para;</a></h1>
 <blockquote>
-<p>See also: <a href="README.md">Documentation index</a>, <a href="../metaflow_testing/TESTING_PLAN.md">metaflow_testing/TESTING_PLAN.md</a> (Module 2, TC-CDC-002), <a href="../metaflow_testing/TESTING_STATUS.md">metaflow_testing/TESTING_STATUS.md</a>, <a href="../02_cdc_load_strategies/#truncate_and_load">02_cdc_load_strategies.md § TRUNCATE_AND_LOAD</a>.</p>
+<p>See also: <a href="README.md">Documentation index</a>, <a href="../flowx_testing/TESTING_PLAN.md">flowx_testing/TESTING_PLAN.md</a> (Module 2, TC-CDC-002), <a href="../flowx_testing/TESTING_STATUS.md">flowx_testing/TESTING_STATUS.md</a>, <a href="../02_cdc_load_strategies/#truncate_and_load">02_cdc_load_strategies.md § TRUNCATE_AND_LOAD</a>.</p>
 </blockquote>
 <h2 id="purpose">Purpose<a class="headerlink" href="#purpose" title="Permanent link">&para;</a></h2>
 <p>Prove that <code>target_config.cdc_load_strategy: "TRUNCATE_AND_LOAD"</code> on a <code>target_type:
@@ -3405,9 +3405,9 @@ target's row count completely unchanged, never growing.</p>
 </ul>
 <h2 id="inputs">Inputs<a class="headerlink" href="#inputs" title="Permanent link">&para;</a></h2>
 <ul>
-<li><code>metaflow_testing/020_cdc_002_truncate.json</code> -- one ingestion flow + one transformation flow,
+<li><code>flowx_testing/020_cdc_002_truncate.json</code> -- one ingestion flow + one transformation flow,
   no <code>reconciliation_flows</code>.</li>
-<li><code>sample_data/metaflow_testing/ref_usecase/fx_rates_batch1.csv</code> -- 50 rows, hand-authored (no
+<li><code>sample_data/flowx_testing/ref_usecase/fx_rates_batch1.csv</code> -- 50 rows, hand-authored (no
   generator script needed for a fixture this small): 50 distinct real ISO 4217 currency codes
   (<code>AED</code> … <code>ZAR</code>), each with a plausible <code>exchange_rate</code> against USD, all sharing <code>rate_date =
   2026-08-28</code>.</li>
@@ -3428,7 +3428,7 @@ target's row count completely unchanged, never growing.</p>
   to accumulate.</li>
 </ul>
 <h2 id="configuration">Configuration<a class="headerlink" href="#configuration" title="Permanent link">&para;</a></h2>
-<p><code>metaflow_testing/020_cdc_002_truncate.json</code>'s ingestion flow:</p>
+<p><code>flowx_testing/020_cdc_002_truncate.json</code>'s ingestion flow:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nt">"source_config"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
 <a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="w">  </span><span class="nt">"path"</span><span class="p">:</span><span class="w"> </span><span class="s2">"/Volumes/{{catalog}}/ref/landing_fx/incoming/"</span><span class="p">,</span>
 <a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="w">  </span><span class="nt">"format"</span><span class="p">:</span><span class="w"> </span><span class="s2">"csv"</span><span class="p">,</span>
@@ -3449,12 +3449,12 @@ target's row count completely unchanged, never growing.</p>
 <p>Target: <code>{{catalog}}.silver_ref.dim_fx_rates_current</code>, <code>target_type: "materialized_view"</code>.</p>
 <h2 id="main-execution-flow">Main execution flow<a class="headerlink" href="#main-execution-flow" title="Permanent link">&para;</a></h2>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>databricks<span class="w"> </span>bundle<span class="w"> </span>deploy<span class="w"> </span>--target<span class="w"> </span>dev
-<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>databricks<span class="w"> </span>bundle<span class="w"> </span>run<span class="w"> </span>metaflow_test_cdc_002_truncate_job<span class="w"> </span>--target<span class="w"> </span>dev
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>databricks<span class="w"> </span>bundle<span class="w"> </span>run<span class="w"> </span>flowx_test_cdc_002_truncate_job<span class="w"> </span>--target<span class="w"> </span>dev
 </code></pre></div>
 <p>Task chain: <code>setup_control_tables -&gt; seed_cdc_002_truncate_data -&gt; onboard_cdc_002 -&gt;
 run_pipeline</code>.</p>
 <p><strong>To exercise the "no accumulation across runs" property directly</strong>: after the first successful
-job run, simply run <code>databricks bundle run metaflow_test_cdc_002_truncate_job --target dev</code>
+job run, simply run <code>databricks bundle run flowx_test_cdc_002_truncate_job --target dev</code>
 again (or trigger just the pipeline update on its own) without re-landing any new file -- Auto
 Loader's checkpoint means Bronze stays at 50 rows regardless, and the materialized view's own
 full recompute means Silver stays at 50 rows too, on every subsequent update.</p>
@@ -3478,7 +3478,7 @@ full recompute means Silver stays at 50 rows too, on every subsequent update.</p
 <a id="__codelineno-3-16" name="__codelineno-3-16" href="#__codelineno-3-16"></a><span class="c1">-- expect: 0 rows returned</span>
 </code></pre></div>
 <p><strong>This pass's actual verification status</strong>: see
-<a href="../metaflow_testing/TESTING_STATUS.md"><code>metaflow_testing/TESTING_STATUS.md</code></a> for whether this
+<a href="../flowx_testing/TESTING_STATUS.md"><code>flowx_testing/TESTING_STATUS.md</code></a> for whether this
 job was actually run against the live workspace and what the real result was -- this document
 describes what <em>should</em> happen structurally; the status tracker records what <em>did</em> happen, if
 anything, each time this scenario is executed. (Per this project's build convention, that tracker
@@ -3491,9 +3491,9 @@ is updated centrally in a later phase, not by this build itself.)</p>
   Volume/Auto Loader), has only 10 rows, and deliberately includes one invalid negative rate
   (<code>BRL,-0.10</code>) for a different, DQ-focused purpose. Neither its shape (already a table, not a
   landable CSV) nor its row count (10, not the 50 this TC specifically calls for) fit this
-  scenario, so a new 50-row <code>sample_data/metaflow_testing/ref_usecase/fx_rates_batch1.csv</code> fixture
+  scenario, so a new 50-row <code>sample_data/flowx_testing/ref_usecase/fx_rates_batch1.csv</code> fixture
   and its own dedicated seed notebook were added instead, following the same
-  <code>sample_data/metaflow_testing/&lt;domain&gt;_usecase/</code> convention every other <code>metaflow_testing/*</code>
+  <code>sample_data/flowx_testing/&lt;domain&gt;_usecase/</code> convention every other <code>flowx_testing/*</code>
   scenario's fixtures already use.</li>
 <li><strong>One CSV extract, not two.</strong> <code>TESTING_PLAN.md</code> frames the scenario as "daily FX rates arrive
   as a full replacement extract," but proving "no accumulation across <em>runs</em>" only requires

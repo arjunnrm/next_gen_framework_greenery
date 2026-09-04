@@ -25,7 +25,7 @@ from databricks.sdk.errors import (
 from server.errors import AppException
 from server.settings import ActionConfig, AppSettings
 
-logger = logging.getLogger("metaflow_app")
+logger = logging.getLogger("flowx_app")
 
 
 class JobRunner:
@@ -179,7 +179,7 @@ class JobRunner:
                 except ValueError:
                     pass
             if not effective_job_id:
-                for env_k in ("METAFLOW_ONBOARDING_JOB_ID", "ONBOARDING_JOB_ID", "DATABRICKS_ONBOARDING_JOB_ID", "JOB_ID"):
+                for env_k in ("FLOWX_ONBOARDING_JOB_ID", "ONBOARDING_JOB_ID", "DATABRICKS_ONBOARDING_JOB_ID", "JOB_ID"):
                     env_jid = os.environ.get(env_k, "").strip()
                     if env_jid and env_jid.isdigit():
                         effective_job_id = int(env_jid)
@@ -187,7 +187,7 @@ class JobRunner:
             if not effective_job_id:
                 raise AppException(
                     code="CONFIG_INVALID",
-                    message=f"Action '{action_id}' mode is 'job' but job_id is missing. Please configure METAFLOW_ONBOARDING_JOB_ID.",
+                    message=f"Action '{action_id}' mode is 'job' but job_id is missing. Please configure FLOWX_ONBOARDING_JOB_ID.",
                     status_code=500
                 )
 
@@ -321,7 +321,7 @@ class JobRunner:
             if not job_id and action:
                 job_id = action.job_id
             if not job_id:
-                for env_k in ("METAFLOW_ONBOARDING_JOB_ID", "ONBOARDING_JOB_ID", "DATABRICKS_ONBOARDING_JOB_ID", "JOB_ID"):
+                for env_k in ("FLOWX_ONBOARDING_JOB_ID", "ONBOARDING_JOB_ID", "DATABRICKS_ONBOARDING_JOB_ID", "JOB_ID"):
                     val = os.environ.get(env_k, "").strip()
                     if val and val.isdigit():
                         job_id = int(val)

@@ -27,7 +27,7 @@
     
     
       
-        <title>Platform architecture & core concepts - NextGen Metadata Framework (Metaflow)</title>
+        <title>Platform architecture & core concepts - FlowX</title>
       
     
     
@@ -78,7 +78,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#metaflow-platform-architecture-core-concepts" class="md-skip">
+        <a href="#flowx-platform-architecture-core-concepts" class="md-skip">
           Skip to content
         </a>
       
@@ -92,7 +92,7 @@
 
 <header class="md-header" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href=".." title="NextGen Metadata Framework (Metaflow)" class="md-header__button md-logo" aria-label="NextGen Metadata Framework (Metaflow)" data-md-component="logo">
+    <a href=".." title="FlowX" class="md-header__button md-logo" aria-label="FlowX" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
@@ -106,7 +106,7 @@
       <div class="md-header__ellipsis">
         <div class="md-header__topic">
           <span class="md-ellipsis">
-            NextGen Metadata Framework (Metaflow)
+            FlowX
           </span>
         </div>
         <div class="md-header__topic" data-md-component="header-topic">
@@ -411,13 +411,13 @@
 
 <nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href=".." title="NextGen Metadata Framework (Metaflow)" class="md-nav__button md-logo" aria-label="NextGen Metadata Framework (Metaflow)" data-md-component="logo">
+    <a href=".." title="FlowX" class="md-nav__button md-logo" aria-label="FlowX" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
 
     </a>
-    NextGen Metadata Framework (Metaflow)
+    FlowX
   </label>
   
   <ul class="md-nav__list" data-md-scrollfix>
@@ -985,10 +985,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#the-metaflow-solution" class="md-nav__link">
+  <a href="#the-flowx-solution" class="md-nav__link">
     <span class="md-ellipsis">
       
-        The Metaflow Solution
+        The FlowX Solution
       
     </span>
   </a>
@@ -3673,10 +3673,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#the-metaflow-solution" class="md-nav__link">
+  <a href="#the-flowx-solution" class="md-nav__link">
     <span class="md-ellipsis">
       
-        The Metaflow Solution
+        The FlowX Solution
       
     </span>
   </a>
@@ -3976,23 +3976,23 @@
 
 
 
-<h1 id="metaflow-platform-architecture-core-concepts">🏗️ Metaflow — Platform Architecture &amp; Core Concepts<a class="headerlink" href="#metaflow-platform-architecture-core-concepts" title="Permanent link">&para;</a></h1>
+<h1 id="flowx-platform-architecture-core-concepts">🏗️ FlowX — Platform Architecture &amp; Core Concepts<a class="headerlink" href="#flowx-platform-architecture-core-concepts" title="Permanent link">&para;</a></h1>
 <blockquote>
-<p><strong>Audience</strong>: Solution architects, lead data engineers, and framework contributors who need to understand how Metaflow compiles metadata into Databricks Lakeflow Declarative Pipelines.</p>
+<p><strong>Audience</strong>: Solution architects, lead data engineers, and framework contributors who need to understand how FlowX compiles metadata into Databricks Lakeflow Declarative Pipelines.</p>
 </blockquote>
 <hr />
 <h2 id="1-executive-summary-problem-statement">1. Executive Summary &amp; Problem Statement<a class="headerlink" href="#1-executive-summary-problem-statement" title="Permanent link">&para;</a></h2>
-<p><strong>Metaflow</strong> is an enterprise-grade, metadata-driven data framework built natively on <a href="https://docs.databricks.com/aws/en/dlt/">Databricks Lakeflow Declarative Pipelines</a> (formerly Delta Live Tables / DLT).</p>
+<p><strong>FlowX</strong> is an enterprise-grade, metadata-driven data framework built natively on <a href="https://docs.databricks.com/aws/en/dlt/">Databricks Lakeflow Declarative Pipelines</a> (formerly Delta Live Tables / DLT).</p>
 <h3 id="the-challenge-of-traditional-data-engineering">The Challenge of Traditional Data Engineering<a class="headerlink" href="#the-challenge-of-traditional-data-engineering" title="Permanent link">&para;</a></h3>
 <p>In traditional Lakehouse implementations:
 - <strong>Code Duplication</strong>: Every new source requires writing bespoke Python/SQL notebooks with redundant <code>@dlt.table</code> decorators and boilerplate.
 - <strong>Inconsistent CDC &amp; DQ</strong>: Different developers implement Slowly Changing Dimensions (SCD), error handling, and quarantine routing in subtly conflicting ways.
 - <strong>High Maintenance Overhead</strong>: Upgrading security standards, schema evolution policies, or telemetry logging requires modifying dozens of individual pipeline notebooks.</p>
-<h3 id="the-metaflow-solution">The Metaflow Solution<a class="headerlink" href="#the-metaflow-solution" title="Permanent link">&para;</a></h3>
-<p>Metaflow decouples <strong>Pipeline Definition</strong> (declarative JSON/YAML onboarding specifications) from <strong>Pipeline Execution</strong> (a single, generic Lakeflow compilation engine). Adding a new ingestion flow, multi-table join, SCD2 dimension, or PGP-encrypted sink requires only configuration—<strong>zero new Python code</strong>.</p>
+<h3 id="the-flowx-solution">The FlowX Solution<a class="headerlink" href="#the-flowx-solution" title="Permanent link">&para;</a></h3>
+<p>FlowX decouples <strong>Pipeline Definition</strong> (declarative JSON/YAML onboarding specifications) from <strong>Pipeline Execution</strong> (a single, generic Lakeflow compilation engine). Adding a new ingestion flow, multi-table join, SCD2 dimension, or PGP-encrypted sink requires only configuration—<strong>zero new Python code</strong>.</p>
 <hr />
 <h2 id="2-two-phase-execution-model">2. Two-Phase Execution Model<a class="headerlink" href="#2-two-phase-execution-model" title="Permanent link">&para;</a></h2>
-<p>Metaflow operates strictly on a two-phase execution lifecycle that prevents runtime data contamination and guarantees graph determinism:</p>
+<p>FlowX operates strictly on a two-phase execution lifecycle that prevents runtime data contamination and guarantees graph determinism:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>┌─────────────────────────────────────────────────────────────────────────────┐
 <a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>│                   PHASE 1: GRAPH DEFINITION (Compile Time)                  │
 <a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>│                                                                             │
@@ -4020,7 +4020,7 @@
 </blockquote>
 <hr />
 <h2 id="3-medallion-architecture-implementation">3. Medallion Architecture Implementation<a class="headerlink" href="#3-medallion-architecture-implementation" title="Permanent link">&para;</a></h2>
-<p>Metaflow structures data processing across the standard Medallion layers while enforcing enterprise governance:</p>
+<p>FlowX structures data processing across the standard Medallion layers while enforcing enterprise governance:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>                  ┌──────────────────────────────┐
 <a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>                  │      SOURCE DATA ASSETS      │
 <a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>                  │ Object Storage / Kafka / Bus │
@@ -4142,7 +4142,7 @@ the precedence decidable at all.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="c1"># resources/&lt;group&gt;/*_pipeline.yml</span>
 <a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="nt">configuration</span><span class="p">:</span>
 <a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="w">  </span><span class="nt">dataflow.group.id</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">dfg_orders</span>
-<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="w">  </span><span class="nt">dataflow.control.catalog</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">metaflow</span>
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="w">  </span><span class="nt">dataflow.control.catalog</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">flowx</span>
 <a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="w">  </span><span class="nt">dataflow.spark.conf</span><span class="p">:</span><span class="w"> </span><span class="s">'{"spark.sql.shuffle.partitions":</span><span class="nv"> </span><span class="s">"auto"}'</span>
 </code></pre></div>
 resolves to <code>spark.sql.shuffle.partitions = "auto"</code> — the pipeline resource's value strictly
@@ -4265,13 +4265,13 @@ computes an identity, so plan and bind cannot disagree about what is shared with
 </tr>
 <tr>
 <td><code>shared_node</code></td>
-<td>external, fan-out ≥ 2 (or <code>materialize: "always"</code>)</td>
+<td><strong>every</strong> external locator, at any fan-out (v1.7.3 Single-Read mandate)</td>
 <td>one materialized <code>_src__&lt;locator&gt;__&lt;8hex&gt;__{stream,batch}</code> node. A <strong>streaming table</strong> if <em>any</em> consumer streams, a materialized view otherwise — never the reverse, because an MV emits update/delete commits and cannot be a streaming source. <strong>v1.6.0:</strong> the node is a pipeline-scoped <code>@dlt.table(temporary=True)</code> under its bare name — still materialized once per update (read-once holds; a view is still never used for a shared node), but never published to Unity Catalog — unless the spec sets <strong>both</strong> <code>source_plane.catalog</code> and <code>source_plane.schema</code>, which is the explicit opt-in for a published, durable, queryable node.</td>
 </tr>
 <tr>
 <td><code>inline</code></td>
-<td>external, fan-out 1 (or <code>materialize: "never"</code>)</td>
-<td>today's exact code path, which preserves predicate pushdown of that consumer's filter into the original source.</td>
+<td><strong>never chosen since v1.7.3</strong></td>
+<td>Formerly: external, fan-out 1 (or <code>materialize: "never"</code>) — the read evaluated inside the single consumer, preserving predicate pushdown of that consumer's filter into the original source. The <code>Binding.kind</code> value and its branch remain in the code as dead-code defence, but the planner no longer reaches them for any external identity.</td>
 </tr>
 </tbody>
 </table>
@@ -4295,8 +4295,8 @@ computes an identity, so plan and bind cannot disagree about what is shared with
   neither pair (see <a href="../13_known_limitations_and_gotchas/#l7"><code>13_known_limitations_and_gotchas.md</code> L7</a>).</li>
 </ul>
 <p>The node name always carries an 8-hex digest of the locator — never only on truncation — because
-sanitizing maps every non-identifier character to <code>_</code>, and <code>metaflow.bronze.a_b</code> and
-<code>metaflow.bronze_a.b</code> would otherwise collide into one name and fail the whole update with
+sanitizing maps every non-identifier character to <code>_</code>, and <code>flowx.bronze.a_b</code> and
+<code>flowx.bronze_a.b</code> would otherwise collide into one name and fail the whole update with
 <em>"Cannot redefine dataset"</em>.</p>
 <h3 id="guards-at-plan-time-before-a-single-dlt-call">Guards, at plan time, before a single <code>dlt</code> call<a class="headerlink" href="#guards-at-plan-time-before-a-single-dlt-call" title="Permanent link">&para;</a></h3>
 <ul>
@@ -4314,12 +4314,20 @@ sanitizing maps every non-identifier character to <code>_</code>, and <code>meta
 <p><code>describe_plan(plan)</code> emits one structured <code>source_plane_node</code> event per node, so <em>"was my table
 actually read once?"</em> is answerable from the log stream rather than by inference.</p>
 <blockquote>
-<p><strong>Materialization is a real cost, deliberately not hidden.</strong> A shared node is a full physical
+<p><strong>Materialization is a real cost, deliberately accepted.</strong> A shared node is a full physical
 copy (pipeline-managed storage for a temporary node, UC storage for a published one), an extra
 DAG step, and — the part usually missed — it destroys predicate
-pushdown of a consumer's filter into the <em>original</em> source. That is why <code>source_plane.materialize</code>
-defaults to <code>"auto"</code> (a node only at fan-out ≥ 2) and why <code>"never"</code> exists for a huge,
-heavily-filtered table.</p>
+pushdown of a consumer's filter into the <em>original</em> source.</p>
+<p>Until v1.7.3 the framework tried to avoid paying that cost where it seemed unnecessary:
+<code>materialize</code> defaulted to <code>"auto"</code> (a node only at fan-out ≥ 2) and <code>"never"</code> existed as an
+escape hatch for a huge, heavily-filtered table. <strong>v1.7.3's Single-Read architectural mandate
+reverses that trade.</strong> <code>materialize</code> now defaults to <code>"always"</code>: every external source identity
+is materialized into its own base node, so N source tables produce N base ingestion nodes and
+the "was this read once?" question has one answer everywhere instead of depending on fan-out.
+<code>"never"</code> is prohibited and rejected at onboarding time (and again at plan time, for
+control-table rows written before the mandate); <code>"auto"</code> is still accepted but resolves to
+<code>"always"</code>. The pushdown cost is real and is now simply paid — a predictable graph is judged
+worth more than a per-consumer optimization that made the topology depend on fan-out.</p>
 </blockquote>
 <h3 id="where-a-shared-node-lives-source_planecatalog-source_planeschema-semantics-changed-in-v160">Where a shared node lives — <code>source_plane.catalog</code> / <code>source_plane.schema</code> (semantics changed in v1.6.0)<a class="headerlink" href="#where-a-shared-node-lives-source_planecatalog-source_planeschema-semantics-changed-in-v160" title="Permanent link">&para;</a></h3>
 <p>Since v1.6.0 an L0 node is plumbing, not a deliverable — the framework-wide <strong>Intermediate Object
@@ -4491,10 +4499,10 @@ through the same style of chain the catalog already had:</p>
 <p>This matters for any reconciliation flow that sets no explicit <code>publish_schema</code>; a flow that does
 set one overrides the chain for its own nodes.</p>
 <h3 id="86-verification-status">8.6 Verification status<a class="headerlink" href="#86-verification-status" title="Permanent link">&para;</a></h3>
-<p>Verified live on <strong>2026-08-31</strong>, target <code>dev_metaflow</code>: job <code>metaflow_test_recon_dag_job</code>
+<p>Verified live on <strong>2026-08-31</strong>, target <code>dev_flowx</code>: job <code>flowx_test_recon_dag_job</code>
 (<code>854232399214818</code>) ran <code>setup_control_tables → seed → onboard → run pipeline</code> to SUCCESS, and
 pipeline <code>be78d88d-6064-414d-a10c-2aacd900fa86</code>
-(<code>metaflow_test_003_autoload_recon_pipeline</code>) registered — in <strong>one update</strong>, per its own event
+(<code>flowx_test_003_autoload_recon_pipeline</code>) registered — in <strong>one update</strong>, per its own event
 log — the ingestion streaming table, both L3 prepare nodes, all three L4 comparison datasets, the
 L5 pulse streaming table, the heal <code>@dlt.append_flow</code>, and the <code>foreach_batch</code> heal sink. R1 and R2
 are therefore observed, not inferred.</p>

@@ -27,7 +27,7 @@
     
     
       
-        <title>Reconciliation & self-healing - NextGen Metadata Framework (Metaflow)</title>
+        <title>Reconciliation & self-healing - FlowX</title>
       
     
     
@@ -78,7 +78,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#metaflow-reconciliation-self-healing-engine" class="md-skip">
+        <a href="#flowx-reconciliation-self-healing-engine" class="md-skip">
           Skip to content
         </a>
       
@@ -92,7 +92,7 @@
 
 <header class="md-header" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href=".." title="NextGen Metadata Framework (Metaflow)" class="md-header__button md-logo" aria-label="NextGen Metadata Framework (Metaflow)" data-md-component="logo">
+    <a href=".." title="FlowX" class="md-header__button md-logo" aria-label="FlowX" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
@@ -106,7 +106,7 @@
       <div class="md-header__ellipsis">
         <div class="md-header__topic">
           <span class="md-ellipsis">
-            NextGen Metadata Framework (Metaflow)
+            FlowX
           </span>
         </div>
         <div class="md-header__topic" data-md-component="header-topic">
@@ -411,13 +411,13 @@
 
 <nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href=".." title="NextGen Metadata Framework (Metaflow)" class="md-nav__button md-logo" aria-label="NextGen Metadata Framework (Metaflow)" data-md-component="logo">
+    <a href=".." title="FlowX" class="md-nav__button md-logo" aria-label="FlowX" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
 
     </a>
-    NextGen Metadata Framework (Metaflow)
+    FlowX
   </label>
   
   <ul class="md-nav__list" data-md-scrollfix>
@@ -4144,13 +4144,13 @@
 
 
 
-<h1 id="metaflow-reconciliation-self-healing-engine">⚖️ Metaflow — Reconciliation &amp; Self-Healing Engine<a class="headerlink" href="#metaflow-reconciliation-self-healing-engine" title="Permanent link">&para;</a></h1>
+<h1 id="flowx-reconciliation-self-healing-engine">⚖️ FlowX — Reconciliation &amp; Self-Healing Engine<a class="headerlink" href="#flowx-reconciliation-self-healing-engine" title="Permanent link">&para;</a></h1>
 <blockquote>
 <p><strong>Audience</strong>: Data quality leads, analytics engineers, and operations teams managing cross-system consistency, automated audit checks, and self-healing data pipelines.</p>
 </blockquote>
 <hr />
 <h2 id="1-overview-of-reconciliation">1. Overview of Reconciliation<a class="headerlink" href="#1-overview-of-reconciliation" title="Permanent link">&para;</a></h2>
-<p>The Metaflow Reconciliation Engine provides automated, hash-first verification between a <strong>source baseline dataset</strong> and one or more <strong>target datasets</strong> (e.g. comparing a Bronze landing table against a transformed Gold dimension).</p>
+<p>The FlowX Reconciliation Engine provides automated, hash-first verification between a <strong>source baseline dataset</strong> and one or more <strong>target datasets</strong> (e.g. comparing a Bronze landing table against a transformed Gold dimension).</p>
 <h3 id="key-features">Key Features<a class="headerlink" href="#key-features" title="Permanent link">&para;</a></h3>
 <ul>
 <li><strong>Hash-First Matching</strong>: Uses deterministic SHA-256 row hashes (<code>__framework_hash_key</code> / <code>__framework_hash_value</code>, see <a href="../11_hashing_and_determinism/"><code>11_hashing_and_determinism.md</code></a>) for a single-column join instead of a multi-column <code>match_keys</code> join, so a flow with a dozen <code>compare_columns</code> costs the same at join time as one with a single column.</li>
@@ -4927,10 +4927,10 @@ flow's <code>_src</code>/healing <code>_tgt</code> remain published. See <a href
 for what this means for existing deployments and external consumers.</p>
 </blockquote>
 <h4 id="verified-live-the-exact-graph-one-update-registered">Verified live — the exact graph one update registered<a class="headerlink" href="#verified-live-the-exact-graph-one-update-registered" title="Permanent link">&para;</a></h4>
-<p>The node map above is not a design sketch. On <strong>2026-08-31</strong>, job <code>metaflow_test_recon_dag_job</code>
-(id <code>854232399214818</code>) ran to SUCCESS on target <code>dev_metaflow</code> — <code>setup_control_tables</code> →
-<code>seed_metaflow_testing_data</code> → <code>onboard_003</code> → <code>run_003_pipeline</code> — and pipeline
-<code>be78d88d-6064-414d-a10c-2aacd900fa86</code> (<code>metaflow_test_003_autoload_recon_pipeline</code>) registered
+<p>The node map above is not a design sketch. On <strong>2026-08-31</strong>, job <code>flowx_test_recon_dag_job</code>
+(id <code>854232399214818</code>) ran to SUCCESS on target <code>dev_flowx</code> — <code>setup_control_tables</code> →
+<code>seed_flowx_testing_data</code> → <code>onboard_003</code> → <code>run_003_pipeline</code> — and pipeline
+<code>be78d88d-6064-414d-a10c-2aacd900fa86</code> (<code>flowx_test_003_autoload_recon_pipeline</code>) registered
 <strong>all</strong> of the following in <strong>one</strong> update, per its own event log:</p>
 <table>
 <thead>
@@ -4942,7 +4942,7 @@ for what this means for existing deployments and external consumers.</p>
 </thead>
 <tbody>
 <tr>
-<td><code>metaflow.bronze_excalibur.autoload_bronze</code></td>
+<td><code>flowx.bronze_excalibur.autoload_bronze</code></td>
 <td><code>STREAMING_TABLE</code></td>
 <td>L1 · ingestion</td>
 </tr>
@@ -5128,14 +5128,18 @@ streaming table, and inventing one would be a lie about when healing ran.</p>
   fly would also get no <code>CLUSTER BY (__framework_hash_key)</code> — pre-create it with clustering where
   that matters.</li>
 <li><strong>Materialization is not free.</strong> Every L3/L4 node is a real physical copy in UC storage plus an
-  extra DAG step (and a checkpoint, for the streaming ones). This is why the L0 source plane
-  defaults to <code>materialize: "auto"</code> — a shared node only at fan-out ≥ 2 — and why <code>"never"</code> exists
-  for a huge, heavily-filtered table whose pushdown is worth more than the saved scan.</li>
+  extra DAG step (and a checkpoint, for the streaming ones). The L0 source plane used to hedge
+  against that cost — <code>materialize: "auto"</code> gave a shared node only at fan-out ≥ 2, and <code>"never"</code>
+  existed for a huge, heavily-filtered table whose pushdown was worth more than the saved scan.
+  <strong>Since v1.7.3 it does not:</strong> <code>materialize</code> defaults to <code>"always"</code>, so every external source
+  identity is materialized regardless of fan-out, and <code>"never"</code> is prohibited. The cost above is
+  therefore paid on every source — budget for it when sizing a group with many single-consumer
+  sources.</li>
 <li><strong>Delete the flow's standalone job task when you opt in.</strong> Switching a flow to <code>"pipeline"</code> does
   not remove anything from your DABs resources. A <code>run_&lt;n&gt;_reconciliation</code> notebook task left in
   place beside a now-pipeline-mode flow makes the comparison run <strong>twice per cycle</strong> — once inside
   the update, once as the job task — and each pass appends its own corrections into
-  <code>append_target_table</code>. This actually happened: <code>resources/feature_tests/metaflow_test_002_003_job.yml</code> still
+  <code>append_target_table</code>. This actually happened: <code>resources/feature_tests/flowx_test_002_003_job.yml</code> still
   carried the standalone task after scenario 003 was flipped, and the task was deleted. Nothing
   detects this for you; see <a href="../13_known_limitations_and_gotchas/#r8"><code>13_known_limitations_and_gotchas.md</code> R8</a>.</li>
 <li><strong>One run-as identity, not two.</strong> Today the recon job task and the pipeline can run as different
@@ -5217,7 +5221,7 @@ at all, so it slipped through: a reconciliation flow whose source was an in-grap
 <code>execution_mode: "pipeline"</code> and then died at pipeline runtime with
 <code>DELTA_SOURCE_TABLE_IGNORE_CHANGES</code>. The concrete case is the geneva tariffs group, whose recon
 source <code>geneva_admin.stg_tariffelementband</code> is that group's own <code>TRUNCATE_AND_LOAD</code> target —
-which is why <code>metaflow_testing/053_geneva_e41a47ba_recon_in_pipeline.json</code> declares
+which is why <code>flowx_testing/053_geneva_e41a47ba_recon_in_pipeline.json</code> declares
 <code>pipeline_audit_only</code>, not <code>pipeline</code>. The strategy is now in the guard set and the topology is
 pinned by <code>tests/unit/test_geneva_e41a47ba_topology.py</code>.</p>
 </blockquote>
@@ -5254,7 +5258,7 @@ through one helper, <code>_append_cycle_finding(...)</code>, which grades them b
 </table>
 <p><strong>Why this is graded, not absolute.</strong> Firing these unconditionally was a genuine
 <strong>backward-compatibility break</strong>, not a stricter reading of an existing rule. The shipped,
-pre-v1.5.0, purely job-mode spec <code>metaflow_testing/038_rec_003_precomputed_hash.json</code> appends into
+pre-v1.5.0, purely job-mode spec <code>flowx_testing/038_rec_003_precomputed_hash.json</code> appends into
 its own comparison target; under an unconditional rule it stopped validating and therefore could no
 longer be onboarded at all, because <code>02_onboarding_engine.py</code> raises on any non-empty <code>errors</code> list
 — with no edit by its author and no opt-in to any v1.5.0 attribute.</p>

@@ -2,7 +2,7 @@
 
 ## Enactment Summary
 - **Component**: Core Processing Engines (Registry, Serializer, Deserializer, Validator, Diff)
-- **Specification Version**: v1.0 (Targeting Metaflow Framework Schema v1.3.0)
+- **Specification Version**: v1.0 (Targeting FlowX Framework Schema v1.3.0)
 - **Status**: Completed (100% Test Pass Rate across 35 Unit Tests)
 
 ## Details of Enacted Functionality

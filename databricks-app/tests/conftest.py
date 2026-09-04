@@ -16,7 +16,7 @@ import re
 
 import pytest
 
-os.environ.setdefault("METAFLOW_FAKE_DBX", "1")
+os.environ.setdefault("FLOWX_FAKE_DBX", "1")
 
 from fastapi.testclient import TestClient  # noqa: E402
 

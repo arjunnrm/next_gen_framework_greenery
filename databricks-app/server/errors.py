@@ -1,5 +1,5 @@
 """
-Unified Error Envelope for Metaflow Onboarding App (§9.2).
+Unified Error Envelope for FlowX Onboarding App (§9.2).
 Error Codes:
   CONFIG_INVALID | VALIDATION_FAILED | NOT_FOUND | PERMISSION_DENIED |
   UPSTREAM_ERROR | RATE_LIMITED | TIMEOUT | PAYLOAD_TOO_LARGE |

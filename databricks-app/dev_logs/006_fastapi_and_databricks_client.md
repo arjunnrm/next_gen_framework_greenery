@@ -2,7 +2,7 @@
 
 ## Enactment Summary
 - **Component**: FastAPI Application, Databricks Clients (Real & Mock), Routers, and API Test Suite
-- **Specification Version**: v1.0 (Targeting Metaflow Framework Schema v1.3.0)
+- **Specification Version**: v1.0 (Targeting FlowX Framework Schema v1.3.0)
 - **Status**: Completed (45/45 Tests Passing)
 
 ## Details of Enacted Functionality
@@ -13,7 +13,7 @@
    - Standard error envelope matching §9.2 (`error: {code, message, detail, field_path, request_id, docs_url}`).
    - Dependency injection for Databricks `WorkspaceClient`, request ID, and forwarded user identities.
 3. **Databricks Integration & Offline Mock Client (`server/clients/`)**:
-   - `dbx.py`: Zero-workspace offline development support via `FakeWorkspaceClient` (`METAFLOW_FAKE_DBX=1`).
+   - `dbx.py`: Zero-workspace offline development support via `FakeWorkspaceClient` (`FLOWX_FAKE_DBX=1`).
    - `files.py`: Unity Catalog Volume and Workspace spec file management with path traversal checks, sanitization, format filtering, and ETag hashing.
    - `jobs.py`: Action dispatcher for local, job, and pipeline execution modes with stage progression tracking.
    - `access.py`: Non-destructive preflight permission checklist with probe file cleanup.

@@ -25,7 +25,7 @@ from server.settings import AppSettings
 
 import logging
 
-logger = logging.getLogger("metaflow_app")
+logger = logging.getLogger("flowx_app")
 
 
 router = APIRouter(prefix="/api/actions", tags=["Actions"])
@@ -60,7 +60,7 @@ def get_action_parameters(
         raise AppException(code="NOT_FOUND", message=f"Action '{action_id}' not found.", status_code=404)
 
     action = settings.actions[action_id]
-    catalog = _template_default(settings, "catalog", "metaflow")
+    catalog = _template_default(settings, "catalog", "flowx")
     env = _template_default(settings, "env", "dev")
 
     # Placeholder values for the two context keys that only exist once a spec is staged,
@@ -255,7 +255,7 @@ def trigger_action_run(
                     status_code=502
                 )
             else:
-                staged_full_path = f"/Volumes/{settings.template_variables['catalog'].default}/metaflow/onboarding_specs/{staged_filename}"
+                staged_full_path = f"/Volumes/{settings.template_variables['catalog'].default}/flowx/onboarding_specs/{staged_filename}"
 
     # 3. Trigger action via JobRunner using Databricks SDK with user OBO token
     runner = JobRunner(settings, client)
@@ -275,7 +275,7 @@ def trigger_action_run(
         custom_params.get("catalog")
         or job_parameter_overrides.get("catalog")
         or spec_catalog
-        or _template_default(settings, "catalog", "metaflow")
+        or _template_default(settings, "catalog", "flowx")
     )
     env_val = (
         custom_params.get("env")

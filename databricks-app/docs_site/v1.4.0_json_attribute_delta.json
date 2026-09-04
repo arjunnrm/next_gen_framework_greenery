@@ -1,5 +1,5 @@
 {
-  "$comment": "MACHINE-READABLE ATTRIBUTE DELTA for the NextGen Metadata Framework (Metaflow) onboarding spec, v1.3.0 -> v1.4.0. Intended to be fed directly to an automated agent updating the Databricks App (databricks-app/) or any other spec-authoring surface. Every path below is expressed as it appears in an onboarding spec document, rooted at the spec object; `[]` denotes an array element. This file is hand-authored and is the source of truth for the delta; the enforcing artefacts are onboarding_templates/onboarding_spec.schema.json (structure) and src/NextGen_Metadata_Framework/lakeflow_framework/onboarding/spec_validator.py (semantics, including the rejection messages quoted below verbatim).",
+  "$comment": "MACHINE-READABLE ATTRIBUTE DELTA for the FlowX onboarding spec, v1.3.0 -> v1.4.0. Intended to be fed directly to an automated agent updating the Databricks App (databricks-app/) or any other spec-authoring surface. Every path below is expressed as it appears in an onboarding spec document, rooted at the spec object; `[]` denotes an array element. This file is hand-authored and is the source of truth for the delta; the enforcing artefacts are onboarding_templates/onboarding_spec.schema.json (structure) and src/flowx/lakeflow_framework/onboarding/spec_validator.py (semantics, including the rejection messages quoted below verbatim).",
   "schema_version": "1.0",
   "framework_version_from": "1.3.0",
   "framework_version_to": "1.4.0",
@@ -335,7 +335,7 @@
         "notebook_path": "../notebooks/08_observability/08_dlt_observability_engine.py",
         "base_parameters": {
           "dataflow_group_id": "dfg_zip_csv_dataload",
-          "catalog": "metaflow",
+          "catalog": "flowx",
           "env": "dev",
           "pipeline_task_run_id": "{{tasks.run_pipeline_update.run_id}}"
         }
@@ -371,10 +371,10 @@
   "python_api_delta": {
     "$comment": "For any caller outside this repository.",
     "modules_deleted": [
-      "NextGen_Metadata_Framework.lakeflow_framework.crypto.hashing"
+      "flowx.lakeflow_framework.crypto.hashing"
     ],
     "modules_added": [
-      "NextGen_Metadata_Framework.lakeflow_framework.observability.runtime_params"
+      "flowx.lakeflow_framework.observability.runtime_params"
     ],
     "symbols_removed": [
       "generate_surrogate_key_hash",
@@ -428,7 +428,7 @@
   ],
   "enforcing_artifacts": {
     "json_schema": "onboarding_templates/onboarding_spec.schema.json",
-    "validator": "src/NextGen_Metadata_Framework/lakeflow_framework/onboarding/spec_validator.py",
+    "validator": "src/flowx/lakeflow_framework/onboarding/spec_validator.py",
     "validator_registries": [
       "REMOVED_SOURCE_CONFIG_KEYS",
       "REMOVED_TARGET_CONFIG_KEYS",

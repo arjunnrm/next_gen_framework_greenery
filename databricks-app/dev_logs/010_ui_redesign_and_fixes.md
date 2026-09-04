@@ -2,7 +2,7 @@
 
 ## Enactment Summary
 - **Component**: Frontend UI Redesign & Storage Path Sanitization Fixes
-- **Status**: Completed, 48/48 Tests Passing, Live Deployed to `dev_metaflow`
+- **Status**: Completed, 48/48 Tests Passing, Live Deployed to `dev_flowx`
 
 ## Key Enhancements & Fixes Delivered
 1. **Spec Root Primary Focus**:
@@ -27,4 +27,4 @@
    - Built comprehensive searchable documentation site with direct anchor links (`#1-top-level-spec-schema`, etc.).
    - Connected all `docs ↗` and `i` info drawers directly to documentation anchors.
 8. **Live Deployment**:
-   - Deployed active snapshot `01f1a3cab0ba1d97915952eb138c65ff` to `dev_metaflow`.
+   - Deployed active snapshot `01f1a3cab0ba1d97915952eb138c65ff` to `dev_flowx`.

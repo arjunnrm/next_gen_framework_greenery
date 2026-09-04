@@ -27,7 +27,7 @@
     
     
       
-        <title>Ingestion & source readers - NextGen Metadata Framework (Metaflow)</title>
+        <title>Ingestion & source readers - FlowX</title>
       
     
     
@@ -78,7 +78,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#metaflow-ingestion-source-reader-engine" class="md-skip">
+        <a href="#flowx-ingestion-source-reader-engine" class="md-skip">
           Skip to content
         </a>
       
@@ -92,7 +92,7 @@
 
 <header class="md-header" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href=".." title="NextGen Metadata Framework (Metaflow)" class="md-header__button md-logo" aria-label="NextGen Metadata Framework (Metaflow)" data-md-component="logo">
+    <a href=".." title="FlowX" class="md-header__button md-logo" aria-label="FlowX" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
@@ -106,7 +106,7 @@
       <div class="md-header__ellipsis">
         <div class="md-header__topic">
           <span class="md-ellipsis">
-            NextGen Metadata Framework (Metaflow)
+            FlowX
           </span>
         </div>
         <div class="md-header__topic" data-md-component="header-topic">
@@ -411,13 +411,13 @@
 
 <nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href=".." title="NextGen Metadata Framework (Metaflow)" class="md-nav__button md-logo" aria-label="NextGen Metadata Framework (Metaflow)" data-md-component="logo">
+    <a href=".." title="FlowX" class="md-nav__button md-logo" aria-label="FlowX" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
 
     </a>
-    NextGen Metadata Framework (Metaflow)
+    FlowX
   </label>
   
   <ul class="md-nav__list" data-md-scrollfix>
@@ -3858,13 +3858,13 @@
 
 
 
-<h1 id="metaflow-ingestion-source-reader-engine">📥 Metaflow — Ingestion &amp; Source Reader Engine<a class="headerlink" href="#metaflow-ingestion-source-reader-engine" title="Permanent link">&para;</a></h1>
+<h1 id="flowx-ingestion-source-reader-engine">📥 FlowX — Ingestion &amp; Source Reader Engine<a class="headerlink" href="#flowx-ingestion-source-reader-engine" title="Permanent link">&para;</a></h1>
 <blockquote>
 <p><strong>Audience</strong>: Data engineers onboarding raw data into Bronze Delta tables using Auto Loader, streaming message buses, or binary protocols.</p>
 </blockquote>
 <hr />
 <h2 id="1-overview-of-ingestion-capabilities">1. Overview of Ingestion Capabilities<a class="headerlink" href="#1-overview-of-ingestion-capabilities" title="Permanent link">&para;</a></h2>
-<p>Metaflow provides native, configuration-driven source readers for three primary ingestion modalities:
+<p>FlowX provides native, configuration-driven source readers for three primary ingestion modalities:
 1. <strong><code>autoloader</code></strong>: High-throughput cloud object storage ingestion (JSON, CSV, Parquet, Avro, Text, Binary) powered by <a href="https://docs.databricks.com/en/ingestion/cloud-object-storage/auto-loader/index.html">Databricks Auto Loader (<code>cloudFiles</code>)</a>.
 2. <strong><code>zerobus</code></strong>: Low-latency event streaming from Zerobus / Kafka / Delta streaming tables using Spark Structured Streaming.
 3. <strong><code>asn1</code></strong>: High-performance telecom CDR (Call Detail Record) decoding supporting ASN.1 BER and DER binary encodings via partitioned <code>mapInPandas</code>.</p>
@@ -3928,7 +3928,7 @@ mechanics:
 <a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a><span class="p">}</span>
 </code></pre></div>
 <h3 id="schema-evolution-policies">Schema Evolution Policies<a class="headerlink" href="#schema-evolution-policies" title="Permanent link">&para;</a></h3>
-<p>Metaflow supports all native Auto Loader schema evolution modes via <code>schema_evolution_mode</code>:
+<p>FlowX supports all native Auto Loader schema evolution modes via <code>schema_evolution_mode</code>:
 - <code>"addNewColumns"</code> (Default): Automatically appends newly discovered columns to the Bronze Delta table.
 - <code>"addNewColumnsWithTypeWidening"</code>: Appends new columns and widens compatible types (e.g. <code>INT</code> to <code>BIGINT</code>).
 - <code>"rescue"</code>: Directs unparseable rows or unknown columns into a dedicated <code>_rescued_data</code> column without failing the stream.
@@ -4004,7 +4004,7 @@ The two archive lifecycles are kept strictly separate on purpose: <code>source_z
 <h2 id="4-asn1-binary-decoding-source_type-asn1">4. ASN.1 Binary Decoding (<code>source_type: "asn1"</code>)<a class="headerlink" href="#4-asn1-binary-decoding-source_type-asn1" title="Permanent link">&para;</a></h2>
 <p>Telecom Call Detail Records (CDRs) and industrial telemetry often arrive as ASN.1 binary streams encoded in BER (Basic Encoding Rules) or DER (Distinguished Encoding Rules).</p>
 <h3 id="high-performance-partitioned-architecture">High-Performance Partitioned Architecture<a class="headerlink" href="#high-performance-partitioned-architecture" title="Permanent link">&para;</a></h3>
-<p>Metaflow compiles ASN.1 schemas <strong>once per Spark partition</strong> using <code>mapInPandas</code>, eliminating the severe performance bottleneck of compiling schemas per record:</p>
+<p>FlowX compiles ASN.1 schemas <strong>once per Spark partition</strong> using <code>mapInPandas</code>, eliminating the severe performance bottleneck of compiling schemas per record:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>┌─────────────────────────────────────────────────────────────┐
 <a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>│                    SPARK BINARY STREAM                      │
 <a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>│       Binary CDR payload files read via Auto Loader         │
@@ -4047,7 +4047,7 @@ whole difficulty of onboarding a genuine module:</p>
 </ol>
 <p>Toy schemas hide this. <code>sample_data/asn1_schema/gsm_cdr.asn</code> is a single flat 5-field <code>SEQUENCE</code>,
 so its PDU "just works". Every real telecom module is the opposite shape: a root <code>CHOICE</code> selecting
-between message kinds. In <code>metaflow_testing/BT_Testing/TAP.310.asn1</code> — the genuine GSMA TAP release
+between message kinds. In <code>flowx_testing/BT_Testing/TAP.310.asn1</code> — the genuine GSMA TAP release
 3.10 specification, 375 types — the module's own top-level <code>DataInterChange</code> is
 <code>CHOICE { transferBatch, notification }</code> and is rejected outright; <code>TransferBatch</code> <em>is</em> a <code>SEQUENCE</code>
 but reaches <code>CallEventDetail</code>, also a <code>CHOICE</code>, and is rejected one level deeper. <code>Notification</code>
@@ -4058,9 +4058,9 @@ ingests.</p>
 <p>Rather than reading the module, ask the resolver which PDUs it can actually derive — on TAP.310
 this reports 70 usable types out of 93 top-level <code>SEQUENCE</code>s in about a second:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">asn1tools</span>
-<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">NextGen_Metadata_Framework.lakeflow_framework.asn1.decoder</span><span class="w"> </span><span class="kn">import</span> <span class="n">derive_asn1_field_defs</span>
+<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">flowx.lakeflow_framework.asn1.decoder</span><span class="w"> </span><span class="kn">import</span> <span class="n">derive_asn1_field_defs</span>
 <a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>
-<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="n">module</span> <span class="o">=</span> <span class="s2">"metaflow_testing/BT_Testing/TAP.310.asn1"</span>
+<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="n">module</span> <span class="o">=</span> <span class="s2">"flowx_testing/BT_Testing/TAP.310.asn1"</span>
 <a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="n">types</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="nb">iter</span><span class="p">(</span><span class="n">asn1tools</span><span class="o">.</span><span class="n">parse_files</span><span class="p">([</span><span class="n">module</span><span class="p">])</span><span class="o">.</span><span class="n">values</span><span class="p">()))[</span><span class="s2">"types"</span><span class="p">]</span>
 <a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a><span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">node</span> <span class="ow">in</span> <span class="n">types</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
 <a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a>    <span class="k">if</span> <span class="n">node</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"type"</span><span class="p">)</span> <span class="o">!=</span> <span class="s2">"SEQUENCE"</span><span class="p">:</span>
@@ -4080,7 +4080,7 @@ every decoded column NULL, which is what makes <code>"expression": "_asn1_decode
 <code>"action": "quarantine"</code> the standard first DQ rule on an <code>asn1</code> flow.</p>
 <hr />
 <h2 id="5-in-flight-pgp-decryption-zip-archive-handling">5. In-Flight PGP Decryption &amp; ZIP Archive Handling<a class="headerlink" href="#5-in-flight-pgp-decryption-zip-archive-handling" title="Permanent link">&para;</a></h2>
-<p>Metaflow can transparently decrypt PGP-encrypted files and extract ZIP archives before passing raw payloads to the downstream reader (<code>autoloader</code> or <code>asn1</code>). This all runs inside the reader function itself — at the pipeline's actual <em>execution</em> time, not merely graph-definition time — so decrypt → unzip → Auto Loader ingest → downstream transforms happen within one Lakeflow Declarative Pipeline update, with no separate job task required.</p>
+<p>FlowX can transparently decrypt PGP-encrypted files and extract ZIP archives before passing raw payloads to the downstream reader (<code>autoloader</code> or <code>asn1</code>). This all runs inside the reader function itself — at the pipeline's actual <em>execution</em> time, not merely graph-definition time — so decrypt → unzip → Auto Loader ingest → downstream transforms happen within one Lakeflow Declarative Pipeline update, with no separate job task required.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="p">{</span>
 <a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="w">  </span><span class="nt">"source_config"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
 <a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="w">    </span><span class="nt">"path"</span><span class="p">:</span><span class="w"> </span><span class="s2">"/Volumes/{{catalog}}/landing/secure_archives"</span><span class="p">,</span>
@@ -4340,7 +4340,7 @@ Configure <code>dedup_watermark</code> for any stream expected to run continuous
 <hr />
 <h2 id="8-technical-metadata-column-normalization">8. Technical Metadata &amp; Column Normalization<a class="headerlink" href="#8-technical-metadata-column-normalization" title="Permanent link">&para;</a></h2>
 <h3 id="automatic-technical-metadata-injection">Automatic Technical Metadata Injection<a class="headerlink" href="#automatic-technical-metadata-injection" title="Permanent link">&para;</a></h3>
-<p>When <code>capture_technical_metadata: true</code> is set, Metaflow automatically enriches Bronze records with standard audit columns:
+<p>When <code>capture_technical_metadata: true</code> is set, FlowX automatically enriches Bronze records with standard audit columns:
 - <code>__framework_source_file_name</code>: Name and path of the ingested file.
 - <code>__framework_source_file_size</code>: Size in bytes.
 - <code>__framework_source_file_modification_time</code>: File timestamp on cloud storage.
@@ -4433,7 +4433,7 @@ reference are all written against the <strong>normalized</strong> names, never t
 </code></pre></div>
 <blockquote>
 <p>[!TIP]
-If <code>schema_config_path</code> points to a directory (e.g. <code>/Volumes/catalog/schemas/orders/</code>), Metaflow automatically resolves and loads the most recently modified file in that directory.</p>
+If <code>schema_config_path</code> points to a directory (e.g. <code>/Volumes/catalog/schemas/orders/</code>), FlowX automatically resolves and loads the most recently modified file in that directory.</p>
 </blockquote>
 
 

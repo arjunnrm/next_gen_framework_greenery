@@ -1,6 +1,6 @@
 command: ["uvicorn", "server.app:app", "--host", "0.0.0.0", "--port", "8000"]
 env:
-  - name: METAFLOW_APP_CONFIG
+  - name: FLOWX_APP_CONFIG
     value: "./config/index.json"
-  - name: METAFLOW_LOG_LEVEL
+  - name: FLOWX_LOG_LEVEL
     value: "INFO"

@@ -47,7 +47,7 @@ from databricks.sdk.service.workspace import ExportFormat, ImportFormat
 from server.errors import AppException
 from server.settings import AppSettings, StorageRoot
 
-logger = logging.getLogger("metaflow_app")
+logger = logging.getLogger("flowx_app")
 
 
 def resolve_template_placeholders(
@@ -61,7 +61,7 @@ def resolve_template_placeholders(
     literal path — and every save and open aimed at a directory named `{{catalog}}`.
     """
     vars_map = {name: var.default for name, var in settings.template_variables.items()}
-    vars_map.setdefault("catalog", "metaflow")
+    vars_map.setdefault("catalog", "flowx")
     vars_map.setdefault("env", "dev")
     if template_vars:
         vars_map.update({k: v for k, v in template_vars.items() if v not in (None, "")})

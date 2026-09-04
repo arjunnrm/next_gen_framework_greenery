@@ -23,7 +23,7 @@
     
     
       
-        <title>Bronze Column Normalization & Explicit Schema Configuration - NextGen Metadata Framework (Metaflow)</title>
+        <title>Bronze Column Normalization & Explicit Schema Configuration - FlowX</title>
       
     
     
@@ -88,7 +88,7 @@
 
 <header class="md-header" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href="../../.." title="NextGen Metadata Framework (Metaflow)" class="md-header__button md-logo" aria-label="NextGen Metadata Framework (Metaflow)" data-md-component="logo">
+    <a href="../../.." title="FlowX" class="md-header__button md-logo" aria-label="FlowX" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
@@ -102,7 +102,7 @@
       <div class="md-header__ellipsis">
         <div class="md-header__topic">
           <span class="md-ellipsis">
-            NextGen Metadata Framework (Metaflow)
+            FlowX
           </span>
         </div>
         <div class="md-header__topic" data-md-component="header-topic">
@@ -405,13 +405,13 @@
 
 <nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href="../../.." title="NextGen Metadata Framework (Metaflow)" class="md-nav__button md-logo" aria-label="NextGen Metadata Framework (Metaflow)" data-md-component="logo">
+    <a href="../../.." title="FlowX" class="md-nav__button md-logo" aria-label="FlowX" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
 
     </a>
-    NextGen Metadata Framework (Metaflow)
+    FlowX
   </label>
   
   <ul class="md-nav__list" data-md-scrollfix>
@@ -3407,7 +3407,7 @@
 
 <h1 id="bronze-column-normalization-explicit-schema-configuration">Bronze Column Normalization &amp; Explicit Schema Configuration<a class="headerlink" href="#bronze-column-normalization-explicit-schema-configuration" title="Permanent link">&para;</a></h1>
 <blockquote>
-<p>See also: <a href="README.md">README.md</a> — the full Metaflow documentation set, and
+<p>See also: <a href="README.md">README.md</a> — the full FlowX documentation set, and
 <a href="../01_control_metadata_schema/">01_control_metadata_schema.md</a> for the full <code>source_config</code>
 field reference these two attributes belong to.</p>
 </blockquote>
@@ -3599,11 +3599,11 @@ error — check the pipeline's own update logs if <code>schema_config_path</code
 but the pipeline still fails to start.</p>
 <h2 id="relevant-files">Relevant files<a class="headerlink" href="#relevant-files" title="Permanent link">&para;</a></h2>
 <ul>
-<li><code>src/NextGen_Metadata_Framework/lakeflow_framework/ingestion/column_normalization.py</code> —
+<li><code>src/flowx/lakeflow_framework/ingestion/column_normalization.py</code> —
   <code>normalize_column_name</code> (pure), <code>normalize_column_names</code> (DataFrame).</li>
-<li><code>src/NextGen_Metadata_Framework/lakeflow_framework/ingestion/schema_config.py</code> —
+<li><code>src/flowx/lakeflow_framework/ingestion/schema_config.py</code> —
   <code>resolve_schema_config_path</code>, <code>load_schema_config</code>, <code>apply_schema_config</code>.</li>
-<li><code>src/NextGen_Metadata_Framework/lakeflow_framework/onboarding/spec_validator.py</code> —
+<li><code>src/flowx/lakeflow_framework/onboarding/spec_validator.py</code> —
   <code>_validate_ingestion_source_config</code>'s <code>normalize_column_names</code>/<code>schema_config_path</code> checks.</li>
 <li><code>onboarding_templates/schema_config_example.json</code> / <code>.yaml</code> — the worked example above, in
   full.</li>

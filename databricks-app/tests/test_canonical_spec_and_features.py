@@ -15,7 +15,7 @@ import yaml
 from fastapi.testclient import TestClient
 import pytest
 
-os.environ["METAFLOW_FAKE_DBX"] = "1"
+os.environ["FLOWX_FAKE_DBX"] = "1"
 
 from server.app import app
 
@@ -177,7 +177,7 @@ def test_save_destinations_api():
     # 1. Workspace Save
     res1 = client.post("/api/workspace/write", json={
         "root_id": "ws_specs",
-        "path": "/Workspace/Shared/metaflow/specs/pipeline_spec.json",
+        "path": "/Workspace/Shared/flowx/specs/pipeline_spec.json",
         "content": '{"$schema": "./onboarding_spec.schema.json", "dataflow_group_id": "dfg_test"}',
         "overwrite": True
     })
@@ -186,7 +186,7 @@ def test_save_destinations_api():
     # 2. Volume Save
     res2 = client.post("/api/workspace/write", json={
         "root_id": "vol_specs",
-        "path": "/Volumes/metaflow/metaflow/onboarding_specs/pipeline_spec.json",
+        "path": "/Volumes/flowx/flowx/onboarding_specs/pipeline_spec.json",
         "content": '{"$schema": "./onboarding_spec.schema.json", "dataflow_group_id": "dfg_test"}',
         "overwrite": True
     })

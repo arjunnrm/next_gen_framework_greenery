@@ -30,7 +30,7 @@ from databricks.sdk import WorkspaceClient
 from databricks.sdk.errors import NotFound, ResourceAlreadyExists
 from databricks.sdk.service.workspace import ExportFormat, ImportFormat, Language, ObjectType
 
-logger = logging.getLogger("metaflow_app")
+logger = logging.getLogger("flowx_app")
 
 
 class FakeCurrentUser:
@@ -221,7 +221,7 @@ class FakeJobsAPI:
         # `class RunNowResult: run_id = run_id` raises NameError — assigning the
         # name inside the class body makes it class-local, so the right-hand load
         # never reaches the enclosing function's `run_id`. That bug made every
-        # job-mode action fail with UPSTREAM_ERROR under METAFLOW_FAKE_DBX.
+        # job-mode action fail with UPSTREAM_ERROR under FLOWX_FAKE_DBX.
         generated_run_id = 100000 + (hash(uuid.uuid4().hex) % 899999)
         self._runs[str(generated_run_id)] = {
             "run_id": generated_run_id,
@@ -284,10 +284,10 @@ class FakeWorkspaceClient:
         self.current_user = FakeCurrentUser()
         # Seeded so a local run can list, open and re-save something real end to end.
         self.files = FakeFilesAPI({
-            "/Volumes/metaflow/metaflow/onboarding_specs/sample_spec.json": _SAMPLE_SPEC,
+            "/Volumes/flowx/flowx/onboarding_specs/sample_spec.json": _SAMPLE_SPEC,
         })
         self.workspace = FakeWorkspaceAPI({
-            "/Workspace/Shared/metaflow/specs/sample_spec.json": _SAMPLE_SPEC,
+            "/Workspace/Shared/flowx/specs/sample_spec.json": _SAMPLE_SPEC,
         })
         self.jobs = FakeJobsAPI()
 
@@ -329,9 +329,9 @@ def get_workspace_client(
     indistinguishable from working software until someone looks in the Volume and finds
     nothing there.
     """
-    if force_fake or os.environ.get("METAFLOW_FAKE_DBX") == "1":
+    if force_fake or os.environ.get("FLOWX_FAKE_DBX") == "1":
         logger.debug(
-            "Using mock WorkspaceClient (METAFLOW_FAKE_DBX=1).",
+            "Using mock WorkspaceClient (FLOWX_FAKE_DBX=1).",
             extra={"event": "sdk_client_init", "auth_mode": "fake", "user": user or "system"}
         )
         return _fake_client()

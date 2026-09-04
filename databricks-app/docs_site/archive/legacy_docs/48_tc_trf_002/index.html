@@ -23,7 +23,7 @@
     
     
       
-        <title>Test Pipeline: Multi-Regional Ingestion UNION ALL Consolidation (TC-TRF-002) - NextGen Metadata Framework (Metaflow)</title>
+        <title>Test Pipeline: Multi-Regional Ingestion UNION ALL Consolidation (TC-TRF-002) - FlowX</title>
       
     
     
@@ -88,7 +88,7 @@
 
 <header class="md-header" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href="../../.." title="NextGen Metadata Framework (Metaflow)" class="md-header__button md-logo" aria-label="NextGen Metadata Framework (Metaflow)" data-md-component="logo">
+    <a href="../../.." title="FlowX" class="md-header__button md-logo" aria-label="FlowX" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
@@ -102,7 +102,7 @@
       <div class="md-header__ellipsis">
         <div class="md-header__topic">
           <span class="md-ellipsis">
-            NextGen Metadata Framework (Metaflow)
+            FlowX
           </span>
         </div>
         <div class="md-header__topic" data-md-component="header-topic">
@@ -405,13 +405,13 @@
 
 <nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href="../../.." title="NextGen Metadata Framework (Metaflow)" class="md-nav__button md-logo" aria-label="NextGen Metadata Framework (Metaflow)" data-md-component="logo">
+    <a href="../../.." title="FlowX" class="md-nav__button md-logo" aria-label="FlowX" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
 
     </a>
-    NextGen Metadata Framework (Metaflow)
+    FlowX
   </label>
   
   <ul class="md-nav__list" data-md-scrollfix>
@@ -3379,7 +3379,7 @@
 
 <h1 id="test-pipeline-multi-regional-ingestion-union-all-consolidation-tc-trf-002">Test Pipeline: Multi-Regional Ingestion UNION ALL Consolidation (TC-TRF-002)<a class="headerlink" href="#test-pipeline-multi-regional-ingestion-union-all-consolidation-tc-trf-002" title="Permanent link">&para;</a></h1>
 <blockquote>
-<p>See also: <a href="README.md">Documentation index</a>, <a href="../metaflow_testing/TESTING_PLAN.md">metaflow_testing/TESTING_PLAN.md</a> (Module 3, TC-TRF-002), <a href="../metaflow_testing/TESTING_STATUS.md">metaflow_testing/TESTING_STATUS.md</a>.</p>
+<p>See also: <a href="README.md">Documentation index</a>, <a href="../flowx_testing/TESTING_PLAN.md">flowx_testing/TESTING_PLAN.md</a> (Module 3, TC-TRF-002), <a href="../flowx_testing/TESTING_STATUS.md">flowx_testing/TESTING_STATUS.md</a>.</p>
 </blockquote>
 <h2 id="purpose">Purpose<a class="headerlink" href="#purpose" title="Permanent link">&para;</a></h2>
 <p>Prove that <code>transformation_sql</code> genuinely combines two independently-ingested regional
@@ -3407,9 +3407,9 @@ shadowing the other.</p>
 </ul>
 <h2 id="inputs">Inputs<a class="headerlink" href="#inputs" title="Permanent link">&para;</a></h2>
 <ul>
-<li><code>metaflow_testing/027_trf_002_union_all.json</code> -- 2 ingestion flows + 1 transformation flow
+<li><code>flowx_testing/027_trf_002_union_all.json</code> -- 2 ingestion flows + 1 transformation flow
   (no <code>reconciliation_flows</code>).</li>
-<li><code>sample_data/metaflow_testing/sales_usecase/orders_na_raw.csv</code> (5 rows, <code>region = 'NA'</code>) /
+<li><code>sample_data/flowx_testing/sales_usecase/orders_na_raw.csv</code> (5 rows, <code>region = 'NA'</code>) /
   <code>orders_eu_raw.csv</code> (4 rows, <code>region = 'EU'</code>).</li>
 <li><code>notebooks/00_seed_sample_data/03_seed_trf_002_union_all_data.py</code> -- a new, dedicated seed
   notebook (kept separate from every other test case's own seed step) that provisions the
@@ -3426,7 +3426,7 @@ shadowing the other.</p>
   <code>EU</code> values present in its <code>region</code> column.</li>
 </ul>
 <h2 id="configuration">Configuration<a class="headerlink" href="#configuration" title="Permanent link">&para;</a></h2>
-<p><code>metaflow_testing/027_trf_002_union_all.json</code>'s <code>transformation_flows[0]</code>:</p>
+<p><code>flowx_testing/027_trf_002_union_all.json</code>'s <code>transformation_flows[0]</code>:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nt">"source_inputs"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
 <a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="w">  </span><span class="p">{</span><span class="nt">"input_name"</span><span class="p">:</span><span class="w"> </span><span class="s2">"orders_na_raw"</span><span class="p">,</span><span class="w"> </span><span class="nt">"table"</span><span class="p">:</span><span class="w"> </span><span class="s2">"{{catalog}}.bronze_sales.orders_na_raw"</span><span class="p">,</span><span class="w"> </span><span class="nt">"is_streaming"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">},</span>
 <a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="w">  </span><span class="p">{</span><span class="nt">"input_name"</span><span class="p">:</span><span class="w"> </span><span class="s2">"orders_eu_raw"</span><span class="p">,</span><span class="w"> </span><span class="nt">"table"</span><span class="p">:</span><span class="w"> </span><span class="s2">"{{catalog}}.bronze_sales.orders_eu_raw"</span><span class="p">,</span><span class="w"> </span><span class="nt">"is_streaming"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">}</span>
@@ -3442,7 +3442,7 @@ The engine rewrites the bare <code>FROM orders_na_raw</code>/<code>FROM orders_e
 -- the spec itself never writes <code>STREAM</code>.</p>
 <h2 id="main-execution-flow">Main execution flow<a class="headerlink" href="#main-execution-flow" title="Permanent link">&para;</a></h2>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>databricks<span class="w"> </span>bundle<span class="w"> </span>deploy<span class="w"> </span>--target<span class="w"> </span>dev
-<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>databricks<span class="w"> </span>bundle<span class="w"> </span>run<span class="w"> </span>metaflow_test_trf_002_union_all_job<span class="w"> </span>--target<span class="w"> </span>dev
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>databricks<span class="w"> </span>bundle<span class="w"> </span>run<span class="w"> </span>flowx_test_trf_002_union_all_job<span class="w"> </span>--target<span class="w"> </span>dev
 </code></pre></div>
 <p>Task chain: <code>setup_control_tables → seed_trf_002_union_all_data → onboard_trf_002 →
 run_pipeline</code>.</p>
@@ -3458,7 +3458,7 @@ run_pipeline</code>.</p>
 <a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="c1">-- expect: EU -&gt; 4, NA -&gt; 5</span>
 </code></pre></div>
 <p><strong>This pass's actual verification status</strong>: see
-<a href="../metaflow_testing/TESTING_STATUS.md"><code>metaflow_testing/TESTING_STATUS.md</code></a> for whether this
+<a href="../flowx_testing/TESTING_STATUS.md"><code>flowx_testing/TESTING_STATUS.md</code></a> for whether this
 job was actually run against the live workspace and what the real result was -- this document
 describes what <em>should</em> happen structurally; the status tracker records what <em>did</em> happen, if
 anything, each time this scenario is executed. (Per this project's build convention, that
@@ -3468,11 +3468,11 @@ tracker is updated centrally in a later phase, not by this build itself.)</p>
 <li><strong>New, dedicated fixtures, not a reuse of <code>sample_data/sample_orders_region_a.csv</code> /
   <code>sample_orders_region_b.csv</code>.</strong> Those two existing CSVs already back an unrelated,
   pre-existing legacy scenario (<code>tests/integration/test_transformation_union_all.py</code>, a
-  <code>poc</code>-catalog <code>bronze_union_test</code>/<code>silver_union_test</code> suite outside this <code>metaflow_testing/</code>
+  <code>poc</code>-catalog <code>bronze_union_test</code>/<code>silver_union_test</code> suite outside this <code>flowx_testing/</code>
   TC series) whose assertions depend on their exact row counts (5 and 6) and order IDs --
   reusing or trimming them here would either not match this TC's required 5/4 split or risk
   destabilizing that other suite's fixtures. New fixtures
-  (<code>sample_data/metaflow_testing/sales_usecase/orders_na_raw.csv</code> /
+  (<code>sample_data/flowx_testing/sales_usecase/orders_na_raw.csv</code> /
   <code>orders_eu_raw.csv</code>, 5 and 4 rows) were generated instead, following the exact same CSV
   shape (<code>order_id, order_ts, customer_id, product_id, quantity, unit_price, region</code>) so the
   two scenarios stay structurally analogous without sharing state.</li>

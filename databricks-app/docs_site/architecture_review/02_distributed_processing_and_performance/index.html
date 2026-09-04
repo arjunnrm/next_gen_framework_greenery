@@ -27,7 +27,7 @@
     
     
       
-        <title>Distributed processing & performance - NextGen Metadata Framework (Metaflow)</title>
+        <title>Distributed processing & performance - FlowX</title>
       
     
     
@@ -78,7 +78,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#metaflow-architecture-review-pillar-2-distributed-processing-performance-optimization" class="md-skip">
+        <a href="#flowx-architecture-review-pillar-2-distributed-processing-performance-optimization" class="md-skip">
           Skip to content
         </a>
       
@@ -92,7 +92,7 @@
 
 <header class="md-header" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href="../.." title="NextGen Metadata Framework (Metaflow)" class="md-header__button md-logo" aria-label="NextGen Metadata Framework (Metaflow)" data-md-component="logo">
+    <a href="../.." title="FlowX" class="md-header__button md-logo" aria-label="FlowX" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
@@ -106,7 +106,7 @@
       <div class="md-header__ellipsis">
         <div class="md-header__topic">
           <span class="md-ellipsis">
-            NextGen Metadata Framework (Metaflow)
+            FlowX
           </span>
         </div>
         <div class="md-header__topic" data-md-component="header-topic">
@@ -413,13 +413,13 @@
 
 <nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href="../.." title="NextGen Metadata Framework (Metaflow)" class="md-nav__button md-logo" aria-label="NextGen Metadata Framework (Metaflow)" data-md-component="logo">
+    <a href="../.." title="FlowX" class="md-nav__button md-logo" aria-label="FlowX" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
 
     </a>
-    NextGen Metadata Framework (Metaflow)
+    FlowX
   </label>
   
   <ul class="md-nav__list" data-md-scrollfix>
@@ -3542,13 +3542,13 @@
 
 
 
-<h1 id="metaflow-architecture-review-pillar-2-distributed-processing-performance-optimization">MetaFlow Architecture Review — Pillar 2: Distributed Processing &amp; Performance Optimization<a class="headerlink" href="#metaflow-architecture-review-pillar-2-distributed-processing-performance-optimization" title="Permanent link">&para;</a></h1>
+<h1 id="flowx-architecture-review-pillar-2-distributed-processing-performance-optimization">FlowX Architecture Review — Pillar 2: Distributed Processing &amp; Performance Optimization<a class="headerlink" href="#flowx-architecture-review-pillar-2-distributed-processing-performance-optimization" title="Permanent link">&para;</a></h1>
 <p><strong>Evaluation Area:</strong> Apache Spark / PySpark Optimization, Driver Bottlenecks, Catalyst Plan Efficiency, Delta Lake Storage, Liquid Clustering, and CDC Engine<br />
 <strong>Score:</strong> 6.8 / 10<br />
 <strong>Status:</strong> Strong Distributed Foundations with Critical Driver Memory Bottlenecks</p>
 <hr />
 <h2 id="1-executive-performance-evaluation">1. Executive Performance Evaluation<a class="headerlink" href="#1-executive-performance-evaluation" title="Permanent link">&para;</a></h2>
-<p>The MetaFlow framework demonstrates strong alignment with modern PySpark practices—extensively leveraging native Spark SQL expressions, avoiding standard Python row-level UDFs, employing <code>mapInPandas</code> for binary decoding, and embracing Delta Lake Liquid Clustering. However, several critical performance anti-patterns exist, most notably <strong>driver-side in-memory archive extraction</strong>, <strong>eager driver <code>.collect()</code> actions inside DLT table registration closures</strong>, and <strong>driver-side key collection during reconciliation fingerprinting</strong>.</p>
+<p>The FlowX framework demonstrates strong alignment with modern PySpark practices—extensively leveraging native Spark SQL expressions, avoiding standard Python row-level UDFs, employing <code>mapInPandas</code> for binary decoding, and embracing Delta Lake Liquid Clustering. However, several critical performance anti-patterns exist, most notably <strong>driver-side in-memory archive extraction</strong>, <strong>eager driver <code>.collect()</code> actions inside DLT table registration closures</strong>, and <strong>driver-side key collection during reconciliation fingerprinting</strong>.</p>
 <hr />
 <h2 id="2-deep-dive-performance-findings-anti-patterns">2. Deep-Dive Performance Findings &amp; Anti-Patterns<a class="headerlink" href="#2-deep-dive-performance-findings-anti-patterns" title="Permanent link">&para;</a></h2>
 <h3 id="finding-21-driver-side-in-memory-zippgp-decryption-archive-extraction-critical-severity">🔴 Finding 2.1: Driver-Side In-Memory ZIP/PGP Decryption &amp; Archive Extraction (Critical Severity)<a class="headerlink" href="#finding-21-driver-side-in-memory-zippgp-decryption-archive-extraction-critical-severity" title="Permanent link">&para;</a></h3>

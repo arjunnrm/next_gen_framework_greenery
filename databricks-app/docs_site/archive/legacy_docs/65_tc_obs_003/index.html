@@ -23,7 +23,7 @@
     
     
       
-        <title>Test Pipeline: TC-OBS-003 — Telemetry Export to Unity Catalog Volume (.jsonl.gz) - NextGen Metadata Framework (Metaflow)</title>
+        <title>Test Pipeline: TC-OBS-003 — Telemetry Export to Unity Catalog Volume (.jsonl.gz) - FlowX</title>
       
     
     
@@ -88,7 +88,7 @@
 
 <header class="md-header" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href="../../.." title="NextGen Metadata Framework (Metaflow)" class="md-header__button md-logo" aria-label="NextGen Metadata Framework (Metaflow)" data-md-component="logo">
+    <a href="../../.." title="FlowX" class="md-header__button md-logo" aria-label="FlowX" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
@@ -102,7 +102,7 @@
       <div class="md-header__ellipsis">
         <div class="md-header__topic">
           <span class="md-ellipsis">
-            NextGen Metadata Framework (Metaflow)
+            FlowX
           </span>
         </div>
         <div class="md-header__topic" data-md-component="header-topic">
@@ -405,13 +405,13 @@
 
 <nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href="../../.." title="NextGen Metadata Framework (Metaflow)" class="md-nav__button md-logo" aria-label="NextGen Metadata Framework (Metaflow)" data-md-component="logo">
+    <a href="../../.." title="FlowX" class="md-nav__button md-logo" aria-label="FlowX" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
 
     </a>
-    NextGen Metadata Framework (Metaflow)
+    FlowX
   </label>
   
   <ul class="md-nav__list" data-md-scrollfix>
@@ -3368,7 +3368,7 @@
 
 <h1 id="test-pipeline-tc-obs-003-telemetry-export-to-unity-catalog-volume-jsonlgz">Test Pipeline: TC-OBS-003 — Telemetry Export to Unity Catalog Volume (<code>.jsonl.gz</code>)<a class="headerlink" href="#test-pipeline-tc-obs-003-telemetry-export-to-unity-catalog-volume-jsonlgz" title="Permanent link">&para;</a></h1>
 <blockquote>
-<p>See also: <a href="README.md">Documentation index</a>, <a href="../metaflow_testing/TESTING_PLAN.md">metaflow_testing/TESTING_PLAN.md</a> (Module 9), <a href="../metaflow_testing/TESTING_STATUS.md">metaflow_testing/TESTING_STATUS.md</a>, <a href="../25_dlt_observability_module/">docs/25_dlt_observability_module.md</a>, <a href="../27_dlt_observability_onboarding_reference/">docs/27_dlt_observability_onboarding_reference.md</a>.</p>
+<p>See also: <a href="README.md">Documentation index</a>, <a href="../flowx_testing/TESTING_PLAN.md">flowx_testing/TESTING_PLAN.md</a> (Module 9), <a href="../flowx_testing/TESTING_STATUS.md">flowx_testing/TESTING_STATUS.md</a>, <a href="../25_dlt_observability_module/">docs/25_dlt_observability_module.md</a>, <a href="../27_dlt_observability_onboarding_reference/">docs/27_dlt_observability_onboarding_reference.md</a>.</p>
 </blockquote>
 <h2 id="purpose">Purpose<a class="headerlink" href="#purpose" title="Permanent link">&para;</a></h2>
 <p>Prove that the pre-existing <strong>batch</strong> DLT observability engine
@@ -3385,7 +3385,7 @@ materially different, additive capability out of scope here.</p>
 <ul>
 <li>Reuse an already-onboarded pipeline as "the pipeline being observed" — no new Lakeflow
   pipeline resource is defined for this test case. This job reuses
-  <code>metaflow_test_100_zipcsv_pipeline</code> (<code>dataflow.group.id = dfg_zip_csv_dataload</code>), the same
+  <code>flowx_test_100_zipcsv_pipeline</code> (<code>dataflow.group.id = dfg_zip_csv_dataload</code>), the same
   pipeline <code>resources/dlt_observability_job.yml</code> already wraps.</li>
 <li>Add a <strong>second, TC-OBS-003-owned</strong> <code>observability_config</code> row —
   <code>destination_id: "dest-obs-003-vol-export"</code> — scoped to that same <code>dataflow_group_id</code>,
@@ -3398,7 +3398,7 @@ materially different, additive capability out of scope here.</p>
 </ul>
 <h2 id="inputs">Inputs<a class="headerlink" href="#inputs" title="Permanent link">&para;</a></h2>
 <ul>
-<li><code>metaflow_testing/043_obs_003_vol_export.json</code> — this test case's own dedicated onboarding
+<li><code>flowx_testing/043_obs_003_vol_export.json</code> — this test case's own dedicated onboarding
   spec. Its <code>observability[]</code> array carries the new destination described above. Its
   <code>dataflow_group_id</code> (<code>dfg_zip_csv_dataload</code>) <strong>must</strong> match the observed pipeline's own
   <code>dataflow.group.id</code> configuration entry — <code>observability/event_log_extractor.py::
@@ -3428,7 +3428,7 @@ materially different, additive capability out of scope here.</p>
   per <code>ResourceLogs</code> entry (one per flow/update in the observed window).</li>
 </ul>
 <h2 id="configuration">Configuration<a class="headerlink" href="#configuration" title="Permanent link">&para;</a></h2>
-<p><code>metaflow_testing/043_obs_003_vol_export.json</code>'s <code>observability[]</code> entry:</p>
+<p><code>flowx_testing/043_obs_003_vol_export.json</code>'s <code>observability[]</code> entry:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="p">{</span>
 <a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="w">  </span><span class="nt">"id"</span><span class="p">:</span><span class="w"> </span><span class="s2">"dest-obs-003-vol-export"</span><span class="p">,</span>
 <a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="w">  </span><span class="nt">"enabled"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
@@ -3458,19 +3458,19 @@ the real schema (<code>onboarding_templates/onboarding_spec.schema.json</code>) 
 <code>validate_spec()</code> function directly (not just the JSON Schema) — zero errors.</p>
 <h2 id="main-execution-flow">Main execution flow<a class="headerlink" href="#main-execution-flow" title="Permanent link">&para;</a></h2>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>databricks<span class="w"> </span>bundle<span class="w"> </span>deploy<span class="w"> </span>--target<span class="w"> </span>dev
-<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>databricks<span class="w"> </span>bundle<span class="w"> </span>run<span class="w"> </span>metaflow_test_obs_003_vol_export_job<span class="w"> </span>--target<span class="w"> </span>dev
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>databricks<span class="w"> </span>bundle<span class="w"> </span>run<span class="w"> </span>flowx_test_obs_003_vol_export_job<span class="w"> </span>--target<span class="w"> </span>dev
 </code></pre></div>
 <p>Task chain: <code>setup_control_tables → onboard_100 → onboard_obs_003 → run_pipeline_update →
 observability_export</code>. Self-contained and idempotent — <code>onboard_100</code> re-onboards scenario 100's
 own spec first, so this job runs correctly from a clean environment without depending on
-<code>metaflow_test_100_job</code>/<code>dlt_observability_job</code> having already been run; re-running this job
+<code>flowx_test_100_job</code>/<code>dlt_observability_job</code> having already been run; re-running this job
 never accumulates duplicate control-table rows or extra Volume files beyond one new file per
 distinct <code>run_pipeline_update</code> task run.</p>
 <h2 id="expected-results-verification-logic">Expected results — verification logic<a class="headerlink" href="#expected-results-verification-logic" title="Permanent link">&para;</a></h2>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="c1"># Databricks notebook / Python cell, after a run</span>
 <a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="kn">import</span><span class="w"> </span><span class="nn">gzip</span><span class="o">,</span><span class="w"> </span><span class="nn">json</span>
 <a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>
-<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="n">base</span> <span class="o">=</span> <span class="s2">"/Volumes/metaflow/observability/app_logs/dfg_zip_csv_dataload"</span>
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="n">base</span> <span class="o">=</span> <span class="s2">"/Volumes/flowx/observability/app_logs/dfg_zip_csv_dataload"</span>
 <a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="n">run_date_dirs</span> <span class="o">=</span> <span class="n">dbutils</span><span class="o">.</span><span class="n">fs</span><span class="o">.</span><span class="n">ls</span><span class="p">(</span><span class="n">base</span><span class="p">)</span>          <span class="c1"># one subdir per UTC run date</span>
 <a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">run_date_dirs</span><span class="p">:</span>
 <a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>    <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">dbutils</span><span class="o">.</span><span class="n">fs</span><span class="o">.</span><span class="n">ls</span><span class="p">(</span><span class="n">d</span><span class="o">.</span><span class="n">path</span><span class="p">):</span>
@@ -3491,7 +3491,7 @@ distinct <code>run_pipeline_update</code> task run.</p>
 </code></pre></div>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="c1">-- Confirm the new destination row was onboarded</span>
 <a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="k">SELECT</span><span class="w"> </span><span class="n">config_id</span><span class="p">,</span><span class="w"> </span><span class="n">destination_id</span><span class="p">,</span><span class="w"> </span><span class="n">enabled</span><span class="p">,</span><span class="w"> </span><span class="n">destination_type</span><span class="p">,</span><span class="w"> </span><span class="n">destination_config_json</span>
-<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="k">FROM</span><span class="w"> </span><span class="n">metaflow</span><span class="p">.</span><span class="n">config</span><span class="p">.</span><span class="n">observability_config</span>
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="k">FROM</span><span class="w"> </span><span class="n">flowx</span><span class="p">.</span><span class="n">config</span><span class="p">.</span><span class="n">observability_config</span>
 <a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="k">WHERE</span><span class="w"> </span><span class="n">dataflow_group_id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">'dfg_zip_csv_dataload'</span>
 <a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="k">ORDER</span><span class="w"> </span><span class="k">BY</span><span class="w"> </span><span class="n">destination_id</span><span class="p">;</span>
 <a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="c1">-- expect 2 rows: 'dest-dbx-volume' (scenario 100's own) and 'dest-obs-003-vol-export' (this test)</span>
@@ -3500,7 +3500,7 @@ distinct <code>run_pipeline_update</code> task run.</p>
 <a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a><span class="k">SELECT</span>
 <a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a><span class="w">  </span><span class="n">filter</span><span class="p">(</span><span class="n">resourceLogs</span><span class="p">[</span><span class="mi">0</span><span class="p">].</span><span class="n">resource</span><span class="p">.</span><span class="n">attributes</span><span class="p">,</span><span class="w"> </span><span class="n">a</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="n">a</span><span class="p">.</span><span class="k">key</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">'databricks.dataflow_group_id'</span><span class="p">)[</span><span class="mi">0</span><span class="p">].</span><span class="n">value</span><span class="p">.</span><span class="n">stringValue</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="n">group_id</span><span class="p">,</span>
 <a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a><span class="w">  </span><span class="n">filter</span><span class="p">(</span><span class="n">resourceLogs</span><span class="p">[</span><span class="mi">0</span><span class="p">].</span><span class="n">resource</span><span class="p">.</span><span class="n">attributes</span><span class="p">,</span><span class="w"> </span><span class="n">a</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="n">a</span><span class="p">.</span><span class="k">key</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">'databricks.dataflow_id'</span><span class="p">)[</span><span class="mi">0</span><span class="p">].</span><span class="n">value</span><span class="p">.</span><span class="n">stringValue</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="n">dataflow_id</span>
-<a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a><span class="k">FROM</span><span class="w"> </span><span class="n">json</span><span class="p">.</span><span class="o">`/</span><span class="n">Volumes</span><span class="o">/</span><span class="n">metaflow</span><span class="o">/</span><span class="n">observability</span><span class="o">/</span><span class="n">app_logs</span><span class="o">/</span><span class="n">dfg_zip_csv_dataload</span><span class="cm">/*/*.jsonl.gz`;</span>
+<a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a><span class="k">FROM</span><span class="w"> </span><span class="n">json</span><span class="p">.</span><span class="o">`/</span><span class="n">Volumes</span><span class="o">/</span><span class="n">flowx</span><span class="o">/</span><span class="n">observability</span><span class="o">/</span><span class="n">app_logs</span><span class="o">/</span><span class="n">dfg_zip_csv_dataload</span><span class="cm">/*/*.jsonl.gz`;</span>
 </code></pre></div>
 <p><strong>Pass criteria</strong>: <code>observability_export</code> task completes <code>SUCCESS</code>; exactly one new <code>.jsonl.gz</code>
 file per enabled <code>DATABRICKS_VOLUME</code> destination appears under
@@ -3510,7 +3510,7 @@ by <code>otel_payload_builder.py::validate_resource_logs</code> before dispatch.
 <p>This pass builds the artifacts only — per this batch's scope discipline, deployment/execution
 against the shared dev workspace is handled by a separate, later centralized phase across all 45
 test cases; see
-<a href="../metaflow_testing/TESTING_STATUS.md"><code>metaflow_testing/TESTING_STATUS.md</code></a> for whether this
+<a href="../flowx_testing/TESTING_STATUS.md"><code>flowx_testing/TESTING_STATUS.md</code></a> for whether this
 job has actually been run yet and what the real result was.</p>
 
 

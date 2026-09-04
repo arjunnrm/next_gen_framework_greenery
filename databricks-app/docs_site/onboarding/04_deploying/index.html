@@ -27,7 +27,7 @@
     
     
       
-        <title>4 · Deploying with DABs - NextGen Metadata Framework (Metaflow)</title>
+        <title>4 · Deploying with DABs - FlowX</title>
       
     
     
@@ -92,7 +92,7 @@
 
 <header class="md-header" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href="../.." title="NextGen Metadata Framework (Metaflow)" class="md-header__button md-logo" aria-label="NextGen Metadata Framework (Metaflow)" data-md-component="logo">
+    <a href="../.." title="FlowX" class="md-header__button md-logo" aria-label="FlowX" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
@@ -106,7 +106,7 @@
       <div class="md-header__ellipsis">
         <div class="md-header__topic">
           <span class="md-ellipsis">
-            NextGen Metadata Framework (Metaflow)
+            FlowX
           </span>
         </div>
         <div class="md-header__topic" data-md-component="header-topic">
@@ -411,13 +411,13 @@
 
 <nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href="../.." title="NextGen Metadata Framework (Metaflow)" class="md-nav__button md-logo" aria-label="NextGen Metadata Framework (Metaflow)" data-md-component="logo">
+    <a href="../.." title="FlowX" class="md-nav__button md-logo" aria-label="FlowX" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
 
     </a>
-    NextGen Metadata Framework (Metaflow)
+    FlowX
   </label>
   
   <ul class="md-nav__list" data-md-scrollfix>
@@ -3502,11 +3502,11 @@
 <h1 id="4-deploying-with-dabs">4 · Deploying with DABs<a class="headerlink" href="#4-deploying-with-dabs" title="Permanent link">&para;</a></h1>
 <h2 id="the-order-that-matters">The order that matters<a class="headerlink" href="#the-order-that-matters" title="Permanent link">&para;</a></h2>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="c1"># 1. deploy -- this builds AND uploads the wheel; there is no separate publish step</span>
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>databricks<span class="w"> </span>bundle<span class="w"> </span>deploy<span class="w"> </span>-t<span class="w"> </span>dev_metaflow<span class="w"> </span>-p<span class="w"> </span>dev_metaflow
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>databricks<span class="w"> </span>bundle<span class="w"> </span>deploy<span class="w"> </span>-t<span class="w"> </span>dev_flowx<span class="w"> </span>-p<span class="w"> </span>dev_flowx
 <a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>
 <a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="c1"># 2. onboard a spec</span>
-<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>databricks<span class="w"> </span>bundle<span class="w"> </span>run<span class="w"> </span>onboarding_job<span class="w"> </span>-t<span class="w"> </span>dev_metaflow<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="w">  </span>--params<span class="w"> </span><span class="nv">spec_path</span><span class="o">=</span>/Volumes/metaflow/framework/onboarding_specs/orders.json
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>databricks<span class="w"> </span>bundle<span class="w"> </span>run<span class="w"> </span>onboarding_job<span class="w"> </span>-t<span class="w"> </span>dev_flowx<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="w">  </span>--params<span class="w"> </span><span class="nv">spec_path</span><span class="o">=</span>/Volumes/flowx/framework/onboarding_specs/orders.json
 </code></pre></div>
 <p>There is no wheel-path variable to pass (the old <code>framework_wheel_path</code> variable and the hand-run
 <code>build_and_upload_wheel.py</code> step are gone). <code>bundle deploy</code> runs <code>scripts/bump_and_build.py</code> via
@@ -3516,7 +3516,7 @@ produces a uniquely-named wheel, then uploads it to the target's <code>workspace
 declares, <code>volumes.framework_wheels_volume</code>). Resources reference the wheel as
 <code>- ../../dist/*.whl</code>; DABs rewrites that to the uploaded path at deploy time.</p>
 <h3 id="the-uc-container-hierarchy-is-declared-v171">The UC container hierarchy is declared (v1.7.1)<a class="headerlink" href="#the-uc-container-hierarchy-is-declared-v171" title="Permanent link">&para;</a></h3>
-<p><code>resources/metaflow_bootstrap/</code> declares the schemas every other resource hangs off, so a deploy
+<p><code>resources/flowx_bootstrap/</code> declares the schemas every other resource hangs off, so a deploy
 to a fresh workspace creates them itself:</p>
 <table>
 <thead>
@@ -3536,7 +3536,7 @@ to a fresh workspace creates them itself:</p>
 </tr>
 <tr>
 <td><code>schemas.sample_suite_schema</code></td>
-<td><code>metaflow_sample</code></td>
+<td><code>flowx_sample</code></td>
 </tr>
 <tr>
 <td><code>volumes.sample_{landing,exports,observability,configs}_volume</code></td>
@@ -3547,7 +3547,7 @@ to a fresh workspace creates them itself:</p>
 <p>DABs rewrites each Volume's <code>schema_name</code> into a <code>${resources.schemas.*.name}</code> reference, so
 create order <strong>schema -&gt; volume</strong> is a real dependency edge, not a convention. Before this existed,
 a first deploy died on
-<code>cannot create resources.volumes.framework_wheels_volume: Schema 'metaflow.config' does not exist</code>.</p>
+<code>cannot create resources.volumes.framework_wheels_volume: Schema 'flowx.config' does not exist</code>.</p>
 <p>All three schemas set <code>lifecycle.prevent_destroy: true</code> -- DABs deletes any resource missing from
 the config, and these hold the control tables, the published wheels and the sample datasets.</p>
 <div class="admonition danger">
@@ -3561,14 +3561,14 @@ catalog's <code>storage_root</code> is an account-managed bucket path with gener
 committed to YAML. Worse, the failing catalog propagated <strong>down</strong> the dependency edge and took
 the schemas with it (<code>cannot create resources.schemas.config_schema: dependency failed</code>) --
 strictly worse than declaring no catalog. Full write-up in
-<code>resources/metaflow_bootstrap/README.md</code>; a unit test keeps it undeclared.</p>
+<code>resources/flowx_bootstrap/README.md</code>; a unit test keeps it undeclared.</p>
 </div>
 <div class="admonition warning">
 <p class="admonition-title">Bind, do not re-create, a schema that already exists</p>
-<p><code>metaflow.config</code> predates this group on <code>dev_metaflow</code> and <code>hoonartek</code>, so DABs does not own
+<p><code>flowx.config</code> predates this group on <code>dev_flowx</code> and <code>hoonartek</code>, so DABs does not own
 it there and a create attempt fails with <code>Schema 'config' already exists</code>. Bind once per
 workspace:
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>databricks bundle deployment bind schemas.config_schema metaflow.config -t dev_metaflow -p dev_metaflow
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>databricks bundle deployment bind schemas.config_schema flowx.config -t dev_flowx -p dev_flowx
 </code></pre></div>
 <code>bundle deployment unbind</code> reverses it without deleting anything. Not needed on <code>arjun_2</code> --
 the bundle created that schema on 2026-09-02 and owns it.</p>
@@ -3597,7 +3597,7 @@ installing -- but DABs <strong>prunes</strong> superseded artifacts from <code>&
 UC Volume exactly as in the workspace. A deploy issued mid-update can therefore still delete
 the wheel that update is installing, killing it with <code>ENVIRONMENT_PIP_INSTALL_ERROR</code>. The only
 mitigation is operational: never <code>bundle deploy</code> while a pipeline or test wave is running
-(<code>metaflow_testing/TESTING_PLAN.md</code> §0).</p>
+(<code>flowx_testing/TESTING_PLAN.md</code> §0).</p>
 </div>
 <h2 id="targets">Targets<a class="headerlink" href="#targets" title="Permanent link">&para;</a></h2>
 <table>
@@ -3615,22 +3615,22 @@ mitigation is operational: never <code>bundle deploy</code> while a pipeline or 
 <td><code>poc</code></td>
 </tr>
 <tr>
-<td><code>dev_metaflow</code> <em>(default)</em></td>
+<td><code>dev_flowx</code> <em>(default)</em></td>
 <td><code>dbc-2f6b7d4f-8c5b</code></td>
-<td><code>metaflow</code></td>
+<td><code>flowx</code></td>
 </tr>
 </tbody>
 </table>
 <p>Each target pairs with its own CLI profile. Deploying with a mismatched profile fails
 authentication rather than deploying somewhere unexpected.</p>
 <h2 id="verify">Verify<a class="headerlink" href="#verify" title="Permanent link">&para;</a></h2>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>databricks<span class="w"> </span>bundle<span class="w"> </span>validate<span class="w"> </span>-t<span class="w"> </span>dev_metaflow
-<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>databricks<span class="w"> </span>bundle<span class="w"> </span>summary<span class="w">  </span>-t<span class="w"> </span>dev_metaflow
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>databricks<span class="w"> </span>bundle<span class="w"> </span>validate<span class="w"> </span>-t<span class="w"> </span>dev_flowx
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>databricks<span class="w"> </span>bundle<span class="w"> </span>summary<span class="w">  </span>-t<span class="w"> </span>dev_flowx
 </code></pre></div>
 <h2 id="bulk-onboarding">Bulk onboarding<a class="headerlink" href="#bulk-onboarding" title="Permanent link">&para;</a></h2>
 <p>Point the onboarding job at a directory to process every spec in it:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>databricks<span class="w"> </span>bundle<span class="w"> </span>run<span class="w"> </span>framework_config_onboarding_job<span class="w"> </span>-t<span class="w"> </span>dev_metaflow<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="w">  </span>--params<span class="w"> </span><span class="nv">config_dir</span><span class="o">=</span>/Volumes/metaflow/framework/onboarding_specs/
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>databricks<span class="w"> </span>bundle<span class="w"> </span>run<span class="w"> </span>framework_config_onboarding_job<span class="w"> </span>-t<span class="w"> </span>dev_flowx<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="w">  </span>--params<span class="w"> </span><span class="nv">config_dir</span><span class="o">=</span>/Volumes/flowx/framework/onboarding_specs/
 </code></pre></div>
 <h2 id="common-failures">Common failures<a class="headerlink" href="#common-failures" title="Permanent link">&para;</a></h2>
 <table>

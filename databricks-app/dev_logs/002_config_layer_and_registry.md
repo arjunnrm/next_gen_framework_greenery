@@ -2,7 +2,7 @@
 
 ## Enactment Summary
 - **Component**: 100% Data-Driven Configuration Layer & Registry
-- **Specification Version**: v1.0 (Targeting Metaflow Framework Schema v1.3.0)
+- **Specification Version**: v1.0 (Targeting FlowX Framework Schema v1.3.0)
 - **Status**: Completed
 
 ## Details of Enacted Functionality

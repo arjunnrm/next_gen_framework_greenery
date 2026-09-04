@@ -2,12 +2,12 @@
 
 ## Enactment Summary
 - **Component**: Frontend Single-Page Application (TypeScript & Pre-Built Static Distribution)
-- **Specification Version**: v1.0 (Targeting Metaflow Framework Schema v1.3.0)
+- **Specification Version**: v1.0 (Targeting FlowX Framework Schema v1.3.0)
 - **Status**: Completed (Zero-Hardcoding, 100% Registry-Driven)
 
 ## Details of Enacted Functionality
 1. **Design Tokens & Aesthetic Architecture (`web/src/styles/main.css`, `web/dist/styles.css`)**:
-   - Implemented dark mode design system matching `theme.json` and `MetaFlow Spec Builder v4.dc.html` (`#0f141c` canvas, `#161d28` cards, `#1571b8` accents, `#5eb0ef` cyan badges, `#57c98a` success indicators).
+   - Implemented dark mode design system matching `theme.json` and `FlowX Spec Builder v4.dc.html` (`#0f141c` canvas, `#161d28` cards, `#1571b8` accents, `#5eb0ef` cyan badges, `#57c98a` success indicators).
 2. **Client-Side Engines (`web/src/engine/`)**:
    - `predicates.ts`: Pure memoized Predicate DSL Evaluator matching server-side semantics.
    - `resolve.ts`: Defaults resolution function matching §6.3 specification.

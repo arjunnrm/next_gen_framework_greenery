@@ -1,5 +1,5 @@
 """
-Main FastAPI Application for Metaflow Onboarding App (§3 & §9).
+Main FastAPI Application for FlowX Onboarding App (§3 & §9).
 Serves /api/* endpoints, /docs/* static/proxy documentation, and the built SPA.
 """
 
@@ -48,11 +48,11 @@ async def lifespan(app: FastAPI):
     )
     reg.verify_integrity()
     yield
-    logger.info("Metaflow Onboarding App shutdown complete.", extra={"event": "app_shutdown"})
+    logger.info("FlowX Onboarding App shutdown complete.", extra={"event": "app_shutdown"})
 
 
 app = FastAPI(
-    title="Metaflow Onboarding App",
+    title="FlowX Onboarding App",
     version="1.3.0",
     docs_url="/api/swagger",
     redoc_url=None,
@@ -186,7 +186,7 @@ async def serve_root():
     index_file = dist / "index.html"
     if index_file.exists():
         return FileResponse(str(index_file))
-    return JSONResponse(status_code=200, content={"status": "Metaflow Onboarding App is running"})
+    return JSONResponse(status_code=200, content={"status": "FlowX Onboarding App is running"})
 
 
 @app.get("/{full_path:path}")
@@ -202,5 +202,5 @@ async def serve_spa(full_path: str):
         index_file = dist / "index.html"
         if index_file.exists():
             return FileResponse(str(index_file))
-    return JSONResponse(status_code=200, content={"status": "Metaflow Onboarding App is running"})
+    return JSONResponse(status_code=200, content={"status": "FlowX Onboarding App is running"})
 

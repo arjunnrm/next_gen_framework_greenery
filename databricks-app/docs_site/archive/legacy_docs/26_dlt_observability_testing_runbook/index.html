@@ -23,7 +23,7 @@
     
     
       
-        <title>DLT Observability: Testing & Validation Runbook - NextGen Metadata Framework (Metaflow)</title>
+        <title>DLT Observability: Testing & Validation Runbook - FlowX</title>
       
     
     
@@ -88,7 +88,7 @@
 
 <header class="md-header" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href="../../.." title="NextGen Metadata Framework (Metaflow)" class="md-header__button md-logo" aria-label="NextGen Metadata Framework (Metaflow)" data-md-component="logo">
+    <a href="../../.." title="FlowX" class="md-header__button md-logo" aria-label="FlowX" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
@@ -102,7 +102,7 @@
       <div class="md-header__ellipsis">
         <div class="md-header__topic">
           <span class="md-ellipsis">
-            NextGen Metadata Framework (Metaflow)
+            FlowX
           </span>
         </div>
         <div class="md-header__topic" data-md-component="header-topic">
@@ -405,13 +405,13 @@
 
 <nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href="../../.." title="NextGen Metadata Framework (Metaflow)" class="md-nav__button md-logo" aria-label="NextGen Metadata Framework (Metaflow)" data-md-component="logo">
+    <a href="../../.." title="FlowX" class="md-nav__button md-logo" aria-label="FlowX" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
 
     </a>
-    NextGen Metadata Framework (Metaflow)
+    FlowX
   </label>
   
   <ul class="md-nav__list" data-md-scrollfix>
@@ -3424,7 +3424,7 @@
 
 <h1 id="dlt-observability-testing-validation-runbook">DLT Observability: Testing &amp; Validation Runbook<a class="headerlink" href="#dlt-observability-testing-validation-runbook" title="Permanent link">&para;</a></h1>
 <blockquote>
-<p>See also: <a href="README.md">README.md</a> — the full Metaflow documentation set, and
+<p>See also: <a href="README.md">README.md</a> — the full FlowX documentation set, and
 <a href="../25_dlt_observability_module/">25_dlt_observability_module.md</a> for the architecture this
 runbook exercises.</p>
 </blockquote>
@@ -3642,10 +3642,10 @@ configured (<code>databricks auth profiles</code> — see the <code>databricks-c
 <li><strong>Deploy.</strong> <code>databricks bundle deploy --target dev --profile &lt;your-profile&gt;</code> — this builds
    the wheel (picking up <code>observability/</code> and the three new deps in <code>pyproject.toml</code>) and
    registers <code>dlt_observability_job.yml</code>'s job + reuses the existing
-   <code>metaflow_test_100_zipcsv_pipeline</code>.</li>
+   <code>flowx_test_100_zipcsv_pipeline</code>.</li>
 <li><strong>Configure at least one destination.</strong> There is no separate seed step — edit the
    <code>"observability": [...]</code> array directly inside
-   <code>metaflow_testing/100_zipcsv_onbaording.json</code> (the onboarding spec <code>dlt_observability_job.yml</code>'s
+   <code>flowx_testing/100_zipcsv_onbaording.json</code> (the onboarding spec <code>dlt_observability_job.yml</code>'s
    <code>onboard_100</code> task onboards) with a real Volume path / OTLP endpoint reachable from your
    workspace. For a first smoke test with zero external dependencies, keep only the
    <code>DATABRICKS_VOLUME</code> entry — it needs no credentials and no reachable external endpoint.
@@ -3739,8 +3739,8 @@ listener) and inspect the raw POST body — the top-level shape is exactly
 <code>500</code>-exhausted HTTP responses and Volume writes to a local <code>tmp_path</code>, entirely via
 <code>unittest</code>-style dependency injection (<code>post_fn</code>, <code>sleep_fn</code>) — no real network call or Unity
 Catalog Volume is touched. If you need to exercise the same scenarios interactively:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">NextGen_Metadata_Framework.lakeflow_framework.observability.destination_dispatcher</span><span class="w"> </span><span class="kn">import</span> <span class="n">dispatch_to_otlp</span>
-<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">NextGen_Metadata_Framework.lakeflow_framework.observability.config_loader</span><span class="w"> </span><span class="kn">import</span> <span class="n">DestinationConfig</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">flowx.lakeflow_framework.observability.destination_dispatcher</span><span class="w"> </span><span class="kn">import</span> <span class="n">dispatch_to_otlp</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">flowx.lakeflow_framework.observability.config_loader</span><span class="w"> </span><span class="kn">import</span> <span class="n">DestinationConfig</span>
 <a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>
 <a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="k">class</span><span class="w"> </span><span class="nc">_FakeResponse</span><span class="p">:</span>
 <a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">status_code</span><span class="p">):</span> <span class="bp">self</span><span class="o">.</span><span class="n">status_code</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">text</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">headers</span> <span class="o">=</span> <span class="n">status_code</span><span class="p">,</span> <span class="s2">""</span><span class="p">,</span> <span class="p">{}</span>

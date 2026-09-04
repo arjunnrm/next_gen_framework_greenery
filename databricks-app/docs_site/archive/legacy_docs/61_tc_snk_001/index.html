@@ -23,7 +23,7 @@
     
     
       
-        <title>Test Pipeline: External Sink Dual Materialization & Plain ZIP Export (TC-SNK-001) - NextGen Metadata Framework (Metaflow)</title>
+        <title>Test Pipeline: External Sink Dual Materialization & Plain ZIP Export (TC-SNK-001) - FlowX</title>
       
     
     
@@ -88,7 +88,7 @@
 
 <header class="md-header" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href="../../.." title="NextGen Metadata Framework (Metaflow)" class="md-header__button md-logo" aria-label="NextGen Metadata Framework (Metaflow)" data-md-component="logo">
+    <a href="../../.." title="FlowX" class="md-header__button md-logo" aria-label="FlowX" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
@@ -102,7 +102,7 @@
       <div class="md-header__ellipsis">
         <div class="md-header__topic">
           <span class="md-ellipsis">
-            NextGen Metadata Framework (Metaflow)
+            FlowX
           </span>
         </div>
         <div class="md-header__topic" data-md-component="header-topic">
@@ -405,13 +405,13 @@
 
 <nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href="../../.." title="NextGen Metadata Framework (Metaflow)" class="md-nav__button md-logo" aria-label="NextGen Metadata Framework (Metaflow)" data-md-component="logo">
+    <a href="../../.." title="FlowX" class="md-nav__button md-logo" aria-label="FlowX" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
 
     </a>
-    NextGen Metadata Framework (Metaflow)
+    FlowX
   </label>
   
   <ul class="md-nav__list" data-md-scrollfix>
@@ -3381,7 +3381,7 @@
 <blockquote>
 <p>See also: <a href="README.md">Documentation index</a>, <a href="../23_lakeflow_sinks/">23_lakeflow_sinks.md</a> (the
 <code>sink</code>/<code>external_sink</code> mechanics this scenario exercises), <a href="../47_tc_trf_001/">47_tc_trf_001.md</a>
-(the 4-way join shape this scenario reuses), <a href="../metaflow_testing/TESTING_STATUS.md">metaflow_testing/TESTING_STATUS.md</a>.</p>
+(the 4-way join shape this scenario reuses), <a href="../flowx_testing/TESTING_STATUS.md">flowx_testing/TESTING_STATUS.md</a>.</p>
 </blockquote>
 <h2 id="purpose">Purpose<a class="headerlink" href="#purpose" title="Permanent link">&para;</a></h2>
 <p>Prove <code>target_type: "external_sink"</code>'s dual-output contract end to end: a single
@@ -3428,9 +3428,9 @@ Both outputs come from <strong>one</strong> pipeline update, not a separate post
 </ul>
 <h2 id="inputs">Inputs<a class="headerlink" href="#inputs" title="Permanent link">&para;</a></h2>
 <ul>
-<li><code>metaflow_testing/039_snk_001_external_sink.json</code> -- 4 <code>ingestion_flows</code> + 1
+<li><code>flowx_testing/039_snk_001_external_sink.json</code> -- 4 <code>ingestion_flows</code> + 1
   <code>transformation_flows</code> entry (no <code>reconciliation_flows</code>).</li>
-<li><code>sample_data/metaflow_testing/ea_usecase/{employees,departments,projects,assignments}.csv</code>
+<li><code>sample_data/flowx_testing/ea_usecase/{employees,departments,projects,assignments}.csv</code>
   -- reused as-is, no new fixture needed (same 5-row join shape TC-TRF-001 already
   established: <code>employees.csv</code> has 5 rows <code>E001</code>-<code>E005</code>, <code>assignments.csv</code> has exactly 5 rows
   covering only <code>E001</code>-<code>E004</code>).</li>
@@ -3438,7 +3438,7 @@ Both outputs come from <strong>one</strong> pipeline update, not a separate post
   as-is</strong>) -- provisions the <code>ea</code> schema's <code>landing_assignments</code>/<code>landing_employees</code>/
   <code>landing_departments</code>/<code>landing_projects</code>/<code>_schemas</code> Volumes and lands the 4 CSV fixtures
   plain/unzipped.</li>
-<li><code>notebooks/00_seed_sample_data/02_seed_metaflow_testing_data.py</code> (<strong>existing, reused
+<li><code>notebooks/00_seed_sample_data/02_seed_flowx_testing_data.py</code> (<strong>existing, reused
   as-is</strong>) -- provisions <code>bronze_ea</code>/<code>silver_ea</code> and, critically, the <code>egress_ea</code> schema and
   its <code>export_zips</code> Volume, which is where this test case's own sink stages and lands its ZIP
   output.</li>
@@ -3457,7 +3457,7 @@ Both outputs come from <strong>one</strong> pipeline update, not a separate post
   <code>E005</code>'s absence is a property of the join output only.</li>
 </ul>
 <h2 id="configuration">Configuration<a class="headerlink" href="#configuration" title="Permanent link">&para;</a></h2>
-<p><code>metaflow_testing/039_snk_001_external_sink.json</code>'s one <code>transformation_flows[]</code> entry's
+<p><code>flowx_testing/039_snk_001_external_sink.json</code>'s one <code>transformation_flows[]</code> entry's
 <code>target_config</code>:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="p">{</span>
 <a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="w">  </span><span class="nt">"cdc_load_strategy"</span><span class="p">:</span><span class="w"> </span><span class="s2">"APPEND"</span><span class="p">,</span>
@@ -3475,9 +3475,9 @@ Both outputs come from <strong>one</strong> pipeline update, not a separate post
 </code></pre></div>
 <h2 id="main-execution-flow">Main execution flow<a class="headerlink" href="#main-execution-flow" title="Permanent link">&para;</a></h2>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>databricks<span class="w"> </span>bundle<span class="w"> </span>deploy<span class="w"> </span>--target<span class="w"> </span>dev
-<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>databricks<span class="w"> </span>bundle<span class="w"> </span>run<span class="w"> </span>metaflow_test_snk_001_external_sink_job<span class="w"> </span>--target<span class="w"> </span>dev
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>databricks<span class="w"> </span>bundle<span class="w"> </span>run<span class="w"> </span>flowx_test_snk_001_external_sink_job<span class="w"> </span>--target<span class="w"> </span>dev
 </code></pre></div>
-<p>Task chain: <code>setup_control_tables → seed_metaflow_testing_data → seed_trf_001_4way_join_data →
+<p>Task chain: <code>setup_control_tables → seed_flowx_testing_data → seed_trf_001_4way_join_data →
 onboard_snk_001 → run_pipeline</code>.</p>
 <h2 id="expected-results-simulation-notes">Expected results — simulation notes<a class="headerlink" href="#expected-results-simulation-notes" title="Permanent link">&para;</a></h2>
 <p><strong>SQL assertions</strong> (after a run, replace <code>{catalog}</code> with your actual target catalog):</p>
@@ -3496,7 +3496,7 @@ onboard_snk_001 → run_pipeline</code>.</p>
 5 landed rows in a single micro-batch, which is the expected steady-state for this small a
 fixture under Lakeflow's default triggered/<code>availableNow</code>-style batch draining).</p>
 <p><strong>This pass's actual verification status</strong>: see
-<a href="../metaflow_testing/TESTING_STATUS.md"><code>metaflow_testing/TESTING_STATUS.md</code></a> for whether this
+<a href="../flowx_testing/TESTING_STATUS.md"><code>flowx_testing/TESTING_STATUS.md</code></a> for whether this
 job was actually run against the live workspace and what the real result was -- this document
 describes what <em>should</em> happen structurally; the status tracker records what <em>did</em> happen, if
 anything, each time this scenario is executed. (Per this project's build convention, that
@@ -3505,12 +3505,12 @@ tracker is updated centrally in a later phase, not by this build itself.)</p>
 <ul>
 <li><strong>Genuine naming collision with scenario 001 -- resolved by renaming this test case's own
   targets, not scenario 001's.</strong> TC-SNK-001's own task detail names the literal target
-  <code>metaflow.silver_ea.ea_joined_assignments</code> -- but scenario 001
-  (<code>metaflow_test_001_zip_join_export_pipeline</code>, already deployed) <strong>already owns a real,
+  <code>flowx.silver_ea.ea_joined_assignments</code> -- but scenario 001
+  (<code>flowx_test_001_zip_join_export_pipeline</code>, already deployed) <strong>already owns a real,
   already-materialized <code>external_sink</code> flow against that exact three-part name</strong>, including
   the identical join SQL, the identical <code>pgp_zip</code> sink format, and the identical
   <code>egress_ea.export_zips/_staging/</code> \/ <code>egress_ea.export_zips/output/</code> Volume paths (see
-  <code>metaflow_testing/001_zip_file_onboarding.json</code>). Two different Lakeflow Declarative
+  <code>flowx_testing/001_zip_file_onboarding.json</code>). Two different Lakeflow Declarative
   Pipelines cannot both declare a table/sink against the identical Unity Catalog object or
   write concurrently into the identical output directory with the same batch-numbered file
   name -- attempting either would risk a deployment-time table-ownership conflict or a
@@ -3528,7 +3528,7 @@ tracker is updated centrally in a later phase, not by this build itself.)</p>
 <li><strong>Reused fixtures and seed notebooks, no new sample data.</strong> Both ingestion input (the 4 EA
   CSVs) and the required schema/Volume provisioning (<code>ea</code>/<code>bronze_ea</code>/<code>silver_ea</code>/<code>egress_ea</code>)
   are fully covered by two already-existing, idempotent seed notebooks
-  (<code>02_seed_metaflow_testing_data.py</code>, <code>03_seed_trf_001_4way_join_data.py</code>), reused as-is in
+  (<code>02_seed_flowx_testing_data.py</code>, <code>03_seed_trf_001_4way_join_data.py</code>), reused as-is in
   this test case's own job. No new CSV fixture and no new seed notebook were written.</li>
 <li><strong><code>pgp_zip</code> chosen deliberately for the "plain ZIP export" requirement.</strong> The framework's
   <code>sink_config.format</code> enum is <code>{"delta", "kafka", "pgp_zip"}</code> -- <code>pgp_zip</code> is the only format

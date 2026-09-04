@@ -23,7 +23,7 @@
     
     
       
-        <title>Test Pipeline: TC-ING-004 -- ASN.1 Binary Telecom CDR Decoding - NextGen Metadata Framework (Metaflow)</title>
+        <title>Test Pipeline: TC-ING-004 -- ASN.1 Binary Telecom CDR Decoding - FlowX</title>
       
     
     
@@ -88,7 +88,7 @@
 
 <header class="md-header" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href="../../.." title="NextGen Metadata Framework (Metaflow)" class="md-header__button md-logo" aria-label="NextGen Metadata Framework (Metaflow)" data-md-component="logo">
+    <a href="../../.." title="FlowX" class="md-header__button md-logo" aria-label="FlowX" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
@@ -102,7 +102,7 @@
       <div class="md-header__ellipsis">
         <div class="md-header__topic">
           <span class="md-ellipsis">
-            NextGen Metadata Framework (Metaflow)
+            FlowX
           </span>
         </div>
         <div class="md-header__topic" data-md-component="header-topic">
@@ -405,13 +405,13 @@
 
 <nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href="../../.." title="NextGen Metadata Framework (Metaflow)" class="md-nav__button md-logo" aria-label="NextGen Metadata Framework (Metaflow)" data-md-component="logo">
+    <a href="../../.." title="FlowX" class="md-nav__button md-logo" aria-label="FlowX" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
 
     </a>
-    NextGen Metadata Framework (Metaflow)
+    FlowX
   </label>
   
   <ul class="md-nav__list" data-md-scrollfix>
@@ -3412,7 +3412,7 @@
 
 <h1 id="test-pipeline-tc-ing-004-asn1-binary-telecom-cdr-decoding">Test Pipeline: TC-ING-004 -- ASN.1 Binary Telecom CDR Decoding<a class="headerlink" href="#test-pipeline-tc-ing-004-asn1-binary-telecom-cdr-decoding" title="Permanent link">&para;</a></h1>
 <blockquote>
-<p>See also: <a href="README.md">Documentation index</a>, <a href="../metaflow_testing/TESTING_PLAN.md">metaflow_testing/TESTING_PLAN.md</a> (Module 1), <a href="../metaflow_testing/TESTING_STATUS.md">metaflow_testing/TESTING_STATUS.md</a>, <a href="../13_asn1_dq_quarantine/">13_asn1_dq_quarantine.md</a> (the pre-existing ASN.1 + DQ/quarantine demonstration this scenario is a dedicated, <code>TC-*</code>-numbered sibling of, not a replacement for).</p>
+<p>See also: <a href="README.md">Documentation index</a>, <a href="../flowx_testing/TESTING_PLAN.md">flowx_testing/TESTING_PLAN.md</a> (Module 1), <a href="../flowx_testing/TESTING_STATUS.md">flowx_testing/TESTING_STATUS.md</a>, <a href="../13_asn1_dq_quarantine/">13_asn1_dq_quarantine.md</a> (the pre-existing ASN.1 + DQ/quarantine demonstration this scenario is a dedicated, <code>TC-*</code>-numbered sibling of, not a replacement for).</p>
 </blockquote>
 <h2 id="purpose">Purpose<a class="headerlink" href="#purpose" title="Permanent link">&para;</a></h2>
 <p>Prove <code>source_type: "asn1"</code> binary telecom CDR decoding end to end, as its own dedicated,
@@ -3445,7 +3445,7 @@ batch.</p>
   binary files -- Databricks Workspace Files sync can mangle a raw <code>.ber</code> upload; identical
   rationale to <code>docs/13_asn1_dq_quarantine.md</code>'s and <code>sample_data/generate_asn1_dq_fixtures.py</code>'s
   own note): <code>gsm_cdr_001.ber</code> / <code>gsm_cdr_002.ber</code> / <code>gsm_cdr_003.ber</code>, all valid.</li>
-<li><code>metaflow_testing/013_ing_004_asn1_decode.json</code>.</li>
+<li><code>flowx_testing/013_ing_004_asn1_decode.json</code>.</li>
 </ul>
 <h2 id="outputs">Outputs<a class="headerlink" href="#outputs" title="Permanent link">&para;</a></h2>
 <ul>
@@ -3460,7 +3460,7 @@ batch.</p>
   rows) for this all-valid fixture batch.</li>
 </ul>
 <h2 id="configuration">Configuration<a class="headerlink" href="#configuration" title="Permanent link">&para;</a></h2>
-<p><code>metaflow_testing/013_ing_004_asn1_decode.json</code>'s one <code>ingestion_flows[]</code> entry:</p>
+<p><code>flowx_testing/013_ing_004_asn1_decode.json</code>'s one <code>ingestion_flows[]</code> entry:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nt">"source_config"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
 <a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="w">  </span><span class="nt">"path"</span><span class="p">:</span><span class="w"> </span><span class="s2">"/Volumes/{{catalog}}/telecom/landing_cdr/incoming/"</span><span class="p">,</span>
 <a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="w">  </span><span class="nt">"schema_location"</span><span class="p">:</span><span class="w"> </span><span class="s2">"/Volumes/{{catalog}}/telecom/_schemas/cdr_stream_raw/"</span><span class="p">,</span>
@@ -3514,7 +3514,7 @@ see <code>docs/13_asn1_dq_quarantine.md</code>'s identical callout on SQL three-
 bare <code>&gt;= 0</code> would silently fail to flag a genuinely <code>NULL</code> value as a violation.)</p>
 <h2 id="main-execution-flow">Main execution flow<a class="headerlink" href="#main-execution-flow" title="Permanent link">&para;</a></h2>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>databricks<span class="w"> </span>bundle<span class="w"> </span>deploy<span class="w"> </span>--target<span class="w"> </span>dev
-<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>databricks<span class="w"> </span>bundle<span class="w"> </span>run<span class="w"> </span>metaflow_test_ing_004_asn1_decode_job<span class="w"> </span>--target<span class="w"> </span>dev
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>databricks<span class="w"> </span>bundle<span class="w"> </span>run<span class="w"> </span>flowx_test_ing_004_asn1_decode_job<span class="w"> </span>--target<span class="w"> </span>dev
 </code></pre></div>
 <p>Task chain: <code>setup_control_tables -&gt; seed_asn1_gsm_cdr_fixture -&gt; onboard_ing_004 -&gt;
 run_ing_004_pipeline</code>.</p>
@@ -3542,7 +3542,7 @@ rules are evaluated per row -&gt; <code>register_main_and_quarantine_tables</cod
 <a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a><span class="c1">-- expect: 0</span>
 </code></pre></div>
 <p><strong>This pass's actual verification status</strong>: see
-<a href="../metaflow_testing/TESTING_STATUS.md"><code>metaflow_testing/TESTING_STATUS.md</code></a> for whether
+<a href="../flowx_testing/TESTING_STATUS.md"><code>flowx_testing/TESTING_STATUS.md</code></a> for whether
 this job was actually run against the live workspace and what the real result was -- per this
 project's scope discipline, deployment/execution across all 45 <code>TC-*</code> scenarios happens in a
 later, centralized pass, not from this build step.</p>
@@ -3593,7 +3593,7 @@ needed, the 3 quarantine rules already cover it.</p>
   assumed correct).</li>
 <li><strong>A brand-new seed notebook</strong>
   (<code>notebooks/00_seed_sample_data/03_seed_asn1_gsm_cdr_fixture.py</code>), rather than extending
-  <code>02_seed_metaflow_testing_data.py</code> -- that notebook is explicitly scoped (per its own
+  <code>02_seed_flowx_testing_data.py</code> -- that notebook is explicitly scoped (per its own
   header) to specs <code>001</code>/<code>002</code>/<code>003</code>, and this scenario's binary-fixture-generation-on-cluster
   requirement (see <code>docs/13</code>'s identical rationale) is self-contained and unrelated to the
   EA/Excalibur fixtures it already provisions.</li>

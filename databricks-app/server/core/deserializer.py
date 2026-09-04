@@ -1,5 +1,5 @@
 """
-Lossless Deserializer for Metaflow Onboarding App.
+Lossless Deserializer for FlowX Onboarding App.
 Converts incoming framework JSON/YAML spec into Flow Document Store (SpecDoc) according to §8.5.
 """
 
@@ -188,7 +188,7 @@ class SpecDeserializer:
 
         spec_doc: Dict[str, Any] = {
             "rev": 1,
-            "templateVars": {"catalog": "metaflow", "env": "dev"},
+            "templateVars": {"catalog": "flowx", "env": "dev"},
             "root": {
                 "id": "root_doc",
                 "v": {},

@@ -1,5 +1,5 @@
 """
-E2E tests for MetaFlow Spec Builder:
+E2E tests for FlowX Spec Builder:
   1. All 4 tabs present (Ingestion, Transformation, Reconciliation, Observability)
   2. Canonical attributes matching pipeline_onboarding_template.json
   3. Preloaded template values
@@ -12,7 +12,7 @@ import json
 from fastapi.testclient import TestClient
 import pytest
 
-os.environ["METAFLOW_FAKE_DBX"] = "1"
+os.environ["FLOWX_FAKE_DBX"] = "1"
 
 from server.app import app
 
@@ -22,7 +22,7 @@ client = TestClient(app)
 def test_spa_loads_with_canonical_schema(frontend_text):
     """Verify the frontend ships all 4 flow tabs, the theme system, and canonical attributes."""
     body = frontend_text
-    assert "MetaFlow" in body or "Metaflow" in body, "Brand title missing"
+    assert "FlowX" in body or "FlowX" in body, "Brand title missing"
     assert "data-mfl" in body, "Theme attribute missing"
     # Verify the 4 tabs
     assert "Ingestion" in body, "Ingestion tab missing"
@@ -82,7 +82,7 @@ def test_workspace_and_volume_write_endpoints():
     # Test Workspace
     res_ws = client.post("/api/workspace/write", json={
         "root_id": "ws_specs",
-        "path": "/Workspace/Shared/metaflow/specs/onboarding_test.json",
+        "path": "/Workspace/Shared/flowx/specs/onboarding_test.json",
         "content": json.dumps({"dataflow_group_id": "dfg_ws_test"}),
         "overwrite": True,
     })
@@ -91,7 +91,7 @@ def test_workspace_and_volume_write_endpoints():
     # Test Volume
     res_vol = client.post("/api/workspace/write", json={
         "root_id": "vol_specs",
-        "path": "/Volumes/metaflow/metaflow/onboarding_specs/onboarding_test.json",
+        "path": "/Volumes/flowx/flowx/onboarding_specs/onboarding_test.json",
         "content": json.dumps({"dataflow_group_id": "dfg_vol_test"}),
         "overwrite": True,
     })

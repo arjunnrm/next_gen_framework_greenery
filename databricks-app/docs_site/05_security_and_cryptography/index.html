@@ -27,7 +27,7 @@
     
     
       
-        <title>Security & cryptography - NextGen Metadata Framework (Metaflow)</title>
+        <title>Security & cryptography - FlowX</title>
       
     
     
@@ -78,7 +78,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#metaflow-security-cryptography" class="md-skip">
+        <a href="#flowx-security-cryptography" class="md-skip">
           Skip to content
         </a>
       
@@ -92,7 +92,7 @@
 
 <header class="md-header" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href=".." title="NextGen Metadata Framework (Metaflow)" class="md-header__button md-logo" aria-label="NextGen Metadata Framework (Metaflow)" data-md-component="logo">
+    <a href=".." title="FlowX" class="md-header__button md-logo" aria-label="FlowX" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
@@ -106,7 +106,7 @@
       <div class="md-header__ellipsis">
         <div class="md-header__topic">
           <span class="md-ellipsis">
-            NextGen Metadata Framework (Metaflow)
+            FlowX
           </span>
         </div>
         <div class="md-header__topic" data-md-component="header-topic">
@@ -411,13 +411,13 @@
 
 <nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href=".." title="NextGen Metadata Framework (Metaflow)" class="md-nav__button md-logo" aria-label="NextGen Metadata Framework (Metaflow)" data-md-component="logo">
+    <a href=".." title="FlowX" class="md-nav__button md-logo" aria-label="FlowX" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
 
     </a>
-    NextGen Metadata Framework (Metaflow)
+    FlowX
   </label>
   
   <ul class="md-nav__list" data-md-scrollfix>
@@ -3602,19 +3602,19 @@
 
 
 
-<h1 id="metaflow-security-cryptography">🔐 Metaflow — Security &amp; Cryptography<a class="headerlink" href="#metaflow-security-cryptography" title="Permanent link">&para;</a></h1>
+<h1 id="flowx-security-cryptography">🔐 FlowX — Security &amp; Cryptography<a class="headerlink" href="#flowx-security-cryptography" title="Permanent link">&para;</a></h1>
 <blockquote>
 <p><strong>Audience</strong>: Security architects, compliance officers, and data engineers handling Personally Identifiable Information (PII), Payment Card Industry (PCI) data, and secret management.</p>
 </blockquote>
 <hr />
 <h2 id="1-zero-key-leakage-cryptographic-architecture">1. Zero-Key-Leakage Cryptographic Architecture<a class="headerlink" href="#1-zero-key-leakage-cryptographic-architecture" title="Permanent link">&para;</a></h2>
-<p>Metaflow incorporates a robust column-level encryption and decryption engine with strict zero-key-leakage guarantees:
+<p>FlowX incorporates a robust column-level encryption and decryption engine with strict zero-key-leakage guarantees:
 - <strong>No In-Code Keys</strong>: Encryption keys are never hardcoded, never written to control tables, and never printed to logs.
 - <strong>Unity Catalog Secret Resolution</strong>: All cryptographic keys are dynamically retrieved at runtime using the Unity Catalog 3-level secret namespace (<code>secret_catalog</code> / <code>secret_schema</code> / <code>secret_key</code>) or workspace scopes (<code>secret:&lt;scope&gt;:&lt;key&gt;</code>).
 - <strong>Deterministic Validation</strong>: Invalid key lengths or unresolvable secrets raise immediate compile-time errors before data processing begins.</p>
 <hr />
 <h2 id="2-column-level-aes-encryption">2. Column-Level AES Encryption<a class="headerlink" href="#2-column-level-aes-encryption" title="Permanent link">&para;</a></h2>
-<p>Metaflow supports Advanced Encryption Standard (AES) encryption across 3 cipher modes:
+<p>FlowX supports Advanced Encryption Standard (AES) encryption across 3 cipher modes:
 - <strong><code>GCM</code></strong> (Galois/Counter Mode — Recommended): Authenticated encryption providing both confidentiality and integrity verification. Requires an Initialization Vector (IV) / nonce.
 - <strong><code>CBC</code></strong> (Cipher Block Chaining): Standard block cipher with PKCS7 padding.
 - <strong><code>ECB</code></strong> (Electronic Codebook): Deterministic encryption. Useful when encrypted columns must support equality joins across tables without prior decryption.</p>

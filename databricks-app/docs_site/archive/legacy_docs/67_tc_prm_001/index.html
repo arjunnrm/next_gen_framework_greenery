@@ -23,7 +23,7 @@
     
     
       
-        <title>Test Pipeline: TC-PRM-001 -- Parameterized Dynamic Volume & File Paths - NextGen Metadata Framework (Metaflow)</title>
+        <title>Test Pipeline: TC-PRM-001 -- Parameterized Dynamic Volume & File Paths - FlowX</title>
       
     
     
@@ -88,7 +88,7 @@
 
 <header class="md-header" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href="../../.." title="NextGen Metadata Framework (Metaflow)" class="md-header__button md-logo" aria-label="NextGen Metadata Framework (Metaflow)" data-md-component="logo">
+    <a href="../../.." title="FlowX" class="md-header__button md-logo" aria-label="FlowX" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
@@ -102,7 +102,7 @@
       <div class="md-header__ellipsis">
         <div class="md-header__topic">
           <span class="md-ellipsis">
-            NextGen Metadata Framework (Metaflow)
+            FlowX
           </span>
         </div>
         <div class="md-header__topic" data-md-component="header-topic">
@@ -405,13 +405,13 @@
 
 <nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href="../../.." title="NextGen Metadata Framework (Metaflow)" class="md-nav__button md-logo" aria-label="NextGen Metadata Framework (Metaflow)" data-md-component="logo">
+    <a href="../../.." title="FlowX" class="md-nav__button md-logo" aria-label="FlowX" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
 
     </a>
-    NextGen Metadata Framework (Metaflow)
+    FlowX
   </label>
   
   <ul class="md-nav__list" data-md-scrollfix>
@@ -3379,7 +3379,7 @@
 
 <h1 id="test-pipeline-tc-prm-001-parameterized-dynamic-volume-file-paths">Test Pipeline: TC-PRM-001 -- Parameterized Dynamic Volume &amp; File Paths<a class="headerlink" href="#test-pipeline-tc-prm-001-parameterized-dynamic-volume-file-paths" title="Permanent link">&para;</a></h1>
 <blockquote>
-<p>See also: <a href="README.md">Documentation index</a>, <a href="../metaflow_testing/TESTING_PLAN.md">metaflow_testing/TESTING_PLAN.md</a>, <a href="../metaflow_testing/TESTING_STATUS.md">metaflow_testing/TESTING_STATUS.md</a>, <a href="../17_onboarding_template_reference/#34-transformation_sql-parameters-union-and-the-stream-keyword">17_onboarding_template_reference.md §3.4</a>.</p>
+<p>See also: <a href="README.md">Documentation index</a>, <a href="../flowx_testing/TESTING_PLAN.md">flowx_testing/TESTING_PLAN.md</a>, <a href="../flowx_testing/TESTING_STATUS.md">flowx_testing/TESTING_STATUS.md</a>, <a href="../17_onboarding_template_reference/#34-transformation_sql-parameters-union-and-the-stream-keyword">17_onboarding_template_reference.md §3.4</a>.</p>
 </blockquote>
 <h2 id="purpose">Purpose<a class="headerlink" href="#purpose" title="Permanent link">&para;</a></h2>
 <p>Prove <code>transformation/parameters.py::substitute_path_parameters</code> -- the new capability added
@@ -3396,7 +3396,7 @@ runs directly against the <strong>raw JSON text</strong> of <code>source_config_
 <p>This is a <strong>runtime</strong> substitution (re-read fresh from <code>PIPELINE_PARAMETERS</code> on every pipeline
 update), unlike the one-time <code>{{catalog}}</code>/<code>{{env}}</code> substitution <code>onboarding/spec_loader.py</code>
 applies once, forever, at onboarding time -- the two mechanisms are independent and both appear
-in this scenario's spec: <code>{{catalog}}</code> resolves to <code>metaflow</code> when the spec is onboarded;
+in this scenario's spec: <code>{{catalog}}</code> resolves to <code>flowx</code> when the spec is onboarded;
 <code>${data_domain}</code>/<code>${batch_date}</code> resolve to <code>finance_ops</code>/<code>2026-08-28</code> fresh every time the
 pipeline updates.</p>
 <h2 id="responsibilities">Responsibilities<a class="headerlink" href="#responsibilities" title="Permanent link">&para;</a></h2>
@@ -3409,7 +3409,7 @@ pipeline updates.</p>
   <code>source_config.schema_location</code> uses <code>${data_domain}</code> alone -- proving the same parameter
   substitutes correctly across two different fields, not just once incidentally.</li>
 <li>Land the fixture CSV directly under the <strong>literal, fully-resolved</strong> path
-  (<code>/Volumes/metaflow/finance_ops/landing/2026-08-28/</code>) the substitution is expected to produce,
+  (<code>/Volumes/flowx/finance_ops/landing/2026-08-28/</code>) the substitution is expected to produce,
   so Auto Loader only finds the file if the substitution genuinely ran correctly end to end --
   a wrong resolution (e.g. a literal <code>${data_domain}</code> left unsubstituted, or the wrong value)
   means Auto Loader finds nothing, a visible failure rather than a silent false pass.</li>
@@ -3419,9 +3419,9 @@ pipeline updates.</p>
 </ul>
 <h2 id="inputs">Inputs<a class="headerlink" href="#inputs" title="Permanent link">&para;</a></h2>
 <ul>
-<li><code>metaflow_testing/045_prm_001_path_param.json</code> -- ingestion-only onboarding spec (no
+<li><code>flowx_testing/045_prm_001_path_param.json</code> -- ingestion-only onboarding spec (no
   <code>transformation_flows</code>/<code>reconciliation_flows</code>), one flow: <code>df_prm_001_daily_txns_ingest</code>.</li>
-<li><code>sample_data/metaflow_testing/finance_usecase/daily_txns_batch1.csv</code> -- 4 daily transaction
+<li><code>sample_data/flowx_testing/finance_usecase/daily_txns_batch1.csv</code> -- 4 daily transaction
   records (<code>TXN1001</code>-<code>TXN1004</code>, two sharing <code>account_id: ACC5001</code>).</li>
 <li><code>notebooks/00_seed_sample_data/03_seed_prm_001_path_param_data.py</code> -- a <strong>new, dedicated</strong> seed
   notebook (widgets: <code>catalog</code>, <code>data_domain</code>, <code>batch_date</code>, the latter two defaulting to the
@@ -3439,12 +3439,12 @@ pipeline updates.</p>
 <li><code>__framework_source_file_name</code> on every row resolves to a path containing
   <code>finance_ops/landing/2026-08-28/daily_txns_batch1.csv</code> -- the assertion this scenario exists to
   make.</li>
-<li>Auto Loader's own <code>schema_location</code> (<code>/Volumes/metaflow/finance_ops/_schemas/daily_txns_raw/</code>)
+<li>Auto Loader's own <code>schema_location</code> (<code>/Volumes/flowx/finance_ops/_schemas/daily_txns_raw/</code>)
   is created under the <code>${data_domain}</code>-resolved path too, proving the same placeholder resolves
   consistently across both <code>source_config</code> fields in one pipeline update.</li>
 </ul>
 <h2 id="configuration">Configuration<a class="headerlink" href="#configuration" title="Permanent link">&para;</a></h2>
-<p><code>metaflow_testing/045_prm_001_path_param.json</code>'s one ingestion flow -- the part of this spec that
+<p><code>flowx_testing/045_prm_001_path_param.json</code>'s one ingestion flow -- the part of this spec that
 is actually new/interesting:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nt">"pipeline_parameters"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
 <a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="w">  </span><span class="nt">"data_domain"</span><span class="p">:</span><span class="w"> </span><span class="s2">"finance_ops"</span><span class="p">,</span>
@@ -3466,10 +3466,10 @@ is actually new/interesting:</p>
 <a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a><span class="w">  </span><span class="nt">"target_config"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="nt">"cdc_load_strategy"</span><span class="p">:</span><span class="w"> </span><span class="s2">"APPEND"</span><span class="p">,</span><span class="w"> </span><span class="nt">"storage_format"</span><span class="p">:</span><span class="w"> </span><span class="s2">"delta"</span><span class="p">}</span>
 <a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a><span class="p">}]</span>
 </code></pre></div>
-<p>Note the two-layer substitution order: <code>{{catalog}}</code> is replaced with <code>metaflow</code> by
+<p>Note the two-layer substitution order: <code>{{catalog}}</code> is replaced with <code>flowx</code> by
 <code>onboarding/spec_loader.py::substitute_environment_placeholders</code> <strong>once, at onboarding time</strong>,
 before the JSON is ever parsed into the control tables -- so the control table's
-<code>source_config_json</code> column already reads <code>/Volumes/metaflow/${data_domain}/landing/${batch_date}/</code>
+<code>source_config_json</code> column already reads <code>/Volumes/flowx/${data_domain}/landing/${batch_date}/</code>
 the moment onboarding completes. <code>${data_domain}</code>/<code>${batch_date}</code> are left untouched at that point
 and only resolve <strong>every time the pipeline updates</strong>, via
 <code>generate_ingestion_flow</code>'s call to <code>substitute_path_parameters</code> against
@@ -3480,14 +3480,14 @@ the <em>next</em> pipeline update reads from, with no code change and no need to
 again.</p>
 <p>Resources:</p>
 <ul>
-<li><code>resources/metaflow_test_prm_001_path_param_pipeline.yml</code> --
-  <code>metaflow_test_prm_001_path_param_pipeline</code> (<code>catalog: metaflow</code>, <code>schema: bronze_finance</code>,
+<li><code>resources/flowx_test_prm_001_path_param_pipeline.yml</code> --
+  <code>flowx_test_prm_001_path_param_pipeline</code> (<code>catalog: flowx</code>, <code>schema: bronze_finance</code>,
   serverless, <code>dataflow.group.id: dfg_prm_001_path_param</code>).</li>
-<li><code>resources/metaflow_test_prm_001_path_param_job.yml</code> -- <code>metaflow_test_prm_001_path_param_job</code>.</li>
+<li><code>resources/flowx_test_prm_001_path_param_job.yml</code> -- <code>flowx_test_prm_001_path_param_job</code>.</li>
 </ul>
 <h2 id="main-execution-flow">Main execution flow<a class="headerlink" href="#main-execution-flow" title="Permanent link">&para;</a></h2>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>databricks<span class="w"> </span>bundle<span class="w"> </span>deploy<span class="w"> </span>--target<span class="w"> </span>dev
-<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>databricks<span class="w"> </span>bundle<span class="w"> </span>run<span class="w"> </span>metaflow_test_prm_001_path_param_job<span class="w"> </span>--target<span class="w"> </span>dev
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>databricks<span class="w"> </span>bundle<span class="w"> </span>run<span class="w"> </span>flowx_test_prm_001_path_param_job<span class="w"> </span>--target<span class="w"> </span>dev
 </code></pre></div>
 <p>Task chain: <code>setup_control_tables -&gt; seed_prm_001_path_param_data -&gt; onboard_prm_001 -&gt;
 run_prm_001_pipeline</code>.</p>
@@ -3519,15 +3519,15 @@ run_prm_001_pipeline</code>.</p>
 </code></pre></div>
 <p><strong>Negative check, if you want to actively rule out a "silently reads the wrong path" false pass</strong>:
 land a decoy file under the <em>unsubstituted</em> literal path
-(<code>/Volumes/metaflow/$%7Bdata_domain%7D/landing/$%7Bbatch_date%7D/</code> is not even a valid Volume path
+(<code>/Volumes/flowx/$%7Bdata_domain%7D/landing/$%7Bbatch_date%7D/</code> is not even a valid Volume path
 component, so this isn't practically constructible -- the stronger real-world check is simply
 that Auto Loader finds <strong>zero</strong> files, and the pipeline update either idles or errors, if the
 fixture is landed under any path other than the exact resolved
-<code>/Volumes/metaflow/finance_ops/landing/2026-08-28/</code> -- which is exactly why this scenario's seed
+<code>/Volumes/flowx/finance_ops/landing/2026-08-28/</code> -- which is exactly why this scenario's seed
 notebook computes that path from the same <code>data_domain</code>/<code>batch_date</code> values the spec declares,
 rather than hardcoding a path string independently that could silently drift out of sync).</p>
 <p><strong>This pass's actual verification status</strong>: see
-<a href="../metaflow_testing/TESTING_STATUS.md"><code>metaflow_testing/TESTING_STATUS.md</code></a> for whether this
+<a href="../flowx_testing/TESTING_STATUS.md"><code>flowx_testing/TESTING_STATUS.md</code></a> for whether this
 job was actually run against the live workspace and what the real result was -- this document
 describes what <em>should</em> happen structurally; the status tracker records what <em>did</em> happen, if
 anything, each time this scenario is executed. This build phase deliberately does not run
@@ -3537,10 +3537,10 @@ centrally across all test cases together.</p>
 <ul>
 <li><strong>New fixture, new dedicated seed notebook.</strong> No existing seeded fixture lands data under a
   <code>${param}</code>-resolved, date-partitioned Volume path, so one small new 4-row CSV fixture
-  (<code>sample_data/metaflow_testing/finance_usecase/daily_txns_batch1.csv</code>) and one new seed notebook
+  (<code>sample_data/flowx_testing/finance_usecase/daily_txns_batch1.csv</code>) and one new seed notebook
   (<code>03_seed_prm_001_path_param_data.py</code>) were added, following this repo's established
   one-seed-notebook-per-scenario convention (e.g. <code>03_seed_ing_007_standardize_data.py</code>) rather
-  than editing the shared <code>02_seed_metaflow_testing_data.py</code>.</li>
+  than editing the shared <code>02_seed_flowx_testing_data.py</code>.</li>
 <li><strong><code>APPEND</code>, not a CDC strategy.</strong> This scenario is scoped to proving path parameterization, not
   CDC/dedup behavior -- <code>APPEND</code> needs no <code>primary_keys</code> and keeps the spec minimal, matching
   several other single-flow ingestion scenarios' own choice (e.g. TC-ING-007).</li>

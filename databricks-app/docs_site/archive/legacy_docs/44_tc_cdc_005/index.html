@@ -23,7 +23,7 @@
     
     
       
-        <title>Test Pipeline: SCD Type 3 Current & Previous State (TC-CDC-005) - NextGen Metadata Framework (Metaflow)</title>
+        <title>Test Pipeline: SCD Type 3 Current & Previous State (TC-CDC-005) - FlowX</title>
       
     
     
@@ -88,7 +88,7 @@
 
 <header class="md-header" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href="../../.." title="NextGen Metadata Framework (Metaflow)" class="md-header__button md-logo" aria-label="NextGen Metadata Framework (Metaflow)" data-md-component="logo">
+    <a href="../../.." title="FlowX" class="md-header__button md-logo" aria-label="FlowX" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
@@ -102,7 +102,7 @@
       <div class="md-header__ellipsis">
         <div class="md-header__topic">
           <span class="md-ellipsis">
-            NextGen Metadata Framework (Metaflow)
+            FlowX
           </span>
         </div>
         <div class="md-header__topic" data-md-component="header-topic">
@@ -405,13 +405,13 @@
 
 <nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href="../../.." title="NextGen Metadata Framework (Metaflow)" class="md-nav__button md-logo" aria-label="NextGen Metadata Framework (Metaflow)" data-md-component="logo">
+    <a href="../../.." title="FlowX" class="md-nav__button md-logo" aria-label="FlowX" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
 
     </a>
-    NextGen Metadata Framework (Metaflow)
+    FlowX
   </label>
   
   <ul class="md-nav__list" data-md-scrollfix>
@@ -3379,7 +3379,7 @@
 
 <h1 id="test-pipeline-scd-type-3-current-previous-state-tc-cdc-005">Test Pipeline: SCD Type 3 Current &amp; Previous State (TC-CDC-005)<a class="headerlink" href="#test-pipeline-scd-type-3-current-previous-state-tc-cdc-005" title="Permanent link">&para;</a></h1>
 <blockquote>
-<p>See also: <a href="README.md">Documentation index</a>, <a href="../metaflow_testing/TESTING_PLAN.md">metaflow_testing/TESTING_PLAN.md</a> (Module 2, TC-CDC-005), <a href="../metaflow_testing/TESTING_STATUS.md">metaflow_testing/TESTING_STATUS.md</a>, <a href="../02_cdc_load_strategies/#scd3">02_cdc_load_strategies.md § SCD3</a>.</p>
+<p>See also: <a href="README.md">Documentation index</a>, <a href="../flowx_testing/TESTING_PLAN.md">flowx_testing/TESTING_PLAN.md</a> (Module 2, TC-CDC-005), <a href="../flowx_testing/TESTING_STATUS.md">flowx_testing/TESTING_STATUS.md</a>, <a href="../02_cdc_load_strategies/#scd3">02_cdc_load_strategies.md § SCD3</a>.</p>
 </blockquote>
 <h2 id="purpose">Purpose<a class="headerlink" href="#purpose" title="Permanent link">&para;</a></h2>
 <p>Prove that <code>target_config.cdc_load_strategy: "SCD3"</code> tracks only the <strong>current</strong> and
@@ -3417,9 +3417,9 @@ be built as ingestion-only.</p>
 </ul>
 <h2 id="inputs">Inputs<a class="headerlink" href="#inputs" title="Permanent link">&para;</a></h2>
 <ul>
-<li><code>metaflow_testing/023_cdc_005_scd3.json</code> — one <code>ingestion_flows</code> entry (APPEND, Bronze) +
+<li><code>flowx_testing/023_cdc_005_scd3.json</code> — one <code>ingestion_flows</code> entry (APPEND, Bronze) +
   one <code>transformation_flows</code> entry (SCD3, Silver); no <code>reconciliation_flows</code>.</li>
-<li><code>sample_data/metaflow_testing/sub_usecase/subscription_batch{1,2,3}.csv</code> — 3 fixtures, one row
+<li><code>sample_data/flowx_testing/sub_usecase/subscription_batch{1,2,3}.csv</code> — 3 fixtures, one row
   each, same <code>sub_id</code>/<code>customer_id</code>/<code>plan_name</code>, differing only in <code>status</code>/<code>event_ts</code>.</li>
 <li><code>notebooks/00_seed_sample_data/03_seed_cdc_005_scd3_data.py</code> — a <strong>new, dedicated</strong> seed
   notebook, parameterized by a <code>batch_number</code> widget (<code>"1"</code>/<code>"2"</code>/<code>"3"</code>) so it can be invoked 3
@@ -3446,7 +3446,7 @@ be built as ingestion-only.</p>
   <code>current_&lt;col&gt;</code>/<code>previous_&lt;col&gt;</code>.</li>
 </ul>
 <h2 id="configuration">Configuration<a class="headerlink" href="#configuration" title="Permanent link">&para;</a></h2>
-<p><code>metaflow_testing/023_cdc_005_scd3.json</code>'s transformation flow — the part of this spec that is
+<p><code>flowx_testing/023_cdc_005_scd3.json</code>'s transformation flow — the part of this spec that is
 actually new/interesting (the ingestion flow is a plain <code>APPEND</code> landing, identical in shape to
 TC-CDC-001's):</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nt">"source_inputs"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
@@ -3467,7 +3467,7 @@ wall-clock moment each batch happened to be processed at — the more realistic 
 lifecycle event feed, and independent of exactly when each batch's pipeline update actually runs.</p>
 <h2 id="main-execution-flow">Main execution flow<a class="headerlink" href="#main-execution-flow" title="Permanent link">&para;</a></h2>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>databricks<span class="w"> </span>bundle<span class="w"> </span>deploy<span class="w"> </span>--target<span class="w"> </span>dev
-<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>databricks<span class="w"> </span>bundle<span class="w"> </span>run<span class="w"> </span>metaflow_test_cdc_005_scd3_job<span class="w"> </span>--target<span class="w"> </span>dev
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>databricks<span class="w"> </span>bundle<span class="w"> </span>run<span class="w"> </span>flowx_test_cdc_005_scd3_job<span class="w"> </span>--target<span class="w"> </span>dev
 </code></pre></div>
 <p>Task chain (one job, 3 interleaved land/run cycles):</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>setup_control_tables
@@ -3482,7 +3482,7 @@ lifecycle event feed, and independent of exactly when each batch's pipeline upda
 <p>Onboarding (<code>onboard_cdc_005</code>) runs exactly once, immediately before the first pipeline update —
 the spec itself never changes across batches, only the landed data does, so re-onboarding
 between batches would be redundant (a harmless no-op upsert, but not needed). Each
-<code>run_pipeline_batchN</code> task targets the <em>same</em> <code>metaflow_test_cdc_005_scd3_pipeline</code> — Auto
+<code>run_pipeline_batchN</code> task targets the <em>same</em> <code>flowx_test_cdc_005_scd3_pipeline</code> — Auto
 Loader's own checkpoint ensures each triggered (<code>availableNow</code>) update only picks up the one
 newly-landed file, and the transformation flow's streaming source input reads that single new
 row incrementally into the hidden SCD2 history table, which is exactly what makes 3 separate
@@ -3529,7 +3529,7 @@ rather than only checking the final state (run these between <code>run_pipeline_
 <a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a><span class="c1">-- expect: current_status = 'ACTIVE', previous_status = 'TRIAL'</span>
 </code></pre></div>
 <p><strong>This pass's actual verification status</strong>: see
-<a href="../metaflow_testing/TESTING_STATUS.md"><code>metaflow_testing/TESTING_STATUS.md</code></a> for whether this
+<a href="../flowx_testing/TESTING_STATUS.md"><code>flowx_testing/TESTING_STATUS.md</code></a> for whether this
 job was actually run against the live workspace and what the real result was — this document
 describes what <em>should</em> happen structurally; the status tracker records what <em>did</em> happen, if
 anything, each time this scenario is executed. (Per this project's build convention, that

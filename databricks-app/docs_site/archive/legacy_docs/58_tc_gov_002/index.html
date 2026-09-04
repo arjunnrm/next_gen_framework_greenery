@@ -23,7 +23,7 @@
     
     
       
-        <title>Test Pipeline: Governance Tag Application Idempotency (TC-GOV-002) - NextGen Metadata Framework (Metaflow)</title>
+        <title>Test Pipeline: Governance Tag Application Idempotency (TC-GOV-002) - FlowX</title>
       
     
     
@@ -88,7 +88,7 @@
 
 <header class="md-header" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href="../../.." title="NextGen Metadata Framework (Metaflow)" class="md-header__button md-logo" aria-label="NextGen Metadata Framework (Metaflow)" data-md-component="logo">
+    <a href="../../.." title="FlowX" class="md-header__button md-logo" aria-label="FlowX" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
@@ -102,7 +102,7 @@
       <div class="md-header__ellipsis">
         <div class="md-header__topic">
           <span class="md-ellipsis">
-            NextGen Metadata Framework (Metaflow)
+            FlowX
           </span>
         </div>
         <div class="md-header__topic" data-md-component="header-topic">
@@ -405,13 +405,13 @@
 
 <nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href="../../.." title="NextGen Metadata Framework (Metaflow)" class="md-nav__button md-logo" aria-label="NextGen Metadata Framework (Metaflow)" data-md-component="logo">
+    <a href="../../.." title="FlowX" class="md-nav__button md-logo" aria-label="FlowX" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
 
     </a>
-    NextGen Metadata Framework (Metaflow)
+    FlowX
   </label>
   
   <ul class="md-nav__list" data-md-scrollfix>
@@ -3379,7 +3379,7 @@
 
 <h1 id="test-pipeline-governance-tag-application-idempotency-tc-gov-002">Test Pipeline: Governance Tag Application Idempotency (TC-GOV-002)<a class="headerlink" href="#test-pipeline-governance-tag-application-idempotency-tc-gov-002" title="Permanent link">&para;</a></h1>
 <blockquote>
-<p>See also: <a href="README.md">Documentation index</a>, <a href="../metaflow_testing/TESTING_PLAN.md">metaflow_testing/TESTING_PLAN.md</a> (Module 6, TC-GOV-002), <a href="../metaflow_testing/TESTING_STATUS.md">metaflow_testing/TESTING_STATUS.md</a>, <a href="../06_governance_integration/">06_governance_integration.md</a> (ground truth for the tags-only model this scenario exercises).</p>
+<p>See also: <a href="README.md">Documentation index</a>, <a href="../flowx_testing/TESTING_PLAN.md">flowx_testing/TESTING_PLAN.md</a> (Module 6, TC-GOV-002), <a href="../flowx_testing/TESTING_STATUS.md">flowx_testing/TESTING_STATUS.md</a>, <a href="../06_governance_integration/">06_governance_integration.md</a> (ground truth for the tags-only model this scenario exercises).</p>
 </blockquote>
 <h2 id="purpose">Purpose<a class="headerlink" href="#purpose" title="Permanent link">&para;</a></h2>
 <p>Prove that re-running <code>notebooks/04_governance/04_apply_governance_and_egress.py</code> against a
@@ -3404,7 +3404,7 @@ succeed, with the tag values unchanged after the third run.</p>
 <ul>
 <li><strong>No new onboarding spec.</strong> This scenario reuses TC-GOV-001's exact same onboarded flow and
   tags:</li>
-<li>Catalog: <code>metaflow</code> (the <code>{{catalog}}</code> placeholder resolves to this for every resource in this
+<li>Catalog: <code>flowx</code> (the <code>{{catalog}}</code> placeholder resolves to this for every resource in this
     repo)</li>
 <li>Schema: <code>bronze_crm</code></li>
 <li>Target table: <code>customer_raw</code></li>
@@ -3412,7 +3412,7 @@ succeed, with the tag values unchanged after the third run.</p>
 <li><code>table_tags</code>: <code>{"domain": "finance", "compliance": "sox"}</code></li>
 <li><code>column_tags</code>: <code>CustomerID</code> -&gt; <code>{"classification": "restricted", "mask": "PII"}</code></li>
 </ul>
-<p>See <code>metaflow_test_gov_001_tagging_job.yml</code> / <code>metaflow_test_gov_001_tagging_pipeline.yml</code> (TC-GOV-001)
+<p>See <code>flowx_test_gov_001_tagging_job.yml</code> / <code>flowx_test_gov_001_tagging_pipeline.yml</code> (TC-GOV-001)
   for the spec that onboards this group and the pipeline that materializes <code>customer_raw</code> in the
   first place.
 * <code>notebooks/04_governance/04_apply_governance_and_egress.py</code> -- unmodified; called with
@@ -3422,7 +3422,7 @@ succeed, with the tag values unchanged after the third run.</p>
 <ul>
 <li>Three independent job task runs (<code>apply_governance_run_1/2/3</code>), each expected to end
   <code>SUCCESS</code> (exit code 0).</li>
-<li><code>system.information_schema.table_tags</code> for <code>metaflow.bronze_crm.customer_raw</code> -- still exactly
+<li><code>system.information_schema.table_tags</code> for <code>flowx.bronze_crm.customer_raw</code> -- still exactly
   <code>domain: finance</code>, <code>compliance: sox</code> after the third run (unchanged from after the first).</li>
 <li><code>system.information_schema.column_tags</code> for the same table's <code>CustomerID</code> column -- still
   exactly <code>classification: restricted</code>, <code>mask: PII</code> after the third run.</li>
@@ -3431,10 +3431,10 @@ succeed, with the tag values unchanged after the third run.</p>
   the only observable effect is the tag state itself, which must be identical before/after.</li>
 </ul>
 <h2 id="configuration">Configuration<a class="headerlink" href="#configuration" title="Permanent link">&para;</a></h2>
-<p><code>resources/metaflow_test_gov_002_idempotent_tag_job.yml</code> -- three <code>notebook_task</code> entries, chained
+<p><code>resources/flowx_test_gov_002_idempotent_tag_job.yml</code> -- three <code>notebook_task</code> entries, chained
 <code>depends_on</code>, each calling the identical notebook with the identical <code>base_parameters</code>:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nt">base_parameters</span><span class="p">:</span>
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="w">  </span><span class="nt">catalog</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">metaflow</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="w">  </span><span class="nt">catalog</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">flowx</span>
 <a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="w">  </span><span class="nt">dataflow_group_id</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">dfg_gov_001_tagging</span>
 </code></pre></div>
 <p><code>apply_abac</code> and <code>capture_cdc_change_counts</code> are intentionally omitted from <code>base_parameters</code> --
@@ -3445,26 +3445,26 @@ specially reduced configuration.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>databricks<span class="w"> </span>bundle<span class="w"> </span>deploy<span class="w"> </span>--target<span class="w"> </span>dev
 <a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="c1"># TC-GOV-001's own job must have been run at least once first, so customer_raw exists and</span>
 <a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="c1"># already carries its tags before this job's first task starts:</span>
-<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>databricks<span class="w"> </span>bundle<span class="w"> </span>run<span class="w"> </span>metaflow_test_gov_001_tagging_job<span class="w"> </span>--target<span class="w"> </span>dev
-<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>databricks<span class="w"> </span>bundle<span class="w"> </span>run<span class="w"> </span>metaflow_test_gov_002_idempotent_tag_job<span class="w"> </span>--target<span class="w"> </span>dev
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>databricks<span class="w"> </span>bundle<span class="w"> </span>run<span class="w"> </span>flowx_test_gov_001_tagging_job<span class="w"> </span>--target<span class="w"> </span>dev
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>databricks<span class="w"> </span>bundle<span class="w"> </span>run<span class="w"> </span>flowx_test_gov_002_idempotent_tag_job<span class="w"> </span>--target<span class="w"> </span>dev
 </code></pre></div>
 <p>Task chain: <code>apply_governance_run_1 -&gt; apply_governance_run_2 -&gt; apply_governance_run_3</code>. No
 <code>setup_control_tables</code>/seed/onboard/pipeline tasks in this job on purpose -- this scenario is
 scoped narrowly to the tagging task's own repeat-invocation safety, not a re-test of onboarding or
 pipeline-build behavior (both already covered by TC-GOV-001 and, more generally, TC-ING-001/etc.).</p>
 <h2 id="expected-results-simulation-notes">Expected results — simulation notes<a class="headerlink" href="#expected-results-simulation-notes" title="Permanent link">&para;</a></h2>
-<p><strong>Execution assertion</strong> (per <code>metaflow_testing/TESTING_PLAN.md</code>'s own row for this test case):
+<p><strong>Execution assertion</strong> (per <code>flowx_testing/TESTING_PLAN.md</code>'s own row for this test case):
 all 3 runs return exit code 0; tags remain active and uncorrupted in Unity Catalog.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="c1">-- Run before AND after this job, compare results -- expect byte-for-byte identical rows both times.</span>
 <a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="k">SELECT</span><span class="w"> </span><span class="n">tag_name</span><span class="p">,</span><span class="w"> </span><span class="n">tag_value</span>
 <a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="k">FROM</span><span class="w"> </span><span class="k">system</span><span class="p">.</span><span class="n">information_schema</span><span class="p">.</span><span class="n">table_tags</span>
-<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="k">WHERE</span><span class="w"> </span><span class="k">catalog_name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">'metaflow'</span><span class="w"> </span><span class="k">AND</span><span class="w"> </span><span class="k">schema_name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">'bronze_crm'</span><span class="w"> </span><span class="k">AND</span><span class="w"> </span><span class="k">table_name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">'customer_raw'</span>
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="k">WHERE</span><span class="w"> </span><span class="k">catalog_name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">'flowx'</span><span class="w"> </span><span class="k">AND</span><span class="w"> </span><span class="k">schema_name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">'bronze_crm'</span><span class="w"> </span><span class="k">AND</span><span class="w"> </span><span class="k">table_name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">'customer_raw'</span>
 <a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="k">ORDER</span><span class="w"> </span><span class="k">BY</span><span class="w"> </span><span class="n">tag_name</span><span class="p">;</span>
 <a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="c1">-- expect: compliance -&gt; sox, domain -&gt; finance (both times)</span>
 <a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>
 <a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="k">SELECT</span><span class="w"> </span><span class="k">column_name</span><span class="p">,</span><span class="w"> </span><span class="n">tag_name</span><span class="p">,</span><span class="w"> </span><span class="n">tag_value</span>
 <a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a><span class="k">FROM</span><span class="w"> </span><span class="k">system</span><span class="p">.</span><span class="n">information_schema</span><span class="p">.</span><span class="n">column_tags</span>
-<a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a><span class="k">WHERE</span><span class="w"> </span><span class="k">catalog_name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">'metaflow'</span><span class="w"> </span><span class="k">AND</span><span class="w"> </span><span class="k">schema_name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">'bronze_crm'</span><span class="w"> </span><span class="k">AND</span><span class="w"> </span><span class="k">table_name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">'customer_raw'</span>
+<a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a><span class="k">WHERE</span><span class="w"> </span><span class="k">catalog_name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">'flowx'</span><span class="w"> </span><span class="k">AND</span><span class="w"> </span><span class="k">schema_name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">'bronze_crm'</span><span class="w"> </span><span class="k">AND</span><span class="w"> </span><span class="k">table_name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">'customer_raw'</span>
 <a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a><span class="k">ORDER</span><span class="w"> </span><span class="k">BY</span><span class="w"> </span><span class="k">column_name</span><span class="p">,</span><span class="w"> </span><span class="n">tag_name</span><span class="p">;</span>
 <a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a><span class="c1">-- expect: CustomerID -&gt; classification -&gt; restricted, CustomerID -&gt; mask -&gt; PII (both times)</span>
 </code></pre></div>
@@ -3472,7 +3472,7 @@ all 3 runs return exit code 0; tags remain active and uncorrupted in Unity Catal
 in the Jobs UI / <code>databricks jobs get-run</code> output, with no <code>AbacApplicationError</code> in any task's
 logs.</p>
 <p><strong>This pass's actual verification status</strong>: see
-<a href="../metaflow_testing/TESTING_STATUS.md"><code>metaflow_testing/TESTING_STATUS.md</code></a> for whether this job
+<a href="../flowx_testing/TESTING_STATUS.md"><code>flowx_testing/TESTING_STATUS.md</code></a> for whether this job
 was actually run against the live workspace and what the real result was -- this document
 describes what <em>should</em> happen structurally; the status tracker records what <em>did</em> happen, if
 anything, each time this scenario is executed. (Per this project's build convention, that tracker
@@ -3480,16 +3480,16 @@ is updated centrally in a later phase, not by this build itself.)</p>
 <h2 id="build-notes-judgment-calls">Build notes / judgment calls<a class="headerlink" href="#build-notes-judgment-calls" title="Permanent link">&para;</a></h2>
 <ul>
 <li><strong>Real gap: TC-GOV-001 did not exist in this repo at the time this scenario was built.</strong>
-  <code>metaflow_testing/TESTING_STATUS.md</code> lists it as "Not Started," and no
-  <code>metaflow_test_gov_001_tagging_*</code> spec/resource files were present. Per this build pass's scope
+  <code>flowx_testing/TESTING_STATUS.md</code> lists it as "Not Started," and no
+  <code>flowx_test_gov_001_tagging_*</code> spec/resource files were present. Per this build pass's scope
   discipline, building TC-GOV-001 itself is out of bounds for this task (a separate, parallel
   build owns it). This job resource therefore references TC-GOV-001's expected coordinates --
-  catalog <code>metaflow</code>, schema <code>bronze_crm</code>, table <code>customer_raw</code>, and <code>dataflow_group_id
-  dfg_gov_001_tagging</code> -- inferred from <code>metaflow_testing/TESTING_PLAN.md</code>'s own TC-GOV-001 row
+  catalog <code>flowx</code>, schema <code>bronze_crm</code>, table <code>customer_raw</code>, and <code>dataflow_group_id
+  dfg_gov_001_tagging</code> -- inferred from <code>flowx_testing/TESTING_PLAN.md</code>'s own TC-GOV-001 row
   plus this repo's strict, universally-observed naming convention (every existing spec's
   <code>dataflow_group_id</code> is <code>dfg_&lt;the job name's own middle segment&gt;</code>, e.g. <code>dfg_dq_001_warn</code> for
-  <code>metaflow_test_dq_001_warn_job</code>, <code>dfg_ing_001_zip_filter</code> for
-  <code>metaflow_test_ing_001_zip_filter_job</code>). If TC-GOV-001 is ultimately built with a different
+  <code>flowx_test_dq_001_warn_job</code>, <code>dfg_ing_001_zip_filter</code> for
+  <code>flowx_test_ing_001_zip_filter_job</code>). If TC-GOV-001 is ultimately built with a different
   <code>dataflow_group_id</code>, this job's <code>base_parameters</code> need a one-line update to match.</li>
 <li><strong>No new pipeline resource, no new onboarding spec, no new fixture data</strong> -- exactly per this
   task's own instructions: this scenario is entirely about the idempotency of one already-proven

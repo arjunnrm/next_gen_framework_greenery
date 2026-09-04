@@ -112,7 +112,7 @@ def get_resolved_config(
         onboarding_job_id = settings.actions.get("onboard").job_id
     if not onboarding_job_id:
         import os
-        for env_k in ("METAFLOW_ONBOARDING_JOB_ID", "ONBOARDING_JOB_ID", "DATABRICKS_ONBOARDING_JOB_ID", "JOB_ID"):
+        for env_k in ("FLOWX_ONBOARDING_JOB_ID", "ONBOARDING_JOB_ID", "DATABRICKS_ONBOARDING_JOB_ID", "JOB_ID"):
             val = os.environ.get(env_k, "").strip()
             if val and val.isdigit():
                 onboarding_job_id = int(val)

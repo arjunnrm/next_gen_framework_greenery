@@ -23,7 +23,7 @@
     
     
       
-        <title>Test Pipeline: Post-Deployment UC Table & Column Tag Application (TC-GOV-001) - NextGen Metadata Framework (Metaflow)</title>
+        <title>Test Pipeline: Post-Deployment UC Table & Column Tag Application (TC-GOV-001) - FlowX</title>
       
     
     
@@ -88,7 +88,7 @@
 
 <header class="md-header" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href="../../.." title="NextGen Metadata Framework (Metaflow)" class="md-header__button md-logo" aria-label="NextGen Metadata Framework (Metaflow)" data-md-component="logo">
+    <a href="../../.." title="FlowX" class="md-header__button md-logo" aria-label="FlowX" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
@@ -102,7 +102,7 @@
       <div class="md-header__ellipsis">
         <div class="md-header__topic">
           <span class="md-ellipsis">
-            NextGen Metadata Framework (Metaflow)
+            FlowX
           </span>
         </div>
         <div class="md-header__topic" data-md-component="header-topic">
@@ -405,13 +405,13 @@
 
 <nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href="../../.." title="NextGen Metadata Framework (Metaflow)" class="md-nav__button md-logo" aria-label="NextGen Metadata Framework (Metaflow)" data-md-component="logo">
+    <a href="../../.." title="FlowX" class="md-nav__button md-logo" aria-label="FlowX" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
 
     </a>
-    NextGen Metadata Framework (Metaflow)
+    FlowX
   </label>
   
   <ul class="md-nav__list" data-md-scrollfix>
@@ -3379,7 +3379,7 @@
 
 <h1 id="test-pipeline-post-deployment-uc-table-column-tag-application-tc-gov-001">Test Pipeline: Post-Deployment UC Table &amp; Column Tag Application (TC-GOV-001)<a class="headerlink" href="#test-pipeline-post-deployment-uc-table-column-tag-application-tc-gov-001" title="Permanent link">&para;</a></h1>
 <blockquote>
-<p>See also: <a href="README.md">Documentation index</a>, <a href="../01_control_metadata_schema/#6-governance_tags-ingestion-and-transformation-flows">01_control_metadata_schema.md §6</a>, <a href="../06_governance_integration/">06_governance_integration.md</a>, <a href="../metaflow_testing/TESTING_STATUS.md">metaflow_testing/TESTING_STATUS.md</a>.</p>
+<p>See also: <a href="README.md">Documentation index</a>, <a href="../01_control_metadata_schema/#6-governance_tags-ingestion-and-transformation-flows">01_control_metadata_schema.md §6</a>, <a href="../06_governance_integration/">06_governance_integration.md</a>, <a href="../flowx_testing/TESTING_STATUS.md">flowx_testing/TESTING_STATUS.md</a>.</p>
 </blockquote>
 <h2 id="purpose">Purpose<a class="headerlink" href="#purpose" title="Permanent link">&para;</a></h2>
 <p>Prove that <code>governance_tags</code> (table tags + column tags) declared on an onboarding spec are
@@ -3399,12 +3399,12 @@ of it this time (the table is already there).</p>
 <h2 id="responsibilities">Responsibilities<a class="headerlink" href="#responsibilities" title="Permanent link">&para;</a></h2>
 <ul>
 <li>Reuse <code>{{catalog}}.bronze_test.customer_raw</code> (created by
-  <code>metaflow_test_100_zipcsv_pipeline</code> / <code>metaflow_test_100_job</code>, per
-  <a href="../metaflow_testing/TESTING_STATUS.md">TESTING_STATUS.md</a>'s own "Executed -- Pass" entry for
+  <code>flowx_test_100_zipcsv_pipeline</code> / <code>flowx_test_100_job</code>, per
+  <a href="../flowx_testing/TESTING_STATUS.md">TESTING_STATUS.md</a>'s own "Executed -- Pass" entry for
   scenario 100, most recently re-verified 2026-08-29) as the tag target -- no new table, no new
   fixture data, no new pipeline.</li>
 <li>One <code>ingestion_flow</code> (<code>df_gov_001_tagging_customer_raw</code>, under a brand-new
-  <code>dataflow_group_id: "dfg_metaflow_gov_001_tagging"</code>) whose <code>target_catalog</code>/<code>target_schema</code>/
+  <code>dataflow_group_id: "dfg_flowx_gov_001_tagging"</code>) whose <code>target_catalog</code>/<code>target_schema</code>/
   <code>target_table</code> point at that same <code>bronze_test.customer_raw</code> coordinates, carrying:</li>
 <li><code>governance_tags.table_tags</code>: <code>{"domain": "finance", "compliance": "sox"}</code>.</li>
 <li><code>governance_tags.column_tags</code>: <code>[{"column": "CustomerID", "tags": {"classification":
@@ -3412,18 +3412,18 @@ of it this time (the table is already there).</p>
 <li>A job that onboards this spec (a pure control-table upsert -- <code>dataflow_group_spec</code>/
   <code>ingestion_flow_spec</code> rows only, no DLT graph involved) and then calls
   <code>04_apply_governance_and_egress.py</code> directly against <code>dataflow_group_id:
-  "dfg_metaflow_gov_001_tagging"</code>, which loops that group's one active <code>ingestion_flow_spec</code>
+  "dfg_flowx_gov_001_tagging"</code>, which loops that group's one active <code>ingestion_flow_spec</code>
   row and issues the tag DDL against <code>bronze_test.customer_raw</code>.</li>
 </ul>
 <h2 id="inputs">Inputs<a class="headerlink" href="#inputs" title="Permanent link">&para;</a></h2>
 <ul>
-<li><code>metaflow_testing/036_gov_001_tagging.json</code> -- single-ingestion-flow onboarding spec (no
+<li><code>flowx_testing/036_gov_001_tagging.json</code> -- single-ingestion-flow onboarding spec (no
   <code>transformation_flows</code>/<code>reconciliation_flows</code>), reusing scenario 100's own <code>source_config</code>/
   <code>target_config</code> shape (<code>autoloader</code>, <code>SCD1</code>, <code>primary_keys: ["CustomerID"]</code>) purely so the
   spec onboards cleanly -- this flow's <code>source_config</code>/<code>target_config</code> are never actually
   executed by any pipeline (see Build notes).</li>
 <li>Depends on <code>{{catalog}}.bronze_test.customer_raw</code> already existing in the target workspace --
-  i.e. <code>metaflow_test_100_job</code> having run at least once already. No seed step of its own.</li>
+  i.e. <code>flowx_test_100_job</code> having run at least once already. No seed step of its own.</li>
 </ul>
 <h2 id="outputs">Outputs<a class="headerlink" href="#outputs" title="Permanent link">&para;</a></h2>
 <ul>
@@ -3432,14 +3432,14 @@ of it this time (the table is already there).</p>
 <li><code>system.information_schema.column_tags</code> -- one row each for <code>classification = 'restricted'</code>
   and <code>mask = 'PII'</code> against the <code>CustomerID</code> column of the same table.</li>
 <li><code>{{catalog}}.config.dataflow_group_spec</code> / <code>ingestion_flow_spec</code> -- one new row each, under
-  <code>dataflow_group_id = 'dfg_metaflow_gov_001_tagging'</code>, with <code>governance_tags_json</code> populated.
+  <code>dataflow_group_id = 'dfg_flowx_gov_001_tagging'</code>, with <code>governance_tags_json</code> populated.
   No DLT pipeline is deployed or run against this group -- these rows exist purely so
   <code>apply_all_governance_tags</code> has a <code>governance_tags_json</code>/target-table triple to read.</li>
 <li><code>{{catalog}}.bronze_test.customer_raw</code> itself is <strong>untouched data-wise</strong> -- same row count,
   same content as scenario 100 last left it. Only its UC tag metadata changes.</li>
 </ul>
 <h2 id="configuration">Configuration<a class="headerlink" href="#configuration" title="Permanent link">&para;</a></h2>
-<p><code>metaflow_testing/036_gov_001_tagging.json</code>'s one <code>ingestion_flows[]</code> entry:</p>
+<p><code>flowx_testing/036_gov_001_tagging.json</code>'s one <code>ingestion_flows[]</code> entry:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nt">"target_catalog"</span><span class="p">:</span><span class="w"> </span><span class="s2">"{{catalog}}"</span><span class="p">,</span>
 <a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="nt">"target_schema"</span><span class="p">:</span><span class="w"> </span><span class="s2">"bronze_test"</span><span class="p">,</span>
 <a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="nt">"target_table"</span><span class="p">:</span><span class="w"> </span><span class="s2">"customer_raw"</span><span class="p">,</span>
@@ -3457,11 +3457,11 @@ of it this time (the table is already there).</p>
 <a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a><span class="w">  </span><span class="p">]</span>
 <a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a><span class="p">}</span>
 </code></pre></div>
-<p><code>resources/metaflow_test_gov_001_tagging_job.yml</code>'s <code>apply_governance_gov_001</code> task parameters:</p>
+<p><code>resources/flowx_test_gov_001_tagging_job.yml</code>'s <code>apply_governance_gov_001</code> task parameters:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="nt">notebook_path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">../notebooks/04_governance/04_apply_governance_and_egress.py</span>
 <a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="nt">base_parameters</span><span class="p">:</span>
-<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="w">  </span><span class="nt">catalog</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">metaflow</span>
-<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="w">  </span><span class="nt">dataflow_group_id</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">dfg_metaflow_gov_001_tagging</span>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="w">  </span><span class="nt">catalog</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">flowx</span>
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="w">  </span><span class="nt">dataflow_group_id</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">dfg_flowx_gov_001_tagging</span>
 <a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="w">  </span><span class="nt">apply_abac</span><span class="p">:</span><span class="w"> </span><span class="s">"true"</span>
 <a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="w">  </span><span class="nt">capture_cdc_change_counts</span><span class="p">:</span><span class="w"> </span><span class="s">"false"</span>
 </code></pre></div>
@@ -3471,8 +3471,8 @@ this flow's <code>dataflow_id</code> was never actually run through a pipeline u
 meaningful "since the last run" change-count story to capture for it.</p>
 <h2 id="main-execution-flow">Main execution flow<a class="headerlink" href="#main-execution-flow" title="Permanent link">&para;</a></h2>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>databricks<span class="w"> </span>bundle<span class="w"> </span>deploy<span class="w"> </span>--target<span class="w"> </span>dev
-<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>databricks<span class="w"> </span>bundle<span class="w"> </span>run<span class="w"> </span>metaflow_test_100_job<span class="w"> </span>--target<span class="w"> </span>dev<span class="w">          </span><span class="c1"># if not already run at least once</span>
-<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>databricks<span class="w"> </span>bundle<span class="w"> </span>run<span class="w"> </span>metaflow_test_gov_001_tagging_job<span class="w"> </span>--target<span class="w"> </span>dev
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>databricks<span class="w"> </span>bundle<span class="w"> </span>run<span class="w"> </span>flowx_test_100_job<span class="w"> </span>--target<span class="w"> </span>dev<span class="w">          </span><span class="c1"># if not already run at least once</span>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>databricks<span class="w"> </span>bundle<span class="w"> </span>run<span class="w"> </span>flowx_test_gov_001_tagging_job<span class="w"> </span>--target<span class="w"> </span>dev
 </code></pre></div>
 <p>Task chain: <code>setup_control_tables -&gt; onboard_gov_001 -&gt; apply_governance_gov_001</code>.</p>
 <h2 id="expected-results-simulation-notes">Expected results — simulation notes<a class="headerlink" href="#expected-results-simulation-notes" title="Permanent link">&para;</a></h2>
@@ -3494,7 +3494,7 @@ meaningful "since the last run" change-count story to capture for it.</p>
 <a id="__codelineno-3-15" name="__codelineno-3-15" href="#__codelineno-3-15"></a><span class="k">SELECT</span><span class="w"> </span><span class="k">count</span><span class="p">(</span><span class="o">*</span><span class="p">)</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="err">{</span><span class="k">catalog</span><span class="err">}</span><span class="p">.</span><span class="n">bronze_test</span><span class="p">.</span><span class="n">customer_raw</span><span class="p">;</span>
 </code></pre></div>
 <p><strong>This pass's actual verification status</strong>: see
-<a href="../metaflow_testing/TESTING_STATUS.md"><code>metaflow_testing/TESTING_STATUS.md</code></a> for whether this
+<a href="../flowx_testing/TESTING_STATUS.md"><code>flowx_testing/TESTING_STATUS.md</code></a> for whether this
 job was actually run against the live workspace and what the real result was -- this document
 describes what <em>should</em> happen structurally; the status tracker records what <em>did</em> happen, if
 anything, each time this scenario is executed. (Per this project's build convention, that
@@ -3502,20 +3502,20 @@ tracker is updated centrally in a later phase, not by this build itself.)</p>
 <h2 id="build-notes-judgment-calls">Build notes / judgment calls<a class="headerlink" href="#build-notes-judgment-calls" title="Permanent link">&para;</a></h2>
 <ul>
 <li><strong>No new pipeline, by design.</strong> TC-GOV-001 is explicitly a tags-application test, not an
-  ingestion test -- per this build's own scope, no <code>resources/metaflow_test_gov_001_*_pipeline.yml</code>
+  ingestion test -- per this build's own scope, no <code>resources/flowx_test_gov_001_*_pipeline.yml</code>
   is created. <code>governance_tags</code> has no dedicated control table and is applied purely as
   post-deployment DDL (<code>docs/01_control_metadata_schema.md</code> §1/§6), so a pipeline run was never
   a prerequisite for this scenario to exercise the real code path -- only the target table
   needs to already exist, which scenario 100's own table already does.</li>
-<li><strong>Reused scenario 100's <code>customer_raw</code>, not a new <code>metaflow_test_dq_004</code> table.</strong> Per this
-  TC's own instructions, <code>metaflow_test_dq_004</code>'s table was checked first
-  (<code>metaflow_testing/TESTING_STATUS.md</code> line for <code>TC-DQ-004</code>: "Partially Covered -- Scenario 100
+<li><strong>Reused scenario 100's <code>customer_raw</code>, not a new <code>flowx_test_dq_004</code> table.</strong> Per this
+  TC's own instructions, <code>flowx_test_dq_004</code>'s table was checked first
+  (<code>flowx_testing/TESTING_STATUS.md</code> line for <code>TC-DQ-004</code>: "Partially Covered -- Scenario 100
   exercises quarantine routing generally", i.e. no dedicated DQ-004 scenario/spec file exists
   yet in this repo as of this build), so scenario 100's own already-deployed
   <code>{{catalog}}.bronze_test.customer_raw</code> (<code>TESTING_STATUS.md</code>: "Executed -- Pass", re-verified
   2026-08-29) is the simpler and only currently-real choice.</li>
-<li>Genuine gap: this makes <code>metaflow_test_gov_001_tagging_job</code> <strong>dependent on</strong>
-    <code>metaflow_test_100_job</code> having run at least once first in the shared dev workspace -- there
+<li>Genuine gap: this makes <code>flowx_test_gov_001_tagging_job</code> <strong>dependent on</strong>
+    <code>flowx_test_100_job</code> having run at least once first in the shared dev workspace -- there
     is no job-level <code>depends_on</code> between the two bundle jobs (they're separate <code>resources.jobs</code>
     entries), so this ordering is a real, undeclared cross-job dependency, not enforced by the
     bundle itself. Flagged here rather than silently assumed.</li>
@@ -3524,15 +3524,15 @@ tracker is updated centrally in a later phase, not by this build itself.)</p>
   the exact same physical table into the group scenario 100's own pipeline (<code>dataflow.group.id:
   dfg_zip_csv_dataload</code>) actually builds its DAG from -- risking a second, competing DLT node
   definition for <code>customer_raw</code> the next time that pipeline runs. A dedicated
-  <code>dfg_metaflow_gov_001_tagging</code> group id keeps this row completely outside that pipeline's own
+  <code>dfg_flowx_gov_001_tagging</code> group id keeps this row completely outside that pipeline's own
   graph; it exists purely as a <code>governance_tags_json</code> carrier for
   <code>apply_all_governance_tags</code> to read.</li>
 <li><strong><code>source_config</code>/<code>target_config</code> mirror scenario 100's own shape but are never executed.</strong>
   Since this flow is never run through a Lakeflow pipeline (no pipeline resource references
-  <code>dfg_metaflow_gov_001_tagging</code>), its <code>source_config.path</code>/<code>target_config.cdc_load_strategy</code>
+  <code>dfg_flowx_gov_001_tagging</code>), its <code>source_config.path</code>/<code>target_config.cdc_load_strategy</code>
   etc. only need to satisfy onboarding-time validation, not describe a real data flow -- they
   were set to mirror scenario 100's real, working <code>df_zip_csv_file_ingest</code> flow
-  (<code>metaflow_testing/100_zipcsv_onbaording.json</code>) for realism and to guarantee they pass
+  (<code>flowx_testing/100_zipcsv_onbaording.json</code>) for realism and to guarantee they pass
   <code>spec_validator.py</code> cleanly, not because they do anything at runtime.</li>
 <li><strong><code>capture_cdc_change_counts: "false"</code>.</strong> Left enabled (the notebook's own default), Phase 10
   would still run harmlessly (<code>capture_all_scd_change_counts</code> never raises -- a per-flow

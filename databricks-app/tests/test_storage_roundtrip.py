@@ -26,7 +26,7 @@ import typing
 
 import pytest
 
-os.environ.setdefault("METAFLOW_FAKE_DBX", "1")
+os.environ.setdefault("FLOWX_FAKE_DBX", "1")
 
 from fastapi.testclient import TestClient  # noqa: E402
 
@@ -169,13 +169,13 @@ def test_config_resolves_catalog_from_template_variables():
     cfg = client.get("/api/config").json()
     catalog = cfg["template_variables"]["catalog"]["default"]
     vol = next(r for r in cfg["spec_storage"]["roots"] if r["id"] == VOL_ROOT)
-    assert vol["path"] == f"/Volumes/{catalog}/metaflow/onboarding_specs/"
+    assert vol["path"] == f"/Volumes/{catalog}/flowx/onboarding_specs/"
 
 
 @pytest.mark.parametrize("verb", ["read", "write"])
 def test_unresolved_placeholder_in_path_is_rejected_not_written(verb):
     """A placeholder that slips through is refused with a message naming the cause."""
-    bad = "/Volumes/{{catalog}}/metaflow/onboarding_specs/x.json"
+    bad = "/Volumes/{{catalog}}/flowx/onboarding_specs/x.json"
     if verb == "read":
         res = client.get(f"/api/storage/read?root_id={VOL_ROOT}&path={bad}")
     else:
@@ -193,7 +193,7 @@ def test_template_vars_reach_list_and_read():
     tv = json.dumps({"catalog": "othercat"})
     res = client.get(f"/api/storage/list?root_id={VOL_ROOT}&template_vars={tv}")
     assert res.status_code == 200, res.text
-    assert res.json()["root_path"] == "/Volumes/othercat/metaflow/onboarding_specs/"
+    assert res.json()["root_path"] == "/Volumes/othercat/flowx/onboarding_specs/"
 
 
 # --------------------------------------------------------------------------------------
@@ -219,8 +219,8 @@ def test_workspace_listing_reports_directories_as_directories():
 
 def test_listing_excludes_disallowed_extensions():
     api = FakeFilesAPI({
-        "/Volumes/metaflow/metaflow/onboarding_specs/keep.json": b"{}",
-        "/Volumes/metaflow/metaflow/onboarding_specs/skip.png": b"\x89PNG",
+        "/Volumes/flowx/flowx/onboarding_specs/keep.json": b"{}",
+        "/Volumes/flowx/flowx/onboarding_specs/skip.png": b"\x89PNG",
     })
     from server.clients.files import FileManager
     from server.deps import get_app_settings
@@ -300,7 +300,7 @@ def test_write_probe_passes_and_leaves_nothing_behind(root_id):
     """The probe used the SDK directly and only ever cleaned up Volumes.
 
     So the workspace probe both failed (bytes + no ImportFormat) and, had it succeeded,
-    would have littered the specs folder with .metaflow_access_probe_* files.
+    would have littered the specs folder with .flowx_access_probe_* files.
     """
     res = client.get(f"/api/storage/access?root_id={root_id}")
     assert res.status_code == 200, res.text
@@ -308,7 +308,7 @@ def test_write_probe_passes_and_leaves_nothing_behind(root_id):
     assert write_check["status"] == "ok", write_check.get("remediation")
 
     names = [e["name"] for e in client.get(f"/api/storage/list?root_id={root_id}").json()["entries"]]
-    leftovers = [n for n in names if n.startswith(".metaflow_access_probe_")]
+    leftovers = [n for n in names if n.startswith(".flowx_access_probe_")]
     assert not leftovers, f"preflight left probe files behind: {leftovers}"
 
 
@@ -416,7 +416,7 @@ def test_real_client_failure_is_not_downgraded_to_the_fake(monkeypatch):
     """
     import server.clients.dbx as dbx
 
-    monkeypatch.delenv("METAFLOW_FAKE_DBX", raising=False)
+    monkeypatch.delenv("FLOWX_FAKE_DBX", raising=False)
 
     def _boom(*a, **k):
         raise RuntimeError("no credentials")

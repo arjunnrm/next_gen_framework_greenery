@@ -23,7 +23,7 @@
     
     
       
-        <title>Test Pipeline: Schema Evolution & Malformed Column Rescue (TC-ING-009) - NextGen Metadata Framework (Metaflow)</title>
+        <title>Test Pipeline: Schema Evolution & Malformed Column Rescue (TC-ING-009) - FlowX</title>
       
     
     
@@ -88,7 +88,7 @@
 
 <header class="md-header" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href="../../.." title="NextGen Metadata Framework (Metaflow)" class="md-header__button md-logo" aria-label="NextGen Metadata Framework (Metaflow)" data-md-component="logo">
+    <a href="../../.." title="FlowX" class="md-header__button md-logo" aria-label="FlowX" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
@@ -102,7 +102,7 @@
       <div class="md-header__ellipsis">
         <div class="md-header__topic">
           <span class="md-ellipsis">
-            NextGen Metadata Framework (Metaflow)
+            FlowX
           </span>
         </div>
         <div class="md-header__topic" data-md-component="header-topic">
@@ -405,13 +405,13 @@
 
 <nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href="../../.." title="NextGen Metadata Framework (Metaflow)" class="md-nav__button md-logo" aria-label="NextGen Metadata Framework (Metaflow)" data-md-component="logo">
+    <a href="../../.." title="FlowX" class="md-nav__button md-logo" aria-label="FlowX" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
 
     </a>
-    NextGen Metadata Framework (Metaflow)
+    FlowX
   </label>
   
   <ul class="md-nav__list" data-md-scrollfix>
@@ -3396,12 +3396,12 @@
 
 <h1 id="test-pipeline-schema-evolution-malformed-column-rescue-tc-ing-009">Test Pipeline: Schema Evolution &amp; Malformed Column Rescue (TC-ING-009)<a class="headerlink" href="#test-pipeline-schema-evolution-malformed-column-rescue-tc-ing-009" title="Permanent link">&para;</a></h1>
 <blockquote>
-<p>See also: <a href="README.md">Documentation index</a>, <a href="../metaflow_testing/TESTING_PLAN.md">metaflow_testing/TESTING_PLAN.md</a> (Module 1, TC-ING-009), <a href="../metaflow_testing/TESTING_STATUS.md">metaflow_testing/TESTING_STATUS.md</a>.</p>
+<p>See also: <a href="README.md">Documentation index</a>, <a href="../flowx_testing/TESTING_PLAN.md">flowx_testing/TESTING_PLAN.md</a> (Module 1, TC-ING-009), <a href="../flowx_testing/TESTING_STATUS.md">flowx_testing/TESTING_STATUS.md</a>.</p>
 </blockquote>
 <h2 id="purpose">Purpose<a class="headerlink" href="#purpose" title="Permanent link">&para;</a></h2>
 <p>Prove that <code>source_config.schema_evolution_mode: "rescue"</code> (Auto Loader's
 <code>cloudFiles.schemaEvolutionMode</code>, see
-<a href="../src/NextGen_Metadata_Framework/lakeflow_framework/ingestion/readers.py">ingestion/readers.py</a><code>::read_autoloader_source</code>)
+<a href="../src/flowx/lakeflow_framework/ingestion/readers.py">ingestion/readers.py</a><code>::read_autoloader_source</code>)
 genuinely protects a streaming ingestion flow against two distinct drift shapes arriving in
 the same day-2 batch, without failing the stream and without silently dropping data:</p>
 <ol>
@@ -3438,11 +3438,11 @@ for the full <code>schema_evolution_mode</code> enum.</p>
 </ul>
 <h2 id="inputs">Inputs<a class="headerlink" href="#inputs" title="Permanent link">&para;</a></h2>
 <ul>
-<li><code>metaflow_testing/018_ing_009_rescue_schema.json</code> -- single-ingestion-flow onboarding spec
+<li><code>flowx_testing/018_ing_009_rescue_schema.json</code> -- single-ingestion-flow onboarding spec
   (no <code>transformation_flows</code>/<code>reconciliation_flows</code>).</li>
-<li><code>sample_data/metaflow_testing/ops_usecase/feed_day1.csv</code> -- day-1 batch, <code>id, name</code>, 3 rows
+<li><code>sample_data/flowx_testing/ops_usecase/feed_day1.csv</code> -- day-1 batch, <code>id, name</code>, 3 rows
   (<code>1,Alice</code> / <code>2,Bob</code> / <code>3,Carol</code>).</li>
-<li><code>sample_data/metaflow_testing/ops_usecase/feed_day2.csv</code> -- day-2 batch, <code>id, name,
+<li><code>sample_data/flowx_testing/ops_usecase/feed_day2.csv</code> -- day-2 batch, <code>id, name,
   unannounced_flag</code>, 3 rows (<code>4,Dave,Y</code> / <code>5,Eve,N</code> / <code>ABC,Frank,Y</code>) -- the third row's <code>id</code>
   is the non-numeric string <code>"ABC"</code>.</li>
 <li><code>notebooks/00_seed_sample_data/03_seed_ing_009_rescue_schema_data.py</code> -- a new, dedicated
@@ -3463,7 +3463,7 @@ for the full <code>schema_evolution_mode</code> enum.</p>
   mode's entire point is to keep the stream running through both drift shapes.</li>
 </ul>
 <h2 id="configuration">Configuration<a class="headerlink" href="#configuration" title="Permanent link">&para;</a></h2>
-<p><code>metaflow_testing/018_ing_009_rescue_schema.json</code>'s one <code>ingestion_flows[]</code> entry:</p>
+<p><code>flowx_testing/018_ing_009_rescue_schema.json</code>'s one <code>ingestion_flows[]</code> entry:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nt">"source_config"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
 <a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="w">  </span><span class="nt">"path"</span><span class="p">:</span><span class="w"> </span><span class="s2">"/Volumes/{{catalog}}/ops/landing_drift/"</span><span class="p">,</span>
 <a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="w">  </span><span class="nt">"format"</span><span class="p">:</span><span class="w"> </span><span class="s2">"csv"</span><span class="p">,</span>
@@ -3477,15 +3477,15 @@ for the full <code>schema_evolution_mode</code> enum.</p>
 streaming table, no primary keys.</p>
 <p>Resources:</p>
 <ul>
-<li><code>resources/metaflow_test_ing_009_rescue_schema_pipeline.yml</code> --
-  <code>metaflow_test_ing_009_rescue_schema_pipeline</code> (<code>catalog: metaflow</code>, <code>schema: bronze_ops</code>,
+<li><code>resources/flowx_test_ing_009_rescue_schema_pipeline.yml</code> --
+  <code>flowx_test_ing_009_rescue_schema_pipeline</code> (<code>catalog: flowx</code>, <code>schema: bronze_ops</code>,
   serverless, <code>dataflow.group.id: dfg_ing_009_rescue_schema</code>).</li>
-<li><code>resources/metaflow_test_ing_009_rescue_schema_job.yml</code> --
-  <code>metaflow_test_ing_009_rescue_schema_job</code>.</li>
+<li><code>resources/flowx_test_ing_009_rescue_schema_job.yml</code> --
+  <code>flowx_test_ing_009_rescue_schema_job</code>.</li>
 </ul>
 <h2 id="main-execution-flow">Main execution flow<a class="headerlink" href="#main-execution-flow" title="Permanent link">&para;</a></h2>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>databricks<span class="w"> </span>bundle<span class="w"> </span>deploy<span class="w"> </span>--target<span class="w"> </span>dev
-<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>databricks<span class="w"> </span>bundle<span class="w"> </span>run<span class="w"> </span>metaflow_test_ing_009_rescue_schema_job<span class="w"> </span>--target<span class="w"> </span>dev
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>databricks<span class="w"> </span>bundle<span class="w"> </span>run<span class="w"> </span>flowx_test_ing_009_rescue_schema_job<span class="w"> </span>--target<span class="w"> </span>dev
 </code></pre></div>
 <p>Task chain: <code>setup_control_tables -&gt; seed_ing_009_rescue_schema_data -&gt; onboard_ing_009 -&gt;
 run_ing_009_pipeline</code>. This job run lands and ingests <strong>day-1 only</strong> (<code>feed_day1.csv</code>), which
@@ -3497,15 +3497,15 @@ already committed to <code>schema_location</code> before the drifted batch arriv
 day-1-then-day-2 convention <a href="../08_test_pipeline_1_volume_scd/">08_test_pipeline_1_volume_scd.md</a>
 uses for its own SCD drift test):</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="c1"># 1. Copy the day-2 fixture into the same landing Volume day-1 already landed in:</span>
-<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>databricks<span class="w"> </span>fs<span class="w"> </span>cp<span class="w"> </span>sample_data/metaflow_testing/ops_usecase/feed_day2.csv<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="w">  </span>dbfs:/Volumes/metaflow/ops/landing_drift/feed_day2.csv<span class="w"> </span>--profile<span class="w"> </span>dev
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>databricks<span class="w"> </span>fs<span class="w"> </span>cp<span class="w"> </span>sample_data/flowx_testing/ops_usecase/feed_day2.csv<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="w">  </span>dbfs:/Volumes/flowx/ops/landing_drift/feed_day2.csv<span class="w"> </span>--profile<span class="w"> </span>dev
 <a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>
 <a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="c1"># 2. Re-run just the pipeline (Auto Loader picks up the new file on the next update;</span>
 <a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="c1">#    no need to re-run setup/seed/onboard):</span>
-<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>databricks<span class="w"> </span>bundle<span class="w"> </span>run<span class="w"> </span>metaflow_test_ing_009_rescue_schema_pipeline<span class="w"> </span>--target<span class="w"> </span>dev
+<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>databricks<span class="w"> </span>bundle<span class="w"> </span>run<span class="w"> </span>flowx_test_ing_009_rescue_schema_pipeline<span class="w"> </span>--target<span class="w"> </span>dev
 </code></pre></div>
 <p>(Equivalently, from a notebook attached to the same workspace: <code>dbutils.fs.cp("file:...",
-"/Volumes/metaflow/ops/landing_drift/feed_day2.csv")</code>.)</p>
+"/Volumes/flowx/ops/landing_drift/feed_day2.csv")</code>.)</p>
 <h2 id="expected-results-simulation-notes">Expected results -- simulation notes<a class="headerlink" href="#expected-results-simulation-notes" title="Permanent link">&para;</a></h2>
 <p><strong>SQL assertions</strong> (after the day-1-only run, replace <code>{catalog}</code> with your actual target
 catalog):</p>
@@ -3537,7 +3537,7 @@ catalog):</p>
 <a id="__codelineno-4-21" name="__codelineno-4-21" href="#__codelineno-4-21"></a><span class="c1">-- expect: _rescued_data IS NULL for all 3, id populated (1, 2, 3)</span>
 </code></pre></div>
 <p><strong>This pass's actual verification status</strong>: see
-<a href="../metaflow_testing/TESTING_STATUS.md"><code>metaflow_testing/TESTING_STATUS.md</code></a> for whether this
+<a href="../flowx_testing/TESTING_STATUS.md"><code>flowx_testing/TESTING_STATUS.md</code></a> for whether this
 job was actually run against the live workspace and what the real result was -- this document
 describes what <em>should</em> happen structurally; the status tracker records what <em>did</em> happen, if
 anything, each time this scenario is executed. (Per this project's build convention, that

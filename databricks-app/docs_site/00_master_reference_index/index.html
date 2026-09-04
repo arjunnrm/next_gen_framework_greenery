@@ -27,7 +27,7 @@
     
     
       
-        <title>Full attribute dictionary - NextGen Metadata Framework (Metaflow)</title>
+        <title>Full attribute dictionary - FlowX</title>
       
     
     
@@ -78,7 +78,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#metaflow-master-reference-index-attribute-dictionary" class="md-skip">
+        <a href="#flowx-master-reference-index-attribute-dictionary" class="md-skip">
           Skip to content
         </a>
       
@@ -92,7 +92,7 @@
 
 <header class="md-header" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href=".." title="NextGen Metadata Framework (Metaflow)" class="md-header__button md-logo" aria-label="NextGen Metadata Framework (Metaflow)" data-md-component="logo">
+    <a href=".." title="FlowX" class="md-header__button md-logo" aria-label="FlowX" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
@@ -106,7 +106,7 @@
       <div class="md-header__ellipsis">
         <div class="md-header__topic">
           <span class="md-ellipsis">
-            NextGen Metadata Framework (Metaflow)
+            FlowX
           </span>
         </div>
         <div class="md-header__topic" data-md-component="header-topic">
@@ -411,13 +411,13 @@
 
 <nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href=".." title="NextGen Metadata Framework (Metaflow)" class="md-nav__button md-logo" aria-label="NextGen Metadata Framework (Metaflow)" data-md-component="logo">
+    <a href=".." title="FlowX" class="md-nav__button md-logo" aria-label="FlowX" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
 
     </a>
-    NextGen Metadata Framework (Metaflow)
+    FlowX
   </label>
   
   <ul class="md-nav__list" data-md-scrollfix>
@@ -3883,9 +3883,9 @@
 
 
 
-<h1 id="metaflow-master-reference-index-attribute-dictionary">📖 Metaflow — Master Reference Index &amp; Attribute Dictionary<a class="headerlink" href="#metaflow-master-reference-index-attribute-dictionary" title="Permanent link">&para;</a></h1>
+<h1 id="flowx-master-reference-index-attribute-dictionary">📖 FlowX — Master Reference Index &amp; Attribute Dictionary<a class="headerlink" href="#flowx-master-reference-index-attribute-dictionary" title="Permanent link">&para;</a></h1>
 <blockquote>
-<p><strong>Purpose</strong>: Single authoritative lookup dictionary indexing every configuration attribute, CDC strategy, target type, technical concept, error code, and framework-generated column across the NextGen Metadata Framework (Metaflow).</p>
+<p><strong>Purpose</strong>: Single authoritative lookup dictionary indexing every configuration attribute, CDC strategy, target type, technical concept, error code, and framework-generated column across FlowX.</p>
 <p><strong>Navigation</strong>: Use <code>Ctrl+F</code> to search for any attribute or concept keyword.</p>
 </blockquote>
 <hr />
@@ -3982,9 +3982,9 @@
 <td><code>source_plane</code></td>
 <td><code>object</code></td>
 <td>No</td>
-<td><code>{"materialize": "auto", "catalog": null, "schema": null}</code></td>
-<td><code>materialize</code>: <code>"auto"</code>|<code>"always"</code>|<code>"never"</code>; <code>catalog</code>/<code>schema</code>: string or <code>null</code></td>
-<td><strong>New in v1.5.0.</strong> Read-once policy for the whole group. Every physical source — ingestion source, transformation input, both reconciliation sides — is routed through the source plane so one locator is read once per update. <code>"auto"</code> materializes a shared node only at fan-out ≥ 2, keeping a single-consumer read inline and preserving its predicate pushdown; <code>"never"</code> is the escape hatch for a huge, heavily-filtered table; <code>"always"</code> forces read-once everywhere. v1.6.0: <code>null</code> catalog/schema mean the shared node is <strong>not published</strong> — it becomes a pipeline-scoped temporary table (set both to publish it; pre-v1.6.0 <code>null</code> meant the pipeline's own schema). Persisted to <code>dataflow_group_spec.source_plane_config_json</code>.</td>
+<td><code>{"materialize": "always", "catalog": null, "schema": null}</code></td>
+<td><code>materialize</code>: <code>"always"</code>|<code>"auto"</code>; <code>catalog</code>/<code>schema</code>: string or <code>null</code></td>
+<td><strong>New in v1.5.0; default changed in v1.7.3.</strong> Read-once policy for the whole group. Every physical source — ingestion source, transformation input, both reconciliation sides — is routed through the source plane so one locator is read once per update. Under v1.7.3's <strong>Single-Read architectural mandate</strong> <code>"always"</code> is the default and the only behaviour: every external identity is materialized into its own base node regardless of fan-out (N sources → N base nodes). <code>"auto"</code> is still accepted but resolves to <code>"always"</code> (it formerly meant "a node only at fan-out ≥ 2"). <code>"never"</code> was <strong>removed</strong> and is rejected at onboarding time with a migration message, and again at plan time for control-table rows written before the mandate. v1.6.0: <code>null</code> catalog/schema mean the shared node is <strong>not published</strong> — it becomes a pipeline-scoped temporary table (set both to publish it; pre-v1.6.0 <code>null</code> meant the pipeline's own schema). Persisted to <code>dataflow_group_spec.source_plane_config_json</code>.</td>
 <td><a href="../01_platform_architecture/#7-the-read-once-source-plane">Read-once source plane</a></td>
 </tr>
 <tr>

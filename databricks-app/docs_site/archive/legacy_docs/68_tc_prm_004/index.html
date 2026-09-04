@@ -23,7 +23,7 @@
     
     
       
-        <title>Test Pipeline: Parameterized DQ Rule Expressions (TC-PRM-004) - NextGen Metadata Framework (Metaflow)</title>
+        <title>Test Pipeline: Parameterized DQ Rule Expressions (TC-PRM-004) - FlowX</title>
       
     
     
@@ -88,7 +88,7 @@
 
 <header class="md-header" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href="../../.." title="NextGen Metadata Framework (Metaflow)" class="md-header__button md-logo" aria-label="NextGen Metadata Framework (Metaflow)" data-md-component="logo">
+    <a href="../../.." title="FlowX" class="md-header__button md-logo" aria-label="FlowX" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
@@ -102,7 +102,7 @@
       <div class="md-header__ellipsis">
         <div class="md-header__topic">
           <span class="md-ellipsis">
-            NextGen Metadata Framework (Metaflow)
+            FlowX
           </span>
         </div>
         <div class="md-header__topic" data-md-component="header-topic">
@@ -405,13 +405,13 @@
 
 <nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href="../../.." title="NextGen Metadata Framework (Metaflow)" class="md-nav__button md-logo" aria-label="NextGen Metadata Framework (Metaflow)" data-md-component="logo">
+    <a href="../../.." title="FlowX" class="md-nav__button md-logo" aria-label="FlowX" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
 
     </a>
-    NextGen Metadata Framework (Metaflow)
+    FlowX
   </label>
   
   <ul class="md-nav__list" data-md-scrollfix>
@@ -3379,7 +3379,7 @@
 
 <h1 id="test-pipeline-parameterized-dq-rule-expressions-tc-prm-004">Test Pipeline: Parameterized DQ Rule Expressions (TC-PRM-004)<a class="headerlink" href="#test-pipeline-parameterized-dq-rule-expressions-tc-prm-004" title="Permanent link">&para;</a></h1>
 <blockquote>
-<p>See also: <a href="README.md">Documentation index</a>, <a href="../metaflow_testing/TESTING_PLAN.md">metaflow_testing/TESTING_PLAN.md</a> (Module 11, TC-PRM-004), <a href="../metaflow_testing/TESTING_STATUS.md">metaflow_testing/TESTING_STATUS.md</a>, <a href="../17_onboarding_template_reference/">17_onboarding_template_reference.md</a> §3.4 / §4.7.</p>
+<p>See also: <a href="README.md">Documentation index</a>, <a href="../flowx_testing/TESTING_PLAN.md">flowx_testing/TESTING_PLAN.md</a> (Module 11, TC-PRM-004), <a href="../flowx_testing/TESTING_STATUS.md">flowx_testing/TESTING_STATUS.md</a>, <a href="../17_onboarding_template_reference/">17_onboarding_template_reference.md</a> §3.4 / §4.7.</p>
 </blockquote>
 <h2 id="purpose">Purpose<a class="headerlink" href="#purpose" title="Permanent link">&para;</a></h2>
 <p><code>TESTING_PLAN.md</code>'s TC-PRM-004 describes a <code>dq_config</code> rule whose expression itself contains
@@ -3425,15 +3425,15 @@ independently-confirmed framework gap rather than a build mistake.</p>
 </ul>
 <h2 id="inputs">Inputs<a class="headerlink" href="#inputs" title="Permanent link">&para;</a></h2>
 <ul>
-<li><code>metaflow_testing/046_prm_004_dq_param.json</code> -- single-ingestion-flow onboarding spec (no
+<li><code>flowx_testing/046_prm_004_dq_param.json</code> -- single-ingestion-flow onboarding spec (no
   <code>transformation_flows</code>/<code>reconciliation_flows</code>).</li>
-<li><code>sample_data/metaflow_testing/txns_usecase/txns_dq_param.csv</code> (8 rows, columns <code>txn_id,
+<li><code>sample_data/flowx_testing/txns_usecase/txns_dq_param.csv</code> (8 rows, columns <code>txn_id,
   account_id, txn_amount, currency, txn_date, merchant</code>) -- new fixture, added alongside this
   test case's build (see Build notes). Placed in the existing <code>txns_usecase/</code> fixture domain
   directory (established by TC-DQ-002) rather than a new one, since both scenarios share the
   same transaction-feed domain.</li>
 <li><code>notebooks/00_seed_sample_data/03_seed_prm_004_dq_param_data.py</code> -- a <strong>new, dedicated</strong> seed
-  notebook (kept separate from <code>02_seed_metaflow_testing_data.py</code> and every other test case's
+  notebook (kept separate from <code>02_seed_flowx_testing_data.py</code> and every other test case's
   own seed notebook) that provisions the <code>txns</code>/<code>bronze_txns</code> schemas and
   <code>landing_dq_param</code>/<code>_schemas</code> Volumes, then copies the fixture CSV directly into the landing
   Volume (no ZIP handling needed).</li>
@@ -3451,7 +3451,7 @@ independently-confirmed framework gap rather than a build mistake.</p>
   against <code>valid_txn_bounds</code>.</li>
 </ul>
 <h2 id="configuration">Configuration<a class="headerlink" href="#configuration" title="Permanent link">&para;</a></h2>
-<p><code>metaflow_testing/046_prm_004_dq_param.json</code>'s one <code>ingestion_flows[]</code> entry:</p>
+<p><code>flowx_testing/046_prm_004_dq_param.json</code>'s one <code>ingestion_flows[]</code> entry:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nt">"pipeline_parameters"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="nt">"max_allowed_txn_limit"</span><span class="p">:</span><span class="w"> </span><span class="mi">50000</span><span class="p">,</span><span class="w"> </span><span class="nt">"cutoff_date"</span><span class="p">:</span><span class="w"> </span><span class="s2">"2026-01-01"</span><span class="p">},</span>
 <a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="nt">"source_config"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
 <a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="w">  </span><span class="nt">"path"</span><span class="p">:</span><span class="w"> </span><span class="s2">"/Volumes/{{catalog}}/txns/landing_dq_param/"</span><span class="p">,</span>
@@ -3469,7 +3469,7 @@ independently-confirmed framework gap rather than a build mistake.</p>
 <a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a><span class="w">  </span><span class="nt">"record_id_column"</span><span class="p">:</span><span class="w"> </span><span class="s2">"txn_id"</span>
 <a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a><span class="p">}</span>
 </code></pre></div>
-<p>Fixture row breakdown (<code>sample_data/metaflow_testing/txns_usecase/txns_dq_param.csv</code>):</p>
+<p>Fixture row breakdown (<code>sample_data/flowx_testing/txns_usecase/txns_dq_param.csv</code>):</p>
 <table>
 <thead>
 <tr>
@@ -3541,7 +3541,7 @@ independently-confirmed framework gap rather than a build mistake.</p>
 </table>
 <h2 id="main-execution-flow">Main execution flow<a class="headerlink" href="#main-execution-flow" title="Permanent link">&para;</a></h2>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>databricks<span class="w"> </span>bundle<span class="w"> </span>deploy<span class="w"> </span>--target<span class="w"> </span>dev
-<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>databricks<span class="w"> </span>bundle<span class="w"> </span>run<span class="w"> </span>metaflow_test_prm_004_dq_param_job<span class="w"> </span>--target<span class="w"> </span>dev
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>databricks<span class="w"> </span>bundle<span class="w"> </span>run<span class="w"> </span>flowx_test_prm_004_dq_param_job<span class="w"> </span>--target<span class="w"> </span>dev
 </code></pre></div>
 <p>Task chain: <code>setup_control_tables → seed_prm_004_dq_param_data → onboard_prm_004 → run_pipeline</code>.</p>
 <h2 id="expected-results-simulation-notes">Expected results — simulation notes<a class="headerlink" href="#expected-results-simulation-notes" title="Permanent link">&para;</a></h2>
@@ -3566,7 +3566,7 @@ independently-confirmed framework gap rather than a build mistake.</p>
 <a id="__codelineno-2-18" name="__codelineno-2-18" href="#__codelineno-2-18"></a><span class="c1">--         TXN-P005 (amount 99999.99, date 2025-12-31), TXN-P007 (amount 62000.00, date ok)</span>
 </code></pre></div>
 <p><strong>This pass's actual verification status</strong>: see
-<a href="../metaflow_testing/TESTING_STATUS.md"><code>metaflow_testing/TESTING_STATUS.md</code></a> for whether this
+<a href="../flowx_testing/TESTING_STATUS.md"><code>flowx_testing/TESTING_STATUS.md</code></a> for whether this
 job was actually run against the live workspace and what the real result was -- this document
 describes what <em>should</em> happen structurally; the status tracker records what <em>did</em> happen, if
 anything, each time this scenario is executed. (Per this project's build convention, that

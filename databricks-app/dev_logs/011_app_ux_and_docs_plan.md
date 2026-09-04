@@ -91,9 +91,9 @@ These two share the same storage machinery, so 2.1 lands first and 2.2 builds on
 field**:
 
 ```
-  ○ Volume · onboarding specs      /Volumes/metaflow/metaflow/onboarding_specs/
-  ○ Workspace · specs              /Workspace/Shared/metaflow/specs/
-  ● Enter a path…                  [ /Volumes/metaflow/land/ref/specs/my_spec.json      ]
+  ○ Volume · onboarding specs      /Volumes/flowx/flowx/onboarding_specs/
+  ○ Workspace · specs              /Workspace/Shared/flowx/specs/
+  ● Enter a path…                  [ /Volumes/flowx/land/ref/specs/my_spec.json      ]
                                      └─ Browse ─┘  lists the directory if a folder is given
 ```
 
@@ -142,7 +142,7 @@ there are two copies of the list (`templates/index.json` + hardcoded in `registr
 "template_storage": {
   "roots": [
     { "id": "vol_templates", "label": "Volume · spec templates", "kind": "volume",
-      "path": "/Volumes/{{catalog}}/metaflow/spec_templates/", "read": true, "write": true }
+      "path": "/Volumes/{{catalog}}/flowx/spec_templates/", "read": true, "write": true }
   ]
 }
 ```
@@ -328,7 +328,7 @@ builds.
   on a 404.
 * W2: `/api/storage/{list,read,write}` exercised against an arbitrary path and a configured root,
   plus a traversal-rejection case.
-* `databricks bundle validate -t dev_metaflow` before any deploy.
+* `databricks bundle validate -t dev_flowx` before any deploy.
 * `RELEASE_NOTES.md` entry per wave.
 
 ---

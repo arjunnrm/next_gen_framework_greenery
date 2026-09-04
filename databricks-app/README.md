@@ -1,6 +1,6 @@
-# Metaflow Onboarding Databricks App (v1.3.0)
+# FlowX Onboarding Databricks App (v1.3.0)
 
-A single-artifact Databricks App for authoring, validating, persisting, and onboarding metadata-driven pipelines to the **NextGen Metadata Framework (Metaflow)**.
+A single-artifact Databricks App for authoring, validating, persisting, and onboarding metadata-driven pipelines to the **FlowX**.
 
 ---
 
@@ -15,14 +15,14 @@ A single-artifact Databricks App for authoring, validating, persisting, and onbo
   - **Start from Template**: 18+ pre-built reference templates covering every pipeline architecture.
   - **Confirm & Onboard**: Validate in-app and deploy directly to Databricks execution jobs with live stage progress tracking and direct run links.
 - **Embedded Framework Wiki**: `/docs` serves the complete documentation set (124 pages) — platform architecture, per-subsystem functional docs, onboarding walkthrough, the generated JSON attribute and code references, FAQs, known limitations, the architecture review and the archive — with tabbed navigation and full-text search. Every attribute's **docs** link deep-links to that attribute's own heading in the wiki, resolved through the generated `config/docs_index.json`.
-- **Offline / Local Laptop Development**: Built-in mock mode (`METAFLOW_FAKE_DBX=1`) allows complete local development and testing without requiring live Databricks credentials.
+- **Offline / Local Laptop Development**: Built-in mock mode (`FLOWX_FAKE_DBX=1`) allows complete local development and testing without requiring live Databricks credentials.
 
 ---
 
 ## 2. Directory Structure
 
 ```
-metaflow-onboarding-app/
+flowx-onboarding-app/
 ├── app.yaml                        # Databricks Apps runtime configuration
 ├── requirements.txt                # Python backend dependencies
 ├── README.md                       # Comprehensive documentation & playbooks
@@ -110,8 +110,8 @@ metaflow-onboarding-app/
 
 ### Running the Test Suite
 ```bash
-$env:PYTHONPATH="metaflow-onboarding-app"
-.\.venv\Scripts\python.exe -m pytest metaflow-onboarding-app/tests/ -v
+$env:PYTHONPATH="flowx-onboarding-app"
+.\.venv\Scripts\python.exe -m pytest flowx-onboarding-app/tests/ -v
 ```
 
 ### Rebuilding the Embedded Wiki
@@ -124,8 +124,8 @@ python scripts/build_app_docs.py --check   # CI: fail if the committed output is
 
 ### Running the App Locally (Offline / Laptop Mode)
 ```bash
-$env:PYTHONPATH="metaflow-onboarding-app"
-$env:METAFLOW_FAKE_DBX="1"
+$env:PYTHONPATH="flowx-onboarding-app"
+$env:FLOWX_FAKE_DBX="1"
 .\.venv\Scripts\python.exe -m uvicorn server.app:app --host 0.0.0.0 --port 8000 --reload
 ```
 Open your browser at `http://localhost:8000/`.
@@ -134,7 +134,7 @@ Open your browser at `http://localhost:8000/`.
 
 ## 4. Databricks DABs Bundle Deployment
 
-The app is integrated into the workspace bundle via `resources/metaflow_app/metaflow_onboarding_app.yml`.
+The app is integrated into the workspace bundle via `resources/flowx_app/flowx_onboarding_app.yml`.
 
 ### Deploying to Dev Target
 ```bash
@@ -143,7 +143,7 @@ databricks bundle deploy -t dev
 
 ### Starting the App in Databricks
 ```bash
-databricks apps start metaflow_onboarding_app
+databricks apps start flowx_onboarding_app
 ```
 
 ---

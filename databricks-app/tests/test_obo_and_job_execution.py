@@ -7,7 +7,7 @@ import os
 from unittest.mock import MagicMock, patch
 import pytest
 
-os.environ["METAFLOW_FAKE_DBX"] = "1"
+os.environ["FLOWX_FAKE_DBX"] = "1"
 
 from fastapi.testclient import TestClient
 from server.app import app
@@ -24,11 +24,11 @@ SAMPLE_SPEC = {
             "source_type": "autoloader",
             "source_system": "salesforce",
             "source_config": {
-                "path": "/Volumes/metaflow/landing/salesforce/",
+                "path": "/Volumes/flowx/landing/salesforce/",
                 "format": "json",
-                "schema_location": "/Volumes/metaflow/landing/_schemas/sf/"
+                "schema_location": "/Volumes/flowx/landing/_schemas/sf/"
             },
-            "target_catalog": "metaflow",
+            "target_catalog": "flowx",
             "target_schema": "raw",
             "target_table": "contacts",
             "target_type": "streaming_table",
@@ -80,7 +80,7 @@ def test_obo_strict_mode_rejects_missing_token(monkeypatch):
     settings = get_app_settings()
     monkeypatch.setattr(settings.auth, "mode", "obo")
     monkeypatch.setattr(settings.auth, "fallback_to_sp", False)
-    monkeypatch.setenv("METAFLOW_TEST_OBO_STRICT", "1")
+    monkeypatch.setenv("FLOWX_TEST_OBO_STRICT", "1")
 
     res = client.get("/api/storage/access")
     assert res.status_code == 403
@@ -103,7 +103,7 @@ def test_obo_strict_mode_accepts_valid_token(monkeypatch):
 def test_obo_workspace_client_passes_auth_type_pat(monkeypatch):
     """Ensure get_workspace_client passes auth_type='pat' when token is provided to avoid oauth vs pat conflict."""
     from server.clients.dbx import get_workspace_client
-    monkeypatch.delenv("METAFLOW_FAKE_DBX", raising=False)
+    monkeypatch.delenv("FLOWX_FAKE_DBX", raising=False)
 
     with patch("server.clients.dbx.WorkspaceClient") as mock_wc:
         get_workspace_client(token="user_token_123", host="https://dbc-test.cloud.databricks.com", user="test_user")
@@ -197,7 +197,7 @@ def test_onboard_button_triggers_job_with_mapped_user_parameters():
     staged_path = job_params.get("spec_file_path") or job_params.get("spec_path")
     assert staged_path.startswith("/Volumes/")
     assert "dfg_obo_test" in staged_path
-    assert job_params.get("catalog") == "metaflow"
+    assert job_params.get("catalog") == "flowx"
     assert job_params.get("env") == "dev" or job_params.get("environment") == "dev"
     assert job_params.get("action_type") == "CREATE"
 
@@ -231,7 +231,7 @@ def test_action_run_non_existent_action():
 
 def test_workspace_read_write_roundtrip_with_etag():
     """Verify write and read with ETag validation."""
-    path = "/Volumes/metaflow/metaflow/onboarding_specs/test_etag.json"
+    path = "/Volumes/flowx/flowx/onboarding_specs/test_etag.json"
     content = json.dumps(SAMPLE_SPEC)
 
     write_res = client.post("/api/workspace/write", json={
@@ -263,7 +263,7 @@ def test_workspace_read_write_roundtrip_with_etag():
 
 def test_workspace_delete_cleanup():
     """Verify probe or file deletion works cleanly."""
-    path = "/Workspace/Shared/metaflow/specs/to_delete.json"
+    path = "/Workspace/Shared/flowx/specs/to_delete.json"
     client.post("/api/workspace/write", json={
         "root_id": "ws_specs",
         "path": path,

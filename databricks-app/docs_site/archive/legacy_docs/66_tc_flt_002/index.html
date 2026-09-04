@@ -23,7 +23,7 @@
     
     
       
-        <title>Test Pipeline: Continuous Day-1 to Day-2 Incremental Ingestion Cycle (TC-FLT-002) - NextGen Metadata Framework (Metaflow)</title>
+        <title>Test Pipeline: Continuous Day-1 to Day-2 Incremental Ingestion Cycle (TC-FLT-002) - FlowX</title>
       
     
     
@@ -88,7 +88,7 @@
 
 <header class="md-header" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href="../../.." title="NextGen Metadata Framework (Metaflow)" class="md-header__button md-logo" aria-label="NextGen Metadata Framework (Metaflow)" data-md-component="logo">
+    <a href="../../.." title="FlowX" class="md-header__button md-logo" aria-label="FlowX" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
@@ -102,7 +102,7 @@
       <div class="md-header__ellipsis">
         <div class="md-header__topic">
           <span class="md-ellipsis">
-            NextGen Metadata Framework (Metaflow)
+            FlowX
           </span>
         </div>
         <div class="md-header__topic" data-md-component="header-topic">
@@ -405,13 +405,13 @@
 
 <nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href="../../.." title="NextGen Metadata Framework (Metaflow)" class="md-nav__button md-logo" aria-label="NextGen Metadata Framework (Metaflow)" data-md-component="logo">
+    <a href="../../.." title="FlowX" class="md-nav__button md-logo" aria-label="FlowX" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
 
     </a>
-    NextGen Metadata Framework (Metaflow)
+    FlowX
   </label>
   
   <ul class="md-nav__list" data-md-scrollfix>
@@ -3379,7 +3379,7 @@
 
 <h1 id="test-pipeline-continuous-day-1-to-day-2-incremental-ingestion-cycle-tc-flt-002">Test Pipeline: Continuous Day-1 to Day-2 Incremental Ingestion Cycle (TC-FLT-002)<a class="headerlink" href="#test-pipeline-continuous-day-1-to-day-2-incremental-ingestion-cycle-tc-flt-002" title="Permanent link">&para;</a></h1>
 <blockquote>
-<p>See also: <a href="README.md">Documentation index</a>, <a href="../metaflow_testing/TESTING_PLAN.md">metaflow_testing/TESTING_PLAN.md</a> (Module 10, TC-FLT-002), <a href="../metaflow_testing/TESTING_STATUS.md">metaflow_testing/TESTING_STATUS.md</a>, <a href="../02_cdc_load_strategies/#scd1">02_cdc_load_strategies.md § SCD1</a>.</p>
+<p>See also: <a href="README.md">Documentation index</a>, <a href="../flowx_testing/TESTING_PLAN.md">flowx_testing/TESTING_PLAN.md</a> (Module 10, TC-FLT-002), <a href="../flowx_testing/TESTING_STATUS.md">flowx_testing/TESTING_STATUS.md</a>, <a href="../02_cdc_load_strategies/#scd1">02_cdc_load_strategies.md § SCD1</a>.</p>
 </blockquote>
 <h2 id="purpose">Purpose<a class="headerlink" href="#purpose" title="Permanent link">&para;</a></h2>
 <p>Prove that a triggered (non-continuous) Lakeflow Declarative Pipeline genuinely resumes an
@@ -3412,9 +3412,9 @@ additional row.</p>
 </ul>
 <h2 id="inputs">Inputs<a class="headerlink" href="#inputs" title="Permanent link">&para;</a></h2>
 <ul>
-<li><code>metaflow_testing/044_flt_002_lifecycle.json</code> -- single-ingestion-flow onboarding spec (no
+<li><code>flowx_testing/044_flt_002_lifecycle.json</code> -- single-ingestion-flow onboarding spec (no
   <code>transformation_flows</code>/<code>reconciliation_flows</code>).</li>
-<li><code>sample_data/metaflow_testing/crm_usecase/lifecycle_day1.csv</code> (10 rows) /
+<li><code>sample_data/flowx_testing/crm_usecase/lifecycle_day1.csv</code> (10 rows) /
   <code>lifecycle_day2.csv</code> (5 rows: 3 updates + 2 inserts) -- new fixtures, hand-authored (see
   Build notes).</li>
 <li><code>notebooks/00_seed_sample_data/03_seed_flt_002_lifecycle_data.py</code> -- a new, dedicated seed
@@ -3437,7 +3437,7 @@ additional row.</p>
   <a href="../02_cdc_load_strategies/#the-hash-keyhash-value-framework">02_cdc_load_strategies.md § the hash-key/hash-value framework</a>).</li>
 </ul>
 <h2 id="configuration">Configuration<a class="headerlink" href="#configuration" title="Permanent link">&para;</a></h2>
-<p><code>metaflow_testing/044_flt_002_lifecycle.json</code>'s one <code>ingestion_flows[]</code> entry:</p>
+<p><code>flowx_testing/044_flt_002_lifecycle.json</code>'s one <code>ingestion_flows[]</code> entry:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nt">"target_config"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
 <a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="w">  </span><span class="nt">"cdc_load_strategy"</span><span class="p">:</span><span class="w"> </span><span class="s2">"SCD1"</span><span class="p">,</span>
 <a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="w">  </span><span class="nt">"primary_keys"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">"customer_id"</span><span class="p">],</span>
@@ -3448,7 +3448,7 @@ additional row.</p>
 <code>schema_location</code> auto-derived under <code>/Volumes/{{catalog}}/crm/_schemas/dim_customer_lifecycle/</code>).</p>
 <h2 id="main-execution-flow">Main execution flow<a class="headerlink" href="#main-execution-flow" title="Permanent link">&para;</a></h2>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>databricks<span class="w"> </span>bundle<span class="w"> </span>deploy<span class="w"> </span>--target<span class="w"> </span>dev
-<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>databricks<span class="w"> </span>bundle<span class="w"> </span>run<span class="w"> </span>metaflow_test_flt_002_lifecycle_job<span class="w"> </span>--target<span class="w"> </span>dev
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>databricks<span class="w"> </span>bundle<span class="w"> </span>run<span class="w"> </span>flowx_test_flt_002_lifecycle_job<span class="w"> </span>--target<span class="w"> </span>dev
 </code></pre></div>
 <p>Task chain: <code>setup_control_tables → seed_day1_customers → onboard_flt_002 →
 run_pipeline_day1 → seed_day2_customers → run_pipeline_day2</code>.</p>
@@ -3498,7 +3498,7 @@ prove <code>apply_changes</code>'s sequencing but not a real triggered-pipeline 
 <a id="__codelineno-2-29" name="__codelineno-2-29" href="#__codelineno-2-29"></a><span class="c1">-- expect: 0 rows</span>
 </code></pre></div>
 <p><strong>This pass's actual verification status</strong>: see
-<a href="../metaflow_testing/TESTING_STATUS.md"><code>metaflow_testing/TESTING_STATUS.md</code></a> for whether this
+<a href="../flowx_testing/TESTING_STATUS.md"><code>flowx_testing/TESTING_STATUS.md</code></a> for whether this
 job was actually run against the live workspace and what the real result was -- this document
 describes what <em>should</em> happen structurally; the status tracker records what <em>did</em> happen, if
 anything, each time this scenario is executed. (Per this project's build convention, that
@@ -3509,8 +3509,8 @@ tracker is updated centrally in a later phase, not by this build itself.)</p>
   requirement (a specific small set of existing keys updated plus a couple of brand-new keys,
   landed across two genuinely separate pipeline runs), so 2 new CSV fixtures and 1 new
   dedicated seed notebook were added, following the same pattern established by
-  <code>metaflow_test_cdc_004_scd2_job</code> (<code>03_seed_cdc_004_scd2_data.py</code>) rather than extending
-  <code>02_seed_metaflow_testing_data.py</code>. Note that <code>sample_data/metaflow_testing/crm_usecase/</code>
+  <code>flowx_test_cdc_004_scd2_job</code> (<code>03_seed_cdc_004_scd2_data.py</code>) rather than extending
+  <code>02_seed_flowx_testing_data.py</code>. Note that <code>sample_data/flowx_testing/crm_usecase/</code>
   already holds an unrelated <code>customer_scd1_day1.csv</code>/<code>customer_scd1_day2.csv</code> pair (a
   different, single-row delete-focused fixture for another test case in this same batch) --
   this scenario deliberately uses its own <code>lifecycle_day1.csv</code>/<code>lifecycle_day2.csv</code> names to
@@ -3523,7 +3523,7 @@ tracker is updated centrally in a later phase, not by this build itself.)</p>
   scenarios in this batch (which land all their fixture data before a single triggered
   update), this job's task chain runs <code>run_pipeline_day1</code> and <code>run_pipeline_day2</code> as two
   separate <code>pipeline_task</code> job tasks, both pointed at the same
-  <code>metaflow_test_flt_002_lifecycle_pipeline</code>, with <code>seed_day2_customers</code> landing the Day-2 file
+  <code>flowx_test_flt_002_lifecycle_pipeline</code>, with <code>seed_day2_customers</code> landing the Day-2 file
   strictly in between them. This is a deliberate, necessary departure from the
   land-everything-then-run-once convention -- TC-FLT-002's entire premise (a real day-over-day
   incremental cycle across separate triggered runs) would not be exercised by a single run that

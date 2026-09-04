@@ -1,5 +1,5 @@
 """
-Deterministic Serializer for Metaflow Onboarding App.
+Deterministic Serializer for FlowX Onboarding App.
 Converts Flow Document Store (SpecDoc) to framework JSON/YAML according to §8.
 """
 

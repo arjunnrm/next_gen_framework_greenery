@@ -1,5 +1,5 @@
 """
-Application settings loader and schema for Metaflow Onboarding App.
+Application settings loader and schema for FlowX Onboarding App.
 Loads config/index.json and validates all environment/integration properties.
 """
 
@@ -11,7 +11,7 @@ from pydantic import BaseModel, Field
 
 
 class AppInfo(BaseModel):
-    title: str = "Metaflow Onboarding"
+    title: str = "FlowX Onboarding"
     framework_version: str = "1.5.0"
     environment_label: str = "dev"
     support_contact: str = "data-platform@example.com"
@@ -68,7 +68,7 @@ class ActionConfig(BaseModel):
 class DocsConfig(BaseModel):
     mode: str = "embedded"  # "embedded" | "external" | "proxy"
     base_url: str = "/docs/"
-    external_base_url: str = "https://docs.internal.example.com/metaflow/"
+    external_base_url: str = "https://docs.internal.example.com/flowx/"
     attribute_reference_page: str = "00_master_reference_index/"
     open_in: str = "panel"
 
@@ -109,17 +109,17 @@ class AppSettings(BaseModel):
 # host or a job id from the wrong workspace fails at run time, not at deploy time.
 #
 # These variables let the bundle supply those four things at deploy time
-# (resources/metaflow_app/metaflow_onboarding_app.yml sets them from ${workspace.host},
+# (resources/flowx_app/flowx_onboarding_app.yml sets them from ${workspace.host},
 # ${resources.jobs.onboarding_job.id} and the target's own catalog/schema variables), so
 # the same source tree deploys unchanged to any workspace. Anything not set falls back to
 # config/index.json exactly as before.
-ENV_WORKSPACE_HOST = "METAFLOW_WORKSPACE_HOST"
-ENV_ONBOARDING_JOB_ID = "METAFLOW_ONBOARDING_JOB_ID"
-ENV_VALIDATE_JOB_ID = "METAFLOW_VALIDATE_JOB_ID"
-ENV_SPEC_CATALOG = "METAFLOW_SPEC_CATALOG"
-ENV_SPEC_ENV = "METAFLOW_SPEC_ENV"
-ENV_SPEC_VOLUME_ROOT = "METAFLOW_SPEC_VOLUME_ROOT"
-ENV_SPEC_WORKSPACE_ROOT = "METAFLOW_SPEC_WORKSPACE_ROOT"
+ENV_WORKSPACE_HOST = "FLOWX_WORKSPACE_HOST"
+ENV_ONBOARDING_JOB_ID = "FLOWX_ONBOARDING_JOB_ID"
+ENV_VALIDATE_JOB_ID = "FLOWX_VALIDATE_JOB_ID"
+ENV_SPEC_CATALOG = "FLOWX_SPEC_CATALOG"
+ENV_SPEC_ENV = "FLOWX_SPEC_ENV"
+ENV_SPEC_VOLUME_ROOT = "FLOWX_SPEC_VOLUME_ROOT"
+ENV_SPEC_WORKSPACE_ROOT = "FLOWX_SPEC_WORKSPACE_ROOT"
 
 
 def _env(name: str) -> Optional[str]:
@@ -155,7 +155,7 @@ def apply_env_overrides(settings: AppSettings) -> AppSettings:
                     f"{env_names[0]}={raw!r} is not a valid job id. It must be the numeric "
                     f"Databricks job id (bundle: ${{resources.jobs.<job>.id}})."
                 )
-        elif action_id in settings.actions and settings.actions[action_id].mode == "job" and settings.actions[action_id].job_id is None and os.environ.get("METAFLOW_FAKE_DBX") == "1":
+        elif action_id in settings.actions and settings.actions[action_id].mode == "job" and settings.actions[action_id].job_id is None and os.environ.get("FLOWX_FAKE_DBX") == "1":
             settings.actions[action_id].job_id = 987654321098765
 
     for var_name, env_name in (("catalog", ENV_SPEC_CATALOG), ("env", ENV_SPEC_ENV)):
@@ -177,7 +177,7 @@ def apply_env_overrides(settings: AppSettings) -> AppSettings:
 def load_settings(config_path: Optional[Union[str, Path]] = None) -> AppSettings:
     """Load and validate config/index.json, then overlay deploy-time env overrides."""
     if config_path is None:
-        config_env = os.environ.get("METAFLOW_APP_CONFIG")
+        config_env = os.environ.get("FLOWX_APP_CONFIG")
         if config_env:
             config_path = Path(config_env)
         else:

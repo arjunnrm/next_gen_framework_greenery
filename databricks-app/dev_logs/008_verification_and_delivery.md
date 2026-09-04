@@ -2,12 +2,12 @@
 
 ## Enactment Summary
 - **Component**: Final Delivery, Full Verification & Playbook Documentation
-- **Specification Version**: v1.0 (Targeting Metaflow Framework Schema v1.3.0)
+- **Specification Version**: v1.0 (Targeting FlowX Framework Schema v1.3.0)
 - **Status**: Completed (All Milestones Enacted, 48/48 Tests Passing)
 
 ## Summary of Completed Capabilities
 1. **DABs App Resource & Integration**:
-   - Integrated `metaflow_onboarding_app` into `resources/metaflow_onboarding_app.yml`.
+   - Integrated `flowx_onboarding_app` into `resources/flowx_onboarding_app.yml`.
    - Packaged `app.yaml`, `requirements.txt`, and dependencies.
 2. **Complete Declarative Config Layer (`config/`)**:
    - 219+ documented attributes across Ingestion, Transformation, Reconciliation, Spec Root, and Observability.
@@ -21,7 +21,7 @@
    - Deep structural diff engine.
 5. **FastAPI Backend & Databricks Client (`server/`)**:
    - REST API endpoints for config, validation, rendering, importing, diffing, listing, reading, writing, and triggering jobs.
-   - Offline Mock Mode (`METAFLOW_FAKE_DBX=1`) enabling laptop/local development without Databricks credentials.
+   - Offline Mock Mode (`FLOWX_FAKE_DBX=1`) enabling laptop/local development without Databricks credentials.
 6. **Frontend SPA (`web/`)**:
    - High-aesthetic dark mode UI matching `theme.json` and visual specifications.
    - Dynamic form rendering strictly driven by registry metadata.

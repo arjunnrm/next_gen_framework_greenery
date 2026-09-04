@@ -2,7 +2,7 @@
 
 ## Enactment Summary
 - **Component**: Template Index & Flow Profiles
-- **Specification Version**: v1.0 (Targeting Metaflow Framework Schema v1.3.0)
+- **Specification Version**: v1.0 (Targeting FlowX Framework Schema v1.3.0)
 - **Status**: Completed
 
 ## Details of Enacted Functionality

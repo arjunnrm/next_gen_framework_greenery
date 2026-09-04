@@ -10,7 +10,7 @@ from server.errors import AppException
 from server.settings import AppSettings, load_settings
 
 
-logger = logging.getLogger("metaflow_app")
+logger = logging.getLogger("flowx_app")
 
 _SETTINGS: Optional[AppSettings] = None
 _REGISTRY: Optional[RegistryManager] = None
@@ -114,8 +114,8 @@ def get_dbx_client(request: Request) -> Any:
                         "auth_mode": "obo"
                     }
                 )
-            elif os.environ.get("METAFLOW_FAKE_DBX") == "1" and not os.environ.get("METAFLOW_TEST_OBO_STRICT"):
-                logger.debug("METAFLOW_FAKE_DBX active: permitting mock client without OBO token.")
+            elif os.environ.get("FLOWX_FAKE_DBX") == "1" and not os.environ.get("FLOWX_TEST_OBO_STRICT"):
+                logger.debug("FLOWX_FAKE_DBX active: permitting mock client without OBO token.")
             else:
                 logger.warning(
                     f"User '{user}' does not have access: OBO token missing from request headers.",

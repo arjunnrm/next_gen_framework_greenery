@@ -97,7 +97,7 @@ class AccessChecker:
             # separately is how this check came to report "can write" from a call shaped
             # differently from the one that actually failed. The `.json` suffix is
             # required: the write path rejects extensions outside allowed_extensions.
-            probe_name = f".metaflow_access_probe_{uuid.uuid4().hex[:6]}.json"
+            probe_name = f".flowx_access_probe_{uuid.uuid4().hex[:6]}.json"
             probe_path = resolved_root_path + probe_name
             can_write_ok = False
             error_msg = ""

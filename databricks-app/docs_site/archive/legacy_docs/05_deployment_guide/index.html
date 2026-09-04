@@ -23,7 +23,7 @@
     
     
       
-        <title>Deployment Guide - NextGen Metadata Framework (Metaflow)</title>
+        <title>Deployment Guide - FlowX</title>
       
     
     
@@ -88,7 +88,7 @@
 
 <header class="md-header" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href="../../.." title="NextGen Metadata Framework (Metaflow)" class="md-header__button md-logo" aria-label="NextGen Metadata Framework (Metaflow)" data-md-component="logo">
+    <a href="../../.." title="FlowX" class="md-header__button md-logo" aria-label="FlowX" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
@@ -102,7 +102,7 @@
       <div class="md-header__ellipsis">
         <div class="md-header__topic">
           <span class="md-ellipsis">
-            NextGen Metadata Framework (Metaflow)
+            FlowX
           </span>
         </div>
         <div class="md-header__topic" data-md-component="header-topic">
@@ -405,13 +405,13 @@
 
 <nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href="../../.." title="NextGen Metadata Framework (Metaflow)" class="md-nav__button md-logo" aria-label="NextGen Metadata Framework (Metaflow)" data-md-component="logo">
+    <a href="../../.." title="FlowX" class="md-nav__button md-logo" aria-label="FlowX" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
 
     </a>
-    NextGen Metadata Framework (Metaflow)
+    FlowX
   </label>
   
   <ul class="md-nav__list" data-md-scrollfix>
@@ -3451,7 +3451,7 @@
 
 
 <h1 id="deployment-guide">Deployment Guide<a class="headerlink" href="#deployment-guide" title="Permanent link">&para;</a></h1>
-<p>See also: <a href="README.md">README.md</a> for the full Metaflow documentation index.</p>
+<p>See also: <a href="README.md">README.md</a> for the full FlowX documentation index.</p>
 <p>Uses <a href="https://docs.databricks.com/en/dev-tools/bundles/index.html">Databricks Asset Bundles</a>
 (DAB) — <code>databricks.yml</code> at the repo root, resource definitions under <code>resources/</code>.</p>
 <h2 id="0-prerequisites">0. Prerequisites<a class="headerlink" href="#0-prerequisites" title="Permanent link">&para;</a></h2>
@@ -3494,8 +3494,8 @@
 <a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>databricks<span class="w"> </span>secrets<span class="w"> </span>put-secret<span class="w"> </span>security<span class="w"> </span>pii_encryption_key_badlength<span class="w"> </span>--string-value<span class="w"> </span><span class="s2">"</span><span class="k">$(</span>openssl<span class="w"> </span>rand<span class="w"> </span>-base64<span class="w"> </span><span class="m">32</span><span class="k">)</span><span class="s2">"</span>
 </code></pre></div>
 <h2 id="1-how-the-wheel-gets-built-and-used">1. How the wheel gets built and used<a class="headerlink" href="#1-how-the-wheel-gets-built-and-used" title="Permanent link">&para;</a></h2>
-<p><code>pyproject.toml</code> declares package <code>NextGen_Metadata_Framework</code> (hatchling, <code>src/</code> layout).
-<code>src/NextGen_Metadata_Framework/lakeflow_framework/</code> — this entire framework — is part of
+<p><code>pyproject.toml</code> declares package <code>flowx</code> (hatchling, <code>src/</code> layout).
+<code>src/flowx/lakeflow_framework/</code> — this entire framework — is part of
 that package, so <strong>no extra packaging config was needed</strong>: <code>uv build --wheel</code> produces one
 wheel containing everything under <code>src/</code>.</p>
 <p><code>databricks bundle deploy</code> doesn't call <code>uv build --wheel</code> directly — <code>databricks.yml</code>'s
@@ -3515,7 +3515,7 @@ convenient, it's pure local disk hygiene with no effect on deployed resources.</
 <p>Every notebook and the pipeline resource attach that wheel as a library dependency
 (<code>environment.dependencies: [../dist/*.whl]</code> — the pattern already used by the template's
 own <code>resources/sample_job.job.yml</code>), so in a deployed job/pipeline,
-<code>import NextGen_Metadata_Framework.lakeflow_framework...</code> resolves like any other
+<code>import flowx.lakeflow_framework...</code> resolves like any other
 site-packages import — no <code>sys.path</code> tricks. Each notebook's bootstrap cell <em>does</em> still
 carry a local-<code>src/</code>-folder fallback purely for convenience when iterating on a notebook
 interactively before running <code>bundle deploy</code> at all; production never exercises that path.</p>
@@ -3574,7 +3574,7 @@ development and only bites when fixing something that was already ingested once.
 <p>Every job wired up in §2 above onboards one or more <em>specific</em> <code>test_specs/*.json</code> files,
 hardcoded into that job's own resource YAML as a notebook task's
 <code>base_parameters.spec_file_path</code>. <code>resources/onboarding_job.yml</code> (resource key
-<code>onboarding_job</code>, displayed in the Jobs UI as <strong>"Metaflow Config Onboarding"</strong>) is
+<code>onboarding_job</code>, displayed in the Jobs UI as <strong>"FlowX Config Onboarding"</strong>) is
 different: a single, generic job that can <code>CREATE</code>/<code>UPDATE</code>/<code>VALIDATE_ONLY</code> <strong>any</strong>
 onboarding spec — JSON or YAML, from a UC Volume or Workspace Files path, any
 <code>dataflow_group_id</code> — driven entirely by job parameters supplied at <code>databricks bundle run</code>
@@ -3583,7 +3583,7 @@ time.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="nt">resources</span><span class="p">:</span>
 <a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="w">  </span><span class="nt">jobs</span><span class="p">:</span>
 <a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="w">    </span><span class="nt">onboarding_job</span><span class="p">:</span>
-<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="w">      </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Metaflow Config Onboarding</span>
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="w">      </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">FlowX Config Onboarding</span>
 <a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>
 <a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="w">      </span><span class="nt">parameters</span><span class="p">:</span>
 <a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">spec_file_path</span>

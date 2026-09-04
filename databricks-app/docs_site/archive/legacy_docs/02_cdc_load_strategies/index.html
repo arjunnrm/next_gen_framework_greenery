@@ -23,7 +23,7 @@
     
     
       
-        <title>CDC / Load Strategies Reference - NextGen Metadata Framework (Metaflow)</title>
+        <title>CDC / Load Strategies Reference - FlowX</title>
       
     
     
@@ -88,7 +88,7 @@
 
 <header class="md-header" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href="../../.." title="NextGen Metadata Framework (Metaflow)" class="md-header__button md-logo" aria-label="NextGen Metadata Framework (Metaflow)" data-md-component="logo">
+    <a href="../../.." title="FlowX" class="md-header__button md-logo" aria-label="FlowX" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
@@ -102,7 +102,7 @@
       <div class="md-header__ellipsis">
         <div class="md-header__topic">
           <span class="md-ellipsis">
-            NextGen Metadata Framework (Metaflow)
+            FlowX
           </span>
         </div>
         <div class="md-header__topic" data-md-component="header-topic">
@@ -405,13 +405,13 @@
 
 <nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href="../../.." title="NextGen Metadata Framework (Metaflow)" class="md-nav__button md-logo" aria-label="NextGen Metadata Framework (Metaflow)" data-md-component="logo">
+    <a href="../../.." title="FlowX" class="md-nav__button md-logo" aria-label="FlowX" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
 
     </a>
-    NextGen Metadata Framework (Metaflow)
+    FlowX
   </label>
   
   <ul class="md-nav__list" data-md-scrollfix>
@@ -3455,7 +3455,7 @@
 
 
 <h1 id="cdc-load-strategies-reference">CDC / Load Strategies Reference<a class="headerlink" href="#cdc-load-strategies-reference" title="Permanent link">&para;</a></h1>
-<p>See also: <a href="README.md">README.md</a> for the full Metaflow documentation index.</p>
+<p>See also: <a href="README.md">README.md</a> for the full FlowX documentation index.</p>
 <p>Set via <code>target_config.cdc_load_strategy</code> on an <code>ingestion_flow_spec</code> or
 <code>transformation_flow_spec</code> row -- <strong>there is no separate <code>cdc_config</code> block</strong>; every
 CDC-related field (<code>primary_keys</code>, <code>sequence_by_column</code>, <code>columns_to_check</code>,
@@ -3463,7 +3463,7 @@ CDC-related field (<code>primary_keys</code>, <code>sequence_by_column</code>, <
 options) lives directly inside <code>target_config</code>, alongside the storage-format/partitioning
 fields. See <a href="../01_control_metadata_schema/#4-target_config-ingestion-and-transformation-flows">01_control_metadata_schema.md §4</a>
 for the full <code>target_config</code> shape and every non-CDC field in it.</p>
-<p>Implemented in <code>src/NextGen_Metadata_Framework/lakeflow_framework/cdc/</code>:
+<p>Implemented in <code>src/flowx/lakeflow_framework/cdc/</code>:
 <code>cdc/dispatcher.py::register_cdc_strategy</code> routes by strategy name to <code>cdc/scd.py</code>
 (SCD1/SCD2/SCD3) or <code>cdc/snapshot.py</code> (the two full-snapshot strategies); <code>APPEND</code> and
 <code>TRUNCATE_AND_LOAD</code> are handled directly by <code>engine/flow_registration.py</code> and

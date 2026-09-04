@@ -23,7 +23,7 @@
     
     
       
-        <title>Test Pipeline: Reconciliation Feature Test (Scenario 004) - NextGen Metadata Framework (Metaflow)</title>
+        <title>Test Pipeline: Reconciliation Feature Test (Scenario 004) - FlowX</title>
       
     
     
@@ -88,7 +88,7 @@
 
 <header class="md-header" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href="../../.." title="NextGen Metadata Framework (Metaflow)" class="md-header__button md-logo" aria-label="NextGen Metadata Framework (Metaflow)" data-md-component="logo">
+    <a href="../../.." title="FlowX" class="md-header__button md-logo" aria-label="FlowX" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
@@ -102,7 +102,7 @@
       <div class="md-header__ellipsis">
         <div class="md-header__topic">
           <span class="md-ellipsis">
-            NextGen Metadata Framework (Metaflow)
+            FlowX
           </span>
         </div>
         <div class="md-header__topic" data-md-component="header-topic">
@@ -405,13 +405,13 @@
 
 <nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href="../../.." title="NextGen Metadata Framework (Metaflow)" class="md-nav__button md-logo" aria-label="NextGen Metadata Framework (Metaflow)" data-md-component="logo">
+    <a href="../../.." title="FlowX" class="md-nav__button md-logo" aria-label="FlowX" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
 
     </a>
-    NextGen Metadata Framework (Metaflow)
+    FlowX
   </label>
   
   <ul class="md-nav__list" data-md-scrollfix>
@@ -3379,7 +3379,7 @@
 
 <h1 id="test-pipeline-reconciliation-feature-test-scenario-004">Test Pipeline: Reconciliation Feature Test (Scenario 004)<a class="headerlink" href="#test-pipeline-reconciliation-feature-test-scenario-004" title="Permanent link">&para;</a></h1>
 <blockquote>
-<p>See also: <a href="README.md">Documentation index</a>, <a href="../metaflow_testing/TESTING_PLAN.md">metaflow_testing/TESTING_PLAN.md</a> (Module 7 &amp; 11), <a href="../metaflow_testing/TESTING_STATUS.md">metaflow_testing/TESTING_STATUS.md</a>.</p>
+<p>See also: <a href="README.md">Documentation index</a>, <a href="../flowx_testing/TESTING_PLAN.md">flowx_testing/TESTING_PLAN.md</a> (Module 7 &amp; 11), <a href="../flowx_testing/TESTING_STATUS.md">flowx_testing/TESTING_STATUS.md</a>.</p>
 </blockquote>
 <h2 id="purpose">Purpose<a class="headerlink" href="#purpose" title="Permanent link">&para;</a></h2>
 <p>Prove the new <strong>Design 2</strong> reconciliation capabilities added this pass:
@@ -3397,7 +3397,7 @@ scenario exercises it only incidentally (as a regression check), not as new func
 <li>Reuse scenario 002/003's own already-onboarded bronze tables
   (<code>{catalog}.bronze_excalibur.autoload_bronze</code> / <code>zerobus_bronze</code>) as a source/target pair —
   reconciliation is not a Lakeflow Declarative Pipeline flow type (see
-  <code>metaflow_test_003_autoload_recon_pipeline.yml</code>'s own header comment), so this scenario needs
+  <code>flowx_test_003_autoload_recon_pipeline.yml</code>'s own header comment), so this scenario needs
   no dedicated pipeline of its own, only onboarding + <code>05_reconciliation_engine.py</code> tasks.</li>
 <li>Three reconciliation flows, all comparing the same table pair, all <code>comparison_direction:
   "target_to_source"</code> (audit-only — deliberately never mutates anything, unlike scenario 003's
@@ -3409,9 +3409,9 @@ scenario exercises it only incidentally (as a regression check), not as new func
 </ul>
 <h2 id="inputs">Inputs<a class="headerlink" href="#inputs" title="Permanent link">&para;</a></h2>
 <ul>
-<li><code>metaflow_testing/004_recon_features_test.json</code> — reconciliation-only onboarding spec (no
+<li><code>flowx_testing/004_recon_features_test.json</code> — reconciliation-only onboarding spec (no
   <code>ingestion_flows</code>/<code>transformation_flows</code>).</li>
-<li>Depends on scenario 002/003's own fixtures — <code>metaflow_test_004_recon_features_job</code> re-runs
+<li>Depends on scenario 002/003's own fixtures — <code>flowx_test_004_recon_features_job</code> re-runs
   their full setup/seed/onboard/pipeline chain itself first, so this scenario is self-contained
   (works from a clean environment, not only after 002/003 happen to have already run).</li>
 </ul>
@@ -3430,15 +3430,15 @@ scenario exercises it only incidentally (as a regression check), not as new func
   together in one job execution.</li>
 </ul>
 <h2 id="configuration">Configuration<a class="headerlink" href="#configuration" title="Permanent link">&para;</a></h2>
-<p><code>metaflow_testing/004_recon_features_test.json</code>'s three <code>reconciliation_flows[]</code> entries (see
+<p><code>flowx_testing/004_recon_features_test.json</code>'s three <code>reconciliation_flows[]</code> entries (see
 file for full detail) — each sets <code>logging_config</code> explicitly (even the default-<code>true</code> case, for
 clarity in this test) and <code>match_keys: ["customer_id"]</code>, <code>compare_columns: ["customer_name",
 "status"]</code>.</p>
 <h2 id="main-execution-flow">Main execution flow<a class="headerlink" href="#main-execution-flow" title="Permanent link">&para;</a></h2>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>databricks<span class="w"> </span>bundle<span class="w"> </span>deploy<span class="w"> </span>--target<span class="w"> </span>dev
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>databricks<span class="w"> </span>bundle<span class="w"> </span>run<span class="w"> </span>metaflow_test_004_recon_features_job<span class="w"> </span>--target<span class="w"> </span>dev
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>databricks<span class="w"> </span>bundle<span class="w"> </span>run<span class="w"> </span>flowx_test_004_recon_features_job<span class="w"> </span>--target<span class="w"> </span>dev
 </code></pre></div>
-<p>Task chain: <code>setup_control_tables → seed_metaflow_testing_data → onboard_002 → run_002_pipeline
+<p>Task chain: <code>setup_control_tables → seed_flowx_testing_data → onboard_002 → run_002_pipeline
 → onboard_003 → run_003_pipeline → onboard_004 → {run_004_recon_logging_on,
 run_004_recon_logging_off, run_004_recon_continuous}</code> (the last three run in parallel, all
 depending only on <code>onboard_004</code>).</p>
@@ -3463,13 +3463,13 @@ while that task is included.</p>
 <a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="c1">-- expect: recon_004_logging_on -&gt; &gt;=1 row; recon_004_logging_off -&gt; 0 rows</span>
 </code></pre></div>
 <p><strong>This pass's actual verification status</strong>: see
-<a href="../metaflow_testing/TESTING_STATUS.md"><code>metaflow_testing/TESTING_STATUS.md</code></a> for whether this
+<a href="../flowx_testing/TESTING_STATUS.md"><code>flowx_testing/TESTING_STATUS.md</code></a> for whether this
 job was actually run against the live workspace and what the real result was — this document
 describes what <em>should</em> happen structurally; the status tracker records what <em>did</em> happen, if
 anything, each time this scenario is executed.</p>
 <h2 id="real-live-run-results-2026-08-29">Real live-run results (2026-08-29)<a class="headerlink" href="#real-live-run-results-2026-08-29" title="Permanent link">&para;</a></h2>
 <p><strong><code>recon_004_logging_on</code> / <code>recon_004_logging_off</code> — fully verified live, exactly as designed.</strong>
-Real query results against <code>metaflow.config.*</code> after a live run (job run id <code>830403105449437</code>):</p>
+Real query results against <code>flowx.config.*</code> after a live run (job run id <code>830403105449437</code>):</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>reconciliation_result:  recon_004_logging_on  -&gt; SUCCESS, matched_count=7, task_run_id=830403105449437
 <a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>                        recon_004_logging_off -&gt; SUCCESS, matched_count=7, task_run_id=830403105449437
 <a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>reconciliation_run_log: recon_004_logging_on  -&gt; 1 row  (SUCCESS, task_run_id=830403105449437)
@@ -3503,7 +3503,7 @@ pipeline (the same mechanism Design 1 uses) rather than a plain serverless job t
 architectural decision, not a quick patch.</p>
 <p><strong>Incidental fixes made to unblock this verification</strong> (pre-existing bugs, not introduced this
 session, but found and fixed while getting a real end-to-end run):
-* <code>notebooks/00_seed_sample_data/02_seed_metaflow_testing_data.py</code>'s <code>seed_zerobus_style_table_from_csv()</code>
+* <code>notebooks/00_seed_sample_data/02_seed_flowx_testing_data.py</code>'s <code>seed_zerobus_style_table_from_csv()</code>
   used <code>whenMatchedUpdateAll()</code>/<code>whenNotMatchedInsertAll()</code> (star merge), which fails the moment
   the target table has a column the fixture CSV doesn't (confirmed live: <code>zerobus_source_bus</code>
   had accumulated an extra <code>updated_at</code> column from scenario 003's own self-healing appends).
@@ -3515,7 +3515,7 @@ session, but found and fixed while getting a real end-to-end run):
   session) existed on an already-provisioned control table and a genuinely new row was inserted.
   Fixed all five to <code>whenNotMatchedInsert(values={col: f"s.{col}" for col in source_df.columns})</code>,
   consistent with their own <code>whenMatchedUpdate</code> clauses.
-* This workspace's <code>metaflow.config.*</code> control tables (provisioned before this session) needed
+* This workspace's <code>flowx.config.*</code> control tables (provisioned before this session) needed
   four manual <code>ALTER TABLE ... ADD COLUMNS</code> statements run once to pick up new columns added
   this session (<code>reconciliation_run_log</code>/<code>reconciliation_mismatch_log</code>.<code>task_run_id</code>,
   <code>reconciliation_flow_spec</code>.<code>logging_config_json</code>, <code>ingestion_flow_spec</code>/

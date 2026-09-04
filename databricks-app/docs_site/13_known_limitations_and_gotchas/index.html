@@ -27,7 +27,7 @@
     
     
       
-        <title>Known limitations & gotchas - NextGen Metadata Framework (Metaflow)</title>
+        <title>Known limitations & gotchas - FlowX</title>
       
     
     
@@ -92,7 +92,7 @@
 
 <header class="md-header" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href=".." title="NextGen Metadata Framework (Metaflow)" class="md-header__button md-logo" aria-label="NextGen Metadata Framework (Metaflow)" data-md-component="logo">
+    <a href=".." title="FlowX" class="md-header__button md-logo" aria-label="FlowX" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
@@ -106,7 +106,7 @@
       <div class="md-header__ellipsis">
         <div class="md-header__topic">
           <span class="md-ellipsis">
-            NextGen Metadata Framework (Metaflow)
+            FlowX
           </span>
         </div>
         <div class="md-header__topic" data-md-component="header-topic">
@@ -411,13 +411,13 @@
 
 <nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href=".." title="NextGen Metadata Framework (Metaflow)" class="md-nav__button md-logo" aria-label="NextGen Metadata Framework (Metaflow)" data-md-component="logo">
+    <a href=".." title="FlowX" class="md-nav__button md-logo" aria-label="FlowX" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
 
     </a>
-    NextGen Metadata Framework (Metaflow)
+    FlowX
   </label>
   
   <ul class="md-nav__list" data-md-scrollfix>
@@ -6686,7 +6686,7 @@ of one flow's graph-definition call.</p>
 <h3 id="e2-secrets-are-unity-catalog-three-level-references"><a id="e2"></a>E2 🟠 Secrets are Unity Catalog three-level references<a class="headerlink" href="#e2-secrets-are-unity-catalog-three-level-references" title="Permanent link">&para;</a></h3>
 <p>Every <code>*_secret</code> block in a spec is a three-part UC reference, never a classic workspace-level
 secret scope:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>{"secret_catalog": "metaflow", "secret_schema": "security", "secret_key": "pgp_private_key_finance"}
+<div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>{"secret_catalog": "flowx", "secret_schema": "security", "secret_key": "pgp_private_key_finance"}
 </code></pre></div>
 <p>Passphrases and keys must <strong>always</strong> be a genuine secret reference — an inline literal is
 rejected by <code>check_secret_ref</code>.</p>
@@ -6880,7 +6880,7 @@ every changed row instead of failing, which is strictly worse than failing the u
 <a href="#l5">L5</a> and <a href="../07_reconciliation_engine/#117-the-reconciliation-source-must-be-append-only-in-pipeline-mode"><code>07_reconciliation_engine.md</code> §11.7</a>.</p>
 <p><strong>Real instance:</strong> the geneva tariffs group reconciles against <code>geneva_admin.stg_tariffelementband</code>,
 which is that same group's own <code>TRUNCATE_AND_LOAD</code> ingestion target — which is why
-<code>metaflow_testing/053_geneva_e41a47ba_recon_in_pipeline.json</code> declares <code>pipeline_audit_only</code>. That
+<code>flowx_testing/053_geneva_e41a47ba_recon_in_pipeline.json</code> declares <code>pipeline_audit_only</code>. That
 scenario is verified <strong>offline only</strong> (validator + <code>plan_source_plane</code>, pinned by
 <code>tests/unit/test_geneva_e41a47ba_topology.py</code>); it has never been confirmed by a live run, because
 its target table's grants block the pipeline's run-as identity — see <a href="#o6">O6</a>.</p>
@@ -6896,7 +6896,7 @@ and <strong>each pass appends its own corrections</strong> into <code>append_tar
 corrections into an append-only bus, no error anywhere. The batch fingerprint
 (<a href="#r6">R6</a>) does not save you — the two passes are independent invocations against a source the
 first pass may already have moved, so the fingerprints legitimately differ.</p>
-<p><strong>This is not hypothetical.</strong> <code>resources/feature_tests/metaflow_test_002_003_job.yml</code> still carried its
+<p><strong>This is not hypothetical.</strong> <code>resources/feature_tests/flowx_test_002_003_job.yml</code> still carried its
 <code>run_003_reconciliation</code> task after scenario 003 was flipped to <code>"pipeline"</code> — while the file's own
 header already claimed the task had been removed — risking a double-append into
 <code>Excalibur_usecase.zerobus_source_bus</code>. The task was deleted.</p>
@@ -7094,7 +7094,7 @@ guards <em>inside</em> it, and pass <code>apply_changes_from_snapshot</code> tha
 the same rule — a reconciliation flow in <code>execution_mode: "pipeline"</code> streams its source, so that
 source's producing flow must write it append-only.</p>
 <h3 id="l6-create-or-replace-function-is-idempotent-in-intent-but-not-atomic"><a id="l6"></a>L6 🟠 <code>CREATE OR REPLACE FUNCTION</code> is idempotent in intent but not atomic<a class="headerlink" href="#l6-create-or-replace-function-is-idempotent-in-intent-but-not-atomic" title="Permanent link">&para;</a></h3>
-<p>Concurrent <code>setup_control_tables</code> runs — and every <code>metaflow_test_*</code> job starts with one — race
+<p>Concurrent <code>setup_control_tables</code> runs — and every <code>flowx_test_*</code> job starts with one — race
 on UC function creation. The loser gets <code>[ROUTINE_ALREADY_EXISTS]</code>, every downstream task is
 skipped, and it reads as a framework failure. Handled by
 <code>schema_provisioner.is_already_exists_race()</code>, which treats "someone else created it" as success
@@ -7114,11 +7114,15 @@ effects simply happen N times.</p>
   and ZIP handling PGP-decrypts, unzips and writes <code>.__framework_extracted__</code> markers.</li>
 </ul>
 <p><strong>Only materialization makes "read once" literally true.</strong> That is what <code>engine/source_plane.py</code>
-does: at fan-out ≥ 2 it registers one materialized <code>_src__…</code> node — a <strong>streaming table</strong> if any
-consumer streams, a materialized view otherwise — and every consumer binds to it. At fan-out 1 it
-deliberately stays inline, because materializing a single-consumer read would cost a full physical
-copy and destroy predicate pushdown of that consumer's filter into the original source. This is why
-<code>source_plane.materialize</code> defaults to <code>"auto"</code> rather than <code>"always"</code>.</p>
+does: it registers one materialized <code>_src__…</code> node per external read identity — a <strong>streaming
+table</strong> if any consumer streams, a materialized view otherwise — and every consumer binds to it.</p>
+<p><strong>Since v1.7.3 this happens at every fan-out, including 1</strong> (the Single-Read architectural
+mandate): N distinct source tables produce N base ingestion nodes. Previously fan-out 1 stayed
+inline, because materializing a single-consumer read costs a full physical copy and destroys
+predicate pushdown of that consumer's filter into the original source — which is why
+<code>source_plane.materialize</code> used to default to <code>"auto"</code>. It now defaults to <code>"always"</code>; that
+pushdown cost is knowingly paid in exchange for a topology that does not change shape with
+fan-out. <code>"never"</code> was removed and is rejected at onboarding time and again at plan time.</p>
 <p><strong>Materialized ≠ published (v1.6.0).</strong> Since v1.6.0 these shared nodes are
 <code>@dlt.table(temporary=True)</code> under their bare names — materialized once per update, so everything
 above still holds, but <strong>invisible in Unity Catalog</strong> unless the spec sets both
@@ -7266,7 +7270,7 @@ Validate updates in any case.</p>
 added to one of those <code>CREATE</code> statements reaches <strong>new installations only</strong>. An
 already-provisioned workspace keeps the old table shape indefinitely, with nothing logged and
 nothing to notice.</p>
-<p><strong>What that looks like in practice.</strong> Verified live: <code>metaflow.config.reconciliation_flow_spec</code> had
+<p><strong>What that looks like in practice.</strong> Verified live: <code>flowx.config.reconciliation_flow_spec</code> had
 <strong>none</strong> of <code>execution_mode</code> / <code>publish_schema</code> / <code>dq_config_json</code>, so pipeline-mode onboarding on
 that workspace failed with <code>UNRESOLVED_COLUMN</code> on the column it was trying to write.</p>
 <p><strong>The fix, and its operational catch.</strong> <code>ddl_definitions.py</code> now carries
@@ -7304,16 +7308,16 @@ therefore left pointing at a wheel that no longer exists, and fails with:</p>
 exists, and a deploy of the pipeline's own bundle is not what is running. Unique per-deploy wheel
 filenames prevent overwrite-in-place, not removal.</p>
 <p><strong>Live instance, currently unresolved.</strong> Pipeline <code>e41a47ba-5ad0-4dc5-9535-5aa16cc97e65</code> is a
-<code>[dev arjun]</code> pipeline reading from <code>metaflow@nrmanalytix.com</code>'s artifact path, so every
-<code>dev_metaflow</code> deploy orphans it. It needs its own <code>artifact_path</code>, or to be brought under the
+<code>[dev arjun]</code> pipeline reading from <code>flowx@nrmanalytix.com</code>'s artifact path, so every
+<code>dev_flowx</code> deploy orphans it. It needs its own <code>artifact_path</code>, or to be brought under the
 bundle. This is a <strong>pre-existing bundle-topology problem</strong>, not a consequence of any framework
 release.</p>
 <p><strong>A second, independent blocker on that same scenario, also unresolved.</strong> Its reconciliation target
-<code>metaflow.bronze_excalibur.bronze_tariffelementband</code> grants <code>SELECT</code> to <code>arjun@</code>, <code>gowtham@</code> and
-<code>varadaraju@</code> only — <strong>not</strong> to <code>metaflow@nrmanalytix.com</code>, which is the identity the pipeline runs
+<code>flowx.bronze_excalibur.bronze_tariffelementband</code> grants <code>SELECT</code> to <code>arjun@</code>, <code>gowtham@</code> and
+<code>varadaraju@</code> only — <strong>not</strong> to <code>flowx@nrmanalytix.com</code>, which is the identity the pipeline runs
 as. Schema-level access is fine (the same identity reads <code>bronze_excalibur.autoload_bronze</code>), so
 this is a <strong>table-level grant gap</strong>:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a><span class="k">GRANT</span><span class="w"> </span><span class="k">SELECT</span><span class="w"> </span><span class="k">ON</span><span class="w"> </span><span class="k">TABLE</span><span class="w"> </span><span class="n">metaflow</span><span class="p">.</span><span class="n">bronze_excalibur</span><span class="p">.</span><span class="n">bronze_tariffelementband</span><span class="w"> </span><span class="k">TO</span><span class="w"> </span><span class="o">`</span><span class="n">metaflow</span><span class="o">@</span><span class="n">nrmanalytix</span><span class="p">.</span><span class="n">com</span><span class="o">`</span><span class="p">;</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a><span class="k">GRANT</span><span class="w"> </span><span class="k">SELECT</span><span class="w"> </span><span class="k">ON</span><span class="w"> </span><span class="k">TABLE</span><span class="w"> </span><span class="n">flowx</span><span class="p">.</span><span class="n">bronze_excalibur</span><span class="p">.</span><span class="n">bronze_tariffelementband</span><span class="w"> </span><span class="k">TO</span><span class="w"> </span><span class="o">`</span><span class="n">flowx</span><span class="o">@</span><span class="n">nrmanalytix</span><span class="p">.</span><span class="n">com</span><span class="o">`</span><span class="p">;</span>
 </code></pre></div>
 <p>Until both are cleared, that scenario is verified <strong>offline only</strong> — validator plus
 <code>plan_source_plane</code>, pinned by <code>tests/unit/test_geneva_e41a47ba_topology.py</code> — and has never been

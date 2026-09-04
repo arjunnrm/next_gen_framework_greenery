@@ -1,5 +1,5 @@
 {
-  "$comment": "MACHINE-READABLE ATTRIBUTE DELTA for the NextGen Metadata Framework (Metaflow) onboarding spec, v1.5.0 -> v1.5.01. Intended to be fed directly to an automated agent updating the Databricks App (databricks-app/) or any other spec-authoring surface. READ THIS FIRST: v1.5.01 changes ZERO onboarding-spec attributes. It is a repository-layout release -- resources/ was regrouped into subfolders. The correct app-side action is therefore NO CHANGE to any authoring surface: no registry entry, no attribute_knowledge entry, no validation rule, no template, no registry.js/Builder.jsx edit, and NO `npm run build`. This file exists so an agent working the release checklist can confirm that emptiness is the intended answer rather than inferring it from an absent file. READING RULE for `app_action`, unchanged from v1.5.0: every app_action states a FACT about the resulting UI, never a shorthand instruction.",
+  "$comment": "MACHINE-READABLE ATTRIBUTE DELTA for the FlowX onboarding spec, v1.5.0 -> v1.5.01. Intended to be fed directly to an automated agent updating the Databricks App (databricks-app/) or any other spec-authoring surface. READ THIS FIRST: v1.5.01 changes ZERO onboarding-spec attributes. It is a repository-layout release -- resources/ was regrouped into subfolders. The correct app-side action is therefore NO CHANGE to any authoring surface: no registry entry, no attribute_knowledge entry, no validation rule, no template, no registry.js/Builder.jsx edit, and NO `npm run build`. This file exists so an agent working the release checklist can confirm that emptiness is the intended answer rather than inferring it from an absent file. READING RULE for `app_action`, unchanged from v1.5.0: every app_action states a FACT about the resulting UI, never a shorthand instruction.",
   "framework_version_from": "1.5.0",
   "framework_version_to": "1.5.01",
   "release_date": "2026-08-31",
@@ -14,20 +14,20 @@
   "what_did_change": {
     "summary": "resources/ went from 95 YAML files in one flat directory to six purpose-named subfolders, each globbed by its own `include:` line in databricks.yml. No resource key, job name, pipeline name, task, parameter, notebook or dependency changed; the fully-resolved bundle config is byte-identical to v1.5.0 (verified by diffing `databricks bundle validate -o json` before and after).",
     "folders": {
-      "resources/metaflow_app/": "metaflow_onboarding_app.yml + metaflow_onboarding_specs_volume.yml",
-      "resources/metaflow_config_jobs/": "onboarding_job.yml (one spec per run) + framework_config_onboarding_job.yml (a whole spec_dir per run)",
+      "resources/flowx_app/": "flowx_onboarding_app.yml + flowx_onboarding_specs_volume.yml",
+      "resources/flowx_config_jobs/": "onboarding_job.yml (one spec per run) + framework_config_onboarding_job.yml (a whole spec_dir per run)",
       "resources/observability/": "dlt_observability_job.yml + observability_otel_streaming_pipeline.yml",
-      "resources/bt_tests/": "the 6 resources driven by real BT fixtures: metaflow_test_104_geneva_tariffs_recon_{job,pipeline}.yml, metaflow_test_ing_004_asn1_decode_{job,pipeline}.yml, metaflow_test_ing_005_pgp_decrypt_{job,pipeline}.yml",
+      "resources/bt_tests/": "the 6 resources driven by real BT fixtures: flowx_test_104_geneva_tariffs_recon_{job,pipeline}.yml, flowx_test_ing_004_asn1_decode_{job,pipeline}.yml, flowx_test_ing_005_pgp_decrypt_{job,pipeline}.yml",
       "resources/feature_tests/": "the remaining 83 TC-* feature/regression resources",
-      "resources/stability_tests/": "empty; reserved for metaflow_testing/STABILITY_TEST_PLAN.md's A1-G4 cases (README.md only)"
+      "resources/stability_tests/": "empty; reserved for flowx_testing/STABILITY_TEST_PLAN.md's A1-G4 cases (README.md only)"
     },
     "relative_path_rule": "Every relative path inside a resource YAML moved one level up: `../notebooks/...` -> `../../notebooks/...`, `../dist/*.whl` -> `../../dist/*.whl`, `source_code_path: ../databricks-app` -> `../../databricks-app`. DABs resolves a relative path against the declaring file, and `bundle validate` does NOT verify that the target exists, so a stale `../` fails only at deploy. Guarded by tests/unit/test_resource_layout.py."
   },
   "app_repository_references_repointed": [
     {
       "file": "databricks-app/server/settings.py",
-      "line_context": "comment above the METAFLOW_* env-var override block",
-      "change": "`resources/metaflow_onboarding_app.yml` -> `resources/metaflow_app/metaflow_onboarding_app.yml`",
+      "line_context": "comment above the FLOWX_* env-var override block",
+      "change": "`resources/flowx_onboarding_app.yml` -> `resources/flowx_app/flowx_onboarding_app.yml`",
       "functional": false
     },
     {
@@ -44,10 +44,10 @@
   "deploy_contract_for_the_app": {
     "scoped_deploy_supported": true,
     "minimum_cli_version": "1.13.0",
-    "command": "databricks bundle deploy -t dev_metaflow -p dev_metaflow --select apps.metaflow_onboarding_app,jobs.onboarding_job,jobs.framework_config_onboarding_job,volumes.onboarding_specs_volume",
-    "why_the_extra_selectors": "The app resource resolves ${resources.jobs.onboarding_job.id} into METAFLOW_ONBOARDING_JOB_ID and binds ${var.catalog}.${var.spec_schema}.${var.spec_volume} to its service principal with WRITE_VOLUME. Selecting the app alone leaves those two references to be satisfied from prior deployment state.",
+    "command": "databricks bundle deploy -t dev_flowx -p dev_flowx --select apps.flowx_onboarding_app,jobs.onboarding_job,jobs.framework_config_onboarding_job,volumes.onboarding_specs_volume",
+    "why_the_extra_selectors": "The app resource resolves ${resources.jobs.onboarding_job.id} into FLOWX_ONBOARDING_JOB_ID and binds ${var.catalog}.${var.spec_schema}.${var.spec_volume} to its service principal with WRITE_VOLUME. Selecting the app alone leaves those two references to be satisfied from prior deployment state.",
     "wheel": "Still built by scripts/bump_and_build.py and uploaded under --select, because the selected jobs declare ../../dist/*.whl in environments[].spec.dependencies.",
-    "app_deploy_is_still_two_steps": "`bundle deploy` uploads source; the running app keeps serving its previous code until `databricks bundle run metaflow_onboarding_app`.",
+    "app_deploy_is_still_two_steps": "`bundle deploy` uploads source; the running app keeps serving its previous code until `databricks bundle run flowx_onboarding_app`.",
     "never_do": "Do not scope a deploy by commenting out an `include:` line. DABs treats a resource absent from the config as one to DELETE from the target, so commenting out resources/feature_tests/*.yml destroys 83 deployed jobs and pipelines on the next deploy."
   }
 }

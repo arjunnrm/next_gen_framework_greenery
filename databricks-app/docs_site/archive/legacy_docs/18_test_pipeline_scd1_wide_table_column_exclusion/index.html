@@ -23,7 +23,7 @@
     
     
       
-        <title>Test Pipeline: SCD1 Wide-Table Column Exclusion (Customer Master) - NextGen Metadata Framework (Metaflow)</title>
+        <title>Test Pipeline: SCD1 Wide-Table Column Exclusion (Customer Master) - FlowX</title>
       
     
     
@@ -88,7 +88,7 @@
 
 <header class="md-header" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href="../../.." title="NextGen Metadata Framework (Metaflow)" class="md-header__button md-logo" aria-label="NextGen Metadata Framework (Metaflow)" data-md-component="logo">
+    <a href="../../.." title="FlowX" class="md-header__button md-logo" aria-label="FlowX" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
@@ -102,7 +102,7 @@
       <div class="md-header__ellipsis">
         <div class="md-header__topic">
           <span class="md-ellipsis">
-            NextGen Metadata Framework (Metaflow)
+            FlowX
           </span>
         </div>
         <div class="md-header__topic" data-md-component="header-topic">
@@ -405,13 +405,13 @@
 
 <nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href="../../.." title="NextGen Metadata Framework (Metaflow)" class="md-nav__button md-logo" aria-label="NextGen Metadata Framework (Metaflow)" data-md-component="logo">
+    <a href="../../.." title="FlowX" class="md-nav__button md-logo" aria-label="FlowX" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
 
     </a>
-    NextGen Metadata Framework (Metaflow)
+    FlowX
   </label>
   
   <ul class="md-nav__list" data-md-scrollfix>
@@ -3412,14 +3412,14 @@
 
 <h1 id="test-pipeline-scd1-wide-table-column-exclusion-customer-master">Test Pipeline: SCD1 Wide-Table Column Exclusion (Customer Master)<a class="headerlink" href="#test-pipeline-scd1-wide-table-column-exclusion-customer-master" title="Permanent link">&para;</a></h1>
 <blockquote>
-<p>See also: <a href="README.md">README.md</a> — the full Metaflow documentation set.</p>
+<p>See also: <a href="README.md">README.md</a> — the full FlowX documentation set.</p>
 </blockquote>
 <h2 id="purpose">Purpose<a class="headerlink" href="#purpose" title="Permanent link">&para;</a></h2>
 <p>Prove that <code>target_config.columns_to_exclude</code> lets a wide source (50 columns) onboard to
 SCD1 by naming only the handful of columns to <em>drop</em>, instead of hand-listing every
 column to <em>keep</em> -- and that technical/audit columns (load timestamps, run ids, checksum
 hashes) can change on every single run without polluting the target table's schema.
-Entirely onboarding configuration -- zero changes to Metaflow's <code>lakeflow_framework</code>
+Entirely onboarding configuration -- zero changes to FlowX's <code>lakeflow_framework</code>
 engine code beyond the one shared <code>columns_to_exclude</code> feature added to <code>cdc/scd.py</code> (see
 <a href="../02_cdc_load_strategies/">02_cdc_load_strategies.md</a>) and exercised here.</p>
 <h2 id="responsibilities">Responsibilities<a class="headerlink" href="#responsibilities" title="Permanent link">&para;</a></h2>

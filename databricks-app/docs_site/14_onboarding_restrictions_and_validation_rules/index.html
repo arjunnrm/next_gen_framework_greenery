@@ -27,7 +27,7 @@
     
     
       
-        <title>Onboarding restrictions & validation rules - NextGen Metadata Framework (Metaflow)</title>
+        <title>Onboarding restrictions & validation rules - FlowX</title>
       
     
     
@@ -92,7 +92,7 @@
 
 <header class="md-header" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href=".." title="NextGen Metadata Framework (Metaflow)" class="md-header__button md-logo" aria-label="NextGen Metadata Framework (Metaflow)" data-md-component="logo">
+    <a href=".." title="FlowX" class="md-header__button md-logo" aria-label="FlowX" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
@@ -106,7 +106,7 @@
       <div class="md-header__ellipsis">
         <div class="md-header__topic">
           <span class="md-ellipsis">
-            NextGen Metadata Framework (Metaflow)
+            FlowX
           </span>
         </div>
         <div class="md-header__topic" data-md-component="header-topic">
@@ -411,13 +411,13 @@
 
 <nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href=".." title="NextGen Metadata Framework (Metaflow)" class="md-nav__button md-logo" aria-label="NextGen Metadata Framework (Metaflow)" data-md-component="logo">
+    <a href=".." title="FlowX" class="md-nav__button md-logo" aria-label="FlowX" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
 
     </a>
-    NextGen Metadata Framework (Metaflow)
+    FlowX
   </label>
   
   <ul class="md-nav__list" data-md-scrollfix>
@@ -2074,6 +2074,17 @@
   
     <nav class="md-nav" aria-label="4. Forbidden and rejected configurations">
       <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#40-unrecognised-attributes-rejected-on-presence-v171" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.0 Unrecognised attributes — rejected on presence (v1.7.1)
+      
+    </span>
+  </a>
+  
+</li>
         
           <li class="md-nav__item">
   <a href="#41-removed-attributes-rejected-on-presence-never-silently-ignored" class="md-nav__link">
@@ -3753,6 +3764,17 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
+  <a href="#40-unrecognised-attributes-rejected-on-presence-v171" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.0 Unrecognised attributes — rejected on presence (v1.7.1)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#41-removed-attributes-rejected-on-presence-never-silently-ignored" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3835,7 +3857,7 @@
 needs to know, before submitting a spec, exactly what the onboarding validator will accept,
 reject, and why.</p>
 <p><strong>Version &amp; maintenance</strong>: this page describes <strong>v1.6.0</strong> and is <strong>hand-maintained against
-<code>src/NextGen_Metadata_Framework/lakeflow_framework/onboarding/spec_validator.py</code></strong> — the
+<code>src/flowx/lakeflow_framework/onboarding/spec_validator.py</code></strong> — the
 single source of truth for every rule below. When this page and the validator disagree, the
 validator wins; fix the page. Companion pages:
 <a href="../00_master_reference_index/"><code>00_master_reference_index.md</code></a> (what each field <em>means</em>),
@@ -3865,7 +3887,7 @@ runs in three places:</p>
 <tr>
 <td><strong>Bulk directory onboarding</strong></td>
 <td><code>notebooks/02_onboarding/02b_bulk_config_onboarding_engine.py</code> → <code>onboarding/bulk_onboarding.py</code> (parameters: <code>spec_dir</code>, <code>action_type</code>, fail-soft by default)</td>
-<td>Bringing up a whole environment or regression-onboarding the <code>metaflow_testing/</code> corpus. Every spec is attempted; failures are reported per spec at the end.</td>
+<td>Bringing up a whole environment or regression-onboarding the <code>flowx_testing/</code> corpus. Every spec is attempted; failures are reported per spec at the end.</td>
 </tr>
 <tr>
 <td><strong>Spec Builder app</strong></td>
@@ -4525,6 +4547,72 @@ the regex as the practical naming rule for all framework-touched identifiers.</p
 </ul>
 <hr />
 <h2 id="4-forbidden-and-rejected-configurations">4. Forbidden and rejected configurations<a class="headerlink" href="#4-forbidden-and-rejected-configurations" title="Permanent link">&para;</a></h2>
+<h3 id="40-unrecognised-attributes-rejected-on-presence-v171">4.0 Unrecognised attributes — rejected on presence (v1.7.1)<a class="headerlink" href="#40-unrecognised-attributes-rejected-on-presence-v171" title="Permanent link">&para;</a></h3>
+<p>The rule in §4.1 below applies to attributes that <em>were</em> real and have been removed. Since
+v1.7.1 the same rule covers attributes that were <strong>never</strong> real: any key the framework does not
+read is a hard validation error, not a silent no-op.</p>
+<p>The motivation is identical, and the observed failures were worse — because an invented key
+looks plausible and nothing anywhere contradicts it:</p>
+<table>
+<thead>
+<tr>
+<th>Written in the spec</th>
+<th>The real key</th>
+<th>What actually happened before v1.7.1</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>data_quality</code></td>
+<td><code>dq_config</code></td>
+<td>No data-quality rule ever ran</td>
+</tr>
+<tr>
+<td><code>cdc_config: {keys: [...]}</code></td>
+<td><code>target_config.cdc_load_strategy</code> (+ <code>primary_keys</code>)</td>
+<td>CDC keys ignored</td>
+</tr>
+<tr>
+<td><code>partition_by</code></td>
+<td><code>target_config.partition_columns</code></td>
+<td>Table not partitioned</td>
+</tr>
+<tr>
+<td><code>primary_key: "id"</code></td>
+<td><code>target_config.primary_keys: ["id"]</code></td>
+<td>Key ignored; SCD strategies failed elsewhere or merged wrongly</td>
+</tr>
+<tr>
+<td><code>infer_schema</code></td>
+<td>— (delete it)</td>
+<td>Nothing; never a real key</td>
+</tr>
+</tbody>
+</table>
+<p>A spec carrying six such keys previously validated with <code>valid: true</code> and <code>error_count: 0</code>.</p>
+<p><strong>Enforcement.</strong> <code>spec_validator.py::reject_unknown_keys()</code> checks each authored container
+against its allowlist (<code>ALLOWED_ROOT_KEYS</code>, <code>ALLOWED_INGESTION_FLOW_KEYS</code>,
+<code>ALLOWED_TRANSFORMATION_FLOW_KEYS</code>, <code>ALLOWED_INGESTION_SOURCE_CONFIG_KEYS</code>,
+<code>ALLOWED_TARGET_CONFIG_KEYS</code>, <code>ALLOWED_DQ_CONFIG_KEYS</code>, <code>ALLOWED_GOVERNANCE_TAGS_KEYS</code>,
+<code>ALLOWED_SOURCE_INPUT_KEYS</code>, <code>ALLOWED_SINK_CONFIG_KEYS</code>, <code>ALLOWED_RECONCILIATION_FLOW_KEYS</code>).
+<code>onboarding_spec.schema.json</code> now also sets <code>additionalProperties: false</code> on every authored
+container, so an editor flags the same mistake before onboarding runs. The two are asserted
+equal by <code>tests/unit/test_unknown_key_rejection.py::test_allowed_key_sets_match_json_schema</code> —
+adding an attribute to one and not the other fails the build.</p>
+<p><strong>Message.</strong> The error names the replacement wherever one is known, via <code>UNKNOWN_KEY_ALIASES</code>:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>ingestion_flow[df_x].source_config.file_format: not a recognised attribute -- the framework
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>never reads it, so leaving it in place silently does nothing. Use source_config.format.
+</code></pre></div>
+<p>Otherwise it offers the closest real key (<code>Did you mean 'target_table'?</code>) or lists the allowed
+keys for that container.</p>
+<p><strong>Exempt.</strong> Any key matching <code>^_</code> is an author comment — JSON has no comment syntax, and specs
+in <code>flowx_testing/</code> use <code>_scenario</code>, <code>_provenance</code> and <code>_test_case_note</code> extensively. <code>$schema</code>
+is exempt as an editor hint.</p>
+<p><strong>Migrating.</strong> 56 of the 57 specs shipped in this repo were already clean. The one exception
+carried <code>environment</code> and <code>catalog_name</code> at the spec root; both were inert (a group's
+<code>catalog_name</code> comes from the onboarding job's <code>--catalog</code> parameter, never the spec) and have
+been deleted. <code>depends_on_dataflow_group_ids</code>, previously accepted-and-unread, is now rejected
+with a message pointing at Lakeflow Jobs <code>depends_on</code>.</p>
 <h3 id="41-removed-attributes-rejected-on-presence-never-silently-ignored">4.1 Removed attributes — rejected on presence, never silently ignored<a class="headerlink" href="#41-removed-attributes-rejected-on-presence-never-silently-ignored" title="Permanent link">&para;</a></h3>
 <p>The design rule, quoting <code>reject_removed_keys</code>' own rationale:</p>
 <blockquote>
@@ -4824,15 +4912,35 @@ there is no in-graph cycle, and job-mode specs that have always onboarded must k
 </table>
 <hr />
 <h2 id="5-testing-a-spec-without-onboarding-it">5. Testing a spec without onboarding it<a class="headerlink" href="#5-testing-a-spec-without-onboarding-it" title="Permanent link">&para;</a></h2>
-<p>Three ways to run the full validator (or an approximation) with zero writes:</p>
+<p>Four ways to run the full validator (or an approximation) with zero writes. <strong>Option 0 is the
+one to reach for when generating a spec</strong> — it needs no workspace, no cluster and no bundle, so
+it is fast enough to loop on:</p>
+<ol>
+<li><strong><code>agent_tools.validate_json</code> — offline, no Spark.</strong> The real <code>validate_spec</code> behind a
+   text-in/dict-out wrapper that also accepts YAML, substitutes <code>{{catalog}}</code>/<code>{{env}}</code> and adds
+   governance warnings:</li>
+</ol>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">sys</span><span class="p">;</span> <span class="n">sys</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="s2">"src"</span><span class="p">)</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">flowx.lakeflow_framework.onboarding.agent_tools</span><span class="w"> </span><span class="kn">import</span> <span class="n">validate_json</span>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="n">result</span> <span class="o">=</span> <span class="n">validate_json</span><span class="p">(</span><span class="nb">open</span><span class="p">(</span><span class="s2">"my_spec.json"</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">"utf-8"</span><span class="p">)</span><span class="o">.</span><span class="n">read</span><span class="p">())</span>
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="p">[</span><span class="s2">"summary"</span><span class="p">])</span>
+<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="k">for</span> <span class="n">error</span> <span class="ow">in</span> <span class="n">result</span><span class="p">[</span><span class="s2">"errors"</span><span class="p">]:</span>
+<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>    <span class="nb">print</span><span class="p">(</span><span class="s2">" ERROR:"</span><span class="p">,</span> <span class="n">error</span><span class="p">)</span>
+</code></pre></div>
+<p>Every flow type is supported as of v1.7.1. The only check that needs a live session is the
+   <code>EXPLAIN</code>-based structural validation of <code>transformation_sql</code>/<code>transform_sql</code>; without one it
+   is skipped (parameter substitution is still checked) and runs at onboarding time on the
+   cluster. Before v1.7.1 that call raised on <code>spark=None</code>, so transformation and reconciliation
+   flows could not be linted offline at all.</p>
 <ol>
 <li><strong><code>action_type: "VALIDATE_ONLY"</code></strong> — run the generic onboarding job
-   (<code>resources/metaflow_config_jobs/onboarding_job.yml</code>, backing notebook
+   (<code>resources/flowx_config_jobs/onboarding_job.yml</code>, backing notebook
    <code>notebooks/02_onboarding/02_onboarding_engine.py</code>) with <code>action_type=VALIDATE_ONLY</code>. The
    exact same <code>validate_spec</code> runs, every error across the whole spec is reported in one pass,
    and the control-table upsert is skipped. The bulk engine
    (<code>02b_bulk_config_onboarding_engine.py</code>, job
-   <code>resources/metaflow_config_jobs/framework_config_onboarding_job.yml</code>) accepts the same
+   <code>resources/flowx_config_jobs/framework_config_onboarding_job.yml</code>) accepts the same
    <code>action_type</code> to dry-run an entire <code>spec_dir</code>, reporting per-spec results fail-soft.</li>
 <li><strong>The Spec Builder app's validate endpoint</strong> — <code>POST /api/spec/validate</code> with
    <code>{"spec": {...}}</code> returns the app's Layer 1 + Layer 2 findings interactively. Remember it is

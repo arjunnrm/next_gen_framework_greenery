@@ -27,7 +27,7 @@
     
     
       
-        <title>Transformation & CDC - NextGen Metadata Framework (Metaflow)</title>
+        <title>Transformation & CDC - FlowX</title>
       
     
     
@@ -78,7 +78,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#metaflow-transformation-cdc-engine" class="md-skip">
+        <a href="#flowx-transformation-cdc-engine" class="md-skip">
           Skip to content
         </a>
       
@@ -92,7 +92,7 @@
 
 <header class="md-header" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href=".." title="NextGen Metadata Framework (Metaflow)" class="md-header__button md-logo" aria-label="NextGen Metadata Framework (Metaflow)" data-md-component="logo">
+    <a href=".." title="FlowX" class="md-header__button md-logo" aria-label="FlowX" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
@@ -106,7 +106,7 @@
       <div class="md-header__ellipsis">
         <div class="md-header__topic">
           <span class="md-ellipsis">
-            NextGen Metadata Framework (Metaflow)
+            FlowX
           </span>
         </div>
         <div class="md-header__topic" data-md-component="header-topic">
@@ -411,13 +411,13 @@
 
 <nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href=".." title="NextGen Metadata Framework (Metaflow)" class="md-nav__button md-logo" aria-label="NextGen Metadata Framework (Metaflow)" data-md-component="logo">
+    <a href=".." title="FlowX" class="md-nav__button md-logo" aria-label="FlowX" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
 
     </a>
-    NextGen Metadata Framework (Metaflow)
+    FlowX
   </label>
   
   <ul class="md-nav__list" data-md-scrollfix>
@@ -3768,7 +3768,7 @@
 
 
 
-<h1 id="metaflow-transformation-cdc-engine">🔄 Metaflow — Transformation &amp; CDC Engine<a class="headerlink" href="#metaflow-transformation-cdc-engine" title="Permanent link">&para;</a></h1>
+<h1 id="flowx-transformation-cdc-engine">🔄 FlowX — Transformation &amp; CDC Engine<a class="headerlink" href="#flowx-transformation-cdc-engine" title="Permanent link">&para;</a></h1>
 <blockquote>
 <p><strong>Audience</strong>: Data engineers and analytics engineers building Silver and Gold layer pipelines, Slowly Changing Dimensions, and multi-table joins.</p>
 </blockquote>
@@ -3818,7 +3818,7 @@ physical scan. <code>mark_streaming_references</code> is unchanged and still key
 </blockquote>
 <hr />
 <h2 id="2-complete-cdc-load-strategies-guide">2. Complete CDC Load Strategies Guide<a class="headerlink" href="#2-complete-cdc-load-strategies-guide" title="Permanent link">&para;</a></h2>
-<p>Metaflow provides 6 built-in load and merge strategies configured via <code>target_config.cdc_load_strategy</code>. They fall into two families: <code>APPEND</code> and <code>TRUNCATE_AND_LOAD</code> need no key and skip the CDC dispatcher entirely; <code>SCD1</code>, <code>SCD2</code>, <code>SCD3</code> and <code>FULL_SNAPSHOT_CDC</code> all merge on <code>primary_keys</code>.</p>
+<p>FlowX provides 6 built-in load and merge strategies configured via <code>target_config.cdc_load_strategy</code>. They fall into two families: <code>APPEND</code> and <code>TRUNCATE_AND_LOAD</code> need no key and skip the CDC dispatcher entirely; <code>SCD1</code>, <code>SCD2</code>, <code>SCD3</code> and <code>FULL_SNAPSHOT_CDC</code> all merge on <code>primary_keys</code>.</p>
 <h3 id="20-choosing-one">2.0 Choosing one<a class="headerlink" href="#20-choosing-one" title="Permanent link">&para;</a></h3>
 <p>Three questions, in order. Answer them about the <strong>source</strong>, not the target.</p>
 <table>
@@ -4114,12 +4114,12 @@ no longer front-loaded by <code>storage/column_ordering.py</code>.</p>
   Runtime (<code>storage/table_properties.py</code>, raised as <code>FrameworkConfigError</code>; no spec path is available at this point, so the prefix is fixed):
   <div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>target_config.liquid_clustering_columns: at most 3 columns are supported by Delta Liquid Clustering, got 4 (['a', 'b', 'c', 'd']) -- reduce the list to 3 or fewer columns
 </code></pre></div>
-- <strong>Breaking for any spec configuring more than 3 columns.</strong> No shipped <code>metaflow_testing/</code> or <code>onboarding_templates/</code> spec does; an already-deployed table clustered on more than 3 columns is unaffected until its flow is re-onboarded.</p>
+- <strong>Breaking for any spec configuring more than 3 columns.</strong> No shipped <code>flowx_testing/</code> or <code>onboarding_templates/</code> spec does; an already-deployed table clustered on more than 3 columns is unaffected until its flow is re-onboarded.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="p">{</span><span class="w"> </span><span class="nt">"target_config"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nt">"cdc_load_strategy"</span><span class="p">:</span><span class="w"> </span><span class="s2">"APPEND"</span><span class="p">,</span><span class="w"> </span><span class="nt">"liquid_clustering_columns"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">"region"</span><span class="p">,</span><span class="w"> </span><span class="s2">"customer_id"</span><span class="p">,</span><span class="w"> </span><span class="s2">"order_ts"</span><span class="p">]</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">}</span>
 </code></pre></div>
 <hr />
 <h2 id="4-hash-column-computation">4. Hash Column Computation<a class="headerlink" href="#4-hash-column-computation" title="Permanent link">&para;</a></h2>
-<p>Metaflow injects deterministic <strong>SHA-256</strong> hash columns to drive change detection. These are computed only for CDC-dispatched strategies (<code>SCD1</code>/<code>SCD2</code>/<code>SCD3</code>/<code>FULL_SNAPSHOT_CDC</code>) inside <code>dq/quarantine.py::_apply_hash_columns</code>, before the clean upstream reaches <code>dlt.apply_changes</code>/<code>apply_changes_from_snapshot</code>:</p>
+<p>FlowX injects deterministic <strong>SHA-256</strong> hash columns to drive change detection. These are computed only for CDC-dispatched strategies (<code>SCD1</code>/<code>SCD2</code>/<code>SCD3</code>/<code>FULL_SNAPSHOT_CDC</code>) inside <code>dq/quarantine.py::_apply_hash_columns</code>, before the clean upstream reaches <code>dlt.apply_changes</code>/<code>apply_changes_from_snapshot</code>:</p>
 <table>
 <thead>
 <tr>
@@ -4145,7 +4145,7 @@ no longer front-loaded by <code>storage/column_ordering.py</code>.</p>
 <p><strong>This is a breaking change</strong> — see <a href="../11_hashing_and_determinism/"><code>docs/11_hashing_and_determinism.md</code></a> for the full construction, the column-ordering rules (which of these sort their inputs and which don't), a reproducible Spark SQL snippet for spot-checking a digest by hand, and the required post-upgrade migration checklist. Do not rely on this section for the construction details — it is a summary, not the canonical reference.</p>
 <hr />
 <h2 id="5-parameter-substitution-param-catalog-env">5. Parameter Substitution (<code>${param}</code>, <code>{{catalog}}</code>, <code>{{env}}</code>)<a class="headerlink" href="#5-parameter-substitution-param-catalog-env" title="Permanent link">&para;</a></h2>
-<p>Metaflow supports flexible parameter binding across deployment environments:</p>
+<p>FlowX supports flexible parameter binding across deployment environments:</p>
 <h3 id="template-variables-resolved-at-onboarding-time">Template Variables (Resolved at Onboarding Time)<a class="headerlink" href="#template-variables-resolved-at-onboarding-time" title="Permanent link">&para;</a></h3>
 <ul>
 <li><code>{{catalog}}</code>: Replaced with the active Unity Catalog catalog (e.g. <code>poc</code> in dev, <code>enterprise_prod</code> in prod).</li>

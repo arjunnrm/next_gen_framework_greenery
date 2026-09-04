@@ -27,7 +27,7 @@
     
     
       
-        <title>Control metadata & onboarding audit - NextGen Metadata Framework (Metaflow)</title>
+        <title>Control metadata & onboarding audit - FlowX</title>
       
     
     
@@ -78,7 +78,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#metaflow-architecture-review-pillar-8-control-metadata-schema-onboarding-audit" class="md-skip">
+        <a href="#flowx-architecture-review-pillar-8-control-metadata-schema-onboarding-audit" class="md-skip">
           Skip to content
         </a>
       
@@ -92,7 +92,7 @@
 
 <header class="md-header" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href="../.." title="NextGen Metadata Framework (Metaflow)" class="md-header__button md-logo" aria-label="NextGen Metadata Framework (Metaflow)" data-md-component="logo">
+    <a href="../.." title="FlowX" class="md-header__button md-logo" aria-label="FlowX" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
@@ -106,7 +106,7 @@
       <div class="md-header__ellipsis">
         <div class="md-header__topic">
           <span class="md-ellipsis">
-            NextGen Metadata Framework (Metaflow)
+            FlowX
           </span>
         </div>
         <div class="md-header__topic" data-md-component="header-topic">
@@ -413,13 +413,13 @@
 
 <nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href="../.." title="NextGen Metadata Framework (Metaflow)" class="md-nav__button md-logo" aria-label="NextGen Metadata Framework (Metaflow)" data-md-component="logo">
+    <a href="../.." title="FlowX" class="md-nav__button md-logo" aria-label="FlowX" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
 
     </a>
-    NextGen Metadata Framework (Metaflow)
+    FlowX
   </label>
   
   <ul class="md-nav__list" data-md-scrollfix>
@@ -3620,13 +3620,13 @@
 
 
 
-<h1 id="metaflow-architecture-review-pillar-8-control-metadata-schema-onboarding-audit">MetaFlow Architecture Review — Pillar 8: Control Metadata Schema &amp; Onboarding Audit<a class="headerlink" href="#metaflow-architecture-review-pillar-8-control-metadata-schema-onboarding-audit" title="Permanent link">&para;</a></h1>
+<h1 id="flowx-architecture-review-pillar-8-control-metadata-schema-onboarding-audit">FlowX Architecture Review — Pillar 8: Control Metadata Schema &amp; Onboarding Audit<a class="headerlink" href="#flowx-architecture-review-pillar-8-control-metadata-schema-onboarding-audit" title="Permanent link">&para;</a></h1>
 <p><strong>Evaluation Area:</strong> Control Metadata Schema, Control Table DDLs, JSON Payload Evolution, Spec Validation Engine, and Unity Catalog Preflight Tooling<br />
 <strong>Score:</strong> 8.9 / 10<br />
 <strong>Status:</strong> Highly Structured &amp; Idempotent with Minor Schema Normalization Recommendations</p>
 <hr />
 <h2 id="1-executive-summary-control-plane-overview">1. Executive Summary &amp; Control Plane Overview<a class="headerlink" href="#1-executive-summary-control-plane-overview" title="Permanent link">&para;</a></h2>
-<p>The MetaFlow control plane serves as the central brain of the platform. It persists pipeline metadata across 8 dedicated Delta Lake control tables housed within the <code>&lt;catalog&gt;.config</code> schema, decoupling pipeline orchestration from physical compute infrastructure.</p>
+<p>The FlowX control plane serves as the central brain of the platform. It persists pipeline metadata across 8 dedicated Delta Lake control tables housed within the <code>&lt;catalog&gt;.config</code> schema, decoupling pipeline orchestration from physical compute infrastructure.</p>
 <p>Onboarding flows into the control plane is strictly governed by a dual-stage validation architecture:
 1. <strong>Structural &amp; Syntax Validation (<code>spec_validator.py</code>):</strong> Enforces JSON Schema types, allowed enum values, SQL syntax parsing via active Spark sessions, and cross-flow topological references.
 2. <strong>Live Unity Catalog Preflight Reconnaissance (<code>uc_spec_preflight.py</code>):</strong> Preflight checks live catalog, schema, table, and volume existence using the Databricks SDK before any metadata is written to storage.</p>

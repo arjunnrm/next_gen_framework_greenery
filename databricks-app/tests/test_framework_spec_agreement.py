@@ -41,7 +41,7 @@ APP_ROOT = Path(__file__).resolve().parent.parent
 REPO_ROOT = APP_ROOT.parent
 sys.path.insert(0, str(REPO_ROOT / "src"))
 
-from NextGen_Metadata_Framework.lakeflow_framework.onboarding import (  # noqa: E402
+from flowx.lakeflow_framework.onboarding import (  # noqa: E402
     spec_validator as sv,
 )
 
@@ -50,7 +50,7 @@ REGISTRY = APP_ROOT / "config" / "registry"
 
 # {{catalog}}/{{env}} resolve before the spec is ever parsed, so substitute them the way the
 # app does rather than validating placeholder text.
-TEMPLATE_VARS = {"catalog": "metaflow", "env": "dev"}
+TEMPLATE_VARS = {"catalog": "flowx", "env": "dev"}
 _VAR = re.compile(r"\{\{\s*(\w+)\s*\}\}")
 
 FLOW_ARRAY = {

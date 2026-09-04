@@ -27,7 +27,7 @@
     
     
       
-        <title>engine - NextGen Metadata Framework (Metaflow)</title>
+        <title>engine - FlowX</title>
       
     
     
@@ -92,7 +92,7 @@
 
 <header class="md-header" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href="../../.." title="NextGen Metadata Framework (Metaflow)" class="md-header__button md-logo" aria-label="NextGen Metadata Framework (Metaflow)" data-md-component="logo">
+    <a href="../../.." title="FlowX" class="md-header__button md-logo" aria-label="FlowX" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
@@ -106,7 +106,7 @@
       <div class="md-header__ellipsis">
         <div class="md-header__topic">
           <span class="md-ellipsis">
-            NextGen Metadata Framework (Metaflow)
+            FlowX
           </span>
         </div>
         <div class="md-header__topic" data-md-component="header-topic">
@@ -411,13 +411,13 @@
 
 <nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href="../../.." title="NextGen Metadata Framework (Metaflow)" class="md-nav__button md-logo" aria-label="NextGen Metadata Framework (Metaflow)" data-md-component="logo">
+    <a href="../../.." title="FlowX" class="md-nav__button md-logo" aria-label="FlowX" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
 
     </a>
-    NextGen Metadata Framework (Metaflow)
+    FlowX
   </label>
   
   <ul class="md-nav__list" data-md-scrollfix>
@@ -3957,7 +3957,7 @@
 <td>Turn an arbitrary configured name into a valid Lakeflow dataset/sink identifier fragment.</td>
 </tr>
 <tr>
-<td><code>stable_node_name(prefix: str, locator: str, suffix: str, max_core: int = 80) -&gt; str</code></td>
+<td><code>stable_node_name(prefix: str, locator: str, suffix: str, max_core: int = 80, discriminator: str = '') -&gt; str</code></td>
 <td>Build a collision-safe Lakeflow dataset name fragment for a shared source-plane node.</td>
 </tr>
 </tbody>
@@ -4017,7 +4017,7 @@
 <h3 id="class-consumerrequest">class <code>ConsumerRequest</code><a class="headerlink" href="#class-consumerrequest" title="Permanent link">&para;</a></h3>
 <p>One dataset body's declared need for a read of <code>identity</code>.</p>
 <h3 id="class-planenode">class <code>PlaneNode</code><a class="headerlink" href="#class-planenode" title="Permanent link">&para;</a></h3>
-<p>One materialized L0 source-plane node: a shared external read backing 2+ consumers (or every consumer, when <code>materialize="always"</code>).</p>
+<p>One materialized L0 source-plane node: the single physical read of one external identity, backing every consumer of that identity.</p>
 <h3 id="class-binding">class <code>Binding</code><a class="headerlink" href="#class-binding" title="Permanent link">&para;</a></h3>
 <p>How one <code>consumer_id</code> resolves at bind time.</p>
 <h3 id="class-sourceplaneplan">class <code>SourcePlanePlan</code><a class="headerlink" href="#class-sourceplaneplan" title="Permanent link">&para;</a></h3>
@@ -4032,7 +4032,7 @@
 </thead>
 <tbody>
 <tr>
-<td><code>plan_source_plane(ingestion_rows: List[Any], transformation_rows: List[Any], reconciliation_rows: List[Any], pipeline_parameters: Optional[Dict[str, Any]] = None, materialize: str = 'auto', node_catalog: Optional[str] = None, node_schema: Optional[str] = None) -&gt; SourcePlanePlan</code></td>
+<td><code>plan_source_plane(ingestion_rows: List[Any], transformation_rows: List[Any], reconciliation_rows: List[Any], pipeline_parameters: Optional[Dict[str, Any]] = None, materialize: str = 'always', node_catalog: Optional[str] = None, node_schema: Optional[str] = None) -&gt; SourcePlanePlan</code></td>
 <td>Plan the L0 source plane for one dataflow-group pipeline update.</td>
 </tr>
 <tr>

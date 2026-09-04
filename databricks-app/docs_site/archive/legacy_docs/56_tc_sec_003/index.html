@@ -23,7 +23,7 @@
     
     
       
-        <title>Test Pipeline: Secret Masking & Redaction in Telemetry (TC-SEC-003) - NextGen Metadata Framework (Metaflow)</title>
+        <title>Test Pipeline: Secret Masking & Redaction in Telemetry (TC-SEC-003) - FlowX</title>
       
     
     
@@ -88,7 +88,7 @@
 
 <header class="md-header" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href="../../.." title="NextGen Metadata Framework (Metaflow)" class="md-header__button md-logo" aria-label="NextGen Metadata Framework (Metaflow)" data-md-component="logo">
+    <a href="../../.." title="FlowX" class="md-header__button md-logo" aria-label="FlowX" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
@@ -102,7 +102,7 @@
       <div class="md-header__ellipsis">
         <div class="md-header__topic">
           <span class="md-ellipsis">
-            NextGen Metadata Framework (Metaflow)
+            FlowX
           </span>
         </div>
         <div class="md-header__topic" data-md-component="header-topic">
@@ -405,13 +405,13 @@
 
 <nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href="../../.." title="NextGen Metadata Framework (Metaflow)" class="md-nav__button md-logo" aria-label="NextGen Metadata Framework (Metaflow)" data-md-component="logo">
+    <a href="../../.." title="FlowX" class="md-nav__button md-logo" aria-label="FlowX" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
 
     </a>
-    NextGen Metadata Framework (Metaflow)
+    FlowX
   </label>
   
   <ul class="md-nav__list" data-md-scrollfix>
@@ -3379,8 +3379,8 @@
 
 <h1 id="test-pipeline-secret-masking-redaction-in-telemetry-tc-sec-003">Test Pipeline: Secret Masking &amp; Redaction in Telemetry (TC-SEC-003)<a class="headerlink" href="#test-pipeline-secret-masking-redaction-in-telemetry-tc-sec-003" title="Permanent link">&para;</a></h1>
 <blockquote>
-<p>See also: <a href="README.md">Documentation index</a>, <a href="../metaflow_testing/TESTING_PLAN.md">metaflow_testing/TESTING_PLAN.md</a>
-(Module 5, TC-SEC-003), <a href="../metaflow_testing/TESTING_STATUS.md">metaflow_testing/TESTING_STATUS.md</a>,
+<p>See also: <a href="README.md">Documentation index</a>, <a href="../flowx_testing/TESTING_PLAN.md">flowx_testing/TESTING_PLAN.md</a>
+(Module 5, TC-SEC-003), <a href="../flowx_testing/TESTING_STATUS.md">flowx_testing/TESTING_STATUS.md</a>,
 <a href="../16_encryption_and_secrets/">16_encryption_and_secrets.md</a> (the full AES/PGP secret-resolution
 design, including §2's own account of the redaction mechanics this test exercises),
 <a href="../23_lakeflow_sinks/">23_lakeflow_sinks.md</a> (<code>sink_config</code>/<code>pgp_zip</code> mechanics),
@@ -3429,7 +3429,7 @@ redaction assertion below two independent secret-handling code paths to inspect 
   real, governed, DQ-quarantined table exactly like any other target type, <strong>plus</strong> a second
   <code>@dlt.append_flow</code> reads that same table (<code>dlt.read_stream</code>) into
   <code>dlt.create_sink(format="pgp_zip", ...)</code> — the single target this test case's own instructions
-  name (<code>metaflow.bronze_sec.secrets_audit_raw</code>), with the PGP export as an additional side effect
+  name (<code>flowx.bronze_sec.secrets_audit_raw</code>), with the PGP export as an additional side effect
   of the SAME flow rather than a second, separate transformation flow.</li>
 <li><code>target_config.encrypted_columns</code> encrypts <code>secret_value</code> (<code>mode: "GCM"</code>), the one column in this
   fixture standing in for genuine credential/API-key material.</li>
@@ -3440,9 +3440,9 @@ redaction assertion below two independent secret-handling code paths to inspect 
 </ul>
 <h2 id="inputs">Inputs<a class="headerlink" href="#inputs" title="Permanent link">&para;</a></h2>
 <ul>
-<li><code>metaflow_testing/035_sec_003_redaction.json</code> — the onboarding spec (one ingestion flow, no
+<li><code>flowx_testing/035_sec_003_redaction.json</code> — the onboarding spec (one ingestion flow, no
   transformation/reconciliation flows).</li>
-<li><code>sample_data/metaflow_testing/sec_usecase/secrets_audit_batch1.csv</code> — 5-row plaintext fixture
+<li><code>sample_data/flowx_testing/sec_usecase/secrets_audit_batch1.csv</code> — 5-row plaintext fixture
   (<code>audit_id</code>, <code>secret_name</code>, <code>secret_value</code>, <code>accessed_by</code>, <code>accessed_at</code>, <code>access_reason</code>) —
   a small, synthetic credential-vault access-audit log; every <code>secret_name</code>/<code>secret_value</code> is a
   clearly fake, example-shaped placeholder (<code>AKIAIOSFODNN7EXAMPLE</code>, <code>sk_live_51Hc...EXAMPLE...</code>,
@@ -3457,12 +3457,12 @@ redaction assertion below two independent secret-handling code paths to inspect 
 <li><code>{{catalog}}.security.pii_encryption_key</code> — see
     <a href="../05_deployment_guide/">05_deployment_guide.md</a> §0 prerequisites.</li>
 <li><code>{{catalog}}.security.pgp_public_key_finance_egress_test</code> — provisioned by
-    <code>metaflow_test_snk_003_pgp_zip_sink_job</code> (see <a href="../63_tc_snk_003/">TC-SNK-003</a>) from the
-    disposable test keypair at <code>sample_data/metaflow_testing/finance_egress_usecase/
+    <code>flowx_test_snk_003_pgp_zip_sink_job</code> (see <a href="../63_tc_snk_003/">TC-SNK-003</a>) from the
+    disposable test keypair at <code>sample_data/flowx_testing/finance_egress_usecase/
     pgp_egress_keypair_public.asc</code>. If TC-SNK-003 hasn't been run against a given workspace yet,
     provision it directly (same command TC-SNK-003's own doc gives):
     <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>databricks<span class="w"> </span>secrets<span class="w"> </span>put-secret<span class="w"> </span>security<span class="w"> </span>pgp_public_key_finance_egress_test<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="w">  </span>--string-value<span class="w"> </span><span class="s2">"</span><span class="k">$(</span>cat<span class="w"> </span>sample_data/metaflow_testing/finance_egress_usecase/pgp_egress_keypair_public.asc<span class="k">)</span><span class="s2">"</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="w">  </span>--string-value<span class="w"> </span><span class="s2">"</span><span class="k">$(</span>cat<span class="w"> </span>sample_data/flowx_testing/finance_egress_usecase/pgp_egress_keypair_public.asc<span class="k">)</span><span class="s2">"</span>
 </code></pre></div></li>
 </ul>
 <h2 id="outputs">Outputs<a class="headerlink" href="#outputs" title="Permanent link">&para;</a></h2>
@@ -3483,7 +3483,7 @@ redaction assertion below two independent secret-handling code paths to inspect 
   why this specific surface is <strong>not</strong> where this test case's real exposure lives.</li>
 </ul>
 <h2 id="configuration">Configuration<a class="headerlink" href="#configuration" title="Permanent link">&para;</a></h2>
-<p><code>metaflow_testing/035_sec_003_redaction.json</code>'s one <code>ingestion_flows[]</code> entry's <code>target_config</code>:</p>
+<p><code>flowx_testing/035_sec_003_redaction.json</code>'s one <code>ingestion_flows[]</code> entry's <code>target_config</code>:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="nt">"target_config"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
 <a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="w">  </span><span class="nt">"cdc_load_strategy"</span><span class="p">:</span><span class="w"> </span><span class="s2">"APPEND"</span><span class="p">,</span>
 <a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="w">  </span><span class="nt">"storage_format"</span><span class="p">:</span><span class="w"> </span><span class="s2">"delta"</span><span class="p">,</span>
@@ -3514,8 +3514,8 @@ redaction assertion below two independent secret-handling code paths to inspect 
 <div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>databricks<span class="w"> </span>bundle<span class="w"> </span>deploy<span class="w"> </span>--target<span class="w"> </span>dev
 <a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="c1"># only if not already provisioned by an earlier TC-SNK-003 run in this workspace:</span>
 <a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>databricks<span class="w"> </span>secrets<span class="w"> </span>put-secret<span class="w"> </span>security<span class="w"> </span>pgp_public_key_finance_egress_test<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="w">  </span>--string-value<span class="w"> </span><span class="s2">"</span><span class="k">$(</span>cat<span class="w"> </span>sample_data/metaflow_testing/finance_egress_usecase/pgp_egress_keypair_public.asc<span class="k">)</span><span class="s2">"</span>
-<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>databricks<span class="w"> </span>bundle<span class="w"> </span>run<span class="w"> </span>metaflow_test_sec_003_redaction_job<span class="w"> </span>--target<span class="w"> </span>dev
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="w">  </span>--string-value<span class="w"> </span><span class="s2">"</span><span class="k">$(</span>cat<span class="w"> </span>sample_data/flowx_testing/finance_egress_usecase/pgp_egress_keypair_public.asc<span class="k">)</span><span class="s2">"</span>
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>databricks<span class="w"> </span>bundle<span class="w"> </span>run<span class="w"> </span>flowx_test_sec_003_redaction_job<span class="w"> </span>--target<span class="w"> </span>dev
 </code></pre></div>
 <p>Task chain: <code>setup_control_tables → seed_sec_003_redaction_data → onboard_sec_003 →
 run_pipeline</code>. No separate observability job task — see "Known gaps / judgment calls".</p>
@@ -3589,8 +3589,8 @@ not a silent pass.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="c1"># This is the check that is expected to demonstrate the gap, not disprove it -- run against the</span>
 <a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="c1"># pipeline update's own captured plan/DEBUG log, or interactively against the staged view:</span>
 <a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">pyspark.sql</span><span class="w"> </span><span class="kn">import</span> <span class="n">functions</span> <span class="k">as</span> <span class="n">F</span>
-<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="n">pii_key</span> <span class="o">=</span> <span class="n">dbutils</span><span class="o">.</span><span class="n">secrets</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">catalog</span><span class="o">=</span><span class="s2">"metaflow"</span><span class="p">,</span> <span class="n">schema</span><span class="o">=</span><span class="s2">"security"</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="s2">"pii_encryption_key"</span><span class="p">)</span>
-<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="n">staged_df</span> <span class="o">=</span> <span class="n">spark</span><span class="o">.</span><span class="n">table</span><span class="p">(</span><span class="s2">"metaflow.bronze_sec.secrets_audit_raw"</span><span class="p">)</span><span class="o">.</span><span class="n">select</span><span class="p">(</span>
+<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="n">pii_key</span> <span class="o">=</span> <span class="n">dbutils</span><span class="o">.</span><span class="n">secrets</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">catalog</span><span class="o">=</span><span class="s2">"flowx"</span><span class="p">,</span> <span class="n">schema</span><span class="o">=</span><span class="s2">"security"</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="s2">"pii_encryption_key"</span><span class="p">)</span>
+<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="n">staged_df</span> <span class="o">=</span> <span class="n">spark</span><span class="o">.</span><span class="n">table</span><span class="p">(</span><span class="s2">"flowx.bronze_sec.secrets_audit_raw"</span><span class="p">)</span><span class="o">.</span><span class="n">select</span><span class="p">(</span>
 <a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a>    <span class="n">F</span><span class="o">.</span><span class="n">aes_encrypt</span><span class="p">(</span><span class="n">F</span><span class="o">.</span><span class="n">lit</span><span class="p">(</span><span class="s2">"probe"</span><span class="p">),</span> <span class="n">F</span><span class="o">.</span><span class="n">lit</span><span class="p">(</span><span class="n">pii_key</span><span class="p">),</span> <span class="n">F</span><span class="o">.</span><span class="n">lit</span><span class="p">(</span><span class="s2">"GCM"</span><span class="p">))</span><span class="o">.</span><span class="n">alias</span><span class="p">(</span><span class="s2">"probe_col"</span><span class="p">)</span>
 <a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="p">)</span>
 <a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a><span class="n">staged_df</span><span class="o">.</span><span class="n">explain</span><span class="p">(</span><span class="kc">True</span><span class="p">)</span>
@@ -3599,7 +3599,7 @@ not a silent pass.</p>
 <a id="__codelineno-5-11" name="__codelineno-5-11" href="#__codelineno-5-11"></a><span class="c1"># apply_aes_column_encryption's own real call site does inside this flow's graph-definition call.</span>
 </code></pre></div>
 <p><strong>This pass's actual verification status</strong>: see
-<a href="../metaflow_testing/TESTING_STATUS.md"><code>metaflow_testing/TESTING_STATUS.md</code></a> for whether this
+<a href="../flowx_testing/TESTING_STATUS.md"><code>flowx_testing/TESTING_STATUS.md</code></a> for whether this
 job was actually run against the live workspace and what the real result was — this document
 describes what <em>should</em> happen structurally; the status tracker records what <em>did</em> happen.</p>
 <h2 id="known-gaps-judgment-calls">Known gaps / judgment calls<a class="headerlink" href="#known-gaps-judgment-calls" title="Permanent link">&para;</a></h2>
@@ -3619,7 +3619,7 @@ describes what <em>should</em> happen structurally; the status tracker records w
   <a href="../01_control_metadata_schema/#4-target_config-ingestion-and-transformation-flows">01_control_metadata_schema.md §4</a>/
   <a href="../23_lakeflow_sinks/">23_lakeflow_sinks.md</a> restricts either field to a particular <code>target_type</code>
   or to mutual exclusion with the other, and this shape lets one flow satisfy this test case's own
-  single named target (<code>metaflow.bronze_sec.secrets_audit_raw</code>) while still genuinely exercising
+  single named target (<code>flowx.bronze_sec.secrets_audit_raw</code>) while still genuinely exercising
   both secret-handling code paths side by side, matching <code>TESTING_PLAN.md</code>'s own framing ("Pipeline
   executes AES encryption <strong>and</strong> PGP sink packaging") more directly than splitting them across an
   ingestion flow and a second transformation flow would have.</li>
@@ -3637,7 +3637,7 @@ describes what <em>should</em> happen structurally; the status tracker records w
   logging fires automatically as a side effect of <code>run_pipeline</code> itself, with no separate task
   needed to "activate" it. This is, in fact, the exact log surface this doc's own "Expected
   results" section inspects (and finds clean) above.</li>
-<li><strong>New fixture, not a reuse.</strong> <code>sample_data/metaflow_testing/sec_usecase/</code> already holds
+<li><strong>New fixture, not a reuse.</strong> <code>sample_data/flowx_testing/sec_usecase/</code> already holds
   <code>customer_pii_day1.csv</code> (TC-SEC-001) and <code>accounts_hashed_batch1.csv</code> (TC-SEC-002), but neither
   is shaped for a credential-vault audit log — a small, new 5-row CSV
   (<code>secrets_audit_batch1.csv</code>) and one dedicated seed notebook were added instead, under the same

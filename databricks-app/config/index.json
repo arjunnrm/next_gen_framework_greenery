@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0",
   "app": {
-    "title": "Metaflow Onboarding",
+    "title": "FlowX Onboarding",
     "framework_version": "1.3.0",
     "environment_label": "dev",
     "support_contact": "data-platform@example.com"
@@ -18,7 +18,7 @@
   "template_variables": {
     "catalog": {
       "label": "Catalog",
-      "default": "metaflow",
+      "default": "flowx",
       "required": true
     },
     "env": {
@@ -33,7 +33,7 @@
         "id": "vol_specs",
         "label": "Volume \u00b7 onboarding specs",
         "kind": "volume",
-        "path": "/Volumes/{{catalog}}/metaflow/onboarding_specs/",
+        "path": "/Volumes/{{catalog}}/flowx/onboarding_specs/",
         "read": true,
         "write": true
       },
@@ -41,7 +41,7 @@
         "id": "ws_specs",
         "label": "Workspace \u00b7 specs",
         "kind": "workspace",
-        "path": "/Workspace/Shared/metaflow/specs/",
+        "path": "/Workspace/Shared/flowx/specs/",
         "read": true,
         "write": true
       }
@@ -107,7 +107,7 @@
   "docs": {
     "mode": "embedded",
     "base_url": "/docs/",
-    "external_base_url": "https://docs.internal.example.com/metaflow/",
+    "external_base_url": "https://docs.internal.example.com/flowx/",
     "attribute_reference_page": "",
     "open_in": "panel"
   },

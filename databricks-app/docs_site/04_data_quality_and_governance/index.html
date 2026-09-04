@@ -27,7 +27,7 @@
     
     
       
-        <title>Data quality & governance - NextGen Metadata Framework (Metaflow)</title>
+        <title>Data quality & governance - FlowX</title>
       
     
     
@@ -78,7 +78,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#metaflow-data-quality-governance" class="md-skip">
+        <a href="#flowx-data-quality-governance" class="md-skip">
           Skip to content
         </a>
       
@@ -92,7 +92,7 @@
 
 <header class="md-header" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href=".." title="NextGen Metadata Framework (Metaflow)" class="md-header__button md-logo" aria-label="NextGen Metadata Framework (Metaflow)" data-md-component="logo">
+    <a href=".." title="FlowX" class="md-header__button md-logo" aria-label="FlowX" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
@@ -106,7 +106,7 @@
       <div class="md-header__ellipsis">
         <div class="md-header__topic">
           <span class="md-ellipsis">
-            NextGen Metadata Framework (Metaflow)
+            FlowX
           </span>
         </div>
         <div class="md-header__topic" data-md-component="header-topic">
@@ -411,13 +411,13 @@
 
 <nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href=".." title="NextGen Metadata Framework (Metaflow)" class="md-nav__button md-logo" aria-label="NextGen Metadata Framework (Metaflow)" data-md-component="logo">
+    <a href=".." title="FlowX" class="md-nav__button md-logo" aria-label="FlowX" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
 
     </a>
-    NextGen Metadata Framework (Metaflow)
+    FlowX
   </label>
   
   <ul class="md-nav__list" data-md-scrollfix>
@@ -3592,13 +3592,13 @@
 
 
 
-<h1 id="metaflow-data-quality-governance">🛡️ Metaflow — Data Quality &amp; Governance<a class="headerlink" href="#metaflow-data-quality-governance" title="Permanent link">&para;</a></h1>
+<h1 id="flowx-data-quality-governance">🛡️ FlowX — Data Quality &amp; Governance<a class="headerlink" href="#flowx-data-quality-governance" title="Permanent link">&para;</a></h1>
 <blockquote>
 <p><strong>Audience</strong>: Data governance officers, data quality engineers, and compliance leads responsible for data contracts, quarantine routing, and Unity Catalog metadata attribution.</p>
 </blockquote>
 <hr />
 <h2 id="1-data-quality-framework-overview">1. Data Quality Framework Overview<a class="headerlink" href="#1-data-quality-framework-overview" title="Permanent link">&para;</a></h2>
-<p>Metaflow implements a declarative Data Quality (DQ) engine built on top of <a href="https://docs.databricks.com/aws/en/dlt/expectations">Lakeflow Expectations</a> with automatic, zero-data-loss quarantine routing.</p>
+<p>FlowX implements a declarative Data Quality (DQ) engine built on top of <a href="https://docs.databricks.com/aws/en/dlt/expectations">Lakeflow Expectations</a> with automatic, zero-data-loss quarantine routing.</p>
 <h3 id="data-quality-actions">Data Quality Actions<a class="headerlink" href="#data-quality-actions" title="Permanent link">&para;</a></h3>
 <table>
 <thead>
@@ -3638,7 +3638,7 @@
 </table>
 <hr />
 <h2 id="2-quarantine-routing-architecture">2. Quarantine Routing Architecture<a class="headerlink" href="#2-quarantine-routing-architecture" title="Permanent link">&para;</a></h2>
-<p>When one or more rules declare <code>action: "quarantine"</code>, Metaflow dynamically forks the stream:</p>
+<p>When one or more rules declare <code>action: "quarantine"</code>, FlowX dynamically forks the stream:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>                               ┌──────────────────────────────┐
 <a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>                               │       INCOMING RECORDS       │
 <a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>                               └──────────────┬───────────────┘
@@ -3695,7 +3695,7 @@
 - <code>__framework_quarantine_source_dataflow_id</code>: Origin flow identifier.</p>
 <hr />
 <h2 id="3-unity-catalog-governance-tagging">3. Unity Catalog Governance &amp; Tagging<a class="headerlink" href="#3-unity-catalog-governance-tagging" title="Permanent link">&para;</a></h2>
-<p>Metaflow provides declarative Unity Catalog metadata attribution for both tables and individual columns.</p>
+<p>FlowX provides declarative Unity Catalog metadata attribution for both tables and individual columns.</p>
 <h3 id="governance-configuration-schema">Governance Configuration Schema<a class="headerlink" href="#governance-configuration-schema" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="nt">"governance_tags"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
 <a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="w">  </span><span class="nt">"table_tags"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
@@ -3724,7 +3724,7 @@
 3. It queries <code>governance_tags_json</code> from the control tables and executes idempotent <code>ALTER TABLE &lt;catalog&gt;.&lt;schema&gt;.&lt;table&gt; SET TAGS (...)</code> DDL commands.</p>
 <hr />
 <h2 id="4-attribute-based-access-control-abac-integration">4. Attribute-Based Access Control (ABAC) Integration<a class="headerlink" href="#4-attribute-based-access-control-abac-integration" title="Permanent link">&para;</a></h2>
-<p>Metaflow integrates seamlessly with Unity Catalog Row Filters and Column Masks to enforce fine-grained access control:
+<p>FlowX integrates seamlessly with Unity Catalog Row Filters and Column Masks to enforce fine-grained access control:
 - <strong>Column Masks</strong>: Automatically mask sensitive plaintext columns (e.g. hashing SSNs for non-privileged users) via UC User-Defined Functions.
 - <strong>Row Filters</strong>: Enforce row-level tenant or geographic isolation (e.g. <code>region = current_user_region()</code>).
 - Learn more in <a href="https://docs.databricks.com/data-governance/unity-catalog/row-and-column-filters">Official Unity Catalog Row Filters &amp; Column Masks Guide</a>.</p>

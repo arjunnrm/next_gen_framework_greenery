@@ -23,7 +23,7 @@
     
     
       
-        <title>Test Pipeline: TC-SNK-003 — PGP Encrypted ZIP Sink Export with Secret Key - NextGen Metadata Framework (Metaflow)</title>
+        <title>Test Pipeline: TC-SNK-003 — PGP Encrypted ZIP Sink Export with Secret Key - FlowX</title>
       
     
     
@@ -88,7 +88,7 @@
 
 <header class="md-header" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href="../../.." title="NextGen Metadata Framework (Metaflow)" class="md-header__button md-logo" aria-label="NextGen Metadata Framework (Metaflow)" data-md-component="logo">
+    <a href="../../.." title="FlowX" class="md-header__button md-logo" aria-label="FlowX" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
@@ -102,7 +102,7 @@
       <div class="md-header__ellipsis">
         <div class="md-header__topic">
           <span class="md-ellipsis">
-            NextGen Metadata Framework (Metaflow)
+            FlowX
           </span>
         </div>
         <div class="md-header__topic" data-md-component="header-topic">
@@ -405,13 +405,13 @@
 
 <nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href="../../.." title="NextGen Metadata Framework (Metaflow)" class="md-nav__button md-logo" aria-label="NextGen Metadata Framework (Metaflow)" data-md-component="logo">
+    <a href="../../.." title="FlowX" class="md-nav__button md-logo" aria-label="FlowX" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
 
     </a>
-    NextGen Metadata Framework (Metaflow)
+    FlowX
   </label>
   
   <ul class="md-nav__list" data-md-scrollfix>
@@ -3396,8 +3396,8 @@
 
 <h1 id="test-pipeline-tc-snk-003-pgp-encrypted-zip-sink-export-with-secret-key">Test Pipeline: TC-SNK-003 — PGP Encrypted ZIP Sink Export with Secret Key<a class="headerlink" href="#test-pipeline-tc-snk-003-pgp-encrypted-zip-sink-export-with-secret-key" title="Permanent link">&para;</a></h1>
 <blockquote>
-<p>See also: <a href="README.md">Documentation index</a>, <a href="../metaflow_testing/TESTING_PLAN.md">metaflow_testing/TESTING_PLAN.md</a>
-(Module 8, TC-SNK-003), <a href="../metaflow_testing/TESTING_STATUS.md">metaflow_testing/TESTING_STATUS.md</a>,
+<p>See also: <a href="README.md">Documentation index</a>, <a href="../flowx_testing/TESTING_PLAN.md">flowx_testing/TESTING_PLAN.md</a>
+(Module 8, TC-SNK-003), <a href="../flowx_testing/TESTING_STATUS.md">flowx_testing/TESTING_STATUS.md</a>,
 <a href="../23_lakeflow_sinks/">23_lakeflow_sinks.md</a> (the full <code>sink</code>/<code>external_sink</code> mechanics this
 scenario exercises), <a href="../16_encryption_and_secrets/">16_encryption_and_secrets.md</a> (the PGP/secrets
 design), <a href="../35_tc_ing_005/">35_tc_ing_005.md</a> (the mirror-image scenario — PGP <strong>decryption</strong> on
@@ -3422,7 +3422,7 @@ partner (holder of the matching private key) can ever read it.</p>
   autoloader still publishes a genuine Lakeflow Streaming Table, which is what
   <code>register_external_sink_export</code> requires of the main target before it will attach the export
   <code>@dlt.append_flow</code> — see <a href="../23_lakeflow_sinks/">23_lakeflow_sinks.md</a>).</li>
-<li><code>target_type: "external_sink"</code> — <code>metaflow.silver_finance.monthly_settlements</code> is materialized as
+<li><code>target_type: "external_sink"</code> — <code>flowx.silver_finance.monthly_settlements</code> is materialized as
   a real, governed, DQ-quarantined table exactly like any other target type, <strong>plus</strong> a second
   <code>@dlt.append_flow</code> reads that same table (<code>dlt.read_stream</code>) into a <code>dlt.create_sink(format=
   "pgp_zip", ...)</code>.</li>
@@ -3439,13 +3439,13 @@ partner (holder of the matching private key) can ever read it.</p>
 </ul>
 <h2 id="inputs">Inputs<a class="headerlink" href="#inputs" title="Permanent link">&para;</a></h2>
 <ul>
-<li><code>metaflow_testing/041_snk_003_pgp_zip_sink.json</code> — the onboarding spec (one ingestion flow, no
+<li><code>flowx_testing/041_snk_003_pgp_zip_sink.json</code> — the onboarding spec (one ingestion flow, no
   transformation/reconciliation flows).</li>
-<li><code>sample_data/metaflow_testing/finance_egress_usecase/monthly_settlements.csv</code> — 5-row plaintext
+<li><code>sample_data/flowx_testing/finance_egress_usecase/monthly_settlements.csv</code> — 5-row plaintext
   fixture (<code>settlement_id</code>, <code>account_id</code>, <code>settlement_amount</code>, <code>currency</code>, <code>settlement_date</code>,
   <code>counterparty</code>), landed as-is (no ZIP/PGP handling on the input side — that's deliberate, see
   Responsibilities above).</li>
-<li><code>sample_data/metaflow_testing/finance_egress_usecase/pgp_egress_keypair_public.asc</code> /
+<li><code>sample_data/flowx_testing/finance_egress_usecase/pgp_egress_keypair_public.asc</code> /
   <code>pgp_egress_keypair_private.asc</code> — a dedicated, disposable, passphrase-less RSA-2048 PGP keypair
   generated specifically for this test scenario (via <code>PGPy</code>, the same library <code>crypto/pgp.py</code>
   wraps; generated locally with a one-off script and round-trip-verified against the framework's
@@ -3480,7 +3480,7 @@ partner (holder of the matching private key) can ever read it.</p>
   <code>"sink"</code> target type, which registers no table at all).</li>
 </ul>
 <h2 id="configuration">Configuration<a class="headerlink" href="#configuration" title="Permanent link">&para;</a></h2>
-<p><code>metaflow_testing/041_snk_003_pgp_zip_sink.json</code>'s one ingestion flow's <code>target_config</code>:</p>
+<p><code>flowx_testing/041_snk_003_pgp_zip_sink.json</code>'s one ingestion flow's <code>target_config</code>:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nt">"target_config"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
 <a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="w">  </span><span class="nt">"cdc_load_strategy"</span><span class="p">:</span><span class="w"> </span><span class="s2">"APPEND"</span><span class="p">,</span>
 <a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="w">  </span><span class="nt">"storage_format"</span><span class="p">:</span><span class="w"> </span><span class="s2">"delta"</span><span class="p">,</span>
@@ -3509,13 +3509,13 @@ partner (holder of the matching private key) can ever read it.</p>
 section establishes for this project's other encryption keys, and the same pattern
 <a href="../35_tc_ing_005/">35_tc_ing_005.md</a> uses for its <strong>private</strong> key secret — here it's the <strong>public</strong>
 key that must be a secret, since encryption (not decryption) is what runs inside the pipeline. This
-step must run <strong>before</strong> <code>metaflow_test_snk_003_pgp_zip_sink_job</code>'s <code>run_pipeline_task</code> — the
+step must run <strong>before</strong> <code>flowx_test_snk_003_pgp_zip_sink_job</code>'s <code>run_pipeline_task</code> — the
 pipeline's sink registration will fail fast with <code>SecretResolutionError</code> until it does:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="c1"># Test-only, disposable PGP public key -- protects nothing real (see sample_data/</span>
-<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="c1"># metaflow_testing/finance_egress_usecase/ header note). No passphrase, matching this project's</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="c1"># flowx_testing/finance_egress_usecase/ header note). No passphrase, matching this project's</span>
 <a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="c1"># other throwaway test keypairs.</span>
 <a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>databricks<span class="w"> </span>secrets<span class="w"> </span>put-secret<span class="w"> </span>security<span class="w"> </span>pgp_public_key_finance_egress_test<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="w">  </span>--string-value<span class="w"> </span><span class="s2">"</span><span class="k">$(</span>cat<span class="w"> </span>sample_data/metaflow_testing/finance_egress_usecase/pgp_egress_keypair_public.asc<span class="k">)</span><span class="s2">"</span>
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="w">  </span>--string-value<span class="w"> </span><span class="s2">"</span><span class="k">$(</span>cat<span class="w"> </span>sample_data/flowx_testing/finance_egress_usecase/pgp_egress_keypair_public.asc<span class="k">)</span><span class="s2">"</span>
 </code></pre></div>
 <p>The matching private key (<code>pgp_egress_keypair_private.asc</code>) needs no secret at all — the pipeline
 never decrypts anything on this path; it is only ever used locally (or by a real partner, in
@@ -3523,8 +3523,8 @@ production) to decrypt the exported <code>.zip.pgp</code> archive, per the verif
 <h2 id="main-execution-flow">Main execution flow<a class="headerlink" href="#main-execution-flow" title="Permanent link">&para;</a></h2>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>databricks<span class="w"> </span>bundle<span class="w"> </span>deploy<span class="w"> </span>--target<span class="w"> </span>dev
 <a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>databricks<span class="w"> </span>secrets<span class="w"> </span>put-secret<span class="w"> </span>security<span class="w"> </span>pgp_public_key_finance_egress_test<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="w">  </span>--string-value<span class="w"> </span><span class="s2">"</span><span class="k">$(</span>cat<span class="w"> </span>sample_data/metaflow_testing/finance_egress_usecase/pgp_egress_keypair_public.asc<span class="k">)</span><span class="s2">"</span>
-<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>databricks<span class="w"> </span>bundle<span class="w"> </span>run<span class="w"> </span>metaflow_test_snk_003_pgp_zip_sink_job<span class="w"> </span>--target<span class="w"> </span>dev
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="w">  </span>--string-value<span class="w"> </span><span class="s2">"</span><span class="k">$(</span>cat<span class="w"> </span>sample_data/flowx_testing/finance_egress_usecase/pgp_egress_keypair_public.asc<span class="k">)</span><span class="s2">"</span>
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>databricks<span class="w"> </span>bundle<span class="w"> </span>run<span class="w"> </span>flowx_test_snk_003_pgp_zip_sink_job<span class="w"> </span>--target<span class="w"> </span>dev
 </code></pre></div>
 <p>Task chain: <code>setup_control_tables → seed_snk_003_pgp_zip_sink_data → onboard_snk_003 →
 run_pipeline_task</code>.</p>
@@ -3569,13 +3569,13 @@ update fails fast at graph-definition time with a <code>SecretResolutionError</c
 naming the secret coordinates — this is the expected, correct failure mode, not a bug to route
 around; it proves the framework never silently falls through to an unencrypted export.</p>
 <p><strong>This pass's actual verification status</strong>: see
-<a href="../metaflow_testing/TESTING_STATUS.md"><code>metaflow_testing/TESTING_STATUS.md</code></a> for whether this job
+<a href="../flowx_testing/TESTING_STATUS.md"><code>flowx_testing/TESTING_STATUS.md</code></a> for whether this job
 was actually run against the live workspace and what the real result was — this document describes
 what <em>should</em> happen structurally; the status tracker records what <em>did</em> happen.</p>
 <h2 id="known-gaps-judgment-calls">Known gaps / judgment calls<a class="headerlink" href="#known-gaps-judgment-calls" title="Permanent link">&para;</a></h2>
 <ul>
 <li><strong>Secret coordinates vs. <code>TESTING_PLAN.md</code>'s aspirational naming</strong>: <code>TESTING_PLAN.md</code>'s own
-  TC-SNK-003 row names <code>metaflow_partner_scope</code>/<code>partner_pgp_pubkey</code> (classic workspace secret-scope
+  TC-SNK-003 row names <code>flowx_partner_scope</code>/<code>partner_pgp_pubkey</code> (classic workspace secret-scope
   terminology). This build instead uses this project's real Unity Catalog three-level
   <code>{secret_catalog, secret_schema, secret_key}</code> shape — <code>{{catalog}}</code>, <code>security</code>,
   <code>pgp_public_key_finance_egress_test</code> — resolved via <code>dbutils.secrets.get(catalog=, schema=,

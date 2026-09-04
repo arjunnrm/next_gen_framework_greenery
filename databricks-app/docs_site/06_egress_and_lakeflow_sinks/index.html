@@ -27,7 +27,7 @@
     
     
       
-        <title>Egress & Lakeflow sinks - NextGen Metadata Framework (Metaflow)</title>
+        <title>Egress & Lakeflow sinks - FlowX</title>
       
     
     
@@ -78,7 +78,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#metaflow-egress-lakeflow-sinks" class="md-skip">
+        <a href="#flowx-egress-lakeflow-sinks" class="md-skip">
           Skip to content
         </a>
       
@@ -92,7 +92,7 @@
 
 <header class="md-header" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href=".." title="NextGen Metadata Framework (Metaflow)" class="md-header__button md-logo" aria-label="NextGen Metadata Framework (Metaflow)" data-md-component="logo">
+    <a href=".." title="FlowX" class="md-header__button md-logo" aria-label="FlowX" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
@@ -106,7 +106,7 @@
       <div class="md-header__ellipsis">
         <div class="md-header__topic">
           <span class="md-ellipsis">
-            NextGen Metadata Framework (Metaflow)
+            FlowX
           </span>
         </div>
         <div class="md-header__topic" data-md-component="header-topic">
@@ -411,13 +411,13 @@
 
 <nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href=".." title="NextGen Metadata Framework (Metaflow)" class="md-nav__button md-logo" aria-label="NextGen Metadata Framework (Metaflow)" data-md-component="logo">
+    <a href=".." title="FlowX" class="md-nav__button md-logo" aria-label="FlowX" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
 
     </a>
-    NextGen Metadata Framework (Metaflow)
+    FlowX
   </label>
   
   <ul class="md-nav__list" data-md-scrollfix>
@@ -3502,13 +3502,13 @@
 
 
 
-<h1 id="metaflow-egress-lakeflow-sinks">📤 Metaflow — Egress &amp; Lakeflow Sinks<a class="headerlink" href="#metaflow-egress-lakeflow-sinks" title="Permanent link">&para;</a></h1>
+<h1 id="flowx-egress-lakeflow-sinks">📤 FlowX — Egress &amp; Lakeflow Sinks<a class="headerlink" href="#flowx-egress-lakeflow-sinks" title="Permanent link">&para;</a></h1>
 <blockquote>
 <p><strong>Audience</strong>: Integration engineers and data architects building external data syndication pipelines to cloud object stores, Kafka clusters, or external partner Volumes.</p>
 </blockquote>
 <hr />
 <h2 id="1-lakeflow-native-in-graph-sink-architecture">1. Lakeflow Native In-Graph Sink Architecture<a class="headerlink" href="#1-lakeflow-native-in-graph-sink-architecture" title="Permanent link">&para;</a></h2>
-<p>In Metaflow, egress sinks are <strong>not</strong> separate post-deployment batch jobs or standalone Spark notebooks. Instead, they are registered natively inside the Lakeflow pipeline DAG using:
+<p>In FlowX, egress sinks are <strong>not</strong> separate post-deployment batch jobs or standalone Spark notebooks. Instead, they are registered natively inside the Lakeflow pipeline DAG using:
 - <code>dlt.create_sink(...)</code>: Defines the external destination target and format.
 - <code>@dlt.append_flow(...)</code>: Streams data from an upstream view or table directly into the sink with transactional checkpointing.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>┌─────────────────────────────────────────────────────────────┐
@@ -3534,7 +3534,7 @@
 </code></pre></div>
 <hr />
 <h2 id="2-sink-format-specifications">2. Sink Format Specifications<a class="headerlink" href="#2-sink-format-specifications" title="Permanent link">&para;</a></h2>
-<p>Metaflow supports 3 production sink formats configured via <code>target_config.sink_config.format</code>:</p>
+<p>FlowX supports 3 production sink formats configured via <code>target_config.sink_config.format</code>:</p>
 <h3 id="21-delta-format-format-delta">2.1 Delta Format (<code>format: "delta"</code>)<a class="headerlink" href="#21-delta-format-format-delta" title="Permanent link">&para;</a></h3>
 <p>Directly exports Delta Lake tables to an external Volume or object storage location.
 <div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="p">{</span>

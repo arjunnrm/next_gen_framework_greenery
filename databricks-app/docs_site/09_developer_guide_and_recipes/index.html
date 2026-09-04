@@ -27,7 +27,7 @@
     
     
       
-        <title>Developer guide & recipes - NextGen Metadata Framework (Metaflow)</title>
+        <title>Developer guide & recipes - FlowX</title>
       
     
     
@@ -78,7 +78,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#metaflow-developer-step-by-step-guide-recipes" class="md-skip">
+        <a href="#flowx-developer-step-by-step-guide-recipes" class="md-skip">
           Skip to content
         </a>
       
@@ -92,7 +92,7 @@
 
 <header class="md-header" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href=".." title="NextGen Metadata Framework (Metaflow)" class="md-header__button md-logo" aria-label="NextGen Metadata Framework (Metaflow)" data-md-component="logo">
+    <a href=".." title="FlowX" class="md-header__button md-logo" aria-label="FlowX" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
@@ -106,7 +106,7 @@
       <div class="md-header__ellipsis">
         <div class="md-header__topic">
           <span class="md-ellipsis">
-            NextGen Metadata Framework (Metaflow)
+            FlowX
           </span>
         </div>
         <div class="md-header__topic" data-md-component="header-topic">
@@ -411,13 +411,13 @@
 
 <nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href=".." title="NextGen Metadata Framework (Metaflow)" class="md-nav__button md-logo" aria-label="NextGen Metadata Framework (Metaflow)" data-md-component="logo">
+    <a href=".." title="FlowX" class="md-nav__button md-logo" aria-label="FlowX" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
 
     </a>
-    NextGen Metadata Framework (Metaflow)
+    FlowX
   </label>
   
   <ul class="md-nav__list" data-md-scrollfix>
@@ -1142,15 +1142,15 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#6-the-metaflow_sample-reference-suite" class="md-nav__link">
+  <a href="#6-the-flowx_sample-reference-suite" class="md-nav__link">
     <span class="md-ellipsis">
       
-        6. The metaflow_sample Reference Suite
+        6. The flowx_sample Reference Suite
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="6. The metaflow_sample Reference Suite">
+    <nav class="md-nav" aria-label="6. The flowx_sample Reference Suite">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
@@ -3954,15 +3954,15 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#6-the-metaflow_sample-reference-suite" class="md-nav__link">
+  <a href="#6-the-flowx_sample-reference-suite" class="md-nav__link">
     <span class="md-ellipsis">
       
-        6. The metaflow_sample Reference Suite
+        6. The flowx_sample Reference Suite
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="6. The metaflow_sample Reference Suite">
+    <nav class="md-nav" aria-label="6. The flowx_sample Reference Suite">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
@@ -4031,9 +4031,9 @@
 
 
 
-<h1 id="metaflow-developer-step-by-step-guide-recipes">🛠️ Metaflow — Developer Step-by-Step Guide &amp; Recipes<a class="headerlink" href="#metaflow-developer-step-by-step-guide-recipes" title="Permanent link">&para;</a></h1>
+<h1 id="flowx-developer-step-by-step-guide-recipes">🛠️ FlowX — Developer Step-by-Step Guide &amp; Recipes<a class="headerlink" href="#flowx-developer-step-by-step-guide-recipes" title="Permanent link">&para;</a></h1>
 <blockquote>
-<p><strong>Audience</strong>: Data engineers building, validating, and deploying data pipelines using the Metaflow framework.</p>
+<p><strong>Audience</strong>: Data engineers building, validating, and deploying data pipelines using the FlowX framework.</p>
 </blockquote>
 <hr />
 <h2 id="1-prerequisites-environment-setup">1. Prerequisites &amp; Environment Setup<a class="headerlink" href="#1-prerequisites-environment-setup" title="Permanent link">&para;</a></h2>
@@ -4141,23 +4141,23 @@ so every deploy produces a uniquely-named wheel.</p>
 <p>The deploy builds the wheel (Step 7 runs automatically) and uploads it to the target's
 <code>workspace.artifact_path</code> — <code>/Volumes/&lt;catalog&gt;/config/wheels/.internal/</code> as of v1.6.0, a UC
 Volume the bundle itself declares (<code>volumes.framework_wheels_volume</code> in
-<code>resources/metaflow_config_jobs/</code>), shared by all deployers of the target.</p>
+<code>resources/flowx_config_jobs/</code>), shared by all deployers of the target.</p>
 <p>As of v1.7.1 the schemas that Volume needs are declared too, in
-<code>resources/metaflow_bootstrap/</code> — so a deploy creates schema → volume in dependency order rather
-than failing on <code>Schema 'metaflow.config' does not exist</code>. The <strong>catalog is a prerequisite, not a
+<code>resources/flowx_bootstrap/</code> — so a deploy creates schema → volume in dependency order rather
+than failing on <code>Schema 'flowx.config' does not exist</code>. The <strong>catalog is a prerequisite, not a
 resource</strong>: these accounts use UC Default Storage, so a <code>catalogs.*</code> resource cannot be created
 from YAML at all (see that folder's <code>README.md</code>) — create it in the UI once per workspace.</p>
 <p>The <code>artifact_path</code> bootstrap is a <em>separate</em> mechanism and survives: that check runs during config
 resolution, before any resource is created, so a Volume declared in the same bundle cannot satisfy
 it. On a fresh workspace, deploy
 <code>--select schemas.config_schema,volumes.framework_wheels_volume</code> once with the target's
-<code>artifact_path:</code> line commented out, then uncomment it. Where <code>metaflow.config</code> already exists
-outside the bundle (<code>dev_metaflow</code>, <code>hoonartek</code>), <code>bundle deployment bind</code> it instead — see
+<code>artifact_path:</code> line commented out, then uncomment it. Where <code>flowx.config</code> already exists
+outside the bundle (<code>dev_flowx</code>, <code>hoonartek</code>), <code>bundle deployment bind</code> it instead — see
 <code>docs/onboarding/04_deploying.md</code>.</p>
 <p>DABs <strong>prunes</strong>
 superseded wheels from <code>.internal/</code> on each deploy — on a UC Volume exactly as in the workspace —
 so unique filenames protect against overwrite-in-place but not removal: <strong>never deploy while a
-pipeline or test wave is running</strong> (<code>metaflow_testing/TESTING_PLAN.md</code> §0).</p>
+pipeline or test wave is running</strong> (<code>flowx_testing/TESTING_PLAN.md</code> §0).</p>
 <p><code>resources/</code> is grouped one folder per purpose, and <code>databricks.yml</code>'s <code>include:</code> globs each group:</p>
 <table>
 <thead>
@@ -4169,22 +4169,22 @@ pipeline or test wave is running</strong> (<code>metaflow_testing/TESTING_PLAN.m
 </thead>
 <tbody>
 <tr>
-<td><code>resources/metaflow_bootstrap/</code></td>
-<td>the UC containers other resources live in: the <code>config</code>/<code>${var.schema}</code>/<code>metaflow_sample</code> schemas + the sample suite's four Volumes (<strong>not</strong> the catalog — a prerequisite)</td>
+<td><code>resources/flowx_bootstrap/</code></td>
+<td>the UC containers other resources live in: the <code>config</code>/<code>${var.schema}</code>/<code>flowx_sample</code> schemas + the sample suite's four Volumes (<strong>not</strong> the catalog — a prerequisite)</td>
 <td>7</td>
 </tr>
 <tr>
-<td><code>resources/metaflow_bi/</code></td>
+<td><code>resources/flowx_bi/</code></td>
 <td>the AI/BI control-metadata dashboard</td>
 <td>1</td>
 </tr>
 <tr>
-<td><code>resources/metaflow_app/</code></td>
+<td><code>resources/flowx_app/</code></td>
 <td>the Onboarding App + the UC Volume it stores authored specs in</td>
 <td>2</td>
 </tr>
 <tr>
-<td><code>resources/metaflow_config_jobs/</code></td>
+<td><code>resources/flowx_config_jobs/</code></td>
 <td><code>onboarding_job</code> (one spec per run) + <code>framework_config_onboarding_job</code> (a whole <code>spec_dir</code> per run)</td>
 <td>2</td>
 </tr>
@@ -4210,7 +4210,7 @@ pipeline or test wave is running</strong> (<code>metaflow_testing/TESTING_PLAN.m
 </tr>
 <tr>
 <td><code>resources/sample_jobs/</code></td>
-<td>the <code>metaflow_sample</code> reference suite — six sample jobs + six pipelines + the one common seed job</td>
+<td>the <code>flowx_sample</code> reference suite — six sample jobs + six pipelines + the one common seed job</td>
 <td>13</td>
 </tr>
 </tbody>
@@ -4221,12 +4221,12 @@ file that declares it, and a stale <code>../</code> passes <code>bundle validate
 <h4 id="deploying-only-part-of-the-bundle">Deploying only part of the bundle<a class="headerlink" href="#deploying-only-part-of-the-bundle" title="Permanent link">&para;</a></h4>
 <p>The command above deploys every resource in the bundle. To deploy the app, the two config jobs and
 the wheel and nothing else — the everyday loop — use <code>--select</code> (Databricks CLI ≥ v1.13.0):</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>databricks<span class="w"> </span>bundle<span class="w"> </span>deploy<span class="w"> </span>-t<span class="w"> </span>dev_metaflow<span class="w"> </span>-p<span class="w"> </span>dev_metaflow<span class="w">   </span>--select<span class="w"> </span>apps.metaflow_onboarding_app,jobs.onboarding_job,jobs.framework_config_onboarding_job,volumes.onboarding_specs_volume,volumes.framework_wheels_volume
+<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>databricks<span class="w"> </span>bundle<span class="w"> </span>deploy<span class="w"> </span>-t<span class="w"> </span>dev_flowx<span class="w"> </span>-p<span class="w"> </span>dev_flowx<span class="w">   </span>--select<span class="w"> </span>apps.flowx_onboarding_app,jobs.onboarding_job,jobs.framework_config_onboarding_job,volumes.onboarding_specs_volume,volumes.framework_wheels_volume
 </code></pre></div>
 <p>The wheel is still built by <code>scripts/bump_and_build.py</code> and uploaded, because the selected jobs
 declare <code>../../dist/*.whl</code> in <code>environments[].spec.dependencies</code>. Keep <code>jobs.onboarding_job</code> and
 <code>volumes.onboarding_specs_volume</code> selected even for an app-only change: the app resource resolves
-<code>${resources.jobs.onboarding_job.id}</code> into its <code>METAFLOW_ONBOARDING_JOB_ID</code> env var and binds the
+<code>${resources.jobs.onboarding_job.id}</code> into its <code>FLOWX_ONBOARDING_JOB_ID</code> env var and binds the
 spec Volume to its service principal. Keep <code>volumes.framework_wheels_volume</code> selected too: every
 target's <code>workspace.artifact_path</code> points into that Volume, so the Volume stays managed by the
 same deploy that uploads the wheel into it.</p>
@@ -4237,7 +4237,7 @@ absent from the config as one to <strong>delete from the target</strong>, so com
 next deploy. <code>--select</code> leaves unselected resources untouched; a missing <code>include</code> does not.</p>
 </blockquote>
 <p>Deploying the app is also still <strong>two steps</strong> — <code>bundle deploy</code> uploads the source but leaves the
-running app on its previous code until <code>databricks bundle run metaflow_onboarding_app</code>.</p>
+running app on its previous code until <code>databricks bundle run flowx_onboarding_app</code>.</p>
 <h3 id="step-9-onboard-spec-to-control-tables">Step 9: Onboard Spec to Control Tables<a class="headerlink" href="#step-9-onboard-spec-to-control-tables" title="Permanent link">&para;</a></h3>
 <p>Trigger the reusable onboarding job:
 <div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>databricks<span class="w"> </span>bundle<span class="w"> </span>run<span class="w"> </span>onboarding_job<span class="w"> </span><span class="se">\</span>
@@ -4388,18 +4388,18 @@ all of these, or the onboarding job will fail with a validation error:</p>
 is <code>CREATE TABLE IF NOT EXISTS</code>, which is a <strong>no-op against a table that already exists</strong> — so a
 column added to a <code>CREATE</code> statement reaches new installations only. A workspace provisioned before
 v1.5.0 therefore has none of the three columns, and onboarding a pipeline-mode flow into it fails
-with <code>UNRESOLVED_COLUMN</code> (observed live on <code>metaflow.config.reconciliation_flow_spec</code>).</p>
+with <code>UNRESOLVED_COLUMN</code> (observed live on <code>flowx.config.reconciliation_flow_spec</code>).</p>
 <p>The additive migration that fixes this is <code>ADDITIVE_CONTROL_TABLE_COLUMNS</code> + <code>get_add_column_ddl()</code>
 in <code>control_plane/ddl_definitions.py</code>, applied by <code>ensure_control_table_columns()</code> in
 <code>control_plane/schema_provisioner.py</code>, which <code>ensure_control_schema_exists</code> now calls at the end.
 Its only entrypoint is <code>notebooks/01_setup/01_setup_control_tables.py</code>.</p>
 <p>Check whether you need it:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a><span class="k">DESCRIBE</span><span class="w"> </span><span class="k">TABLE</span><span class="w"> </span><span class="n">metaflow</span><span class="p">.</span><span class="n">config</span><span class="p">.</span><span class="n">reconciliation_flow_spec</span><span class="p">;</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a><span class="k">DESCRIBE</span><span class="w"> </span><span class="k">TABLE</span><span class="w"> </span><span class="n">flowx</span><span class="p">.</span><span class="n">config</span><span class="p">.</span><span class="n">reconciliation_flow_spec</span><span class="p">;</span>
 <a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a><span class="c1">-- look for: execution_mode, publish_schema, dq_config_json</span>
 </code></pre></div>
 <p>If any of the three is absent, run the setup task once before onboarding — for example as the first
 task of the job that will do the onboarding (this is exactly why
-<code>resources/feature_tests/metaflow_test_recon_dag_job.yml</code> begins with a <code>setup_control_tables</code> task rather than
+<code>resources/feature_tests/flowx_test_recon_dag_job.yml</code> begins with a <code>setup_control_tables</code> task rather than
 treating it as boilerplate).</p>
 <p>The migration is <strong>strictly additive</strong>: it adds columns, never drops or retypes one. It is
 deliberately <em>not</em> written as <code>ADD COLUMNS IF NOT EXISTS</code> — Databricks SQL rejects that with
@@ -4432,27 +4432,27 @@ no dataset to name or to attach expectations to.</p>
 <h4 id="d3-onboard-via-the-generic-onboarding_job">D.3 — Onboard via the GENERIC <code>onboarding_job</code><a class="headerlink" href="#d3-onboard-via-the-generic-onboarding_job" title="Permanent link">&para;</a></h4>
 <blockquote>
 <p><strong>Rule: a new job must NEVER inline a <code>02_onboarding_engine.py</code> notebook_task.</strong> It delegates to
-the single parameterised entrypoint <code>resources/metaflow_config_jobs/onboarding_job.yml</code>. The ~20 pre-existing
-<code>metaflow_test_*_job.yml</code> files that each pin their own inline copy are <strong>legacy and deliberately
+the single parameterised entrypoint <code>resources/flowx_config_jobs/onboarding_job.yml</code>. The ~20 pre-existing
+<code>flowx_test_*_job.yml</code> files that each pin their own inline copy are <strong>legacy and deliberately
 left as-is</strong> (per the standing "keep legacy jobs as-is, add new orchestration alongside"
 decision recorded in <code>onboarding_job.yml</code>'s own header) — duplicating that pattern is how the
 onboarding contract drifts between callers. This convention is already applied in
-<code>resources/feature_tests/metaflow_test_recon_dag_job.yml</code>, <code>metaflow_test_dag_001_unified_job.yml</code> and
-<code>metaflow_test_104_geneva_tariffs_recon_job.yml</code>.</p>
+<code>resources/feature_tests/flowx_test_recon_dag_job.yml</code>, <code>flowx_test_dag_001_unified_job.yml</code> and
+<code>flowx_test_104_geneva_tariffs_recon_job.yml</code>.</p>
 </blockquote>
 <p>In a job resource, delegate with a <code>run_job_task</code>:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a><span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">task_key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">onboard_x</span>
 <a id="__codelineno-19-2" name="__codelineno-19-2" href="#__codelineno-19-2"></a><span class="w">          </span><span class="nt">run_job_task</span><span class="p">:</span>
 <a id="__codelineno-19-3" name="__codelineno-19-3" href="#__codelineno-19-3"></a><span class="w">            </span><span class="nt">job_id</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">${resources.jobs.onboarding_job.id}</span>
 <a id="__codelineno-19-4" name="__codelineno-19-4" href="#__codelineno-19-4"></a><span class="w">            </span><span class="nt">job_parameters</span><span class="p">:</span>
-<a id="__codelineno-19-5" name="__codelineno-19-5" href="#__codelineno-19-5"></a><span class="w">              </span><span class="nt">spec_file_path</span><span class="p">:</span><span class="w"> </span><span class="s">"${workspace.file_path}/metaflow_testing/&lt;spec&gt;.json"</span>
-<a id="__codelineno-19-6" name="__codelineno-19-6" href="#__codelineno-19-6"></a><span class="w">              </span><span class="nt">catalog</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">metaflow</span>
+<a id="__codelineno-19-5" name="__codelineno-19-5" href="#__codelineno-19-5"></a><span class="w">              </span><span class="nt">spec_file_path</span><span class="p">:</span><span class="w"> </span><span class="s">"${workspace.file_path}/flowx_testing/&lt;spec&gt;.json"</span>
+<a id="__codelineno-19-6" name="__codelineno-19-6" href="#__codelineno-19-6"></a><span class="w">              </span><span class="nt">catalog</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">flowx</span>
 <a id="__codelineno-19-7" name="__codelineno-19-7" href="#__codelineno-19-7"></a><span class="w">              </span><span class="nt">env</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">dev</span>
 <a id="__codelineno-19-8" name="__codelineno-19-8" href="#__codelineno-19-8"></a><span class="w">              </span><span class="nt">action_type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">CREATE</span>
 </code></pre></div>
 <p>Or, ad hoc from the CLI:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a>databricks<span class="w"> </span>bundle<span class="w"> </span>run<span class="w"> </span>onboarding_job<span class="w"> </span>-t<span class="w"> </span>dev<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-20-2" name="__codelineno-20-2" href="#__codelineno-20-2"></a><span class="w">  </span>--params<span class="w"> </span><span class="nv">spec_file_path</span><span class="o">=</span>/Workspace/.../my_pipeline.json,catalog<span class="o">=</span>metaflow,env<span class="o">=</span>dev,action_type<span class="o">=</span>CREATE
+<a id="__codelineno-20-2" name="__codelineno-20-2" href="#__codelineno-20-2"></a><span class="w">  </span>--params<span class="w"> </span><span class="nv">spec_file_path</span><span class="o">=</span>/Workspace/.../my_pipeline.json,catalog<span class="o">=</span>flowx,env<span class="o">=</span>dev,action_type<span class="o">=</span>CREATE
 </code></pre></div>
 <p>Re-onboarding the same <code>reconciliation_id</code> <strong>MERGEs in place</strong>; onboarding a spec that declares the
 same group with <em>different</em> flow ids adds duplicate flows instead of replacing them. If you are
@@ -4464,7 +4464,7 @@ mirroring flows that already exist in the control tables, mirror their real ids.
 <code>execution_mode: "pipeline"</code> the L3/L4/L5 datasets are registered by the pipeline update itself; a
 surviving <code>05_reconciliation_engine.py</code> task would run the comparison a <strong>second</strong> time and
 double-append into the heal target. This was a real defect found in
-<code>resources/feature_tests/metaflow_test_002_003_job.yml</code>, whose <code>run_003_reconciliation</code> task still existed after
+<code>resources/feature_tests/flowx_test_002_003_job.yml</code>, whose <code>run_003_reconciliation</code> task still existed after
 scenario 003 was flipped to pipeline mode.</p>
 <p>Observability is the opposite case: it <strong>stays</strong> a separate job task (R3) and must not be folded
 into the pipeline. See
@@ -4481,7 +4481,7 @@ datasets, and — in <code>"pipeline"</code> mode only — the L5 pulse and heal
 <a id="__codelineno-22-7" name="__codelineno-22-7" href="#__codelineno-22-7"></a>recon__&lt;rid&gt;__heal_flow               APPEND flow                           (L5, "pipeline" only)
 </code></pre></div>
 <p>This exact shape was observed live on 2026-08-31 for pipeline
-<code>metaflow_test_003_autoload_recon_pipeline</code> — see
+<code>flowx_test_003_autoload_recon_pipeline</code> — see
 <a href="../01_platform_architecture/#86-verification-status"><code>01_platform_architecture.md</code> §8.6</a>.</p>
 <hr />
 <h3 id="recipe-e-bring-up-a-new-workspace">Recipe E: Bring up a NEW workspace<a class="headerlink" href="#recipe-e-bring-up-a-new-workspace" title="Permanent link">&para;</a></h3>
@@ -4499,7 +4499,7 @@ v1.5.0. You still run <code>setup_control_tables</code> first — it is what cre
    writes into these tables and the pipeline reads from them.</li>
 <li><strong>Onboard</strong> — via the generic <code>onboarding_job</code> for a single spec, exactly as in
    <a href="#d3--onboard-via-the-generic-onboarding_job">D.3</a>. For a whole <strong>directory</strong> of specs, use its
-   sibling <code>resources/metaflow_config_jobs/framework_config_onboarding_job.yml</code>, which takes a <code>spec_dir</code> rather than a
+   sibling <code>resources/flowx_config_jobs/framework_config_onboarding_job.yml</code>, which takes a <code>spec_dir</code> rather than a
    <code>spec_file_path</code>. Do not inline <code>02_onboarding_engine.py</code> in a new job in either case.</li>
 <li><strong>Run the pipeline</strong> for the <code>dataflow_group_id</code> you just onboarded.</li>
 </ol>
@@ -4539,12 +4539,12 @@ and neither is caused by v1.5.0:</p>
   such a pipeline under the bundle, or give it its own <code>artifact_path</code>.</li>
 </ul>
 <hr />
-<h2 id="6-the-metaflow_sample-reference-suite">6. The <code>metaflow_sample</code> Reference Suite<a class="headerlink" href="#6-the-metaflow_sample-reference-suite" title="Permanent link">&para;</a></h2>
+<h2 id="6-the-flowx_sample-reference-suite">6. The <code>flowx_sample</code> Reference Suite<a class="headerlink" href="#6-the-flowx_sample-reference-suite" title="Permanent link">&para;</a></h2>
 <p>Six self-contained <strong>reference</strong> jobs (not tests) under <code>resources/sample_jobs/</code>, with their
 onboarding specs in <code>resources/sample_jobs/onboarding/</code>. Every asset they produce - landing files,
 <code>_schemas</code> checkpoints, target tables, quarantine tables, reconciliation datasets, ZIP exports,
 observability output, and a copy of each job's own spec - is isolated in the single Unity Catalog
-schema <strong><code>metaflow.metaflow_sample</code></strong>.</p>
+schema <strong><code>flowx.flowx_sample</code></strong>.</p>
 <table>
 <thead>
 <tr>
@@ -4554,34 +4554,34 @@ schema <strong><code>metaflow.metaflow_sample</code></strong>.</p>
 </thead>
 <tbody>
 <tr>
-<td><code>metaflow_sample_01_multi_scd_job</code></td>
+<td><code>flowx_sample_01_multi_scd_job</code></td>
 <td>SCD1 + SCD2 + <code>FULL_SNAPSHOT_CDC</code> ingestion (strictly additive snapshot feed) + an SCD3 transformation joining two of the group's own tables</td>
 </tr>
 <tr>
-<td><code>metaflow_sample_02_zip_ingestion_job</code></td>
+<td><code>flowx_sample_02_zip_ingestion_job</code></td>
 <td>Glob-filtered ZIP extraction (<code>source_zip_handling</code>) with quarantine DQ routing</td>
 </tr>
 <tr>
-<td><code>metaflow_sample_03_multi_table_recon_job</code></td>
+<td><code>flowx_sample_03_multi_table_recon_job</code></td>
 <td>Two concurrent loads + in-DAG reconciliation (<code>pipeline_audit_only</code>) with controlled drift, run/mismatch logging, and a Volume observability export task</td>
 </tr>
 <tr>
-<td><code>metaflow_sample_04_export_encrypt_zip_job</code></td>
+<td><code>flowx_sample_04_export_encrypt_zip_job</code></td>
 <td>Two <code>pgp_zip</code> sinks staging CSV (<code>staged_file_format</code>) into AES-256 password-protected ZIP exports via <code>post_export_archive.secret</code></td>
 </tr>
 <tr>
-<td><code>metaflow_sample_05_encrypted_ingestion_job</code></td>
+<td><code>flowx_sample_05_encrypted_ingestion_job</code></td>
 <td>Ingesting AES-256 password-protected ZIPs decrypted on the fly via <code>pre_extraction_decryption.secret_passphrase</code></td>
 </tr>
 <tr>
-<td><code>metaflow_sample_06_asn1_tap3_job</code></td>
-<td><code>source_type: "asn1"</code> decoding of BER payloads against the <strong>real GSMA TAP release 3.10</strong> module (<code>metaflow_testing/BT_Testing/TAP.310.asn1</code>), with undecodable payloads quarantined</td>
+<td><code>flowx_sample_06_asn1_tap3_job</code></td>
+<td><code>source_type: "asn1"</code> decoding of BER payloads against the <strong>real GSMA TAP release 3.10</strong> module (<code>flowx_testing/BT_Testing/TAP.310.asn1</code>), with undecodable payloads quarantined</td>
 </tr>
 </tbody>
 </table>
 <h3 id="61-seeding-is-one-job-and-it-runs-first">6.1 Seeding is one job, and it runs first<a class="headerlink" href="#61-seeding-is-one-job-and-it-runs-first" title="Permanent link">&para;</a></h3>
 <p>Fixtures are <strong>not</strong> produced by the sample jobs. They are all produced by the single
-<code>metaflow_sample_seed_job</code> (<code>resources/sample_jobs/metaflow_sample_seed_job.yml</code>), which holds one
+<code>flowx_sample_seed_job</code> (<code>resources/sample_jobs/flowx_sample_seed_job.yml</code>), which holds one
 chain of three iteration tasks per sample behind a serial <code>provision_sample_schema</code> root:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-24-1" name="__codelineno-24-1" href="#__codelineno-24-1"></a>provision_sample_schema                       (serial root)
 <a id="__codelineno-24-2" name="__codelineno-24-2" href="#__codelineno-24-2"></a>  |-- seed_sample_01_iteration1 -&gt; _iteration2 -&gt; _iteration3
@@ -4605,18 +4605,18 @@ chain of three iteration tasks per sample behind a serial <code>provision_sample
 </ul>
 <h3 id="62-run-order">6.2 Run order<a class="headerlink" href="#62-run-order" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-25-1" name="__codelineno-25-1" href="#__codelineno-25-1"></a><span class="c1"># 1. Seed everything, once. All six samples, all three iterations.</span>
-<a id="__codelineno-25-2" name="__codelineno-25-2" href="#__codelineno-25-2"></a>databricks<span class="w"> </span>bundle<span class="w"> </span>run<span class="w"> </span>metaflow_sample_seed_job<span class="w"> </span>-t<span class="w"> </span>dev_metaflow<span class="w"> </span>-p<span class="w"> </span>dev_metaflow
+<a id="__codelineno-25-2" name="__codelineno-25-2" href="#__codelineno-25-2"></a>databricks<span class="w"> </span>bundle<span class="w"> </span>run<span class="w"> </span>flowx_sample_seed_job<span class="w"> </span>-t<span class="w"> </span>dev_flowx<span class="w"> </span>-p<span class="w"> </span>dev_flowx
 <a id="__codelineno-25-3" name="__codelineno-25-3" href="#__codelineno-25-3"></a>
 <a id="__codelineno-25-4" name="__codelineno-25-4" href="#__codelineno-25-4"></a><span class="c1"># 2. Then any sample job, in any order - each is independent of the others.</span>
-<a id="__codelineno-25-5" name="__codelineno-25-5" href="#__codelineno-25-5"></a>databricks<span class="w"> </span>bundle<span class="w"> </span>run<span class="w"> </span>metaflow_sample_01_multi_scd_job<span class="w">  </span>-t<span class="w"> </span>dev_metaflow<span class="w"> </span>-p<span class="w"> </span>dev_metaflow
-<a id="__codelineno-25-6" name="__codelineno-25-6" href="#__codelineno-25-6"></a>databricks<span class="w"> </span>bundle<span class="w"> </span>run<span class="w"> </span>metaflow_sample_06_asn1_tap3_job<span class="w">  </span>-t<span class="w"> </span>dev_metaflow<span class="w"> </span>-p<span class="w"> </span>dev_metaflow
+<a id="__codelineno-25-5" name="__codelineno-25-5" href="#__codelineno-25-5"></a>databricks<span class="w"> </span>bundle<span class="w"> </span>run<span class="w"> </span>flowx_sample_01_multi_scd_job<span class="w">  </span>-t<span class="w"> </span>dev_flowx<span class="w"> </span>-p<span class="w"> </span>dev_flowx
+<a id="__codelineno-25-6" name="__codelineno-25-6" href="#__codelineno-25-6"></a>databricks<span class="w"> </span>bundle<span class="w"> </span>run<span class="w"> </span>flowx_sample_06_asn1_tap3_job<span class="w">  </span>-t<span class="w"> </span>dev_flowx<span class="w"> </span>-p<span class="w"> </span>dev_flowx
 </code></pre></div>
 <p>Each sample job is now <strong>exactly two tasks</strong> — <code>pipeline_task</code> -&gt; <code>observability_task</code>. That is the
 developer blueprint: clone a sample job and you get the pipeline run plus its telemetry export, and
 nothing else to delete.</p>
 <p>All provisioning moved into the one suite-wide seed job, whose serial root is now a three-link
 chain:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-26-1" name="__codelineno-26-1" href="#__codelineno-26-1"></a>metaflow_sample_seed_job
+<div class="highlight"><pre><span></span><code><a id="__codelineno-26-1" name="__codelineno-26-1" href="#__codelineno-26-1"></a>flowx_sample_seed_job
 <a id="__codelineno-26-2" name="__codelineno-26-2" href="#__codelineno-26-2"></a>  provision_sample_schema -&gt; setup_control_tables -&gt; onboard_all_samples
 <a id="__codelineno-26-3" name="__codelineno-26-3" href="#__codelineno-26-3"></a>                                                       |
 <a id="__codelineno-26-4" name="__codelineno-26-4" href="#__codelineno-26-4"></a>                          six parallel seed chains  &lt;--+
@@ -4633,15 +4633,15 @@ control tables. A group that was never onboarded fails in
 Onboarding is provisioning, so it happens once in the seed job rather than on every developer run.</p>
 </blockquote>
 <p>Run the seed job once, then any sample job as often as you like:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-27-1" name="__codelineno-27-1" href="#__codelineno-27-1"></a>databricks<span class="w"> </span>bundle<span class="w"> </span>run<span class="w"> </span>metaflow_sample_seed_job<span class="w">         </span>-t<span class="w"> </span>&lt;target&gt;<span class="w"> </span>-p<span class="w"> </span>&lt;profile&gt;<span class="w">   </span><span class="c1"># once</span>
-<a id="__codelineno-27-2" name="__codelineno-27-2" href="#__codelineno-27-2"></a>databricks<span class="w"> </span>bundle<span class="w"> </span>run<span class="w"> </span>metaflow_sample_01_multi_scd_job<span class="w"> </span>-t<span class="w"> </span>&lt;target&gt;<span class="w"> </span>-p<span class="w"> </span>&lt;profile&gt;
+<div class="highlight"><pre><span></span><code><a id="__codelineno-27-1" name="__codelineno-27-1" href="#__codelineno-27-1"></a>databricks<span class="w"> </span>bundle<span class="w"> </span>run<span class="w"> </span>flowx_sample_seed_job<span class="w">         </span>-t<span class="w"> </span>&lt;target&gt;<span class="w"> </span>-p<span class="w"> </span>&lt;profile&gt;<span class="w">   </span><span class="c1"># once</span>
+<a id="__codelineno-27-2" name="__codelineno-27-2" href="#__codelineno-27-2"></a>databricks<span class="w"> </span>bundle<span class="w"> </span>run<span class="w"> </span>flowx_sample_01_multi_scd_job<span class="w"> </span>-t<span class="w"> </span>&lt;target&gt;<span class="w"> </span>-p<span class="w"> </span>&lt;profile&gt;
 </code></pre></div>
 <p>Pass <code>action_type=UPDATE</code> to the seed job to re-onboard specs that changed after first onboarding.</p>
 <h3 id="64-sample-06-the-real-gsma-tap3-module-and-why-the-pdu-is-notification">6.4 Sample 06: the real GSMA TAP3 module, and why the PDU is <code>Notification</code><a class="headerlink" href="#64-sample-06-the-real-gsma-tap3-module-and-why-the-pdu-is-notification" title="Permanent link">&para;</a></h3>
 <p>Sample 06 is the suite's ASN.1 case, and it deliberately uses the <strong>genuine</strong> GSMA TAP release 3.10
-specification already shipped in this repo at <code>metaflow_testing/BT_Testing/TAP.310.asn1</code> - 1597
+specification already shipped in this repo at <code>flowx_testing/BT_Testing/TAP.310.asn1</code> - 1597
 lines, 375 types - rather than a hand-written toy module.
-(<code>metaflow_testing/013_ing_004_asn1_decode.json</code> still uses the 5-field
+(<code>flowx_testing/013_ing_004_asn1_decode.json</code> still uses the 5-field
 <code>sample_data/asn1_schema/gsm_cdr.asn</code>; that exists only for TC-ING-004.)</p>
 <p>The PDU is <code>Notification</code>, not the module's own top-level <code>DataInterChange</code>, and the reason is a
 hard framework constraint rather than a preference:</p>
@@ -4665,17 +4665,17 @@ one the spec's <code>asn1_schema_path</code> points the pipeline at. It also lan
 <code>_asn1_decode_error</code> rather than aborting the micro-batch, and the spec's <code>asn1_decode_ok</code>
 quarantine rule routes them aside.</p>
 <p>Expected end state after the seed job and Sample 06 have both run: <strong>18 rows</strong> in
-<code>metaflow.metaflow_sample.sample_tap3_notification_raw</code> (<code>fileSequenceNumber</code> <code>00001</code>-<code>00018</code>) and
+<code>flowx.flowx_sample.sample_tap3_notification_raw</code> (<code>fileSequenceNumber</code> <code>00001</code>-<code>00018</code>) and
 <strong>6 rows</strong> in <code>sample_tap3_notification_raw_quarantine</code>, each with a populated <code>_asn1_decode_error</code>
 and a NULL <code>fileSequenceNumber</code> - nothing decoded, so the quarantine table's <code>record_id_column</code> has
 nothing to carry.</p>
 <h3 id="65-the-one-manual-prerequisite">6.5 The one manual prerequisite<a class="headerlink" href="#65-the-one-manual-prerequisite" title="Permanent link">&para;</a></h3>
-<p>Samples 04 and 05 share a single Unity Catalog secret, <code>metaflow.metaflow_sample.sample_zip_passkey</code>
+<p>Samples 04 and 05 share a single Unity Catalog secret, <code>flowx.flowx_sample.sample_zip_passkey</code>
 - Sample 04's export side uses it as the ZIP password, Sample 05's seed uses the same value to
 <em>build</em> the encrypted archives its pipeline then decrypts. It must exist before the seed job's
 Sample 05 chain runs; both seeds fail fast with a clear message when it is unresolvable, and the
 other four chains are unaffected. Provisioning it is a one-time, admin-audited step external to the
-bundle - see <code>metaflow_testing/README.md</code>'s <em>Sample reference suite</em> section. Samples 01, 02, 03 and
+bundle - see <code>flowx_testing/README.md</code>'s <em>Sample reference suite</em> section. Samples 01, 02, 03 and
 06 have <strong>no</strong> manual prerequisite of any kind.</p>
 
 

@@ -3,7 +3,7 @@ from fastapi.testclient import TestClient
 import pytest
 from server.app import app
 
-os.environ["METAFLOW_FAKE_DBX"] = "1"
+os.environ["FLOWX_FAKE_DBX"] = "1"
 client = TestClient(app)
 
 
@@ -29,9 +29,9 @@ def test_action_run_and_status():
                     "dataflow_id": "df_1",
                     "source_type": "autoloader",
                     "source_system": "crm_api",
-                    "source_config.path": "/Volumes/metaflow/landing/incoming/",
+                    "source_config.path": "/Volumes/flowx/landing/incoming/",
                     "source_config.format": "csv",
-                    "source_config.schema_location": "/Volumes/metaflow/landing/_schemas/crm/",
+                    "source_config.schema_location": "/Volumes/flowx/landing/_schemas/crm/",
                     "target_catalog": "poc",
                     "target_schema": "dev",
                     "target_table": "raw",

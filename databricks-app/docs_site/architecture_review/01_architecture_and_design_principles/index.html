@@ -27,7 +27,7 @@
     
     
       
-        <title>Architecture & design principles - NextGen Metadata Framework (Metaflow)</title>
+        <title>Architecture & design principles - FlowX</title>
       
     
     
@@ -78,7 +78,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#metaflow-architecture-review-pillar-1-architecture-design-principles" class="md-skip">
+        <a href="#flowx-architecture-review-pillar-1-architecture-design-principles" class="md-skip">
           Skip to content
         </a>
       
@@ -92,7 +92,7 @@
 
 <header class="md-header" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href="../.." title="NextGen Metadata Framework (Metaflow)" class="md-header__button md-logo" aria-label="NextGen Metadata Framework (Metaflow)" data-md-component="logo">
+    <a href="../.." title="FlowX" class="md-header__button md-logo" aria-label="FlowX" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
@@ -106,7 +106,7 @@
       <div class="md-header__ellipsis">
         <div class="md-header__topic">
           <span class="md-ellipsis">
-            NextGen Metadata Framework (Metaflow)
+            FlowX
           </span>
         </div>
         <div class="md-header__topic" data-md-component="header-topic">
@@ -413,13 +413,13 @@
 
 <nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href="../.." title="NextGen Metadata Framework (Metaflow)" class="md-nav__button md-logo" aria-label="NextGen Metadata Framework (Metaflow)" data-md-component="logo">
+    <a href="../.." title="FlowX" class="md-nav__button md-logo" aria-label="FlowX" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
 
     </a>
-    NextGen Metadata Framework (Metaflow)
+    FlowX
   </label>
   
   <ul class="md-nav__list" data-md-scrollfix>
@@ -3654,15 +3654,15 @@
 
 
 
-<h1 id="metaflow-architecture-review-pillar-1-architecture-design-principles">MetaFlow Architecture Review — Pillar 1: Architecture &amp; Design Principles<a class="headerlink" href="#metaflow-architecture-review-pillar-1-architecture-design-principles" title="Permanent link">&para;</a></h1>
+<h1 id="flowx-architecture-review-pillar-1-architecture-design-principles">FlowX Architecture Review — Pillar 1: Architecture &amp; Design Principles<a class="headerlink" href="#flowx-architecture-review-pillar-1-architecture-design-principles" title="Permanent link">&para;</a></h1>
 <p><strong>Evaluation Area:</strong> Modular Architecture, Medallion Alignment, Dynamic DAG Generation, Control Plane &amp; Governance Integration<br />
 <strong>Score:</strong> 8.5 / 10<br />
 <strong>Status:</strong> Highly Robust with Minor Orchestration Couplings</p>
 <hr />
 <h2 id="1-architectural-overview-design-evaluation">1. Architectural Overview &amp; Design Evaluation<a class="headerlink" href="#1-architectural-overview-design-evaluation" title="Permanent link">&para;</a></h2>
-<p>MetaFlow establishes an extensible, metadata-driven architecture for orchestrating streaming and batch data pipelines on Databricks. It decouples pipeline definition from procedural code by maintaining declarative flow specifications in control tables, dynamically compiling these specifications into a <strong>Lakeflow Declarative Pipelines</strong> DAG at runtime.</p>
+<p>FlowX establishes an extensible, metadata-driven architecture for orchestrating streaming and batch data pipelines on Databricks. It decouples pipeline definition from procedural code by maintaining declarative flow specifications in control tables, dynamically compiling these specifications into a <strong>Lakeflow Declarative Pipelines</strong> DAG at runtime.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>│                                METAFLOW CONTROL PLANE TO EXECUTION DAG                           │
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>│                                FLOWX CONTROL PLANE TO EXECUTION DAG                           │
 <a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>└──────────────────────────────────────────────────────────────────────────────────────────────────┘
 <a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>   [Onboarding Spec (YAML/JSON)]
 <a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>               │
@@ -3731,7 +3731,7 @@
 <li><strong>Severity:</strong> Low</li>
 <li><strong>Location:</strong> <code>control_plane/schema_provisioner.py</code> and across all engine notebooks.</li>
 <li><strong>Description:</strong> The control plane strictly hardcodes the control schema name as <code>config</code> (<code>f"{catalog}.config"</code>).</li>
-<li><strong>Architectural Risk:</strong> Prevents enterprises with strict schema naming conventions (e.g., <code>&lt;catalog&gt;.metadata</code>, <code>&lt;catalog&gt;.control_plane</code>, or centralized <code>&lt;env&gt;_metaflow_control.main</code>) from deploying the framework without modifying source code.</li>
+<li><strong>Architectural Risk:</strong> Prevents enterprises with strict schema naming conventions (e.g., <code>&lt;catalog&gt;.metadata</code>, <code>&lt;catalog&gt;.control_plane</code>, or centralized <code>&lt;env&gt;_flowx_control.main</code>) from deploying the framework without modifying source code.</li>
 </ul>
 <hr />
 <h2 id="4-architectural-recommendations-target-state">4. Architectural Recommendations &amp; Target State<a class="headerlink" href="#4-architectural-recommendations-target-state" title="Permanent link">&para;</a></h2>

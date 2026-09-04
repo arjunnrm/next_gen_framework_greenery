@@ -27,7 +27,7 @@
     
     
       
-        <title>Security, governance & compliance - NextGen Metadata Framework (Metaflow)</title>
+        <title>Security, governance & compliance - FlowX</title>
       
     
     
@@ -78,7 +78,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#metaflow-architecture-review-pillar-4-security-access-control-governance" class="md-skip">
+        <a href="#flowx-architecture-review-pillar-4-security-access-control-governance" class="md-skip">
           Skip to content
         </a>
       
@@ -92,7 +92,7 @@
 
 <header class="md-header" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href="../.." title="NextGen Metadata Framework (Metaflow)" class="md-header__button md-logo" aria-label="NextGen Metadata Framework (Metaflow)" data-md-component="logo">
+    <a href="../.." title="FlowX" class="md-header__button md-logo" aria-label="FlowX" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
@@ -106,7 +106,7 @@
       <div class="md-header__ellipsis">
         <div class="md-header__topic">
           <span class="md-ellipsis">
-            NextGen Metadata Framework (Metaflow)
+            FlowX
           </span>
         </div>
         <div class="md-header__topic" data-md-component="header-topic">
@@ -413,13 +413,13 @@
 
 <nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href="../.." title="NextGen Metadata Framework (Metaflow)" class="md-nav__button md-logo" aria-label="NextGen Metadata Framework (Metaflow)" data-md-component="logo">
+    <a href="../.." title="FlowX" class="md-nav__button md-logo" aria-label="FlowX" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
 
     </a>
-    NextGen Metadata Framework (Metaflow)
+    FlowX
   </label>
   
   <ul class="md-nav__list" data-md-scrollfix>
@@ -3498,13 +3498,13 @@
 
 
 
-<h1 id="metaflow-architecture-review-pillar-4-security-access-control-governance">MetaFlow Architecture Review — Pillar 4: Security, Access Control &amp; Governance<a class="headerlink" href="#metaflow-architecture-review-pillar-4-security-access-control-governance" title="Permanent link">&para;</a></h1>
+<h1 id="flowx-architecture-review-pillar-4-security-access-control-governance">FlowX Architecture Review — Pillar 4: Security, Access Control &amp; Governance<a class="headerlink" href="#flowx-architecture-review-pillar-4-security-access-control-governance" title="Permanent link">&para;</a></h1>
 <p><strong>Evaluation Area:</strong> Unity Catalog 3-Level Namespace, Secrets Management, Credential Protection, ABAC / RBAC Governance, and Cryptography<br />
 <strong>Score:</strong> 7.5 / 10<br />
 <strong>Status:</strong> Solid Unity Catalog Governance with Critical Secret Plan Exposure Risk</p>
 <hr />
 <h2 id="1-executive-security-evaluation">1. Executive Security Evaluation<a class="headerlink" href="#1-executive-security-evaluation" title="Permanent link">&para;</a></h2>
-<p>MetaFlow is designed around <strong>Unity Catalog</strong> governance principles. It strictly enforces the 3-level namespace (<code>catalog.schema.table</code>), provides comprehensive identifier sanitization against SQL injection, implements an automated ABAC metadata tagging engine, and supports both AES column encryption and PGP asymmetric archive encryption.</p>
+<p>FlowX is designed around <strong>Unity Catalog</strong> governance principles. It strictly enforces the 3-level namespace (<code>catalog.schema.table</code>), provides comprehensive identifier sanitization against SQL injection, implements an automated ABAC metadata tagging engine, and supports both AES column encryption and PGP asymmetric archive encryption.</p>
 <p>However, a critical security vulnerability exists in the column encryption module: <strong>plaintext cryptographic secret keys are embedded directly into Spark DataFrame logical plans via <code>F.lit()</code></strong>, making keys readable in query plan dumps, the Spark UI, and cluster event logs.</p>
 <hr />
 <h2 id="2-deep-dive-security-compliance-findings">2. Deep-Dive Security &amp; Compliance Findings<a class="headerlink" href="#2-deep-dive-security-compliance-findings" title="Permanent link">&para;</a></h2>
@@ -3533,7 +3533,7 @@
 <a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="c1"># AFTER: Secret Passed via Redacted Session Conf or Dynamic Secret Function</span>
 <a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="c1"># =========================================================================</span>
 <a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="c1"># Option A: Inject into session-scoped conf with secret redaction</span>
-<a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a><span class="n">session_conf_key</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"spark.metaflow.secret.</span><span class="si">{</span><span class="n">scope</span><span class="si">}</span><span class="s2">.</span><span class="si">{</span><span class="n">secret_key</span><span class="si">}</span><span class="s2">"</span>
+<a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a><span class="n">session_conf_key</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"spark.flowx.secret.</span><span class="si">{</span><span class="n">scope</span><span class="si">}</span><span class="s2">.</span><span class="si">{</span><span class="n">secret_key</span><span class="si">}</span><span class="s2">"</span>
 <a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a><span class="n">spark</span><span class="o">.</span><span class="n">conf</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">session_conf_key</span><span class="p">,</span> <span class="n">resolved_key</span><span class="p">)</span>
 <a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a>
 <a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a><span class="c1"># Reference key dynamically from session conf in Catalyst expression</span>

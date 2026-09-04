@@ -1,15 +1,16 @@
 import React from "react";
 import { sx } from "./sx.js";
 
-// Faithful JSX port of the MetaFlow Spec Builder v4 reference. Every style
+// Faithful JSX port of the FlowX Spec Builder v4 reference. Every style
 // literal is the mockup's string, unchanged.
 export default function Shell({ V }) {
   return (
     <div style={sx("min-height:100vh;background:var(--bg);color:var(--tx);font:400 14px Inter,system-ui,sans-serif")}>
 
       <header style={sx("position:sticky;top:0;z-index:20;display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;padding:9px 18px;min-height:58px;box-sizing:border-box;min-width:0;background:var(--head);border-bottom:1px solid var(--bd)")}>
-        <div style={sx("display:flex;align-items:baseline;gap:8px;flex:none;min-width:0")}>
-          <span style={sx("font:700 15px Inter;letter-spacing:-.01em;white-space:nowrap")}>MetaFlow</span>
+        <div style={sx("display:flex;align-items:center;gap:8px;flex:none;min-width:0")}>
+          <img src="/logo.png" alt="hoonartek" className="brand-logo" />
+          <span style={sx("font:700 15px Inter;letter-spacing:-.01em;white-space:nowrap")}>FlowX</span>
           <span style={sx("font:500 12px Inter;color:var(--dim2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis")}>Spec Builder</span>
         </div>
         <div style={sx("display:flex;align-items:center;gap:4px;flex:none;padding:3px;background:var(--seg);border:1px solid var(--bd);border-radius:8px")}>
@@ -706,7 +707,7 @@ export default function Shell({ V }) {
                   <input
                     value={V.paramCatalog}
                     onChange={V.onParamCatalog}
-                    placeholder="metaflow"
+                    placeholder="flowx"
                     style={sx("width:100%;box-sizing:border-box;height:34px;padding:0 10px;background:var(--input);border:1px solid var(--bdi);border-radius:7px;color:var(--tx);font:500 12px JetBrains Mono,monospace")}
                   />
                   <div style={sx("font:400 10px Inter;color:var(--dim3);margin-top:4px")}>Target Unity Catalog name</div>

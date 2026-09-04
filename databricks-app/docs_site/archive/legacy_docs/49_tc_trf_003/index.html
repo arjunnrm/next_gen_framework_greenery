@@ -23,7 +23,7 @@
     
     
       
-        <title>Test Pipeline: TC-TRF-003 — In-DAG Column Decryption for Business Computations - NextGen Metadata Framework (Metaflow)</title>
+        <title>Test Pipeline: TC-TRF-003 — In-DAG Column Decryption for Business Computations - FlowX</title>
       
     
     
@@ -88,7 +88,7 @@
 
 <header class="md-header" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href="../../.." title="NextGen Metadata Framework (Metaflow)" class="md-header__button md-logo" aria-label="NextGen Metadata Framework (Metaflow)" data-md-component="logo">
+    <a href="../../.." title="FlowX" class="md-header__button md-logo" aria-label="FlowX" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
@@ -102,7 +102,7 @@
       <div class="md-header__ellipsis">
         <div class="md-header__topic">
           <span class="md-ellipsis">
-            NextGen Metadata Framework (Metaflow)
+            FlowX
           </span>
         </div>
         <div class="md-header__topic" data-md-component="header-topic">
@@ -405,13 +405,13 @@
 
 <nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href="../../.." title="NextGen Metadata Framework (Metaflow)" class="md-nav__button md-logo" aria-label="NextGen Metadata Framework (Metaflow)" data-md-component="logo">
+    <a href="../../.." title="FlowX" class="md-nav__button md-logo" aria-label="FlowX" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
 
     </a>
-    NextGen Metadata Framework (Metaflow)
+    FlowX
   </label>
   
   <ul class="md-nav__list" data-md-scrollfix>
@@ -3396,8 +3396,8 @@
 
 <h1 id="test-pipeline-tc-trf-003-in-dag-column-decryption-for-business-computations">Test Pipeline: TC-TRF-003 — In-DAG Column Decryption for Business Computations<a class="headerlink" href="#test-pipeline-tc-trf-003-in-dag-column-decryption-for-business-computations" title="Permanent link">&para;</a></h1>
 <blockquote>
-<p>See also: <a href="README.md">Documentation index</a>, <a href="../metaflow_testing/TESTING_PLAN.md">metaflow_testing/TESTING_PLAN.md</a>
-(Module 8, TC-TRF-003), <a href="../metaflow_testing/TESTING_STATUS.md">metaflow_testing/TESTING_STATUS.md</a>,
+<p>See also: <a href="README.md">Documentation index</a>, <a href="../flowx_testing/TESTING_PLAN.md">flowx_testing/TESTING_PLAN.md</a>
+(Module 8, TC-TRF-003), <a href="../flowx_testing/TESTING_STATUS.md">flowx_testing/TESTING_STATUS.md</a>,
 <a href="../16_encryption_and_secrets/">16_encryption_and_secrets.md</a> (the full AES column
 encryption/decryption design), <a href="../01_control_metadata_schema/#4-target_config-ingestion-and-transformation-flows">01_control_metadata_schema.md §4/§7</a>
 and <a href="../17_onboarding_template_reference/#33-decrypted_columns-source_inputs-only">17_onboarding_template_reference.md §3.3/§4.3</a>
@@ -3442,9 +3442,9 @@ needed to catch).</p>
 </ul>
 <h2 id="inputs">Inputs<a class="headerlink" href="#inputs" title="Permanent link">&para;</a></h2>
 <ul>
-<li><code>metaflow_testing/028_trf_003_decrypt_transform.json</code> — the onboarding spec (one ingestion
+<li><code>flowx_testing/028_trf_003_decrypt_transform.json</code> — the onboarding spec (one ingestion
   flow, one transformation flow, no reconciliation flows).</li>
-<li><code>sample_data/metaflow_testing/health_usecase/patient_visits_batch1.csv</code> — 5-row plaintext
+<li><code>sample_data/flowx_testing/health_usecase/patient_visits_batch1.csv</code> — 5-row plaintext
   fixture (<code>visit_id</code>, <code>patient_id</code>, <code>patient_name</code>, <code>visit_date</code>, <code>department</code>,
   <code>billing_amount</code>), landed as-is (no ZIP/PGP handling — the encryption in this scenario is the
   framework's own <code>encrypted_columns</code>, not a landing-file-level concern).</li>
@@ -3464,7 +3464,7 @@ needed to catch).</p>
   (<code>billing_amount</code>), holding the decrypted-then-summed value.</li>
 </ul>
 <h2 id="configuration">Configuration<a class="headerlink" href="#configuration" title="Permanent link">&para;</a></h2>
-<p><code>metaflow_testing/028_trf_003_decrypt_transform.json</code>'s ingestion-side encryption:</p>
+<p><code>flowx_testing/028_trf_003_decrypt_transform.json</code>'s ingestion-side encryption:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nt">"target_config"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
 <a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="w">  </span><span class="nt">"cdc_load_strategy"</span><span class="p">:</span><span class="w"> </span><span class="s2">"APPEND"</span><span class="p">,</span>
 <a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="w">  </span><span class="nt">"storage_format"</span><span class="p">:</span><span class="w"> </span><span class="s2">"delta"</span><span class="p">,</span>
@@ -3508,7 +3508,7 @@ provisioning for this project's other encryption scenarios — no new key is cre
 <div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>databricks<span class="w"> </span>secrets<span class="w"> </span>create-scope<span class="w"> </span>security<span class="w">   </span><span class="c1"># no-op if it already exists from an earlier scenario</span>
 <a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>databricks<span class="w"> </span>secrets<span class="w"> </span>put-secret<span class="w"> </span>security<span class="w"> </span>pii_encryption_key<span class="w"> </span>--string-value<span class="w"> </span><span class="s2">"</span><span class="k">$(</span>openssl<span class="w"> </span>rand<span class="w"> </span>-hex<span class="w"> </span><span class="m">16</span><span class="k">)</span><span class="s2">"</span>
 </code></pre></div>
-<p>This must run <strong>before</strong> <code>metaflow_test_trf_003_decrypt_transform_job</code>'s <code>run_pipeline_task</code> —
+<p>This must run <strong>before</strong> <code>flowx_test_trf_003_decrypt_transform_job</code>'s <code>run_pipeline_task</code> —
 both the ingestion flow's encryption step and the transformation flow's decryption step fail
 with <code>CryptoError</code>/<code>SecretResolutionError</code> until it does. If this secret was already provisioned
 for an earlier scenario in this same workspace (e.g. <code>TC-SEC-001</code>, or the crypto exhaustive
@@ -3516,7 +3516,7 @@ suite), this scenario reuses it as-is and needs no separate provisioning step at
 <h2 id="main-execution-flow">Main execution flow<a class="headerlink" href="#main-execution-flow" title="Permanent link">&para;</a></h2>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>databricks<span class="w"> </span>bundle<span class="w"> </span>deploy<span class="w"> </span>--target<span class="w"> </span>dev
 <a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>databricks<span class="w"> </span>secrets<span class="w"> </span>put-secret<span class="w"> </span>security<span class="w"> </span>pii_encryption_key<span class="w"> </span>--string-value<span class="w"> </span><span class="s2">"</span><span class="k">$(</span>openssl<span class="w"> </span>rand<span class="w"> </span>-hex<span class="w"> </span><span class="m">16</span><span class="k">)</span><span class="s2">"</span><span class="w">   </span><span class="c1"># skip if already provisioned</span>
-<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>databricks<span class="w"> </span>bundle<span class="w"> </span>run<span class="w"> </span>metaflow_test_trf_003_decrypt_transform_job<span class="w"> </span>--target<span class="w"> </span>dev
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>databricks<span class="w"> </span>bundle<span class="w"> </span>run<span class="w"> </span>flowx_test_trf_003_decrypt_transform_job<span class="w"> </span>--target<span class="w"> </span>dev
 </code></pre></div>
 <p>Task chain: <code>setup_control_tables → seed_trf_003_decrypt_transform_data → onboard_trf_003 →
 run_pipeline_task</code>.</p>
@@ -3537,7 +3537,7 @@ actually encrypted, <code>aes_decrypt</code> would either raise or return garbag
 correct plaintext — this scenario's exact-sum assertion is specifically designed to catch that
 class of silent corruption, not just "is it no longer plaintext."</p>
 <p><strong>This pass's actual verification status</strong>: see
-<a href="../metaflow_testing/TESTING_STATUS.md"><code>metaflow_testing/TESTING_STATUS.md</code></a> for whether this
+<a href="../flowx_testing/TESTING_STATUS.md"><code>flowx_testing/TESTING_STATUS.md</code></a> for whether this
 job was actually run against the live workspace and what the real result was — this document
 describes what <em>should</em> happen structurally; the status tracker records what <em>did</em> happen.</p>
 <h2 id="known-gaps-judgment-calls">Known gaps / judgment calls<a class="headerlink" href="#known-gaps-judgment-calls" title="Permanent link">&para;</a></h2>

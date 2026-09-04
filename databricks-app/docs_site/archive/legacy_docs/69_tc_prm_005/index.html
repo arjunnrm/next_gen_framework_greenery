@@ -23,7 +23,7 @@
     
     
       
-        <title>Test Pipeline: TC-PRM-005 — Parameterized Egress Sink Paths & Export File Naming - NextGen Metadata Framework (Metaflow)</title>
+        <title>Test Pipeline: TC-PRM-005 — Parameterized Egress Sink Paths & Export File Naming - FlowX</title>
       
     
     
@@ -88,7 +88,7 @@
 
 <header class="md-header" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href="../../.." title="NextGen Metadata Framework (Metaflow)" class="md-header__button md-logo" aria-label="NextGen Metadata Framework (Metaflow)" data-md-component="logo">
+    <a href="../../.." title="FlowX" class="md-header__button md-logo" aria-label="FlowX" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
@@ -102,7 +102,7 @@
       <div class="md-header__ellipsis">
         <div class="md-header__topic">
           <span class="md-ellipsis">
-            NextGen Metadata Framework (Metaflow)
+            FlowX
           </span>
         </div>
         <div class="md-header__topic" data-md-component="header-topic">
@@ -405,13 +405,13 @@
 
 <nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href="../../.." title="NextGen Metadata Framework (Metaflow)" class="md-nav__button md-logo" aria-label="NextGen Metadata Framework (Metaflow)" data-md-component="logo">
+    <a href="../../.." title="FlowX" class="md-nav__button md-logo" aria-label="FlowX" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
 
     </a>
-    NextGen Metadata Framework (Metaflow)
+    FlowX
   </label>
   
   <ul class="md-nav__list" data-md-scrollfix>
@@ -3379,8 +3379,8 @@
 
 <h1 id="test-pipeline-tc-prm-005-parameterized-egress-sink-paths-export-file-naming">Test Pipeline: TC-PRM-005 — Parameterized Egress Sink Paths &amp; Export File Naming<a class="headerlink" href="#test-pipeline-tc-prm-005-parameterized-egress-sink-paths-export-file-naming" title="Permanent link">&para;</a></h1>
 <blockquote>
-<p>See also: <a href="README.md">Documentation index</a>, <a href="../metaflow_testing/TESTING_PLAN.md">metaflow_testing/TESTING_PLAN.md</a>
-(Module 11, TC-PRM-005), <a href="../metaflow_testing/TESTING_STATUS.md">metaflow_testing/TESTING_STATUS.md</a>,
+<p>See also: <a href="README.md">Documentation index</a>, <a href="../flowx_testing/TESTING_PLAN.md">flowx_testing/TESTING_PLAN.md</a>
+(Module 11, TC-PRM-005), <a href="../flowx_testing/TESTING_STATUS.md">flowx_testing/TESTING_STATUS.md</a>,
 <a href="../17_onboarding_template_reference/">17_onboarding_template_reference.md §3.4</a> (the <code>${param}</code>
 substitution mechanics this scenario exercises), <a href="../23_lakeflow_sinks/">23_lakeflow_sinks.md</a>
 (full <code>sink_config</code>/<code>external_sink</code> mechanics), <a href="../63_tc_snk_003/">63_tc_snk_003.md</a> (the sibling
@@ -3393,7 +3393,7 @@ placeholders genuinely resolve).</p>
 <p>Prove <code>transformation/parameters.py::substitute_path_parameters</code> — this session's new
 <code>${param}</code>-in-path-fields feature — on a <strong>sink</strong> target's <code>target_config.sink_config</code>, not just
 an ingestion source's <code>source_config</code> (that's TC-PRM-001; see
-<code>metaflow_testing/045_prm_001_path_param.json</code> and <a href="../67_tc_prm_001/">67_tc_prm_001.md</a>). A small
+<code>flowx_testing/045_prm_001_path_param.json</code> and <a href="../67_tc_prm_001/">67_tc_prm_001.md</a>). A small
 ACME Corp export-staging batch is
 Auto Loader-ingested and, inside the <em>same</em> Lakeflow Declarative Pipeline update, additionally
 exported as a ZIP archive via a genuine <code>dlt.create_sink(format="pgp_zip")</code> + <code>@dlt.append_flow</code>.
@@ -3416,7 +3416,7 @@ separate in this build, contrary to <code>TESTING_PLAN.md</code>'s own drafted r
   publishes a genuine Lakeflow Streaming Table, which <code>target_type: "external_sink"</code> requires of
   the main target before it will attach the export <code>@dlt.append_flow</code> — every CDC strategy except
   <code>SCD3</code> satisfies this).</li>
-<li><code>target_type: "external_sink"</code> — <code>metaflow.silver_exports.acme_export_staging</code> is materialized as
+<li><code>target_type: "external_sink"</code> — <code>flowx.silver_exports.acme_export_staging</code> is materialized as
   a real, governed, queryable Delta table exactly like any other target type, <strong>plus</strong> a second
   <code>@dlt.append_flow</code> reads that same table into a <code>dlt.create_sink(format="pgp_zip", ...)</code>.</li>
 <li><code>sink_config.path</code> (staging) and <code>sink_config.post_export_archive.output_zip_path</code> (final egress
@@ -3424,10 +3424,10 @@ separate in this build, contrary to <code>TESTING_PLAN.md</code>'s own drafted r
   spec's own <code>pipeline_parameters</code> by <code>substitute_path_parameters</code>, applied to the raw
   <code>target_config_json</code> text before <code>json.loads(...)</code>, so both fields resolve in a single pass:</li>
 <li><code>sink_config.path</code>: <code>"/Volumes/{{catalog}}/egress/${client_code}/_staging/${export_tier}/"</code> →
-    <code>/Volumes/metaflow/egress/ACME_CORP/_staging/GOLD/</code></li>
+    <code>/Volumes/flowx/egress/ACME_CORP/_staging/GOLD/</code></li>
 <li><code>post_export_archive.output_zip_path</code>:
     <code>"/Volumes/{{catalog}}/egress/${client_code}/output/"</code> →
-    <code>/Volumes/metaflow/egress/ACME_CORP/output/</code></li>
+    <code>/Volumes/flowx/egress/ACME_CORP/output/</code></li>
 <li>No <code>post_export_archive.pgp_encryption</code> block — unlike TC-SNK-003, this scenario exports a plain
   (unencrypted) <code>.zip</code>, keeping the test focused on path/filename parameterization rather than
   encryption.</li>
@@ -3437,9 +3437,9 @@ separate in this build, contrary to <code>TESTING_PLAN.md</code>'s own drafted r
 </ul>
 <h2 id="inputs">Inputs<a class="headerlink" href="#inputs" title="Permanent link">&para;</a></h2>
 <ul>
-<li><code>metaflow_testing/047_prm_005_sink_param.json</code> — the onboarding spec (one ingestion flow, no
+<li><code>flowx_testing/047_prm_005_sink_param.json</code> — the onboarding spec (one ingestion flow, no
   transformation/reconciliation flows).</li>
-<li><code>sample_data/metaflow_testing/acme_export_usecase/acme_export_staging.csv</code> — 5-row plaintext
+<li><code>sample_data/flowx_testing/acme_export_usecase/acme_export_staging.csv</code> — 5-row plaintext
   fixture (<code>export_id</code>, <code>client_code</code>, <code>export_tier</code>, <code>account_ref</code>, <code>amount</code>, <code>export_date</code>),
   landed as-is. Its own <code>client_code</code>/<code>export_tier</code> <em>column values</em> happen to match the spec's
   <code>pipeline_parameters</code> (both <code>ACME_CORP</code>/<code>GOLD</code>) for a coherent scenario narrative, but this is
@@ -3448,7 +3448,7 @@ separate in this build, contrary to <code>TESTING_PLAN.md</code>'s own drafted r
   <code>acme_export_staging.csv</code> into the input landing Volume (<code>exports_ingest.landing</code>) and
   provisions the per-client sink output Volume (<code>egress.ACME_CORP</code>) — a sink's destination Volume
   is never auto-created by the pipeline itself, unlike the pipeline's own default <code>catalog</code>/
-  <code>schema</code> (here <code>metaflow.silver_exports</code>).</li>
+  <code>schema</code> (here <code>flowx.silver_exports</code>).</li>
 </ul>
 <h2 id="outputs">Outputs<a class="headerlink" href="#outputs" title="Permanent link">&para;</a></h2>
 <ul>
@@ -3464,7 +3464,7 @@ separate in this build, contrary to <code>TESTING_PLAN.md</code>'s own drafted r
   target type, which registers no table at all — see TC-SNK-002).</li>
 </ul>
 <h2 id="configuration">Configuration<a class="headerlink" href="#configuration" title="Permanent link">&para;</a></h2>
-<p><code>metaflow_testing/047_prm_005_sink_param.json</code>'s one ingestion flow's <code>target_config</code>:</p>
+<p><code>flowx_testing/047_prm_005_sink_param.json</code>'s one ingestion flow's <code>target_config</code>:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nt">"target_config"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
 <a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="w">  </span><span class="nt">"cdc_load_strategy"</span><span class="p">:</span><span class="w"> </span><span class="s2">"APPEND"</span><span class="p">,</span>
 <a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="w">  </span><span class="nt">"storage_format"</span><span class="p">:</span><span class="w"> </span><span class="s2">"delta"</span><span class="p">,</span>
@@ -3489,7 +3489,7 @@ mechanisms that happen to compose in the same string. <code>{batch_id}</code>/<c
 separate resolution step, never touched by either of the above.</p>
 <h2 id="main-execution-flow">Main execution flow<a class="headerlink" href="#main-execution-flow" title="Permanent link">&para;</a></h2>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>databricks<span class="w"> </span>bundle<span class="w"> </span>deploy<span class="w"> </span>--target<span class="w"> </span>dev
-<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>databricks<span class="w"> </span>bundle<span class="w"> </span>run<span class="w"> </span>metaflow_test_prm_005_sink_param_job<span class="w"> </span>--target<span class="w"> </span>dev
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>databricks<span class="w"> </span>bundle<span class="w"> </span>run<span class="w"> </span>flowx_test_prm_005_sink_param_job<span class="w"> </span>--target<span class="w"> </span>dev
 </code></pre></div>
 <p>Task chain: <code>setup_control_tables → seed_prm_005_sink_param_data → onboard_prm_005 →
 run_pipeline_task</code>.</p>
@@ -3502,16 +3502,16 @@ run_pipeline_task</code>.</p>
 </code></pre></div>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="c1"># Exported archive landed where post_export_archive.output_zip_path's ${client_code} placeholder</span>
 <a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="c1"># resolved to -- a plain .zip, never .zip.pgp (no pgp_encryption block was configured)</span>
-<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>databricks<span class="w"> </span>fs<span class="w"> </span>ls<span class="w"> </span>dbfs:/Volumes/metaflow/egress/ACME_CORP/output/
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>databricks<span class="w"> </span>fs<span class="w"> </span>ls<span class="w"> </span>dbfs:/Volumes/flowx/egress/ACME_CORP/output/
 <a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="c1"># expect: acme_export_&lt;batch_id&gt;_&lt;timestamp&gt;.zip (bare .zip, no .pgp suffix)</span>
 </code></pre></div>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="c1"># Negative check -- confirms the ${client_code} placeholder actually resolved (rather than the</span>
 <a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="c1"># path being left literally un-substituted, which would raise FrameworkConfigError at</span>
 <a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="c1"># graph-definition time instead of silently landing anywhere)</span>
-<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>databricks<span class="w"> </span>fs<span class="w"> </span>ls<span class="w"> </span><span class="s2">"dbfs:/Volumes/metaflow/egress/\${client_code}/output/"</span><span class="w"> </span><span class="m">2</span>&gt;<span class="p">&amp;</span><span class="m">1</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-q<span class="w"> </span><span class="s2">"does not exist"</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="nb">echo</span><span class="w"> </span><span class="s2">"confirmed: no literal-placeholder path exists"</span>
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>databricks<span class="w"> </span>fs<span class="w"> </span>ls<span class="w"> </span><span class="s2">"dbfs:/Volumes/flowx/egress/\${client_code}/output/"</span><span class="w"> </span><span class="m">2</span>&gt;<span class="p">&amp;</span><span class="m">1</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-q<span class="w"> </span><span class="s2">"does not exist"</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="nb">echo</span><span class="w"> </span><span class="s2">"confirmed: no literal-placeholder path exists"</span>
 </code></pre></div>
 <p><strong>This pass's actual verification status</strong>: see
-<a href="../metaflow_testing/TESTING_STATUS.md"><code>metaflow_testing/TESTING_STATUS.md</code></a> for whether this job
+<a href="../flowx_testing/TESTING_STATUS.md"><code>flowx_testing/TESTING_STATUS.md</code></a> for whether this job
 was actually run against the live workspace and what the real result was — this document describes
 what <em>should</em> happen structurally; the status tracker records what <em>did</em> happen.</p>
 <h2 id="known-gaps-judgment-calls">Known gaps / judgment calls<a class="headerlink" href="#known-gaps-judgment-calls" title="Permanent link">&para;</a></h2>
@@ -3541,7 +3541,7 @@ what <em>should</em> happen structurally; the status tracker records what <em>di
   a change to this one.</li>
 <li><strong>New fixture, not a reused one.</strong> No existing seeded table/CSV in this repo carries an
   ACME-Corp-shaped, per-client export-staging record (<code>client_code</code>/<code>export_tier</code> columns) or a
-  client-code-named egress Volume — <code>sample_data/metaflow_testing/acme_export_usecase/
+  client-code-named egress Volume — <code>sample_data/flowx_testing/acme_export_usecase/
   acme_export_staging.csv</code> (5 rows) and its own seed notebook were created new, kept minimal per
   this build's scope-discipline instructions.</li>
 <li><strong>No <code>post_export_archive.pgp_encryption</code> block.</strong> Included only in TC-SNK-003 (which

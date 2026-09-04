@@ -23,7 +23,7 @@
     
     
       
-        <title>Test Pipeline: Multi-Source Streaming-to-Batch 4-Way Inner Join (TC-TRF-001) - NextGen Metadata Framework (Metaflow)</title>
+        <title>Test Pipeline: Multi-Source Streaming-to-Batch 4-Way Inner Join (TC-TRF-001) - FlowX</title>
       
     
     
@@ -88,7 +88,7 @@
 
 <header class="md-header" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href="../../.." title="NextGen Metadata Framework (Metaflow)" class="md-header__button md-logo" aria-label="NextGen Metadata Framework (Metaflow)" data-md-component="logo">
+    <a href="../../.." title="FlowX" class="md-header__button md-logo" aria-label="FlowX" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
@@ -102,7 +102,7 @@
       <div class="md-header__ellipsis">
         <div class="md-header__topic">
           <span class="md-ellipsis">
-            NextGen Metadata Framework (Metaflow)
+            FlowX
           </span>
         </div>
         <div class="md-header__topic" data-md-component="header-topic">
@@ -405,13 +405,13 @@
 
 <nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href="../../.." title="NextGen Metadata Framework (Metaflow)" class="md-nav__button md-logo" aria-label="NextGen Metadata Framework (Metaflow)" data-md-component="logo">
+    <a href="../../.." title="FlowX" class="md-nav__button md-logo" aria-label="FlowX" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
 
     </a>
-    NextGen Metadata Framework (Metaflow)
+    FlowX
   </label>
   
   <ul class="md-nav__list" data-md-scrollfix>
@@ -3379,7 +3379,7 @@
 
 <h1 id="test-pipeline-multi-source-streaming-to-batch-4-way-inner-join-tc-trf-001">Test Pipeline: Multi-Source Streaming-to-Batch 4-Way Inner Join (TC-TRF-001)<a class="headerlink" href="#test-pipeline-multi-source-streaming-to-batch-4-way-inner-join-tc-trf-001" title="Permanent link">&para;</a></h1>
 <blockquote>
-<p>See also: <a href="README.md">Documentation index</a>, <a href="../metaflow_testing/TESTING_PLAN.md">metaflow_testing/TESTING_PLAN.md</a> (Module 3, TC-TRF-001), <a href="../metaflow_testing/TESTING_STATUS.md">metaflow_testing/TESTING_STATUS.md</a>.</p>
+<p>See also: <a href="README.md">Documentation index</a>, <a href="../flowx_testing/TESTING_PLAN.md">flowx_testing/TESTING_PLAN.md</a> (Module 3, TC-TRF-001), <a href="../flowx_testing/TESTING_STATUS.md">flowx_testing/TESTING_STATUS.md</a>.</p>
 </blockquote>
 <h2 id="purpose">Purpose<a class="headerlink" href="#purpose" title="Permanent link">&para;</a></h2>
 <p>Prove that a <code>transformation_flows</code> entry can join one <strong>streaming</strong> Auto Loader source
@@ -3403,8 +3403,8 @@ matches, so it never exercises the exclusion behavior itself).</p>
 <li>One <code>transformation_flows</code> entry (<code>ts_trf001_ea_joined_assignments</code>) with 4
   <code>source_inputs</code>, doing a plain <code>JOIN</code> (SQL <code>JOIN</code> = inner join) across all 4, reusing
   scenario 001's own join-SQL pattern verbatim (see
-  <code>resources/metaflow_test_001_zip_join_export_pipeline.yml</code>'s header comment and
-  <code>metaflow_testing/001_zip_file_onboarding.json</code>'s <code>transformation_sql</code>) -- only the
+  <code>resources/flowx_test_001_zip_join_export_pipeline.yml</code>'s header comment and
+  <code>flowx_testing/001_zip_file_onboarding.json</code>'s <code>transformation_sql</code>) -- only the
   <code>source_inputs[].table</code> values differ (this test case's own <code>trf001_*</code> bronze tables, not
   scenario 001's ZIP-ingested ones):</li>
 </ul>
@@ -3426,13 +3426,13 @@ matches, so it never exercises the exclusion behavior itself).</p>
 </ul>
 <h2 id="inputs">Inputs<a class="headerlink" href="#inputs" title="Permanent link">&para;</a></h2>
 <ul>
-<li><code>metaflow_testing/026_trf_001_4way_join.json</code> -- 4 <code>ingestion_flows</code> + 1
+<li><code>flowx_testing/026_trf_001_4way_join.json</code> -- 4 <code>ingestion_flows</code> + 1
   <code>transformation_flows</code> entry (no <code>reconciliation_flows</code>).</li>
-<li><code>sample_data/metaflow_testing/ea_usecase/{employees,departments,projects,assignments}.csv</code>
+<li><code>sample_data/flowx_testing/ea_usecase/{employees,departments,projects,assignments}.csv</code>
   -- <strong>reused as-is</strong>, no new fixture needed (see Build notes below for why these files
   already have exactly the shape this test case requires).</li>
 <li><code>notebooks/00_seed_sample_data/03_seed_trf_001_4way_join_data.py</code> -- a <strong>new, dedicated</strong>
-  seed notebook (kept separate from <code>02_seed_metaflow_testing_data.py</code>, which belongs to
+  seed notebook (kept separate from <code>02_seed_flowx_testing_data.py</code>, which belongs to
   scenario 001) that provisions the <code>ea</code>/<code>bronze_ea</code>/<code>silver_ea</code> schemas and
   <code>landing_assignments</code>/<code>landing_employees</code>/<code>landing_departments</code>/<code>landing_projects</code>/
   <code>_schemas</code> Volumes, then lands each CSV fixture <strong>plain, unzipped</strong> (no
@@ -3451,7 +3451,7 @@ matches, so it never exercises the exclusion behavior itself).</p>
   dimension itself.</li>
 </ul>
 <h2 id="configuration">Configuration<a class="headerlink" href="#configuration" title="Permanent link">&para;</a></h2>
-<p><code>metaflow_testing/026_trf_001_4way_join.json</code>'s one <code>transformation_flows[]</code> entry's
+<p><code>flowx_testing/026_trf_001_4way_join.json</code>'s one <code>transformation_flows[]</code> entry's
 <code>source_inputs</code>:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="nt">"source_inputs"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
 <a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="w">  </span><span class="p">{</span><span class="nt">"input_name"</span><span class="p">:</span><span class="w"> </span><span class="s2">"assignments_raw"</span><span class="p">,</span><span class="w"> </span><span class="nt">"table"</span><span class="p">:</span><span class="w"> </span><span class="s2">"{{catalog}}.bronze_ea.trf001_assignments_raw"</span><span class="p">,</span><span class="w"> </span><span class="nt">"is_streaming"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">},</span>
@@ -3464,7 +3464,7 @@ matches, so it never exercises the exclusion behavior itself).</p>
 plain streaming tables, no primary keys, no hash columns.</p>
 <h2 id="main-execution-flow">Main execution flow<a class="headerlink" href="#main-execution-flow" title="Permanent link">&para;</a></h2>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>databricks<span class="w"> </span>bundle<span class="w"> </span>deploy<span class="w"> </span>--target<span class="w"> </span>dev
-<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>databricks<span class="w"> </span>bundle<span class="w"> </span>run<span class="w"> </span>metaflow_test_trf_001_4way_join_job<span class="w"> </span>--target<span class="w"> </span>dev
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>databricks<span class="w"> </span>bundle<span class="w"> </span>run<span class="w"> </span>flowx_test_trf_001_4way_join_job<span class="w"> </span>--target<span class="w"> </span>dev
 </code></pre></div>
 <p>Task chain: <code>setup_control_tables → seed_trf_001_4way_join_data → onboard_trf_001 →
 run_pipeline</code>.</p>
@@ -3477,7 +3477,7 @@ run_pipeline</code>.</p>
 <a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="c1">-- expect: 0</span>
 </code></pre></div>
 <p><strong>This pass's actual verification status</strong>: see
-<a href="../metaflow_testing/TESTING_STATUS.md"><code>metaflow_testing/TESTING_STATUS.md</code></a> for whether
+<a href="../flowx_testing/TESTING_STATUS.md"><code>flowx_testing/TESTING_STATUS.md</code></a> for whether
 this job was actually run against the live workspace and what the real result was -- this
 document describes what <em>should</em> happen structurally; the status tracker records what <em>did</em>
 happen, if anything, each time this scenario is executed. (Per this project's build
@@ -3485,8 +3485,8 @@ convention, that tracker is updated centrally in a later phase, not by this buil
 <h2 id="build-notes-judgment-calls">Build notes / judgment calls<a class="headerlink" href="#build-notes-judgment-calls" title="Permanent link">&para;</a></h2>
 <ul>
 <li><strong>Reused fixture, not new sample data.</strong>
-  <code>sample_data/metaflow_testing/ea_usecase/{employees,departments,projects,assignments}.csv</code>
-  (already seeded by scenario 001's own <code>02_seed_metaflow_testing_data.py</code>, as plain ZIP
+  <code>sample_data/flowx_testing/ea_usecase/{employees,departments,projects,assignments}.csv</code>
+  (already seeded by scenario 001's own <code>02_seed_flowx_testing_data.py</code>, as plain ZIP
   payloads) already have exactly this test case's required shape with zero changes needed:
   <code>employees.csv</code> has 5 rows (<code>E001</code>-<code>E005</code>), <code>assignments.csv</code> has exactly 5 rows covering
   only <code>E001</code>-<code>E004</code>, and every <code>dept_id</code>/<code>project_id</code> referenced anywhere resolves cleanly
@@ -3498,7 +3498,7 @@ convention, that tracker is updated centrally in a later phase, not by this buil
   targets, not scenario 001's.</strong> <code>TESTING_PLAN.md</code>'s own Databricks-object-names column for
   TC-TRF-001 names bronze targets <code>employees_raw</code>/<code>departments_raw</code>/<code>projects_raw</code>/
   <code>assignments_raw</code> and a silver target <code>ea_joined_assignments</code> -- but scenario 001
-  (<code>metaflow_test_001_zip_join_export_pipeline</code>, already deployed) <strong>already owns real,
+  (<code>flowx_test_001_zip_join_export_pipeline</code>, already deployed) <strong>already owns real,
   already-materialized Lakeflow objects with those exact same
   <code>{catalog}.bronze_ea.*</code>/<code>{catalog}.silver_ea.ea_joined_assignments</code> three-part names</strong>. Two
   different Lakeflow Declarative Pipelines cannot both declare a streaming

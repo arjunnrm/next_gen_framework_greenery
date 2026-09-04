@@ -27,7 +27,7 @@
     
     
       
-        <title>Code structure & future proofing - NextGen Metadata Framework (Metaflow)</title>
+        <title>Code structure & future proofing - FlowX</title>
       
     
     
@@ -78,7 +78,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#metaflow-architecture-review-pillar-7-code-structure-extensibility-future-proofing" class="md-skip">
+        <a href="#flowx-architecture-review-pillar-7-code-structure-extensibility-future-proofing" class="md-skip">
           Skip to content
         </a>
       
@@ -92,7 +92,7 @@
 
 <header class="md-header" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href="../.." title="NextGen Metadata Framework (Metaflow)" class="md-header__button md-logo" aria-label="NextGen Metadata Framework (Metaflow)" data-md-component="logo">
+    <a href="../.." title="FlowX" class="md-header__button md-logo" aria-label="FlowX" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
@@ -106,7 +106,7 @@
       <div class="md-header__ellipsis">
         <div class="md-header__topic">
           <span class="md-ellipsis">
-            NextGen Metadata Framework (Metaflow)
+            FlowX
           </span>
         </div>
         <div class="md-header__topic" data-md-component="header-topic">
@@ -413,13 +413,13 @@
 
 <nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href="../.." title="NextGen Metadata Framework (Metaflow)" class="md-nav__button md-logo" aria-label="NextGen Metadata Framework (Metaflow)" data-md-component="logo">
+    <a href="../.." title="FlowX" class="md-nav__button md-logo" aria-label="FlowX" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
 
     </a>
-    NextGen Metadata Framework (Metaflow)
+    FlowX
   </label>
   
   <ul class="md-nav__list" data-md-scrollfix>
@@ -3598,7 +3598,7 @@
 
 
 
-<h1 id="metaflow-architecture-review-pillar-7-code-structure-extensibility-future-proofing">MetaFlow Architecture Review — Pillar 7: Code Structure, Extensibility &amp; Future-Proofing<a class="headerlink" href="#metaflow-architecture-review-pillar-7-code-structure-extensibility-future-proofing" title="Permanent link">&para;</a></h1>
+<h1 id="flowx-architecture-review-pillar-7-code-structure-extensibility-future-proofing">FlowX Architecture Review — Pillar 7: Code Structure, Extensibility &amp; Future-Proofing<a class="headerlink" href="#flowx-architecture-review-pillar-7-code-structure-extensibility-future-proofing" title="Permanent link">&para;</a></h1>
 <p><strong>Evaluation Area:</strong> Codebase Structure, Pluggable Registry Architecture, Open-Closed Principle (OCP), Component Decoupling, and Developer Ergonomics<br />
 <strong>Score:</strong> 7.5 / 10 (Current) ➔ <strong>9.8 / 10 (Target Architecture)</strong><br />
 <strong>Objective:</strong> Redesign the code structure so that future data engineers, platform architects, and domain teams can effortlessly add new sources, sinks, CDC strategies, DQ actions, and telemetry destinations with <strong>zero modifications to core engine code</strong>.</p>
@@ -3609,8 +3609,8 @@
 - New CDC / load strategies (e.g., SCD4, Bi-temporal dimensions, Out-of-Order streaming CDC, Append-only Dedup).
 - New egress sinks (e.g., Snowflake, AWS S3 Parquet, Azure EventHub, GCP Pub/Sub, Webhooks).
 - New telemetry exporters (e.g., Azure Monitor, AWS CloudWatch, Datadog direct, Prometheus).</p>
-<p>In the current MetaFlow implementation, adding any new capability requires modifying multiple core engine files (<code>readers.py</code>, <code>dispatcher.py</code>, <code>sink_registration.py</code>, <code>destination_dispatcher.py</code>, and <code>spec_validator.py</code>). This tight coupling creates regression risks and slows development velocity.</p>
-<p>This review provides a comprehensive blueprint to transform MetaFlow into an <strong>Open-Closed, Plugin-Driven Architecture</strong>.</p>
+<p>In the current FlowX implementation, adding any new capability requires modifying multiple core engine files (<code>readers.py</code>, <code>dispatcher.py</code>, <code>sink_registration.py</code>, <code>destination_dispatcher.py</code>, and <code>spec_validator.py</code>). This tight coupling creates regression risks and slows development velocity.</p>
+<p>This review provides a comprehensive blueprint to transform FlowX into an <strong>Open-Closed, Plugin-Driven Architecture</strong>.</p>
 <hr />
 <h2 id="2-current-structural-couplings-friction-points">2. Current Structural Couplings &amp; Friction Points<a class="headerlink" href="#2-current-structural-couplings-friction-points" title="Permanent link">&para;</a></h2>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
@@ -3639,7 +3639,7 @@
 </ol>
 <hr />
 <h2 id="3-target-state-the-pluggable-registry-architecture">3. Target State: The Pluggable Registry Architecture<a class="headerlink" href="#3-target-state-the-pluggable-registry-architecture" title="Permanent link">&para;</a></h2>
-<p>To make MetaFlow effortlessly modifiable, the codebase should adopt a <strong>Declarative Registry Pattern</strong> powered by Python decorators and abstract base classes.</p>
+<p>To make FlowX effortlessly modifiable, the codebase should adopt a <strong>Declarative Registry Pattern</strong> powered by Python decorators and abstract base classes.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
 <a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>│                             TARGET PLUGGABLE REGISTRY ARCHITECTURE                               │
 <a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>└──────────────────────────────────────────────────────────────────────────────────────────────────┘
@@ -3672,7 +3672,7 @@
 <a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="kn">from</span><span class="w"> </span><span class="nn">pyspark.sql</span><span class="w"> </span><span class="kn">import</span> <span class="n">DataFrame</span><span class="p">,</span> <span class="n">SparkSession</span>
 <a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>
 <a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="k">class</span><span class="w"> </span><span class="nc">BaseReader</span><span class="p">(</span><span class="n">ABC</span><span class="p">):</span>
-<a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a><span class="w">    </span><span class="sd">"""Abstract contract for all MetaFlow ingestion source readers."""</span>
+<a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a><span class="w">    </span><span class="sd">"""Abstract contract for all FlowX ingestion source readers."""</span>
 <a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a>
 <a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a>    <span class="nd">@abstractmethod</span>
 <a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">read</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">spark</span><span class="p">:</span> <span class="n">SparkSession</span><span class="p">,</span> <span class="n">source_config</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">parameters</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">DataFrame</span><span class="p">:</span>
@@ -3690,7 +3690,7 @@
 <a id="__codelineno-2-24" name="__codelineno-2-24" href="#__codelineno-2-24"></a><span class="c1"># target: src/.../lakeflow_framework/ingestion/registry.py</span>
 <a id="__codelineno-2-25" name="__codelineno-2-25" href="#__codelineno-2-25"></a><span class="c1"># =========================================================================</span>
 <a id="__codelineno-2-26" name="__codelineno-2-26" href="#__codelineno-2-26"></a><span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Type</span>
-<a id="__codelineno-2-27" name="__codelineno-2-27" href="#__codelineno-2-27"></a><span class="kn">from</span><span class="w"> </span><span class="nn">NextGen_Metadata_Framework.lakeflow_framework.exceptions</span><span class="w"> </span><span class="kn">import</span> <span class="n">FrameworkConfigError</span>
+<a id="__codelineno-2-27" name="__codelineno-2-27" href="#__codelineno-2-27"></a><span class="kn">from</span><span class="w"> </span><span class="nn">flowx.lakeflow_framework.exceptions</span><span class="w"> </span><span class="kn">import</span> <span class="n">FrameworkConfigError</span>
 <a id="__codelineno-2-28" name="__codelineno-2-28" href="#__codelineno-2-28"></a>
 <a id="__codelineno-2-29" name="__codelineno-2-29" href="#__codelineno-2-29"></a><span class="k">class</span><span class="w"> </span><span class="nc">ReaderRegistry</span><span class="p">:</span>
 <a id="__codelineno-2-30" name="__codelineno-2-30" href="#__codelineno-2-30"></a><span class="w">    </span><span class="sd">"""Thread-safe registry for ingestion source readers."""</span>
@@ -3719,8 +3719,8 @@
 <a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="c1"># Example: Adding Iceberg Ingestion in a single isolated file!</span>
 <a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="c1"># File: src/.../lakeflow_framework/ingestion/plugins/iceberg_reader.py</span>
 <a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="c1"># =========================================================================</span>
-<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="kn">from</span><span class="w"> </span><span class="nn">NextGen_Metadata_Framework.lakeflow_framework.ingestion.base</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseReader</span>
-<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="kn">from</span><span class="w"> </span><span class="nn">NextGen_Metadata_Framework.lakeflow_framework.ingestion.registry</span><span class="w"> </span><span class="kn">import</span> <span class="n">ReaderRegistry</span>
+<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="kn">from</span><span class="w"> </span><span class="nn">flowx.lakeflow_framework.ingestion.base</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseReader</span>
+<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="kn">from</span><span class="w"> </span><span class="nn">flowx.lakeflow_framework.ingestion.registry</span><span class="w"> </span><span class="kn">import</span> <span class="n">ReaderRegistry</span>
 <a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>
 <a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a><span class="nd">@ReaderRegistry</span><span class="o">.</span><span class="n">register</span><span class="p">(</span><span class="s2">"iceberg"</span><span class="p">)</span>
 <a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a><span class="k">class</span><span class="w"> </span><span class="nc">IcebergSourceReader</span><span class="p">(</span><span class="n">BaseReader</span><span class="p">):</span>
@@ -3814,7 +3814,7 @@
 <hr />
 <h2 id="5-recommended-package-structure-reorganization">5. Recommended Package Structure Reorganization<a class="headerlink" href="#5-recommended-package-structure-reorganization" title="Permanent link">&para;</a></h2>
 <p>To maximize maintainability, modularity, and future extensibility, the project layout should be organized into clear domain layers:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>src/NextGen_Metadata_Framework/lakeflow_framework/
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>src/flowx/lakeflow_framework/
 <a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>├── core/                               # Fundamental shared abstractions
 <a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>│   ├── base.py                         # Abstract base classes (Reader, Strategy, Sink, Telemetry)
 <a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>│   ├── registry.py                     # Generic decorator-based registry engine

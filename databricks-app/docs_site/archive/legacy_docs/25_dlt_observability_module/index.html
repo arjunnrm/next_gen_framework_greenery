@@ -23,7 +23,7 @@
     
     
       
-        <title>DLT Observability Module - NextGen Metadata Framework (Metaflow)</title>
+        <title>DLT Observability Module - FlowX</title>
       
     
     
@@ -88,7 +88,7 @@
 
 <header class="md-header" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href="../../.." title="NextGen Metadata Framework (Metaflow)" class="md-header__button md-logo" aria-label="NextGen Metadata Framework (Metaflow)" data-md-component="logo">
+    <a href="../../.." title="FlowX" class="md-header__button md-logo" aria-label="FlowX" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
@@ -102,7 +102,7 @@
       <div class="md-header__ellipsis">
         <div class="md-header__topic">
           <span class="md-ellipsis">
-            NextGen Metadata Framework (Metaflow)
+            FlowX
           </span>
         </div>
         <div class="md-header__topic" data-md-component="header-topic">
@@ -405,13 +405,13 @@
 
 <nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href="../../.." title="NextGen Metadata Framework (Metaflow)" class="md-nav__button md-logo" aria-label="NextGen Metadata Framework (Metaflow)" data-md-component="logo">
+    <a href="../../.." title="FlowX" class="md-nav__button md-logo" aria-label="FlowX" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
 
     </a>
-    NextGen Metadata Framework (Metaflow)
+    FlowX
   </label>
   
   <ul class="md-nav__list" data-md-scrollfix>
@@ -3379,10 +3379,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#log-records-per-flow-inside-one-scopelogs-scopename-nextgen_metadata_frameworklakeflow_frameworkobservabilitydlt_observability" class="md-nav__link">
+  <a href="#log-records-per-flow-inside-one-scopelogs-scopename-flowxlakeflow_frameworkobservabilitydlt_observability" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Log records (per flow, inside one ScopeLogs, scope.name = "NextGen_Metadata_Framework.lakeflow_framework.observability.dlt_observability")
+        Log records (per flow, inside one ScopeLogs, scope.name = "flowx.lakeflow_framework.observability.dlt_observability")
       
     </span>
   </a>
@@ -3457,10 +3457,10 @@
 
 <h1 id="dlt-observability-module">DLT Observability Module<a class="headerlink" href="#dlt-observability-module" title="Permanent link">&para;</a></h1>
 <blockquote>
-<p>See also: <a href="README.md">README.md</a> — the full Metaflow documentation set.</p>
+<p>See also: <a href="README.md">README.md</a> — the full FlowX documentation set.</p>
 </blockquote>
 <h2 id="purpose">Purpose<a class="headerlink" href="#purpose" title="Permanent link">&para;</a></h2>
-<p>Metaflow's pipeline graph (<code>03_lakeflow_declarative_pipeline.py</code>) already gets Lakeflow's own
+<p>FlowX's pipeline graph (<code>03_lakeflow_declarative_pipeline.py</code>) already gets Lakeflow's own
 native event log — <code>flow_progress</code>/<code>dataset_definition</code>/<code>update_progress</code>/... events, covering
 generic per-flow row counts and native (<code>warn</code>/<code>drop</code>/<code>fail</code>) expectation pass/fail counts, for
 free. What it does not get is a <strong>vendor-neutral, exportable</strong> telemetry format any external
@@ -3503,7 +3503,7 @@ wiring, and <code>notebooks/08_observability/08_dlt_observability_engine.py</cod
 notebook that executes the four numbered phases above in order.</p>
 <h2 id="component-breakdown">Component breakdown<a class="headerlink" href="#component-breakdown" title="Permanent link">&para;</a></h2>
 <p>All business logic lives under
-<code>src/NextGen_Metadata_Framework/lakeflow_framework/observability/</code> — the entrypoint notebook is
+<code>src/flowx/lakeflow_framework/observability/</code> — the entrypoint notebook is
 deliberately thin orchestration, per this repo's own convention (<code>AGENTS.md</code>/<code>agent_skills/SKILL.md</code>).</p>
 <table>
 <thead>
@@ -3579,8 +3579,8 @@ requirement — telemetry with nothing to observe is meaningless.</p>
 <code>dataflow_group_id</code> <code>config_loader.py</code> reads destinations by (see the next section).</p>
 <h3 id="why-dataflow_group_id-isnt-read-off-the-event-log">Why <code>dataflow_group_id</code> isn't read off the event log<a class="headerlink" href="#why-dataflow_group_id-isnt-read-off-the-event-log" title="Permanent link">&para;</a></h3>
 <p><code>dataflow_group_id</code> is <strong>not</strong> a column (or a <code>details</code>/<code>origin</code> field) anywhere in the DLT
-event log — this is a Metaflow-specific business identifier, not a Databricks platform concept.
-Metaflow configures exactly one <code>dataflow.group.id</code> Spark conf per pipeline (see
+event log — this is a FlowX-specific business identifier, not a Databricks platform concept.
+FlowX configures exactly one <code>dataflow.group.id</code> Spark conf per pipeline (see
 <code>agent_skills/SKILL.md</code> §2 and any <code>resources/*_pipeline.yml</code>'s <code>configuration:</code> block), so
 <code>event_log_extractor.py::resolve_dataflow_group_id</code> resolves it once, up front, via the
 Pipelines API (<code>GET /api/2.0/pipelines/{pipeline_id}</code> → <code>spec.configuration["dataflow.group.id"]</code>)
@@ -3653,7 +3653,7 @@ JSON payload whose shape depends on <code>event_type</code> (hence JSON-typed ra
 <tr>
 <td><code>databricks.dataflow_id</code> / <code>databricks.step_id</code></td>
 <td>Event log <code>origin.flow_id</code></td>
-<td>Both attributes carry the same value — <code>dataflow_id</code> (ingestion) and <code>flow_step_id</code> (transformation) are Metaflow's own two names for the same underlying Lakeflow <code>flow_id</code>; both are populated so a consumer can filter by either vocabulary.</td>
+<td>Both attributes carry the same value — <code>dataflow_id</code> (ingestion) and <code>flow_step_id</code> (transformation) are FlowX's own two names for the same underlying Lakeflow <code>flow_id</code>; both are populated so a consumer can filter by either vocabulary.</td>
 </tr>
 <tr>
 <td><code>pipeline.update_id</code></td>
@@ -3667,7 +3667,7 @@ JSON payload whose shape depends on <code>event_type</code> (hence JSON-typed ra
 </tr>
 </tbody>
 </table>
-<h3 id="log-records-per-flow-inside-one-scopelogs-scopename-nextgen_metadata_frameworklakeflow_frameworkobservabilitydlt_observability">Log records (per flow, inside one <code>ScopeLogs</code>, <code>scope.name = "NextGen_Metadata_Framework.lakeflow_framework.observability.dlt_observability"</code>)<a class="headerlink" href="#log-records-per-flow-inside-one-scopelogs-scopename-nextgen_metadata_frameworklakeflow_frameworkobservabilitydlt_observability" title="Permanent link">&para;</a></h3>
+<h3 id="log-records-per-flow-inside-one-scopelogs-scopename-flowxlakeflow_frameworkobservabilitydlt_observability">Log records (per flow, inside one <code>ScopeLogs</code>, <code>scope.name = "flowx.lakeflow_framework.observability.dlt_observability"</code>)<a class="headerlink" href="#log-records-per-flow-inside-one-scopelogs-scopename-flowxlakeflow_frameworkobservabilitydlt_observability" title="Permanent link">&para;</a></h3>
 <table>
 <thead>
 <tr>
@@ -3832,7 +3832,7 @@ destination's dispatch:</p>
 <td><code>HTTP 5xx: ...</code> (after exhausting retries)</td>
 <td>Destination outage</td>
 <td>The destination itself is erroring on every attempt.</td>
-<td>Check the destination's own status/logs — usually not a Metaflow-side problem.</td>
+<td>Check the destination's own status/logs — usually not a FlowX-side problem.</td>
 </tr>
 <tr>
 <td><code>Unsupported compression '...'</code></td>
