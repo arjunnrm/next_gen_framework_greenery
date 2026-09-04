@@ -1,12 +1,12 @@
-# 🏗️ Metaflow — Platform Architecture & Core Concepts
+# 🏗️ FlowX — Platform Architecture & Core Concepts
 
-> **Audience**: Solution architects, lead data engineers, and framework contributors who need to understand how Metaflow compiles metadata into Databricks Lakeflow Declarative Pipelines.
+> **Audience**: Solution architects, lead data engineers, and framework contributors who need to understand how FlowX compiles metadata into Databricks Lakeflow Declarative Pipelines.
 
 ---
 
 ## 1. Executive Summary & Problem Statement
 
-**Metaflow** is an enterprise-grade, metadata-driven data framework built natively on [Databricks Lakeflow Declarative Pipelines](https://docs.databricks.com/aws/en/dlt/) (formerly Delta Live Tables / DLT).
+**FlowX** is an enterprise-grade, metadata-driven data framework built natively on [Databricks Lakeflow Declarative Pipelines](https://docs.databricks.com/aws/en/dlt/) (formerly Delta Live Tables / DLT).
 
 ### The Challenge of Traditional Data Engineering
 In traditional Lakehouse implementations:
@@ -14,14 +14,14 @@ In traditional Lakehouse implementations:
 - **Inconsistent CDC & DQ**: Different developers implement Slowly Changing Dimensions (SCD), error handling, and quarantine routing in subtly conflicting ways.
 - **High Maintenance Overhead**: Upgrading security standards, schema evolution policies, or telemetry logging requires modifying dozens of individual pipeline notebooks.
 
-### The Metaflow Solution
-Metaflow decouples **Pipeline Definition** (declarative JSON/YAML onboarding specifications) from **Pipeline Execution** (a single, generic Lakeflow compilation engine). Adding a new ingestion flow, multi-table join, SCD2 dimension, or PGP-encrypted sink requires only configuration—**zero new Python code**.
+### The FlowX Solution
+FlowX decouples **Pipeline Definition** (declarative JSON/YAML onboarding specifications) from **Pipeline Execution** (a single, generic Lakeflow compilation engine). Adding a new ingestion flow, multi-table join, SCD2 dimension, or PGP-encrypted sink requires only configuration—**zero new Python code**.
 
 ---
 
 ## 2. Two-Phase Execution Model
 
-Metaflow operates strictly on a two-phase execution lifecycle that prevents runtime data contamination and guarantees graph determinism:
+FlowX operates strictly on a two-phase execution lifecycle that prevents runtime data contamination and guarantees graph determinism:
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
@@ -53,7 +53,7 @@ Metaflow operates strictly on a two-phase execution lifecycle that prevents runt
 
 ## 3. Medallion Architecture Implementation
 
-Metaflow structures data processing across the standard Medallion layers while enforcing enterprise governance:
+FlowX structures data processing across the standard Medallion layers while enforcing enterprise governance:
 
 ```
                   ┌──────────────────────────────┐
@@ -192,7 +192,7 @@ FRAMEWORK_SPARK_DEFAULTS["spark.sql.shuffle.partitions"] = "200"
 # resources/<group>/*_pipeline.yml
 configuration:
   dataflow.group.id: dfg_orders
-  dataflow.control.catalog: metaflow
+  dataflow.control.catalog: flowx
   dataflow.spark.conf: '{"spark.sql.shuffle.partitions": "auto"}'
 ```
 resolves to `spark.sql.shuffle.partitions = "auto"` — the pipeline resource's value strictly
@@ -325,8 +325,8 @@ computes an identity, so plan and bind cannot disagree about what is shared with
   neither pair (see [`13_known_limitations_and_gotchas.md` L7](13_known_limitations_and_gotchas.md#l7)).
 
 The node name always carries an 8-hex digest of the locator — never only on truncation — because
-sanitizing maps every non-identifier character to `_`, and `metaflow.bronze.a_b` and
-`metaflow.bronze_a.b` would otherwise collide into one name and fail the whole update with
+sanitizing maps every non-identifier character to `_`, and `flowx.bronze.a_b` and
+`flowx.bronze_a.b` would otherwise collide into one name and fail the whole update with
 *"Cannot redefine dataset"*.
 
 ### Guards, at plan time, before a single `dlt` call
@@ -535,10 +535,10 @@ set one overrides the chain for its own nodes.
 
 ### 8.6 Verification status
 
-Verified live on **2026-08-31**, target `dev_metaflow`: job `metaflow_test_recon_dag_job`
+Verified live on **2026-08-31**, target `dev_flowx`: job `flowx_test_recon_dag_job`
 (`854232399214818`) ran `setup_control_tables → seed → onboard → run pipeline` to SUCCESS, and
 pipeline `be78d88d-6064-414d-a10c-2aacd900fa86`
-(`metaflow_test_003_autoload_recon_pipeline`) registered — in **one update**, per its own event
+(`flowx_test_003_autoload_recon_pipeline`) registered — in **one update**, per its own event
 log — the ingestion streaming table, both L3 prepare nodes, all three L4 comparison datasets, the
 L5 pulse streaming table, the heal `@dlt.append_flow`, and the `foreach_batch` heal sink. R1 and R2
 are therefore observed, not inferred.

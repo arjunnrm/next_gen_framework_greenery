@@ -1,14 +1,14 @@
 # Governance Integration
 
-See also: [README.md](README.md) for the full Metaflow documentation index.
+See also: [README.md](README.md) for the full FlowX documentation index.
 
-**Metaflow applies governance as a tags-only model.** The framework applies key-value
+**FlowX applies governance as a tags-only model.** The framework applies key-value
 Unity Catalog tags to columns and tables — it does **not** create, bind, or administer the
 masking/row-filter *policy* that gives a tag its actual enforcement behavior. That's a
 workspace admin's Unity Catalog tag-policy configuration, external to this repo.
 
 Ground truth for everything below:
-`src/NextGen_Metadata_Framework/lakeflow_framework/governance/tags.py` (full design
+`src/flowx/lakeflow_framework/governance/tags.py` (full design
 rationale in its module docstring), `control_plane/post_deployment.py::apply_all_governance_tags`,
 `notebooks/04_governance/04_apply_governance_and_egress.py`, and
 `onboarding/spec_validator.py::_validate_governance_tags`. Schema reference:

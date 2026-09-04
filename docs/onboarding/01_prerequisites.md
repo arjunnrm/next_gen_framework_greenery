@@ -15,14 +15,14 @@ Roughly fifteen minutes, once per environment.
 ## Create the objects
 
 ```sql
-CREATE CATALOG IF NOT EXISTS metaflow;
-CREATE SCHEMA  IF NOT EXISTS metaflow.framework;   -- control tables
-CREATE SCHEMA  IF NOT EXISTS metaflow.bronze;      -- ingestion targets
-CREATE SCHEMA  IF NOT EXISTS metaflow.silver;      -- transformation targets
+CREATE CATALOG IF NOT EXISTS flowx;
+CREATE SCHEMA  IF NOT EXISTS flowx.framework;   -- control tables
+CREATE SCHEMA  IF NOT EXISTS flowx.bronze;      -- ingestion targets
+CREATE SCHEMA  IF NOT EXISTS flowx.silver;      -- transformation targets
 
-CREATE VOLUME IF NOT EXISTS metaflow.framework.landing;
-CREATE VOLUME IF NOT EXISTS metaflow.framework.wheels;
-CREATE VOLUME IF NOT EXISTS metaflow.framework.onboarding_specs;
+CREATE VOLUME IF NOT EXISTS flowx.framework.landing;
+CREATE VOLUME IF NOT EXISTS flowx.framework.wheels;
+CREATE VOLUME IF NOT EXISTS flowx.framework.onboarding_specs;
 ```
 
 ## Grants
@@ -31,13 +31,13 @@ The pipeline's run-as identity needs these. Missing grants are the most common f
 and they surface at pipeline runtime rather than at onboarding.
 
 ```sql
-GRANT USE CATALOG ON CATALOG metaflow TO `<principal>`;
-GRANT USE SCHEMA, CREATE TABLE ON SCHEMA metaflow.bronze TO `<principal>`;
-GRANT USE SCHEMA, CREATE TABLE, MODIFY, SELECT ON SCHEMA metaflow.framework TO `<principal>`;
-GRANT READ VOLUME ON VOLUME metaflow.framework.landing TO `<principal>`;
-GRANT READ VOLUME, WRITE VOLUME ON VOLUME metaflow.framework.onboarding_specs TO `<principal>`;
+GRANT USE CATALOG ON CATALOG flowx TO `<principal>`;
+GRANT USE SCHEMA, CREATE TABLE ON SCHEMA flowx.bronze TO `<principal>`;
+GRANT USE SCHEMA, CREATE TABLE, MODIFY, SELECT ON SCHEMA flowx.framework TO `<principal>`;
+GRANT READ VOLUME ON VOLUME flowx.framework.landing TO `<principal>`;
+GRANT READ VOLUME, WRITE VOLUME ON VOLUME flowx.framework.onboarding_specs TO `<principal>`;
 -- only if you use governance_tags:
-GRANT APPLY TAG ON SCHEMA metaflow.bronze TO `<principal>`;
+GRANT APPLY TAG ON SCHEMA flowx.bronze TO `<principal>`;
 ```
 
 !!! tip "Check before you build"
@@ -47,8 +47,8 @@ GRANT APPLY TAG ON SCHEMA metaflow.bronze TO `<principal>`;
 ## Verify
 
 ```bash
-databricks fs ls dbfs:/Volumes/metaflow/framework/landing --profile <profile>
-databricks bundle validate -t dev_metaflow
+databricks fs ls dbfs:/Volumes/flowx/framework/landing --profile <profile>
+databricks bundle validate -t dev_flowx
 ```
 
 Both succeeding means you are ready for [your first pipeline](02_first_pipeline.md).

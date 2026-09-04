@@ -1,4 +1,4 @@
-site_name: NextGen Metadata Framework (Metaflow)
+site_name: FlowX
 site_description: >-
   Metadata-driven ingestion, transformation, reconciliation and observability
   pipelines on Databricks Lakeflow — architecture, attribute reference, onboarding

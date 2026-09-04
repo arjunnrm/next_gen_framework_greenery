@@ -1,5 +1,5 @@
 {
-  "$comment": "MACHINE-READABLE ATTRIBUTE DELTA for the NextGen Metadata Framework (Metaflow) onboarding spec, v1.5.01 -> v1.6.0. Written for an automated agent updating the Databricks App (databricks-app/). Every path below is expressed as it appears in an onboarding spec document, rooted at the spec object; [] denotes an array element. IMPORTANT FOR CONSUMERS: unlike prior deltas, the v1.6.0 app-side work was applied IN THE SAME RELEASE -- each entry's app_state says whether any action remains. Verify against databricks-app/web/src/registry.js and config/registry/*.json before re-applying anything.",
+  "$comment": "MACHINE-READABLE ATTRIBUTE DELTA for the FlowX onboarding spec, v1.5.01 -> v1.6.0. Written for an automated agent updating the Databricks App (databricks-app/). Every path below is expressed as it appears in an onboarding spec document, rooted at the spec object; [] denotes an array element. IMPORTANT FOR CONSUMERS: unlike prior deltas, the v1.6.0 app-side work was applied IN THE SAME RELEASE -- each entry's app_state says whether any action remains. Verify against databricks-app/web/src/registry.js and config/registry/*.json before re-applying anything.",
   "schema_version": "1",
   "framework_version_from": "1.5.01",
   "framework_version_to": "1.6.0",
@@ -139,7 +139,7 @@
   ],
   "enforcing_artifacts": {
     "json_schema": "onboarding_templates/onboarding_spec.schema.json ($defs.sinkConfig.staged_file_format, $defs.sourcePlane catalog/schema descriptions, logging_config description)",
-    "validator": "src/NextGen_Metadata_Framework/lakeflow_framework/onboarding/spec_validator.py (_validate_sink_config, _validate_logging_config, ALLOWED_STAGED_FILE_FORMATS)",
+    "validator": "src/flowx/lakeflow_framework/onboarding/spec_validator.py (_validate_sink_config, _validate_logging_config, ALLOWED_STAGED_FILE_FORMATS)",
     "runtime_modules": [
       "engine/flow_registration.py::register_staged_view (temporary staged intermediates)",
       "engine/source_plane.py (PlaneNode.published, temporary L0 nodes)",

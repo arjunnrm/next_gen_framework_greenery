@@ -6,7 +6,7 @@ Ingest a CSV from a Volume into a Bronze streaming table. Nothing optional, noth
 
 ```bash
 databricks fs cp orders.csv \
-  dbfs:/Volumes/metaflow/framework/landing/orders/incoming/orders.csv --profile <profile>
+  dbfs:/Volumes/flowx/framework/landing/orders/incoming/orders.csv --profile <profile>
 ```
 
 ## The smallest useful spec
@@ -19,13 +19,13 @@ databricks fs cp orders.csv \
       "dataflow_id": "df_orders_raw",
       "source_type": "autoloader",
       "source_config": {
-        "path": "/Volumes/metaflow/framework/landing/orders/incoming/",
+        "path": "/Volumes/flowx/framework/landing/orders/incoming/",
         "format": "csv",
-        "schema_location": "/Volumes/metaflow/framework/landing/_schemas/orders/",
+        "schema_location": "/Volumes/flowx/framework/landing/_schemas/orders/",
         "reader_options": { "header": "true", "cloudFiles.inferColumnTypes": "true" },
         "capture_technical_metadata": true
       },
-      "target_catalog": "metaflow",
+      "target_catalog": "flowx",
       "target_schema": "bronze",
       "target_table": "orders_raw",
       "target_type": "streaming_table",
@@ -47,9 +47,9 @@ Four things are doing real work here:
 ## Onboard and run
 
 ```bash
-databricks bundle deploy -t dev_metaflow
-databricks bundle run onboarding_job -t dev_metaflow \
-  --params spec_path=/Volumes/metaflow/framework/onboarding_specs/orders.json
+databricks bundle deploy -t dev_flowx
+databricks bundle run onboarding_job -t dev_flowx \
+  --params spec_path=/Volumes/flowx/framework/onboarding_specs/orders.json
 ```
 
 Then start the pipeline. Onboarding wrote the control-table rows; the pipeline compiles its graph
@@ -58,11 +58,11 @@ from them.
 ## Check it worked
 
 ```sql
-SELECT * FROM metaflow.bronze.orders_raw LIMIT 10;
+SELECT * FROM flowx.bronze.orders_raw LIMIT 10;
 
 -- the provenance columns capture_technical_metadata added
 SELECT __framework_source_file_name, __framework_ingestion_timestamp_utc
-FROM metaflow.bronze.orders_raw LIMIT 5;
+FROM flowx.bronze.orders_raw LIMIT 5;
 ```
 
 !!! danger "Reports SUCCESS but zero rows?"

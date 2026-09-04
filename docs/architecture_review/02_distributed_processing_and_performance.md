@@ -1,4 +1,4 @@
-# MetaFlow Architecture Review — Pillar 2: Distributed Processing & Performance Optimization
+# FlowX Architecture Review — Pillar 2: Distributed Processing & Performance Optimization
 
 **Evaluation Area:** Apache Spark / PySpark Optimization, Driver Bottlenecks, Catalyst Plan Efficiency, Delta Lake Storage, Liquid Clustering, and CDC Engine  
 **Score:** 6.8 / 10  
@@ -8,7 +8,7 @@
 
 ## 1. Executive Performance Evaluation
 
-The MetaFlow framework demonstrates strong alignment with modern PySpark practices—extensively leveraging native Spark SQL expressions, avoiding standard Python row-level UDFs, employing `mapInPandas` for binary decoding, and embracing Delta Lake Liquid Clustering. However, several critical performance anti-patterns exist, most notably **driver-side in-memory archive extraction**, **eager driver `.collect()` actions inside DLT table registration closures**, and **driver-side key collection during reconciliation fingerprinting**.
+The FlowX framework demonstrates strong alignment with modern PySpark practices—extensively leveraging native Spark SQL expressions, avoiding standard Python row-level UDFs, employing `mapInPandas` for binary decoding, and embracing Delta Lake Liquid Clustering. However, several critical performance anti-patterns exist, most notably **driver-side in-memory archive extraction**, **eager driver `.collect()` actions inside DLT table registration closures**, and **driver-side key collection during reconciliation fingerprinting**.
 
 ---
 

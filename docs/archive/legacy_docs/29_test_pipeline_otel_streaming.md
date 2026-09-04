@@ -1,6 +1,6 @@
 # Test Pipeline: Continuous Event-Log → OTel Streaming Export
 
-> See also: [Documentation index](README.md), [metaflow_testing/TESTING_PLAN.md](../metaflow_testing/TESTING_PLAN.md) (Module 9: Observability & Telemetry Framework).
+> See also: [Documentation index](README.md), [flowx_testing/TESTING_PLAN.md](../flowx_testing/TESTING_PLAN.md) (Module 9: Observability & Telemetry Framework).
 
 ## Purpose
 
@@ -30,8 +30,8 @@ for this scenario; it is configured entirely through its own pipeline resource's
 
 * **This scenario has no ingestion/onboarding fixtures of its own.** It reads whichever tables
   you list in `event_log_tables` — normally the *published event log tables* of other pipelines
-  already deployed in this project (e.g. `metaflow_test_002_zerobus_pipeline`,
-  `metaflow_test_003_autoload_recon_pipeline`). A source pipeline only has a queryable event-log
+  already deployed in this project (e.g. `flowx_test_002_zerobus_pipeline`,
+  `flowx_test_003_autoload_recon_pipeline`). A source pipeline only has a queryable event-log
   **table** (as opposed to only the `event_log(pipeline_id)` TVF every pipeline already has) once
   you explicitly turn on Pipeline settings → Advanced → "Event log" → a `catalog.schema.table`
   destination for it — this is a one-time manual step per source pipeline, not something this

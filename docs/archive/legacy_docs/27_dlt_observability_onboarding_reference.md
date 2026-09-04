@@ -1,6 +1,6 @@
 # DLT Observability: Onboarding Template & Attribute Reference
 
-> See also: [README.md](README.md) — the full Metaflow documentation set, and
+> See also: [README.md](README.md) — the full FlowX documentation set, and
 > [25_dlt_observability_module.md](25_dlt_observability_module.md) for the architecture these
 > attributes configure.
 
@@ -97,7 +97,7 @@ time as defense-in-depth for any row written some other way
 | `env:<VAR_NAME>` | `os.environ["<VAR_NAME>"]` | `"env:DD_API_KEY"` | The variable must be injected into the job cluster's/serverless environment's environment variables — typically itself backed by a secret at the compute layer, not stored as a literal in `observability_config`. |
 | `secret:<scope>:<key>` | `dbutils.secrets.get(scope="<scope>", key="<key>")` | `"secret:my_scope:dd_api_key"` | A **classic** Databricks secret scope/key (not this framework's usual Unity Catalog 3-level secret dict shape — see the note below). |
 
-> **Why this differs from the rest of Metaflow's secret convention.** Every other secret
+> **Why this differs from the rest of FlowX's secret convention.** Every other secret
 > reference in this framework (`crypto/secrets.py`) is a 3-level Unity Catalog secret dict,
 > `{"secret_catalog": ..., "secret_schema": ..., "secret_key": ...}`. This module's
 > `auth.credentials` values are short, single-line strings instead (`env:X` / `secret:scope:key`)

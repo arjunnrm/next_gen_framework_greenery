@@ -5,7 +5,7 @@
 > reject, and why.
 >
 > **Version & maintenance**: this page describes **v1.6.0** and is **hand-maintained against
-> `src/NextGen_Metadata_Framework/lakeflow_framework/onboarding/spec_validator.py`** — the
+> `src/flowx/lakeflow_framework/onboarding/spec_validator.py`** — the
 > single source of truth for every rule below. When this page and the validator disagree, the
 > validator wins; fix the page. Companion pages:
 > [`00_master_reference_index.md`](00_master_reference_index.md) (what each field *means*),
@@ -24,7 +24,7 @@ runs in three places:
 | Entry point | What runs | When to use it |
 |---|---|---|
 | **Single-spec onboarding job** | `notebooks/02_onboarding/02_onboarding_engine.py` (widgets: `spec_file_path`, `catalog`, `env`, `action_type` = `CREATE` / `UPDATE` / `VALIDATE_ONLY`) | The normal CI/CD path — one spec changes, one job runs. |
-| **Bulk directory onboarding** | `notebooks/02_onboarding/02b_bulk_config_onboarding_engine.py` → `onboarding/bulk_onboarding.py` (parameters: `spec_dir`, `action_type`, fail-soft by default) | Bringing up a whole environment or regression-onboarding the `metaflow_testing/` corpus. Every spec is attempted; failures are reported per spec at the end. |
+| **Bulk directory onboarding** | `notebooks/02_onboarding/02b_bulk_config_onboarding_engine.py` → `onboarding/bulk_onboarding.py` (parameters: `spec_dir`, `action_type`, fail-soft by default) | Bringing up a whole environment or regression-onboarding the `flowx_testing/` corpus. Every spec is attempted; failures are reported per spec at the end. |
 | **Spec Builder app** | `POST /api/spec/validate` (`databricks-app/server/routers/spec_router.py` → `server/core/validator.py::SpecValidator`) | Interactive feedback while authoring in the app. This is a registry-driven, in-app **approximation** of the framework validator (Layer 1 structural + Layer 2 rule checks, no Spark session) — a spec that passes the app can still fail the framework validator, never the reverse direction you want. Treat the framework validator as authoritative. |
 
 Four properties of the framework validator worth internalizing:
@@ -321,7 +321,7 @@ Otherwise it offers the closest real key (`Did you mean 'target_table'?`) or lis
 keys for that container.
 
 **Exempt.** Any key matching `^_` is an author comment — JSON has no comment syntax, and specs
-in `metaflow_testing/` use `_scenario`, `_provenance` and `_test_case_note` extensively. `$schema`
+in `flowx_testing/` use `_scenario`, `_provenance` and `_test_case_note` extensively. `$schema`
 is exempt as an editor hint.
 
 **Migrating.** 56 of the 57 specs shipped in this repo were already clean. The one exception
@@ -447,7 +447,7 @@ it is fast enough to loop on:
 
    ```python
    import sys; sys.path.insert(0, "src")
-   from NextGen_Metadata_Framework.lakeflow_framework.onboarding.agent_tools import validate_json
+   from flowx.lakeflow_framework.onboarding.agent_tools import validate_json
 
    result = validate_json(open("my_spec.json", encoding="utf-8").read())
    print(result["summary"])
@@ -462,12 +462,12 @@ it is fast enough to loop on:
    flows could not be linted offline at all.
 
 1. **`action_type: "VALIDATE_ONLY"`** — run the generic onboarding job
-   (`resources/metaflow_config_jobs/onboarding_job.yml`, backing notebook
+   (`resources/flowx_config_jobs/onboarding_job.yml`, backing notebook
    `notebooks/02_onboarding/02_onboarding_engine.py`) with `action_type=VALIDATE_ONLY`. The
    exact same `validate_spec` runs, every error across the whole spec is reported in one pass,
    and the control-table upsert is skipped. The bulk engine
    (`02b_bulk_config_onboarding_engine.py`, job
-   `resources/metaflow_config_jobs/framework_config_onboarding_job.yml`) accepts the same
+   `resources/flowx_config_jobs/framework_config_onboarding_job.yml`) accepts the same
    `action_type` to dry-run an entire `spec_dir`, reporting per-spec results fail-soft.
 2. **The Spec Builder app's validate endpoint** — `POST /api/spec/validate` with
    `{"spec": {...}}` returns the app's Layer 1 + Layer 2 findings interactively. Remember it is

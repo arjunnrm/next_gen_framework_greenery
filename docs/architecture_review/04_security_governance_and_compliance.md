@@ -1,4 +1,4 @@
-# MetaFlow Architecture Review — Pillar 4: Security, Access Control & Governance
+# FlowX Architecture Review — Pillar 4: Security, Access Control & Governance
 
 **Evaluation Area:** Unity Catalog 3-Level Namespace, Secrets Management, Credential Protection, ABAC / RBAC Governance, and Cryptography  
 **Score:** 7.5 / 10  
@@ -8,7 +8,7 @@
 
 ## 1. Executive Security Evaluation
 
-MetaFlow is designed around **Unity Catalog** governance principles. It strictly enforces the 3-level namespace (`catalog.schema.table`), provides comprehensive identifier sanitization against SQL injection, implements an automated ABAC metadata tagging engine, and supports both AES column encryption and PGP asymmetric archive encryption.
+FlowX is designed around **Unity Catalog** governance principles. It strictly enforces the 3-level namespace (`catalog.schema.table`), provides comprehensive identifier sanitization against SQL injection, implements an automated ABAC metadata tagging engine, and supports both AES column encryption and PGP asymmetric archive encryption.
 
 However, a critical security vulnerability exists in the column encryption module: **plaintext cryptographic secret keys are embedded directly into Spark DataFrame logical plans via `F.lit()`**, making keys readable in query plan dumps, the Spark UI, and cluster event logs.
 
@@ -42,7 +42,7 @@ However, a critical security vulnerability exists in the column encryption modul
   # AFTER: Secret Passed via Redacted Session Conf or Dynamic Secret Function
   # =========================================================================
   # Option A: Inject into session-scoped conf with secret redaction
-  session_conf_key = f"spark.metaflow.secret.{scope}.{secret_key}"
+  session_conf_key = f"spark.flowx.secret.{scope}.{secret_key}"
   spark.conf.set(session_conf_key, resolved_key)
   
   # Reference key dynamically from session conf in Catalyst expression

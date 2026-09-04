@@ -1,6 +1,6 @@
-# 📖 Metaflow — Master Reference Index & Attribute Dictionary
+# 📖 FlowX — Master Reference Index & Attribute Dictionary
 
-> **Purpose**: Single authoritative lookup dictionary indexing every configuration attribute, CDC strategy, target type, technical concept, error code, and framework-generated column across the NextGen Metadata Framework (Metaflow).
+> **Purpose**: Single authoritative lookup dictionary indexing every configuration attribute, CDC strategy, target type, technical concept, error code, and framework-generated column across FlowX.
 >
 > **Navigation**: Use `Ctrl+F` to search for any attribute or concept keyword.
 

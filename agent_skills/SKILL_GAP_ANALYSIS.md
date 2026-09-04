@@ -1,6 +1,6 @@
-# 🕵️ Metaflow Agent Registry — Skill Gap Analysis & Audit Checklist
+# 🕵️ FlowX Agent Registry — Skill Gap Analysis & Audit Checklist
 
-> **Purpose**: Systematic audit comparing the Metaflow framework's consolidated capabilities against existing Agent Skills and Tool definitions, itemizing missing skills, behavioral modifications, and net-new capabilities.
+> **Purpose**: Systematic audit comparing the FlowX framework's consolidated capabilities against existing Agent Skills and Tool definitions, itemizing missing skills, behavioral modifications, and net-new capabilities.
 
 ---
 
@@ -22,8 +22,8 @@
 ## 2. Itemized Skill Checklist
 
 ### 2.1 Missing Skills (Net-New Implementations)
-- [x] **`metaflow-governance`**: Dedicated skill enforcing naming conventions for pipelines (`dfg_*`), flows (`df_*`, `tf_*`, `rf_*`), tasks (`run_pipeline_update`, `apply_governance_tags`, `observability_export`), mandatory table/column tags, and metric signatures.
-- [x] **`metaflow-onboarding-lifecycle`**: Standardized tool calling loop for spec validation (`validate_json`), idempotent control table merge (`onboard_entity`), and schema introspection (`get_catalog_schema_parameters`).
+- [x] **`flowx-governance`**: Dedicated skill enforcing naming conventions for pipelines (`dfg_*`), flows (`df_*`, `tf_*`, `rf_*`), tasks (`run_pipeline_update`, `apply_governance_tags`, `observability_export`), mandatory table/column tags, and metric signatures.
+- [x] **`flowx-onboarding-lifecycle`**: Standardized tool calling loop for spec validation (`validate_json`), idempotent control table merge (`onboard_entity`), and schema introspection (`get_catalog_schema_parameters`).
 
 ### 2.2 Modified Behaviors & Breaking Changes
 - [x] **Lakeflow Sink Registration**: Sinks are now registered *inside* the DLT DAG (`dlt.create_sink` + `@dlt.append_flow`) during Phase 1 graph definition rather than executed via external post-deployment batch jobs.

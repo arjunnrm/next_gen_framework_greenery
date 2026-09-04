@@ -1,6 +1,6 @@
-# 📚 NextGen Metadata Framework (Metaflow) — Production Documentation Suite
+# 📚 FlowX — Production Documentation Suite
 
-Welcome to the **NextGen Metadata Framework (Metaflow)** unified documentation suite. This production-ready, domain-modular documentation serves as the single source of truth for developers, data architects, project managers, and AI coding agents.
+Welcome to the **FlowX** unified documentation suite. This production-ready, domain-modular documentation serves as the single source of truth for developers, data architects, project managers, and AI coding agents.
 
 ---
 

@@ -1,11 +1,11 @@
 ---
-name: metaflow-governance
-description: Enforces standardized pipeline/workflow naming conventions, mandatory Unity Catalog resource tagging, and task/job-level observability naming standards across the Metaflow framework.
+name: flowx-governance
+description: Enforces standardized pipeline/workflow naming conventions, mandatory Unity Catalog resource tagging, and task/job-level observability naming standards across the FlowX framework.
 ---
 
-# 🛡️ Metaflow Governance, Tagging & Observability Standards Skill
+# 🛡️ FlowX Governance, Tagging & Observability Standards Skill
 
-This skill enforces enterprise governance policies, naming conventions, metadata attribution, and observability standards for all Metaflow data pipelines.
+This skill enforces enterprise governance policies, naming conventions, metadata attribution, and observability standards for all FlowX data pipelines.
 
 ---
 
@@ -90,8 +90,8 @@ For any column containing PII, PCI, or encrypted fields:
 ## 3. Observability & Telemetry Naming Standards
 
 ### 3.1 OpenTelemetry Resource & Service Naming
-- **Service Name (`service.name`)**: `metaflow.<environment>.<domain>.<dataflow_group_id>`
-  - Example: `metaflow.prod.finance.dfg_transactions_cdc`
+- **Service Name (`service.name`)**: `flowx.<environment>.<domain>.<dataflow_group_id>`
+  - Example: `flowx.prod.finance.dfg_transactions_cdc`
 - **Destination Identifiers (`destination_id`)**:
   - Volume Destination: `dest-volume-<domain>-archive`
   - OTLP Endpoint Destination: `dest-otlp-<collector_name>`
@@ -108,7 +108,7 @@ In-pipeline JSON logs emitted to Databricks event log or OTel collector MUST adh
 {
   "timestamp": "2026-08-29T12:00:00.000Z",
   "level": "INFO",
-  "service_name": "metaflow.prod.finance.dfg_transactions_cdc",
+  "service_name": "flowx.prod.finance.dfg_transactions_cdc",
   "dataflow_group_id": "dfg_transactions_cdc",
   "dataflow_id": "df_raw_transactions",
   "flow_step_id": "step_cdc_merge",

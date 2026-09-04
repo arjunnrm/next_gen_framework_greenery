@@ -1,6 +1,6 @@
 # DLT Observability: Testing & Validation Runbook
 
-> See also: [README.md](README.md) — the full Metaflow documentation set, and
+> See also: [README.md](README.md) — the full FlowX documentation set, and
 > [25_dlt_observability_module.md](25_dlt_observability_module.md) for the architecture this
 > runbook exercises.
 
@@ -84,10 +84,10 @@ uv run pytest tests/unit/test_observability_*.py -v
 1. **Deploy.** `databricks bundle deploy --target dev --profile <your-profile>` — this builds
    the wheel (picking up `observability/` and the three new deps in `pyproject.toml`) and
    registers `dlt_observability_job.yml`'s job + reuses the existing
-   `metaflow_test_100_zipcsv_pipeline`.
+   `flowx_test_100_zipcsv_pipeline`.
 2. **Configure at least one destination.** There is no separate seed step — edit the
    `"observability": [...]` array directly inside
-   `metaflow_testing/100_zipcsv_onbaording.json` (the onboarding spec `dlt_observability_job.yml`'s
+   `flowx_testing/100_zipcsv_onbaording.json` (the onboarding spec `dlt_observability_job.yml`'s
    `onboard_100` task onboards) with a real Volume path / OTLP endpoint reachable from your
    workspace. For a first smoke test with zero external dependencies, keep only the
    `DATABRICKS_VOLUME` entry — it needs no credentials and no reachable external endpoint.
@@ -197,8 +197,8 @@ listener) and inspect the raw POST body — the top-level shape is exactly
 Catalog Volume is touched. If you need to exercise the same scenarios interactively:
 
 ```python
-from NextGen_Metadata_Framework.lakeflow_framework.observability.destination_dispatcher import dispatch_to_otlp
-from NextGen_Metadata_Framework.lakeflow_framework.observability.config_loader import DestinationConfig
+from flowx.lakeflow_framework.observability.destination_dispatcher import dispatch_to_otlp
+from flowx.lakeflow_framework.observability.config_loader import DestinationConfig
 
 class _FakeResponse:
     def __init__(self, status_code): self.status_code, self.text, self.headers = status_code, "", {}

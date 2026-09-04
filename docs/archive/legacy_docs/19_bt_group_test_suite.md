@@ -1,10 +1,10 @@
 # BT_Group Test Suite: UC001-UC005
 
-> See also: [README.md](README.md) — the full Metaflow documentation set.
+> See also: [README.md](README.md) — the full FlowX documentation set.
 
 ## Purpose
 
-Five production-grade acceptance-test pipelines, each proving a distinct Metaflow engine
+Five production-grade acceptance-test pipelines, each proving a distinct FlowX engine
 capability, all onboarded through configuration alone against a dedicated `BT_Group` Unity
 Catalog catalog (separate from this repo's `poc` demo catalog). One new, small, justified
 engine capability was added to support UC002 (`source_zip_handling` generalized from

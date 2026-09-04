@@ -1,10 +1,10 @@
 # Core Functionality Verification Suite
 
-> See also: [README.md](README.md) for the full Metaflow documentation set.
+> See also: [README.md](README.md) for the full FlowX documentation set.
 
 ## Purpose
 
-Exercise the remaining core engine behaviors in Metaflow not already covered by a named
+Exercise the remaining core engine behaviors in FlowX not already covered by a named
 sample pipeline: exhaustive configuration validation, dynamic schema drift handling,
 encryption key rotation, governance tag idempotency, onboarding restart/idempotency, and
 (pointer to) end-to-end reconciliation verification.

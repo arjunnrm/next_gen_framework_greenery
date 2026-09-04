@@ -12,7 +12,7 @@ Turning a spec document into control-table rows.
 
 ## `lakeflow_framework/onboarding/agent_tools.py`
 
-Agent-facing onboarding and lifecycle tools for NextGen Metadata Framework (Metaflow).
+Agent-facing onboarding and lifecycle tools for FlowX (FlowX).
 
 
 ### Functions

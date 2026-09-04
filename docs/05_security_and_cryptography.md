@@ -1,4 +1,4 @@
-# 🔐 Metaflow — Security & Cryptography
+# 🔐 FlowX — Security & Cryptography
 
 > **Audience**: Security architects, compliance officers, and data engineers handling Personally Identifiable Information (PII), Payment Card Industry (PCI) data, and secret management.
 
@@ -6,7 +6,7 @@
 
 ## 1. Zero-Key-Leakage Cryptographic Architecture
 
-Metaflow incorporates a robust column-level encryption and decryption engine with strict zero-key-leakage guarantees:
+FlowX incorporates a robust column-level encryption and decryption engine with strict zero-key-leakage guarantees:
 - **No In-Code Keys**: Encryption keys are never hardcoded, never written to control tables, and never printed to logs.
 - **Unity Catalog Secret Resolution**: All cryptographic keys are dynamically retrieved at runtime using the Unity Catalog 3-level secret namespace (`secret_catalog` / `secret_schema` / `secret_key`) or workspace scopes (`secret:<scope>:<key>`).
 - **Deterministic Validation**: Invalid key lengths or unresolvable secrets raise immediate compile-time errors before data processing begins.
@@ -15,7 +15,7 @@ Metaflow incorporates a robust column-level encryption and decryption engine wit
 
 ## 2. Column-Level AES Encryption
 
-Metaflow supports Advanced Encryption Standard (AES) encryption across 3 cipher modes:
+FlowX supports Advanced Encryption Standard (AES) encryption across 3 cipher modes:
 - **`GCM`** (Galois/Counter Mode — Recommended): Authenticated encryption providing both confidentiality and integrity verification. Requires an Initialization Vector (IV) / nonce.
 - **`CBC`** (Cipher Block Chaining): Standard block cipher with PKCS7 padding.
 - **`ECB`** (Electronic Codebook): Deterministic encryption. Useful when encrypted columns must support equality joins across tables without prior decryption.

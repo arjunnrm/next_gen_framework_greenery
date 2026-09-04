@@ -1,12 +1,12 @@
 {
-  "$comment": "Master Declarative AI Agent Tool Specifications for NextGen Metadata Framework (Metaflow). OpenAI Function-Calling / LangChain StructuredTool / Semantic Kernel compatible schema definitions.",
+  "$comment": "Master Declarative AI Agent Tool Specifications for FlowX. OpenAI Function-Calling / LangChain StructuredTool / Semantic Kernel compatible schema definitions.",
   "tools": [
     {
       "type": "function",
       "function": {
         "name": "validate_json",
-        "description": "Validates a candidate Metaflow onboarding specification (JSON or YAML) immediately after generation and before downstream execution. Runs OFFLINE -- no SparkSession, no cluster, sub-second -- so it is the mandatory last step of any spec-generation loop: generate, validate, fix from the error text, repeat until valid is true. Performs complete structural validation against control table contracts, allowed-value checks, CDC constraints (e.g. SCD3 transformation-only), restricted SQL grammar validation, secret path checks, governance tag rule verification, AND (v1.7.1) rejection of any attribute the framework does not read -- an unrecognised key is a hard error whose message names the correct attribute, because a silently ignored key onboards and runs while doing nothing. The only check needing a live session is the EXPLAIN-based structural validation of transformation_sql/transform_sql, which is skipped offline (parameter substitution is still checked) and runs at onboarding time on the cluster.",
-        "implementation": "NextGen_Metadata_Framework.lakeflow_framework.onboarding.agent_tools.validate_json",
+        "description": "Validates a candidate FlowX onboarding specification (JSON or YAML) immediately after generation and before downstream execution. Runs OFFLINE -- no SparkSession, no cluster, sub-second -- so it is the mandatory last step of any spec-generation loop: generate, validate, fix from the error text, repeat until valid is true. Performs complete structural validation against control table contracts, allowed-value checks, CDC constraints (e.g. SCD3 transformation-only), restricted SQL grammar validation, secret path checks, governance tag rule verification, AND (v1.7.1) rejection of any attribute the framework does not read -- an unrecognised key is a hard error whose message names the correct attribute, because a silently ignored key onboards and runs while doing nothing. The only check needing a live session is the EXPLAIN-based structural validation of transformation_sql/transform_sql, which is skipped offline (parameter substitution is still checked) and runs at onboarding time on the cluster.",
+        "implementation": "flowx.lakeflow_framework.onboarding.agent_tools.validate_json",
         "parameters": {
           "type": "object",
           "required": [
@@ -73,8 +73,8 @@
       "type": "function",
       "function": {
         "name": "onboard_entity",
-        "description": "Unified idempotent lifecycle execution tool supporting 'create' and 'update' actions for Metaflow pipelines, jobs, and control table entities. Performs preflight validation, upserts control table records (dataflow_group_spec, ingestion_flow_spec, transformation_flow_spec, reconciliation_flow_spec), records audit logs, and optionally triggers initial pipeline graph deployment.",
-        "implementation": "NextGen_Metadata_Framework.lakeflow_framework.onboarding.agent_tools.onboard_entity",
+        "description": "Unified idempotent lifecycle execution tool supporting 'create' and 'update' actions for FlowX pipelines, jobs, and control table entities. Performs preflight validation, upserts control table records (dataflow_group_spec, ingestion_flow_spec, transformation_flow_spec, reconciliation_flow_spec), records audit logs, and optionally triggers initial pipeline graph deployment.",
+        "implementation": "flowx.lakeflow_framework.onboarding.agent_tools.onboard_entity",
         "parameters": {
           "type": "object",
           "required": [
@@ -156,7 +156,7 @@
       "function": {
         "name": "get_catalog_schema_parameters",
         "description": "Retrieval tool to introspect Unity Catalog schemas, Delta table metadata, Volume storage paths, column data types, and applied governance tags. Use this tool before authoring onboarding specs to discover source table schemas, verify existing target tables, or retrieve runtime parameter configurations.",
-        "implementation": "NextGen_Metadata_Framework.lakeflow_framework.onboarding.agent_tools.get_catalog_schema_parameters",
+        "implementation": "flowx.lakeflow_framework.onboarding.agent_tools.get_catalog_schema_parameters",
         "parameters": {
           "type": "object",
           "required": [
@@ -250,7 +250,7 @@
       "function": {
         "name": "validate_observability_config",
         "description": "Lints and validates an {\"observability\": [...]} fragment against allowed destination types, protocols, auth structures, and compression options.",
-        "implementation": "NextGen_Metadata_Framework.lakeflow_framework.observability.agent_tools.validate_observability_config",
+        "implementation": "flowx.lakeflow_framework.observability.agent_tools.validate_observability_config",
         "parameters": {
           "type": "object",
           "required": [
@@ -296,7 +296,7 @@
       "function": {
         "name": "generate_pipeline_onboarding_config",
         "description": "Auto-generates an {\"observability\": [...]} array from destination target parameters (Databricks Volume or OTLP HTTP endpoint) for merging into an onboarding spec.",
-        "implementation": "NextGen_Metadata_Framework.lakeflow_framework.observability.agent_tools.generate_pipeline_onboarding_config",
+        "implementation": "flowx.lakeflow_framework.observability.agent_tools.generate_pipeline_onboarding_config",
         "parameters": {
           "type": "object",
           "required": [
@@ -373,7 +373,7 @@
       "function": {
         "name": "diagnose_pipeline_telemetry_failures",
         "description": "Inspects a failed observability task run's error message and matches it against known failure categories to return diagnostic root causes and concrete remediation steps.",
-        "implementation": "NextGen_Metadata_Framework.lakeflow_framework.observability.agent_tools.diagnose_pipeline_telemetry_failures",
+        "implementation": "flowx.lakeflow_framework.observability.agent_tools.diagnose_pipeline_telemetry_failures",
         "parameters": {
           "type": "object",
           "required": [

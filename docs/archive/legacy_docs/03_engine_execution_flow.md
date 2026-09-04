@@ -1,6 +1,6 @@
 # Engine Execution Flow
 
-See also: [README.md](README.md) for the full Metaflow documentation index.
+See also: [README.md](README.md) for the full FlowX documentation index.
 
 `notebooks/03_engine/03_lakeflow_declarative_pipeline.py` runs in two conceptually
 distinct phases, which is the single most important thing to understand about how this

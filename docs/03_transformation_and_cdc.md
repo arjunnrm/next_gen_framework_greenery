@@ -1,4 +1,4 @@
-# 🔄 Metaflow — Transformation & CDC Engine
+# 🔄 FlowX — Transformation & CDC Engine
 
 > **Audience**: Data engineers and analytics engineers building Silver and Gold layer pipelines, Slowly Changing Dimensions, and multi-table joins.
 
@@ -55,7 +55,7 @@ A transformation flow consumes one or more upstream Delta tables or views, appli
 
 ## 2. Complete CDC Load Strategies Guide
 
-Metaflow provides 6 built-in load and merge strategies configured via `target_config.cdc_load_strategy`. They fall into two families: `APPEND` and `TRUNCATE_AND_LOAD` need no key and skip the CDC dispatcher entirely; `SCD1`, `SCD2`, `SCD3` and `FULL_SNAPSHOT_CDC` all merge on `primary_keys`.
+FlowX provides 6 built-in load and merge strategies configured via `target_config.cdc_load_strategy`. They fall into two families: `APPEND` and `TRUNCATE_AND_LOAD` need no key and skip the CDC dispatcher entirely; `SCD1`, `SCD2`, `SCD3` and `FULL_SNAPSHOT_CDC` all merge on `primary_keys`.
 
 ### 2.0 Choosing one
 
@@ -267,7 +267,7 @@ no longer front-loaded by `storage/column_ordering.py`.
   ```
   target_config.liquid_clustering_columns: at most 3 columns are supported by Delta Liquid Clustering, got 4 (['a', 'b', 'c', 'd']) -- reduce the list to 3 or fewer columns
   ```
-- **Breaking for any spec configuring more than 3 columns.** No shipped `metaflow_testing/` or `onboarding_templates/` spec does; an already-deployed table clustered on more than 3 columns is unaffected until its flow is re-onboarded.
+- **Breaking for any spec configuring more than 3 columns.** No shipped `flowx_testing/` or `onboarding_templates/` spec does; an already-deployed table clustered on more than 3 columns is unaffected until its flow is re-onboarded.
 
 ```json
 { "target_config": { "cdc_load_strategy": "APPEND", "liquid_clustering_columns": ["region", "customer_id", "order_ts"] } }
@@ -277,7 +277,7 @@ no longer front-loaded by `storage/column_ordering.py`.
 
 ## 4. Hash Column Computation
 
-Metaflow injects deterministic **SHA-256** hash columns to drive change detection. These are computed only for CDC-dispatched strategies (`SCD1`/`SCD2`/`SCD3`/`FULL_SNAPSHOT_CDC`) inside `dq/quarantine.py::_apply_hash_columns`, before the clean upstream reaches `dlt.apply_changes`/`apply_changes_from_snapshot`:
+FlowX injects deterministic **SHA-256** hash columns to drive change detection. These are computed only for CDC-dispatched strategies (`SCD1`/`SCD2`/`SCD3`/`FULL_SNAPSHOT_CDC`) inside `dq/quarantine.py::_apply_hash_columns`, before the clean upstream reaches `dlt.apply_changes`/`apply_changes_from_snapshot`:
 
 | Setting | Generated Column(s) | Description |
 |---|---|---|
@@ -297,7 +297,7 @@ As of v1.3.0 both columns — across ingestion, transformation, and reconciliati
 
 ## 5. Parameter Substitution (`${param}`, `{{catalog}}`, `{{env}}`)
 
-Metaflow supports flexible parameter binding across deployment environments:
+FlowX supports flexible parameter binding across deployment environments:
 
 ### Template Variables (Resolved at Onboarding Time)
 - `{{catalog}}`: Replaced with the active Unity Catalog catalog (e.g. `poc` in dev, `enterprise_prod` in prod).

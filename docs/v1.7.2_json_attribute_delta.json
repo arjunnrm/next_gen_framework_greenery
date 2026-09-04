@@ -1,5 +1,5 @@
 {
- "$comment": "MACHINE-READABLE ATTRIBUTE DELTA for the NextGen Metadata Framework (Metaflow) onboarding spec, v1.7.1 -> v1.7.2. Intended to be fed directly to an automated agent updating the Databricks App (databricks-app/) or any other spec-authoring surface. Every path below is expressed as it appears in an onboarding spec document, rooted at the spec object; `[]` denotes an array element. NO ATTRIBUTE IS ADDED, MODIFIED OR REMOVED in this release. What changes is enforcement: previously an unrecognised attribute was accepted and silently never read; it is now a hard validation error. Any surface that emits an attribute not in the allowlists below will now fail onboarding. The enforcing artefacts are onboarding_templates/onboarding_spec.schema.json (structure; additionalProperties:false on every authored container) and spec_validator.py::reject_unknown_keys (semantics, messages quoted verbatim below).",
+ "$comment": "MACHINE-READABLE ATTRIBUTE DELTA for the FlowX onboarding spec, v1.7.1 -> v1.7.2. Intended to be fed directly to an automated agent updating the Databricks App (databricks-app/) or any other spec-authoring surface. Every path below is expressed as it appears in an onboarding spec document, rooted at the spec object; `[]` denotes an array element. NO ATTRIBUTE IS ADDED, MODIFIED OR REMOVED in this release. What changes is enforcement: previously an unrecognised attribute was accepted and silently never read; it is now a hard validation error. Any surface that emits an attribute not in the allowlists below will now fail onboarding. The enforcing artefacts are onboarding_templates/onboarding_spec.schema.json (structure; additionalProperties:false on every authored container) and spec_validator.py::reject_unknown_keys (semantics, messages quoted verbatim below).",
  "schema_version": "1.0",
  "framework_version_from": "1.7.1",
  "framework_version_to": "1.7.2",
@@ -22,7 +22,7 @@
    "any key matching ^_ (author comment; JSON has no comment syntax)",
    "$schema (editor hint)"
   ],
-  "validator_function": "src/NextGen_Metadata_Framework/lakeflow_framework/onboarding/spec_validator.py::reject_unknown_keys",
+  "validator_function": "src/flowx/lakeflow_framework/onboarding/spec_validator.py::reject_unknown_keys",
   "message_template": "<json_path>: not a recognised attribute -- the framework never reads it, so leaving it in place silently does nothing.<hint>",
   "hint_forms": [
    "' Use <replacement>.' when the key is in UNKNOWN_KEY_ALIASES",
@@ -314,7 +314,7 @@
   }
  ],
  "validation": {
-  "offline_entrypoint": "NextGen_Metadata_Framework.lakeflow_framework.onboarding.agent_tools.validate_json(spec_content, catalog, env, strict_mode)",
+  "offline_entrypoint": "flowx.lakeflow_framework.onboarding.agent_tools.validate_json(spec_content, catalog, env, strict_mode)",
   "requires_spark": false,
   "note": "validate_spec(None, spec) is supported for every flow type as of v1.7.1. The EXPLAIN-based transformation_sql/transform_sql structural check is skipped without a SparkSession (parameter substitution is still checked); it runs at onboarding time on the cluster."
  },

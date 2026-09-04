@@ -1,4 +1,4 @@
-# ⚖️ Metaflow — Reconciliation & Self-Healing Engine
+# ⚖️ FlowX — Reconciliation & Self-Healing Engine
 
 > **Audience**: Data quality leads, analytics engineers, and operations teams managing cross-system consistency, automated audit checks, and self-healing data pipelines.
 
@@ -6,7 +6,7 @@
 
 ## 1. Overview of Reconciliation
 
-The Metaflow Reconciliation Engine provides automated, hash-first verification between a **source baseline dataset** and one or more **target datasets** (e.g. comparing a Bronze landing table against a transformed Gold dimension).
+The FlowX Reconciliation Engine provides automated, hash-first verification between a **source baseline dataset** and one or more **target datasets** (e.g. comparing a Bronze landing table against a transformed Gold dimension).
 
 ### Key Features
 - **Hash-First Matching**: Uses deterministic SHA-256 row hashes (`__framework_hash_key` / `__framework_hash_value`, see [`11_hashing_and_determinism.md`](11_hashing_and_determinism.md)) for a single-column join instead of a multi-column `match_keys` join, so a flow with a dozen `compare_columns` costs the same at join time as one with a single column.
@@ -497,15 +497,15 @@ flow types; L3–L5 are what `execution_mode: "pipeline"` adds.
 
 #### Verified live — the exact graph one update registered
 
-The node map above is not a design sketch. On **2026-08-31**, job `metaflow_test_recon_dag_job`
-(id `854232399214818`) ran to SUCCESS on target `dev_metaflow` — `setup_control_tables` →
-`seed_metaflow_testing_data` → `onboard_003` → `run_003_pipeline` — and pipeline
-`be78d88d-6064-414d-a10c-2aacd900fa86` (`metaflow_test_003_autoload_recon_pipeline`) registered
+The node map above is not a design sketch. On **2026-08-31**, job `flowx_test_recon_dag_job`
+(id `854232399214818`) ran to SUCCESS on target `dev_flowx` — `setup_control_tables` →
+`seed_flowx_testing_data` → `onboard_003` → `run_003_pipeline` — and pipeline
+`be78d88d-6064-414d-a10c-2aacd900fa86` (`flowx_test_003_autoload_recon_pipeline`) registered
 **all** of the following in **one** update, per its own event log:
 
 | Dataset / construct as it appears in the event log | Lakeflow kind | Layer |
 |---|---|---|
-| `metaflow.bronze_excalibur.autoload_bronze` | `STREAMING_TABLE` | L1 · ingestion |
+| `flowx.bronze_excalibur.autoload_bronze` | `STREAMING_TABLE` | L1 · ingestion |
 | `_recon__recon_excalibur_autoload_vs_zerobus__src` | `STREAMING_TABLE` | L3 · prepared source |
 | `_recon__recon_excalibur_autoload_vs_zerobus__zerobus_bronze_target__tgt` | `MATERIALIZED_VIEW` | L3 · prepared target |
 | `recon__recon_excalibur_autoload_vs_zerobus__zerobus_bronze_target__classified` | `MATERIALIZED_VIEW` | L4 |
@@ -680,7 +680,7 @@ Two related properties, neither of them new:
   not remove anything from your DABs resources. A `run_<n>_reconciliation` notebook task left in
   place beside a now-pipeline-mode flow makes the comparison run **twice per cycle** — once inside
   the update, once as the job task — and each pass appends its own corrections into
-  `append_target_table`. This actually happened: `resources/feature_tests/metaflow_test_002_003_job.yml` still
+  `append_target_table`. This actually happened: `resources/feature_tests/flowx_test_002_003_job.yml` still
   carried the standalone task after scenario 003 was flipped, and the task was deleted. Nothing
   detects this for you; see [`13_known_limitations_and_gotchas.md` R8](13_known_limitations_and_gotchas.md#r8).
 * **One run-as identity, not two.** Today the recon job task and the pipeline can run as different
@@ -740,7 +740,7 @@ because it silently drops changed rows rather than failing loudly -- read '<...>
 > `execution_mode: "pipeline"` and then died at pipeline runtime with
 > `DELTA_SOURCE_TABLE_IGNORE_CHANGES`. The concrete case is the geneva tariffs group, whose recon
 > source `geneva_admin.stg_tariffelementband` is that group's own `TRUNCATE_AND_LOAD` target —
-> which is why `metaflow_testing/053_geneva_e41a47ba_recon_in_pipeline.json` declares
+> which is why `flowx_testing/053_geneva_e41a47ba_recon_in_pipeline.json` declares
 > `pipeline_audit_only`, not `pipeline`. The strategy is now in the guard set and the topology is
 > pinned by `tests/unit/test_geneva_e41a47ba_topology.py`.
 
@@ -764,7 +764,7 @@ through one helper, `_append_cycle_finding(...)`, which grades them by `executio
 
 **Why this is graded, not absolute.** Firing these unconditionally was a genuine
 **backward-compatibility break**, not a stricter reading of an existing rule. The shipped,
-pre-v1.5.0, purely job-mode spec `metaflow_testing/038_rec_003_precomputed_hash.json` appends into
+pre-v1.5.0, purely job-mode spec `flowx_testing/038_rec_003_precomputed_hash.json` appends into
 its own comparison target; under an unconditional rule it stopped validating and therefore could no
 longer be onboarded at all, because `02_onboarding_engine.py` raises on any non-empty `errors` list
 — with no edit by its author and no opt-in to any v1.5.0 attribute.

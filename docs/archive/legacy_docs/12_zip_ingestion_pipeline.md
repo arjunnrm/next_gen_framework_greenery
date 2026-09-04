@@ -4,7 +4,7 @@
 
 ## Purpose
 
-This Metaflow pipeline ingests a batch of ZIP archives landed in a
+This FlowX pipeline ingests a batch of ZIP archives landed in a
 [Unity Catalog Volume](https://docs.databricks.com/aws/en/connect/unity-catalog/volumes),
 joins their contents together, and re-packages the result as a ZIP placed back into an
 egress Volume -- with explicit, actionable errors for every way a batch of input archives

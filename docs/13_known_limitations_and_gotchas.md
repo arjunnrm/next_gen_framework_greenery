@@ -805,7 +805,7 @@ Every `*_secret` block in a spec is a three-part UC reference, never a classic w
 secret scope:
 
 ```jsonc
-{"secret_catalog": "metaflow", "secret_schema": "security", "secret_key": "pgp_private_key_finance"}
+{"secret_catalog": "flowx", "secret_schema": "security", "secret_key": "pgp_private_key_finance"}
 ```
 
 Passphrases and keys must **always** be a genuine secret reference — an inline literal is
@@ -974,7 +974,7 @@ every changed row instead of failing, which is strictly worse than failing the u
 
 **Real instance:** the geneva tariffs group reconciles against `geneva_admin.stg_tariffelementband`,
 which is that same group's own `TRUNCATE_AND_LOAD` ingestion target — which is why
-`metaflow_testing/053_geneva_e41a47ba_recon_in_pipeline.json` declares `pipeline_audit_only`. That
+`flowx_testing/053_geneva_e41a47ba_recon_in_pipeline.json` declares `pipeline_audit_only`. That
 scenario is verified **offline only** (validator + `plan_source_plane`, pinned by
 `tests/unit/test_geneva_e41a47ba_topology.py`); it has never been confirmed by a live run, because
 its target table's grants block the pipeline's run-as identity — see [O6](#o6).
@@ -996,7 +996,7 @@ corrections into an append-only bus, no error anywhere. The batch fingerprint
 ([R6](#r6)) does not save you — the two passes are independent invocations against a source the
 first pass may already have moved, so the fingerprints legitimately differ.
 
-**This is not hypothetical.** `resources/feature_tests/metaflow_test_002_003_job.yml` still carried its
+**This is not hypothetical.** `resources/feature_tests/flowx_test_002_003_job.yml` still carried its
 `run_003_reconciliation` task after scenario 003 was flipped to `"pipeline"` — while the file's own
 header already claimed the task had been removed — risking a double-append into
 `Excalibur_usecase.zerobus_source_bus`. The task was deleted.
@@ -1212,7 +1212,7 @@ source's producing flow must write it append-only.
 
 ### <a id="l6"></a>L6 🟠 `CREATE OR REPLACE FUNCTION` is idempotent in intent but not atomic
 
-Concurrent `setup_control_tables` runs — and every `metaflow_test_*` job starts with one — race
+Concurrent `setup_control_tables` runs — and every `flowx_test_*` job starts with one — race
 on UC function creation. The loser gets `[ROUTINE_ALREADY_EXISTS]`, every downstream task is
 skipped, and it reads as a framework failure. Handled by
 `schema_provisioner.is_already_exists_race()`, which treats "someone else created it" as success
@@ -1439,7 +1439,7 @@ added to one of those `CREATE` statements reaches **new installations only**. An
 already-provisioned workspace keeps the old table shape indefinitely, with nothing logged and
 nothing to notice.
 
-**What that looks like in practice.** Verified live: `metaflow.config.reconciliation_flow_spec` had
+**What that looks like in practice.** Verified live: `flowx.config.reconciliation_flow_spec` had
 **none** of `execution_mode` / `publish_schema` / `dq_config_json`, so pipeline-mode onboarding on
 that workspace failed with `UNRESOLVED_COLUMN` on the column it was trying to write.
 
@@ -1484,19 +1484,19 @@ exists, and a deploy of the pipeline's own bundle is not what is running. Unique
 filenames prevent overwrite-in-place, not removal.
 
 **Live instance, currently unresolved.** Pipeline `e41a47ba-5ad0-4dc5-9535-5aa16cc97e65` is a
-`[dev arjun]` pipeline reading from `metaflow@nrmanalytix.com`'s artifact path, so every
-`dev_metaflow` deploy orphans it. It needs its own `artifact_path`, or to be brought under the
+`[dev arjun]` pipeline reading from `flowx@nrmanalytix.com`'s artifact path, so every
+`dev_flowx` deploy orphans it. It needs its own `artifact_path`, or to be brought under the
 bundle. This is a **pre-existing bundle-topology problem**, not a consequence of any framework
 release.
 
 **A second, independent blocker on that same scenario, also unresolved.** Its reconciliation target
-`metaflow.bronze_excalibur.bronze_tariffelementband` grants `SELECT` to `arjun@`, `gowtham@` and
-`varadaraju@` only — **not** to `metaflow@nrmanalytix.com`, which is the identity the pipeline runs
+`flowx.bronze_excalibur.bronze_tariffelementband` grants `SELECT` to `arjun@`, `gowtham@` and
+`varadaraju@` only — **not** to `flowx@nrmanalytix.com`, which is the identity the pipeline runs
 as. Schema-level access is fine (the same identity reads `bronze_excalibur.autoload_bronze`), so
 this is a **table-level grant gap**:
 
 ```sql
-GRANT SELECT ON TABLE metaflow.bronze_excalibur.bronze_tariffelementband TO `metaflow@nrmanalytix.com`;
+GRANT SELECT ON TABLE flowx.bronze_excalibur.bronze_tariffelementband TO `flowx@nrmanalytix.com`;
 ```
 
 Until both are cleared, that scenario is verified **offline only** — validator plus

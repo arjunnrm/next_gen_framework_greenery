@@ -1,4 +1,4 @@
-# MetaFlow Architecture Review — Pillar 3: Code Quality, Simplification & Anti-Patterns
+# FlowX Architecture Review — Pillar 3: Code Quality, Simplification & Anti-Patterns
 
 **Evaluation Area:** Codebase Hygiene, Dead Code Identification, PySpark Idioms vs UDFs, Exception Hierarchy, and Type Safety  
 **Score:** 8.0 / 10  
@@ -8,7 +8,7 @@
 
 ## 1. Executive Code Quality Evaluation
 
-The MetaFlow codebase exhibits high engineering rigor. Code modules are well-structured, comprehensively documented with detailed module-level docstrings, strictly typed with Python 3.12 annotations, and utilize native Spark expressions rather than row-by-row Python UDFs. 
+The FlowX codebase exhibits high engineering rigor. Code modules are well-structured, comprehensively documented with detailed module-level docstrings, strictly typed with Python 3.12 annotations, and utilize native Spark expressions rather than row-by-row Python UDFs. 
 
 However, two notable code quality risks require immediate remediation:
 1. **Unintended Automatic Array Exploding / Struct Flattening** in `json_flattening.py` when `explode_columns` is omitted.
@@ -65,16 +65,16 @@ However, two notable code quality risks require immediate remediation:
 ---
 
 ### 🟡 Finding 3.2: Legacy Template Scaffold Baggage (Low Severity / Code Hygiene)
-- **File & Lines:** `src/NextGen_Metadata_Framework/main.py` (lines 1–25), `src/NextGen_Metadata_Framework/taxis.py` (lines 1–8), and `pyproject.toml` (line 31).
+- **File & Lines:** `src/flowx/main.py` (lines 1–25), `src/flowx/taxis.py` (lines 1–8), and `pyproject.toml` (line 31).
 - **The Issue:**
   The project contains default Databricks bundle template files created during initial project scaffolding:
   - `taxis.py`: Contains a helper `find_all_taxis()` that queries `samples.nyctaxi.trips`.
   - `main.py`: Imports `find_all_taxis()`, creates a dummy DataFrame, and prints rows.
-  - `pyproject.toml`: Registers `main = "NextGen_Metadata_Framework.main:main"` as a CLI entry point.
+  - `pyproject.toml`: Registers `main = "flowx.main:main"` as a CLI entry point.
 - **Architectural Impact:**
-  These files are completely disconnected from the actual MetaFlow framework, mislead external auditors and engineers, and clutter the built wheel distribution artifact.
+  These files are completely disconnected from the actual FlowX framework, mislead external auditors and engineers, and clutter the built wheel distribution artifact.
 - **Refactoring:**
-  Delete `main.py` and `taxis.py`. Update `pyproject.toml` to remove the `[project.scripts]` reference or replace it with a genuine MetaFlow CLI tool entrypoint.
+  Delete `main.py` and `taxis.py`. Update `pyproject.toml` to remove the `[project.scripts]` reference or replace it with a genuine FlowX CLI tool entrypoint.
 
 ---
 

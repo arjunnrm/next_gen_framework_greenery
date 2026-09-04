@@ -1,12 +1,12 @@
 # Control Metadata Schema Reference
 
 Every attribute below is validated at onboarding time by
-`src/NextGen_Metadata_Framework/lakeflow_framework/onboarding/spec_validator.py` — see
+`src/flowx/lakeflow_framework/onboarding/spec_validator.py` — see
 [04_onboarding_validation.md](04_onboarding_validation.md) for the exact error-message
 format when a value is missing or wrong. A machine-readable JSON Schema mirroring this same
 shape lives at `onboarding_templates/onboarding_spec.schema.json`.
 
-See also: [README.md](README.md) for how this document fits into the rest of the Metaflow
+See also: [README.md](README.md) for how this document fits into the rest of the FlowX
 documentation set, and [17_onboarding_template_reference.md](17_onboarding_template_reference.md)
 for a fully worked, field-by-field example.
 

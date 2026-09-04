@@ -4,7 +4,7 @@
 
 ## Purpose
 
-Prove Metaflow's engine onboards a new pipeline -- 1 Bronze ingestion + 5 Silver dimension
+Prove FlowX's engine onboards a new pipeline -- 1 Bronze ingestion + 5 Silver dimension
 tables, 3 of them SCD1 and 2 SCD2 -- **entirely through onboarding configuration**, with
 zero changes to `lakeflow_framework` engine code.
 

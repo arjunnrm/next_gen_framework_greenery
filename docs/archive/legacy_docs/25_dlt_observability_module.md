@@ -1,10 +1,10 @@
 # DLT Observability Module
 
-> See also: [README.md](README.md) — the full Metaflow documentation set.
+> See also: [README.md](README.md) — the full FlowX documentation set.
 
 ## Purpose
 
-Metaflow's pipeline graph (`03_lakeflow_declarative_pipeline.py`) already gets Lakeflow's own
+FlowX's pipeline graph (`03_lakeflow_declarative_pipeline.py`) already gets Lakeflow's own
 native event log — `flow_progress`/`dataset_definition`/`update_progress`/... events, covering
 generic per-flow row counts and native (`warn`/`drop`/`fail`) expectation pass/fail counts, for
 free. What it does not get is a **vendor-neutral, exportable** telemetry format any external
@@ -55,7 +55,7 @@ notebook that executes the four numbered phases above in order.
 ## Component breakdown
 
 All business logic lives under
-`src/NextGen_Metadata_Framework/lakeflow_framework/observability/` — the entrypoint notebook is
+`src/flowx/lakeflow_framework/observability/` — the entrypoint notebook is
 deliberately thin orchestration, per this repo's own convention (`AGENTS.md`/`agent_skills/SKILL.md`).
 
 | Module | Responsibility |
@@ -108,8 +108,8 @@ requirement — telemetry with nothing to observe is meaningless.
 ### Why `dataflow_group_id` isn't read off the event log
 
 `dataflow_group_id` is **not** a column (or a `details`/`origin` field) anywhere in the DLT
-event log — this is a Metaflow-specific business identifier, not a Databricks platform concept.
-Metaflow configures exactly one `dataflow.group.id` Spark conf per pipeline (see
+event log — this is a FlowX-specific business identifier, not a Databricks platform concept.
+FlowX configures exactly one `dataflow.group.id` Spark conf per pipeline (see
 `agent_skills/SKILL.md` §2 and any `resources/*_pipeline.yml`'s `configuration:` block), so
 `event_log_extractor.py::resolve_dataflow_group_id` resolves it once, up front, via the
 Pipelines API (`GET /api/2.0/pipelines/{pipeline_id}` → `spec.configuration["dataflow.group.id"]`)
@@ -156,11 +156,11 @@ JSON payload whose shape depends on `event_type` (hence JSON-typed rather than a
 | `databricks.task_run_id` | The `run_pipeline_update` task's own `run_id` (the widget input itself) | |
 | `databricks.pipeline_id` | `task_context_resolver.py::resolve_task_context` → `run.pipeline_task.pipeline_id` | |
 | `databricks.dataflow_group_id` | `event_log_extractor.py::resolve_dataflow_group_id` (Pipelines API, see above) | Constant across every `ResourceLogs` entry in one run. |
-| `databricks.dataflow_id` / `databricks.step_id` | Event log `origin.flow_id` | Both attributes carry the same value — `dataflow_id` (ingestion) and `flow_step_id` (transformation) are Metaflow's own two names for the same underlying Lakeflow `flow_id`; both are populated so a consumer can filter by either vocabulary. |
+| `databricks.dataflow_id` / `databricks.step_id` | Event log `origin.flow_id` | Both attributes carry the same value — `dataflow_id` (ingestion) and `flow_step_id` (transformation) are FlowX's own two names for the same underlying Lakeflow `flow_id`; both are populated so a consumer can filter by either vocabulary. |
 | `pipeline.update_id` | Event log `origin.update_id` | |
 | `pipeline.config.*` | `job_context["pipeline_config"]` (currently unpopulated by the entrypoint notebook — a documented extension point, see [Extending](#extending-this-module)) | One resource attribute per key. |
 
-### Log records (per flow, inside one `ScopeLogs`, `scope.name = "NextGen_Metadata_Framework.lakeflow_framework.observability.dlt_observability"`)
+### Log records (per flow, inside one `ScopeLogs`, `scope.name = "flowx.lakeflow_framework.observability.dlt_observability"`)
 
 | LogRecord | Built from | `body` | `severityNumber` | Key attributes |
 |---|---|---|---|---|
@@ -222,7 +222,7 @@ This table is the human-readable form of `observability/agent_tools.py::diagnose
 | `volume_path is required for DATABRICKS_VOLUME destinations` | Destination config | Missing `destination_config.volume_path`. | Add it (must start with `/Volumes/`). |
 | `destination_config.endpoint is required for OTLP_CONSUMER destinations` | Destination config | Missing `destination_config.endpoint`. | Add a full `https://` URL. |
 | `HTTP 429: ...` (after exhausting retries) | Destination outage | Destination is rate-limiting this pipeline's telemetry volume. | Raise `retry_config.max_attempts`/`backoff_multiplier`, or reduce telemetry volume. |
-| `HTTP 5xx: ...` (after exhausting retries) | Destination outage | The destination itself is erroring on every attempt. | Check the destination's own status/logs — usually not a Metaflow-side problem. |
+| `HTTP 5xx: ...` (after exhausting retries) | Destination outage | The destination itself is erroring on every attempt. | Check the destination's own status/logs — usually not a FlowX-side problem. |
 | `Unsupported compression '...'` | Destination config | `compression` isn't `gzip`/`GZIP`/`none`/`""`. | Fix the value — see [docs/27](27_dlt_observability_onboarding_reference.md). |
 | `... literal secrets are not allowed` | Credentials | `auth_config.credentials` contains a literal secret string instead of an `env:`/`secret:` reference. | Replace with a reference; store the real value in an env var or secret scope. |
 | `Failed to query event_log(...)` | Event log access | Run-as identity lacks `CAN_VIEW`/`CAN_MANAGE` on the pipeline, or it has never run an update. | Grant pipeline permissions; confirm at least one completed update exists. |

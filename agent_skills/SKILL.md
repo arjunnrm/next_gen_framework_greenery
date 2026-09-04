@@ -1,4 +1,4 @@
-# Metaflow Framework — Agent Skill
+# FlowX Framework — Agent Skill
 
 **Read this first.** This document orients any LLM-based coding agent (Claude, Databricks
 Genie, or otherwise) to this repository so it can answer questions about the framework and
@@ -6,8 +6,8 @@ generate correct onboarding specs / framework code on the first attempt. It is a
 copy — every section links to the real file that is authoritative. When in doubt, open the
 cited file; do not guess at a function signature or a field name.
 
-> Project brand name: **Metaflow**. Repo name: `NextGen_Metadata_Framework`. Python package
-> root: `NextGen_Metadata_Framework.lakeflow_framework` under `src/NextGen_Metadata_Framework/lakeflow_framework/`.
+> Project brand name: **FlowX**. Repo name: `flowx`. Python package
+> root: `flowx.lakeflow_framework` under `src/flowx/lakeflow_framework/`.
 
 ## Table of contents
 
@@ -43,7 +43,7 @@ Companion files in this same skill folder:
 
 ## 1. What this framework is
 
-Metaflow is a **metadata-driven** Databricks Lakeflow Declarative Pipelines (formerly Delta
+FlowX is a **metadata-driven** Databricks Lakeflow Declarative Pipelines (formerly Delta
 Live Tables / DLT) framework. Instead of writing a new notebook per data source, you write a
 JSON or YAML **onboarding spec** describing a flow declaratively (source, target, CDC
 strategy, DQ rules, governance tags), submit it once through an onboarding job, and one
@@ -52,14 +52,14 @@ generic engine notebook reads the resulting control-table rows and dynamically b
 required for the common cases; framework Python is only needed to add a genuinely new
 capability (a new `source_type`, a new `cdc_load_strategy`, a new sink `format`, ...).
 
-Every sample/test pipeline in this repo (see `metaflow_testing/*.json`,
+Every sample/test pipeline in this repo (see `flowx_testing/*.json`,
 `onboarding_templates/pipeline_onboarding_template.{json,yaml}`) is onboarded through
 configuration alone — that is the framework's own proof that it is genuinely config-driven,
 and the standard an agent should hold new work to as well.
 
 Core design constraints worth internalizing up front:
 
-- **Business logic lives in `src/NextGen_Metadata_Framework/lakeflow_framework/`.** Notebooks
+- **Business logic lives in `src/flowx/lakeflow_framework/`.** Notebooks
   under `notebooks/` are deliberately thin orchestration — they resolve control-table rows and
   wire them to framework functions. If you find yourself writing real logic inside a notebook
   cell, that logic almost certainly belongs in a framework module instead, so it's unit
@@ -106,7 +106,7 @@ Core design constraints worth internalizing up front:
 
 Concretely, in file terms:
 
-1. **Author a spec** — `metaflow_testing/*.json` for real worked examples, or start from
+1. **Author a spec** — `flowx_testing/*.json` for real worked examples, or start from
    `onboarding_templates/pipeline_onboarding_template.json` (or `.yaml` — byte-for-byte
    equivalent, format is picked by file extension, see
    `onboarding/spec_loader.py::load_and_template_spec`). `{{catalog}}`/`{{env}}` placeholders
@@ -216,7 +216,7 @@ authoritative table — read it before hand-writing a spec) and the worked, fiel
 / `onboarding_templates/pipeline_onboarding_template.json`.
 
 The validator itself
-(`src/NextGen_Metadata_Framework/lakeflow_framework/onboarding/spec_validator.py`) is the
+(`src/flowx/lakeflow_framework/onboarding/spec_validator.py`) is the
 ground truth for exactly which fields are required, their allowed values
 (`ALLOWED_SOURCE_TYPES`, `ALLOWED_TARGET_TYPES`, `ALLOWED_INGESTION_CDC_STRATEGIES`,
 `ALLOWED_TRANSFORMATION_CDC_STRATEGIES`, `ALLOWED_DQ_ACTIONS`, `ALLOWED_SINK_FORMATS`, etc. —
@@ -246,7 +246,7 @@ ones (`cdc_config` → `target_config.cdc_load_strategy`, `file_format` → `for
 
 ```python
 import sys; sys.path.insert(0, "src")
-from NextGen_Metadata_Framework.lakeflow_framework.onboarding.agent_tools import validate_json
+from flowx.lakeflow_framework.onboarding.agent_tools import validate_json
 
 result = validate_json(open("my_spec.json", encoding="utf-8").read())
 print(result["summary"], result["errors"])
@@ -300,11 +300,11 @@ identifiers are camelCase with no underscores (per X.680), so expect fields like
 **Choosing `asn1_pdu_name` on a real telecom module is the step that actually bites.** The PDU
 must be a **top-level `SEQUENCE`**, and `CHOICE` is rejected *anywhere* in its resolved member
 tree — not merely at the top. Real modules put a `CHOICE` at the root: in
-`metaflow_testing/BT_Testing/TAP.310.asn1` (the genuine GSMA TAP 3.10 spec, 375 types) both
+`flowx_testing/BT_Testing/TAP.310.asn1` (the genuine GSMA TAP 3.10 spec, 375 types) both
 `DataInterChange` and, one level down, `CallEventDetail` are `CHOICE`, so neither
 `DataInterChange` nor `TransferBatch` can be the PDU. 70 of that module's 93 top-level
 `SEQUENCE` types *do* resolve; `Notification` is the one Sample 06 uses
-(`resources/sample_jobs/metaflow_sample_06_asn1_tap3_job.yml`). To find the workable set for any
+(`resources/sample_jobs/flowx_sample_06_asn1_tap3_job.yml`). To find the workable set for any
 module, run `derive_asn1_field_defs` over every top-level `SEQUENCE` and keep the ones that do
 not raise `Asn1DecodeError` — far faster than reading the module. See pitfall 37 in
 `reference/common_pitfalls.md`.
@@ -475,16 +475,16 @@ take effect on the **next** update; and one run-as identity must now hold every 
 task and the pipeline previously held separately.
 
 **Verification status — read this before promising a behaviour.** `execution_mode: "pipeline"` is
-**live-verified**: on 2026-08-31 pipeline `metaflow_test_003_autoload_recon_pipeline` registered
+**live-verified**: on 2026-08-31 pipeline `flowx_test_003_autoload_recon_pipeline` registered
 ingestion, the L3 prepared source/target, all three L4 datasets, the L5 gate, the L5 append flow and
 a `dlt.foreach_batch_sink` in **one** update, per its own event log, with every task of
-`metaflow_test_recon_dag_job` succeeding. That settles the one open platform question:
+`flowx_test_recon_dag_job` succeeding. That settles the one open platform question:
 `dlt.foreach_batch_sink` **is** available on DBR serverless, so the heal lane is real and
 `pipeline_audit_only` is a deliberate choice rather than a fallback for an unproven API. (The local
 `databricks-dlt` 0.3.0 stub still lacks the symbol, so `register_foreach_batch_sink` stays guarded
 by `hasattr` — the guard is correct, it is simply no longer expected to trip on DBR.) The
 `pipeline_audit_only` geneva scenario
-(`metaflow_testing/053_geneva_e41a47ba_recon_in_pipeline.json`) is by contrast verified **offline
+(`flowx_testing/053_geneva_e41a47ba_recon_in_pipeline.json`) is by contrast verified **offline
 only** — validator plus `plan_source_plane`, pinned by `tests/unit/test_geneva_e41a47ba_topology.py`
 — because the pipeline's run-as identity lacks table-level `SELECT` on the reconciliation target.
 Do not describe it as live-proven.
@@ -646,7 +646,7 @@ Deep dive: [`docs/06_governance_integration.md`](../docs/06_governance_integrati
 Say you need to ingest a new CSV drop into Bronze with SCD1 semantics on Silver. Concretely:
 
 1. **Pick (or write) a spec file.** Copy the shape of an existing, similar flow from
-   `metaflow_testing/*.json` or `onboarding_templates/pipeline_onboarding_template.json` —
+   `flowx_testing/*.json` or `onboarding_templates/pipeline_onboarding_template.json` —
    don't invent field names from memory; grep the validator
    (`onboarding/spec_validator.py`) for the exact key you need if unsure.
 2. **Ingestion flow** — add an entry to `ingestion_flows[]`:
@@ -676,7 +676,7 @@ Say you need to ingest a new CSV drop into Bronze with SCD1 semantics on Silver.
 5. **Onboard for real** — re-run with `action_type: "CREATE"` (or `"UPDATE"` for an existing
    `dataflow_group_id`). This upserts the control-table rows and writes an audit log entry. If you
    are adding a **new job** that needs to onboard a spec, it must **delegate** to the generic
-   parameterised `resources/metaflow_config_jobs/onboarding_job.yml` via `run_job_task` — never inline its own
+   parameterised `resources/flowx_config_jobs/onboarding_job.yml` via `run_job_task` — never inline its own
    `02_onboarding_engine.py` `notebook_task` (`reference/common_pitfalls.md` entry 33):
 
    ```yaml
@@ -684,8 +684,8 @@ Say you need to ingest a new CSV drop into Bronze with SCD1 semantics on Silver.
      run_job_task:
        job_id: ${resources.jobs.onboarding_job.id}
        job_parameters:
-         spec_file_path: "${workspace.file_path}/metaflow_testing/<spec>.json"
-         catalog: metaflow
+         spec_file_path: "${workspace.file_path}/flowx_testing/<spec>.json"
+         catalog: flowx
          env: dev
          action_type: CREATE
    ```
@@ -727,12 +727,12 @@ not guess at a fix; the validator's error text is generated to be actionable on 
 | "How do I add a new sink `format`?" | Add a branch in `engine/sink_registration.py::_build_sink_options`, add the name to `onboarding/spec_validator.py::ALLOWED_SINK_FORMATS` and its own validation branch in `_validate_sink_config`. |
 | "What table/column does a flow actually write to?" | `target_catalog`.`target_schema`.`target_table`, always resolved via `storage/table_properties.py::qualified_table_name` — **never** trust a bare `name=` in a `@dlt.table`/`@dlt.view` call to land in the flow's configured schema (see `reference/common_pitfalls.md`). |
 | "What exceptions can this code raise, and which should I catch?" | `exceptions.py` — a typed hierarchy off `FrameworkError` (`FrameworkConfigError`, `SecretResolutionError`, `CryptoError`, `ArchiveError`, `Asn1DecodeError`, `AbacApplicationError`, `CdcStrategyError`, `OnboardingValidationError`, `OnboardingUpsertError`). |
-| "Where do I find a real, worked example of feature Y?" | `metaflow_testing/*.json` for currently-maintained examples; `docs/08`–`docs/23` for narrated worked examples of most individual features (§14 below). |
+| "Where do I find a real, worked example of feature Y?" | `flowx_testing/*.json` for currently-maintained examples; `docs/08`–`docs/23` for narrated worked examples of most individual features (§14 below). |
 | "What are the control tables' exact DDL/columns?" | `control_plane/ddl_definitions.py` (pure string-building, no execution) — and `docs/01_control_metadata_schema.md`'s ER diagram. |
 | "How do I add a column to a control table?" | **Two places, always**: the table's `CREATE TABLE` DDL in `control_plane/ddl_definitions.py` (fresh installs) *and* `ADDITIVE_CONTROL_TABLE_COLUMNS` in the same file (existing workspaces, applied by `control_plane/schema_provisioner.py::ensure_control_table_columns`). A CREATE-only change never reaches a workspace that already has the table. Then add it to the upsert's `StructType` **and** its `Row(...)`. `reference/common_pitfalls.md` 26–28. |
 | "I set `execution_mode: \"pipeline\"` and the flow still ran as a job — why?" | Three candidates, in order: the control table predates the column (run `01_setup_control_tables.py`, §8); the value was never persisted (`onboarding/metadata_upsert.py`'s `Row(...)`); or the job still has a standalone `run_*_reconciliation` task that should have been deleted. `reference/common_pitfalls.md` 26, 28, 33. |
-| "How do I wire onboarding into a new job?" | Never inline a `02_onboarding_engine.py` `notebook_task`. Delegate via `run_job_task` to `resources/metaflow_config_jobs/onboarding_job.yml` (one spec) or `resources/metaflow_config_jobs/framework_config_onboarding_job.yml` (a whole `spec_dir`). The ~20 legacy `metaflow_test_*_job.yml` files keep their inline copies deliberately. `reference/common_pitfalls.md` 33. |
-| "Where do I put a new resource YAML, and how do I deploy only the app?" | `resources/` is grouped: `metaflow_app/`, `metaflow_config_jobs/`, `observability/`, `bt_tests/`, `feature_tests/`, `sample_jobs/` (the `metaflow_sample` reference suite — six sample jobs, six pipelines, and the one common `metaflow_sample_seed_job` that lands every fixture they consume), `stability_tests/` (each globbed by `databricks.yml`'s `include:`). Paths inside a resource are `../../`, not `../`. Scope a deploy with `databricks bundle deploy --select apps.metaflow_onboarding_app,jobs.onboarding_job,jobs.framework_config_onboarding_job,volumes.onboarding_specs_volume,volumes.framework_wheels_volume` — **never** by commenting out an `include:` line, which makes DABs delete those resources. `reference/common_pitfalls.md` 34. |
+| "How do I wire onboarding into a new job?" | Never inline a `02_onboarding_engine.py` `notebook_task`. Delegate via `run_job_task` to `resources/flowx_config_jobs/onboarding_job.yml` (one spec) or `resources/flowx_config_jobs/framework_config_onboarding_job.yml` (a whole `spec_dir`). The ~20 legacy `flowx_test_*_job.yml` files keep their inline copies deliberately. `reference/common_pitfalls.md` 33. |
+| "Where do I put a new resource YAML, and how do I deploy only the app?" | `resources/` is grouped: `flowx_app/`, `flowx_config_jobs/`, `observability/`, `bt_tests/`, `feature_tests/`, `sample_jobs/` (the `flowx_sample` reference suite — six sample jobs, six pipelines, and the one common `flowx_sample_seed_job` that lands every fixture they consume), `stability_tests/` (each globbed by `databricks.yml`'s `include:`). Paths inside a resource are `../../`, not `../`. Scope a deploy with `databricks bundle deploy --select apps.flowx_onboarding_app,jobs.onboarding_job,jobs.framework_config_onboarding_job,volumes.onboarding_specs_volume,volumes.framework_wheels_volume` — **never** by commenting out an `include:` line, which makes DABs delete those resources. `reference/common_pitfalls.md` 34. |
 | "Why don't the `_staged`/`_src__*`/`_recon__*` tables show up in the catalog?" | v1.6.0 Intermediate Object Rule: intermediates are views or pipeline-scoped `temporary` tables, never published — only final sinks and the conditional `__metrics`/`__mismatch` audit datasets are. Upgrading an existing deployment renames/unpublishes them (streaming state resets). `reference/common_pitfalls.md` 35, `docs/13` O7. |
 | "How do I switch reconciliation logging fully off, and why was my spec rejected?" | **v1.7.3: off is the DEFAULT** — omit `logging_config` (both flags now default false) and the flow persists to business targets only: no `__metrics`/`__mismatch` datasets, no `run_log`/`mismatch_log`/**`result`** rows. Auditing is opt-in via explicit `true`. `dq_config.rules` + `run_log_capture` false and `pipeline_audit_only` + both false are rejected at onboarding and graph definition — now reachable by omission. `reference/common_pitfalls.md` 36, `docs/07` §6/§11.10. |
 | "Where does the read-once guarantee live?" | `engine/source_plane.py` — `plan_source_plane` (pure, no Spark) → `assert_acyclic` → `register_source_plane` → `bind`, plus the `G-STREAM`/`G-SIDE` plan-time guards. `reference/module_map.md`'s `engine/` section; `reference/common_pitfalls.md` 24–25, 31. |
@@ -763,17 +763,17 @@ doc, not just this table, before making a non-trivial change in its area.
 ## 15. Repo layout cheat sheet
 
 ```
-NextGen_Metadata_Framework/
+flowx/
 ├── databricks.yml                      # Bundle definition; `include:` lists every resources/ group
 ├── resources/                          # Pipeline/job/app/volume definitions, grouped by purpose:
-│   ├── metaflow_app/                   #   the Onboarding App + its spec Volume
-│   ├── metaflow_config_jobs/           #   onboarding_job (one spec) + framework_config_onboarding_job (bulk)
+│   ├── flowx_app/                   #   the Onboarding App + its spec Volume
+│   ├── flowx_config_jobs/           #   onboarding_job (one spec) + framework_config_onboarding_job (bulk)
 │   ├── observability/                  #   DLT observability export job + OTEL streaming pipeline
 │   ├── bt_tests/                       #   real-BT-fixture tests (geneva, ASN.1, PGP)
 │   ├── feature_tests/                  #   the TC-* corpus — one job + one pipeline per case
-│   ├── sample_jobs/                    #   metaflow_sample suite: 6 jobs + 6 pipelines + 1 common seed job
+│   ├── sample_jobs/                    #   flowx_sample suite: 6 jobs + 6 pipelines + 1 common seed job
 │   └── stability_tests/                #   reserved for STABILITY_TEST_PLAN.md A1-G4 (empty today)
-├── src/NextGen_Metadata_Framework/lakeflow_framework/   # ALL business logic — see reference/module_map.md
+├── src/flowx/lakeflow_framework/   # ALL business logic — see reference/module_map.md
 ├── notebooks/
 │   ├── 01_setup/                       # Creates the config schema + control tables
 │   ├── 02_onboarding/                  # Spec → control-table rows (§2, §12)
@@ -783,7 +783,7 @@ NextGen_Metadata_Framework/
 │   ├── 06_zip_ingestion/               # Multi-ZIP batch ingestion pipeline (archive/zip_ingestion_pipeline.py)
 │   ├── 07_verification/                # Ad hoc verification notebooks
 │   └── 08_observability/               # DLT observability engine entrypoint (§16 below)
-├── metaflow_testing/*.json             # Real, current worked onboarding-spec examples
+├── flowx_testing/*.json             # Real, current worked onboarding-spec examples
 ├── onboarding_templates/                # Standard "kitchen sink" template, JSON + YAML -- includes
 │                                        #   an "observability" block (§16); onboarding_spec.schema.json
 │                                        #   carries its $defs too, no separate observability schema file
@@ -832,7 +832,7 @@ run_pipeline_update (pipeline_task)  →  observability_export (notebook_task, d
 time, unlike the real DLT `pipeline_id`, which only exists once the pipeline is deployed), with
 `"*"` as the global fallback.
 
-Key files (all under `src/NextGen_Metadata_Framework/lakeflow_framework/observability/` unless
+Key files (all under `src/flowx/lakeflow_framework/observability/` unless
 noted — see `reference/module_map.md`'s `observability/` section for full function signatures):
 
 | File | Responsibility |

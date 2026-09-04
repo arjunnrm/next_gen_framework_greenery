@@ -1,4 +1,4 @@
-# MetaFlow Architecture Review — Pillar 1: Architecture & Design Principles
+# FlowX Architecture Review — Pillar 1: Architecture & Design Principles
 
 **Evaluation Area:** Modular Architecture, Medallion Alignment, Dynamic DAG Generation, Control Plane & Governance Integration  
 **Score:** 8.5 / 10  
@@ -8,11 +8,11 @@
 
 ## 1. Architectural Overview & Design Evaluation
 
-MetaFlow establishes an extensible, metadata-driven architecture for orchestrating streaming and batch data pipelines on Databricks. It decouples pipeline definition from procedural code by maintaining declarative flow specifications in control tables, dynamically compiling these specifications into a **Lakeflow Declarative Pipelines** DAG at runtime.
+FlowX establishes an extensible, metadata-driven architecture for orchestrating streaming and batch data pipelines on Databricks. It decouples pipeline definition from procedural code by maintaining declarative flow specifications in control tables, dynamically compiling these specifications into a **Lakeflow Declarative Pipelines** DAG at runtime.
 
 ```
 ┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
-│                                METAFLOW CONTROL PLANE TO EXECUTION DAG                           │
+│                                FLOWX CONTROL PLANE TO EXECUTION DAG                           │
 └──────────────────────────────────────────────────────────────────────────────────────────────────┘
    [Onboarding Spec (YAML/JSON)]
                │
@@ -80,7 +80,7 @@ MetaFlow establishes an extensible, metadata-driven architecture for orchestrati
 - **Severity:** Low
 - **Location:** `control_plane/schema_provisioner.py` and across all engine notebooks.
 - **Description:** The control plane strictly hardcodes the control schema name as `config` (`f"{catalog}.config"`).
-- **Architectural Risk:** Prevents enterprises with strict schema naming conventions (e.g., `<catalog>.metadata`, `<catalog>.control_plane`, or centralized `<env>_metaflow_control.main`) from deploying the framework without modifying source code.
+- **Architectural Risk:** Prevents enterprises with strict schema naming conventions (e.g., `<catalog>.metadata`, `<catalog>.control_plane`, or centralized `<env>_flowx_control.main`) from deploying the framework without modifying source code.
 
 ---
 

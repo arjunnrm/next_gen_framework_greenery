@@ -1,16 +1,16 @@
-# MetaFlow Framework — Executive Architectural Review & Platform Audit
+# FlowX Framework — Executive Architectural Review & Platform Audit
 
 **Document Version:** 1.0.0  
 **Audit Date:** August 2026  
 **Auditor Persona:** Principal Databricks Solutions Architect & Senior Data Platform Reviewer  
-**Target System:** `NextGen_Metadata_Framework` (MetaFlow)  
+**Target System:** FlowX (`flowx`)  
 **Evaluation Scope:** End-to-end metadata-driven Lakeflow Declarative Pipelines framework, Control Plane, Ingestion, Transformation, CDC/SCD Engine, Data Quality/Quarantine, Cryptography/Security, Governance, Observability, Reconciliation, and Extensible Code Architecture.
 
 ---
 
 ## 1. Executive Summary & Platform Health Score
 
-MetaFlow is an enterprise-grade, metadata-driven data platform built on **Databricks Lakeflow Declarative Pipelines** (formerly Delta Live Tables / DLT), **Unity Catalog**, **Delta Lake**, and **Declarative Automation Bundles (DABs)**. The framework abstracts complex pipeline engineering into a declarative control-plane model, allowing data engineers and domain teams to onboard ingestion, transformation, data quality, encryption, and reconciliation workflows purely via JSON/YAML specifications without writing procedural Spark boilerplate.
+FlowX is an enterprise-grade, metadata-driven data platform built on **Databricks Lakeflow Declarative Pipelines** (formerly Delta Live Tables / DLT), **Unity Catalog**, **Delta Lake**, and **Declarative Automation Bundles (DABs)**. The framework abstracts complex pipeline engineering into a declarative control-plane model, allowing data engineers and domain teams to onboard ingestion, transformation, data quality, encryption, and reconciliation workflows purely via JSON/YAML specifications without writing procedural Spark boilerplate.
 
 ### Overall Platform Health Score: 7.8 / 10
 
@@ -84,7 +84,7 @@ MetaFlow is an enterprise-grade, metadata-driven data platform built on **Databr
 
 ---
 
-## 4. End-to-End MetaFlow Architecture Map
+## 4. End-to-End FlowX Architecture Map
 
 ```mermaid
 flowchart TD

@@ -1,5 +1,5 @@
 {
-  "$comment": "MACHINE-READABLE ATTRIBUTE DELTA for the NextGen Metadata Framework (Metaflow) onboarding spec, v1.4.0 -> v1.5.0. Intended to be fed directly to an automated agent updating the Databricks App (databricks-app/) or any other spec-authoring surface. Every path below is expressed as it appears in an onboarding spec document, rooted at the spec object; `[]` denotes an array element. This file is hand-authored and is the source of truth for the delta; the enforcing artefacts are onboarding_templates/onboarding_spec.schema.json (structure) and src/NextGen_Metadata_Framework/lakeflow_framework/onboarding/spec_validator.py (semantics, including the rejection messages quoted below verbatim). READING RULE for `app_action`: every app_action states a FACT about the resulting UI, never a shorthand instruction. In v1.4.01 an app-updating agent implemented a shorthand instruction that contradicted its own `after` field; `before`, `after` and `app_action` must all be readable as descriptions of the same single end state.",
+  "$comment": "MACHINE-READABLE ATTRIBUTE DELTA for the FlowX onboarding spec, v1.4.0 -> v1.5.0. Intended to be fed directly to an automated agent updating the Databricks App (databricks-app/) or any other spec-authoring surface. Every path below is expressed as it appears in an onboarding spec document, rooted at the spec object; `[]` denotes an array element. This file is hand-authored and is the source of truth for the delta; the enforcing artefacts are onboarding_templates/onboarding_spec.schema.json (structure) and src/flowx/lakeflow_framework/onboarding/spec_validator.py (semantics, including the rejection messages quoted below verbatim). READING RULE for `app_action`: every app_action states a FACT about the resulting UI, never a shorthand instruction. In v1.4.01 an app-updating agent implemented a shorthand instruction that contradicted its own `after` field; `before`, `after` and `app_action` must all be readable as descriptions of the same single end state.",
   "schema_version": "1.0",
   "framework_version_from": "1.4.0",
   "framework_version_to": "1.5.0",
@@ -185,7 +185,7 @@
         },
         {
           "materialize": "always",
-          "catalog": "metaflow",
+          "catalog": "flowx",
           "schema": "source_plane"
         },
         {
@@ -314,7 +314,7 @@
       "warning": "logger.warning only. Onboarding SUCCEEDS. App: non-blocking notice; must not block submit.",
       "not_evaluated": "The check does not run in this mode. App: show nothing."
     },
-    "why_this_split_exists": "Every append-loop rule describes a Lakeflow GRAPH cycle -- a reconciliation flow appending into a dataset the same update also reads or writes. In execution_mode 'job' there is no such graph: the standalone 05_reconciliation_engine.py task runs after the pipeline update has finished. Firing these unconditionally was a real BACKWARD-COMPATIBILITY BREAK, not a stricter reading: the shipped, pre-v1.5.0, purely job-mode spec metaflow_testing/038_rec_003_precomputed_hash.json appends into its own comparison target, stopped validating, and could therefore no longer be onboarded at all -- with no edit by its author and no opt-in to any v1.5.0 attribute. Job mode still gets the warning because the underlying hazard (an append into a table Lakeflow owns being clobbered by the next refresh) is real there too.",
+    "why_this_split_exists": "Every append-loop rule describes a Lakeflow GRAPH cycle -- a reconciliation flow appending into a dataset the same update also reads or writes. In execution_mode 'job' there is no such graph: the standalone 05_reconciliation_engine.py task runs after the pipeline update has finished. Firing these unconditionally was a real BACKWARD-COMPATIBILITY BREAK, not a stricter reading: the shipped, pre-v1.5.0, purely job-mode spec flowx_testing/038_rec_003_precomputed_hash.json appends into its own comparison target, stopped validating, and could therefore no longer be onboarded at all -- with no edit by its author and no opt-in to any v1.5.0 attribute. Job mode still gets the warning because the underlying hazard (an append into a table Lakeflow owns being clobbered by the next refresh) is real there too.",
     "implemented_by": "spec_validator.py :: _append_cycle_finding(pipeline_mode, execution_mode, message, errors) -- appends to errors when pipeline_mode, otherwise logger.warning with the same message plus a suffix naming the mode and stating it WOULD be rejected under 'pipeline'/'pipeline_audit_only'.",
     "rules": [
       {
@@ -360,7 +360,7 @@
         "message_verbatim_self_source": "<flow>.target_configs[<i>].append_target_table: must not equal this flow's own source_config.table -- appending corrections back into the dataset being compared re-arms every future run against its own output.",
         "message_verbatim_self_target": "<flow>.target_configs[<i>].append_target_table: must not equal this same target's own target_configs[<i>].table -- appending corrections into the dataset being compared re-arms every future run against its own output.",
         "message_verbatim_sibling_target": "<flow>.target_configs[<i>].append_target_table: must not equal target_configs[<j>].table -- appending corrections into a dataset this same flow also reconciles against re-arms every future run against its own output.",
-        "app_action": "Same mode-conditional affordance as V-CYC-2. This is the rule that broke metaflow_testing/038_rec_003_precomputed_hash.json when it was unconditional, so an app that hard-blocks it in job mode reintroduces that break."
+        "app_action": "Same mode-conditional affordance as V-CYC-2. This is the rule that broke flowx_testing/038_rec_003_precomputed_hash.json when it was unconditional, so an app that hard-blocks it in job mode reintroduces that break."
       },
       {
         "id": "V-CYC-6",
@@ -403,7 +403,7 @@
     "$comment": "SUPERSEDED BY additive_migration BELOW, which is the shipped behaviour. Every statement in get_all_control_table_ddls is CREATE TABLE IF NOT EXISTS, a no-op against an existing table, so a column added to a CREATE statement reaches NEW installations only. v1.5.0 therefore ships an additive ALTER TABLE ADD COLUMNS migration for already-provisioned tables. Independently of that, every new column is nullable and every reader uses getattr(ROW, '<column>', <default>), so a pre-existing row and a pre-existing table both read as 'unset' rather than failing.",
     "additive_migration": {
       "status": "SHIPPED in v1.5.0, verified live on 2026-08-31 against DBR serverless.",
-      "why": "metaflow.config.reconciliation_flow_spec on an existing workspace had NONE of execution_mode / publish_schema / dq_config_json, so pipeline-mode onboarding failed with UNRESOLVED_COLUMN. CREATE TABLE IF NOT EXISTS is a no-op there and never adds a column.",
+      "why": "flowx.config.reconciliation_flow_spec on an existing workspace had NONE of execution_mode / publish_schema / dq_config_json, so pipeline-mode onboarding failed with UNRESOLVED_COLUMN. CREATE TABLE IF NOT EXISTS is a no-op there and never adds a column.",
       "implemented_by": [
         "control_plane/ddl_definitions.py :: ADDITIVE_CONTROL_TABLE_COLUMNS (bare table name -> [(column_name, sql_type, comment)])",
         "control_plane/ddl_definitions.py :: get_add_column_ddl(control_schema, table_name, column_name, sql_type, comment)",
@@ -509,10 +509,10 @@
   "python_api_delta": {
     "$comment": "For any caller outside this repository.",
     "modules_added": [
-      "NextGen_Metadata_Framework.lakeflow_framework.engine.identifiers",
-      "NextGen_Metadata_Framework.lakeflow_framework.engine.source_plane",
-      "NextGen_Metadata_Framework.lakeflow_framework.engine.flow_generators",
-      "NextGen_Metadata_Framework.lakeflow_framework.reconciliation.graph_registration"
+      "flowx.lakeflow_framework.engine.identifiers",
+      "flowx.lakeflow_framework.engine.source_plane",
+      "flowx.lakeflow_framework.engine.flow_generators",
+      "flowx.lakeflow_framework.reconciliation.graph_registration"
     ],
     "modules_deleted": [],
     "symbols_added": [
@@ -612,7 +612,7 @@
     "databricks-app/config/registry/shared / group-settings registry -- add the top-level source_plane object (materialize select auto/always/never default auto; catalog and schema optional texts).",
     "databricks-app/config/registry/_meta.json -- bump framework_version to 1.5.0 (currently stale at 1.3.0; this fixes two releases of drift). Same bump in databricks-app/server/settings.py and databricks-app/templates/index.json.",
     "databricks-app/config/validation/rules.json -- mirror the framework validator's mode-conditional rules (V-CYC-1/2/3/6/7 to the extent the app's predicate engine can reach across flow arrays; where it cannot, the app warns and the framework validator carries the real check, documented as a deliberate asymmetry). EVERY binary predicate must carry >= 2 operands, or test_framework_spec_agreement.py fails and evaluate_predicate silently returns False.",
-    "databricks-app/config/validation/rules.json (SEVERITY) -- V-CYC-2/3/5 and the target_configs[] self/cross-append checks are NOT unconditional errors. Read the top-level `validation_rule_severity` section of this file and give each rule a severity keyed on the flow's execution_mode: blocking error under 'pipeline'/'pipeline_audit_only', non-blocking warning under 'job'. An app that hard-blocks them in job mode reintroduces the backward-compatibility break that stopped metaflow_testing/038_rec_003_precomputed_hash.json from onboarding. Changing the execution_mode select must re-evaluate the severity of an already-displayed finding, not just re-run the rule.",
+    "databricks-app/config/validation/rules.json (SEVERITY) -- V-CYC-2/3/5 and the target_configs[] self/cross-append checks are NOT unconditional errors. Read the top-level `validation_rule_severity` section of this file and give each rule a severity keyed on the flow's execution_mode: blocking error under 'pipeline'/'pipeline_audit_only', non-blocking warning under 'job'. An app that hard-blocks them in job mode reintroduces the backward-compatibility break that stopped flowx_testing/038_rec_003_precomputed_hash.json from onboarding. Changing the execution_mode select must re-evaluate the severity of an already-displayed finding, not just re-run the rule.",
     "databricks-app/config/attribute_knowledge.curated.json -- add curated entries for execution_mode, publish_schema, reconciliation dq_config and source_plane; then REGENERATE attribute_knowledge.json via databricks-app/scripts/build_attribute_knowledge.py (it is generated from web/src/registry.js plus the curated file -- never hand-edit the output).",
     "databricks-app/web/src/registry.js -- mirror every change above in REC_SECTIONS() and PRESETS.rec. The server renders from the JSON registry and the browser from this file: two independent transcriptions of one field set. Run `node --check databricks-app/web/src/registry.js` afterwards, and anchor every edit on exact line prefixes (a DOTALL re.sub once swallowed ~650 lines of Builder.jsx).",
     "databricks-app/web/src/Builder.jsx -- NO change required. The generic renderer already handles a plain select and a text field; it changes only for new serialization semantics or a new widget type.",
@@ -621,7 +621,7 @@
   ],
   "enforcing_artifacts": {
     "json_schema": "onboarding_templates/onboarding_spec.schema.json",
-    "validator": "src/NextGen_Metadata_Framework/lakeflow_framework/onboarding/spec_validator.py",
+    "validator": "src/flowx/lakeflow_framework/onboarding/spec_validator.py",
     "validator_registries": [
       "ALLOWED_RECONCILIATION_EXECUTION_MODES",
       "_RECONCILIATION_PIPELINE_MODES",
@@ -645,13 +645,13 @@
     },
     "severity_helper": "spec_validator.py :: _append_cycle_finding(pipeline_mode, execution_mode, message, errors)",
     "runtime_modules": [
-      "src/NextGen_Metadata_Framework/lakeflow_framework/engine/source_plane.py",
-      "src/NextGen_Metadata_Framework/lakeflow_framework/engine/identifiers.py",
-      "src/NextGen_Metadata_Framework/lakeflow_framework/engine/flow_generators.py",
-      "src/NextGen_Metadata_Framework/lakeflow_framework/reconciliation/graph_registration.py",
-      "src/NextGen_Metadata_Framework/lakeflow_framework/control_plane/repository.py",
-      "src/NextGen_Metadata_Framework/lakeflow_framework/control_plane/ddl_definitions.py",
-      "src/NextGen_Metadata_Framework/lakeflow_framework/onboarding/metadata_upsert.py"
+      "src/flowx/lakeflow_framework/engine/source_plane.py",
+      "src/flowx/lakeflow_framework/engine/identifiers.py",
+      "src/flowx/lakeflow_framework/engine/flow_generators.py",
+      "src/flowx/lakeflow_framework/reconciliation/graph_registration.py",
+      "src/flowx/lakeflow_framework/control_plane/repository.py",
+      "src/flowx/lakeflow_framework/control_plane/ddl_definitions.py",
+      "src/flowx/lakeflow_framework/onboarding/metadata_upsert.py"
     ],
     "tests": [
       "tests/unit/test_spec_validator.py",

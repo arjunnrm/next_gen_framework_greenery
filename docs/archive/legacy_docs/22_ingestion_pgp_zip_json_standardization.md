@@ -1,6 +1,6 @@
 # Ingestion: PGP/ZIP Archives, ASN.1 Distributed Decode, JSON Flattening, SQL Standardization
 
-> See also: [README.md](README.md) — the full Metaflow documentation set.
+> See also: [README.md](README.md) — the full FlowX documentation set.
 
 Four `source_config` capabilities, all shared between `autoloader` and `asn1` (except
 where noted): archive-aware landing (`source_zip_handling`, with a type-registry

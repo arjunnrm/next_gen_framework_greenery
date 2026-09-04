@@ -1,4 +1,4 @@
-# 📊 Metaflow — Observability & OpenTelemetry Engine
+# 📊 FlowX — Observability & OpenTelemetry Engine
 
 > **Audience**: Site Reliability Engineers (SREs), DevOps teams, and platform architects responsible for monitoring Lakeflow pipeline health, SLA tracking, and OpenTelemetry integration.
 
@@ -6,7 +6,7 @@
 
 ## 1. Observability Architecture Overview
 
-Metaflow includes an enterprise telemetry engine that captures pipeline lifecycle metrics, data quality statistics, and operational event logs from the native Databricks Lakeflow Event Log and formats them into OpenTelemetry (OTel) standard payloads.
+FlowX includes an enterprise telemetry engine that captures pipeline lifecycle metrics, data quality statistics, and operational event logs from the native Databricks Lakeflow Event Log and formats them into OpenTelemetry (OTel) standard payloads.
 
 As of **v1.3.0** there are two independent export engines, and every destination is served by exactly one of them — never both, and there is no single entrypoint that switches between them. A bounded downstream job task and an always-on `continuous: true` pipeline have fundamentally different lifecycles, so which engine owns a destination is decided by the destination's own `mode` field, resolved once at read time:
 
@@ -74,7 +74,7 @@ export.
     notebook_path: ../notebooks/08_observability/08_dlt_observability_engine.py
     base_parameters:
       dataflow_group_id: dfg_zip_csv_dataload
-      catalog: metaflow
+      catalog: flowx
       env: dev
       pipeline_task_run_id: "{{tasks.run_pipeline_update.run_id}}"
 ```
@@ -309,10 +309,10 @@ This mapping describes the **triggered** engine's `ResourceLogs` output only (`o
 
 ## 4. In-Pipeline Structured JSON Logging
 
-For custom operational steps, use the framework's structured logger (`NextGen_Metadata_Framework.lakeflow_framework.observability.structured_logger`):
+For custom operational steps, use the framework's structured logger (`flowx.lakeflow_framework.observability.structured_logger`):
 
 ```python
-from NextGen_Metadata_Framework.lakeflow_framework.observability.structured_logger import (
+from flowx.lakeflow_framework.observability.structured_logger import (
     log_flow_event,
     logged_operation,
 )
@@ -447,7 +447,7 @@ Add both new pipeline `configuration:` keys to `resources/observability/observab
 ```yaml
 configuration:
   dataflow.group.id: dfg_orders_cdc
-  dataflow.control.catalog: metaflow
+  dataflow.control.catalog: flowx
   # existing dataflow.otel_streaming.* keys remain a fully-supported fallback
 ```
 

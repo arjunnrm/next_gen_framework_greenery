@@ -1,6 +1,6 @@
-# 🤖 Metaflow AI Agent Skill & Tool Catalog
+# 🤖 FlowX AI Agent Skill & Tool Catalog
 
-> **Purpose**: Single authoritative registry summarizing all AI Agent Skills, tool specifications, input/output schemas, error-handling behaviors, and integration patterns for the NextGen Metadata Framework (Metaflow).
+> **Purpose**: Single authoritative registry summarizing all AI Agent Skills, tool specifications, input/output schemas, error-handling behaviors, and integration patterns for the FlowX.
 
 ---
 
@@ -14,7 +14,7 @@
 | **`validate_observability_config`** | Tool | Lint and validate `{"observability": [...]}` telemetry fragments. | `config_text` (str), `catalog` (str), `env` (str) | `{"valid": bool, "errors": list, "summary": str}` | Validates against `ALLOWED_OBSERVABILITY_DESTINATION_TYPES`, returns line-level errors. | OpenAI Tools API, LangChain `StructuredTool` |
 | **`generate_pipeline_onboarding_config`** | Tool | Auto-generate `observability[]` array from minimal parameters. | `dataflow_group_id` (str), `destination_targets` (list), `service_name`, `deployment_environment` | `{"observability": [ { "destination_id": str, "destination_type": str, ... } ]}` | Validates destination templates ('databricks_volume', 'otlp_http'); raises `ValueError` on bad inputs. | Prompt chaining, automated spec synthesis |
 | **`diagnose_pipeline_telemetry_failures`** | Tool | Diagnose failed telemetry task runs from traceback/error messages. | `error_message` (str) | `{"matched": bool, "category": str, "likely_cause": str, "remediation": str}` | Matches regex patterns against Error Handling Matrix; returns `null` category on unknown errors. | SRE Troubleshooting Assistant, Incident Copilot |
-| **`metaflow-governance`** | Skill | Enforces standardized naming (`dfg_*`, `df_*`, `tf_*`), mandatory tagging, and OTel metric naming. | Contextual guidelines and regex validation rules. | Evaluates naming conformance and tags completeness. | Flags warnings during AST validation without breaking pipeline compilation. | Agent System Prompt / Skill Directive |
+| **`flowx-governance`** | Skill | Enforces standardized naming (`dfg_*`, `df_*`, `tf_*`), mandatory tagging, and OTel metric naming. | Contextual guidelines and regex validation rules. | Evaluates naming conformance and tags completeness. | Flags warnings during AST validation without breaking pipeline compilation. | Agent System Prompt / Skill Directive |
 
 ---
 
@@ -36,7 +36,7 @@ that merely *looks* right is therefore not evidence of anything.
 
 ```python
 import sys; sys.path.insert(0, "src")
-from NextGen_Metadata_Framework.lakeflow_framework.onboarding.agent_tools import validate_json
+from flowx.lakeflow_framework.onboarding.agent_tools import validate_json
 
 result = validate_json(open("my_spec.json", encoding="utf-8").read())
 print(result["summary"])
@@ -46,7 +46,7 @@ for error in result["errors"]:
 
 Keys starting with `_` are always allowed as author comments (JSON has no comment syntax), as is
 `$schema`. The discoverable Claude Code skill wrapping all of this lives at
-`.claude/skills/metaflow-onboarding/`; re-sync its reference copies with
+`.claude/skills/flowx-onboarding/`; re-sync its reference copies with
 `python scripts/sync_agent_skill.py` after changing anything here.
 
 ---
@@ -57,7 +57,7 @@ Keys starting with `_` are always allowed as author comments (JSON has no commen
 ```python
 from langchain_core.tools import StructuredTool
 from pydantic import BaseModel, Field
-from NextGen_Metadata_Framework.lakeflow_framework.onboarding.agent_tools import validate_json
+from flowx.lakeflow_framework.onboarding.agent_tools import validate_json
 
 class ValidateJsonInput(BaseModel):
     spec_content: str = Field(description="Raw JSON/YAML onboarding specification string")
@@ -67,7 +67,7 @@ class ValidateJsonInput(BaseModel):
 validate_json_tool = StructuredTool.from_function(
     func=validate_json,
     name="validate_json",
-    description="Validates candidate Metaflow onboarding specs immediately upon generation",
+    description="Validates candidate FlowX onboarding specs immediately upon generation",
     args_schema=ValidateJsonInput,
 )
 ```
@@ -75,7 +75,7 @@ validate_json_tool = StructuredTool.from_function(
 ### 2. Semantic Kernel Integration
 ```csharp
 // Semantic Kernel KernelFunction Registration
-[KernelFunction, Description("Validates candidate Metaflow onboarding specification")]
+[KernelFunction, Description("Validates candidate FlowX onboarding specification")]
 public static string ValidateJson(
     [Description("Raw onboarding JSON/YAML string")] string spec_content,
     [Description("Target catalog")] string catalog = "poc",

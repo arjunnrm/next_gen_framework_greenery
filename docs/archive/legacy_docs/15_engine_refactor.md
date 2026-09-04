@@ -1,10 +1,10 @@
 # Engine Refactor: Shared Flow Registration
 
-> See also: [README.md](README.md) for the full Metaflow documentation set.
+> See also: [README.md](README.md) for the full FlowX documentation set.
 
 ## Purpose
 
-Close the "avoid duplicated logic" gap between Metaflow's ingestion and transformation
+Close the "avoid duplicated logic" gap between FlowX's ingestion and transformation
 engines: both built an identical staged-view -> main/quarantine-table -> CDC-dispatch
 shape independently, differing only in how they construct the staged DataFrame.
 

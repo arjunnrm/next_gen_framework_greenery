@@ -4,7 +4,7 @@
 
 ## Purpose
 
-Let Metaflow onboarding specs be authored in either JSON or YAML, with identical
+Let FlowX onboarding specs be authored in either JSON or YAML, with identical
 validation, upsert, and audit behavior -- format is a authoring-convenience choice, not a
 different code path.
 

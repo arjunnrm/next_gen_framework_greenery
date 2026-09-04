@@ -1,9 +1,9 @@
 # Onboarding Template Field Reference
 
-> See also: [README.md](README.md) for the full Metaflow documentation set.
+> See also: [README.md](README.md) for the full FlowX documentation set.
 
 Every field below is enforced, field-by-field, by
-`src/NextGen_Metadata_Framework/lakeflow_framework/onboarding/spec_validator.py`, and every
+`src/flowx/lakeflow_framework/onboarding/spec_validator.py`, and every
 field appears at least once, with a real value, in
 `onboarding_templates/pipeline_onboarding_template.json` (and its byte-for-byte structural
 twin, `pipeline_onboarding_template.yaml` — see
@@ -889,7 +889,7 @@ this doc deliberately doesn't duplicate that reference here.
 
 ## Relevant files
 
-* `src/NextGen_Metadata_Framework/lakeflow_framework/onboarding/spec_validator.py` — the
+* `src/flowx/lakeflow_framework/onboarding/spec_validator.py` — the
   single source of truth this whole doc is built from.
 * `onboarding_templates/pipeline_onboarding_template.json` / `.yaml` — the live-validated
   "kitchen sink" spec every **Sample value** above is copied from, unless a different

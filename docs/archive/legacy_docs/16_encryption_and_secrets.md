@@ -1,8 +1,8 @@
 # Encryption and Secrets
 
-> See also: [README.md](README.md) for the full Metaflow documentation set.
+> See also: [README.md](README.md) for the full FlowX documentation set.
 
-Every secret reference in Metaflow — AES encryption/decryption keys, PGP public/private
+Every secret reference in FlowX — AES encryption/decryption keys, PGP public/private
 keys, ZIP archive passwords, Kafka sink credentials — is addressed as a genuine
 [Unity Catalog secret](https://docs.databricks.com/aws/en/security/secrets/unity-catalog-secrets),
 via the three-level `{secret_catalog, secret_schema, secret_key}` shape, and resolved
@@ -10,7 +10,7 @@ exclusively via `dbutils.secrets.get(catalog=, schema=, key=)`. See
 [01_control_metadata_schema.md](01_control_metadata_schema.md) for how these fields sit
 inside `encrypted_columns`/`decrypted_columns`/`source_zip_handling`/`sink_config`.
 
-Implemented in `src/NextGen_Metadata_Framework/lakeflow_framework/crypto/`:
+Implemented in `src/flowx/lakeflow_framework/crypto/`:
 
 * `secrets.py` — identifier safety (`assert_safe_identifier`), UC secret resolution
   (`resolve_secret_value`/`resolve_secret_ref`).

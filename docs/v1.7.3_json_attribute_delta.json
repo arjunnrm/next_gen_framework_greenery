@@ -1,5 +1,5 @@
 {
-  "$comment": "MACHINE-READABLE ATTRIBUTE DELTA for the NextGen Metadata Framework (Metaflow) onboarding spec, v1.7.2 -> v1.7.3. Written for an automated agent updating the Databricks App (databricks-app/). Every path below is expressed as it appears in an onboarding spec document, rooted at the spec object; [] denotes an array element. This delta covers TWO INDEPENDENT CHANGES shipped in the same release: (A) the reconciliation log-capture default flip, and (B) the source_plane Single-Read architectural mandate (materialize default auto->always, enum value 'never' removed, and the first-ever validator for the source_plane block). Consumers MUST NOT treat 'no attribute added/removed' as 'no action required': default-seeding logic and help text change for both.",
+  "$comment": "MACHINE-READABLE ATTRIBUTE DELTA for the FlowX onboarding spec, v1.7.2 -> v1.7.3. Written for an automated agent updating the Databricks App (databricks-app/). Every path below is expressed as it appears in an onboarding spec document, rooted at the spec object; [] denotes an array element. This delta covers TWO INDEPENDENT CHANGES shipped in the same release: (A) the reconciliation log-capture default flip, and (B) the source_plane Single-Read architectural mandate (materialize default auto->always, enum value 'never' removed, and the first-ever validator for the source_plane block). Consumers MUST NOT treat 'no attribute added/removed' as 'no action required': default-seeding logic and help text change for both.",
   "schema_version": "1",
   "framework_version_from": "1.7.2",
   "framework_version_to": "1.7.3",
@@ -21,7 +21,7 @@
     ],
     "headline": "v1.7.3: reconciliation is SILENT BY DEFAULT. The implicit fallback in resolve_log_capture_flags flipped from true to false, so control-table auditing and the published __metrics/__mismatch datasets become opt-in. The job-parameter layer and any explicitly written true/false are UNCHANGED.",
     "see_also": [
-      "src/NextGen_Metadata_Framework/lakeflow_framework/reconciliation/appender.py::resolve_log_capture_flags",
+      "src/flowx/lakeflow_framework/reconciliation/appender.py::resolve_log_capture_flags",
       "docs/07_reconciliation_engine.md#6-runtime-log-controls",
       "docs/14_onboarding_restrictions_and_validation_rules.md",
       "agent_skills/reference/common_pitfalls.md#36"

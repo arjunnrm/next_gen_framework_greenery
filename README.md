@@ -1,4 +1,4 @@
-# 🚀 NextGen Metadata Framework (Metaflow)
+# 🚀 FlowX
 
 A metadata-driven, enterprise-grade data ingestion, transformation, reconciliation, and observability framework built on **Databricks Lakeflow Pipelines (Delta Live Tables)**, **Unity Catalog**, and **Databricks Asset Bundles (DABs)**.
 
@@ -7,9 +7,9 @@ A metadata-driven, enterprise-grade data ingestion, transformation, reconciliati
 ## 📁 Repository Directory Structure
 
 ```
-NextGen_Metadata_Framework/
+flowx/
 ├── src/                                  # Canonical Framework Source Code
-│   └── NextGen_Metadata_Framework/
+│   └── flowx/
 │       └── lakeflow_framework/           # 15 Core Framework Submodules
 │           ├── archive/                  # PGP & AES-256 ZIP handling & ingestion
 │           ├── asn1/                     # ASN.1 BER/DER binary CDR decoding
@@ -28,20 +28,20 @@ NextGen_Metadata_Framework/
 │           └── exceptions.py             # Central domain exceptions hierarchy
 │
 ├── resources/                            # Databricks Asset Bundle (DAB) Resources
-│   ├── metaflow_app/                     # Onboarding App + the UC Volume it writes specs to
-│   ├── metaflow_config_jobs/             # onboarding_job (one spec) + bulk (a whole spec_dir)
+│   ├── flowx_app/                     # Onboarding App + the UC Volume it writes specs to
+│   ├── flowx_config_jobs/             # onboarding_job (one spec) + bulk (a whole spec_dir)
 │   ├── observability/                    # DLT observability export job + OTEL streaming pipeline
 │   ├── bt_tests/                         # Tests on real BT fixtures (geneva, ASN.1, PGP)
 │   ├── feature_tests/                    # TC-* feature/regression corpus (job + pipeline per case)
-│   ├── sample_jobs/                      # metaflow_sample reference suite: 6 jobs + 6 pipelines + 1 common seed job
+│   ├── sample_jobs/                      # flowx_sample reference suite: 6 jobs + 6 pipelines + 1 common seed job
 │   └── stability_tests/                  # Reserved for STABILITY_TEST_PLAN.md's A1-G4 (empty)
 │
-├── metaflow_testing/                     # Comprehensive Testing Suite Specs
+├── flowx_testing/                     # Comprehensive Testing Suite Specs
 │   ├── *.json                            # 48 end-to-end test configuration specs
 │   ├── TESTING_PLAN.md                   # Formal multi-phase test execution plan
 │   └── TESTING_STATUS.md                 # Real-time test execution matrix
 │
-├── metaflow-onboarding-app-old/          # Onboarding Web UI Application (Reference)
+├── flowx-onboarding-app-old/          # Onboarding Web UI Application (Reference)
 ├── onboarding_templates/                 # JSON Schemas and YAML Onboarding Templates
 ├── notebooks/                            # Interactive Databricks Notebooks (00-08)
 ├── sample_data/                          # Synthetic test datasets & fixtures
@@ -78,16 +78,16 @@ The framework wheel is published to a Unity Catalog Volume to guarantee safe con
 python scripts/bump_and_build.py
 
 # Build and upload to Unity Catalog Volume
-python scripts/build_and_upload_wheel.py --profile dev_metaflow --catalog metaflow
+python scripts/build_and_upload_wheel.py --profile dev_flowx --catalog flowx
 ```
 
 ### 2. Deploy via Databricks Asset Bundles (DABs)
 ```bash
 # Deploy development bundle
-databricks bundle deploy --target dev_metaflow -p dev_metaflow
+databricks bundle deploy --target dev_flowx -p dev_flowx
 
 # Run a test job
-databricks bundle run metaflow_test_cdc_003_scd1_job -p dev_metaflow
+databricks bundle run flowx_test_cdc_003_scd1_job -p dev_flowx
 ```
 
 ### 3. Run Automated Tests

@@ -36,7 +36,7 @@ is easier once the previous is settled:
 |---|---|---|
 | 1 | **Testing** | Add/update unit tests for the new behaviour (and, for a *removal*, a test asserting the removed thing is genuinely gone/rejected). Run `pytest tests/unit`, `pytest databricks-app/tests` (from `databricks-app/`), and `databricks bundle validate -t <target>`. Record the pre-existing-failure baseline so you can prove you added none. |
 | 2 | **Python validation** | Update `onboarding/spec_validator.py`. A new attribute needs a check; a **removed** attribute needs an explicit rejection with a migration message — never silent ignoring (see "Removals" below). |
-| 3 | **JSON schema + templates** | `onboarding_templates/onboarding_spec.schema.json`, plus `pipeline_onboarding_template.{json,yaml}` (these two are asserted equivalent by `test_spec_loader.py` — change both), `onboarding_spec_full_reference.{json,md}`, and any affected `metaflow_testing/*.json`. |
+| 3 | **JSON schema + templates** | `onboarding_templates/onboarding_spec.schema.json`, plus `pipeline_onboarding_template.{json,yaml}` (these two are asserted equivalent by `test_spec_loader.py` — change both), `onboarding_spec_full_reference.{json,md}`, and any affected `flowx_testing/*.json`. |
 | 4 | **JSON change details for the app** | Produce/extend a machine-readable attribute delta (`docs/vX.Y.Z_json_attribute_delta.json`) listing every added/modified/removed attribute with type, default, verbatim rejection message, migration and the concrete UI action it implies. This is what an automated agent updating the Databricks App consumes — write it for a machine, not a human. |
 | 5 | **Databricks App** | `databricks-app/config/registry/*.json`, `config/attribute_knowledge*.json`, `config/validation/rules.json`, `templates/**`, `web/src/{registry.js,Builder.jsx}`, `server/settings.py`. **Then `npm run build` in `databricks-app/web`** — Databricks Apps does not build at deploy time, so an un-rebuilt `web/dist/` keeps serving fields the framework now rejects. |
 | 6 | **Docs** | Every affected `docs/*.md`, then regenerate the derived trees with `python scripts/build_docs_reference.py` and `python -m mkdocs build`. Add new pages to `mkdocs.yml` nav. |
@@ -114,4 +114,4 @@ See `REMOVED_SOURCE_CONFIG_KEYS` / `REMOVED_TARGET_CONFIG_KEYS` /
 `bundle deploy` prunes superseded artifacts from `<artifact_path>/.internal/` — on a UC Volume
 exactly as in the workspace — so a deploy issued mid-update kills it with
 `ENVIRONMENT_PIP_INSTALL_ERROR`. Unique per-deploy wheel filenames prevent overwrite-in-place, not
-removal. See `metaflow_testing/TESTING_PLAN.md` §0.
+removal. See `flowx_testing/TESTING_PLAN.md` §0.

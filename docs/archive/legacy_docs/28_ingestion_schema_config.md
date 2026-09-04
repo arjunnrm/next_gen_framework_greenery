@@ -1,6 +1,6 @@
 # Bronze Column Normalization & Explicit Schema Configuration
 
-> See also: [README.md](README.md) — the full Metaflow documentation set, and
+> See also: [README.md](README.md) — the full FlowX documentation set, and
 > [01_control_metadata_schema.md](01_control_metadata_schema.md) for the full `source_config`
 > field reference these two attributes belong to.
 
@@ -186,11 +186,11 @@ but the pipeline still fails to start.
 
 ## Relevant files
 
-* `src/NextGen_Metadata_Framework/lakeflow_framework/ingestion/column_normalization.py` —
+* `src/flowx/lakeflow_framework/ingestion/column_normalization.py` —
   `normalize_column_name` (pure), `normalize_column_names` (DataFrame).
-* `src/NextGen_Metadata_Framework/lakeflow_framework/ingestion/schema_config.py` —
+* `src/flowx/lakeflow_framework/ingestion/schema_config.py` —
   `resolve_schema_config_path`, `load_schema_config`, `apply_schema_config`.
-* `src/NextGen_Metadata_Framework/lakeflow_framework/onboarding/spec_validator.py` —
+* `src/flowx/lakeflow_framework/onboarding/spec_validator.py` —
   `_validate_ingestion_source_config`'s `normalize_column_names`/`schema_config_path` checks.
 * `onboarding_templates/schema_config_example.json` / `.yaml` — the worked example above, in
   full.

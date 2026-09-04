@@ -1,4 +1,4 @@
-# 📤 Metaflow — Egress & Lakeflow Sinks
+# 📤 FlowX — Egress & Lakeflow Sinks
 
 > **Audience**: Integration engineers and data architects building external data syndication pipelines to cloud object stores, Kafka clusters, or external partner Volumes.
 
@@ -6,7 +6,7 @@
 
 ## 1. Lakeflow Native In-Graph Sink Architecture
 
-In Metaflow, egress sinks are **not** separate post-deployment batch jobs or standalone Spark notebooks. Instead, they are registered natively inside the Lakeflow pipeline DAG using:
+In FlowX, egress sinks are **not** separate post-deployment batch jobs or standalone Spark notebooks. Instead, they are registered natively inside the Lakeflow pipeline DAG using:
 - `dlt.create_sink(...)`: Defines the external destination target and format.
 - `@dlt.append_flow(...)`: Streams data from an upstream view or table directly into the sink with transactional checkpointing.
 
@@ -37,7 +37,7 @@ In Metaflow, egress sinks are **not** separate post-deployment batch jobs or sta
 
 ## 2. Sink Format Specifications
 
-Metaflow supports 3 production sink formats configured via `target_config.sink_config.format`:
+FlowX supports 3 production sink formats configured via `target_config.sink_config.format`:
 
 ### 2.1 Delta Format (`format: "delta"`)
 Directly exports Delta Lake tables to an external Volume or object storage location.

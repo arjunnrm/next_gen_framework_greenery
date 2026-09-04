@@ -1,6 +1,6 @@
 # Test Pipeline: Reconciliation Feature Test (Scenario 004)
 
-> See also: [Documentation index](README.md), [metaflow_testing/TESTING_PLAN.md](../metaflow_testing/TESTING_PLAN.md) (Module 7 & 11), [metaflow_testing/TESTING_STATUS.md](../metaflow_testing/TESTING_STATUS.md).
+> See also: [Documentation index](README.md), [flowx_testing/TESTING_PLAN.md](../flowx_testing/TESTING_PLAN.md) (Module 7 & 11), [flowx_testing/TESTING_STATUS.md](../flowx_testing/TESTING_STATUS.md).
 
 ## Purpose
 
@@ -21,7 +21,7 @@ scenario exercises it only incidentally (as a regression check), not as new func
 * Reuse scenario 002/003's own already-onboarded bronze tables
   (`{catalog}.bronze_excalibur.autoload_bronze` / `zerobus_bronze`) as a source/target pair —
   reconciliation is not a Lakeflow Declarative Pipeline flow type (see
-  `metaflow_test_003_autoload_recon_pipeline.yml`'s own header comment), so this scenario needs
+  `flowx_test_003_autoload_recon_pipeline.yml`'s own header comment), so this scenario needs
   no dedicated pipeline of its own, only onboarding + `05_reconciliation_engine.py` tasks.
 * Three reconciliation flows, all comparing the same table pair, all `comparison_direction:
   "target_to_source"` (audit-only — deliberately never mutates anything, unlike scenario 003's
@@ -33,9 +33,9 @@ scenario exercises it only incidentally (as a regression check), not as new func
 
 ## Inputs
 
-* `metaflow_testing/004_recon_features_test.json` — reconciliation-only onboarding spec (no
+* `flowx_testing/004_recon_features_test.json` — reconciliation-only onboarding spec (no
   `ingestion_flows`/`transformation_flows`).
-* Depends on scenario 002/003's own fixtures — `metaflow_test_004_recon_features_job` re-runs
+* Depends on scenario 002/003's own fixtures — `flowx_test_004_recon_features_job` re-runs
   their full setup/seed/onboard/pipeline chain itself first, so this scenario is self-contained
   (works from a clean environment, not only after 002/003 happen to have already run).
 
@@ -55,7 +55,7 @@ scenario exercises it only incidentally (as a regression check), not as new func
 
 ## Configuration
 
-`metaflow_testing/004_recon_features_test.json`'s three `reconciliation_flows[]` entries (see
+`flowx_testing/004_recon_features_test.json`'s three `reconciliation_flows[]` entries (see
 file for full detail) — each sets `logging_config` explicitly (even the default-`true` case, for
 clarity in this test) and `match_keys: ["customer_id"]`, `compare_columns: ["customer_name",
 "status"]`.
@@ -64,10 +64,10 @@ clarity in this test) and `match_keys: ["customer_id"]`, `compare_columns: ["cus
 
 ```bash
 databricks bundle deploy --target dev
-databricks bundle run metaflow_test_004_recon_features_job --target dev
+databricks bundle run flowx_test_004_recon_features_job --target dev
 ```
 
-Task chain: `setup_control_tables → seed_metaflow_testing_data → onboard_002 → run_002_pipeline
+Task chain: `setup_control_tables → seed_flowx_testing_data → onboard_002 → run_002_pipeline
 → onboard_003 → run_003_pipeline → onboard_004 → {run_004_recon_logging_on,
 run_004_recon_logging_off, run_004_recon_continuous}` (the last three run in parallel, all
 depending only on `onboard_004`).
@@ -98,7 +98,7 @@ GROUP BY reconciliation_id;
 ```
 
 **This pass's actual verification status**: see
-[`metaflow_testing/TESTING_STATUS.md`](../metaflow_testing/TESTING_STATUS.md) for whether this
+[`flowx_testing/TESTING_STATUS.md`](../flowx_testing/TESTING_STATUS.md) for whether this
 job was actually run against the live workspace and what the real result was — this document
 describes what *should* happen structurally; the status tracker records what *did* happen, if
 anything, each time this scenario is executed.
@@ -106,7 +106,7 @@ anything, each time this scenario is executed.
 ## Real live-run results (2026-08-29)
 
 **`recon_004_logging_on` / `recon_004_logging_off` — fully verified live, exactly as designed.**
-Real query results against `metaflow.config.*` after a live run (job run id `830403105449437`):
+Real query results against `flowx.config.*` after a live run (job run id `830403105449437`):
 
 ```
 reconciliation_result:  recon_004_logging_on  -> SUCCESS, matched_count=7, task_run_id=830403105449437
@@ -146,7 +146,7 @@ architectural decision, not a quick patch.
 
 **Incidental fixes made to unblock this verification** (pre-existing bugs, not introduced this
 session, but found and fixed while getting a real end-to-end run):
-* `notebooks/00_seed_sample_data/02_seed_metaflow_testing_data.py`'s `seed_zerobus_style_table_from_csv()`
+* `notebooks/00_seed_sample_data/02_seed_flowx_testing_data.py`'s `seed_zerobus_style_table_from_csv()`
   used `whenMatchedUpdateAll()`/`whenNotMatchedInsertAll()` (star merge), which fails the moment
   the target table has a column the fixture CSV doesn't (confirmed live: `zerobus_source_bus`
   had accumulated an extra `updated_at` column from scenario 003's own self-healing appends).
@@ -158,7 +158,7 @@ session, but found and fixed while getting a real end-to-end run):
   session) existed on an already-provisioned control table and a genuinely new row was inserted.
   Fixed all five to `whenNotMatchedInsert(values={col: f"s.{col}" for col in source_df.columns})`,
   consistent with their own `whenMatchedUpdate` clauses.
-* This workspace's `metaflow.config.*` control tables (provisioned before this session) needed
+* This workspace's `flowx.config.*` control tables (provisioned before this session) needed
   four manual `ALTER TABLE ... ADD COLUMNS` statements run once to pick up new columns added
   this session (`reconciliation_run_log`/`reconciliation_mismatch_log`.`task_run_id`,
   `reconciliation_flow_spec`.`logging_config_json`, `ingestion_flow_spec`/

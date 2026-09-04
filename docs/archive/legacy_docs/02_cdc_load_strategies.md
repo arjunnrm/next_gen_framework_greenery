@@ -1,6 +1,6 @@
 # CDC / Load Strategies Reference
 
-See also: [README.md](README.md) for the full Metaflow documentation index.
+See also: [README.md](README.md) for the full FlowX documentation index.
 
 Set via `target_config.cdc_load_strategy` on an `ingestion_flow_spec` or
 `transformation_flow_spec` row -- **there is no separate `cdc_config` block**; every
@@ -10,7 +10,7 @@ options) lives directly inside `target_config`, alongside the storage-format/par
 fields. See [01_control_metadata_schema.md §4](01_control_metadata_schema.md#4-target_config-ingestion-and-transformation-flows)
 for the full `target_config` shape and every non-CDC field in it.
 
-Implemented in `src/NextGen_Metadata_Framework/lakeflow_framework/cdc/`:
+Implemented in `src/flowx/lakeflow_framework/cdc/`:
 `cdc/dispatcher.py::register_cdc_strategy` routes by strategy name to `cdc/scd.py`
 (SCD1/SCD2/SCD3) or `cdc/snapshot.py` (the two full-snapshot strategies); `APPEND` and
 `TRUNCATE_AND_LOAD` are handled directly by `engine/flow_registration.py` and

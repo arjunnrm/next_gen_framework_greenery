@@ -1,9 +1,9 @@
 ---
-name: metaflow-onboarding
-description: Answer questions about, guide, and generate Metaflow onboarding specs (the JSON/YAML that drives NextGen_Metadata_Framework pipelines) for this repo. Use whenever the task involves an onboarding spec, dataflow_group_id, ingestion_flows, transformation_flows, reconciliation_flows, source_type/target_type/cdc_load_strategy, dq_config, governance_tags, or the Metaflow control tables.
+name: flowx-onboarding
+description: Answer questions about, guide, and generate FlowX onboarding specs (the JSON/YAML that drives flowx pipelines) for this repo. Use whenever the task involves an onboarding spec, dataflow_group_id, ingestion_flows, transformation_flows, reconciliation_flows, source_type/target_type/cdc_load_strategy, dq_config, governance_tags, or the FlowX control tables.
 ---
 
-# Metaflow onboarding specs
+# FlowX onboarding specs
 
 This skill covers the onboarding spec: the JSON (or YAML) document that declares a
 `dataflow_group_id` and its flows, is validated by `onboarding/spec_validator.py`, upserted into
@@ -18,7 +18,7 @@ offline, needs no cluster, and takes under a second:
 ```bash
 python -c "
 import json,sys; sys.path.insert(0,'src')
-from NextGen_Metadata_Framework.lakeflow_framework.onboarding.agent_tools import validate_json
+from flowx.lakeflow_framework.onboarding.agent_tools import validate_json
 r = validate_json(open('my_spec.json', encoding='utf-8').read())
 print(r['summary'])
 [print(' ERROR:', e) for e in r['errors']]
@@ -120,7 +120,7 @@ observability) and links to the authoritative source for each topic.
 actually hit — check it before asserting that something works.
 
 When a question is about what is *enforced*, the answer is in
-`src/NextGen_Metadata_Framework/lakeflow_framework/onboarding/spec_validator.py`: the
+`src/flowx/lakeflow_framework/onboarding/spec_validator.py`: the
 `ALLOWED_*` / `REMOVED_*` constants near the top are the ground truth, and they are asserted
 against the JSON schema by `tests/unit/test_unknown_key_rejection.py`.
 

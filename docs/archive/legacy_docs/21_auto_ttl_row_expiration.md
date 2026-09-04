@@ -1,11 +1,11 @@
 # Auto TTL Row Expiration
 
-> See also: [README.md](README.md) — the full Metaflow documentation set.
+> See also: [README.md](README.md) — the full FlowX documentation set.
 
 ## Purpose
 
 Prove `target_config.auto_ttl` correctly configures Databricks' row-level Auto TTL
-feature -- and document a real, previously-undiscovered bug where Metaflow's TTL
+feature -- and document a real, previously-undiscovered bug where FlowX's TTL
 support was **completely non-functional** for every flow that ever configured it, since
 its very first commit.
 

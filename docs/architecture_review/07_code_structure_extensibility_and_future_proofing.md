@@ -1,4 +1,4 @@
-# MetaFlow Architecture Review — Pillar 7: Code Structure, Extensibility & Future-Proofing
+# FlowX Architecture Review — Pillar 7: Code Structure, Extensibility & Future-Proofing
 
 **Evaluation Area:** Codebase Structure, Pluggable Registry Architecture, Open-Closed Principle (OCP), Component Decoupling, and Developer Ergonomics  
 **Score:** 7.5 / 10 (Current) ➔ **9.8 / 10 (Target Architecture)**  
@@ -14,9 +14,9 @@ A hallmark of a world-class, enterprise-grade data platform is **ease of modific
 - New egress sinks (e.g., Snowflake, AWS S3 Parquet, Azure EventHub, GCP Pub/Sub, Webhooks).
 - New telemetry exporters (e.g., Azure Monitor, AWS CloudWatch, Datadog direct, Prometheus).
 
-In the current MetaFlow implementation, adding any new capability requires modifying multiple core engine files (`readers.py`, `dispatcher.py`, `sink_registration.py`, `destination_dispatcher.py`, and `spec_validator.py`). This tight coupling creates regression risks and slows development velocity.
+In the current FlowX implementation, adding any new capability requires modifying multiple core engine files (`readers.py`, `dispatcher.py`, `sink_registration.py`, `destination_dispatcher.py`, and `spec_validator.py`). This tight coupling creates regression risks and slows development velocity.
 
-This review provides a comprehensive blueprint to transform MetaFlow into an **Open-Closed, Plugin-Driven Architecture**.
+This review provides a comprehensive blueprint to transform FlowX into an **Open-Closed, Plugin-Driven Architecture**.
 
 ---
 
@@ -51,7 +51,7 @@ This review provides a comprehensive blueprint to transform MetaFlow into an **O
 
 ## 3. Target State: The Pluggable Registry Architecture
 
-To make MetaFlow effortlessly modifiable, the codebase should adopt a **Declarative Registry Pattern** powered by Python decorators and abstract base classes.
+To make FlowX effortlessly modifiable, the codebase should adopt a **Declarative Registry Pattern** powered by Python decorators and abstract base classes.
 
 ```
 ┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
@@ -92,7 +92,7 @@ from typing import Any, Dict
 from pyspark.sql import DataFrame, SparkSession
 
 class BaseReader(ABC):
-    """Abstract contract for all MetaFlow ingestion source readers."""
+    """Abstract contract for all FlowX ingestion source readers."""
     
     @abstractmethod
     def read(self, spark: SparkSession, source_config: Dict[str, Any], parameters: Dict[str, Any]) -> DataFrame:
@@ -110,7 +110,7 @@ class BaseReader(ABC):
 # target: src/.../lakeflow_framework/ingestion/registry.py
 # =========================================================================
 from typing import Dict, Type
-from NextGen_Metadata_Framework.lakeflow_framework.exceptions import FrameworkConfigError
+from flowx.lakeflow_framework.exceptions import FrameworkConfigError
 
 class ReaderRegistry:
     """Thread-safe registry for ingestion source readers."""
@@ -142,8 +142,8 @@ To add a new **Apache Iceberg** or **Kafka Streaming** reader, a developer simpl
 # Example: Adding Iceberg Ingestion in a single isolated file!
 # File: src/.../lakeflow_framework/ingestion/plugins/iceberg_reader.py
 # =========================================================================
-from NextGen_Metadata_Framework.lakeflow_framework.ingestion.base import BaseReader
-from NextGen_Metadata_Framework.lakeflow_framework.ingestion.registry import ReaderRegistry
+from flowx.lakeflow_framework.ingestion.base import BaseReader
+from flowx.lakeflow_framework.ingestion.registry import ReaderRegistry
 
 @ReaderRegistry.register("iceberg")
 class IcebergSourceReader(BaseReader):
@@ -252,7 +252,7 @@ class SinkRegistry:
 To maximize maintainability, modularity, and future extensibility, the project layout should be organized into clear domain layers:
 
 ```
-src/NextGen_Metadata_Framework/lakeflow_framework/
+src/flowx/lakeflow_framework/
 ├── core/                               # Fundamental shared abstractions
 │   ├── base.py                         # Abstract base classes (Reader, Strategy, Sink, Telemetry)
 │   ├── registry.py                     # Generic decorator-based registry engine

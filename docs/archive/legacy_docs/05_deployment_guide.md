@@ -1,6 +1,6 @@
 # Deployment Guide
 
-See also: [README.md](README.md) for the full Metaflow documentation index.
+See also: [README.md](README.md) for the full FlowX documentation index.
 
 Uses [Databricks Asset Bundles](https://docs.databricks.com/en/dev-tools/bundles/index.html)
 (DAB) — `databricks.yml` at the repo root, resource definitions under `resources/`.
@@ -50,8 +50,8 @@ Uses [Databricks Asset Bundles](https://docs.databricks.com/en/dev-tools/bundles
 
 ## 1. How the wheel gets built and used
 
-`pyproject.toml` declares package `NextGen_Metadata_Framework` (hatchling, `src/` layout).
-`src/NextGen_Metadata_Framework/lakeflow_framework/` — this entire framework — is part of
+`pyproject.toml` declares package `flowx` (hatchling, `src/` layout).
+`src/flowx/lakeflow_framework/` — this entire framework — is part of
 that package, so **no extra packaging config was needed**: `uv build --wheel` produces one
 wheel containing everything under `src/`.
 
@@ -73,7 +73,7 @@ convenient, it's pure local disk hygiene with no effect on deployed resources.
 Every notebook and the pipeline resource attach that wheel as a library dependency
 (`environment.dependencies: [../dist/*.whl]` — the pattern already used by the template's
 own `resources/sample_job.job.yml`), so in a deployed job/pipeline,
-`import NextGen_Metadata_Framework.lakeflow_framework...` resolves like any other
+`import flowx.lakeflow_framework...` resolves like any other
 site-packages import — no `sys.path` tricks. Each notebook's bootstrap cell *does* still
 carry a local-`src/`-folder fallback purely for convenience when iterating on a notebook
 interactively before running `bundle deploy` at all; production never exercises that path.
@@ -140,7 +140,7 @@ This deploys two resources (see `resources/*.yml`):
 Every job wired up in §2 above onboards one or more *specific* `test_specs/*.json` files,
 hardcoded into that job's own resource YAML as a notebook task's
 `base_parameters.spec_file_path`. `resources/onboarding_job.yml` (resource key
-`onboarding_job`, displayed in the Jobs UI as **"Metaflow Config Onboarding"**) is
+`onboarding_job`, displayed in the Jobs UI as **"FlowX Config Onboarding"**) is
 different: a single, generic job that can `CREATE`/`UPDATE`/`VALIDATE_ONLY` **any**
 onboarding spec — JSON or YAML, from a UC Volume or Workspace Files path, any
 `dataflow_group_id` — driven entirely by job parameters supplied at `databricks bundle run`
@@ -151,7 +151,7 @@ time.
 resources:
   jobs:
     onboarding_job:
-      name: Metaflow Config Onboarding
+      name: FlowX Config Onboarding
 
       parameters:
         - name: spec_file_path

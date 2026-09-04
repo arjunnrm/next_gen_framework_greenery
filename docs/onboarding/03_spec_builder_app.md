@@ -9,16 +9,16 @@ and writes the spec where you tell it.
 cd databricks-app
 pip install -r requirements.txt
 cd web && npm install && npm run build && cd ..
-METAFLOW_FAKE_DBX=1 uvicorn server.app:app --port 8000
+FLOWX_FAKE_DBX=1 uvicorn server.app:app --port 8000
 ```
 
-`METAFLOW_FAKE_DBX=1` stubs every workspace call, so the whole UI works with no Databricks
+`FLOWX_FAKE_DBX=1` stubs every workspace call, so the whole UI works with no Databricks
 connection. Drop it to talk to a real workspace.
 
 ## Deploy it
 
 ```bash
-databricks bundle deploy -t dev_metaflow
+databricks bundle deploy -t dev_flowx
 ```
 
 !!! warning "Build the frontend before deploying"

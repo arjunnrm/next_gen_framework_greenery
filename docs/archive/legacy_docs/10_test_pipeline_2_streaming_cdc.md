@@ -4,7 +4,7 @@
 
 ## Purpose
 
-Prove Metaflow handles a **CDC-bus-style streaming source** (Zerobus-landed Delta
+Prove FlowX handles a **CDC-bus-style streaming source** (Zerobus-landed Delta
 table with an explicit operation column), **column-level encryption before
 persistence**, and **incremental processing with inserts, updates, and deletes** -- again
 entirely through onboarding configuration, using the CDC-delete support added to

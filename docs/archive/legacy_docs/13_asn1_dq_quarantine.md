@@ -1,10 +1,10 @@
 # ASN.1 Ingestion, DQ, and Quarantine
 
-> See also: [README.md](README.md) for the full Metaflow documentation set.
+> See also: [README.md](README.md) for the full FlowX documentation set.
 
 ## Purpose
 
-Prove ASN.1 ingestion (already in Metaflow, see `test_specs/spec_02_*`) combined
+Prove ASN.1 ingestion (already in FlowX, see `test_specs/spec_02_*`) combined
 with configurable DQ rules and the enriched quarantine metadata added in this pass
 (`__framework_pipeline_run_id`, `__framework_record_id`, `__framework_dq_failure_reasons` -- see
 `dq/quarantine.py::add_quarantine_columns`), entirely through onboarding configuration.

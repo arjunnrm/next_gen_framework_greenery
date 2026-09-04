@@ -4,7 +4,7 @@ Every entry below is a **real bug that actually shipped in this codebase**, was 
 only by a later, more exhaustive test suite), and fixed — documented here so it doesn't get
 silently reintroduced. Each one originally looked correct at review time; that's exactly why
 it's worth internalizing the underlying mechanism, not just the specific line that got fixed.
-File paths are relative to `src/NextGen_Metadata_Framework/lakeflow_framework/` unless noted.
+File paths are relative to `src/flowx/lakeflow_framework/` unless noted.
 
 ---
 
@@ -495,7 +495,7 @@ change silently keeps the old schema.
 
 **How it actually surfaced (v1.5.0, defect D4, verified live 2026-08-31):** `execution_mode` /
 `publish_schema` / `dq_config_json` were added to `reconciliation_flow_spec`'s CREATE DDL and the
-tests passed, because unit tests build the table from scratch. On the real `metaflow` workspace the
+tests passed, because unit tests build the table from scratch. On the real `flowx` workspace the
 table had **none** of the three, and pipeline-mode onboarding died at `MERGE` time with
 `UNRESOLVED_COLUMN`.
 
@@ -608,7 +608,7 @@ is no graph left to be cyclic.
 
 **What actually shipped (v1.5.0, defect D3):** these rules fired unconditionally, as hard errors.
 That was a genuine **backward-compatibility break**: the shipped, pre-v1.5.0, purely job-mode spec
-`metaflow_testing/038_rec_003_precomputed_hash.json` stopped validating and so could no longer be
+`flowx_testing/038_rec_003_precomputed_hash.json` stopped validating and so could no longer be
 onboarded at all, because `02_onboarding_engine.py` raises on any non-empty `errors` list.
 
 **Fix, and the rule going forward:** route every such finding through
@@ -636,7 +636,7 @@ contains non-append commits, so a downstream `readStream` over it fails with
 names `execution_mode: "pipeline_audit_only"` as the correct setting for such a flow.
 
 This is the live shape of the geneva scenario:
-`metaflow_testing/053_geneva_e41a47ba_recon_in_pipeline.json` uses `pipeline_audit_only` precisely
+`flowx_testing/053_geneva_e41a47ba_recon_in_pipeline.json` uses `pipeline_audit_only` precisely
 because its recon source (`geneva_admin.stg_tariffelementband`) is that same group's own
 `TRUNCATE_AND_LOAD` ingestion target. Pinned by `tests/unit/test_geneva_e41a47ba_topology.py`.
 That scenario is verified **offline only** (validator + `plan_source_plane`); see blocker B2 in
@@ -682,31 +682,31 @@ A new job resource under `resources/` must **not** carry its own `notebook_task`
 `notebooks/02_onboarding/02_onboarding_engine.py`. Each inlined copy pins its own widget names, its
 own notebook path and its own cluster/environment settings, so any change to the onboarding
 entrypoint has to be replayed across every one of them — which is exactly how the ~20 legacy
-`metaflow_test_*_job.yml` files drifted apart.
+`flowx_test_*_job.yml` files drifted apart.
 
-Delegate instead, via `run_job_task`, to the parameterised `resources/metaflow_config_jobs/onboarding_job.yml`:
+Delegate instead, via `run_job_task`, to the parameterised `resources/flowx_config_jobs/onboarding_job.yml`:
 
 ```yaml
 - task_key: onboard_x
   run_job_task:
     job_id: ${resources.jobs.onboarding_job.id}
     job_parameters:
-      spec_file_path: "${workspace.file_path}/metaflow_testing/<spec>.json"
-      catalog: metaflow
+      spec_file_path: "${workspace.file_path}/flowx_testing/<spec>.json"
+      catalog: flowx
       env: dev
       action_type: CREATE
 ```
 
-Applied to `resources/feature_tests/metaflow_test_recon_dag_job.yml`,
-`resources/feature_tests/metaflow_test_dag_001_unified_job.yml` and
-`resources/bt_tests/metaflow_test_104_geneva_tariffs_recon_job.yml`. The pre-existing legacy jobs are
+Applied to `resources/feature_tests/flowx_test_recon_dag_job.yml`,
+`resources/feature_tests/flowx_test_dag_001_unified_job.yml` and
+`resources/bt_tests/flowx_test_104_geneva_tariffs_recon_job.yml`. The pre-existing legacy jobs are
 deliberately **left as-is** — `onboarding_job.yml`'s own header records the standing "keep legacy
-jobs as-is, add new orchestration alongside" decision. `resources/metaflow_config_jobs/framework_config_onboarding_job.yml`
+jobs as-is, add new orchestration alongside" decision. `resources/flowx_config_jobs/framework_config_onboarding_job.yml`
 is the sibling that onboards a whole **directory** (`spec_dir`) rather than one spec.
 
 Related trap in the same file family (v1.5.0, defect D7): when a flow is flipped to
 `execution_mode: "pipeline"`, that job's **standalone** reconciliation task must be deleted.
-`resources/feature_tests/metaflow_test_002_003_job.yml` still carried `run_003_reconciliation` even though its own
+`resources/feature_tests/flowx_test_002_003_job.yml` still carried `run_003_reconciliation` even though its own
 header claimed the task had been removed — reconciliation would have run **twice** per trigger,
 once in-pipeline and once as the job task, risking a double-append into the correction target.
 
@@ -719,10 +719,10 @@ purpose, and `databricks.yml`'s `include:` lists each group:
 
 | Folder | Holds |
 |---|---|
-| `resources/metaflow_bootstrap/` | the UC containers other resources live in: the `config`/`${var.schema}`/`metaflow_sample` schemas + the sample suite's four Volumes (**not** the catalog — see pitfall 40) |
-| `resources/metaflow_bi/` | the AI/BI control-metadata dashboard |
-| `resources/metaflow_app/` | the Onboarding App + the UC Volume it stores authored specs in |
-| `resources/metaflow_config_jobs/` | `onboarding_job` (one spec per run) and `framework_config_onboarding_job` (a whole `spec_dir` per run) |
+| `resources/flowx_bootstrap/` | the UC containers other resources live in: the `config`/`${var.schema}`/`flowx_sample` schemas + the sample suite's four Volumes (**not** the catalog — see pitfall 40) |
+| `resources/flowx_bi/` | the AI/BI control-metadata dashboard |
+| `resources/flowx_app/` | the Onboarding App + the UC Volume it stores authored specs in |
+| `resources/flowx_config_jobs/` | `onboarding_job` (one spec per run) and `framework_config_onboarding_job` (a whole `spec_dir` per run) |
 | `resources/observability/` | the DLT observability export job + the OTEL streaming pipeline |
 | `resources/bt_tests/` | tests driven by real BT fixtures/pipelines: geneva tariff recon replay, ASN.1 decode, PGP decrypt |
 | `resources/feature_tests/` | the `TC-*` feature/regression corpus — one job + one pipeline per case |
@@ -748,13 +748,13 @@ app" destroys 83 deployed jobs and pipelines on the next `bundle deploy`. Scope 
 (CLI ≥ v1.13.0) instead, which leaves unselected resources untouched:
 
 ```bash
-databricks bundle deploy -t dev_metaflow -p dev_metaflow   --select apps.metaflow_onboarding_app,jobs.onboarding_job,jobs.framework_config_onboarding_job,volumes.onboarding_specs_volume
+databricks bundle deploy -t dev_flowx -p dev_flowx   --select apps.flowx_onboarding_app,jobs.onboarding_job,jobs.framework_config_onboarding_job,volumes.onboarding_specs_volume
 ```
 
 The wheel is still built and uploaded under `--select`, because the selected jobs declare it in
 `environments[].spec.dependencies`. Keep `jobs.onboarding_job` and `volumes.onboarding_specs_volume`
 in the list even for an app-only change: the app resolves `${resources.jobs.onboarding_job.id}` into
-its `METAFLOW_ONBOARDING_JOB_ID` env var and binds the spec Volume to its service principal.
+its `FLOWX_ONBOARDING_JOB_ID` env var and binds the spec Volume to its service principal.
 
 ---
 
@@ -858,7 +858,7 @@ Asn1DecodeError: ASN.1 CHOICE types are not yet supported by schema auto-derivat
 The trap is that toy fixtures never show this. `sample_data/asn1_schema/gsm_cdr.asn` is one flat
 5-field `SEQUENCE`, so `GsmCallDetailRecord` "just works" and nothing warns you that the pattern
 does not carry over. Every genuine telecom module is built the other way round — a root `CHOICE`
-selecting between message kinds. In `metaflow_testing/BT_Testing/TAP.310.asn1` (the real GSMA TAP
+selecting between message kinds. In `flowx_testing/BT_Testing/TAP.310.asn1` (the real GSMA TAP
 release 3.10 spec):
 
 * `DataInterChange` — the module's own top-level PDU — is `CHOICE { transferBatch, notification }`.
@@ -874,9 +874,9 @@ authority and takes about a second over 375 types:
 
 ```python
 import asn1tools
-from NextGen_Metadata_Framework.lakeflow_framework.asn1.decoder import derive_asn1_field_defs
+from flowx.lakeflow_framework.asn1.decoder import derive_asn1_field_defs
 
-module = "metaflow_testing/BT_Testing/TAP.310.asn1"
+module = "flowx_testing/BT_Testing/TAP.310.asn1"
 types = next(iter(asn1tools.parse_files([module]).values()))["types"]
 for name, node in types.items():
     if node.get("type") != "SEQUENCE":
@@ -946,14 +946,14 @@ the trap.
 
 ```
 Error: cannot create resources.volumes.framework_wheels_volume:
-       Schema 'metaflow.config' does not exist
+       Schema 'flowx.config' does not exist
 ```
 
 The bundle declared its two Volumes but nothing declared the schema holding them. On the older
-workspaces `metaflow.config` had been created by hand long ago, so the gap was invisible — the
+workspaces `flowx.config` had been created by hand long ago, so the gap was invisible — the
 bundle only ever deployed where a human had already run the `CREATE`.
 
-**The fix.** Declare the schemas (`resources/metaflow_bootstrap/metaflow_schemas.yml`). DABs
+**The fix.** Declare the schemas (`resources/flowx_bootstrap/flowx_schemas.yml`). DABs
 rewrites each Volume's literal `schema_name` into `${resources.schemas.config_schema.name}` — a
 real dependency edge, visible in `bundle validate -o json` — so schema-before-volume is enforced by
 DABs itself, not by convention.
@@ -962,7 +962,7 @@ DABs itself, not by convention.
 obvious next step. It cannot work here, for two independent reasons:
 
 ```
-Error: cannot create resources.catalogs.metaflow_catalog:
+Error: cannot create resources.catalogs.flowx_catalog:
        Metastore storage root URL does not exist. Default Storage is enabled in your account.
        ... please provide a storage location for the catalog (400 INVALID_STATE)
 ```
@@ -972,14 +972,14 @@ Error: cannot create resources.catalogs.metaflow_catalog:
    Default-Storage catalog's `storage_root` is an **account-managed** path carrying metastore and
    catalog UUIDs generated at create time (`s3://dbstorage-prod-ycljl/uc/9acb37d2-.../`). It cannot
    be committed to YAML and differs per workspace.
-2. `metaflow` already exists on all three targets anyway, each created outside the bundle.
+2. `flowx` already exists on all three targets anyway, each created outside the bundle.
 
 **And the failure is not contained** — this is the part worth remembering. DABs propagates it down
 the dependency edge it just created, so the unbuildable catalog took the schemas with it:
 
 ```
 Error: cannot create resources.schemas.config_schema:
-       dependency failed: resources.catalogs.metaflow_catalog
+       dependency failed: resources.catalogs.flowx_catalog
 ```
 
 A resource that can only ever fail is strictly worse than no resource: it converts a working deploy
@@ -995,11 +995,11 @@ created, so a Volume declared in the same bundle can never satisfy it — the on
 comment-out/deploy/uncomment bootstrap in `databricks.yml` survives, and was re-verified on CLI
 v1.13.0 with the schema resources in place.
 
-**Bind, do not re-create, anything that already exists.** `metaflow.config` predates the group on
-`dev_metaflow` and `hoonartek`, so DABs does not own it there:
+**Bind, do not re-create, anything that already exists.** `flowx.config` predates the group on
+`dev_flowx` and `hoonartek`, so DABs does not own it there:
 
 ```
-databricks bundle deployment bind schemas.config_schema metaflow.config -t dev_metaflow -p dev_metaflow
+databricks bundle deployment bind schemas.config_schema flowx.config -t dev_flowx -p dev_flowx
 ```
 
 ---
@@ -1066,7 +1066,7 @@ exactly like `true`, because it is still a statement about a feature that does n
 JSON schema now sets `additionalProperties: false` on every authored container too.
 
 **Exempt:** any key matching `^_` (author comment — `_scenario`, `_provenance`, `_test_case_note`;
-JSON has no comment syntax and the specs in `metaflow_testing/` lean on these heavily) and
+JSON has no comment syntax and the specs in `flowx_testing/` lean on these heavily) and
 `$schema`.
 
 **The two traps when adding an attribute.**
@@ -1085,7 +1085,7 @@ cluster, sub-second:
 
 ```python
 import sys; sys.path.insert(0, "src")
-from NextGen_Metadata_Framework.lakeflow_framework.onboarding.agent_tools import validate_json
+from flowx.lakeflow_framework.onboarding.agent_tools import validate_json
 print(validate_json(open("my_spec.json", encoding="utf-8").read())["summary"])
 ```
 

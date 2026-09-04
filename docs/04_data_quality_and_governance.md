@@ -1,4 +1,4 @@
-# 🛡️ Metaflow — Data Quality & Governance
+# 🛡️ FlowX — Data Quality & Governance
 
 > **Audience**: Data governance officers, data quality engineers, and compliance leads responsible for data contracts, quarantine routing, and Unity Catalog metadata attribution.
 
@@ -6,7 +6,7 @@
 
 ## 1. Data Quality Framework Overview
 
-Metaflow implements a declarative Data Quality (DQ) engine built on top of [Lakeflow Expectations](https://docs.databricks.com/aws/en/dlt/expectations) with automatic, zero-data-loss quarantine routing.
+FlowX implements a declarative Data Quality (DQ) engine built on top of [Lakeflow Expectations](https://docs.databricks.com/aws/en/dlt/expectations) with automatic, zero-data-loss quarantine routing.
 
 ### Data Quality Actions
 
@@ -21,7 +21,7 @@ Metaflow implements a declarative Data Quality (DQ) engine built on top of [Lake
 
 ## 2. Quarantine Routing Architecture
 
-When one or more rules declare `action: "quarantine"`, Metaflow dynamically forks the stream:
+When one or more rules declare `action: "quarantine"`, FlowX dynamically forks the stream:
 
 ```
                                ┌──────────────────────────────┐
@@ -86,7 +86,7 @@ Records entering the quarantine table are automatically enriched with diagnostic
 
 ## 3. Unity Catalog Governance & Tagging
 
-Metaflow provides declarative Unity Catalog metadata attribution for both tables and individual columns.
+FlowX provides declarative Unity Catalog metadata attribution for both tables and individual columns.
 
 ### Governance Configuration Schema
 ```json
@@ -121,7 +121,7 @@ Because Databricks Lakeflow disallows executing DDL statements (`ALTER TABLE ...
 
 ## 4. Attribute-Based Access Control (ABAC) Integration
 
-Metaflow integrates seamlessly with Unity Catalog Row Filters and Column Masks to enforce fine-grained access control:
+FlowX integrates seamlessly with Unity Catalog Row Filters and Column Masks to enforce fine-grained access control:
 - **Column Masks**: Automatically mask sensitive plaintext columns (e.g. hashing SSNs for non-privileged users) via UC User-Defined Functions.
 - **Row Filters**: Enforce row-level tenant or geographic isolation (e.g. `region = current_user_region()`).
 - Learn more in [Official Unity Catalog Row Filters & Column Masks Guide](https://docs.databricks.com/data-governance/unity-catalog/row-and-column-filters).

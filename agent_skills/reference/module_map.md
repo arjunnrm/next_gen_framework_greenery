@@ -1,10 +1,10 @@
 # Module Map — `lakeflow_framework/*`
 
 One paragraph per subpackage under
-`src/NextGen_Metadata_Framework/lakeflow_framework/`, its responsibility, and its key public
+`src/flowx/lakeflow_framework/`, its responsibility, and its key public
 functions — so an agent can quickly answer "where does X happen?" without re-reading the
 whole tree. File paths below are relative to
-`src/NextGen_Metadata_Framework/lakeflow_framework/`. See `SKILL.md` for how these subpackages
+`src/flowx/lakeflow_framework/`. See `SKILL.md` for how these subpackages
 compose into the end-to-end architecture.
 
 ---
@@ -128,7 +128,7 @@ Three modules added in **v1.5.0**, when reconciliation moved inside the pipeline
 - `identifiers.py::sanitize_identifier(value)` maps every non-`[0-9a-zA-Z_]` character to `_`;
   `stable_node_name(prefix, locator, suffix, max_core=80)` builds a collision-free dataset name by
   **always** appending `sha256(locator)[:8]` — never only on truncation, because sanitizing alone
-  would collide `metaflow.bronze.a_b` with `metaflow.bronze_a.b` and raise `Cannot redefine dataset`
+  would collide `flowx.bronze.a_b` with `flowx.bronze_a.b` and raise `Cannot redefine dataset`
   for the whole update.
 - `source_plane.py` — the **read-once** plane (requirement R2: every physical source table/path is
   read exactly once per pipeline update and reused by every consumer). Three-phase, deliberately
@@ -395,7 +395,7 @@ touching it:
   (`_DUPLICATE_COLUMN_CONDITIONS` / `_is_duplicate_column_race`, sibling to the pre-existing
   `_ALREADY_EXISTS_CONDITIONS` / `is_already_exists_race`).
 - **`databricks bundle deploy` does not apply it.** Only *running* the `setup_control_tables` task
-  does. Verified live: `metaflow.config.reconciliation_flow_spec` had none of the three new
+  does. Verified live: `flowx.config.reconciliation_flow_spec` had none of the three new
   columns, and pipeline-mode onboarding failed with `UNRESOLVED_COLUMN` until the setup task ran.
   On a brand-new workspace the migration is a harmless no-op. See `common_pitfalls.md` 26 and 27.
 

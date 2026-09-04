@@ -1,10 +1,10 @@
 # Lakeflow Sinks: `target_type: "sink"` and `"external_sink"`
 
-> See also: [README.md](README.md) — the full Metaflow documentation set.
+> See also: [README.md](README.md) — the full FlowX documentation set.
 
 ## Purpose
 
-Metaflow's requirement for external egress is explicit: *all external outputs must
+FlowX's requirement for external egress is explicit: *all external outputs must
 use genuine
 [Lakeflow Declarative Pipelines](https://docs.databricks.com/aws/en/dlt/)/DLT sink
 functionality (`dlt.create_sink` + `@dlt.append_flow`), not ordinary DAG table writes;

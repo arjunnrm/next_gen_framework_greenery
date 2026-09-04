@@ -2,8 +2,8 @@
 
 > See also: [Documentation index](README.md).
 
-Metaflow's reconciliation engine is implemented in
-`src/NextGen_Metadata_Framework/lakeflow_framework/reconciliation/` (`dataset_reader.py`,
+FlowX's reconciliation engine is implemented in
+`src/flowx/lakeflow_framework/reconciliation/` (`dataset_reader.py`,
 `matcher.py`, `appender.py`, `mismatch_logging.py`, `streaming.py`, `metrics.py`) and driven by
 the standalone job-task notebook `notebooks/05_reconciliation/05_reconciliation_engine.py`. See
 [01_control_metadata_schema.md §8](01_control_metadata_schema.md#8-reconciliation_flows) for the

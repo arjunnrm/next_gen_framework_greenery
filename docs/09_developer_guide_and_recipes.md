@@ -1,6 +1,6 @@
-# 🛠️ Metaflow — Developer Step-by-Step Guide & Recipes
+# 🛠️ FlowX — Developer Step-by-Step Guide & Recipes
 
-> **Audience**: Data engineers building, validating, and deploying data pipelines using the Metaflow framework.
+> **Audience**: Data engineers building, validating, and deploying data pipelines using the FlowX framework.
 
 ---
 
@@ -131,11 +131,11 @@ databricks bundle deploy -t dev
 The deploy builds the wheel (Step 7 runs automatically) and uploads it to the target's
 `workspace.artifact_path` — `/Volumes/<catalog>/config/wheels/.internal/` as of v1.6.0, a UC
 Volume the bundle itself declares (`volumes.framework_wheels_volume` in
-`resources/metaflow_config_jobs/`), shared by all deployers of the target.
+`resources/flowx_config_jobs/`), shared by all deployers of the target.
 
 As of v1.7.1 the schemas that Volume needs are declared too, in
-`resources/metaflow_bootstrap/` — so a deploy creates schema → volume in dependency order rather
-than failing on `Schema 'metaflow.config' does not exist`. The **catalog is a prerequisite, not a
+`resources/flowx_bootstrap/` — so a deploy creates schema → volume in dependency order rather
+than failing on `Schema 'flowx.config' does not exist`. The **catalog is a prerequisite, not a
 resource**: these accounts use UC Default Storage, so a `catalogs.*` resource cannot be created
 from YAML at all (see that folder's `README.md`) — create it in the UI once per workspace.
 
@@ -143,28 +143,28 @@ The `artifact_path` bootstrap is a *separate* mechanism and survives: that check
 resolution, before any resource is created, so a Volume declared in the same bundle cannot satisfy
 it. On a fresh workspace, deploy
 `--select schemas.config_schema,volumes.framework_wheels_volume` once with the target's
-`artifact_path:` line commented out, then uncomment it. Where `metaflow.config` already exists
-outside the bundle (`dev_metaflow`, `hoonartek`), `bundle deployment bind` it instead — see
+`artifact_path:` line commented out, then uncomment it. Where `flowx.config` already exists
+outside the bundle (`dev_flowx`, `hoonartek`), `bundle deployment bind` it instead — see
 `docs/onboarding/04_deploying.md`.
 
 DABs **prunes**
 superseded wheels from `.internal/` on each deploy — on a UC Volume exactly as in the workspace —
 so unique filenames protect against overwrite-in-place but not removal: **never deploy while a
-pipeline or test wave is running** (`metaflow_testing/TESTING_PLAN.md` §0).
+pipeline or test wave is running** (`flowx_testing/TESTING_PLAN.md` §0).
 
 `resources/` is grouped one folder per purpose, and `databricks.yml`'s `include:` globs each group:
 
 | Folder | Holds | Resources |
 |---|---|---|
-| `resources/metaflow_bootstrap/` | the UC containers other resources live in: the `config`/`${var.schema}`/`metaflow_sample` schemas + the sample suite's four Volumes (**not** the catalog — a prerequisite) | 7 |
-| `resources/metaflow_bi/` | the AI/BI control-metadata dashboard | 1 |
-| `resources/metaflow_app/` | the Onboarding App + the UC Volume it stores authored specs in | 2 |
-| `resources/metaflow_config_jobs/` | `onboarding_job` (one spec per run) + `framework_config_onboarding_job` (a whole `spec_dir` per run) | 2 |
+| `resources/flowx_bootstrap/` | the UC containers other resources live in: the `config`/`${var.schema}`/`flowx_sample` schemas + the sample suite's four Volumes (**not** the catalog — a prerequisite) | 7 |
+| `resources/flowx_bi/` | the AI/BI control-metadata dashboard | 1 |
+| `resources/flowx_app/` | the Onboarding App + the UC Volume it stores authored specs in | 2 |
+| `resources/flowx_config_jobs/` | `onboarding_job` (one spec per run) + `framework_config_onboarding_job` (a whole `spec_dir` per run) | 2 |
 | `resources/observability/` | DLT observability export job + the OTEL streaming pipeline | 2 |
 | `resources/bt_tests/` | tests on real BT fixtures: geneva tariff recon replay, ASN.1 decode, PGP decrypt | 6 |
 | `resources/feature_tests/` | the `TC-*` feature/regression corpus — one job + one pipeline per case | 83 |
 | `resources/stability_tests/` | reserved for `STABILITY_TEST_PLAN.md`'s A1–G4 cases | 0 (empty) |
-| `resources/sample_jobs/` | the `metaflow_sample` reference suite — six sample jobs + six pipelines + the one common seed job | 13 |
+| `resources/sample_jobs/` | the `flowx_sample` reference suite — six sample jobs + six pipelines + the one common seed job | 13 |
 
 A resource YAML therefore sits one level deeper than it used to, so **every relative path inside one
 is `../../`** — `../../notebooks/...`, `../../dist/*.whl`. DABs resolves a relative path against the
@@ -176,13 +176,13 @@ The command above deploys every resource in the bundle. To deploy the app, the t
 the wheel and nothing else — the everyday loop — use `--select` (Databricks CLI ≥ v1.13.0):
 
 ```bash
-databricks bundle deploy -t dev_metaflow -p dev_metaflow   --select apps.metaflow_onboarding_app,jobs.onboarding_job,jobs.framework_config_onboarding_job,volumes.onboarding_specs_volume,volumes.framework_wheels_volume
+databricks bundle deploy -t dev_flowx -p dev_flowx   --select apps.flowx_onboarding_app,jobs.onboarding_job,jobs.framework_config_onboarding_job,volumes.onboarding_specs_volume,volumes.framework_wheels_volume
 ```
 
 The wheel is still built by `scripts/bump_and_build.py` and uploaded, because the selected jobs
 declare `../../dist/*.whl` in `environments[].spec.dependencies`. Keep `jobs.onboarding_job` and
 `volumes.onboarding_specs_volume` selected even for an app-only change: the app resource resolves
-`${resources.jobs.onboarding_job.id}` into its `METAFLOW_ONBOARDING_JOB_ID` env var and binds the
+`${resources.jobs.onboarding_job.id}` into its `FLOWX_ONBOARDING_JOB_ID` env var and binds the
 spec Volume to its service principal. Keep `volumes.framework_wheels_volume` selected too: every
 target's `workspace.artifact_path` points into that Volume, so the Volume stays managed by the
 same deploy that uploads the wheel into it.
@@ -193,7 +193,7 @@ same deploy that uploads the wheel into it.
 > next deploy. `--select` leaves unselected resources untouched; a missing `include` does not.
 
 Deploying the app is also still **two steps** — `bundle deploy` uploads the source but leaves the
-running app on its previous code until `databricks bundle run metaflow_onboarding_app`.
+running app on its previous code until `databricks bundle run flowx_onboarding_app`.
 
 ### Step 9: Onboard Spec to Control Tables
 Trigger the reusable onboarding job:
@@ -351,7 +351,7 @@ v1.5.0 adds three columns to `reconciliation_flow_spec`: `execution_mode`, `publ
 is `CREATE TABLE IF NOT EXISTS`, which is a **no-op against a table that already exists** — so a
 column added to a `CREATE` statement reaches new installations only. A workspace provisioned before
 v1.5.0 therefore has none of the three columns, and onboarding a pipeline-mode flow into it fails
-with `UNRESOLVED_COLUMN` (observed live on `metaflow.config.reconciliation_flow_spec`).
+with `UNRESOLVED_COLUMN` (observed live on `flowx.config.reconciliation_flow_spec`).
 
 The additive migration that fixes this is `ADDITIVE_CONTROL_TABLE_COLUMNS` + `get_add_column_ddl()`
 in `control_plane/ddl_definitions.py`, applied by `ensure_control_table_columns()` in
@@ -361,13 +361,13 @@ Its only entrypoint is `notebooks/01_setup/01_setup_control_tables.py`.
 Check whether you need it:
 
 ```sql
-DESCRIBE TABLE metaflow.config.reconciliation_flow_spec;
+DESCRIBE TABLE flowx.config.reconciliation_flow_spec;
 -- look for: execution_mode, publish_schema, dq_config_json
 ```
 
 If any of the three is absent, run the setup task once before onboarding — for example as the first
 task of the job that will do the onboarding (this is exactly why
-`resources/feature_tests/metaflow_test_recon_dag_job.yml` begins with a `setup_control_tables` task rather than
+`resources/feature_tests/flowx_test_recon_dag_job.yml` begins with a `setup_control_tables` task rather than
 treating it as boilerplate).
 
 The migration is **strictly additive**: it adds columns, never drops or retypes one. It is
@@ -406,13 +406,13 @@ no dataset to name or to attach expectations to.
 #### D.3 — Onboard via the GENERIC `onboarding_job`
 
 > **Rule: a new job must NEVER inline a `02_onboarding_engine.py` notebook_task.** It delegates to
-> the single parameterised entrypoint `resources/metaflow_config_jobs/onboarding_job.yml`. The ~20 pre-existing
-> `metaflow_test_*_job.yml` files that each pin their own inline copy are **legacy and deliberately
+> the single parameterised entrypoint `resources/flowx_config_jobs/onboarding_job.yml`. The ~20 pre-existing
+> `flowx_test_*_job.yml` files that each pin their own inline copy are **legacy and deliberately
 > left as-is** (per the standing "keep legacy jobs as-is, add new orchestration alongside"
 > decision recorded in `onboarding_job.yml`'s own header) — duplicating that pattern is how the
 > onboarding contract drifts between callers. This convention is already applied in
-> `resources/feature_tests/metaflow_test_recon_dag_job.yml`, `metaflow_test_dag_001_unified_job.yml` and
-> `metaflow_test_104_geneva_tariffs_recon_job.yml`.
+> `resources/feature_tests/flowx_test_recon_dag_job.yml`, `flowx_test_dag_001_unified_job.yml` and
+> `flowx_test_104_geneva_tariffs_recon_job.yml`.
 
 In a job resource, delegate with a `run_job_task`:
 
@@ -421,8 +421,8 @@ In a job resource, delegate with a `run_job_task`:
           run_job_task:
             job_id: ${resources.jobs.onboarding_job.id}
             job_parameters:
-              spec_file_path: "${workspace.file_path}/metaflow_testing/<spec>.json"
-              catalog: metaflow
+              spec_file_path: "${workspace.file_path}/flowx_testing/<spec>.json"
+              catalog: flowx
               env: dev
               action_type: CREATE
 ```
@@ -431,7 +431,7 @@ Or, ad hoc from the CLI:
 
 ```bash
 databricks bundle run onboarding_job -t dev \
-  --params spec_file_path=/Workspace/.../my_pipeline.json,catalog=metaflow,env=dev,action_type=CREATE
+  --params spec_file_path=/Workspace/.../my_pipeline.json,catalog=flowx,env=dev,action_type=CREATE
 ```
 
 Re-onboarding the same `reconciliation_id` **MERGEs in place**; onboarding a spec that declares the
@@ -448,7 +448,7 @@ Before you do, **check the job graph for a standalone reconciliation task**. Und
 `execution_mode: "pipeline"` the L3/L4/L5 datasets are registered by the pipeline update itself; a
 surviving `05_reconciliation_engine.py` task would run the comparison a **second** time and
 double-append into the heal target. This was a real defect found in
-`resources/feature_tests/metaflow_test_002_003_job.yml`, whose `run_003_reconciliation` task still existed after
+`resources/feature_tests/flowx_test_002_003_job.yml`, whose `run_003_reconciliation` task still existed after
 scenario 003 was flipped to pipeline mode.
 
 Observability is the opposite case: it **stays** a separate job task (R3) and must not be folded
@@ -471,7 +471,7 @@ recon__<rid>__heal_flow               APPEND flow                           (L5,
 ```
 
 This exact shape was observed live on 2026-08-31 for pipeline
-`metaflow_test_003_autoload_recon_pipeline` — see
+`flowx_test_003_autoload_recon_pipeline` — see
 [`01_platform_architecture.md` §8.6](01_platform_architecture.md#86-verification-status).
 
 ---
@@ -493,7 +493,7 @@ v1.5.0. You still run `setup_control_tables` first — it is what creates the co
    writes into these tables and the pipeline reads from them.
 2. **Onboard** — via the generic `onboarding_job` for a single spec, exactly as in
    [D.3](#d3--onboard-via-the-generic-onboarding_job). For a whole **directory** of specs, use its
-   sibling `resources/metaflow_config_jobs/framework_config_onboarding_job.yml`, which takes a `spec_dir` rather than a
+   sibling `resources/flowx_config_jobs/framework_config_onboarding_job.yml`, which takes a `spec_dir` rather than a
    `spec_file_path`. Do not inline `02_onboarding_engine.py` in a new job in either case.
 3. **Run the pipeline** for the `dataflow_group_id` you just onboarded.
 
@@ -535,27 +535,27 @@ and neither is caused by v1.5.0:
 
 ---
 
-## 6. The `metaflow_sample` Reference Suite
+## 6. The `flowx_sample` Reference Suite
 
 Six self-contained **reference** jobs (not tests) under `resources/sample_jobs/`, with their
 onboarding specs in `resources/sample_jobs/onboarding/`. Every asset they produce - landing files,
 `_schemas` checkpoints, target tables, quarantine tables, reconciliation datasets, ZIP exports,
 observability output, and a copy of each job's own spec - is isolated in the single Unity Catalog
-schema **`metaflow.metaflow_sample`**.
+schema **`flowx.flowx_sample`**.
 
 | Job | Shows |
 |---|---|
-| `metaflow_sample_01_multi_scd_job` | SCD1 + SCD2 + `FULL_SNAPSHOT_CDC` ingestion (strictly additive snapshot feed) + an SCD3 transformation joining two of the group's own tables |
-| `metaflow_sample_02_zip_ingestion_job` | Glob-filtered ZIP extraction (`source_zip_handling`) with quarantine DQ routing |
-| `metaflow_sample_03_multi_table_recon_job` | Two concurrent loads + in-DAG reconciliation (`pipeline_audit_only`) with controlled drift, run/mismatch logging, and a Volume observability export task |
-| `metaflow_sample_04_export_encrypt_zip_job` | Two `pgp_zip` sinks staging CSV (`staged_file_format`) into AES-256 password-protected ZIP exports via `post_export_archive.secret` |
-| `metaflow_sample_05_encrypted_ingestion_job` | Ingesting AES-256 password-protected ZIPs decrypted on the fly via `pre_extraction_decryption.secret_passphrase` |
-| `metaflow_sample_06_asn1_tap3_job` | `source_type: "asn1"` decoding of BER payloads against the **real GSMA TAP release 3.10** module (`metaflow_testing/BT_Testing/TAP.310.asn1`), with undecodable payloads quarantined |
+| `flowx_sample_01_multi_scd_job` | SCD1 + SCD2 + `FULL_SNAPSHOT_CDC` ingestion (strictly additive snapshot feed) + an SCD3 transformation joining two of the group's own tables |
+| `flowx_sample_02_zip_ingestion_job` | Glob-filtered ZIP extraction (`source_zip_handling`) with quarantine DQ routing |
+| `flowx_sample_03_multi_table_recon_job` | Two concurrent loads + in-DAG reconciliation (`pipeline_audit_only`) with controlled drift, run/mismatch logging, and a Volume observability export task |
+| `flowx_sample_04_export_encrypt_zip_job` | Two `pgp_zip` sinks staging CSV (`staged_file_format`) into AES-256 password-protected ZIP exports via `post_export_archive.secret` |
+| `flowx_sample_05_encrypted_ingestion_job` | Ingesting AES-256 password-protected ZIPs decrypted on the fly via `pre_extraction_decryption.secret_passphrase` |
+| `flowx_sample_06_asn1_tap3_job` | `source_type: "asn1"` decoding of BER payloads against the **real GSMA TAP release 3.10** module (`flowx_testing/BT_Testing/TAP.310.asn1`), with undecodable payloads quarantined |
 
 ### 6.1 Seeding is one job, and it runs first
 
 Fixtures are **not** produced by the sample jobs. They are all produced by the single
-`metaflow_sample_seed_job` (`resources/sample_jobs/metaflow_sample_seed_job.yml`), which holds one
+`flowx_sample_seed_job` (`resources/sample_jobs/flowx_sample_seed_job.yml`), which holds one
 chain of three iteration tasks per sample behind a serial `provision_sample_schema` root:
 
 ```text
@@ -584,11 +584,11 @@ Two structural rules are load-bearing here:
 
 ```bash
 # 1. Seed everything, once. All six samples, all three iterations.
-databricks bundle run metaflow_sample_seed_job -t dev_metaflow -p dev_metaflow
+databricks bundle run flowx_sample_seed_job -t dev_flowx -p dev_flowx
 
 # 2. Then any sample job, in any order - each is independent of the others.
-databricks bundle run metaflow_sample_01_multi_scd_job  -t dev_metaflow -p dev_metaflow
-databricks bundle run metaflow_sample_06_asn1_tap3_job  -t dev_metaflow -p dev_metaflow
+databricks bundle run flowx_sample_01_multi_scd_job  -t dev_flowx -p dev_flowx
+databricks bundle run flowx_sample_06_asn1_tap3_job  -t dev_flowx -p dev_flowx
 ```
 
 Each sample job is now **exactly two tasks** — `pipeline_task` -> `observability_task`. That is the
@@ -599,7 +599,7 @@ All provisioning moved into the one suite-wide seed job, whose serial root is no
 chain:
 
 ```
-metaflow_sample_seed_job
+flowx_sample_seed_job
   provision_sample_schema -> setup_control_tables -> onboard_all_samples
                                                        |
                           six parallel seed chains  <--+
@@ -619,8 +619,8 @@ Onboarding is still delegated via `run_job_task` — never an inline `02_onboard
 Run the seed job once, then any sample job as often as you like:
 
 ```bash
-databricks bundle run metaflow_sample_seed_job         -t <target> -p <profile>   # once
-databricks bundle run metaflow_sample_01_multi_scd_job -t <target> -p <profile>
+databricks bundle run flowx_sample_seed_job         -t <target> -p <profile>   # once
+databricks bundle run flowx_sample_01_multi_scd_job -t <target> -p <profile>
 ```
 
 Pass `action_type=UPDATE` to the seed job to re-onboard specs that changed after first onboarding.
@@ -629,9 +629,9 @@ Pass `action_type=UPDATE` to the seed job to re-onboard specs that changed after
 ### 6.4 Sample 06: the real GSMA TAP3 module, and why the PDU is `Notification`
 
 Sample 06 is the suite's ASN.1 case, and it deliberately uses the **genuine** GSMA TAP release 3.10
-specification already shipped in this repo at `metaflow_testing/BT_Testing/TAP.310.asn1` - 1597
+specification already shipped in this repo at `flowx_testing/BT_Testing/TAP.310.asn1` - 1597
 lines, 375 types - rather than a hand-written toy module.
-(`metaflow_testing/013_ing_004_asn1_decode.json` still uses the 5-field
+(`flowx_testing/013_ing_004_asn1_decode.json` still uses the 5-field
 `sample_data/asn1_schema/gsm_cdr.asn`; that exists only for TC-ING-004.)
 
 The PDU is `Notification`, not the module's own top-level `DataInterChange`, and the reason is a
@@ -658,17 +658,17 @@ one the spec's `asn1_schema_path` points the pipeline at. It also lands 2 delibe
 quarantine rule routes them aside.
 
 Expected end state after the seed job and Sample 06 have both run: **18 rows** in
-`metaflow.metaflow_sample.sample_tap3_notification_raw` (`fileSequenceNumber` `00001`-`00018`) and
+`flowx.flowx_sample.sample_tap3_notification_raw` (`fileSequenceNumber` `00001`-`00018`) and
 **6 rows** in `sample_tap3_notification_raw_quarantine`, each with a populated `_asn1_decode_error`
 and a NULL `fileSequenceNumber` - nothing decoded, so the quarantine table's `record_id_column` has
 nothing to carry.
 
 ### 6.5 The one manual prerequisite
 
-Samples 04 and 05 share a single Unity Catalog secret, `metaflow.metaflow_sample.sample_zip_passkey`
+Samples 04 and 05 share a single Unity Catalog secret, `flowx.flowx_sample.sample_zip_passkey`
 - Sample 04's export side uses it as the ZIP password, Sample 05's seed uses the same value to
 *build* the encrypted archives its pipeline then decrypts. It must exist before the seed job's
 Sample 05 chain runs; both seeds fail fast with a clear message when it is unresolvable, and the
 other four chains are unaffected. Provisioning it is a one-time, admin-audited step external to the
-bundle - see `metaflow_testing/README.md`'s *Sample reference suite* section. Samples 01, 02, 03 and
+bundle - see `flowx_testing/README.md`'s *Sample reference suite* section. Samples 01, 02, 03 and
 06 have **no** manual prerequisite of any kind.

@@ -1,10 +1,10 @@
 # Onboarding & Validation
 
-See also: [README.md](README.md) for the full Metaflow documentation index.
+See also: [README.md](README.md) for the full FlowX documentation index.
 
 `notebooks/02_onboarding/02_onboarding_engine.py` turns a `test_specs/*.json`- (or `.yaml`-)
 shaped file into rows in the four control tables. Four steps, each backed by a library
-module under `src/NextGen_Metadata_Framework/lakeflow_framework/onboarding/`:
+module under `src/flowx/lakeflow_framework/onboarding/`:
 
 ```mermaid
 flowchart LR

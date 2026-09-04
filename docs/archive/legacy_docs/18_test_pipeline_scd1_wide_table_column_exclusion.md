@@ -1,6 +1,6 @@
 # Test Pipeline: SCD1 Wide-Table Column Exclusion (Customer Master)
 
-> See also: [README.md](README.md) — the full Metaflow documentation set.
+> See also: [README.md](README.md) — the full FlowX documentation set.
 
 ## Purpose
 
@@ -8,7 +8,7 @@ Prove that `target_config.columns_to_exclude` lets a wide source (50 columns) on
 SCD1 by naming only the handful of columns to *drop*, instead of hand-listing every
 column to *keep* -- and that technical/audit columns (load timestamps, run ids, checksum
 hashes) can change on every single run without polluting the target table's schema.
-Entirely onboarding configuration -- zero changes to Metaflow's `lakeflow_framework`
+Entirely onboarding configuration -- zero changes to FlowX's `lakeflow_framework`
 engine code beyond the one shared `columns_to_exclude` feature added to `cdc/scd.py` (see
 [02_cdc_load_strategies.md](02_cdc_load_strategies.md)) and exercised here.
 

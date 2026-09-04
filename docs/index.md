@@ -1,4 +1,4 @@
-# NextGen Metadata Framework (Metaflow)
+# FlowX
 
 Metadata-driven ingestion, transformation, reconciliation and observability pipelines on
 Databricks Lakeflow. You describe *what* you want in one JSON or YAML document; the framework

@@ -1,4 +1,4 @@
-# Release Notes — NextGen Metadata Framework (Metaflow)
+# Release Notes — FlowX
 
 Semantic versioning: `MAJOR.MINOR.PATCH`. Since **0.0.2**, `pyproject.toml`'s `version` IS the
 real 3-part semantic version and is hand-managed — `scripts/bump_and_build.py` only reads and
@@ -15,13 +15,80 @@ resolving. Per-version directories fix that structurally.
 
 ---
 
+## 0.0.3 — Framework renamed to FlowX — 2026-09-04
+
+**Breaking (everything).** The framework is renamed from **Metaflow** / **NextGen Metadata
+Framework** to **FlowX**. This is a pure rename: no behaviour, no spec semantics and no control-table
+column changed. It nevertheless breaks every deployment, because the Python package, the wheel
+filename, the Unity Catalog catalog, the bundle target and the app's environment variables all
+carry the name.
+
+Case-sensitive rules applied repo-wide: `Metaflow`/`MetaFlow` → `FlowX`, `METAFLOW` → `FLOWX`,
+`metaflow` → `flowx`, `NextGen Metadata Framework` → `FlowX`, `NextGen_Metadata_Framework` → `flowx`.
+
+**Breaking (Python package).** `src/NextGen_Metadata_Framework/` → `src/flowx/` (moved with
+`git mv`, history preserved). Every import changes:
+`from NextGen_Metadata_Framework.lakeflow_framework...` → `from flowx.lakeflow_framework...`.
+The wheel is now `flowx-0.0.3-py3-none-any.whl`. Because the wheel *filename* changes, deployed
+pipelines must be redeployed in lockstep — jobs reference `dist/*.whl` by glob, so no job spec
+needed editing, but a pipeline holding the old wheel keeps resolving the old name.
+
+**Breaking (Unity Catalog) — REQUIRES A MANUAL MIGRATION.** The catalog is renamed `metaflow` →
+`flowx`, along with the sample schema `metaflow_sample` → `flowx_sample`. Every fully-qualified
+reference in code, specs and dashboards now reads `flowx.config.*`, `flowx.bronze*`, `flowx.silver*`.
+**Nothing runs until the `flowx` catalog exists and the control tables are migrated.** The catalog
+is a prerequisite that DABs cannot create (UC Default Storage rejects `CREATE CATALOG` without a
+managed location — see `resources/flowx_bootstrap/README.md`). See the migration checklist below.
+
+**Breaking (bundle).** Bundle name `NextGen_Metadata_Framework` → `flowx`; target `dev_metaflow` →
+`dev_flowx`. The **CLI profile is deliberately still `dev_metaflow`**, because that name lives in
+the operator's `~/.databrickscfg` — outside the repo — and renaming it here would break auth for
+anyone whose profile is unchanged. Deploy with
+`databricks bundle deploy -t dev_flowx -p dev_metaflow`, and rename the profile locally if desired.
+
+**Breaking (Databricks App).** Registered app name `metaflow-onboarding` → `flowx-onboarding`
+(a rename in the workspace, so the app's URL changes). All app environment variables are
+re-prefixed `METAFLOW_*` → `FLOWX_*` (`FLOWX_APP_CONFIG`, `FLOWX_LOG_LEVEL`,
+`FLOWX_WORKSPACE_HOST`, `FLOWX_ONBOARDING_JOB_ID`, `FLOWX_SPEC_CATALOG`, `FLOWX_SPEC_ENV`,
+`FLOWX_SPEC_VOLUME_ROOT`, `FLOWX_SPEC_WORKSPACE_ROOT`). `databricks-app/app.yaml` and
+`resources/flowx_app/flowx_onboarding_app.yml` are updated together — the yml supersedes app.yaml
+at deploy time, so both must carry every variable. The un-prefixed fallbacks
+(`DATABRICKS_HOST`, `ONBOARDING_JOB_ID`, …) are unchanged.
+
+**Renamed paths.** `metaflow_testing/` → `flowx_testing/`, `sample_data/metaflow_testing/` →
+`sample_data/flowx_testing/`, `resources/metaflow_{app,bi,bootstrap,config_jobs}/` →
+`resources/flowx_*`, and every `metaflow_test_*` / `metaflow_sample_*` resource, spec and
+integration test. All moved with `git mv`.
+
+**Not renamed, deliberately.** There is **no dependency on the upstream open-source Metaflow**
+(Netflix/Outerbounds): no `metaflow` requirement in `pyproject.toml`, `uv.lock` or the app's
+`requirements.txt`, and no `import metaflow` anywhere. Nothing in this rename touches that project.
+Also preserved: the `dev_metaflow` CLI profile name (above), and absolute filesystem paths naming
+the on-disk repo directory, which has not moved.
+
+### Post-merge migration checklist (manual, in order)
+
+1. Create the `flowx` catalog in the workspace UI (Catalog → Create catalog → Default storage).
+   DABs cannot declare it.
+2. `databricks bundle deploy -t dev_flowx -p dev_metaflow` to create the `config`, `dev` and
+   `flowx_sample` schemas and the Volumes.
+3. Migrate control-table data from `metaflow.config.*` to `flowx.config.*` (`DEEP CLONE` or
+   `CREATE TABLE … AS SELECT`). Re-onboarding regenerates the spec rows but **not** run history.
+4. Re-provision the UC secret `flowx.flowx_sample.sample_zip_passkey` (samples 04/05).
+5. Rebuild and redeploy the wheel so pipelines resolve `flowx-0.0.3`; do **not** deploy while a
+   pipeline or test wave is running.
+6. Optional: rename the local CLI profile `dev_metaflow` → `dev_flowx` in `~/.databrickscfg` and
+   update `profile:` in `databricks.yml` to match.
+
+---
+
 ## 0.0.2 — Hand-managed versions, per-version wheel directories, v0.0.2 test suite — 2026-09-03
 
 **Breaking (build/deploy).** `scripts/bump_and_build.py` no longer rewrites `pyproject.toml`'s
 patch component to UTC epoch-millis. The version is a hand-managed 3-part semantic version; the
 script reads and validates it, and **refuses to build** when the patch component exceeds 6 digits,
 so a stale checkout cannot silently resurrect the old scheme. Wheels are now named
-`nextgen_metadata_framework-0.0.2-py3-none-any.whl`.
+`flowx-0.0.2-py3-none-any.whl`.
 
 **Breaking (deploy layout).** `workspace.artifact_path` on all four targets is now
 `/Volumes/${var.catalog}/config/wheels/${var.framework_version}` — version-scoped. `framework_version`
@@ -40,10 +107,10 @@ deploy while a pipeline or test wave is running.
 pipeline runtime. Both are now optional: an absent/null/blank value requests auto-detection, an
 explicitly supplied value is still type-checked and still wins as an override.
 
-**New — the v0.0.2 test suite** (`resources/v0_0_2_tests/`, specs `metaflow_testing/v0_0_2_tc*.json`).
+**New — the v0.0.2 test suite** (`resources/v0_0_2_tests/`, specs `flowx_testing/v0_0_2_tc*.json`).
 Five jobs and five pipelines, each carrying `v0.0.2` in its name so a run traces to a release:
 
-| Case | Covers | Verified in `dev_metaflow` |
+| Case | Covers | Verified in `dev_flowx` |
 |---|---|---|
 | TC1 | ASN.1 ingestion + schema validation, root-PDU auto-detection | 10 rows, 0 quarantined; PSGW `CallEventRecord` CHOICE root resolved with no `asn1_pdu_name` in the spec |
 | TC2 | ZeroBus -> Bronze, two single-JSON-column tables, payloads intact | 50 rows each into `orders_events_bronze` / `devices_events_bronze` |
@@ -62,13 +129,13 @@ the fix, and refused `skipChangeCommits` as a workaround because it silently dro
 The spec now reads that input as a batch.
 
 **Defect found while authoring TC1 (fixture, not framework).** The pre-existing
-`metaflow_testing/BT_Testing/synthetic/psgw_synthetic.ber` holds its 10 records concatenated as
+`flowx_testing/BT_Testing/synthetic/psgw_synthetic.ber` holds its 10 records concatenated as
 back-to-back TLVs in one file, and `asn1tools` returns only the FIRST record from such a buffer with
 no error — ingesting 1 row, silently dropping 9, and reporting success. The seed notebook therefore
 lands one record per `.ber` file and asserts at seed time that each decode consumes the whole file.
 
 **Known gap.** A full `bundle deploy` is blocked by pre-existing drift unrelated to this release:
-`resources.schemas.sample_suite_schema` fails with `Schema 'metaflow_sample' already exists` because
+`resources.schemas.sample_suite_schema` fails with `Schema 'flowx_sample' already exists` because
 the schema exists in the workspace but not in bundle state, which cascades to the `sample_jobs`
 group. Deploy the test resources with `--select` until that schema is imported into bundle state.
 
@@ -179,7 +246,7 @@ and runs at onboarding time on the cluster. Validating a generated spec takes un
 needs no cluster:
 
 ```python
-from NextGen_Metadata_Framework.lakeflow_framework.onboarding.agent_tools import validate_json
+from flowx.lakeflow_framework.onboarding.agent_tools import validate_json
 print(validate_json(open("my_spec.json", encoding="utf-8").read())["summary"])
 ```
 
@@ -188,7 +255,7 @@ no YAML frontmatter and sat on no skill search path, so it only loaded if a huma
 and it showed the spec as elided placeholders (`"ingestion_flows": [ /* §3a */ ]`) rather than a
 complete example, which is how an agent ends up reconstructing field names from memory. Added:
 
-- `.claude/skills/metaflow-onboarding/` — frontmatter, the wrong-name table, the mandatory
+- `.claude/skills/flowx-onboarding/` — frontmatter, the wrong-name table, the mandatory
   generate → validate → fix loop, and `references/` copies of the four files an agent needs.
 - `agent_skills/reference/golden_specs.json` — five complete specs (minimal autoloader, SCD2 with
   DQ and tags, transformation join, zerobus SCD1, in-pipeline reconciliation), each **generated by
@@ -217,20 +284,20 @@ A first deploy to a fresh workspace failed on its very first resource:
 
 ```
 Error: cannot create resources.volumes.framework_wheels_volume:
-       Schema 'metaflow.config' does not exist
+       Schema 'flowx.config' does not exist
 ```
 
 The bundle declared its Volumes but nothing declared the schema holding them. On the older
 workspaces that schema had been created by hand long ago, so the gap only showed up on the first
 workspace without that history.
 
-### New resource group: `resources/metaflow_bootstrap/`
+### New resource group: `resources/flowx_bootstrap/`
 
 | Resource | What |
 |---|---|
 | `schemas.config_schema` | `config` — control tables, the wheels Volume, the onboarding-spec Volume |
 | `schemas.working_schema` | `${var.schema}` |
-| `schemas.sample_suite_schema` | `metaflow_sample` |
+| `schemas.sample_suite_schema` | `flowx_sample` |
 | `volumes.sample_{landing,exports,observability,configs}_volume` | the sample suite's four Volumes |
 
 DABs rewrites each Volume's `schema_name` into a `${resources.schemas.*.name}` reference, so
@@ -240,31 +307,31 @@ hold the control tables, the published wheels and the sample datasets.
 
 ### The catalog is a prerequisite, and declaring it made things worse
 
-A `catalogs.metaflow_catalog` resource was added as the apparent completion of the hierarchy and
+A `catalogs.flowx_catalog` resource was added as the apparent completion of the hierarchy and
 **removed the same day**. It cannot work on these workspaces:
 
 ```
-Error: cannot create resources.catalogs.metaflow_catalog:
+Error: cannot create resources.catalogs.flowx_catalog:
        Metastore storage root URL does not exist. Default Storage is enabled in your account.
        ... please provide a storage location for the catalog (400 INVALID_STATE)
 ```
 
 These accounts use UC **Default Storage**, so `CREATE CATALOG` without a `MANAGED LOCATION` is
 rejected — and supplying one is not a fix, because a Default-Storage catalog's `storage_root` is an
-account-managed bucket path carrying generated UUIDs that cannot be committed to YAML. `metaflow`
+account-managed bucket path carrying generated UUIDs that cannot be committed to YAML. `flowx`
 also already exists on all three targets, created outside the bundle.
 
 Worse, the failure was not contained: DABs propagated it down the dependency edge and took the
 schemas with it — `cannot create resources.schemas.config_schema: dependency failed:
-resources.catalogs.metaflow_catalog`. A resource that can only ever fail is strictly worse than no
+resources.catalogs.flowx_catalog`. A resource that can only ever fail is strictly worse than no
 resource, because it also blocks the fix. **Create the catalog once per workspace in the UI**
 (Catalog → Create catalog → Default storage). A unit test now keeps it undeclared, and
-`resources/metaflow_bootstrap/README.md` plus pitfall 40 record why.
+`resources/flowx_bootstrap/README.md` plus pitfall 40 record why.
 
 ### The sample suite's storage now ships with the deploy
 
 `landing`, `exports`, `observability` and `sample_configs` used to be created only as a side effect
-of `bundle run metaflow_sample_seed_job`. A deploy alone left the suite with nowhere to land data.
+of `bundle run flowx_sample_seed_job`. A deploy alone left the suite with nowhere to land data.
 The seed notebook keeps its `CREATE VOLUME IF NOT EXISTS` calls — it must stay runnable standalone —
 and a new test pins its `VOLUMES` tuple to the declared set so the two cannot drift.
 
@@ -273,7 +340,7 @@ and a new test pins its `VOLUMES` tuple to the declared set so the two cannot dr
 Worth being precise about, because the two errors look related and are not:
 
 - **`Schema ... does not exist`** is resource-creation order. **Fixed** by this release.
-- **`volume metaflow.config.wheels does not exist at workspace.artifact_path`** is a
+- **`volume flowx.config.wheels does not exist at workspace.artifact_path`** is a
   config-resolution pre-check that runs *before* any resource is created, so a Volume declared in
   the same bundle cannot satisfy it. **Still applies** — re-verified on CLI v1.13.0 with the schema
   resources in place.
@@ -290,16 +357,16 @@ databricks bundle deploy -t <target> -p <profile> \
 
 ### Deployed and verified on `arjun_2`
 
-The bootstrap ran end to end on 2026-09-02: `config`, `dev` and `metaflow_sample` schemas created,
+The bootstrap ran end to end on 2026-09-02: `config`, `dev` and `flowx_sample` schemas created,
 all six Volumes created, `artifact_path` restored, wheel published to
-`/Volumes/metaflow/config/wheels/.internal/`, and a full `bundle deploy` green — **5 created, 15
+`/Volumes/flowx/config/wheels/.internal/`, and a full `bundle deploy` green — **5 created, 15
 changed, 0 deleted**.
 
-Where `metaflow.config` already exists outside the bundle (`dev_metaflow`, `hoonartek`), bind it
+Where `flowx.config` already exists outside the bundle (`dev_flowx`, `hoonartek`), bind it
 rather than letting a deploy attempt a create:
 
 ```
-databricks bundle deployment bind schemas.config_schema metaflow.config -t dev_metaflow -p dev_metaflow
+databricks bundle deployment bind schemas.config_schema flowx.config -t dev_flowx -p dev_flowx
 ```
 
 **Not declared, deliberately:** the ~40 `bronze_*`/`silver_*` schemas the feature-test pipelines
@@ -327,7 +394,7 @@ pipeline run plus its telemetry export, with no provisioning scaffolding to read
 
 ### One provisioning job for the whole suite
 
-`metaflow_sample_seed_job`'s serial root grew to three links, then fans out into the six seed chains:
+`flowx_sample_seed_job`'s serial root grew to three links, then fans out into the six seed chains:
 
 ```
 provision_sample_schema -> setup_control_tables -> onboard_all_samples -> 6 x (3 iterations)
@@ -339,7 +406,7 @@ onboarding tasks. Pass `action_type=UPDATE` to re-onboard specs that changed.
 
 ### Onboarding specs moved into the bundle
 
-`metaflow_testing/samples/*.json` → **`resources/sample_jobs/onboarding/*.json`**, referenced
+`flowx_testing/samples/*.json` → **`resources/sample_jobs/onboarding/*.json`**, referenced
 consistently through the seed job's `spec_dir`.
 
 - > **Breaking — run the seed job once before any sample job.** Sample jobs are no longer
@@ -348,12 +415,12 @@ consistently through the seed job's `spec_dir`.
   > because `pipeline_task` resolves its configuration from the control tables.
   >
   > ```bash
-  > databricks bundle run metaflow_sample_seed_job         -t <target> -p <profile>   # once
-  > databricks bundle run metaflow_sample_01_multi_scd_job -t <target> -p <profile>
+  > databricks bundle run flowx_sample_seed_job         -t <target> -p <profile>   # once
+  > databricks bundle run flowx_sample_01_multi_scd_job -t <target> -p <profile>
   > ```
 
 - > **Also breaking:** `store_sample_config` was removed, so
-  > `/Volumes/<catalog>/metaflow_sample/sample_configs/` is no longer populated. The specs now live
+  > `/Volumes/<catalog>/flowx_sample/sample_configs/` is no longer populated. The specs now live
   > in the bundle at `resources/sample_jobs/onboarding/`. Repoint anything that read that Volume.
 
 ---
@@ -393,7 +460,7 @@ consistently through the seed job's `spec_dir`.
 
 ### Sample suite — seeding is one job now
 
-- **New `metaflow_sample_seed_job`** owns every fixture the reference suite consumes: a serial
+- **New `flowx_sample_seed_job`** owns every fixture the reference suite consumes: a serial
   `provision_sample_schema` root, then six per-sample chains of three strictly-ordered iterations,
   running in parallel. 19 tasks, one job, one place that answers "what data does this suite need?".
 - **Run it first, then any sample job.** The five existing sample jobs no longer seed anything —
@@ -412,8 +479,8 @@ consistently through the seed job's `spec_dir`.
 
 ### New: Sample 06 — real GSMA TAP release 3.10 ASN.1 ingestion
 
-- **`metaflow_sample_06_asn1_tap3_job`** puts `source_type: "asn1"` through the genuine GSMA TAP 3.10
-  module already in this repo (`metaflow_testing/BT_Testing/TAP.310.asn1` — 1597 lines, 375 types),
+- **`flowx_sample_06_asn1_tap3_job`** puts `source_type: "asn1"` through the genuine GSMA TAP 3.10
+  module already in this repo (`flowx_testing/BT_Testing/TAP.310.asn1` — 1597 lines, 375 types),
   not a hand-written five-field module. Those BT modules previously had no consumer anywhere.
 - The seed lands the module into the sample Volume and compiles **that landed copy** to BER-encode
   its fixtures, so the encoding schema and the pipeline's `asn1_schema_path` are provably the same
@@ -438,7 +505,7 @@ consistently through the seed job's `spec_dir`.
 
 - `docs/09` gains a full **§6** on the suite: the six samples, the seed job, run order, the single
   `sample_configs` Volume every spec is published into, Sample 06's PDU reasoning, and the one manual
-  prerequisite. `metaflow_testing/README.md` rewritten to match.
+  prerequisite. `flowx_testing/README.md` rewritten to match.
 - New `tests/unit/test_sample_suite_layout.py` (40 tests) asserts the wiring from disk: seeding lives
   in exactly one job, no sample job may inline a seed notebook again, every spec reaches the one
   Volume, and jobs/pipelines/specs cover the same set of samples.
@@ -446,7 +513,7 @@ consistently through the seed job's `spec_dir`.
   tests over the 1018 baseline, no new failures. `databricks-app/tests`: 163 passed, 19 skipped
   (unchanged; no app change).
 
-### Verified live on `dev_metaflow_v3`
+### Verified live on `dev_flowx_v3`
 
 - **Seed job**: 21 tasks — `provision_sample_schema` plus all 12 iteration tasks for samples 01/02/03/06
   SUCCESS; the 04/05 chains fail fast on the missing UC secret and the other four complete regardless,
@@ -464,10 +531,10 @@ consistently through the seed job's `spec_dir`.
 - **Deploy is now scoped and reproducible**: `21 created, 2 changed, 0 deleted, 85 not selected`. The
   one-time UC-Volume bootstrap documented in `databricks.yml` was performed on each workspace and
   behaved exactly as that header predicts.
-- **`mode: development` dropped from the `dev_metaflow` target.** DABs rejects a development-mode
+- **`mode: development` dropped from the `dev_flowx` target.** DABs rejects a development-mode
   target whose `artifact_path` lacks the deploying user's name. The v1.6.0 fixed, shared
   `/Volumes/<catalog>/config/wheels` path only ever passed that check **by coincidence** — the previous
-  workspace's user was `metaflow@…`, whose short_name is literally `metaflow`, and the path contains
+  workspace's user was `flowx@…`, whose short_name is literally `flowx`, and the path contains
   it. Satisfying the check properly would mean re-adding the per-user path component that was
   deliberately reverted on 2026-08-30, so the mode was dropped instead. Cost: no `[dev <user>]` name
   prefix, and schedules are no longer auto-paused (nothing in this bundle declares one).
@@ -509,17 +576,17 @@ defects. Both are fixed here — the only `src/` changes in this release:
   the edge is absent **transitively**, with `dq/quarantine.py` as a control so the assertions
   cannot pass vacuously. Verified live: Sample 03's `observability_export` **SUCCEEDED** and did
   real work — a `reconciliation_result` row (SUCCESS, 106 matched / 14 missing / 6 drift) and 14
-  mismatch rows (8 `MISSING_IN_TARGET` + 6 `VALUE_DRIFT`) written into `metaflow.config`, and the
+  mismatch rows (8 `MISSING_IN_TARGET` + 6 `VALUE_DRIFT`) written into `flowx.config`, and the
   `store_sample_config` task previously skipped behind it now runs.
 
 ### Remaining blocker — the Samples 04/05 UC secret
 
-- **Samples 04/05** remain unverified: their shared UC secret `metaflow.metaflow_sample.sample_zip_passkey`
+- **Samples 04/05** remain unverified: their shared UC secret `flowx.flowx_sample.sample_zip_passkey`
   cannot be created by any non-UI path on either workspace — `databricks secrets put-secret` manages
   legacy scopes only (which `dbutils.secrets.get(catalog=…)` cannot read), and
   `POST /api/2.1/unity-catalog/secrets` returns 404 while its list route works normally (not a
   permissions issue — the CLI principal owns the schema). Create it in Catalog Explorer
-  (**Catalog → metaflow → metaflow_sample → Create → Secret**), then re-run the seed job and both jobs.
+  (**Catalog → flowx → flowx_sample → Create → Secret**), then re-run the seed job and both jobs.
 
 ---
 
@@ -548,22 +615,22 @@ defects. Both are fixed here — the only `src/` changes in this release:
 
 - Every display-only default is gone (22 dropdowns, 7 toggles, the hardcoded `APPEND` strategy, all 44 server-registry defaults): a fresh form is **empty with all toggles OFF**, and an untouched field emits **no key** in the JSON. A toggle showing ON is always `true` in the payload; a selected dropdown always exports.
 - The app's validation rules mirror the two new reconciliation rejections and the `staged_file_format` restriction.
-- `web/dist` rebuilt (new bundle hash) — remember the app deploy is still **two steps** (`bundle deploy`, then `bundle run metaflow_onboarding_app`).
+- `web/dist` rebuilt (new bundle hash) — remember the app deploy is still **two steps** (`bundle deploy`, then `bundle run flowx_onboarding_app`).
 
-### New: `metaflow_sample` reference suite (5 jobs)
+### New: `flowx_sample` reference suite (5 jobs)
 
-- Five self-contained sample jobs under `resources/sample_jobs/`, everything isolated in the `metaflow.metaflow_sample` schema, each running **3 iterations over distinct datasets** (Databricks `samples` catalog slices, with inline fallback), with DQ expectations on every flow, and each job copying its spec JSON to `/Volumes/metaflow/metaflow_sample/sample_configs/` for reference:
+- Five self-contained sample jobs under `resources/sample_jobs/`, everything isolated in the `flowx.flowx_sample` schema, each running **3 iterations over distinct datasets** (Databricks `samples` catalog slices, with inline fallback), with DQ expectations on every flow, and each job copying its spec JSON to `/Volumes/flowx/flowx_sample/sample_configs/` for reference:
   1. **Multi-SCD** — SCD1 + SCD2 + FULL_SNAPSHOT_CDC ingestion, join into an SCD3 target.
   2. **ZIP ingestion** — in-process-built ZIPs, glob filter, quarantine rules.
   3. **Multi-table + in-DAG recon** — 2 concurrent loads, `pipeline_audit_only` reconciliation with metrics/mismatch capture + observability export.
   4. **Export/encrypt/compress** — 2 joins → 2 CSV exports zipped with an AES-256 passkey (`staged_file_format: "csv"` + `post_export_archive.secret`).
-  5. **Encrypted ingestion** — password-protected inbound ZIPs decrypted on the fly via the UC secret `metaflow.metaflow_sample.sample_zip_passkey`.
+  5. **Encrypted ingestion** — password-protected inbound ZIPs decrypted on the fly via the UC secret `flowx.flowx_sample.sample_zip_passkey`.
 - Onboarding in every sample is delegated to the generic `onboarding_job` (`run_job_task`) — one job + one pipeline per sample, no inline onboarding.
-- One-time prerequisite: create the UC secret above (documented in `metaflow_testing/README.md`).
+- One-time prerequisite: create the UC secret above (documented in `flowx_testing/README.md`).
 
 ### Deployment — the wheel lives in a UC Volume now
 
-- `workspace.artifact_path` is `/Volumes/<catalog>/config/wheels` on both targets; the new bundle-managed volume is `resources/metaflow_config_jobs/framework_wheels_volume.yml`. All 93 `../../dist/*.whl` references are unchanged — DABs rewrites them at deploy time.
+- `workspace.artifact_path` is `/Volumes/<catalog>/config/wheels` on both targets; the new bundle-managed volume is `resources/flowx_config_jobs/framework_wheels_volume.yml`. All 93 `../../dist/*.whl` references are unchanged — DABs rewrites them at deploy time.
 - Fixed shared path (no per-user fork). Unique per-deploy wheel filenames keep it overwrite-safe, **but DABs still prunes `<artifact_path>/.internal/` on a Volume — never deploy while a pipeline or test wave is running.**
 - > **One-time bootstrap:** the CLI refuses an `artifact_path` inside a not-yet-deployed Volume, so the *first* deploy must comment out `artifact_path:`, `bundle deploy --select volumes.framework_wheels_volume`, restore, then deploy normally. Until then `bundle validate` reports exactly that error. Documented in `databricks.yml` and `docs/onboarding/04_deploying.md`.
 
@@ -583,8 +650,8 @@ each with its own `include:` line in `databricks.yml`:
 
 | Folder | Holds | Resources |
 |---|---|---|
-| `resources/metaflow_app/` | the Onboarding App + the UC Volume it stores authored specs in | 2 |
-| `resources/metaflow_config_jobs/` | `onboarding_job` (one spec per run) + `framework_config_onboarding_job` (a whole `spec_dir` per run) | 2 |
+| `resources/flowx_app/` | the Onboarding App + the UC Volume it stores authored specs in | 2 |
+| `resources/flowx_config_jobs/` | `onboarding_job` (one spec per run) + `framework_config_onboarding_job` (a whole `spec_dir` per run) | 2 |
 | `resources/observability/` | DLT observability export job + the OTEL streaming pipeline | 2 |
 | `resources/bt_tests/` | tests on real BT fixtures: geneva tariff recon replay, ASN.1 decode, PGP decrypt | 6 |
 | `resources/feature_tests/` | the `TC-*` feature/regression corpus — one job + one pipeline per case | 83 |
@@ -600,15 +667,15 @@ tasks, same parameters.
 The everyday loop — app, both config jobs, and the wheel — is now one command (Databricks CLI ≥ v1.13.0):
 
 ```bash
-databricks bundle deploy -t dev_metaflow -p dev_metaflow   --select apps.metaflow_onboarding_app,jobs.onboarding_job,jobs.framework_config_onboarding_job,volumes.onboarding_specs_volume
+databricks bundle deploy -t dev_flowx -p dev_flowx   --select apps.flowx_onboarding_app,jobs.onboarding_job,jobs.framework_config_onboarding_job,volumes.onboarding_specs_volume
 ```
 
 The wheel is still built by `scripts/bump_and_build.py` and uploaded, because the selected jobs
 declare `../../dist/*.whl` in `environments[].spec.dependencies`. Keep `jobs.onboarding_job` and
 `volumes.onboarding_specs_volume` selected even for an app-only change — the app resolves
-`${resources.jobs.onboarding_job.id}` into its `METAFLOW_ONBOARDING_JOB_ID` env var and binds the
+`${resources.jobs.onboarding_job.id}` into its `FLOWX_ONBOARDING_JOB_ID` env var and binds the
 spec Volume to its service principal. And the app is still a **two-step** deploy: `bundle deploy`
-uploads the source, `bundle run metaflow_onboarding_app` puts it in front of users.
+uploads the source, `bundle run flowx_onboarding_app` puts it in front of users.
 
 > **Do not scope a deploy by commenting out an `include:` line.** DABs treats a resource that is
 > absent from the configuration as one to **delete from the target** — commenting out
@@ -708,7 +775,7 @@ side-effecting writes.
 ### Verified live
 
 This is not a design note. On **2026-08-31** a reconciliation flow in `execution_mode: "pipeline"`
-ran end-to-end on `dev_metaflow`: job `metaflow_test_recon_dag_job` (id `854232399214818`) SUCCESS,
+ran end-to-end on `dev_flowx`: job `flowx_test_recon_dag_job` (id `854232399214818`) SUCCESS,
 all four tasks green, pipeline `be78d88d-6064-414d-a10c-2aacd900fa86`. Its event log shows the
 ingestion streaming table, the two L3 prepare datasets, the three L4 `classified` / `__metrics` /
 `__mismatch` materialized views, the L5 `__pulse` streaming table, the heal `APPEND` flow and the
@@ -721,7 +788,7 @@ note above and the `TRUNCATE_AND_LOAD` case below), not as a workaround.
 
 Scenarios still **not** run live, and not claimed: audit-only mode, the read-once source plane across
 three flow kinds, and the geneva `e41a47ba` topology — the last verified offline only. See
-`metaflow_testing/TESTING_STATUS.md` §0b.
+`flowx_testing/TESTING_STATUS.md` §0b.
 
 ### Upgrading an existing workspace: run `setup_control_tables`
 
@@ -767,7 +834,7 @@ New jobs no longer inline a `02_onboarding_engine.py` notebook task. They call t
 parameterised `resources/onboarding_job.yml` via `run_job_task`, passing `spec_file_path`, `catalog`,
 `env` and `action_type` as job parameters. Its sibling
 `resources/framework_config_onboarding_job.yml` onboards a whole directory instead of one spec. The
-~20 pre-existing legacy `metaflow_test_*_job.yml` files keep their inline copies deliberately — new
+~20 pre-existing legacy `flowx_test_*_job.yml` files keep their inline copies deliberately — new
 orchestration is added alongside legacy jobs, not retrofitted into them.
 
 Full detail, including the seven defects fixed between the initial build and the passing live run:
@@ -850,7 +917,7 @@ of the framework disagreeing with the framework. `pytest tests/unit` is byte-ide
 v1.4.0 baseline (502 passed, 8 pre-existing failures, 113 Spark-fixture errors); the app suite went
 from 62 to 113 passing. `web/dist/` was rebuilt.
 
-### Deployed and verified on `dev_metaflow` — 2026-08-30
+### Deployed and verified on `dev_flowx` — 2026-08-30
 
 After the corrections above: pre-flight (0 active runs, all 49 pipelines terminal) → `bundle
 validate` OK → `bundle deploy` (**1164 files, 88 resources, 0 failed**, wheel
@@ -866,7 +933,7 @@ pipeline-level gap (TC-CDC-007 in particular) is narrowed, not closed.
 **One trap found and worth knowing: `bundle deploy` does not deploy the app.** It syncs the
 source and reports success, but creates no app deployment — after a clean deploy, the newest
 deployment was still the previous day's, with no warning anywhere, and the running app kept
-serving the pre-correction bundle. `databricks bundle run metaflow_onboarding_app` is a required
+serving the pre-correction bundle. `databricks bundle run flowx_onboarding_app` is a required
 second step; the check that proves it landed is comparing the deployed asset hash against the
 local `web/dist`. This compounds the existing "rebuild `web/dist`" rule: rebuilding is necessary
 but not sufficient.
@@ -1046,9 +1113,9 @@ data-shaping behaviour from ON to OFF with no signal at all.
 ### ⚠️ Breaking Changes
 
 **1. Artifact packaging reverts to the standard workspace path.** `workspace.artifact_path` is
-removed from the `dev_metaflow` target; both targets now use the DABs standard
+removed from the `dev_flowx` target; both targets now use the DABs standard
 `${workspace.root_path}/artifacts`. The path it replaced was
-`/Volumes/metaflow/framework/wheels/${workspace.current_user.short_name}` — a *dynamic*,
+`/Volumes/flowx/framework/wheels/${workspace.current_user.short_name}` — a *dynamic*,
 per-target, per-user UC Volume path.
 
 Three reasons, in order of how often they bit:
@@ -1059,7 +1126,7 @@ Three reasons, in order of how often they bit:
    reproducible.
 2. **Volume provisioning is not free.** The `dev` target cannot have a Volume artifact_path at
    all — its metastore is at its volume ceiling (52 estimated vs. a limit of 50) and its
-   `metaflow` catalog is at 51 schemas. Two targets diverging on where artifacts live is exactly
+   `flowx` catalog is at 51 schemas. Two targets diverging on where artifacts live is exactly
    the drift the `artifacts` block exists to prevent.
 3. **It did not buy what it was adopted for.** The hoped-for benefit was that a UC Volume never
    prunes, so an in-flight Lakeflow update could keep installing an older wheel across a redeploy.
@@ -1069,7 +1136,7 @@ Three reasons, in order of how often they bit:
 
 *Impact:* the operational rule is now the only mitigation for the in-flight-update hazard, and it
 is unchanged — **never `bundle deploy` while a test wave or pipeline is running**
-(`metaflow_testing/TESTING_PLAN.md` §0). Wheels published by the older manual
+(`flowx_testing/TESTING_PLAN.md` §0). Wheels published by the older manual
 `scripts/build_and_upload_wheel.py` still sit in the Volume root outside `.internal/`; DABs never
 managed or pruned those, so any pipeline still pinned to one keeps working.
 
@@ -1177,7 +1244,7 @@ The triggered engine now requires **four** task parameters: `dataflow_group_id`,
 
 *Impact:* every job wiring an `observability_export` task must add `dataflow_group_id`, `env`, and
 rename the run-id parameter. Both in-repo jobs (`resources/dlt_observability_job.yml`,
-`resources/metaflow_test_obs_003_vol_export_job.yml`) are updated.
+`resources/flowx_test_obs_003_vol_export_job.yml`) are updated.
 
 ### ✨ Added
 
@@ -1263,14 +1330,14 @@ suffix so existing bundle references and run history stay valid.
 Scope: repository plumbing only. **No framework, pipeline, app or control-table behaviour changed.**
 
 The project is now tracked in git and published to
-`github.com/Madhan-RAGHU/NextGen_Metadata_Framework` (private) on branch `main`,
+`github.com/Madhan-RAGHU/flowx` (private) on branch `main`,
 which local `main` tracks. 984 files / 8.4 MB across three commits.
 
 ### 🔒 Security
 
 **Databricks PAT redacted before the first commit.** A live-format token
 (`dapi…`, 32 hex) had been pasted where a *profile name* was expected in
-`metaflow_testing/TESTING_PLAN.md` §0 and `metaflow_testing/TESTING_STATUS.md` §0.
+`flowx_testing/TESTING_PLAN.md` §0 and `flowx_testing/TESTING_STATUS.md` §0.
 Both now read `` `<redacted-profile>` ``. The token never entered git history.
 It should still be rotated in the workspace — it predates this commit and may
 survive in local backups or shell history.
@@ -1296,8 +1363,8 @@ rather than negated.
 - Remote `main` already held one unrelated commit (`6140f3f Create test`, a blank
   placeholder). It was merged with `--allow-unrelated-histories` and the placeholder
   removed in a follow-up commit, so nothing on GitHub was force-discarded.
-- Two remotes — `metaflow` and `metaflow_v2` — point at the *same* URL, and there is
-  no `origin`. `main` tracks `metaflow`. Worth pruning the duplicate.
+- Two remotes — `flowx` and `flowx_v2` — point at the *same* URL, and there is
+  no `origin`. `main` tracks `flowx`. Worth pruning the duplicate.
 - Commit identity is repo-local: `Madhan-RAGHU <madhan@nrmanalytix.com>`.
 
 ---
@@ -1389,7 +1456,7 @@ lives in `attribute_knowledge.curated.json`; the served file is generated and ma
 ### ✅ Verification
 
 - `pytest databricks-app/tests` — **60 passed**.
-- `databricks bundle validate -t dev_metaflow` — **Validation OK**.
+- `databricks bundle validate -t dev_flowx` — **Validation OK**.
 - `mkdocs build --strict` — **45 pages, no warnings**.
 - Both generators are deterministic and ship a `--check` mode for CI; re-running produces
   byte-identical output.
@@ -1453,7 +1520,7 @@ contracts. Each would have broken the app in production:
   and no error would have surfaced. Added `as_spec_doc()`, which accepts either shape.
 - **`NameError` in the fake Databricks client.** `class RunNowResult: run_id = run_id` makes
   `run_id` class-local, so the right-hand load never reaches the enclosing function. Every
-  job-mode action died with `UPSTREAM_ERROR` under `METAFLOW_FAKE_DBX`.
+  job-mode action died with `UPSTREAM_ERROR` under `FLOWX_FAKE_DBX`.
 
 **Serializer defects** — these produced specs the framework would reject:
 
@@ -1489,7 +1556,7 @@ states that reason explicitly.
 ### ✅ Verification
 
 - `pytest databricks-app/tests` — **60 passed**.
-- `databricks bundle validate -t dev_metaflow` — **Validation OK**.
+- `databricks bundle validate -t dev_flowx` — **Validation OK**.
 - **Round-trip proof:** a harness driving the real `Builder` component (bundled with esbuild,
   no DOM) loads a canonical spec and re-serialises it. Ingestion (kv objects, lists, repeats,
   nested `auto_ttl`, booleans), transformation (`source_inputs` + `decrypted_columns`),
@@ -1511,8 +1578,8 @@ changed.**
 | File | What it is |
 |---|---|
 | [`docs/13_known_limitations_and_gotchas.md`](docs/13_known_limitations_and_gotchas.md) | New KB: ~50 verified traps the onboarding validator cannot catch, in one hyperlinked summary table graded 🔴 Silent / 🟠 Late failure / 🟡 Inert / 🔵 Operational, then a detail section per trap. Written for someone filling in an onboarding JSON. |
-| [`metaflow_testing/STABILITY_TEST_PLAN.md`](metaflow_testing/STABILITY_TEST_PLAN.md) | Consistency/stability plan for a new workspace: 4–5 runs per test case under a fixed N1–N5 protocol, 7 cross-run invariants, 4 schemas + 4 volumes (down from 70/82), 6 deep-dive suites, 7 predictions on record. |
-| [`metaflow_testing/DATA_VARIATION_TEST_PLAN.md`](metaflow_testing/DATA_VARIATION_TEST_PLAN.md) | Earlier, narrower data-variation plan against `dev_metaflow`; superseded by the above but retained for its per-wave detail. |
+| [`flowx_testing/STABILITY_TEST_PLAN.md`](flowx_testing/STABILITY_TEST_PLAN.md) | Consistency/stability plan for a new workspace: 4–5 runs per test case under a fixed N1–N5 protocol, 7 cross-run invariants, 4 schemas + 4 volumes (down from 70/82), 6 deep-dive suites, 7 predictions on record. |
+| [`flowx_testing/DATA_VARIATION_TEST_PLAN.md`](flowx_testing/DATA_VARIATION_TEST_PLAN.md) | Earlier, narrower data-variation plan against `dev_flowx`; superseded by the above but retained for its per-wave detail. |
 
 `docs/README.md` index updated with the new module 13 row.
 
@@ -1544,18 +1611,18 @@ changed.**
 Scope: the **Databricks App** only (`databricks-app/`). No framework, pipeline or control-table
 behaviour changed in this release.
 
-Imports the v4 "MetaFlow Spec Builder" design from Claude Design, implements its design system
+Imports the v4 "FlowX Spec Builder" design from Claude Design, implements its design system
 as a stylesheet, and consolidates the two parallel app directories down to one.
 
 ### ⚠️ Breaking Changes
 
-**1. App source directory renamed.** `metaflow-onboarding-app/` was removed; the app now lives
-at `databricks-app/`. `resources/metaflow_onboarding_app.yml` `source_code_path` was repointed
+**1. App source directory renamed.** `flowx-onboarding-app/` was removed; the app now lives
+at `databricks-app/`. `resources/flowx_onboarding_app.yml` `source_code_path` was repointed
 to `../databricks-app`, and the `.gitignore` un-ignore rules for the built frontend were
-updated to match. The deployed app `name` (`metaflow-onboarding`) is **unchanged**, so this is
+updated to match. The deployed app `name` (`flowx-onboarding`) is **unchanged**, so this is
 a source-tree move only — it does not orphan or recreate the deployed app.
 
-*Impact:* any local script, editor bookmark or CI path referencing `metaflow-onboarding-app/`
+*Impact:* any local script, editor bookmark or CI path referencing `flowx-onboarding-app/`
 must be updated. `databricks bundle validate` passes against the new path.
 
 ### ✨ Added
@@ -1594,8 +1661,8 @@ Outstanding before v4 can ship:
 ### ✅ Verification
 
 - `pytest databricks-app/tests` — **59 passed**, before and after removal of the old directory.
-- `databricks bundle validate -t dev_metaflow` — **Validation OK**.
-- No stale `metaflow-onboarding-app` references remain in `resources/`, `databricks.yml` or
+- `databricks bundle validate -t dev_flowx` — **Validation OK**.
+- No stale `flowx-onboarding-app` references remain in `resources/`, `databricks.yml` or
   `.gitignore` (remaining hits are confined to generated `.databricks/` deploy state, which
   refreshes on next deploy).
 
@@ -1695,9 +1762,9 @@ unreachable through the documented onboarding path.
 
 #### Live pipeline-execution fixes (2026-08-29)
 
-Five named pipelines were failing on `dev_metaflow`. Each was diagnosed from its own Lakeflow
+Five named pipelines were failing on `dev_flowx`. Each was diagnosed from its own Lakeflow
 event stream and fixed; **all five were real defects**, and four were introduced or left latent by
-this release. Full detail in `metaflow_testing/TESTING_STATUS.md` §0a.
+this release. Full detail in `flowx_testing/TESTING_STATUS.md` §0a.
 
 6. **[Critical]** `cloudFiles.fileNamePattern` **is not a valid Auto Loader option for any
    format.** Auto Loader validates `cloudFiles.`-prefixed keys against a closed whitelist without
@@ -1812,7 +1879,7 @@ the new JSON schema, validator and control-table DDL against the entire real spe
 
 **Live (test jobs):** the 44-job `TC-*` backlog was executed live for the first time. Detailed
 per-test-case results, run IDs and root-cause analysis are in
-[`metaflow_testing/TESTING_STATUS.md`](metaflow_testing/TESTING_STATUS.md) §0.
+[`flowx_testing/TESTING_STATUS.md`](flowx_testing/TESTING_STATUS.md) §0.
 
 **Multi-agent metrics:** 1 contract-freezing agent → 9 file-disjoint implementation streams +
 9 adversarial verifiers → 4 remediation streams + 4 re-verifiers → 1 doc planner + 8 doc

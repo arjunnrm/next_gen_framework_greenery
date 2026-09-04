@@ -1,11 +1,11 @@
 # Exhaustive Encryption, Decryption, and Governance Tags Test Suite
 
-> See also: [README.md](README.md) — the full Metaflow documentation set.
+> See also: [README.md](README.md) — the full FlowX documentation set.
 
 ## Purpose
 
 A dedicated, live, production-grade test job proving every encryption/decryption mode
-Metaflow supports, plus its tags-only governance model -- not just the golden path
+FlowX supports, plus its tags-only governance model -- not just the golden path
 already covered by `spec_08`'s encryption columns, but the real gaps those leave open:
 CBC/ECB modes (never exercised anywhere else in this repo), the `decrypted_columns` code
 path (never exercised at all before this suite), real `ALTER TABLE ... SET TAGS`
