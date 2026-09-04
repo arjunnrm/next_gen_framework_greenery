@@ -8,7 +8,7 @@ after three consecutive deploys.
 
 Each deployed job/pipeline is pinned to a fully-resolved ABSOLUTE wheel filename, e.g.
 
-    /Volumes/metaflow/config/wheels/.internal/nextgen_metadata_framework-0.0.<millis>-py3-none-any.whl
+    /Volumes/flowx/config/wheels/.internal/flowx-0.0.<millis>-py3-none-any.whl
 
 so the hazard is NOT overwrite -- `scripts/bump_and_build.py` stamps a unique version per
 deploy, and no wheel is ever replaced in place. The hazard is DELETION: the next deploy
@@ -32,7 +32,7 @@ flag prevents the incident, this script gives you something to roll back to if o
 
 Usage::
 
-    python scripts/archive_deployed_wheel.py --profile arjun --catalog metaflow
+    python scripts/archive_deployed_wheel.py --profile arjun --catalog flowx
 
     # keep only the 20 most recent archived wheels
     python scripts/archive_deployed_wheel.py --profile arjun --prune-keep 20
@@ -46,7 +46,7 @@ import argparse
 import subprocess
 import sys
 
-DEFAULT_CATALOG = "metaflow"
+DEFAULT_CATALOG = "flowx"
 DEFAULT_SCHEMA = "config"
 DEFAULT_VOLUME = "wheels"
 

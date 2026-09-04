@@ -34,13 +34,13 @@ Covers:
 
 import pytest
 
-from NextGen_Metadata_Framework.lakeflow_framework.control_plane.repository import (
+from flowx.lakeflow_framework.control_plane.repository import (
     GroupMetadata,
     load_active_group_metadata,
 )
-from NextGen_Metadata_Framework.lakeflow_framework.exceptions import FrameworkConfigError
+from flowx.lakeflow_framework.exceptions import FrameworkConfigError
 
-CONTROL_CATALOG = "metaflow"
+CONTROL_CATALOG = "flowx"
 GROUP_ID = "dfg_test_group"
 CONTROL_SCHEMA = f"{CONTROL_CATALOG}.config"
 

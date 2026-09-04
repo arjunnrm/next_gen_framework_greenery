@@ -9,14 +9,14 @@ templating/validation/upsert code a real onboarding action runs.
 
 import json
 
-from NextGen_Metadata_Framework.lakeflow_framework.onboarding.metadata_upsert import (
+from flowx.lakeflow_framework.onboarding.metadata_upsert import (
     upsert_dataflow_group_spec,
     upsert_ingestion_flow_spec,
     upsert_transformation_flow_spec,
 )
-from NextGen_Metadata_Framework.lakeflow_framework.onboarding.spec_loader import load_and_template_spec
-from NextGen_Metadata_Framework.lakeflow_framework.onboarding.spec_validator import validate_spec
-from NextGen_Metadata_Framework.lakeflow_framework.control_plane.schema_provisioner import ensure_control_schema_exists
+from flowx.lakeflow_framework.onboarding.spec_loader import load_and_template_spec
+from flowx.lakeflow_framework.onboarding.spec_validator import validate_spec
+from flowx.lakeflow_framework.control_plane.schema_provisioner import ensure_control_schema_exists
 
 CATALOG = "poc"
 CONTROL_SCHEMA = f"{CATALOG}.config"

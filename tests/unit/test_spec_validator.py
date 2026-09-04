@@ -12,7 +12,7 @@ live under ``dq_config``; governance is ``governance_tags`` (tags-only, replacin
 ``abac_config``); ``source_type`` is ``"autoloader"`` (renamed from ``gcs_autoloader``).
 """
 
-from NextGen_Metadata_Framework.lakeflow_framework.onboarding.spec_validator import validate_spec
+from flowx.lakeflow_framework.onboarding.spec_validator import validate_spec
 
 
 def _base_ingestion_flow(target_config=None, **overrides):
@@ -1027,7 +1027,7 @@ def test_v_cyc_5_append_target_table_equal_to_own_source_config_table_is_rejecte
 def test_v_cyc_5_is_only_a_warning_in_job_mode(caplog):
     """Backward compatibility: the same shape must still ONBOARD under job mode.
 
-    ``metaflow_testing/038_rec_003_precomputed_hash.json`` is a shipped, pre-v1.5.0, purely
+    ``flowx_testing/038_rec_003_precomputed_hash.json`` is a shipped, pre-v1.5.0, purely
     job-mode spec that appends into its own comparison target. Because
     ``02_onboarding_engine.py`` raises on any non-empty ``errors`` list, letting V-CYC-5 fire
     unconditionally made that document un-onboardable with no edit by its author -- a real

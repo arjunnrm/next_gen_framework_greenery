@@ -7,8 +7,8 @@ mis-wired job fails in a second instead of part-way through an export.
 
 import pytest
 
-from NextGen_Metadata_Framework.lakeflow_framework.exceptions import ObservabilityConfigError
-from NextGen_Metadata_Framework.lakeflow_framework.observability.runtime_params import (
+from flowx.lakeflow_framework.exceptions import ObservabilityConfigError
+from flowx.lakeflow_framework.observability.runtime_params import (
     REQUIRED_TRIGGERED_PARAMETERS,
     assert_dataflow_group_id_matches,
     resolve_triggered_run_parameters,
@@ -16,7 +16,7 @@ from NextGen_Metadata_Framework.lakeflow_framework.observability.runtime_params 
 
 VALID = {
     "dataflow_group_id": "dfg_zip_csv_dataload",
-    "catalog": "metaflow",
+    "catalog": "flowx",
     "env": "dev",
     "pipeline_task_run_id": "123456789",
 }
@@ -25,14 +25,14 @@ VALID = {
 def test_all_four_present_resolves():
     resolved = resolve_triggered_run_parameters(VALID)
     assert resolved.dataflow_group_id == "dfg_zip_csv_dataload"
-    assert resolved.catalog == "metaflow"
+    assert resolved.catalog == "flowx"
     assert resolved.env == "dev"
     assert resolved.pipeline_task_run_id == "123456789"
 
 
 def test_values_are_stripped():
     resolved = resolve_triggered_run_parameters({k: f"  {v}  " for k, v in VALID.items()})
-    assert resolved.catalog == "metaflow"
+    assert resolved.catalog == "flowx"
     assert resolved.pipeline_task_run_id == "123456789"
 
 

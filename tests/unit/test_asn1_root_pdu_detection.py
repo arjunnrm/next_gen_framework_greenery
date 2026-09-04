@@ -14,7 +14,7 @@ every component type exists because something references it.
 
 The central claim -- that this rule resolves real production telecom modules, not just
 hand-written fixtures -- is asserted directly against the five genuine ``.asn`` files in
-``metaflow_testing/BT_Testing/`` (EMSC 195 types, GGSN 136, PSGW 138, TAP.310 375, TAP.311
+``flowx_testing/BT_Testing/`` (EMSC 195 types, GGSN 136, PSGW 138, TAP.310 375, TAP.311
 307), each with its independently-known true root. A rule that worked on a toy module and
 failed on a 375-type real one would be worthless, so the real modules are the primary
 evidence here and the synthetic modules cover only the error branches they cannot exhibit.
@@ -22,7 +22,7 @@ evidence here and the synthetic modules cover only the error branches they canno
 Also covered: the ``(None, None)`` data-integrity hazard. ``asn1tools`` does not raise when a
 CHOICE matches none of its arms -- it returns a bare ``(None, None)``, which the decoder used
 to spread into an all-NULL row with a NULL ``_asn1_decode_error``, i.e. a row reported as a
-*successful* decode of an empty record. ``metaflow_testing/BT_Testing/tap311_sample.ber`` is a
+*successful* decode of an empty record. ``flowx_testing/BT_Testing/tap311_sample.ber`` is a
 real malformed payload that triggers exactly this (its outer tag is the high-tag-number form
 ``7f01``, where TAP.311's ``TransferBatch`` is ``[APPLICATION 1]`` = short-form ``0x61``).
 """
@@ -32,19 +32,19 @@ import pathlib
 import pandas as pd
 import pytest
 
-from NextGen_Metadata_Framework.lakeflow_framework.asn1.decoder import (
+from flowx.lakeflow_framework.asn1.decoder import (
     CHOICE_DISCRIMINATOR_FIELD,
     derive_asn1_field_defs,
     detect_root_pdu_name,
     make_partition_decoder,
     resolve_pdu_name,
 )
-from NextGen_Metadata_Framework.lakeflow_framework.exceptions import Asn1DecodeError
+from flowx.lakeflow_framework.exceptions import Asn1DecodeError
 
 pytest.importorskip("asn1tools")
 import asn1tools  # noqa: E402
 
-_BT_TESTING = pathlib.Path(__file__).resolve().parents[2] / "metaflow_testing" / "BT_Testing"
+_BT_TESTING = pathlib.Path(__file__).resolve().parents[2] / "flowx_testing" / "BT_Testing"
 
 # The five real production telecom modules and their independently-known true root PDUs. Every
 # one of these roots is a CHOICE -- which is exactly why a root CHOICE had to be supported

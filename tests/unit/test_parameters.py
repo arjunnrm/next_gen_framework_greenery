@@ -2,8 +2,8 @@
 
 import pytest
 
-from NextGen_Metadata_Framework.lakeflow_framework.exceptions import FrameworkConfigError
-from NextGen_Metadata_Framework.lakeflow_framework.transformation.parameters import (
+from flowx.lakeflow_framework.exceptions import FrameworkConfigError
+from flowx.lakeflow_framework.transformation.parameters import (
     substitute_dynamic_parameters,
     substitute_path_parameters,
 )

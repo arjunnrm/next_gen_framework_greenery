@@ -13,10 +13,10 @@ on every individual column by name to prove it actually landed correctly.
 
 import pytest
 
-from NextGen_Metadata_Framework.lakeflow_framework.cdc.hashing import HASH_KEY_COLUMN
-from NextGen_Metadata_Framework.lakeflow_framework.control_plane.ddl_definitions import get_reconciliation_run_log_ddl
-from NextGen_Metadata_Framework.lakeflow_framework.exceptions import FrameworkConfigError
-from NextGen_Metadata_Framework.lakeflow_framework.reconciliation.appender import (
+from flowx.lakeflow_framework.cdc.hashing import HASH_KEY_COLUMN
+from flowx.lakeflow_framework.control_plane.ddl_definitions import get_reconciliation_run_log_ddl
+from flowx.lakeflow_framework.exceptions import FrameworkConfigError
+from flowx.lakeflow_framework.reconciliation.appender import (
     UNMATCHED_RECORDS_VIEW_NAME,
     append_missing_records,
     apply_transform_sql,
@@ -24,9 +24,9 @@ from NextGen_Metadata_Framework.lakeflow_framework.reconciliation.appender impor
     is_target_batch_already_processed,
     write_run_log_entry,
 )
-from NextGen_Metadata_Framework.lakeflow_framework.reconciliation.metrics import ReconciliationMetrics
+from flowx.lakeflow_framework.reconciliation.metrics import ReconciliationMetrics
 
-CATALOG = "metaflow"
+CATALOG = "flowx"
 CONTROL_SCHEMA = f"{CATALOG}.config_test_appender"
 
 

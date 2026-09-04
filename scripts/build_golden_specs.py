@@ -1,4 +1,4 @@
-"""Build the golden example set for the metaflow-onboarding skill.
+"""Build the golden example set for the flowx-onboarding skill.
 
 Every example here is validated against the REAL framework validator before being written.
 An example that does not pass is a bug in the example, not in the validator.
@@ -7,7 +7,7 @@ import json
 import sys
 
 sys.path.insert(0, "src")
-from NextGen_Metadata_Framework.lakeflow_framework.onboarding.spec_validator import validate_spec
+from flowx.lakeflow_framework.onboarding.spec_validator import validate_spec
 
 EXAMPLES = {}
 

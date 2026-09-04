@@ -18,9 +18,9 @@ import zipfile
 
 import pytest
 
-from NextGen_Metadata_Framework.lakeflow_framework.exceptions import ArchiveError, FrameworkConfigError
-from NextGen_Metadata_Framework.lakeflow_framework.ingestion import readers as readers_module
-from NextGen_Metadata_Framework.lakeflow_framework.ingestion.readers import _apply_source_zip_handling
+from flowx.lakeflow_framework.exceptions import ArchiveError, FrameworkConfigError
+from flowx.lakeflow_framework.ingestion import readers as readers_module
+from flowx.lakeflow_framework.ingestion.readers import _apply_source_zip_handling
 
 
 def _make_zip(path, member_name="data.csv", content=b"a,b\n1,2\n"):

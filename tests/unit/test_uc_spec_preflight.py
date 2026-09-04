@@ -22,11 +22,11 @@ from unittest.mock import MagicMock, patch
 
 from databricks.sdk.errors import NotFound
 
-from NextGen_Metadata_Framework.lakeflow_framework.onboarding.uc_spec_preflight import (
+from flowx.lakeflow_framework.onboarding.uc_spec_preflight import (
     preflight_check_onboarding_spec,
 )
 
-MODULE = "NextGen_Metadata_Framework.lakeflow_framework.onboarding.uc_spec_preflight"
+MODULE = "flowx.lakeflow_framework.onboarding.uc_spec_preflight"
 
 
 def _no_spark():

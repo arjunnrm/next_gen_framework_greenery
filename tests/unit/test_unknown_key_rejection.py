@@ -12,7 +12,7 @@ import json
 
 import pytest
 
-from NextGen_Metadata_Framework.lakeflow_framework.onboarding.spec_validator import (
+from flowx.lakeflow_framework.onboarding.spec_validator import (
     ALLOWED_DQ_CONFIG_KEYS,
     ALLOWED_GOVERNANCE_TAGS_KEYS,
     ALLOWED_INGESTION_FLOW_KEYS,
@@ -235,7 +235,7 @@ def test_locked_containers_still_permit_underscore_comments():
 def test_every_shipped_spec_still_validates_clean_of_unknown_keys():
     """No spec in the repo may regress -- these are the framework worked examples."""
     paths = sorted(
-        set(glob.glob("metaflow_testing/*.json"))
+        set(glob.glob("flowx_testing/*.json"))
         | set(glob.glob("resources/**/*.json", recursive=True))
         | {
             "onboarding_templates/pipeline_onboarding_template.json",

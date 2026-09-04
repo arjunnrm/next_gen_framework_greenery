@@ -2,7 +2,7 @@
 
 import pytest
 
-from NextGen_Metadata_Framework.lakeflow_framework.crypto.secrets import (
+from flowx.lakeflow_framework.crypto.secrets import (
     assert_safe_identifier,
     qualified_secret_label,
 )

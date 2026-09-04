@@ -1,4 +1,4 @@
-"""Structural guard for the ``metaflow_sample`` reference suite's job wiring.
+"""Structural guard for the ``flowx_sample`` reference suite's job wiring.
 
 Three properties of the suite are asserted here, none of which any other test can see and none
 of which ``databricks bundle validate`` checks (it validates config *shape*, not the shape of
@@ -6,7 +6,7 @@ this suite's conventions):
 
 1. **Seeding lives in exactly one job.** Every sample job used to inline its own three
    ``seed_iteration<N>`` notebook tasks. They are now consolidated into the single
-   ``metaflow_sample_seed_job``, one chain per sample. The regression this guards against is a
+   ``flowx_sample_seed_job``, one chain per sample. The regression this guards against is a
    seed notebook creeping back into a sample job -- which would silently re-land fixtures a
    developer expected the seed job to own, and re-introduce the six-way concurrent
    ``CREATE ... IF NOT EXISTS`` race the seed job's serial root task exists to prevent.
@@ -14,7 +14,7 @@ this suite's conventions):
 2. **Every sample's spec is published into the one reference Volume.** Each sample job's last
    task must be a ``store_sample_config`` naming *its own* spec, and
    ``09a_store_sample_config.py`` must target exactly one Volume. A sample whose spec never
-   reaches ``/Volumes/<catalog>/metaflow_sample/sample_configs/`` leaves a developer browsing
+   reaches ``/Volumes/<catalog>/flowx_sample/sample_configs/`` leaves a developer browsing
    the schema with tables and no document explaining them.
 
 3. **The suite is internally complete.** Every sample job has a matching pipeline resource and
@@ -39,8 +39,8 @@ SAMPLES_SPEC_DIR = REPO_ROOT / "resources" / "sample_jobs" / "onboarding"
 STORE_CONFIG_NOTEBOOK = REPO_ROOT / "notebooks" / "09_sample_reference" / "09a_store_sample_config.py"
 
 #: The one job that owns every fixture the suite consumes.
-SEED_JOB_FILE = "metaflow_sample_seed_job.yml"
-SEED_JOB_KEY = "metaflow_sample_seed_job"
+SEED_JOB_FILE = "flowx_sample_seed_job.yml"
+SEED_JOB_KEY = "flowx_sample_seed_job"
 
 #: The suite's samples, by the two-digit id that prefixes their job, pipeline, spec and seed
 #: notebook. Adding a sample means adding it here *and* shipping all four artefacts.
@@ -74,10 +74,10 @@ ITERATIONS = ("1", "2", "3")
 #: The single Volume every sample spec is published into.
 SAMPLE_CONFIGS_VOLUME = "sample_configs"
 
-#: A numbered sample job file: metaflow_sample_<id>_<name>_job.yml. Excludes the seed job, whose
-#: name matches ``metaflow_sample_*_job.yml`` too.
-SAMPLE_JOB_FILE = re.compile(r"^metaflow_sample_(\d{2})_.+_job\.yml$")
-SAMPLE_PIPELINE_FILE = re.compile(r"^metaflow_sample_(\d{2})_.+_pipeline\.yml$")
+#: A numbered sample job file: flowx_sample_<id>_<name>_job.yml. Excludes the seed job, whose
+#: name matches ``flowx_sample_*_job.yml`` too.
+SAMPLE_JOB_FILE = re.compile(r"^flowx_sample_(\d{2})_.+_job\.yml$")
+SAMPLE_PIPELINE_FILE = re.compile(r"^flowx_sample_(\d{2})_.+_pipeline\.yml$")
 
 
 def _load(path):
@@ -203,7 +203,7 @@ def test_seed_job_runs_every_sample_iteration_in_order(sample_id):
 
 @pytest.mark.parametrize("job_file", _sample_job_files(), ids=lambda p: p.name)
 def test_no_sample_job_inlines_a_seed_notebook(job_file):
-    """THE regression guard: seeding belongs to metaflow_sample_seed_job and nowhere else."""
+    """THE regression guard: seeding belongs to flowx_sample_seed_job and nowhere else."""
     offenders = [
         task["task_key"]
         for task in _tasks(_load(job_file))

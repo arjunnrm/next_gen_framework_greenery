@@ -11,8 +11,8 @@ from pathlib import Path
 import pytest
 import yaml
 
-from NextGen_Metadata_Framework.lakeflow_framework.exceptions import OnboardingValidationError
-from NextGen_Metadata_Framework.lakeflow_framework.onboarding.spec_loader import (
+from flowx.lakeflow_framework.exceptions import OnboardingValidationError
+from flowx.lakeflow_framework.onboarding.spec_loader import (
     load_and_template_spec,
     substitute_environment_placeholders,
 )

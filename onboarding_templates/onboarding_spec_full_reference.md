@@ -26,7 +26,7 @@ them:
   machine-readable JSON Schema (Draft 2020-12), enforceable by any standard validator. This
   full-reference JSON validates cleanly against it (0 errors, confirmed with the Python
   `jsonschema` package — see the bottom of this doc).
-* [`spec_validator.py`](../src/NextGen_Metadata_Framework/lakeflow_framework/onboarding/spec_validator.py)
+* [`spec_validator.py`](../src/flowx/lakeflow_framework/onboarding/spec_validator.py)
   — the single source of truth all three documents above (and this one) are derived from.
   Where anything here and that file ever disagree, the code wins.
 
@@ -397,7 +397,7 @@ describe a *Lakeflow graph* cycle. That graph exists only in a pipeline mode, so
 `"pipeline_audit_only"` and as **logger warnings** under `"job"`, where the standalone
 `05_reconciliation_engine.py` task runs after the update has already finished. Reporting
 them unconditionally was a backward-compatibility break: the shipped, purely job-mode
-`metaflow_testing/038_rec_003_precomputed_hash.json` stopped validating and so could no
+`flowx_testing/038_rec_003_precomputed_hash.json` stopped validating and so could no
 longer be onboarded at all.
 
 | Rule | `execution_mode: "job"` | `"pipeline"` / `"pipeline_audit_only"` |

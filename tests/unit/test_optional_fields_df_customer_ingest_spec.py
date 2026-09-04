@@ -27,7 +27,7 @@ Pure Python: this spec has no transformation_flows, so validate_spec never touch
 import json
 from pathlib import Path
 
-from NextGen_Metadata_Framework.lakeflow_framework.onboarding.spec_validator import validate_spec
+from flowx.lakeflow_framework.onboarding.spec_validator import validate_spec
 
 SPEC_PATH = Path(__file__).resolve().parents[2] / "test_specs" / "spec_22_optional_fields_df_customer_ingest.json"
 
@@ -69,4 +69,4 @@ def test_schema_location_default_is_persisted_onto_the_flow():
     spec = _load_spec()
     ingestion_flows, _, _, _, _ = validate_spec(None, spec)
     flow = ingestion_flows[0]
-    assert flow["source_config"]["schema_location"] == "/Volumes/metaflow/landing/_schemas/customer_raw/"
+    assert flow["source_config"]["schema_location"] == "/Volumes/flowx/landing/_schemas/customer_raw/"

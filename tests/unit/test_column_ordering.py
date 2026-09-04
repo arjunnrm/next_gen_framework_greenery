@@ -6,8 +6,8 @@ Uses the live `spark` fixture (Databricks Connect) since these are DataFrame tra
 persisted-table assertions -- no table is created, so this stays fast and side-effect-free.
 """
 
-from NextGen_Metadata_Framework.lakeflow_framework.cdc.hashing import HASH_KEY_COLUMN, HASH_VALUE_COLUMN
-from NextGen_Metadata_Framework.lakeflow_framework.storage.column_ordering import reorder_columns_for_delta_stats
+from flowx.lakeflow_framework.cdc.hashing import HASH_KEY_COLUMN, HASH_VALUE_COLUMN
+from flowx.lakeflow_framework.storage.column_ordering import reorder_columns_for_delta_stats
 
 
 def test_no_config_and_no_framework_columns_leaves_column_order_unchanged(spark):

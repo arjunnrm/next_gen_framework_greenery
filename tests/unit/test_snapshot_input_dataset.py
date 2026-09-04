@@ -24,7 +24,7 @@ import ast
 import inspect
 import textwrap
 
-from NextGen_Metadata_Framework.lakeflow_framework.cdc import dispatcher, snapshot
+from flowx.lakeflow_framework.cdc import dispatcher, snapshot
 
 
 def _strategy_ast():

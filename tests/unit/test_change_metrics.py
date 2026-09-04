@@ -9,10 +9,10 @@ expected.
 
 import pytest
 
-from NextGen_Metadata_Framework.lakeflow_framework.exceptions import FrameworkConfigError
-from NextGen_Metadata_Framework.lakeflow_framework.cdc.change_metrics import capture_scd_change_counts
+from flowx.lakeflow_framework.exceptions import FrameworkConfigError
+from flowx.lakeflow_framework.cdc.change_metrics import capture_scd_change_counts
 
-CATALOG = "metaflow"
+CATALOG = "flowx"
 SCHEMA = "silver_test"
 TABLE = "change_metrics_probe"
 QUALIFIED_TABLE = f"{CATALOG}.{SCHEMA}.{TABLE}"

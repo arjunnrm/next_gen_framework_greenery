@@ -9,8 +9,8 @@ row's age. See `storage/table_properties.py`'s module docstring for the full wri
 
 import pytest
 
-from NextGen_Metadata_Framework.lakeflow_framework.exceptions import FrameworkConfigError
-from NextGen_Metadata_Framework.lakeflow_framework.storage.table_properties import (
+from flowx.lakeflow_framework.exceptions import FrameworkConfigError
+from flowx.lakeflow_framework.storage.table_properties import (
     build_auto_ttl_kwarg,
     build_table_properties,
 )

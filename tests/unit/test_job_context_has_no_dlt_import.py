@@ -34,8 +34,8 @@ import pathlib
 import pytest
 
 REPO_ROOT = pathlib.Path(__file__).resolve().parents[2]
-FRAMEWORK_ROOT = REPO_ROOT / "src" / "NextGen_Metadata_Framework" / "lakeflow_framework"
-PACKAGE = "NextGen_Metadata_Framework.lakeflow_framework"
+FRAMEWORK_ROOT = REPO_ROOT / "src" / "flowx" / "lakeflow_framework"
+PACKAGE = "flowx.lakeflow_framework"
 
 #: Modules reachable from a plain job notebook task. Each entry names the notebook that loads it,
 #: because that is the fact that makes the constraint true — if a module stops being job-loaded,
@@ -131,7 +131,7 @@ def test_the_relocated_helper_imports_nothing_at_all():
 def test_quarantine_still_exposes_the_historical_helper_name():
     """Pipeline-side callers and older tests use ``dq.quarantine._is_table_not_found``. The D3 fix
     relocated the implementation; it must not have broken that spelling."""
-    from NextGen_Metadata_Framework.lakeflow_framework.dq import quarantine, table_errors
+    from flowx.lakeflow_framework.dq import quarantine, table_errors
 
     assert quarantine._is_table_not_found is table_errors.is_table_not_found
     assert quarantine._TABLE_NOT_FOUND_CONDITIONS is table_errors.TABLE_NOT_FOUND_CONDITIONS
@@ -151,7 +151,7 @@ def test_quarantine_still_exposes_the_historical_helper_name():
 def test_relocated_helper_behaviour_is_unchanged(condition, expected):
     """The move must be behaviour-preserving: same conditions matched, same structured-accessor
     preference, same message-scanning fallback."""
-    from NextGen_Metadata_Framework.lakeflow_framework.dq.table_errors import is_table_not_found
+    from flowx.lakeflow_framework.dq.table_errors import is_table_not_found
 
     class _Structured(Exception):
         def getCondition(self):  # noqa: N802 - mirrors PySpark's own accessor name
@@ -164,7 +164,7 @@ def test_relocated_helper_behaviour_is_unchanged(condition, expected):
 def test_a_structured_accessor_that_raises_falls_back_to_the_message():
     """A shim whose ``getCondition`` blows up tells us nothing — the helper must keep going rather
     than propagate, or a cosmetic runtime change becomes a hard pipeline failure."""
-    from NextGen_Metadata_Framework.lakeflow_framework.dq.table_errors import is_table_not_found
+    from flowx.lakeflow_framework.dq.table_errors import is_table_not_found
 
     class _Broken(Exception):
         def getCondition(self):  # noqa: N802

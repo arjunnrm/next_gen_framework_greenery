@@ -33,8 +33,8 @@ import inspect
 import pathlib
 import textwrap
 
-from NextGen_Metadata_Framework.lakeflow_framework.engine import source_plane
-from NextGen_Metadata_Framework.lakeflow_framework.reconciliation import graph_registration
+from flowx.lakeflow_framework.engine import source_plane
+from flowx.lakeflow_framework.reconciliation import graph_registration
 
 WRITE_CALLS = {"saveAsTable", "save", "start", "toTable", "createOrReplaceTempView"}
 EAGER_ACTIONS = {"count", "collect", "first", "take", "isEmpty", "toPandas"}

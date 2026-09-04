@@ -10,8 +10,8 @@ top level, though, and mirror the wrapped task's own values exactly.
 
 import pytest
 
-from NextGen_Metadata_Framework.lakeflow_framework.exceptions import ObservabilityConfigError
-from NextGen_Metadata_Framework.lakeflow_framework.observability.task_context_resolver import resolve_task_context
+from flowx.lakeflow_framework.exceptions import ObservabilityConfigError
+from flowx.lakeflow_framework.observability.task_context_resolver import resolve_task_context
 
 
 class _State:

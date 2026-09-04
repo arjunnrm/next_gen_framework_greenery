@@ -20,8 +20,8 @@ pipeline context; this test only proves governance/tags.py's own DDL-application
 
 import pytest
 
-from NextGen_Metadata_Framework.lakeflow_framework.exceptions import AbacApplicationError
-from NextGen_Metadata_Framework.lakeflow_framework.governance.tags import apply_governance_tags
+from flowx.lakeflow_framework.exceptions import AbacApplicationError
+from flowx.lakeflow_framework.governance.tags import apply_governance_tags
 
 CATALOG = "poc"
 SCHEMA = "silver_test"

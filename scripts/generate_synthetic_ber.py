@@ -46,7 +46,7 @@ from typing import Any
 import asn1tools
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-SCHEMA_DIR = REPO_ROOT / "metaflow_testing" / "BT_Testing"
+SCHEMA_DIR = REPO_ROOT / "flowx_testing" / "BT_Testing"
 OUTPUT_DIR = SCHEMA_DIR / "synthetic"
 
 SEED = 20260903
@@ -591,7 +591,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--verify",
         action="store_true",
-        help="only verify the existing files in metaflow_testing/BT_Testing/synthetic/",
+        help="only verify the existing files in flowx_testing/BT_Testing/synthetic/",
     )
     args = parser.parse_args(argv)
 

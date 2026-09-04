@@ -6,7 +6,7 @@ Two reference trees are produced, both derived rather than written by hand, so t
 cannot drift from the thing they describe:
 
     docs/reference/json/     <- databricks-app/web/src/registry.js  (+ curated prose)
-    docs/reference/code/     <- src/NextGen_Metadata_Framework/     (AST, no imports)
+    docs/reference/code/     <- src/flowx/     (AST, no imports)
 
 The JSON reference is the same data the Spec Builder renders as a form and the same
 prose its attribute inspector shows, so the app and the docs always agree.
@@ -32,7 +32,7 @@ from typing import Any, Dict, List
 
 REPO = Path(__file__).resolve().parent.parent
 APP = REPO / "databricks-app"
-SRC = REPO / "src" / "NextGen_Metadata_Framework"
+SRC = REPO / "src" / "flowx"
 DOCS = REPO / "docs"
 JSON_REF = DOCS / "reference" / "json"
 CODE_REF = DOCS / "reference" / "code"

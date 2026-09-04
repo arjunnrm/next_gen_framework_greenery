@@ -1,10 +1,10 @@
 """Regression tests for the topology of the LIVE geneva reconciliation pipeline
-``e41a47ba-5ad0-4dc5-9535-5aa16cc97e65`` (``[dev arjun] Metaflow_test_104_reconcilation_batch``).
+``e41a47ba-5ad0-4dc5-9535-5aa16cc97e65`` (``[dev arjun] FlowX_test_104_reconcilation_batch``).
 
 Why this file exists as its own module rather than another parametrised case in
 ``test_source_plane_plan.py``: the rows below are not a hand-designed fixture exercising a rule in
 the abstract, they are a transcription of what was actually onboarded in
-``metaflow.config.*`` for ``dataflow_group_id='dfg_geneva_tariffs_recon'`` (read back on
+``flowx.config.*`` for ``dataflow_group_id='dfg_geneva_tariffs_recon'`` (read back on
 2026-08-31). Keeping them together, and naming the pipeline in the module docstring, is what makes
 it obvious to the next reader that changing these values invalidates the test rather than merely
 adjusting it.
@@ -25,17 +25,17 @@ import json
 
 import pytest
 
-from NextGen_Metadata_Framework.lakeflow_framework.engine.source_plane import (
+from flowx.lakeflow_framework.engine.source_plane import (
     _NON_APPEND_ONLY_CDC_STRATEGIES,
     plan_source_plane,
 )
-from NextGen_Metadata_Framework.lakeflow_framework.exceptions import FrameworkConfigError
+from flowx.lakeflow_framework.exceptions import FrameworkConfigError
 
 GROUP_ID = "dfg_geneva_tariffs_recon"
-CATALOG = "metaflow"
-STG_TABLE = "metaflow.geneva_admin.stg_tariffelementband"
-BRONZE_TABLE = "metaflow.bronze_excalibur.bronze_tariffelementband"
-LANDING_TABLE = "metaflow.geneva_admin.landing_tariffelementband"
+CATALOG = "flowx"
+STG_TABLE = "flowx.geneva_admin.stg_tariffelementband"
+BRONZE_TABLE = "flowx.bronze_excalibur.bronze_tariffelementband"
+LANDING_TABLE = "flowx.geneva_admin.landing_tariffelementband"
 
 
 class Row:
@@ -64,9 +64,9 @@ def _ingestion_row():
         cdc_load_strategy="TRUNCATE_AND_LOAD",
         source_config_json=json.dumps(
             {
-                "path": "/Volumes/metaflow/geneva_admin/batch_recon/",
+                "path": "/Volumes/flowx/geneva_admin/batch_recon/",
                 "format": "csv",
-                "schema_location": "/Volumes/metaflow/geneva_admin/_schemas/stg_tariffelementband/",
+                "schema_location": "/Volumes/flowx/geneva_admin/_schemas/stg_tariffelementband/",
                 "file_pattern": "batch_recon_*",
             }
         ),

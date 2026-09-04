@@ -15,8 +15,8 @@ import time
 import pytest
 import yaml
 
-from NextGen_Metadata_Framework.lakeflow_framework.exceptions import FrameworkConfigError
-from NextGen_Metadata_Framework.lakeflow_framework.ingestion.schema_config import (
+from flowx.lakeflow_framework.exceptions import FrameworkConfigError
+from flowx.lakeflow_framework.ingestion.schema_config import (
     apply_schema_config,
     load_schema_config,
     resolve_schema_config_path,

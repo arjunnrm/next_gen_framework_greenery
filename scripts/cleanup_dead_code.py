@@ -1,4 +1,4 @@
-"""Automated dead-code and legacy artifact cleanup script for NextGen_Metadata_Framework.
+"""Automated dead-code and legacy artifact cleanup script for flowx.
 
 Performs static analysis-backed removal of obsolete scaffold files, empty directories,
 and unifies documentation directories safely.
@@ -12,8 +12,8 @@ ROOT = Path(__file__).resolve().parent.parent
 
 # Files identified as safe to delete (dead code / DAB template scaffold)
 DEAD_FILES = [
-    ROOT / "src" / "NextGen_Metadata_Framework" / "main.py",
-    ROOT / "src" / "NextGen_Metadata_Framework" / "taxis.py",
+    ROOT / "src" / "flowx" / "main.py",
+    ROOT / "src" / "flowx" / "taxis.py",
 ]
 
 # Empty directories safe to delete
@@ -105,7 +105,7 @@ def cleanup_docv2():
 
 def main():
     print("========================================")
-    print("Metaflow Dead-Code & Legacy Cleanup")
+    print("FlowX Dead-Code & Legacy Cleanup")
     print("========================================")
     cleanup_dead_files()
     cleanup_empty_dirs()

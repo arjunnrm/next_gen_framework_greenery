@@ -4,7 +4,7 @@ import json
 
 import pytest
 
-from NextGen_Metadata_Framework.lakeflow_framework.observability.agent_tools import (
+from flowx.lakeflow_framework.observability.agent_tools import (
     diagnose_pipeline_telemetry_failures,
     generate_pipeline_onboarding_config,
     validate_observability_config,

@@ -11,7 +11,7 @@ import json
 
 import pytest
 
-from NextGen_Metadata_Framework.lakeflow_framework.onboarding.spec_validator import validate_spec
+from flowx.lakeflow_framework.onboarding.spec_validator import validate_spec
 
 GOLDEN_PATH = "agent_skills/reference/golden_specs.json"
 

@@ -2,13 +2,13 @@
 
 import pytest
 
-from NextGen_Metadata_Framework.lakeflow_framework.observability.event_log_extractor import (
+from flowx.lakeflow_framework.observability.event_log_extractor import (
     DataflowGroupTelemetry,
     ErrorDetail,
     ExpectationMetric,
     FlowMetrics,
 )
-from NextGen_Metadata_Framework.lakeflow_framework.observability.otel_payload_builder import (
+from flowx.lakeflow_framework.observability.otel_payload_builder import (
     build_resource_logs,
     to_export_request,
     validate_resource_logs,

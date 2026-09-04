@@ -14,7 +14,7 @@ import base64
 import json
 from pathlib import Path
 
-from NextGen_Metadata_Framework.lakeflow_framework.control_plane.ddl_definitions import (
+from flowx.lakeflow_framework.control_plane.ddl_definitions import (
     get_preflight_function_ddl,
 )
 
@@ -31,16 +31,16 @@ def test_real_schema_file_is_valid_json():
 
 def test_ddl_shape():
     schema_text = SCHEMA_FILE_PATH.read_text(encoding="utf-8")
-    ddl = get_preflight_function_ddl("metaflow.config", schema_text)
+    ddl = get_preflight_function_ddl("flowx.config", schema_text)
 
-    assert ddl.startswith("CREATE OR REPLACE FUNCTION metaflow.config.preflight_check_onboarding_spec(")
+    assert ddl.startswith("CREATE OR REPLACE FUNCTION flowx.config.preflight_check_onboarding_spec(")
     assert "RETURNS STRING" in ddl
     assert "LANGUAGE PYTHON" in ddl
     assert "ENVIRONMENT (dependencies = '[\"jsonschema==4.23.0\", \"pyyaml==6.0.2\"]', environment_version = 'None')" in ddl
     assert ddl.count("AS $$") == 1
     assert ddl.rstrip().endswith("$$")
     # sandboxed body never imports the framework package or pyspark -- structural-only by design
-    assert "import NextGen_Metadata_Framework" not in ddl
+    assert "import flowx" not in ddl
     assert "import pyspark" not in ddl
 
 
@@ -49,7 +49,7 @@ def test_schema_text_is_embedded_as_base64_and_round_trips():
     is what makes this immune to backslash/quote/line-count issues in the schema's own content
     -- confirm the embedded value actually decodes back to the exact original bytes."""
     schema_text = SCHEMA_FILE_PATH.read_text(encoding="utf-8")
-    ddl = get_preflight_function_ddl("metaflow.config", schema_text)
+    ddl = get_preflight_function_ddl("flowx.config", schema_text)
 
     marker = '_SCHEMA_B64 = "'
     start = ddl.index(marker) + len(marker)
@@ -64,7 +64,7 @@ def test_schema_text_is_embedded_as_base64_and_round_trips():
 
 def test_different_catalogs_produce_differently_qualified_function_names():
     schema_text = '{"type": "object"}'
-    dev_ddl = get_preflight_function_ddl("metaflow.config", schema_text)
+    dev_ddl = get_preflight_function_ddl("flowx.config", schema_text)
     poc_ddl = get_preflight_function_ddl("poc.config", schema_text)
-    assert "metaflow.config.preflight_check_onboarding_spec" in dev_ddl
+    assert "flowx.config.preflight_check_onboarding_spec" in dev_ddl
     assert "poc.config.preflight_check_onboarding_spec" in poc_ddl

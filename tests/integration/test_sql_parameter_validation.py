@@ -7,7 +7,7 @@ placeholder (``'${param}'``, which becomes unparseable ``''US''`` after substitu
 onboarding validation, only to fail at pipeline-deployment time instead.
 """
 
-from NextGen_Metadata_Framework.lakeflow_framework.onboarding.spec_validator import validate_spec
+from flowx.lakeflow_framework.onboarding.spec_validator import validate_spec
 
 
 def _transformation_spec(transformation_sql: str, pipeline_parameters: dict) -> dict:

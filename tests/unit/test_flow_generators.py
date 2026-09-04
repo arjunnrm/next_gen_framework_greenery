@@ -52,11 +52,11 @@ import dlt
 import dlt.api
 import pytest
 
-from NextGen_Metadata_Framework.lakeflow_framework.engine import flow_generators
-from NextGen_Metadata_Framework.lakeflow_framework.engine import source_plane
-from NextGen_Metadata_Framework.lakeflow_framework.ingestion.json_flattening import resolve_auto_flatten_all
-from NextGen_Metadata_Framework.lakeflow_framework.reconciliation import graph_registration
-from NextGen_Metadata_Framework.lakeflow_framework.transformation import inputs as transformation_inputs
+from flowx.lakeflow_framework.engine import flow_generators
+from flowx.lakeflow_framework.engine import source_plane
+from flowx.lakeflow_framework.ingestion.json_flattening import resolve_auto_flatten_all
+from flowx.lakeflow_framework.reconciliation import graph_registration
+from flowx.lakeflow_framework.transformation import inputs as transformation_inputs
 
 # ---------------------------------------------------------------------------------------------
 # The exact overlay order ``generate_ingestion_flow._build_ingestion_dataframe`` must apply.
@@ -368,7 +368,7 @@ def _ingestion_row(
         source_config_json=json.dumps(source_config if source_config is not None else {}),
         target_config_json=json.dumps(target_config if target_config is not None else {}),
         dq_config_json=json.dumps(dq_config if dq_config is not None else {}),
-        target_catalog="metaflow",
+        target_catalog="flowx",
         target_schema="bronze",
         target_table="orders",
         target_type=target_type,
@@ -391,7 +391,7 @@ def _transformation_row(
         target_config_json=json.dumps({}),
         dq_config_json=json.dumps(dq_config if dq_config is not None else {}),
         transformation_sql="SELECT * FROM orders_in",
-        target_catalog="metaflow",
+        target_catalog="flowx",
         target_schema="silver",
         target_table="enriched_orders",
         target_type=target_type,
@@ -435,9 +435,9 @@ def test_ingestion_overlay_chain_runs_in_the_documented_order(
     _run_ingestion(
         _ingestion_row(
             source_config={
-                "path": "/Volumes/metaflow/landing/orders",
+                "path": "/Volumes/flowx/landing/orders",
                 "format": "json",
-                "schema_config_path": "/Volumes/metaflow/config/orders_schema.json",
+                "schema_config_path": "/Volumes/flowx/config/orders_schema.json",
                 "json_string_columns": ["payload"],
                 "explode_columns": ["line_items"],
             }
@@ -453,7 +453,7 @@ def test_schema_config_overlay_is_skipped_when_no_schema_config_path_is_configur
 ):
     """``apply_schema_config`` is conditional on ``source_config.schema_config_path``; the other
     six overlays are unconditional (each is a documented no-op on absent configuration)."""
-    _run_ingestion(_ingestion_row(source_config={"path": "/Volumes/metaflow/landing/orders"}))
+    _run_ingestion(_ingestion_row(source_config={"path": "/Volumes/flowx/landing/orders"}))
 
     staged_view_calls[0].build_dataframe()
     assert overlays.order == [name for name in EXPECTED_OVERLAY_ORDER if name != "apply_schema_config"]
@@ -468,8 +468,8 @@ def test_each_overlay_consumes_the_previous_overlays_output(
     _run_ingestion(
         _ingestion_row(
             source_config={
-                "path": "/Volumes/metaflow/landing/orders",
-                "schema_config_path": "/Volumes/metaflow/config/orders_schema.json",
+                "path": "/Volumes/flowx/landing/orders",
+                "schema_config_path": "/Volumes/flowx/config/orders_schema.json",
             }
         )
     )
@@ -621,7 +621,7 @@ def test_transformation_is_streaming_is_target_type_or_any_streaming_input(
     recorder, bind_recorder, staged_view_calls, flow_output_calls, target_type, input_streaming_flags, expected
 ):
     source_inputs = [
-        {"input_name": f"in_{index}", "table": f"metaflow.silver.t{index}", "is_streaming": flag}
+        {"input_name": f"in_{index}", "table": f"flowx.silver.t{index}", "is_streaming": flag}
         for index, flag in enumerate(input_streaming_flags)
     ]
     _run_transformation(_transformation_row(source_inputs=source_inputs, target_type=target_type))
@@ -637,7 +637,7 @@ def test_transformation_input_without_an_is_streaming_key_is_treated_as_batch(
     a streaming view."""
     _run_transformation(
         _transformation_row(
-            source_inputs=[{"input_name": "orders_in", "table": "metaflow.bronze.orders"}],
+            source_inputs=[{"input_name": "orders_in", "table": "flowx.bronze.orders"}],
             target_type="table",
         )
     )
@@ -711,7 +711,7 @@ def test_transformation_materializes_the_staged_view_by_the_same_rule(
 ):
     _run_transformation(
         _transformation_row(
-            source_inputs=[{"input_name": "orders_in", "table": "metaflow.bronze.orders"}],
+            source_inputs=[{"input_name": "orders_in", "table": "flowx.bronze.orders"}],
             target_type=target_type,
             dq_config={"rules": dq_rules},
         )
@@ -763,7 +763,7 @@ def test_transformation_flow_output_receives_register_staged_views_return_value(
 ):
     _run_transformation(
         _transformation_row(
-            source_inputs=[{"input_name": "orders_in", "table": "metaflow.bronze.orders"}],
+            source_inputs=[{"input_name": "orders_in", "table": "flowx.bronze.orders"}],
             target_type="sink",
         )
     )
@@ -798,8 +798,8 @@ def test_transformation_binds_one_consumer_id_per_named_input(
         _transformation_row(
             flow_step_id="tf_enrich",
             source_inputs=[
-                {"input_name": "orders_in", "table": "metaflow.bronze.orders", "is_streaming": True},
-                {"input_name": "events_batch", "table": "metaflow.silver.events", "is_streaming": False},
+                {"input_name": "orders_in", "table": "flowx.bronze.orders", "is_streaming": True},
+                {"input_name": "events_batch", "table": "flowx.silver.events", "is_streaming": False},
             ],
         )
     )
@@ -821,8 +821,8 @@ def test_reconciliation_binds_source_and_target_consumer_ids(recorder, bind_reco
     row = _StubRow(
         reconciliation_id="rec_orders",
         execution_mode="pipeline_audit_only",
-        source_config_json=json.dumps({"table": "metaflow.bronze.orders"}),
-        target_configs_json=json.dumps([{"target_id": "t_ref", "table": "metaflow.gold.orders_ref"}]),
+        source_config_json=json.dumps({"table": "flowx.bronze.orders"}),
+        target_configs_json=json.dumps([{"target_id": "t_ref", "table": "flowx.gold.orders_ref"}]),
         match_keys_json=json.dumps(["order_id"]),
         compare_columns_json=json.dumps(["amount"]),
         error_handling_json=json.dumps({}),
@@ -841,9 +841,9 @@ def test_reconciliation_binds_source_and_target_consumer_ids(recorder, bind_reco
         _StubSpark(),
         row,
         plan=object(),
-        publish_catalog="metaflow",
+        publish_catalog="flowx",
         publish_schema="recon",
-        control_schema="metaflow.config",
+        control_schema="flowx.config",
     )
 
     prepare_nodes = [name for name in recorder.names if name.endswith(("__src", "__tgt"))]
@@ -863,8 +863,8 @@ def test_job_mode_reconciliation_row_registers_nothing_in_the_graph(recorder, bi
     row = _StubRow(
         reconciliation_id="rec_job",
         execution_mode="job",
-        source_config_json=json.dumps({"table": "metaflow.bronze.orders"}),
-        target_configs_json=json.dumps([{"target_id": "t_ref", "table": "metaflow.gold.orders_ref"}]),
+        source_config_json=json.dumps({"table": "flowx.bronze.orders"}),
+        target_configs_json=json.dumps([{"target_id": "t_ref", "table": "flowx.gold.orders_ref"}]),
         match_keys_json=json.dumps(["order_id"]),
         compare_columns_json=json.dumps(["amount"]),
         error_handling_json=json.dumps({}),
@@ -879,9 +879,9 @@ def test_job_mode_reconciliation_row_registers_nothing_in_the_graph(recorder, bi
         _StubSpark(),
         row,
         plan=object(),
-        publish_catalog="metaflow",
+        publish_catalog="flowx",
         publish_schema="recon",
-        control_schema="metaflow.config",
+        control_schema="flowx.config",
     )
 
     assert recorder.registrations == []
@@ -894,7 +894,7 @@ def test_job_mode_reconciliation_row_registers_nothing_in_the_graph(recorder, bi
 
 
 def test_malformed_ingestion_json_raises_naming_the_flow(recorder, bind_recorder, overlays, flow_output_calls):
-    from NextGen_Metadata_Framework.lakeflow_framework.exceptions import FrameworkConfigError
+    from flowx.lakeflow_framework.exceptions import FrameworkConfigError
 
     row = _ingestion_row()
     row._fields["source_config_json"] = "{not json"
@@ -907,7 +907,7 @@ def test_malformed_ingestion_json_raises_naming_the_flow(recorder, bind_recorder
 
 
 def test_malformed_transformation_json_raises_naming_the_flow_step(recorder, bind_recorder, flow_output_calls):
-    from NextGen_Metadata_Framework.lakeflow_framework.exceptions import FrameworkConfigError
+    from flowx.lakeflow_framework.exceptions import FrameworkConfigError
 
     row = _transformation_row(source_inputs=[])
     row._fields["dq_config_json"] = "{not json"
@@ -933,7 +933,7 @@ def test_transformation_accepts_the_dbutils_less_positional_short_form(
     spark = _StubSpark()
     flow_generators.generate_transformation_flow(
         spark,
-        _transformation_row(source_inputs=[{"input_name": "orders_in", "table": "metaflow.bronze.orders"}]),
+        _transformation_row(source_inputs=[{"input_name": "orders_in", "table": "flowx.bronze.orders"}]),
         plan=object(),
         pipeline_parameters={},
     )
@@ -949,7 +949,7 @@ def test_transformation_staged_view_body_executes_the_resolved_sql(
     registration time (``${param}`` substitution + ``STREAM`` marking), then executed lazily."""
     spark = _StubSpark()
     _run_transformation(
-        _transformation_row(source_inputs=[{"input_name": "orders_in", "table": "metaflow.bronze.orders"}]),
+        _transformation_row(source_inputs=[{"input_name": "orders_in", "table": "flowx.bronze.orders"}]),
         spark=spark,
     )
 
@@ -1099,7 +1099,7 @@ def direct_reader(monkeypatch):
 
 
 SNAPSHOT_SOURCE_CONFIG = {
-    "path": "/Volumes/metaflow/metaflow_sample/landing/sample01_parts/incoming/",
+    "path": "/Volumes/flowx/flowx_sample/landing/sample01_parts/incoming/",
     "format": "csv",
 }
 

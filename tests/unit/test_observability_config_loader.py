@@ -11,8 +11,8 @@ import json
 
 import pytest
 
-from NextGen_Metadata_Framework.lakeflow_framework.exceptions import ObservabilityConfigError
-from NextGen_Metadata_Framework.lakeflow_framework.observability.config_loader import parse_config_rows
+from flowx.lakeflow_framework.exceptions import ObservabilityConfigError
+from flowx.lakeflow_framework.observability.config_loader import parse_config_rows
 
 
 def _row(config_id="cfg1", dataflow_group_id="dfg-123", destination_id="dest-1", enabled=True, destination_type="DATABRICKS_VOLUME",

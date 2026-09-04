@@ -7,13 +7,13 @@ persisted-table assertions -- no table is created, so this stays fast and side-e
 
 import pytest
 
-from NextGen_Metadata_Framework.lakeflow_framework.cdc.hashing import (
+from flowx.lakeflow_framework.cdc.hashing import (
     HASH_KEY_COLUMN,
     HASH_VALUE_COLUMN,
     compute_hash_columns,
 )
-from NextGen_Metadata_Framework.lakeflow_framework.exceptions import FrameworkConfigError
-from NextGen_Metadata_Framework.lakeflow_framework.reconciliation.matcher import (
+from flowx.lakeflow_framework.exceptions import FrameworkConfigError
+from flowx.lakeflow_framework.reconciliation.matcher import (
     MISMATCH_TYPE_COLUMN,
     MISMATCH_TYPE_MISSING_IN_SOURCE,
     MISMATCH_TYPE_MISSING_IN_TARGET,

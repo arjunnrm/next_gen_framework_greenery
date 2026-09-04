@@ -5,8 +5,8 @@ Every sample spec must (a) parse as JSON, (b) pass the REAL onboarding validator
 (``onboarding/spec_validator.py::validate_spec``) with zero errors after the same
 ``{{catalog}}`` substitution the onboarding driver performs, and (c) honor the suite's own
 isolation contract: at least two meaningful ``dq_config`` rules on every flow, every
-``target_schema``/``publish_schema`` equal to ``metaflow_sample``, and every ``/Volumes/`` path
-scoped under ``/Volumes/{{catalog}}/metaflow_sample/``.
+``target_schema``/``publish_schema`` equal to ``flowx_sample``, and every ``/Volumes/`` path
+scoped under ``/Volumes/{{catalog}}/flowx_sample/``.
 
 Pure Python, no Spark. ``validate_spec`` only reaches for a session on a non-empty
 ``transformation_sql``/``transform_sql``; with ``spark=None`` that surfaces as an
@@ -28,15 +28,15 @@ import re
 
 import pytest
 
-from NextGen_Metadata_Framework.lakeflow_framework.onboarding.spec_validator import validate_spec
+from flowx.lakeflow_framework.onboarding.spec_validator import validate_spec
 
 _REPO_ROOT = pathlib.Path(__file__).resolve().parents[2]
 _SAMPLES_DIR = _REPO_ROOT / "resources" / "sample_jobs" / "onboarding"
 
 # The {{catalog}} placeholder every spec carries; the onboarding driver substitutes the deploy
 # target's catalog before validation, so a validator replay must too.
-_CATALOG = "metaflow"
-_SAMPLE_SCHEMA = "metaflow_sample"
+_CATALOG = "flowx"
+_SAMPLE_SCHEMA = "flowx_sample"
 
 # Signature of the no-Spark-session artefact described in the module docstring. Not a finding.
 _NO_SESSION_MARKERS = ("NoneType", "object has no attribute")
@@ -51,7 +51,7 @@ _EXPECTED_SPEC_NAMES = [
 ]
 
 _VOLUME_PATH = re.compile(r"/Volumes/[^\s\"']*")
-_REQUIRED_VOLUME_PREFIX = "/Volumes/{{catalog}}/metaflow_sample/"
+_REQUIRED_VOLUME_PREFIX = "/Volumes/{{catalog}}/flowx_sample/"
 
 
 def _spec_paths():
@@ -135,7 +135,7 @@ def test_every_flow_declares_at_least_two_dq_rules(spec_path):
 @pytest.mark.parametrize("spec_path", _spec_paths(), ids=lambda p: p.name)
 def test_every_target_schema_is_the_isolated_sample_schema(spec_path):
     """Isolation contract: every produced dataset -- including a pipeline-mode reconciliation
-    flow's published recon__* datasets -- lives in the single metaflow_sample schema."""
+    flow's published recon__* datasets -- lives in the single flowx_sample schema."""
     spec = _load_spec(spec_path)
     for array_name in ("ingestion_flows", "transformation_flows"):
         for flow in spec.get(array_name) or []:
@@ -156,7 +156,7 @@ def test_every_target_schema_is_the_isolated_sample_schema(spec_path):
 @pytest.mark.parametrize("spec_path", _spec_paths(), ids=lambda p: p.name)
 def test_every_volume_path_is_scoped_to_the_sample_schema(spec_path):
     """Isolation contract: every /Volumes/ path (landing, _schemas, extracted, exports,
-    observability) stays under /Volumes/{{catalog}}/metaflow_sample/. Checked against the RAW
+    observability) stays under /Volumes/{{catalog}}/flowx_sample/. Checked against the RAW
     spec text so the {{catalog}} templating itself is asserted too."""
     raw_text = spec_path.read_text(encoding="utf-8")
     volume_paths = _VOLUME_PATH.findall(raw_text)

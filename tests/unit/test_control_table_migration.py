@@ -2,7 +2,7 @@
 
 Every statement in ``get_all_control_table_ddls`` is ``CREATE TABLE IF NOT EXISTS``, which is a
 no-op against an already-provisioned table -- so a column added to one of those CREATE statements
-reaches BRAND-NEW installations only. Verified live on 2026-08-31: ``metaflow.config.
+reaches BRAND-NEW installations only. Verified live on 2026-08-31: ``flowx.config.
 reconciliation_flow_spec`` carried none of ``execution_mode`` / ``publish_schema`` /
 ``dq_config_json``, so no reconciliation flow could be onboarded in pipeline mode on that
 workspace at all -- the first write referencing the column failed with ``UNRESOLVED_COLUMN``.
@@ -40,17 +40,17 @@ import re
 
 import pytest
 
-from NextGen_Metadata_Framework.lakeflow_framework.control_plane.ddl_definitions import (
+from flowx.lakeflow_framework.control_plane.ddl_definitions import (
     ADDITIVE_CONTROL_TABLE_COLUMNS,
     get_add_column_ddl,
     get_all_control_table_ddls,
 )
-from NextGen_Metadata_Framework.lakeflow_framework.control_plane.schema_provisioner import (
+from flowx.lakeflow_framework.control_plane.schema_provisioner import (
     ensure_control_table_columns,
 )
-from NextGen_Metadata_Framework.lakeflow_framework.exceptions import FrameworkConfigError
+from flowx.lakeflow_framework.exceptions import FrameworkConfigError
 
-CONTROL_CATALOG = "metaflow"
+CONTROL_CATALOG = "flowx"
 CONTROL_SCHEMA = f"{CONTROL_CATALOG}.config"
 
 
@@ -126,7 +126,7 @@ def _all_additive_entries():
 def test_add_column_ddl_is_exactly_the_expected_statement():
     statement = get_add_column_ddl(CONTROL_SCHEMA, "reconciliation_flow_spec", "execution_mode", "STRING", "A comment.")
     assert statement == (
-        "ALTER TABLE metaflow.config.reconciliation_flow_spec "
+        "ALTER TABLE flowx.config.reconciliation_flow_spec "
         "ADD COLUMNS (execution_mode STRING COMMENT 'A comment.')"
     )
 

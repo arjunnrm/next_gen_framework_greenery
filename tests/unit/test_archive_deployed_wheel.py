@@ -26,7 +26,7 @@ mod = _load()
 
 
 def _wheel(millis: int) -> str:
-    return f"nextgen_metadata_framework-0.0.{millis}-py3-none-any.whl"
+    return f"flowx-0.0.{millis}-py3-none-any.whl"
 
 
 class TestWheelSortKey:

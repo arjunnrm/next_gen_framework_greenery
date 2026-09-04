@@ -11,7 +11,7 @@ Four separate surfaces have to hold still, one test class each:
 
 ``TestExistingSpecsStillValidate`` (a)
     A pre-v1.5.0 spec declares no ``execution_mode`` anywhere. Replaying the real shipped specs
-    in ``metaflow_testing/`` that carry ``reconciliation_flows`` without ``execution_mode``
+    in ``flowx_testing/`` that carry ``reconciliation_flows`` without ``execution_mode``
     through ``validate_spec`` must still produce zero errors -- if a v1.5.0 rule fires on a spec
     that has not opted into pipeline mode, that spec can no longer be onboarded at all.
 
@@ -48,16 +48,16 @@ import pathlib
 
 import pytest
 
-from NextGen_Metadata_Framework.lakeflow_framework.control_plane import repository
-from NextGen_Metadata_Framework.lakeflow_framework.onboarding.spec_validator import validate_spec
+from flowx.lakeflow_framework.control_plane import repository
+from flowx.lakeflow_framework.onboarding.spec_validator import validate_spec
 
 _REPO_ROOT = pathlib.Path(__file__).resolve().parents[2]
-_SPEC_DIR = _REPO_ROOT / "metaflow_testing"
+_SPEC_DIR = _REPO_ROOT / "flowx_testing"
 _SCHEMA_PATH = _REPO_ROOT / "onboarding_templates" / "onboarding_spec.schema.json"
 _UPSERT_PATH = (
     _REPO_ROOT
     / "src"
-    / "NextGen_Metadata_Framework"
+    / "flowx"
     / "lakeflow_framework"
     / "onboarding"
     / "metadata_upsert.py"
@@ -67,9 +67,9 @@ _UPSERT_PATH = (
 # (d) both need it and they must not be able to drift apart.
 V150_RECONCILIATION_FLOW_ATTRIBUTES = ("execution_mode", "publish_schema", "dq_config", "dataflow_group_id")
 
-# The {{catalog}} placeholder every metaflow_testing spec carries; the onboarding driver
+# The {{catalog}} placeholder every flowx_testing spec carries; the onboarding driver
 # substitutes the deploy target's catalog before validation, so a validator replay must too.
-_CATALOG = "metaflow"
+_CATALOG = "flowx"
 
 # Signature of the no-Spark-session artefact described in the module docstring. Not a finding.
 _NO_SESSION_MARKERS = ("NoneType", "object has no attribute")
@@ -119,7 +119,7 @@ class TestExistingSpecsStillValidate:
     def test_legacy_recon_specs_were_actually_found(self):
         """A silent zero-spec discovery would turn every test below into a vacuous pass."""
         assert len(_LEGACY_SPEC_PATHS) >= 3, (
-            "expected at least three shipped metaflow_testing specs with reconciliation_flows and no "
+            "expected at least three shipped flowx_testing specs with reconciliation_flows and no "
             f"execution_mode; found {[p.name for p in _LEGACY_SPEC_PATHS]}. Either the corpus moved or "
             "every legacy spec has been retro-fitted with execution_mode -- which would itself be the "
             "'no change in json spec' promise being broken in the test fixtures."
@@ -298,7 +298,7 @@ class TestJobModeIsTheDefaultInTheLoader:
         """A pre-v1.5.0 group whose ONLY flows are job-mode reconciliations has nothing to build
         in a Lakeflow update, and must fail loudly rather than register an empty graph. This is
         the pre-existing 'nothing to run' contract, unchanged."""
-        from NextGen_Metadata_Framework.lakeflow_framework.exceptions import FrameworkConfigError
+        from flowx.lakeflow_framework.exceptions import FrameworkConfigError
 
         with pytest.raises(FrameworkConfigError):
             _load([_recon_row("recon_job", execution_mode="job")], ingestion_rows=[])

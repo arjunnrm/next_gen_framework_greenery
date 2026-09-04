@@ -1,7 +1,7 @@
 """Unit tests for onboarding agent tools (validate_json, onboard_entity, get_catalog_schema_parameters)."""
 
 import json
-from NextGen_Metadata_Framework.lakeflow_framework.onboarding.agent_tools import (
+from flowx.lakeflow_framework.onboarding.agent_tools import (
     validate_json,
     onboard_entity,
     get_catalog_schema_parameters,

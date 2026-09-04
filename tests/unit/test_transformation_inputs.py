@@ -1,6 +1,6 @@
 """Unit tests for transformation/inputs.py::mark_streaming_references -- pure Python, no Spark needed."""
 
-from NextGen_Metadata_Framework.lakeflow_framework.transformation.inputs import mark_streaming_references
+from flowx.lakeflow_framework.transformation.inputs import mark_streaming_references
 
 
 def _input(input_name, is_streaming=True, **overrides):

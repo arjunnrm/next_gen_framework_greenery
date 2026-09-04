@@ -1,13 +1,13 @@
 {
   "include": [
     "src",
-    "metaflow-onboarding-app"
+    "flowx-onboarding-app"
   ],
   "extraPaths": [
     "src",
     "lib",
     "resources",
-    "metaflow-onboarding-app"
+    "flowx-onboarding-app"
   ],
   "typeCheckingMode": "off"
 }

@@ -22,7 +22,7 @@ Pure Python, no Spark: ``validate_spec`` only touches a session for non-empty
 test_spec_validator.py's own docstring and test_removed_attributes_v140.py's.
 """
 
-from NextGen_Metadata_Framework.lakeflow_framework.onboarding.spec_validator import validate_spec
+from flowx.lakeflow_framework.onboarding.spec_validator import validate_spec
 
 
 def _reconciliation_flow(**overrides):

@@ -9,10 +9,10 @@ integration test, which runs against a live pipeline.
 
 import pytest
 
-from NextGen_Metadata_Framework.lakeflow_framework.exceptions import FrameworkConfigError
-from NextGen_Metadata_Framework.lakeflow_framework.reconciliation.dataset_reader import read_reconciliation_dataset
+from flowx.lakeflow_framework.exceptions import FrameworkConfigError
+from flowx.lakeflow_framework.reconciliation.dataset_reader import read_reconciliation_dataset
 
-CATALOG = "metaflow"
+CATALOG = "flowx"
 SCHEMA = "reconciliation_test"
 TABLE = "dataset_reader_probe"
 QUALIFIED_TABLE = f"{CATALOG}.{SCHEMA}.{TABLE}"

@@ -1,11 +1,11 @@
 """Concurrent control-table/function creation must not fail a job.
 
-Every `metaflow_test_*` job begins with `setup_control_tables`, so running any two of them at once
+Every `flowx_test_*` job begins with `setup_control_tables`, so running any two of them at once
 runs that provisioning concurrently. Unity Catalog's ``CREATE OR REPLACE FUNCTION`` is idempotent
 in *intent* but not atomic: the loser of a race still gets ``[ROUTINE_ALREADY_EXISTS]``. Observed
 live on 2026-08-29 -- three concurrent test jobs, one died with
 
-    Cannot create the routine `metaflow`.`config`.`preflight_check_onboarding_spec`
+    Cannot create the routine `flowx`.`config`.`preflight_check_onboarding_spec`
     because a routine of that name already exists
 
 and every downstream task was skipped (TC-CDC-007 reported a framework failure that was really a
@@ -18,13 +18,13 @@ mean the object is genuinely NOT in the required state and must still fail loudl
 
 import pytest
 
-from NextGen_Metadata_Framework.lakeflow_framework.control_plane.schema_provisioner import (
+from flowx.lakeflow_framework.control_plane.schema_provisioner import (
     is_already_exists_race,
 )
 
 
 @pytest.mark.parametrize("message", [
-    "[ROUTINE_ALREADY_EXISTS] Cannot create the routine `metaflow`.`config`.`preflight_check_onboarding_spec`",
+    "[ROUTINE_ALREADY_EXISTS] Cannot create the routine `flowx`.`config`.`preflight_check_onboarding_spec`",
     "org.apache.spark.sql.catalyst.analysis.FunctionAlreadyExistsException",
     "[TABLE_OR_VIEW_ALREADY_EXISTS] Cannot create table or view `x` because it already exists",
     "[SCHEMA_ALREADY_EXISTS] Cannot create schema `config` because it already exists",
@@ -35,7 +35,7 @@ def test_concurrent_creation_is_tolerated(message):
 
 @pytest.mark.parametrize("message", [
     "PERMISSION_DENIED: User does not have CREATE FUNCTION on schema `config`",
-    "[SCHEMA_NOT_FOUND] The schema `metaflow`.`config` cannot be found",
+    "[SCHEMA_NOT_FOUND] The schema `flowx`.`config` cannot be found",
     "PARSE_SYNTAX_ERROR: Syntax error at or near 'AS'",
     "[QUOTA_EXCEEDED.UC_RESOURCE_QUOTA_EXCEEDED] too many schemas",
     "Connection reset by peer",

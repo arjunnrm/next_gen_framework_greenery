@@ -49,30 +49,30 @@ One dataflow group; one in-graph sibling plus six distinct external read identit
 
 Since v1.7.3 (the Single-Read architectural mandate) EVERY external identity is materialized
 regardless of fanout, and nodes are keyed by ``(identity, mode)``. Six external identities
-therefore yield SEVEN nodes -- ``metaflow.silver.events`` is read both ways and so splits into a
+therefore yield SEVEN nodes -- ``flowx.silver.events`` is read both ways and so splits into a
 ``__stream`` and a ``__batch`` node -- and under the default policy no binding is ``inline`` at
 all. (The legacy ``materialize="auto"`` policy is still reachable and still leaves fanout-1
 identities inline; ``test_legacy_auto_policy_still_leaves_the_fanout_one_locators_inline`` plans
 this same group under it, which is why the ``inline`` machinery below is still exercised.)
 
-* ``/Volumes/metaflow/landing/orders`` -- ``ing_orders:source`` (streaming). Fanout 1, ONE
+* ``/Volumes/flowx/landing/orders`` -- ``ing_orders:source`` (streaming). Fanout 1, ONE
   ``__stream`` node (pre-v1.7.3: inline, no node).
-* ``metaflow.bronze.orders`` -- IN-GRAPH (this group's own ``ing_orders`` target), consumed by
+* ``flowx.bronze.orders`` -- IN-GRAPH (this group's own ``ing_orders`` target), consumed by
   ``tf_enrich:input:orders_in`` (streaming) and ``rec_orders_audit:source`` (batch).
   NO node; two ``dlt.read``/``dlt.read_stream`` references to the producer's qualified name.
   In-graph still wins over a node -- a node here would be a SECOND read of something the graph
   already materializes.
-* ``metaflow.silver.events`` -- ``tf_enrich:input:events_stream`` (streaming) and
+* ``flowx.silver.events`` -- ``tf_enrich:input:events_stream`` (streaming) and
   ``tf_daily:input:events_batch`` (batch). TWO nodes, one per mode (pre-v1.7.3: one streaming
   node read both ways).
-* ``metaflow.silver.lonely`` -- ``tf_daily:input:lonely_in``. Fanout 1, ONE ``__batch`` node
+* ``flowx.silver.lonely`` -- ``tf_daily:input:lonely_in``. Fanout 1, ONE ``__batch`` node
   (pre-v1.7.3: inline, no node).
-* ``metaflow.silver.customers`` -- ``rec_cust_a:source`` and ``rec_cust_b:source`` (the latter
-  spelled ``metaflow.Silver.customers``). ONE materialized node; casefolding is load-bearing.
-* ``metaflow.gold.orders_ref`` -- ``rec_orders_audit:target:t_ref``. Fanout 1, ONE ``__batch``
+* ``flowx.silver.customers`` -- ``rec_cust_a:source`` and ``rec_cust_b:source`` (the latter
+  spelled ``flowx.Silver.customers``). ONE materialized node; casefolding is load-bearing.
+* ``flowx.gold.orders_ref`` -- ``rec_orders_audit:target:t_ref``. Fanout 1, ONE ``__batch``
   node (pre-v1.7.3: inline, no node).
-* ``metaflow.gold.customers_ref`` -- ``rec_cust_a:target:t_ref`` and ``rec_cust_b:target:t_ref``
-  (the latter spelled ``metaflow.Gold.customers_ref``). ONE materialized node.
+* ``flowx.gold.customers_ref`` -- ``rec_cust_a:target:t_ref`` and ``rec_cust_b:target:t_ref``
+  (the latter spelled ``flowx.Gold.customers_ref``). ONE materialized node.
 
 WHICH DATASET BODIES ARE EXECUTED
 ---------------------------------
@@ -95,19 +95,19 @@ import dlt
 import dlt.api
 import pytest
 
-from NextGen_Metadata_Framework.lakeflow_framework.engine import source_plane
-from NextGen_Metadata_Framework.lakeflow_framework.engine.flow_registration import register_staged_view
-from NextGen_Metadata_Framework.lakeflow_framework.engine.identifiers import stable_node_name
-from NextGen_Metadata_Framework.lakeflow_framework.engine.source_plane import (
+from flowx.lakeflow_framework.engine import source_plane
+from flowx.lakeflow_framework.engine.flow_registration import register_staged_view
+from flowx.lakeflow_framework.engine.identifiers import stable_node_name
+from flowx.lakeflow_framework.engine.source_plane import (
     bind,
     plan_source_plane,
     register_source_plane,
 )
-from NextGen_Metadata_Framework.lakeflow_framework.reconciliation.graph_registration import (
+from flowx.lakeflow_framework.reconciliation.graph_registration import (
     register_reconciliation_flow,
 )
-from NextGen_Metadata_Framework.lakeflow_framework.storage.table_properties import qualified_table_name
-from NextGen_Metadata_Framework.lakeflow_framework.transformation.inputs import register_transformation_inputs
+from flowx.lakeflow_framework.storage.table_properties import qualified_table_name
+from flowx.lakeflow_framework.transformation.inputs import register_transformation_inputs
 
 # ---------------------------------------------------------------------------------------------
 # The synthetic group's locators. Two of them are deliberately referenced with different letter
@@ -115,18 +115,18 @@ from NextGen_Metadata_Framework.lakeflow_framework.transformation.inputs import 
 # case-sensitive miss would silently fall through to a duplicate physical read.
 # ---------------------------------------------------------------------------------------------
 
-NODE_CATALOG = "metaflow"
+NODE_CATALOG = "flowx"
 NODE_SCHEMA = "pipeline_src"
 
-LANDING_PATH = "/Volumes/metaflow/landing/orders"
-ORDERS_TABLE = "metaflow.bronze.orders"  # in-graph: produced by ing_orders in this same group
-EVENTS_TABLE = "metaflow.silver.events"
-LONELY_TABLE = "metaflow.silver.lonely"
-CUSTOMERS_TABLE = "metaflow.silver.customers"
-CUSTOMERS_TABLE_MIXED_CASE = "metaflow.Silver.customers"
-ORDERS_REF_TABLE = "metaflow.gold.orders_ref"
-CUSTOMERS_REF_TABLE = "metaflow.gold.customers_ref"
-CUSTOMERS_REF_TABLE_MIXED_CASE = "metaflow.Gold.customers_ref"
+LANDING_PATH = "/Volumes/flowx/landing/orders"
+ORDERS_TABLE = "flowx.bronze.orders"  # in-graph: produced by ing_orders in this same group
+EVENTS_TABLE = "flowx.silver.events"
+LONELY_TABLE = "flowx.silver.lonely"
+CUSTOMERS_TABLE = "flowx.silver.customers"
+CUSTOMERS_TABLE_MIXED_CASE = "flowx.Silver.customers"
+ORDERS_REF_TABLE = "flowx.gold.orders_ref"
+CUSTOMERS_REF_TABLE = "flowx.gold.customers_ref"
+CUSTOMERS_REF_TABLE_MIXED_CASE = "flowx.Gold.customers_ref"
 
 #: Every distinct external (non-in-graph) physical read identity the group needs, canonicalized.
 #: R2 says the whole update must issue exactly this many physical reads -- no more.
@@ -387,10 +387,10 @@ def _ingestion_rows():
                 {
                     "path": LANDING_PATH,
                     "format": "json",
-                    "schema_location": "/Volumes/metaflow/landing/_schemas/orders",
+                    "schema_location": "/Volumes/flowx/landing/_schemas/orders",
                 }
             ),
-            target_catalog="metaflow",
+            target_catalog="flowx",
             target_schema="bronze",
             target_table="orders",
             target_type="table",
@@ -409,7 +409,7 @@ def _transformation_rows():
                     {"input_name": "events_stream", "table": EVENTS_TABLE, "is_streaming": True},
                 ]
             ),
-            target_catalog="metaflow",
+            target_catalog="flowx",
             target_schema="silver",
             target_table="enriched_orders",
             target_type="table",
@@ -423,7 +423,7 @@ def _transformation_rows():
                     {"input_name": "lonely_in", "table": LONELY_TABLE, "is_streaming": False},
                 ]
             ),
-            target_catalog="metaflow",
+            target_catalog="flowx",
             target_schema="gold",
             target_table="daily_orders",
             target_type="table",
@@ -531,9 +531,9 @@ def wiring(recorder, stub_spark):
             stub_spark,
             row,
             plan=plan,
-            publish_catalog="metaflow",
+            publish_catalog="flowx",
             publish_schema="recon",
-            control_schema="metaflow.config",
+            control_schema="flowx.config",
         )
 
     source_touching = set(plane_node_names)
@@ -558,7 +558,7 @@ def test_exactly_one_plane_node_registration_per_distinct_read_identity(wiring):
     node_names = [node.dataset_name for node in plan.nodes.values()]
 
     # One PlaneNode per (identity, mode), one dataset name each, no name reused. v1.7.3: all six
-    # external identities are materialized regardless of fanout, and metaflow.silver.events is
+    # external identities are materialized regardless of fanout, and flowx.silver.events is
     # read both ways so it splits into a __stream and a __batch node -- 7 nodes, not 3.
     assert len(plan.nodes) == 7
     assert len(node_names) == len(set(node_names)) == len(plan.nodes)
@@ -579,7 +579,7 @@ def test_every_external_locator_is_physically_read_once_per_execution_mode(wirin
 
     Eleven consumers across three flow kinds, seven distinct locators (six external + one
     in-graph), seven physical reads. Six of the seven are a locator's only scan. The seventh is
-    ``metaflow.silver.events``, which is read exactly twice -- once as a stream, once as a batch
+    ``flowx.silver.events``, which is read exactly twice -- once as a stream, once as a batch
     -- because per-mode identity makes those two separate nodes.
 
     That second scan is a deliberate, bounded cost, not a read-once regression: a materialized
@@ -606,7 +606,7 @@ def test_every_external_locator_is_physically_read_once_per_execution_mode(wirin
 
 
 def test_shared_locator_case_variants_collapse_to_one_read(wiring):
-    """``metaflow.Silver.customers`` and ``metaflow.silver.customers`` are one physical table; a
+    """``flowx.Silver.customers`` and ``flowx.silver.customers`` are one physical table; a
     case-sensitive identity would have produced two reads of it."""
     assert wiring.spark.physical_locators.count(CUSTOMERS_TABLE) == 1
     assert wiring.spark.physical_locators.count(CUSTOMERS_REF_TABLE) == 1
@@ -733,7 +733,7 @@ def test_mixed_stream_and_batch_locator_produces_one_node_per_mode(wiring):
 
 
 def test_fanout_one_locator_still_produces_a_materialized_node(wiring):
-    """``metaflow.silver.lonely`` has exactly one consumer and is materialized regardless.
+    """``flowx.silver.lonely`` has exactly one consumer and is materialized regardless.
 
     This is the exact inversion of the pre-v1.7.3 contract, which left a single-consumer read
     inline to preserve its predicate pushdown into the origin. Under the Single-Read mandate

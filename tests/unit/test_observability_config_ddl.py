@@ -1,7 +1,7 @@
 """Unit tests for control_plane/ddl_definitions.py's observability_config DDL -- pure string
 building, no Spark session."""
 
-from NextGen_Metadata_Framework.lakeflow_framework.control_plane.ddl_definitions import (
+from flowx.lakeflow_framework.control_plane.ddl_definitions import (
     get_all_control_table_ddls,
     get_observability_config_ddl,
 )

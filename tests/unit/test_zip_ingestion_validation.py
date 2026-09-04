@@ -7,8 +7,8 @@ from pathlib import Path
 
 import pytest
 
-from NextGen_Metadata_Framework.lakeflow_framework.exceptions import ArchiveError
-from NextGen_Metadata_Framework.lakeflow_framework.archive.zip_ingestion_pipeline import validate_zip_batch
+from flowx.lakeflow_framework.exceptions import ArchiveError
+from flowx.lakeflow_framework.archive.zip_ingestion_pipeline import validate_zip_batch
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 FIXTURES_DIR = REPO_ROOT / "sample_data" / "zip_ingestion"

@@ -12,7 +12,7 @@ job's pass/fail signal. This test is the actual verification.
 import json
 from pathlib import Path
 
-from NextGen_Metadata_Framework.lakeflow_framework.onboarding.spec_validator import validate_spec
+from flowx.lakeflow_framework.onboarding.spec_validator import validate_spec
 
 SPEC_PATH = Path(__file__).resolve().parents[2] / "test_specs" / "spec_12_config_validation_negative.json"
 

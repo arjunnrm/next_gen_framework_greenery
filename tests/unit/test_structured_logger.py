@@ -11,13 +11,13 @@ import logging
 
 import pytest
 
-from NextGen_Metadata_Framework.lakeflow_framework.observability import structured_logger
-from NextGen_Metadata_Framework.lakeflow_framework.observability.structured_logger import (
+from flowx.lakeflow_framework.observability import structured_logger
+from flowx.lakeflow_framework.observability.structured_logger import (
     log_flow_event,
     logged_operation,
 )
 
-LOGGER_NAME = "NextGen_Metadata_Framework.lakeflow_framework.observability.structured_logger"
+LOGGER_NAME = "flowx.lakeflow_framework.observability.structured_logger"
 
 
 def _emitted_payloads(caplog):

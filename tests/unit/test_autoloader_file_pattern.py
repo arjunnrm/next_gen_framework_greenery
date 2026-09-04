@@ -1,7 +1,7 @@
 """``file_pattern`` must reach Spark as ``pathGlobFilter`` -- for every format.
 
 This file exists because of a live failure, and the regression it guards is subtle enough to
-be worth stating plainly. ``TC-ING-004`` is the *only* spec in ``metaflow_testing/`` that sets
+be worth stating plainly. ``TC-ING-004`` is the *only* spec in ``flowx_testing/`` that sets
 ``file_pattern``, so for a long time exactly one code path exercised this option and the other
 one -- the branch every csv/json/parquet/avro flow would take -- was never executed by anything,
 live or unit. It emitted ``cloudFiles.fileNamePattern``, which Auto Loader rejects outright:
@@ -18,7 +18,7 @@ ordinary unit suite with no Spark session -- the live pipeline run that would ha
 costs minutes and a workspace, which is why the bug survived to production in the first place.
 """
 
-from NextGen_Metadata_Framework.lakeflow_framework.ingestion.readers import (
+from flowx.lakeflow_framework.ingestion.readers import (
     _apply_common_autoloader_options,
 )
 

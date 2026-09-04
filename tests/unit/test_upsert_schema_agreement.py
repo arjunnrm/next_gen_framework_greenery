@@ -36,7 +36,7 @@ import pathlib
 
 import pytest
 
-from NextGen_Metadata_Framework.lakeflow_framework.onboarding import spec_validator
+from flowx.lakeflow_framework.onboarding import spec_validator
 
 # ---------------------------------------------------------------------------
 # Source loading (ast only -- importing metadata_upsert would pull in pyspark/delta)
@@ -45,7 +45,7 @@ from NextGen_Metadata_Framework.lakeflow_framework.onboarding import spec_valida
 _MODULE_PATH = (
     pathlib.Path(__file__).resolve().parents[2]
     / "src"
-    / "NextGen_Metadata_Framework"
+    / "flowx"
     / "lakeflow_framework"
     / "onboarding"
     / "metadata_upsert.py"

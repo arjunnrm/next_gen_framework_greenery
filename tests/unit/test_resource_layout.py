@@ -38,10 +38,10 @@ BUNDLE_FILE = REPO_ROOT / "databricks.yml"
 #: The groups ``resources/`` is partitioned into. Add a folder here *and* to ``databricks.yml``'s
 #: ``include:`` list -- ``test_every_group_folder_is_included`` asserts the two agree.
 EXPECTED_GROUPS = {
-    "metaflow_app",
-    "metaflow_bootstrap",
-    "metaflow_bi",
-    "metaflow_config_jobs",
+    "flowx_app",
+    "flowx_bootstrap",
+    "flowx_bi",
+    "flowx_config_jobs",
     "observability",
     "bt_tests",
     "feature_tests",
@@ -61,13 +61,13 @@ MAY_BE_ABSENT_GROUPS = {"sample_jobs"}
 #: and docs/09 Step 8). Each entry is ``<type>.<resource key>`` as ``--select`` spells it,
 #: mapped to the file that must declare it.
 USUAL_DEPLOY_SELECTION = {
-    "apps.metaflow_onboarding_app": "metaflow_app/metaflow_onboarding_app.yml",
-    "volumes.onboarding_specs_volume": "metaflow_app/metaflow_onboarding_specs_volume.yml",
-    "jobs.onboarding_job": "metaflow_config_jobs/onboarding_job.yml",
+    "apps.flowx_onboarding_app": "flowx_app/flowx_onboarding_app.yml",
+    "volumes.onboarding_specs_volume": "flowx_app/flowx_onboarding_specs_volume.yml",
+    "jobs.onboarding_job": "flowx_config_jobs/onboarding_job.yml",
     "jobs.framework_config_onboarding_job": (
-        "metaflow_config_jobs/framework_config_onboarding_job.yml"
+        "flowx_config_jobs/framework_config_onboarding_job.yml"
     ),
-    "volumes.framework_wheels_volume": "metaflow_config_jobs/framework_wheels_volume.yml",
+    "volumes.framework_wheels_volume": "flowx_config_jobs/framework_wheels_volume.yml",
 }
 
 #: A relative path in a resource YAML: ``../`` runs, then the first path segment. The leading
@@ -187,13 +187,13 @@ def test_usual_deploy_selection_names_real_resources(selector, relative_path):
 
 
 # ---------------------------------------------------------------------------------------------
-# UC container hierarchy (resources/metaflow_bootstrap/)
+# UC container hierarchy (resources/flowx_bootstrap/)
 # ---------------------------------------------------------------------------------------------
 #
 # On 2026-09-02 a first deploy to a fresh workspace (`arjun_2`) failed with
 #
 #     Error: cannot create resources.volumes.framework_wheels_volume:
-#            Schema 'metaflow.config' does not exist
+#            Schema 'flowx.config' does not exist
 #
 # because the bundle declared its Volumes but not the schemas holding them. `bundle validate`
 # cannot catch this -- the config shape is valid; only a deploy against a workspace missing the
@@ -203,12 +203,12 @@ def test_usual_deploy_selection_names_real_resources(selector, relative_path):
 # The catalog is deliberately NOT part of that chain -- it is a prerequisite created outside the
 # bundle, and a `catalogs.*` resource cannot succeed on these Default-Storage workspaces. See
 # `test_no_catalog_is_declared_as_a_bundle_resource` and
-# `resources/metaflow_bootstrap/README.md`.
+# `resources/flowx_bootstrap/README.md`.
 
 #: The variables these resources interpolate, resolved to the value every current target sets.
 #: ``catalog`` and ``schema`` are declared without a default in databricks.yml (each target must
 #: set them), so the values are pinned here rather than read from the bundle's ``variables:``.
-_VAR_VALUES = {"${var.catalog}": "metaflow", "${var.schema}": "dev", "${var.spec_schema}": "config"}
+_VAR_VALUES = {"${var.catalog}": "flowx", "${var.schema}": "dev", "${var.spec_schema}": "config"}
 
 
 def _resolve(value):
@@ -242,7 +242,7 @@ def test_every_declared_volume_sits_in_a_declared_schema():
     assert not missing, (
         "these volumes name a schema no resource declares, so a first deploy to a fresh "
         f"workspace fails with \"Schema '<x>' does not exist\": {missing}. Declare each schema "
-        "in resources/metaflow_bootstrap/metaflow_schemas.yml."
+        "in resources/flowx_bootstrap/flowx_schemas.yml."
     )
 
 
@@ -257,12 +257,12 @@ def test_no_catalog_is_declared_as_a_bundle_resource():
       (400 INVALID_STATE)``. Supplying one is not a fix either: a Default-Storage catalog's
       ``storage_root`` is an account-managed bucket path containing metastore and catalog UUIDs
       generated at create time, so it cannot be committed to YAML and differs per workspace.
-    * ``metaflow`` already exists on all three targets, each created outside this bundle.
+    * ``flowx`` already exists on all three targets, each created outside this bundle.
 
     And the failure is not contained: DABs propagates it down the dependency edge it creates, so
     the failing catalog took the schemas with it (``cannot create resources.schemas.config_schema:
-    dependency failed: resources.catalogs.metaflow_catalog``) -- strictly worse than declaring no
-    catalog at all. See ``resources/metaflow_bootstrap/README.md``.
+    dependency failed: resources.catalogs.flowx_catalog``) -- strictly worse than declaring no
+    catalog at all. See ``resources/flowx_bootstrap/README.md``.
     """
     declared = _declared("catalogs")
     assert declared == {}, (
@@ -270,7 +270,7 @@ def test_no_catalog_is_declared_as_a_bundle_resource():
         "workspaces -- UC Default Storage rejects CREATE CATALOG without a MANAGED LOCATION, the "
         "storage_root is an account-managed path that cannot live in YAML, and the catalog already "
         "exists on every target. Worse, its failure propagates down the dependency edge and takes "
-        "schemas.config_schema with it. Read resources/metaflow_bootstrap/README.md before "
+        "schemas.config_schema with it. Read resources/flowx_bootstrap/README.md before "
         "re-adding it; create the catalog in the UI instead."
     )
 
@@ -314,7 +314,7 @@ def test_sample_suite_volumes_match_the_provisioning_notebook():
 
     The notebook keeps its ``CREATE VOLUME IF NOT EXISTS`` calls so it stays runnable standalone.
     If a volume is added there but not here, a deploy alone stops being enough to make the sample
-    suite runnable -- which is the whole property resources/metaflow_bootstrap/ adds.
+    suite runnable -- which is the whole property resources/flowx_bootstrap/ adds.
     """
     notebook = (
         REPO_ROOT
@@ -330,10 +330,10 @@ def test_sample_suite_volumes_match_the_provisioning_notebook():
     declared = {
         _resolve(body["name"])
         for body, _ in _declared("volumes").values()
-        if _resolve(body["schema_name"]) == "metaflow_sample"
+        if _resolve(body["schema_name"]) == "flowx_sample"
     }
     assert declared == in_notebook, (
-        "resources/metaflow_bootstrap/metaflow_sample_volumes.yml and "
+        "resources/flowx_bootstrap/flowx_sample_volumes.yml and "
         f"{notebook.name}'s VOLUMES tuple disagree. Only the notebook has: "
         f"{sorted(in_notebook - declared)}; only the bundle has: {sorted(declared - in_notebook)}."
     )

@@ -4,7 +4,7 @@ Uses the live `spark` fixture (Databricks Connect) since these are DataFrame tra
 persisted-table assertions -- no table is created, so this stays fast and side-effect-free.
 """
 
-from NextGen_Metadata_Framework.lakeflow_framework.cdc.hashing import (
+from flowx.lakeflow_framework.cdc.hashing import (
     HASH_KEY_COLUMN,
     HASH_VALUE_COLUMN,
     compute_hash_columns,

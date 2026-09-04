@@ -11,18 +11,18 @@ import json
 
 import pytest
 
-from NextGen_Metadata_Framework.lakeflow_framework.cdc.hashing import HASH_VALUE_COLUMN
-from NextGen_Metadata_Framework.lakeflow_framework.control_plane.ddl_definitions import get_reconciliation_mismatch_log_ddl
-from NextGen_Metadata_Framework.lakeflow_framework.reconciliation.matcher import (
+from flowx.lakeflow_framework.cdc.hashing import HASH_VALUE_COLUMN
+from flowx.lakeflow_framework.control_plane.ddl_definitions import get_reconciliation_mismatch_log_ddl
+from flowx.lakeflow_framework.reconciliation.matcher import (
     MISMATCH_TYPE_COLUMN,
     MISMATCH_TYPE_MISSING_IN_SOURCE,
     MISMATCH_TYPE_MISSING_IN_TARGET,
     MISMATCH_TYPE_VALUE_DRIFT,
     target_prefixed_column,
 )
-from NextGen_Metadata_Framework.lakeflow_framework.reconciliation.mismatch_logging import write_mismatch_log_rows
+from flowx.lakeflow_framework.reconciliation.mismatch_logging import write_mismatch_log_rows
 
-CATALOG = "metaflow"
+CATALOG = "flowx"
 CONTROL_SCHEMA = f"{CATALOG}.config_test_mismatch_logging"
 MATCH_KEYS = ["id"]
 COMPARE_COLUMNS = ["status"]

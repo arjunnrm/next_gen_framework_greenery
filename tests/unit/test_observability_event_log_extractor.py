@@ -6,8 +6,8 @@ import json
 
 import pytest
 
-from NextGen_Metadata_Framework.lakeflow_framework.exceptions import ObservabilityConfigError
-from NextGen_Metadata_Framework.lakeflow_framework.observability.event_log_extractor import (
+from flowx.lakeflow_framework.exceptions import ObservabilityConfigError
+from flowx.lakeflow_framework.observability.event_log_extractor import (
     aggregate_flow_metrics,
     resolve_dataflow_group_id,
 )

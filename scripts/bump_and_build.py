@@ -16,7 +16,7 @@ Steps, in order:
 
    Pre-0.0.2 this script rewrote the patch component to ``int(time.time() * 1000)``, so
    every deploy produced a filename nothing else could predict (e.g.
-   ``nextgen_metadata_framework-0.0.1788350054326-py3-none-any.whl``). That bought
+   ``flowx-0.0.1788350054326-py3-none-any.whl``). That bought
    filename uniqueness, but at the cost of the version meaning anything: two builds of
    identical source got different versions, and no deployed artifact could be traced back
    to a release. Uniqueness is now provided by the VERSION-SCOPED artifact_path instead

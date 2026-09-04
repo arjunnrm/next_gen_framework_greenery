@@ -8,8 +8,8 @@ DataFrame-transform-only tests living in ``tests/unit/`` rather than ``tests/int
 
 import pytest
 
-from NextGen_Metadata_Framework.lakeflow_framework.exceptions import FrameworkConfigError
-from NextGen_Metadata_Framework.lakeflow_framework.ingestion.column_normalization import (
+from flowx.lakeflow_framework.exceptions import FrameworkConfigError
+from flowx.lakeflow_framework.ingestion.column_normalization import (
     normalize_column_name,
     normalize_column_names,
 )

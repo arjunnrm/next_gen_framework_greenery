@@ -18,7 +18,7 @@ from unittest.mock import patch
 
 import pandas as pd
 
-from NextGen_Metadata_Framework.lakeflow_framework.asn1.decoder import (
+from flowx.lakeflow_framework.asn1.decoder import (
     CHOICE_DISCRIMINATOR_FIELD,
     make_partition_decoder,
 )
@@ -72,7 +72,7 @@ def test_compile_files_called_exactly_once_per_partition_across_multiple_batches
         [{"path": "f4.bin", "content": b"444"}, {"path": "f5.bin", "content": b"555"}, {"path": "f6.bin", "content": b"666"}],
     )
 
-    with patch("NextGen_Metadata_Framework.lakeflow_framework.asn1.decoder.asn1tools.compile_files", side_effect=_counting_compile_files):
+    with patch("flowx.lakeflow_framework.asn1.decoder.asn1tools.compile_files", side_effect=_counting_compile_files):
         result_batches = list(decoder(batches))
 
     assert call_count["n"] == 1, "the ASN.1 schema must be compiled exactly once for the whole partition, not once per row/batch"
@@ -85,7 +85,7 @@ def test_successfully_decoded_rows_populate_configured_fields():
         module_files=["/x.asn"], codec="ber", pdu_name="CallDetailRecord", field_defs=FIELD_DEFS,
         binary_column="content", passthrough_columns=["path"],
     )
-    with patch("NextGen_Metadata_Framework.lakeflow_framework.asn1.decoder.asn1tools.compile_files", return_value=_FakeCompiled()):
+    with patch("flowx.lakeflow_framework.asn1.decoder.asn1tools.compile_files", return_value=_FakeCompiled()):
         result = list(decoder(_batches([{"path": "f1.bin", "content": b"ABC"}])))[0]
 
     row = result.iloc[0]
@@ -100,7 +100,7 @@ def test_decode_failure_is_isolated_to_the_offending_row_not_the_whole_batch():
         module_files=["/x.asn"], codec="ber", pdu_name="CallDetailRecord", field_defs=FIELD_DEFS,
         binary_column="content", passthrough_columns=["path"],
     )
-    with patch("NextGen_Metadata_Framework.lakeflow_framework.asn1.decoder.asn1tools.compile_files", return_value=_FakeCompiled()):
+    with patch("flowx.lakeflow_framework.asn1.decoder.asn1tools.compile_files", return_value=_FakeCompiled()):
         result = list(decoder(_batches([{"path": "good.bin", "content": b"OK"}, {"path": "bad.bin", "content": b"BAD"}])))[0]
 
     good_row = result[result["path"] == "good.bin"].iloc[0]
@@ -117,7 +117,7 @@ def test_null_binary_payload_flagged_without_crashing():
         module_files=["/x.asn"], codec="ber", pdu_name="CallDetailRecord", field_defs=FIELD_DEFS,
         binary_column="content", passthrough_columns=["path"],
     )
-    with patch("NextGen_Metadata_Framework.lakeflow_framework.asn1.decoder.asn1tools.compile_files", return_value=_FakeCompiled()):
+    with patch("flowx.lakeflow_framework.asn1.decoder.asn1tools.compile_files", return_value=_FakeCompiled()):
         result = list(decoder(_batches([{"path": "null.bin", "content": None}])))[0]
 
     row = result.iloc[0]
@@ -130,7 +130,7 @@ def test_empty_partition_yields_no_rows_without_error():
         module_files=["/x.asn"], codec="ber", pdu_name="CallDetailRecord", field_defs=FIELD_DEFS,
         binary_column="content", passthrough_columns=["path"],
     )
-    with patch("NextGen_Metadata_Framework.lakeflow_framework.asn1.decoder.asn1tools.compile_files", return_value=_FakeCompiled()):
+    with patch("flowx.lakeflow_framework.asn1.decoder.asn1tools.compile_files", return_value=_FakeCompiled()):
         result_batches = list(decoder(iter([])))
 
     assert result_batches == []
@@ -178,7 +178,7 @@ def test_bit_string_tuple_is_normalized_to_a_bytes_and_bit_length_dict():
         passthrough_columns=["path"],
     )
     with patch(
-        "NextGen_Metadata_Framework.lakeflow_framework.asn1.decoder.asn1tools.compile_files",
+        "flowx.lakeflow_framework.asn1.decoder.asn1tools.compile_files",
         return_value=_FakeCompiledWithBitString(),
     ):
         result = list(decoder(_batches([{"path": "f1.bin", "content": b"ABC"}])))[0]
@@ -200,7 +200,7 @@ def test_bit_string_nested_inside_a_struct_and_a_list_is_also_normalized():
         passthrough_columns=["path"],
     )
     with patch(
-        "NextGen_Metadata_Framework.lakeflow_framework.asn1.decoder.asn1tools.compile_files",
+        "flowx.lakeflow_framework.asn1.decoder.asn1tools.compile_files",
         return_value=_FakeCompiledWithBitString(),
     ):
         result = list(decoder(_batches([{"path": "f1.bin", "content": b"ABC"}])))[0]
@@ -215,7 +215,7 @@ def test_output_columns_are_passthrough_plus_decoded_fields_plus_error_no_binary
         module_files=["/x.asn"], codec="ber", pdu_name="CallDetailRecord", field_defs=FIELD_DEFS,
         binary_column="content", passthrough_columns=["path", "modificationTime"],
     )
-    with patch("NextGen_Metadata_Framework.lakeflow_framework.asn1.decoder.asn1tools.compile_files", return_value=_FakeCompiled()):
+    with patch("flowx.lakeflow_framework.asn1.decoder.asn1tools.compile_files", return_value=_FakeCompiled()):
         batch = pd.DataFrame(
             [{"path": "f1.bin", "modificationTime": "2026-01-01", "content": b"ABC"}],
             columns=["path", "modificationTime", "content"],
@@ -275,7 +275,7 @@ def test_choice_tuple_is_normalized_to_discriminator_plus_nullable_arms():
         passthrough_columns=["path"],
     )
     with patch(
-        "NextGen_Metadata_Framework.lakeflow_framework.asn1.decoder.asn1tools.compile_files",
+        "flowx.lakeflow_framework.asn1.decoder.asn1tools.compile_files",
         return_value=_FakeCompiledWithChoice(),
     ):
         result = list(decoder(_batches([{"path": "f1.bin", "content": b"ABC"}])))[0]
@@ -302,7 +302,7 @@ def test_choice_arm_holding_a_bytes_int_tuple_is_not_mistaken_for_a_bit_string()
         passthrough_columns=["path"],
     )
     with patch(
-        "NextGen_Metadata_Framework.lakeflow_framework.asn1.decoder.asn1tools.compile_files",
+        "flowx.lakeflow_framework.asn1.decoder.asn1tools.compile_files",
         return_value=_FakeCompiledWithChoice(),
     ):
         result = list(decoder(_batches([{"path": "f1.bin", "content": b"ABC"}])))[0]
@@ -346,7 +346,7 @@ def test_root_choice_pdu_spreads_the_selected_arm_across_arm_columns():
         root_is_choice=True,
     )
     with patch(
-        "NextGen_Metadata_Framework.lakeflow_framework.asn1.decoder.asn1tools.compile_files",
+        "flowx.lakeflow_framework.asn1.decoder.asn1tools.compile_files",
         return_value=_FakeCompiledRootChoice(),
     ):
         result = list(decoder(_batches([{"path": "f1.bin", "content": b"ABC"}])))[0]

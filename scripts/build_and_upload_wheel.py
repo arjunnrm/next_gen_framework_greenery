@@ -10,10 +10,10 @@ Lakeflow pipeline update is already running replaces the exact artifact path tha
 told to ``pip install``, and the update dies with
 
     [ENVIRONMENT_PIP_INSTALL_ERROR] Failed to install environment dependency:
-    .../artifacts/.internal/nextgen_metadata_framework-<older version>-py3-none-any.whl
+    .../artifacts/.internal/flowx-<older version>-py3-none-any.whl
 
 Confirmed live on 2026-08-29: ``TC-ING-004`` and ``TC-ING-005`` both died this way on
-``dev_metaflow`` while an unrelated redeploy was in flight. Nothing was wrong with either test.
+``dev_flowx`` while an unrelated redeploy was in flight. Nothing was wrong with either test.
 
 .. warning::
 
@@ -38,12 +38,12 @@ it first, printing the path, and passing it in is the only ordering that works.
 
 Usage::
 
-    python scripts/build_and_upload_wheel.py --profile dev --catalog metaflow
+    python scripts/build_and_upload_wheel.py --profile dev --catalog flowx
     # prints the resolved /Volumes/... path on the last stdout line
 
     # then, using that path:
     databricks bundle deploy --target dev -p dev \\
-      --var="framework_wheel_path=/Volumes/metaflow/framework/wheels/nextgen_...whl"
+      --var="framework_wheel_path=/Volumes/flowx/framework/wheels/flowx-...whl"
 
 ``--skip-build`` republishes the wheel already sitting in ``dist/`` without stamping a new
 version -- the right choice when redeploying unchanged code, since it keeps every running

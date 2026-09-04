@@ -16,7 +16,7 @@ proves it again at registration time, against a locally-executing ``dlt``). Cove
   * IDENTITY INEQUALITY on each BASE-READ option in turn (``format``, ``schema_location``,
     ``file_pattern``, ``reader_options``, ``starting_version``) -- these change which bytes are
     scanned, so they must NOT be shared;
-  * CASEFOLD matching of a table locator (``metaflow.Excalibur_usecase.x`` vs its lowercase
+  * CASEFOLD matching of a table locator (``flowx.Excalibur_usecase.x`` vs its lowercase
     twin) -- casefolding is load-bearing, not cosmetic: a case-sensitive miss here silently
     falls through to a second, duplicate physical read;
   * fanout counting; the any-consumer-streams MODE COLLAPSE; ``in_graph_sibling`` winning over
@@ -24,13 +24,13 @@ proves it again at registration time, against a locally-executing ``dlt``). Cove
     (``"always"``) materializes a node at ANY fanout, fanout 1 included, while stream and
     batch of one locator stay two DISTINCT nodes; the legacy ``"auto"`` policy still falling
     back to ``inline`` at fanout 1; and ``materialize="never"`` being REJECTED outright;
-  * the :func:`stable_node_name` COLLISION MATRIX -- ``"metaflow.bronze.a_b"`` and
-    ``"metaflow.bronze_a.b"`` sanitize identically and MUST still get different node names,
+  * the :func:`stable_node_name` COLLISION MATRIX -- ``"flowx.bronze.a_b"`` and
+    ``"flowx.bronze_a.b"`` sanitize identically and MUST still get different node names,
     or Lakeflow fails the whole update with "Cannot redefine dataset";
   * the G-STREAM and G-SIDE plan-time guards, asserted by message substring;
   * :func:`assert_acyclic` ACCEPTING the shipped geneva shape
-    (``metaflow_testing/051_geneva_tariffs_recon.json``) and REJECTING the
-    ``dfg_rec_003_precomputed_hash`` shape (``metaflow_testing/038_rec_003_precomputed_hash.json``,
+    (``flowx_testing/051_geneva_tariffs_recon.json``) and REJECTING the
+    ``dfg_rec_003_precomputed_hash`` shape (``flowx_testing/038_rec_003_precomputed_hash.json``,
     whose reconciliation target IS its ``append_target_table`` IS an SCD1 ingestion target of
     the same group) with both members of the ring named;
   * :func:`bind` on an unknown ``consumer_id`` raising a ``FrameworkConfigError`` that lists the
@@ -43,11 +43,11 @@ import os
 
 import pytest
 
-from NextGen_Metadata_Framework.lakeflow_framework.engine.identifiers import (
+from flowx.lakeflow_framework.engine.identifiers import (
     sanitize_identifier,
     stable_node_name,
 )
-from NextGen_Metadata_Framework.lakeflow_framework.engine.source_plane import (
+from flowx.lakeflow_framework.engine.source_plane import (
     FrameworkGraphCycleError,
     SourcePlanePlan,
     assert_acyclic,
@@ -55,13 +55,13 @@ from NextGen_Metadata_Framework.lakeflow_framework.engine.source_plane import (
     describe_plan,
     plan_source_plane,
 )
-from NextGen_Metadata_Framework.lakeflow_framework.exceptions import FrameworkConfigError
+from flowx.lakeflow_framework.exceptions import FrameworkConfigError
 
-CATALOG = "metaflow"
-NODE_CATALOG = "metaflow"
+CATALOG = "flowx"
+NODE_CATALOG = "flowx"
 NODE_SCHEMA = "plane"
 
-_SPEC_DIR = os.path.join(os.path.dirname(__file__), "..", "..", "metaflow_testing")
+_SPEC_DIR = os.path.join(os.path.dirname(__file__), "..", "..", "flowx_testing")
 
 
 class _StubRow:
@@ -139,11 +139,11 @@ def _reconciliation_row(reconciliation_id, source_config, target_configs, execut
     )
 
 
-def _autoloader_config(path="/Volumes/metaflow/land/incoming", **overrides):
+def _autoloader_config(path="/Volumes/flowx/land/incoming", **overrides):
     config = {
         "path": path,
         "format": "csv",
-        "schema_location": "/Volumes/metaflow/land/_schemas/a",
+        "schema_location": "/Volumes/flowx/land/_schemas/a",
         "reader_options": {"header": "true"},
     }
     config.update(overrides)
@@ -240,7 +240,7 @@ def test_overlay_only_difference_shares_one_read(key, left, right):
 
 _BASE_READ_DIFFERENCES = [
     ("format", "csv", "json"),
-    ("schema_location", "/Volumes/metaflow/land/_schemas/a", "/Volumes/metaflow/land/_schemas/b"),
+    ("schema_location", "/Volumes/flowx/land/_schemas/a", "/Volumes/flowx/land/_schemas/b"),
     ("file_pattern", "*.csv", "*.dat"),
     ("reader_options", {"header": "true"}, {"header": "false"}),
     ("starting_version", 1, 7),
@@ -278,10 +278,10 @@ def test_base_read_option_difference_is_not_shared(key, left, right):
 
 
 def test_table_locator_matching_is_casefolded():
-    """``metaflow.Excalibur_usecase.zerobus_source_bus`` and its lowercase twin are ONE physical
+    """``flowx.Excalibur_usecase.zerobus_source_bus`` and its lowercase twin are ONE physical
     table, so they must resolve to ONE identity and ONE shared node.
 
-    Modelled on ``metaflow_testing/003_autoload_recon_append.json``, which really does write a
+    Modelled on ``flowx_testing/003_autoload_recon_append.json``, which really does write a
     capitalized schema name -- a case-sensitive comparison here would silently fall through to
     a second, duplicate full-table read of the same object.
     """
@@ -596,31 +596,31 @@ def test_shared_node_with_explicit_catalog_and_schema_is_published_qualified():
 
 def test_sanitize_collapses_two_distinct_locators_to_one_string():
     """The premise of the collision matrix below: sanitization IS lossy."""
-    assert sanitize_identifier("metaflow.bronze.a_b") == sanitize_identifier("metaflow.bronze_a.b")
-    assert sanitize_identifier("metaflow.bronze.a_b") == "metaflow_bronze_a_b"
+    assert sanitize_identifier("flowx.bronze.a_b") == sanitize_identifier("flowx.bronze_a.b")
+    assert sanitize_identifier("flowx.bronze.a_b") == "flowx_bronze_a_b"
 
 
 def test_stable_node_name_distinguishes_locators_that_sanitize_identically():
-    """``"metaflow.bronze.a_b"`` and ``"metaflow.bronze_a.b"`` sanitize to the SAME string, so
+    """``"flowx.bronze.a_b"`` and ``"flowx.bronze_a.b"`` sanitize to the SAME string, so
     without the always-appended ``sha256(locator)[:8]`` digest they would register the same
     Lakeflow dataset name and fail the whole update with "Cannot redefine dataset".
     """
-    left = stable_node_name("_src", "metaflow.bronze.a_b", "batch")
-    right = stable_node_name("_src", "metaflow.bronze_a.b", "batch")
+    left = stable_node_name("_src", "flowx.bronze.a_b", "batch")
+    right = stable_node_name("_src", "flowx.bronze_a.b", "batch")
 
     assert left != right
-    assert left.startswith("_src__metaflow_bronze_a_b__")
-    assert right.startswith("_src__metaflow_bronze_a_b__")
+    assert left.startswith("_src__flowx_bronze_a_b__")
+    assert right.startswith("_src__flowx_bronze_a_b__")
     assert left.endswith("__batch") and right.endswith("__batch")
 
 
 @pytest.mark.parametrize(
     "locator",
     [
-        "metaflow.bronze.a_b",
-        "metaflow.bronze_a.b",
-        "/volumes/metaflow/land/incoming",
-        "metaflow.excalibur_usecase.zerobus_source_bus",
+        "flowx.bronze.a_b",
+        "flowx.bronze_a.b",
+        "/volumes/flowx/land/incoming",
+        "flowx.excalibur_usecase.zerobus_source_bus",
     ],
 )
 def test_stable_node_name_is_deterministic_and_digest_is_unconditional(locator):
@@ -641,12 +641,12 @@ def test_stable_node_name_is_deterministic_and_digest_is_unconditional(locator):
 
 def test_stable_node_names_are_pairwise_distinct_across_the_collision_matrix():
     matrix = [
-        "metaflow.bronze.a_b",
-        "metaflow.bronze_a.b",
-        "metaflow.bronze.a.b",
-        "metaflow-bronze.a_b",
-        "/volumes/metaflow/land/incoming",
-        "/volumes/metaflow/land_incoming",
+        "flowx.bronze.a_b",
+        "flowx.bronze_a.b",
+        "flowx.bronze.a.b",
+        "flowx-bronze.a_b",
+        "/volumes/flowx/land/incoming",
+        "/volumes/flowx/land_incoming",
     ]
     names = [stable_node_name("_src", locator, "batch") for locator in matrix]
     assert len(set(names)) == len(matrix)
@@ -740,7 +740,7 @@ def test_g_side_rejects_two_lifecycle_regimes_on_one_landing_path(left_overrides
     difference in what is read. Rejected regardless of whether the two happen to collapse to
     the same ``ReadIdentity``.
     """
-    path = "/Volumes/metaflow/land/shared_incoming"
+    path = "/Volumes/flowx/land/shared_incoming"
     rows = [
         _ingestion_row("df_left", _autoloader_config(path=path, **left_overrides), "left_target"),
         _ingestion_row("df_right", _autoloader_config(path=path, **right_overrides), "right_target"),
@@ -759,8 +759,8 @@ def test_g_side_allows_identical_lifecycle_configuration_on_one_path():
     """Positive control: identical lifecycle configuration on one path is exactly the case
     sharing the read FIXES -- the side effects then run precisely once.
     """
-    path = "/Volumes/metaflow/land/shared_incoming"
-    policy = {"mode": "move", "archive_path": "/Volumes/metaflow/land/archive"}
+    path = "/Volumes/flowx/land/shared_incoming"
+    policy = {"mode": "move", "archive_path": "/Volumes/flowx/land/archive"}
     rows = [
         _ingestion_row("df_left", _autoloader_config(path=path, landing_retention_policy=policy), "left_target"),
         _ingestion_row("df_right", _autoloader_config(path=path, landing_retention_policy=policy), "right_target"),
@@ -804,7 +804,7 @@ def test_job_mode_reconciliation_rows_are_skipped():
 
 
 def test_assert_acyclic_accepts_the_geneva_shape():
-    """``metaflow_testing/051_geneva_tariffs_recon.json``: the reconciliation NEAR side reads
+    """``flowx_testing/051_geneva_tariffs_recon.json``: the reconciliation NEAR side reads
     this group's own APPEND ingestion target (one edge), the FAR side is produced by a
     different pipeline entirely, and ``append_target_table`` is a landing/bus table nothing in
     THIS group produces. Acyclic -- and the near-side edge really is present, so the test would
@@ -830,7 +830,7 @@ def test_assert_acyclic_accepts_the_geneva_shape():
 
 
 def test_assert_acyclic_rejects_the_rec_003_precomputed_hash_ring():
-    """``metaflow_testing/038_rec_003_precomputed_hash.json``: the reconciliation TARGET
+    """``flowx_testing/038_rec_003_precomputed_hash.json``: the reconciliation TARGET
     (``silver_sales.orders_tgt``) IS its own ``append_target_table`` IS an SCD1 ingestion
     target of the same group. Reading it makes the reconciliation owner depend on the
     ingestion target; the L5 append lane writing back to it makes the ingestion target depend

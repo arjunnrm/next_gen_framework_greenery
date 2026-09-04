@@ -1,4 +1,4 @@
-"""Refresh .claude/skills/metaflow-onboarding/references/ from the canonical sources.
+"""Refresh .claude/skills/flowx-onboarding/references/ from the canonical sources.
 
 The discoverable skill carries copies so an agent can load them without knowing the repo
 layout. Copies drift; ``tests/unit/test_agent_skill_layout.py`` fails when they do, and this
@@ -11,7 +11,7 @@ import shutil
 import sys
 from pathlib import Path
 
-REFS = Path(".claude/skills/metaflow-onboarding/references")
+REFS = Path(".claude/skills/flowx-onboarding/references")
 
 # skill copy -> canonical source (must match MIRRORED in test_agent_skill_layout.py)
 MIRRORED = {

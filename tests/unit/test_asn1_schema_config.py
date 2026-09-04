@@ -18,12 +18,12 @@ import pathlib
 
 import pytest
 
-from NextGen_Metadata_Framework.lakeflow_framework.asn1.decoder import (
+from flowx.lakeflow_framework.asn1.decoder import (
     BIT_STRING_SPARK_TYPE,
     CHOICE_DISCRIMINATOR_FIELD,
     derive_asn1_field_defs,
 )
-from NextGen_Metadata_Framework.lakeflow_framework.exceptions import Asn1DecodeError
+from flowx.lakeflow_framework.exceptions import Asn1DecodeError
 from pyspark.sql.types import ArrayType, BinaryType, BooleanType, LongType, StringType, StructType, TimestampType
 
 
@@ -388,7 +388,7 @@ def test_reference_to_an_undefined_type_raises_asn1_decode_error(tmp_path):
 # raw TypeError long before CHOICE support was on the table.
 # ---------------------------------------------------------------------------------------
 
-_BT_TESTING_DIR = pathlib.Path(__file__).resolve().parents[2] / "metaflow_testing" / "BT_Testing"
+_BT_TESTING_DIR = pathlib.Path(__file__).resolve().parents[2] / "flowx_testing" / "BT_Testing"
 
 
 def _bt_schema(filename):

@@ -3,7 +3,7 @@
 Run ``databricks bundle run quarantine_creation_test_job --target dev`` before running these.
 
 Proves both halves of a real bug fix in
-``src/NextGen_Metadata_Framework/lakeflow_framework/dq/quarantine.py::register_main_and_quarantine_tables``:
+``src/flowx/lakeflow_framework/dq/quarantine.py::register_main_and_quarantine_tables``:
 the quarantine sibling table is only ever registered when at least one ``dq_config.rules[]``
 entry has ``action: "quarantine"`` -- configuring ``dq_config.quarantine_table`` alone (a name,
 with no rule actually using that action) must produce **no** quarantine table at all. Before

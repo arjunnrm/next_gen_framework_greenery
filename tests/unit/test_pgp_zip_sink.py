@@ -30,11 +30,11 @@ import zipfile
 import pytest
 from pyspark.sql import Row
 
-from NextGen_Metadata_Framework.lakeflow_framework.archive.pgp_zip_sink import (
+from flowx.lakeflow_framework.archive.pgp_zip_sink import (
     PgpZipCommitMessage,
     _PgpZipStreamWriter,
 )
-from NextGen_Metadata_Framework.lakeflow_framework.exceptions import ArchiveError
+from flowx.lakeflow_framework.exceptions import ArchiveError
 
 
 def _writer(tmp_path, **extra_options):
@@ -278,7 +278,7 @@ def test_commit_pgp_wraps_the_zip_and_removes_the_plaintext_intermediate(tmp_pat
         calls["encrypt_args"] = (data, recipient_public_key_armored, sign_with_private_key_armored)
         return b"PGP-ENCRYPTED:" + data
 
-    monkeypatch.setattr("NextGen_Metadata_Framework.lakeflow_framework.archive.pgp_zip_sink.pgp_encrypt", _fake_pgp_encrypt)
+    monkeypatch.setattr("flowx.lakeflow_framework.archive.pgp_zip_sink.pgp_encrypt", _fake_pgp_encrypt)
 
     # Every secret value arrives pre-resolved -- see the module docstring for why commit()
     # must never call resolve_secret_ref/dbutils itself.
@@ -313,7 +313,7 @@ def test_commit_pgp_passes_the_signing_passphrase_through_when_configured(tmp_pa
         calls["sign_passphrase"] = sign_passphrase
         return b"PGP-ENCRYPTED:" + data
 
-    monkeypatch.setattr("NextGen_Metadata_Framework.lakeflow_framework.archive.pgp_zip_sink.pgp_encrypt", _fake_pgp_encrypt)
+    monkeypatch.setattr("flowx.lakeflow_framework.archive.pgp_zip_sink.pgp_encrypt", _fake_pgp_encrypt)
 
     writer = _writer(
         tmp_path,
@@ -340,7 +340,7 @@ def test_commit_pgp_ignores_a_signing_passphrase_option_when_no_signing_key_is_s
         calls["sign_key"] = sign_with_private_key_armored
         return b"PGP-ENCRYPTED:" + data
 
-    monkeypatch.setattr("NextGen_Metadata_Framework.lakeflow_framework.archive.pgp_zip_sink.pgp_encrypt", _fake_pgp_encrypt)
+    monkeypatch.setattr("flowx.lakeflow_framework.archive.pgp_zip_sink.pgp_encrypt", _fake_pgp_encrypt)
 
     writer = _writer(
         tmp_path,
@@ -385,7 +385,7 @@ def test_abort_tolerates_already_missing_files(tmp_path):
 
 
 def _sink_config_errors(sink_config):
-    from NextGen_Metadata_Framework.lakeflow_framework.onboarding.spec_validator import _validate_sink_config
+    from flowx.lakeflow_framework.onboarding.spec_validator import _validate_sink_config
 
     errors = []
     _validate_sink_config(sink_config, "target_config.sink_config", errors, target_type="sink")

@@ -2,8 +2,8 @@
 
 import pytest
 
-from NextGen_Metadata_Framework.lakeflow_framework.exceptions import FrameworkConfigError
-from NextGen_Metadata_Framework.lakeflow_framework.ingestion.standardization_sql import (
+from flowx.lakeflow_framework.exceptions import FrameworkConfigError
+from flowx.lakeflow_framework.ingestion.standardization_sql import (
     apply_data_standardization_sql,
 )
 

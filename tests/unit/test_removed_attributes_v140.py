@@ -18,7 +18,7 @@ Pure Python, no Spark: ``validate_spec`` only touches a session for non-empty
 
 import pytest
 
-from NextGen_Metadata_Framework.lakeflow_framework.onboarding.spec_validator import validate_spec
+from flowx.lakeflow_framework.onboarding.spec_validator import validate_spec
 
 
 def _ingestion_flow(target_config=None, source_config=None, **overrides):

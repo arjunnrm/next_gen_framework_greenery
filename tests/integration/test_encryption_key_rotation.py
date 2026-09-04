@@ -27,11 +27,11 @@ from unittest.mock import patch
 
 import pytest
 
-from NextGen_Metadata_Framework.lakeflow_framework.crypto.column_crypto import (
+from flowx.lakeflow_framework.crypto.column_crypto import (
     apply_aes_column_decryption,
     apply_aes_column_encryption,
 )
-from NextGen_Metadata_Framework.lakeflow_framework.exceptions import CryptoError
+from flowx.lakeflow_framework.exceptions import CryptoError
 
 KEY_V1 = {"secret_catalog": "poc", "secret_schema": "security", "secret_key": "key_rotation_test_key_v1"}
 KEY_V2 = {"secret_catalog": "poc", "secret_schema": "security", "secret_key": "key_rotation_test_key_v2"}
@@ -50,7 +50,7 @@ def _mock_secret_resolution():
         return _FAKE_KEY_VALUES[secret_ref["secret_key"]]
 
     with patch(
-        "NextGen_Metadata_Framework.lakeflow_framework.crypto.column_crypto.resolve_secret_ref",
+        "flowx.lakeflow_framework.crypto.column_crypto.resolve_secret_ref",
         side_effect=_fake_resolve,
     ):
         yield

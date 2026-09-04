@@ -13,8 +13,8 @@ exact class of bug if it ever regresses.
 
 import pytest
 
-from NextGen_Metadata_Framework.lakeflow_framework.crypto.pgp import pgp_decrypt, pgp_encrypt, pgp_verify
-from NextGen_Metadata_Framework.lakeflow_framework.exceptions import CryptoError
+from flowx.lakeflow_framework.crypto.pgp import pgp_decrypt, pgp_encrypt, pgp_verify
+from flowx.lakeflow_framework.exceptions import CryptoError
 
 pgpy = pytest.importorskip("pgpy")
 from pgpy.constants import CompressionAlgorithm, HashAlgorithm, KeyFlags, PubKeyAlgorithm, SymmetricKeyAlgorithm  # noqa: E402
@@ -185,7 +185,7 @@ def test_sign_with_passphrase_protected_signing_key_missing_sign_passphrase_rais
 
 
 def test_missing_pgpy_raises_clear_crypto_error(monkeypatch):
-    import NextGen_Metadata_Framework.lakeflow_framework.crypto.pgp as pgp_module
+    import flowx.lakeflow_framework.crypto.pgp as pgp_module
 
     monkeypatch.setattr(pgp_module, "_PGPY_AVAILABLE", False)
     with pytest.raises(CryptoError, match="PGPy"):

@@ -26,7 +26,7 @@ import os
 
 import pytest
 
-from NextGen_Metadata_Framework.lakeflow_framework.asn1.decoder import (
+from flowx.lakeflow_framework.asn1.decoder import (
     CHOICE_DISCRIMINATOR_FIELD,
     decode_asn1_binary_stream,
 )

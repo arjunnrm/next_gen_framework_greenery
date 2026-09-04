@@ -6,8 +6,8 @@ constructed without Spark).
 
 import pytest
 
-from NextGen_Metadata_Framework.lakeflow_framework.exceptions import FrameworkConfigError
-from NextGen_Metadata_Framework.lakeflow_framework.ingestion.json_flattening import apply_explode_columns
+from flowx.lakeflow_framework.exceptions import FrameworkConfigError
+from flowx.lakeflow_framework.ingestion.json_flattening import apply_explode_columns
 
 
 def _nested_df(spark):

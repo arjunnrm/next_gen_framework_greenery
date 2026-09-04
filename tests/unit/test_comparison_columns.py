@@ -4,7 +4,7 @@ Explicit user-requested test matrix: empty/populated/overlapping/invalid columns
 and columns_to_exclude combinations.
 """
 
-from NextGen_Metadata_Framework.lakeflow_framework.cdc.comparison_columns import (
+from flowx.lakeflow_framework.cdc.comparison_columns import (
     FRAMEWORK_TECHNICAL_COLUMNS,
     resolve_comparison_columns,
 )

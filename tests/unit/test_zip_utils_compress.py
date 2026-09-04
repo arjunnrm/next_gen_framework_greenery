@@ -14,8 +14,8 @@ import zipfile
 
 import pytest
 
-from NextGen_Metadata_Framework.lakeflow_framework.archive.zip_utils import compress_and_encrypt_sink
-from NextGen_Metadata_Framework.lakeflow_framework.exceptions import ArchiveError
+from flowx.lakeflow_framework.archive.zip_utils import compress_and_encrypt_sink
+from flowx.lakeflow_framework.exceptions import ArchiveError
 
 
 def test_compresses_eligible_files_into_a_readable_zip(tmp_path):

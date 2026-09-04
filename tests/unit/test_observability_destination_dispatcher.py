@@ -8,12 +8,12 @@ import os
 
 import pytest
 
-from NextGen_Metadata_Framework.lakeflow_framework.exceptions import (
+from flowx.lakeflow_framework.exceptions import (
     ObservabilityConfigError,
     ObservabilityDispatchError,
 )
-from NextGen_Metadata_Framework.lakeflow_framework.observability.config_loader import DestinationConfig
-from NextGen_Metadata_Framework.lakeflow_framework.observability.destination_dispatcher import (
+from flowx.lakeflow_framework.observability.config_loader import DestinationConfig
+from flowx.lakeflow_framework.observability.destination_dispatcher import (
     build_auth_headers,
     compress_payload,
     compute_backoff_delay_seconds,
@@ -340,7 +340,7 @@ class TestDispatchAll:
         def failing_post(url, data, headers, timeout):
             raise ConnectionError("dns failure")
 
-        import NextGen_Metadata_Framework.lakeflow_framework.observability.destination_dispatcher as dispatcher_module
+        import flowx.lakeflow_framework.observability.destination_dispatcher as dispatcher_module
 
         real_dispatch_to_otlp = dispatcher_module.dispatch_to_otlp
 

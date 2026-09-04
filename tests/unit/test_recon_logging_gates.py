@@ -46,11 +46,11 @@ from types import SimpleNamespace
 import dlt
 import pytest
 
-from NextGen_Metadata_Framework.lakeflow_framework.exceptions import FrameworkConfigError
-from NextGen_Metadata_Framework.lakeflow_framework.onboarding.spec_validator import _validate_logging_config
-from NextGen_Metadata_Framework.lakeflow_framework.reconciliation import appender, graph_registration
-from NextGen_Metadata_Framework.lakeflow_framework.reconciliation.appender import resolve_log_capture_flags
-from NextGen_Metadata_Framework.lakeflow_framework.reconciliation.matcher import ReconciliationFingerprint
+from flowx.lakeflow_framework.exceptions import FrameworkConfigError
+from flowx.lakeflow_framework.onboarding.spec_validator import _validate_logging_config
+from flowx.lakeflow_framework.reconciliation import appender, graph_registration
+from flowx.lakeflow_framework.reconciliation.appender import resolve_log_capture_flags
+from flowx.lakeflow_framework.reconciliation.matcher import ReconciliationFingerprint
 
 
 # ---------------------------------------------------------------------------------------------
@@ -168,14 +168,14 @@ def recorder(monkeypatch):
 
 
 def _recon_row(execution_mode="pipeline_audit_only", logging_config=None, dq_config=None, heal=False):
-    target = {"target_id": "t_ref", "table": "metaflow.ext.orders_ref"}
+    target = {"target_id": "t_ref", "table": "flowx.ext.orders_ref"}
     if heal:
         target["comparison_direction"] = "both"
-        target["append_target_table"] = "metaflow.silver.orders"
+        target["append_target_table"] = "flowx.silver.orders"
     return SimpleNamespace(
         reconciliation_id="rec_gate",
         execution_mode=execution_mode,
-        source_config_json=json.dumps({"table": "metaflow.ext.orders"}),
+        source_config_json=json.dumps({"table": "flowx.ext.orders"}),
         target_configs_json=json.dumps([target]),
         match_keys_json=json.dumps(["order_id"]),
         compare_columns_json=json.dumps(["amount"]),
@@ -193,9 +193,9 @@ def _register(row, recorder, log_capture_overrides=None):
         SimpleNamespace(),  # spark -- never touched at registration time
         row,
         plan=SimpleNamespace(),  # bind() is stubbed; the plan is opaque to registration
-        publish_catalog="metaflow",
+        publish_catalog="flowx",
         publish_schema="recon",
-        control_schema="metaflow.config",
+        control_schema="flowx.config",
         log_capture_overrides=log_capture_overrides,
     )
     return recorder
@@ -216,8 +216,8 @@ def test_both_flags_true_register_metrics_and_mismatch_published_and_intermediat
     """
     _register(_recon_row(logging_config={"run_log_capture": True, "mismatch_log_capture": True}), recorder)
 
-    metrics = recorder.by_name("metaflow.recon.recon__rec_gate__t_ref__metrics")
-    mismatch = recorder.by_name("metaflow.recon.recon__rec_gate__t_ref__mismatch")
+    metrics = recorder.by_name("flowx.recon.recon__rec_gate__t_ref__metrics")
+    mismatch = recorder.by_name("flowx.recon.recon__rec_gate__t_ref__mismatch")
     assert metrics.temporary is False and mismatch.temporary is False
 
     src = recorder.by_name("_recon__rec_gate__src")
@@ -346,8 +346,8 @@ def test_healing_flow_keeps_src_and_healing_tgt_published_for_the_handler(record
         recorder,
     )
 
-    src = recorder.by_name("metaflow.recon._recon__rec_gate__src")
-    tgt = recorder.by_name("metaflow.recon._recon__rec_gate__t_ref__tgt")
+    src = recorder.by_name("flowx.recon._recon__rec_gate__src")
+    tgt = recorder.by_name("flowx.recon._recon__rec_gate__t_ref__tgt")
     assert src.temporary is False and tgt.temporary is False
 
     classified = recorder.by_name("_recon__rec_gate__t_ref__classified")
@@ -421,7 +421,7 @@ def _phase_1(monkeypatch, logging_config):
     fingerprint = ReconciliationFingerprint(row_count=3, hash_key_xor="0" * 64, hash_value_xor="0" * 64)
     appender._complete_phase_1_match(
         SimpleNamespace(),
-        "metaflow.config",
+        "flowx.config",
         "rec_gate",
         "t_ref",
         fingerprint,
@@ -542,7 +542,7 @@ def test_validator_default_constant_equals_the_runtime_resolver_fallback():
     raised ``FrameworkConfigError`` on its first pipeline update. This test is the seam that
     catches that class of drift; it is cheaper than the incident.
     """
-    from NextGen_Metadata_Framework.lakeflow_framework.onboarding.spec_validator import (
+    from flowx.lakeflow_framework.onboarding.spec_validator import (
         _DEFAULT_LOG_CAPTURE,
     )
 

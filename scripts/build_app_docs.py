@@ -3,7 +3,7 @@
 Build the documentation wiki and package it inside the Databricks App.
 
 The app's `/docs` route is served from `databricks-app/docs_site/`. Databricks Apps
-upload only `source_code_path` (see resources/metaflow_app/metaflow_onboarding_app.yml), so the
+upload only `source_code_path` (see resources/flowx_app/flowx_onboarding_app.yml), so the
 built wiki has to live inside `databricks-app/` rather than at the repo root — the
 same reason `databricks-app/web/dist/` is a committed build artifact.
 
