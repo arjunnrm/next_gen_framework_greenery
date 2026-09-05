@@ -7,7 +7,7 @@
 One entry per `ingestion_flows[]` element — reading from a landing zone into Bronze.
 
 
-!!! info "109 attributes"
+!!! info "110 attributes"
     Every attribute below is also available in the Spec Builder's attribute
     inspector — click the **i** beside any field to see this same content
     without leaving the form.
@@ -93,6 +93,7 @@ One entry per `ingestion_flows[]` element — reading from a landing zone into B
 | [`target_config.liquid_clustering_columns`](#target-configliquid-clustering-columns) | array<string> | no | — |
 | [`target_config.partition_columns`](#target-configpartition-columns) | array<string> | no | — |
 | [`target_config.partition_mode`](#target-configpartition-mode) | string (enum) | no | — |
+| [`target_config.sink_config.export_trigger`](#target-configsink-configexport-trigger) | string (enum) | no | — |
 | [`target_config.sink_config.format`](#target-configsink-configformat) | string (enum) | **yes** | — |
 | [`target_config.sink_config.kafka_options`](#target-configsink-configkafka-options) | object<string,string> | **yes** | — |
 | [`target_config.sink_config.path`](#target-configsink-configpath) | string | **yes** | — |
@@ -2370,6 +2371,53 @@ absent omits partition_columns entirely. unpartitioned writes partition_columns:
 
 
 **Databricks documentation:** [partitioning](https://docs.databricks.com/tables/partitions.html) · [liquid clustering](https://docs.databricks.com/delta/clustering.html)
+
+
+---
+
+### `target_config.sink_config.export_trigger` { #target-configsink-configexport-trigger }
+
+WHAT drives a pgp_zip export: one archive per micro-batch, or exactly one per pipeline update.
+
+
+A Lakeflow sink is streaming-only, and Delta refuses to stream from a table that is fully recomputed each update (DELTA_SOURCE_TABLE_IGNORE_CHANGES). Together those two facts meant an AGGREGATING target -- a materialized_view, or any TRUNCATE_AND_LOAD flow -- could be computed and published and then had no way to leave the platform as a file. Not a missing feature: a structural contradiction. 'per_update' resolves it by separating the trigger (an update-scoped pulse carrying no data) from the payload (a batch read), so the append flow is genuinely streaming while the exported rows are an aggregation.
+
+
+**Type** `string (enum)` · **Required** no · **Section** Target · sink config
+
+
+```json
+// Exporting a GROUP BY result -- impossible before v1.7.5
+"sink_config": {
+  "format": "pgp_zip",
+  "path": "/Volumes/{{catalog}}/staging/uc_6/output/_staging/tel/",
+  "staged_file_format": "csv",
+  "export_trigger": "per_update",
+  "post_export_archive": {
+    "enabled": true,
+    "output_zip_path": "/Volumes/{{catalog}}/staging/uc_6/output/",
+    "archive_format": "gzip"
+  }
+}
+```
+
+
+!!! tip "Best practice"
+
+    - Omit this key for an append-only feed. 'per_micro_batch' is the default and the right answer whenever the source genuinely streams.
+    - Reach for 'per_update' when the flow this sink reads AGGREGATES -- GROUP BY, DISTINCT, a windowed rollup. Those produce a materialized_view, which cannot be streamed from at all.
+    - 'per_update' fires even on an update that ingested nothing, which is the point: a contractual feed must produce its file every cycle, not only when new rows arrived.
+    - The pulse is a temporary dataset named _<target_table>_export_pulse. It appears in the Lakeflow DAG and carries no business data.
+
+
+!!! warning "Known errors and limitations"
+
+    **FrameworkConfigError: Consumer '...' requested a streaming read of '<table>', which is produced in this same pipeline by flow '...' with cdc_load_strategy='TRUNCATE_AND_LOAD' / target_type='materialized_view'.**  
+    *Cause:* A sink is trying to stream an aggregating target. Delta cannot stream a table that is fully overwritten each update.  
+    *Fix:* Set export_trigger to 'per_update' on that sink. Do NOT relabel the producing flow as a streaming_table -- that silences a plan-time error and converts it into a runtime one.
+
+
+**Databricks documentation:** [sinks](https://docs.databricks.com/delta-live-tables/sinks.html)
 
 
 ---

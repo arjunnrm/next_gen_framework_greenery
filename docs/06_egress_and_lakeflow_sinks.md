@@ -172,6 +172,66 @@ unconditionally required, so symmetric egress was unreachable from a spec.
 
 ---
 
+#### Export trigger (`export_trigger`, v1.7.5)
+
+`sink_config.export_trigger` decides **what drives the export**:
+
+| Value | Behaviour |
+|---|---|
+| `"per_micro_batch"` (default when absent) | The sink is fed from this flow's own staged view. One archive per micro-batch of an append-only stream. The only pre-v1.7.5 behaviour. |
+| `"per_update"` | An update-scoped **pulse** drives the sink; the rows are read as a **batch**. Exactly one archive per pipeline update — including an update that ingested no new rows. |
+
+##### The problem `"per_update"` exists to solve
+
+Two facts, each individually reasonable, combined into a dead end:
+
+1. A Lakeflow sink is **streaming-only** — *"Only streaming queries are supported. Batch queries are not supported."*
+2. Delta **refuses to stream from a fully-recomputed table** (`DELTA_SOURCE_TABLE_IGNORE_CHANGES`). `skipChangeCommits` is refused framework-wide because it silently drops changed rows.
+
+So an **aggregating** target — a `materialized_view`, or any `TRUNCATE_AND_LOAD` flow — could be computed and published, and then had **no way to leave the platform as a file**. Not a missing feature: a structural contradiction. A `GROUP BY` result was simply not exportable.
+
+##### How it works: separate the trigger from the payload
+
+The default uses one stream for both — the staged view's rows are simultaneously *what schedules the write* and *what gets written*. That is why a non-streamable payload takes the trigger down with it. `"per_update"` splits them:
+
+- **Trigger** — a one-row streaming *pulse* (`_<target_table>_export_pulse`, a temporary dataset), deliberately independent of every business feed. It carries no data. Its only job is to make the append flow genuinely streaming, satisfying Lakeflow's constraint **honestly** rather than by relabelling metadata.
+- **Payload** — the staged view, read as a batch `dlt.read`. An aggregation is legal precisely because nothing streams it.
+
+The two are joined on a constant literal so the pulse's single row fans out across the payload; the gate column is dropped before any row reaches the sink.
+
+```json
+"sink_config": {
+  "format": "pgp_zip",
+  "path": "/Volumes/{{catalog}}/staging/uc_6/output/_staging/tel/",
+  "staged_file_format": "csv",
+  "staged_file_options": { "delimiter": "|", "include_header": true, "line_terminator": "lf" },
+  "export_trigger": "per_update",
+  "post_export_archive": {
+    "enabled": true,
+    "output_zip_path": "/Volumes/{{catalog}}/staging/uc_6/output/",
+    "export_file_name_format": "EE_${export_file_date}-LEIDOS_TELEPHONE_${export_file_sequence}",
+    "archive_format": "gzip"
+  }
+}
+```
+
+##### Why the pulse is a rate stream, and not an upstream business feed
+
+This is the design decision worth understanding, because the obvious alternative is wrong.
+
+An earlier design pulsed off an upstream business stream. That fires per **micro-batch of that stream**, not per **update** — so an update in which the upstream advanced no offsets would recompute the aggregate and write **no file at all**. Silent missing output on a contractual feed is a worse failure than the error this feature removes.
+
+A rate-stream pulse is **update-scoped** instead. Verified live across three consecutive updates whose 2nd and 3rd ingested nothing: **one export each, never zero.**
+
+##### Notes
+
+- The payload is read with `dlt.read`, never `spark.read.table` — lineage stays inside the graph (Single-Read DAG mandate rule 2), so the dependency is visible in the Lakeflow DAG and Lakeflow still orders the payload's computation before the export.
+- Quarantined rows are filtered and the `__framework_dq_*` process columns dropped, identically to the default path. An export never leaks them, whatever triggered it.
+- `pgp_zip` only. `delta` and `kafka` are native Lakeflow sinks whose write cadence Lakeflow itself owns, so the attribute is presence-rejected there — the same contract as `staged_file_format`.
+- **Do not** work around the streaming error by relabelling an aggregating flow as a `streaming_table`. That silences a plan-time error and converts it into a runtime one, which is strictly worse.
+
+---
+
 ## 3. Eager Secret Resolution Principle
 
 To ensure zero downtime and fail-fast validation:

@@ -3976,6 +3976,43 @@
         "generated": false
       }
     },
+    "target_config.sink_config.export_trigger": {
+      "purpose": "WHAT drives a pgp_zip export: one archive per micro-batch, or exactly one per pipeline update.",
+      "why": "A Lakeflow sink is streaming-only, and Delta refuses to stream from a table that is fully recomputed each update (DELTA_SOURCE_TABLE_IGNORE_CHANGES). Together those two facts meant an AGGREGATING target -- a materialized_view, or any TRUNCATE_AND_LOAD flow -- could be computed and published and then had no way to leave the platform as a file. Not a missing feature: a structural contradiction. 'per_update' resolves it by separating the trigger (an update-scoped pulse carrying no data) from the payload (a batch read), so the append flow is genuinely streaming while the exported rows are an aggregation.",
+      "samples": [
+        {
+          "language": "json",
+          "code": "// Exporting a GROUP BY result -- impossible before v1.7.5\n\"sink_config\": {\n  \"format\": \"pgp_zip\",\n  \"path\": \"/Volumes/{{catalog}}/staging/uc_6/output/_staging/tel/\",\n  \"staged_file_format\": \"csv\",\n  \"export_trigger\": \"per_update\",\n  \"post_export_archive\": {\n    \"enabled\": true,\n    \"output_zip_path\": \"/Volumes/{{catalog}}/staging/uc_6/output/\",\n    \"archive_format\": \"gzip\"\n  }\n}"
+        }
+      ],
+      "tips": [
+        "Omit this key for an append-only feed. 'per_micro_batch' is the default and the right answer whenever the source genuinely streams.",
+        "Reach for 'per_update' when the flow this sink reads AGGREGATES -- GROUP BY, DISTINCT, a windowed rollup. Those produce a materialized_view, which cannot be streamed from at all.",
+        "'per_update' fires even on an update that ingested nothing, which is the point: a contractual feed must produce its file every cycle, not only when new rows arrived.",
+        "The pulse is a temporary dataset named _<target_table>_export_pulse. It appears in the Lakeflow DAG and carries no business data."
+      ],
+      "errors": [
+        {
+          "symptom": "FrameworkConfigError: Consumer '...' requested a streaming read of '<table>', which is produced in this same pipeline by flow '...' with cdc_load_strategy='TRUNCATE_AND_LOAD' / target_type='materialized_view'.",
+          "cause": "A sink is trying to stream an aggregating target. Delta cannot stream a table that is fully overwritten each update.",
+          "fix": "Set export_trigger to 'per_update' on that sink. Do NOT relabel the producing flow as a streaming_table -- that silences a plan-time error and converts it into a runtime one."
+        }
+      ],
+      "refs": [
+        "sinks"
+      ],
+      "_meta": {
+        "type": "string (enum)",
+        "required": false,
+        "flows": [
+          "ingestion",
+          "transformation"
+        ],
+        "section": "Target · sink config",
+        "doc": "#10-sink-config-target_configsink_config",
+        "generated": false
+      }
+    },
     "target_config.sink_config.format": {
       "purpose": "The export format for a sink or external_sink target.",
       "why": "sink exports only; external_sink writes a governed table and also exports.",

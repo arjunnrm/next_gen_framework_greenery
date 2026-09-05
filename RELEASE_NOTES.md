@@ -15,6 +15,43 @@ resolving. Per-version directories fix that structurally.
 
 ---
 
+## 0.0.3c — an aggregating table can finally be exported — 2026-09-06
+
+**`sink_config.export_trigger`.** One optional attribute that closes a structural gap rather
+than adding a convenience.
+
+Until now a `materialized_view` -- or any `TRUNCATE_AND_LOAD` flow -- could not be exported
+through a Lakeflow sink **at all**. A sink is streaming-only, and Delta refuses to stream from a
+table that is fully recomputed each update. Both constraints are correct individually;
+together they meant a `GROUP BY` result could be computed and published and then had no way to
+leave the platform as a file. It was not diagnosable offline either: both validation gates pass,
+and the pipeline update fails.
+
+`export_trigger: "per_update"` separates the **trigger** from the **payload** -- an
+update-scoped pulse carrying no data makes the append flow genuinely streaming, while the rows
+are read as a batch. Exactly one archive per pipeline update, including an update that ingested
+nothing.
+
+The pulse is deliberately a rate stream rather than an upstream business feed. Pulsing off
+business data fires per *micro-batch*, so an update where the upstream advanced no offsets would
+recompute the aggregate and write **no file at all** -- silent missing output on a contractual
+feed, which is worse than the error being fixed. That design was proposed, adversarially
+reviewed, and rejected before this one was built.
+
+**Proven on the live runtime before being written**, not inferred: three consecutive updates
+whose 2nd and 3rd ingested no new rows produced exactly one export each, never zero, and read a
+sibling aggregating MV batch-side successfully. The same probe established that
+`dlt.foreach_batch_sink` **is** present on this runtime, contradicting a code comment whose
+"confirmed absent" refers to the local pip stub.
+
+Opt-in and default-off: a sink without the key takes the byte-identical previous path, asserted
+by test rather than assumed. Verification: 24 new unit tests; `tests/unit` diffed by
+failing-test-**ID** — 125 vs 126, zero regressions and one pre-existing failure fixed;
+`databricks-app` 217/19/0 against a 208/19/0 baseline; mkdocs warnings unchanged at 231. The
+Spec Builder, the agent skills and the wiki all carry it, and `npm run build` was re-run.
+
+---
+
 ## 0.0.3b — UC6 Flood Warning System, and symmetric PGP / gzip on both boundaries — 2026-09-05
 
 **New use case, and the three framework capabilities it needed.** UC6 replaces a ~10-year-old

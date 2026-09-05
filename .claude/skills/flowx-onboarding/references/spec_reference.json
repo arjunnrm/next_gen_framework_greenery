@@ -924,7 +924,7 @@
     {
       "flow_step_id": "ts_ref_pure_sink_gzip_symmetric",
       "dataflow_id": "df_ref_autoloader_full",
-      "source_description": "Reference egress flow for a GZIP + SYMMETRIC-PGP export (v1.7.4). archive_format 'gzip' concatenates the micro-batch's staged partition files into ONE gzip stream (a gzip holds exactly one member) named <stem>.csv.gz, and pgp_encryption.passphrase_secret encrypts it to <stem>.csv.gz.gpg with a shared passphrase rather than a recipient key. passphrase_secret and recipient_public_key_secret are mutually exclusive -- set exactly one -- and signing is unavailable in passphrase mode because it needs a sender keypair. post_export_archive.secret is omitted: a gzip stream has no archive password.",
+      "source_description": "Reference egress flow for a GZIP + SYMMETRIC-PGP export (v1.7.4). archive_format 'gzip' concatenates the micro-batch's staged partition files into ONE gzip stream (a gzip holds exactly one member) named <stem>.csv.gz, and pgp_encryption.passphrase_secret encrypts it to <stem>.csv.gz.gpg with a shared passphrase rather than a recipient key. passphrase_secret and recipient_public_key_secret are mutually exclusive -- set exactly one -- and signing is unavailable in passphrase mode because it needs a sender keypair. post_export_archive.secret is omitted: a gzip stream has no archive password. v1.7.5: export_trigger 'per_update' drives this export from an update-scoped pulse rather than from business rows, so the payload is read as a BATCH -- which is what makes an AGGREGATING source (a materialized_view, or any TRUNCATE_AND_LOAD flow) exportable at all. Exactly one archive per pipeline update, including an update that ingested no new rows. Omit the key for an append-only feed: the default 'per_micro_batch' writes one archive per micro-batch and is the right answer whenever the source genuinely streams.",
       "target_catalog": "{{catalog}}",
       "target_schema": "ref_silver",
       "target_table": "ref_pure_sink_gzip_symmetric",
@@ -943,6 +943,7 @@
           "format": "pgp_zip",
           "path": "/Volumes/{{catalog}}/egress/ref_pure_sink_gzip_symmetric/{{env}}/_staging/",
           "staged_file_format": "csv",
+          "export_trigger": "per_update",
           "staged_file_options": {
             "delimiter": ",",
             "include_header": false,

@@ -3042,6 +3042,10 @@
       
         
       
+        
+      
+        
+      
     
     
     
@@ -3186,6 +3190,62 @@
     
   
     UC3 Excalibur master document
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../UC7/UC7_MASTER_DOCUMENT/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    UC7 CDR ASN.1 master document
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../UC7/UC7_PLAIN_ENGLISH_GUIDE/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    UC7 CDR ASN.1 plain-English guide
   
 
     
@@ -4091,6 +4151,10 @@
 <tr>
 <td><code>register_sink_target(flow_label: str, staged_view_name: str, target_table: str, target_catalog: str, target_schema: str, target_config: Dict[str, Any], dq_rules: List[Dict[str, Any]], is_streaming: bool, quarantine_table_override: Optional[str] = None) -&gt; None</code></td>
 <td>Register <code>target_type: "sink"</code>: staged view -&gt; <code>dlt.create_sink</code> + <code>@dlt.append_flow</code>.</td>
+</tr>
+<tr>
+<td><code>register_per_update_sink_target(flow_label: str, staged_view_name: str, target_table: str, target_catalog: str, target_schema: str, target_config: Dict[str, Any], dq_rules: List[Dict[str, Any]], is_streaming: bool, quarantine_table_override: Optional[str] = None) -&gt; None</code></td>
+<td><code>sink_config.export_trigger: "per_update"</code> -- one export per pipeline update (v1.7.5).</td>
 </tr>
 <tr>
 <td><code>register_external_sink_export(flow_label: str, qualified_main_table: str, target_table: str, target_config: Dict[str, Any], main_table_is_streaming: bool) -&gt; None</code></td>

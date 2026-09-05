@@ -288,6 +288,25 @@
         "description": "File format of the staged export files a pgp_zip sink writes before archiving — json (default when absent, JSON-Lines) or csv (RFC-4180 with header row; one file per written partition). Only meaningful when sink_config.format is pgp_zip."
       },
       {
+        "path": "target_config.sink_config.export_trigger",
+        "label": "sink_config.export_trigger",
+        "widget": "select",
+        "type": "string",
+        "options": [
+          "",
+          "per_micro_batch",
+          "per_update"
+        ],
+        "visible_when": {
+          "eq": [
+            "target_config.sink_config.format",
+            "pgp_zip"
+          ]
+        },
+        "hint": "unset = per_micro_batch",
+        "description": "WHAT drives the export. 'per_micro_batch' (the default when absent -- the only pre-v1.7.5 behaviour) feeds the sink from this flow's own staged view, producing one archive per micro-batch of an append-only stream. 'per_update' decouples the trigger from the payload: an update-scoped pulse drives the sink and the rows are read as a batch, producing exactly ONE export per pipeline update -- including an update that ingested no new rows. 'per_update' is what makes an AGGREGATING target (a materialized_view, or any TRUNCATE_AND_LOAD flow) exportable at all: such a target is fully recomputed each update, which Delta refuses to stream from, so before v1.7.5 it had no sink path whatsoever."
+      },
+      {
         "path": "target_config.sink_config.staged_file_options.delimiter",
         "label": "staged_file_options.delimiter",
         "widget": "text",

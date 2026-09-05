@@ -1,0 +1,49 @@
+{
+  "version": "1.7.5",
+  "summary": "ONE additive, optional spec attribute: sink_config.export_trigger. It makes an AGGREGATING target (a materialized_view, or any TRUNCATE_AND_LOAD flow) exportable through a genuine Lakeflow sink for the first time. Nothing is removed; the default reproduces pre-1.7.5 behaviour exactly, so no existing spec changes shape or needs migrating.",
+  "breaking": false,
+  "removed_attributes": [],
+  "added_attributes": [
+    {
+      "path": "*.target_config.sink_config.export_trigger",
+      "type": "string",
+      "enum": [
+        "per_micro_batch",
+        "per_update"
+      ],
+      "default": "per_micro_batch",
+      "required": false,
+      "applies_when": "sink_config.format == 'pgp_zip'",
+      "description": "WHAT drives the export. 'per_micro_batch' (default when absent) feeds the sink from the flow's own staged view: one archive per micro-batch of an append-only stream. 'per_update' decouples trigger from payload -- an update-scoped pulse drives the sink and the rows are read as a batch -- producing exactly ONE export per pipeline update, including an update that ingested no new rows.",
+      "why_it_exists": "A Lakeflow sink is streaming-only, and Delta refuses to stream a fully-recomputed table (DELTA_SOURCE_TABLE_IGNORE_CHANGES; skipChangeCommits is refused framework-wide). Together those meant an aggregating target could be computed and published and then had no way to leave the platform as a file -- a structural contradiction, not a missing feature.",
+      "ui_action": "Add a select 'Export trigger' to the sink editor, shown ONLY when sink_config.format is pgp_zip. Options: '' (unset = per_micro_batch), per_micro_batch, per_update. Hint under per_update: 'Use this when the flow AGGREGATES (GROUP BY / DISTINCT). Exactly one export per pipeline update, even if nothing was ingested.'",
+      "validation": "Reject any value outside the enum. Presence-reject for format 'delta'/'kafka' (native Lakeflow sinks own their own write cadence) -- same contract as staged_file_format.",
+      "rejection_message_verbatim": "target_config.sink_config.export_trigger: only meaningful for format 'pgp_zip' (this framework's staging-then-archive sink); format 'delta' is a native Lakeflow sink whose write cadence Lakeflow itself owns. Remove the attribute.",
+      "migration": "None -- absent means 'per_micro_batch', the only pre-1.7.5 behaviour.",
+      "source_of_truth": "src/flowx/lakeflow_framework/engine/sink_registration.py::register_per_update_sink_target"
+    }
+  ],
+  "modified_attributes": [],
+  "app_update_status": {
+    "state": "COMPLETE",
+    "date": "2026-09-06",
+    "completed": {
+      "config/registry/shared.target.json": "export_trigger select, gated on pgp_zip.",
+      "config/validation/rules.json": "2 rules: export_trigger_enum, export_trigger_pgp_zip_only.",
+      "config/attribute_knowledge.curated.json": "1 curated entry; regenerated -> 188 attributes (32 curated).",
+      "web/src/registry.js": "Mirrored; node --check passes.",
+      "web/dist (npm run build)": "Rebuilt; asserted by test_v174_attributes.py.",
+      "server/settings.py": "NO CHANGE NEEDED - confirmed, no attribute coupling.",
+      "databricks-app/tests": "217 passed / 19 skipped / 0 failed (was 208/19/0)."
+    }
+  },
+  "verification": {
+    "unit_tests_added": 24,
+    "suites": [
+      "tests/unit/test_export_trigger.py"
+    ],
+    "regression_check": "tests/unit diffed by failing-test-ID against a pre-change baseline: 125 vs 126 -- ZERO regressions, one pre-existing failure fixed. 255 passed across the five crypto/sink/spec suites. databricks-app 217/19/0 against a 208/19/0 baseline.",
+    "live_runtime_verification": "The trigger was proven on the real serverless runtime before implementation: three consecutive pipeline updates, the 2nd and 3rd ingesting NO new rows, produced exactly one handler invocation each (never zero), and read a sibling aggregating MV batch-side successfully. Also confirmed dlt.foreach_batch_sink IS present on this runtime, contradicting a code comment that refers to the local pip stub.",
+    "mkdocs": "231 warnings before and after -- zero new."
+  }
+}

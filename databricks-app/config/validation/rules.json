@@ -1148,6 +1148,55 @@
       "message": "post_export_archive.secret (the AES ZIP password) has no effect when archive_format is 'gzip' -- a gzip stream has no archive password. Use pgp_encryption to protect a gzip export, or switch archive_format to 'zip'.",
       "field_path": "target_config.sink_config.post_export_archive.secret.secret_key",
       "doc": "#6-egress-and-lakeflow-sinks"
+    },
+    {
+      "id": "export_trigger_enum",
+      "severity": "error",
+      "scope": "flow",
+      "when": {
+        "and": [
+          {
+            "nonempty": [
+              "target_config.sink_config.export_trigger"
+            ]
+          },
+          {
+            "nin": [
+              "target_config.sink_config.export_trigger",
+              [
+                "per_micro_batch",
+                "per_update"
+              ]
+            ]
+          }
+        ]
+      },
+      "message": "target_config.sink_config.export_trigger must be one of ['per_micro_batch', 'per_update']. Absent means 'per_micro_batch', the only pre-v1.7.5 behaviour.",
+      "field_path": "target_config.sink_config.export_trigger",
+      "doc": "#6-egress-and-lakeflow-sinks"
+    },
+    {
+      "id": "export_trigger_pgp_zip_only",
+      "severity": "error",
+      "scope": "flow",
+      "when": {
+        "and": [
+          {
+            "nonempty": [
+              "target_config.sink_config.export_trigger"
+            ]
+          },
+          {
+            "ne": [
+              "target_config.sink_config.format",
+              "pgp_zip"
+            ]
+          }
+        ]
+      },
+      "message": "sink_config.export_trigger is only meaningful for format 'pgp_zip' (this framework's staging-then-archive sink); 'delta' and 'kafka' are native Lakeflow sinks whose write cadence Lakeflow itself owns. Remove the attribute.",
+      "field_path": "target_config.sink_config.export_trigger",
+      "doc": "#6-egress-and-lakeflow-sinks"
     }
   ]
 }

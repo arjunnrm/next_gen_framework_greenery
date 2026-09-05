@@ -3021,6 +3021,10 @@
       
         
       
+        
+      
+        
+      
     
     
     
@@ -3165,6 +3169,62 @@
     
   
     UC3 Excalibur master document
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../UC7/UC7_MASTER_DOCUMENT/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    UC7 CDR ASN.1 master document
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../UC7/UC7_PLAIN_ENGLISH_GUIDE/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    UC7 CDR ASN.1 plain-English guide
   
 
     
@@ -4435,6 +4495,12 @@ value produces <code>"&lt;path&gt;: has invalid value '&lt;x&gt;' -- allowed val
 <td><strong>New in v1.7.4.</strong> Absent means <code>crlf</code> (RFC-4180). Spelled as a name because JSON cannot carry a bare control character. Only valid alongside <code>staged_file_format: "csv"</code>.</td>
 </tr>
 <tr>
+<td><code>sink_config.export_trigger</code></td>
+<td><code>ALLOWED_EXPORT_TRIGGERS</code></td>
+<td><code>per_micro_batch</code>, <code>per_update</code></td>
+<td><strong>New in v1.7.5.</strong> WHAT drives a <code>pgp_zip</code> export. Absent means <code>per_micro_batch</code> (one archive per micro-batch of an append-only stream — the only pre-v1.7.5 behaviour). <code>per_update</code> drives the sink from an update-scoped pulse and reads the payload as a batch, giving exactly one archive per pipeline update. It is what makes an <strong>aggregating</strong> target (a <code>materialized_view</code>, or any <code>TRUNCATE_AND_LOAD</code> flow) exportable at all — such a target is fully recomputed each update, which Delta refuses to stream from, so before v1.7.5 it had no sink path. See <a href="../06_egress_and_lakeflow_sinks/"><code>06_egress_and_lakeflow_sinks.md</code></a>.</td>
+</tr>
+<tr>
 <td><code>reconciliation_flows[].error_handling.on_failure</code></td>
 <td><code>ALLOWED_RECONCILIATION_FAILURE_MODES</code></td>
 <td><code>fail</code>, <code>warn</code></td>
@@ -4998,6 +5064,11 @@ persists only to its business targets. Both flags default to <code>true</code> a
 <td>32</td>
 <td><code>staged_file_options.delimiter</code> longer than one character, or <code>line_terminator</code> outside <code>{"crlf", "lf"}</code></td>
 <td><strong>v1.7.4.</strong> Python's <code>csv</code> writer cannot emit a multi-character delimiter. <code>line_terminator</code> is spelled as a name because JSON cannot carry a bare control character.</td>
+</tr>
+<tr>
+<td>33</td>
+<td><code>sink_config.export_trigger</code> with <code>format</code> other than <code>"pgp_zip"</code></td>
+<td><strong>v1.7.5.</strong> <code>delta</code> and <code>kafka</code> are native Lakeflow sinks whose write cadence Lakeflow itself owns; there is no framework-driven export step for a trigger to schedule, so the value would be silently inert — the same reasoning as row 4.</td>
 </tr>
 </tbody>
 </table>

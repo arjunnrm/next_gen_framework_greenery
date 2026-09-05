@@ -32,6 +32,7 @@ P = Z + ".pre_extraction_decryption"
 SC = "target_config.sink_config"
 PE = SC + ".post_export_archive.pgp_encryption"
 SFO = SC + ".staged_file_options"
+ET = SC + ".export_trigger"
 
 # (path, flow kinds it must be registered for)
 NEW_FIELDS = [
@@ -41,6 +42,7 @@ NEW_FIELDS = [
     (SFO + ".line_terminator", ("ingestion", "transformation")),
     (SC + ".post_export_archive.archive_format", ("ingestion", "transformation")),
     (PE + ".passphrase_secret.secret_key", ("ingestion", "transformation")),
+    (ET, ("ingestion", "transformation")),
 ]
 
 NEW_RULE_IDS = {
@@ -56,6 +58,8 @@ NEW_RULE_IDS = {
     "pgp_encryption_requires_a_secret",
     "pgp_symmetric_egress_rejects_signing",
     "gzip_archive_ignores_zip_password",
+    "export_trigger_enum",
+    "export_trigger_pgp_zip_only",
 }
 
 
@@ -104,6 +108,7 @@ def test_pgp_symmetric_is_offered_as_a_decryption_type(reg):
     (Z + ".member_format", {"zip", "gzip"}),
     (SC + ".post_export_archive.archive_format", {"zip", "gzip"}),
     (SFO + ".line_terminator", {"crlf", "lf"}),
+    (ET, {"per_micro_batch", "per_update"}),
 ])
 def test_enum_fields_offer_exactly_the_framework_values(reg, path, enum):
     kind = "ingestion"
@@ -157,6 +162,16 @@ def _fire(rules, ctx):
         P + ".type": "pgp_symmetric",
         P + ".passphrase_secret.secret_key": "pgpkey",
     }),
+    ("v1.7.5 per_update export", {
+        SC + ".format": "pgp_zip",
+        SC + ".staged_file_format": "csv",
+        ET: "per_update",
+        SC + ".post_export_archive.enabled": True,
+    }),
+    ("v1.7.5 explicit per_micro_batch", {
+        SC + ".format": "pgp_zip",
+        ET: "per_micro_batch",
+    }),
     ("uc6 gzip + symmetric egress", {
         SC + ".format": "pgp_zip",
         SC + ".staged_file_format": "csv",
@@ -203,6 +218,8 @@ def test_valid_configurations_draw_no_new_errors(rules, name, ctx):
         PE + ".enabled": True,
         PE + ".passphrase_secret.secret_key": "p",
         PE + ".sign_with_private_key_secret.secret_key": "s"}),
+    ("export_trigger_enum", {SC + ".format": "pgp_zip", ET: "hourly"}),
+    ("export_trigger_pgp_zip_only", {SC + ".format": "delta", ET: "per_update"}),
     ("gzip_archive_ignores_zip_password", {
         SC + ".post_export_archive.archive_format": "gzip",
         SC + ".post_export_archive.secret.secret_key": "zp"}),
@@ -236,6 +253,7 @@ def test_the_two_pgp_secrets_are_mutually_exclusive_not_merely_optional(rules):
     "pgp_symmetric",
     "staged_file_options",
     "archive_format",
+    "export_trigger",
 ])
 def test_new_attributes_reach_the_shipped_bundle(frontend_text, token):
     """Databricks Apps does not build at deploy time. If web/dist was not rebuilt after

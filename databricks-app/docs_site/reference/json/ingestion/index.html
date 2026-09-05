@@ -2516,6 +2516,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#target-configsink-configexport-trigger" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        target_config.sink_config.export_trigger
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#target-configsink-configformat" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -4001,6 +4012,10 @@
       
         
       
+        
+      
+        
+      
     
     
     
@@ -4145,6 +4160,62 @@
     
   
     UC3 Excalibur master document
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../UC7/UC7_MASTER_DOCUMENT/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    UC7 CDR ASN.1 master document
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../UC7/UC7_PLAIN_ENGLISH_GUIDE/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    UC7 CDR ASN.1 plain-English guide
   
 
     
@@ -5515,6 +5586,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#target-configsink-configexport-trigger" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        target_config.sink_config.export_trigger
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#target-configsink-configformat" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -5905,7 +5987,7 @@
 <h1 id="ingestion-flows">Ingestion flows<a class="headerlink" href="#ingestion-flows" title="Permanent link">&para;</a></h1>
 <p>One entry per <code>ingestion_flows[]</code> element — reading from a landing zone into Bronze.</p>
 <div class="admonition info">
-<p class="admonition-title">109 attributes</p>
+<p class="admonition-title">110 attributes</p>
 <p>Every attribute below is also available in the Spec Builder's attribute
 inspector — click the <strong>i</strong> beside any field to see this same content
 without leaving the form.</p>
@@ -6373,6 +6455,12 @@ without leaving the form.</p>
 </tr>
 <tr>
 <td><a href="#target-configpartition-mode"><code>target_config.partition_mode</code></a></td>
+<td>string (enum)</td>
+<td>no</td>
+<td>—</td>
+</tr>
+<tr>
+<td><a href="#target-configsink-configexport-trigger"><code>target_config.sink_config.export_trigger</code></a></td>
 <td>string (enum)</td>
 <td>no</td>
 <td>—</td>
@@ -8009,11 +8097,45 @@ without leaving the form.</p>
 </div>
 <p><strong>Databricks documentation:</strong> <a href="https://docs.databricks.com/tables/partitions.html">partitioning</a> · <a href="https://docs.databricks.com/delta/clustering.html">liquid clustering</a></p>
 <hr />
+<h3 id="target-configsink-configexport-trigger"><code>target_config.sink_config.export_trigger</code><a class="headerlink" href="#target-configsink-configexport-trigger" title="Permanent link">&para;</a></h3>
+<p>WHAT drives a pgp_zip export: one archive per micro-batch, or exactly one per pipeline update.</p>
+<p>A Lakeflow sink is streaming-only, and Delta refuses to stream from a table that is fully recomputed each update (DELTA_SOURCE_TABLE_IGNORE_CHANGES). Together those two facts meant an AGGREGATING target -- a materialized_view, or any TRUNCATE_AND_LOAD flow -- could be computed and published and then had no way to leave the platform as a file. Not a missing feature: a structural contradiction. 'per_update' resolves it by separating the trigger (an update-scoped pulse carrying no data) from the payload (a batch read), so the append flow is genuinely streaming while the exported rows are an aggregation.</p>
+<p><strong>Type</strong> <code>string (enum)</code> · <strong>Required</strong> no · <strong>Section</strong> Target · sink config</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-76-1" name="__codelineno-76-1" href="#__codelineno-76-1"></a><span class="c1">// Exporting a GROUP BY result -- impossible before v1.7.5</span>
+<a id="__codelineno-76-2" name="__codelineno-76-2" href="#__codelineno-76-2"></a><span class="nt">"sink_config"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-76-3" name="__codelineno-76-3" href="#__codelineno-76-3"></a><span class="w">  </span><span class="nt">"format"</span><span class="p">:</span><span class="w"> </span><span class="s2">"pgp_zip"</span><span class="p">,</span>
+<a id="__codelineno-76-4" name="__codelineno-76-4" href="#__codelineno-76-4"></a><span class="w">  </span><span class="nt">"path"</span><span class="p">:</span><span class="w"> </span><span class="s2">"/Volumes/{{catalog}}/staging/uc_6/output/_staging/tel/"</span><span class="p">,</span>
+<a id="__codelineno-76-5" name="__codelineno-76-5" href="#__codelineno-76-5"></a><span class="w">  </span><span class="nt">"staged_file_format"</span><span class="p">:</span><span class="w"> </span><span class="s2">"csv"</span><span class="p">,</span>
+<a id="__codelineno-76-6" name="__codelineno-76-6" href="#__codelineno-76-6"></a><span class="w">  </span><span class="nt">"export_trigger"</span><span class="p">:</span><span class="w"> </span><span class="s2">"per_update"</span><span class="p">,</span>
+<a id="__codelineno-76-7" name="__codelineno-76-7" href="#__codelineno-76-7"></a><span class="w">  </span><span class="nt">"post_export_archive"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-76-8" name="__codelineno-76-8" href="#__codelineno-76-8"></a><span class="w">    </span><span class="nt">"enabled"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+<a id="__codelineno-76-9" name="__codelineno-76-9" href="#__codelineno-76-9"></a><span class="w">    </span><span class="nt">"output_zip_path"</span><span class="p">:</span><span class="w"> </span><span class="s2">"/Volumes/{{catalog}}/staging/uc_6/output/"</span><span class="p">,</span>
+<a id="__codelineno-76-10" name="__codelineno-76-10" href="#__codelineno-76-10"></a><span class="w">    </span><span class="nt">"archive_format"</span><span class="p">:</span><span class="w"> </span><span class="s2">"gzip"</span>
+<a id="__codelineno-76-11" name="__codelineno-76-11" href="#__codelineno-76-11"></a><span class="w">  </span><span class="p">}</span>
+<a id="__codelineno-76-12" name="__codelineno-76-12" href="#__codelineno-76-12"></a><span class="p">}</span>
+</code></pre></div>
+<div class="admonition tip">
+<p class="admonition-title">Best practice</p>
+<ul>
+<li>Omit this key for an append-only feed. 'per_micro_batch' is the default and the right answer whenever the source genuinely streams.</li>
+<li>Reach for 'per_update' when the flow this sink reads AGGREGATES -- GROUP BY, DISTINCT, a windowed rollup. Those produce a materialized_view, which cannot be streamed from at all.</li>
+<li>'per_update' fires even on an update that ingested nothing, which is the point: a contractual feed must produce its file every cycle, not only when new rows arrived.</li>
+<li>The pulse is a temporary dataset named _<target_table>_export_pulse. It appears in the Lakeflow DAG and carries no business data.</li>
+</ul>
+</div>
+<div class="admonition warning">
+<p class="admonition-title">Known errors and limitations</p>
+<p><strong>FrameworkConfigError: Consumer '...' requested a streaming read of '<table>', which is produced in this same pipeline by flow '...' with cdc_load_strategy='TRUNCATE_AND_LOAD' / target_type='materialized_view'.</strong><br />
+<em>Cause:</em> A sink is trying to stream an aggregating target. Delta cannot stream a table that is fully overwritten each update.<br />
+<em>Fix:</em> Set export_trigger to 'per_update' on that sink. Do NOT relabel the producing flow as a streaming_table -- that silences a plan-time error and converts it into a runtime one.</p>
+</div>
+<p><strong>Databricks documentation:</strong> <a href="https://docs.databricks.com/delta-live-tables/sinks.html">sinks</a></p>
+<hr />
 <h3 id="target-configsink-configformat"><code>target_config.sink_config.format</code><a class="headerlink" href="#target-configsink-configformat" title="Permanent link">&para;</a></h3>
 <p>The export format for a sink or external_sink target.</p>
 <p>sink exports only; external_sink writes a governed table and also exports.</p>
 <p><strong>Type</strong> <code>string (enum)</code> · <strong>Required</strong> yes · <strong>Section</strong> Target · sink config</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-76-1" name="__codelineno-76-1" href="#__codelineno-76-1"></a><span class="nt">"sink_config"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nt">"format"</span><span class="p">:</span><span class="w"> </span><span class="s2">"pgp_zip"</span><span class="p">,</span><span class="w"> </span><span class="nt">"path"</span><span class="p">:</span><span class="w"> </span><span class="s2">"/Volumes/{{catalog}}/egress/orders/"</span><span class="w"> </span><span class="p">}</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-77-1" name="__codelineno-77-1" href="#__codelineno-77-1"></a><span class="nt">"sink_config"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nt">"format"</span><span class="p">:</span><span class="w"> </span><span class="s2">"pgp_zip"</span><span class="p">,</span><span class="w"> </span><span class="nt">"path"</span><span class="p">:</span><span class="w"> </span><span class="s2">"/Volumes/{{catalog}}/egress/orders/"</span><span class="w"> </span><span class="p">}</span>
 </code></pre></div>
 <div class="admonition tip">
 <p class="admonition-title">Best practice</p>
@@ -8034,15 +8156,15 @@ without leaving the form.</p>
 <p>Connection options for a kafka sink — the same flat options a Spark Structured Streaming Kafka writer takes.</p>
 <p>Connection options for a kafka sink — the same flat options a Spark Structured Streaming Kafka writer takes. Onboarding requires both kafka.bootstrap.servers and topic. A kafka sink has no filesystem path. Prefer databricks.serviceCredential over an inline credential. sink_config.kafka_secret_options (option name → UC secret ref, for an option whose literal value must embed a resolved secret such as kafka.sasl.jaas.config) is supported by the framework but cannot be authored here — add it by hand to the exported JSON.</p>
 <p><strong>Type</strong> <code>object&lt;string,string&gt;</code> · <strong>Required</strong> yes · <strong>Section</strong> Target · sink config</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-77-1" name="__codelineno-77-1" href="#__codelineno-77-1"></a><span class="p">{</span>
-<a id="__codelineno-77-2" name="__codelineno-77-2" href="#__codelineno-77-2"></a><span class="w">  </span><span class="nt">"target_config"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-77-3" name="__codelineno-77-3" href="#__codelineno-77-3"></a><span class="w">    </span><span class="nt">"sink_config"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-77-4" name="__codelineno-77-4" href="#__codelineno-77-4"></a><span class="w">      </span><span class="nt">"kafka_options"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-77-5" name="__codelineno-77-5" href="#__codelineno-77-5"></a><span class="w">        </span><span class="nt">"option_name"</span><span class="p">:</span><span class="w"> </span><span class="s2">"value"</span>
-<a id="__codelineno-77-6" name="__codelineno-77-6" href="#__codelineno-77-6"></a><span class="w">      </span><span class="p">}</span>
-<a id="__codelineno-77-7" name="__codelineno-77-7" href="#__codelineno-77-7"></a><span class="w">    </span><span class="p">}</span>
-<a id="__codelineno-77-8" name="__codelineno-77-8" href="#__codelineno-77-8"></a><span class="w">  </span><span class="p">}</span>
-<a id="__codelineno-77-9" name="__codelineno-77-9" href="#__codelineno-77-9"></a><span class="p">}</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-78-1" name="__codelineno-78-1" href="#__codelineno-78-1"></a><span class="p">{</span>
+<a id="__codelineno-78-2" name="__codelineno-78-2" href="#__codelineno-78-2"></a><span class="w">  </span><span class="nt">"target_config"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-78-3" name="__codelineno-78-3" href="#__codelineno-78-3"></a><span class="w">    </span><span class="nt">"sink_config"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-78-4" name="__codelineno-78-4" href="#__codelineno-78-4"></a><span class="w">      </span><span class="nt">"kafka_options"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-78-5" name="__codelineno-78-5" href="#__codelineno-78-5"></a><span class="w">        </span><span class="nt">"option_name"</span><span class="p">:</span><span class="w"> </span><span class="s2">"value"</span>
+<a id="__codelineno-78-6" name="__codelineno-78-6" href="#__codelineno-78-6"></a><span class="w">      </span><span class="p">}</span>
+<a id="__codelineno-78-7" name="__codelineno-78-7" href="#__codelineno-78-7"></a><span class="w">    </span><span class="p">}</span>
+<a id="__codelineno-78-8" name="__codelineno-78-8" href="#__codelineno-78-8"></a><span class="w">  </span><span class="p">}</span>
+<a id="__codelineno-78-9" name="__codelineno-78-9" href="#__codelineno-78-9"></a><span class="p">}</span>
 </code></pre></div>
 <div class="admonition tip">
 <p class="admonition-title">Best practice</p>
@@ -8059,13 +8181,13 @@ without leaving the form.</p>
 <p>Output directory.</p>
 <p>Output directory. Required for delta and pgp_zip.</p>
 <p><strong>Type</strong> <code>string</code> · <strong>Required</strong> yes · <strong>Section</strong> Target · sink config</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-78-1" name="__codelineno-78-1" href="#__codelineno-78-1"></a><span class="p">{</span>
-<a id="__codelineno-78-2" name="__codelineno-78-2" href="#__codelineno-78-2"></a><span class="w">  </span><span class="nt">"target_config"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-78-3" name="__codelineno-78-3" href="#__codelineno-78-3"></a><span class="w">    </span><span class="nt">"sink_config"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-78-4" name="__codelineno-78-4" href="#__codelineno-78-4"></a><span class="w">      </span><span class="nt">"path"</span><span class="p">:</span><span class="w"> </span><span class="s2">"/Volumes/{{catalog}}/egress/example/"</span>
-<a id="__codelineno-78-5" name="__codelineno-78-5" href="#__codelineno-78-5"></a><span class="w">    </span><span class="p">}</span>
-<a id="__codelineno-78-6" name="__codelineno-78-6" href="#__codelineno-78-6"></a><span class="w">  </span><span class="p">}</span>
-<a id="__codelineno-78-7" name="__codelineno-78-7" href="#__codelineno-78-7"></a><span class="p">}</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-79-1" name="__codelineno-79-1" href="#__codelineno-79-1"></a><span class="p">{</span>
+<a id="__codelineno-79-2" name="__codelineno-79-2" href="#__codelineno-79-2"></a><span class="w">  </span><span class="nt">"target_config"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-79-3" name="__codelineno-79-3" href="#__codelineno-79-3"></a><span class="w">    </span><span class="nt">"sink_config"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-79-4" name="__codelineno-79-4" href="#__codelineno-79-4"></a><span class="w">      </span><span class="nt">"path"</span><span class="p">:</span><span class="w"> </span><span class="s2">"/Volumes/{{catalog}}/egress/example/"</span>
+<a id="__codelineno-79-5" name="__codelineno-79-5" href="#__codelineno-79-5"></a><span class="w">    </span><span class="p">}</span>
+<a id="__codelineno-79-6" name="__codelineno-79-6" href="#__codelineno-79-6"></a><span class="w">  </span><span class="p">}</span>
+<a id="__codelineno-79-7" name="__codelineno-79-7" href="#__codelineno-79-7"></a><span class="p">}</span>
 </code></pre></div>
 <div class="admonition tip">
 <p class="admonition-title">Best practice</p>
@@ -8080,14 +8202,14 @@ without leaving the form.</p>
 <p>The container the finished export is delivered in: 'zip' or 'gzip'.</p>
 <p>The sink was ZIP-only, so an interface specifying a .csv.gz drop could not be served without a downstream repack — which would have meant either breaking the supplier contract or hand-rolling file handling outside the framework.</p>
 <p><strong>Type</strong> <code>string (enum)</code> · <strong>Required</strong> no · <strong>Section</strong> Target · sink config</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-79-1" name="__codelineno-79-1" href="#__codelineno-79-1"></a><span class="c1">// Emits EE_20260901-LEIDOS_TELEPHONE_001.csv.gz</span>
-<a id="__codelineno-79-2" name="__codelineno-79-2" href="#__codelineno-79-2"></a><span class="nt">"post_export_archive"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-79-3" name="__codelineno-79-3" href="#__codelineno-79-3"></a><span class="w">  </span><span class="nt">"enabled"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
-<a id="__codelineno-79-4" name="__codelineno-79-4" href="#__codelineno-79-4"></a><span class="w">  </span><span class="nt">"output_zip_path"</span><span class="p">:</span><span class="w"> </span><span class="s2">"/Volumes/{{catalog}}/staging/uc_6/output/"</span><span class="p">,</span>
-<a id="__codelineno-79-5" name="__codelineno-79-5" href="#__codelineno-79-5"></a><span class="w">  </span><span class="nt">"export_file_name_format"</span><span class="p">:</span><span class="w"> </span><span class="s2">"EE_${export_file_date}-LEIDOS_TELEPHONE_${export_file_sequence}"</span><span class="p">,</span>
-<a id="__codelineno-79-6" name="__codelineno-79-6" href="#__codelineno-79-6"></a><span class="w">  </span><span class="nt">"archive_format"</span><span class="p">:</span><span class="w"> </span><span class="s2">"gzip"</span>
-<a id="__codelineno-79-7" name="__codelineno-79-7" href="#__codelineno-79-7"></a><span class="p">}</span>
-<a id="__codelineno-79-8" name="__codelineno-79-8" href="#__codelineno-79-8"></a><span class="c1">// add pgp_encryption.passphrase_secret -&gt; ....csv.gz.gpg</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-80-1" name="__codelineno-80-1" href="#__codelineno-80-1"></a><span class="c1">// Emits EE_20260901-LEIDOS_TELEPHONE_001.csv.gz</span>
+<a id="__codelineno-80-2" name="__codelineno-80-2" href="#__codelineno-80-2"></a><span class="nt">"post_export_archive"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-80-3" name="__codelineno-80-3" href="#__codelineno-80-3"></a><span class="w">  </span><span class="nt">"enabled"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+<a id="__codelineno-80-4" name="__codelineno-80-4" href="#__codelineno-80-4"></a><span class="w">  </span><span class="nt">"output_zip_path"</span><span class="p">:</span><span class="w"> </span><span class="s2">"/Volumes/{{catalog}}/staging/uc_6/output/"</span><span class="p">,</span>
+<a id="__codelineno-80-5" name="__codelineno-80-5" href="#__codelineno-80-5"></a><span class="w">  </span><span class="nt">"export_file_name_format"</span><span class="p">:</span><span class="w"> </span><span class="s2">"EE_${export_file_date}-LEIDOS_TELEPHONE_${export_file_sequence}"</span><span class="p">,</span>
+<a id="__codelineno-80-6" name="__codelineno-80-6" href="#__codelineno-80-6"></a><span class="w">  </span><span class="nt">"archive_format"</span><span class="p">:</span><span class="w"> </span><span class="s2">"gzip"</span>
+<a id="__codelineno-80-7" name="__codelineno-80-7" href="#__codelineno-80-7"></a><span class="p">}</span>
+<a id="__codelineno-80-8" name="__codelineno-80-8" href="#__codelineno-80-8"></a><span class="c1">// add pgp_encryption.passphrase_secret -&gt; ....csv.gz.gpg</span>
 </code></pre></div>
 <div class="admonition tip">
 <p class="admonition-title">Best practice</p>
@@ -8108,15 +8230,15 @@ without leaving the form.</p>
 <h3 id="target-configsink-configpost-export-archiveenabled"><code>target_config.sink_config.post_export_archive.enabled</code><a class="headerlink" href="#target-configsink-configpost-export-archiveenabled" title="Permanent link">&para;</a></h3>
 <p>Enable post-write archiving for pgp_zip exports.</p>
 <p><strong>Type</strong> <code>boolean</code> · <strong>Required</strong> no · <strong>Section</strong> Target · sink config</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-80-1" name="__codelineno-80-1" href="#__codelineno-80-1"></a><span class="p">{</span>
-<a id="__codelineno-80-2" name="__codelineno-80-2" href="#__codelineno-80-2"></a><span class="w">  </span><span class="nt">"target_config"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-80-3" name="__codelineno-80-3" href="#__codelineno-80-3"></a><span class="w">    </span><span class="nt">"sink_config"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-80-4" name="__codelineno-80-4" href="#__codelineno-80-4"></a><span class="w">      </span><span class="nt">"post_export_archive"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-80-5" name="__codelineno-80-5" href="#__codelineno-80-5"></a><span class="w">        </span><span class="nt">"enabled"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span>
-<a id="__codelineno-80-6" name="__codelineno-80-6" href="#__codelineno-80-6"></a><span class="w">      </span><span class="p">}</span>
-<a id="__codelineno-80-7" name="__codelineno-80-7" href="#__codelineno-80-7"></a><span class="w">    </span><span class="p">}</span>
-<a id="__codelineno-80-8" name="__codelineno-80-8" href="#__codelineno-80-8"></a><span class="w">  </span><span class="p">}</span>
-<a id="__codelineno-80-9" name="__codelineno-80-9" href="#__codelineno-80-9"></a><span class="p">}</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-81-1" name="__codelineno-81-1" href="#__codelineno-81-1"></a><span class="p">{</span>
+<a id="__codelineno-81-2" name="__codelineno-81-2" href="#__codelineno-81-2"></a><span class="w">  </span><span class="nt">"target_config"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-81-3" name="__codelineno-81-3" href="#__codelineno-81-3"></a><span class="w">    </span><span class="nt">"sink_config"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-81-4" name="__codelineno-81-4" href="#__codelineno-81-4"></a><span class="w">      </span><span class="nt">"post_export_archive"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-81-5" name="__codelineno-81-5" href="#__codelineno-81-5"></a><span class="w">        </span><span class="nt">"enabled"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span>
+<a id="__codelineno-81-6" name="__codelineno-81-6" href="#__codelineno-81-6"></a><span class="w">      </span><span class="p">}</span>
+<a id="__codelineno-81-7" name="__codelineno-81-7" href="#__codelineno-81-7"></a><span class="w">    </span><span class="p">}</span>
+<a id="__codelineno-81-8" name="__codelineno-81-8" href="#__codelineno-81-8"></a><span class="w">  </span><span class="p">}</span>
+<a id="__codelineno-81-9" name="__codelineno-81-9" href="#__codelineno-81-9"></a><span class="p">}</span>
 </code></pre></div>
 <div class="admonition tip">
 <p class="admonition-title">Best practice</p>
@@ -8131,15 +8253,15 @@ without leaving the form.</p>
 <p>str.format()-style template for the exported archive's own file name.</p>
 <p>str.format()-style template for the exported archive's own file name. Placeholders: {batch_id}, {timestamp}. Omit for the framework default.</p>
 <p><strong>Type</strong> <code>string</code> · <strong>Required</strong> no · <strong>Section</strong> Target · sink config</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-81-1" name="__codelineno-81-1" href="#__codelineno-81-1"></a><span class="p">{</span>
-<a id="__codelineno-81-2" name="__codelineno-81-2" href="#__codelineno-81-2"></a><span class="w">  </span><span class="nt">"target_config"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-81-3" name="__codelineno-81-3" href="#__codelineno-81-3"></a><span class="w">    </span><span class="nt">"sink_config"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-81-4" name="__codelineno-81-4" href="#__codelineno-81-4"></a><span class="w">      </span><span class="nt">"post_export_archive"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-81-5" name="__codelineno-81-5" href="#__codelineno-81-5"></a><span class="w">        </span><span class="nt">"export_file_name_format"</span><span class="p">:</span><span class="w"> </span><span class="s2">"export_{batch_id}_{timestamp}.zip"</span>
-<a id="__codelineno-81-6" name="__codelineno-81-6" href="#__codelineno-81-6"></a><span class="w">      </span><span class="p">}</span>
-<a id="__codelineno-81-7" name="__codelineno-81-7" href="#__codelineno-81-7"></a><span class="w">    </span><span class="p">}</span>
-<a id="__codelineno-81-8" name="__codelineno-81-8" href="#__codelineno-81-8"></a><span class="w">  </span><span class="p">}</span>
-<a id="__codelineno-81-9" name="__codelineno-81-9" href="#__codelineno-81-9"></a><span class="p">}</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-82-1" name="__codelineno-82-1" href="#__codelineno-82-1"></a><span class="p">{</span>
+<a id="__codelineno-82-2" name="__codelineno-82-2" href="#__codelineno-82-2"></a><span class="w">  </span><span class="nt">"target_config"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-82-3" name="__codelineno-82-3" href="#__codelineno-82-3"></a><span class="w">    </span><span class="nt">"sink_config"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-82-4" name="__codelineno-82-4" href="#__codelineno-82-4"></a><span class="w">      </span><span class="nt">"post_export_archive"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-82-5" name="__codelineno-82-5" href="#__codelineno-82-5"></a><span class="w">        </span><span class="nt">"export_file_name_format"</span><span class="p">:</span><span class="w"> </span><span class="s2">"export_{batch_id}_{timestamp}.zip"</span>
+<a id="__codelineno-82-6" name="__codelineno-82-6" href="#__codelineno-82-6"></a><span class="w">      </span><span class="p">}</span>
+<a id="__codelineno-82-7" name="__codelineno-82-7" href="#__codelineno-82-7"></a><span class="w">    </span><span class="p">}</span>
+<a id="__codelineno-82-8" name="__codelineno-82-8" href="#__codelineno-82-8"></a><span class="w">  </span><span class="p">}</span>
+<a id="__codelineno-82-9" name="__codelineno-82-9" href="#__codelineno-82-9"></a><span class="p">}</span>
 </code></pre></div>
 <div class="admonition tip">
 <p class="admonition-title">Best practice</p>
@@ -8152,15 +8274,15 @@ without leaving the form.</p>
 <h3 id="target-configsink-configpost-export-archiveoutput-zip-path"><code>target_config.sink_config.post_export_archive.output_zip_path</code><a class="headerlink" href="#target-configsink-configpost-export-archiveoutput-zip-path" title="Permanent link">&para;</a></h3>
 <p>Where the final ZIP is written.</p>
 <p><strong>Type</strong> <code>string</code> · <strong>Required</strong> yes · <strong>Section</strong> Target · sink config</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-82-1" name="__codelineno-82-1" href="#__codelineno-82-1"></a><span class="p">{</span>
-<a id="__codelineno-82-2" name="__codelineno-82-2" href="#__codelineno-82-2"></a><span class="w">  </span><span class="nt">"target_config"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-82-3" name="__codelineno-82-3" href="#__codelineno-82-3"></a><span class="w">    </span><span class="nt">"sink_config"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-82-4" name="__codelineno-82-4" href="#__codelineno-82-4"></a><span class="w">      </span><span class="nt">"post_export_archive"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-82-5" name="__codelineno-82-5" href="#__codelineno-82-5"></a><span class="w">        </span><span class="nt">"output_zip_path"</span><span class="p">:</span><span class="w"> </span><span class="s2">"/Volumes/{{catalog}}/egress/zips/"</span>
-<a id="__codelineno-82-6" name="__codelineno-82-6" href="#__codelineno-82-6"></a><span class="w">      </span><span class="p">}</span>
-<a id="__codelineno-82-7" name="__codelineno-82-7" href="#__codelineno-82-7"></a><span class="w">    </span><span class="p">}</span>
-<a id="__codelineno-82-8" name="__codelineno-82-8" href="#__codelineno-82-8"></a><span class="w">  </span><span class="p">}</span>
-<a id="__codelineno-82-9" name="__codelineno-82-9" href="#__codelineno-82-9"></a><span class="p">}</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-83-1" name="__codelineno-83-1" href="#__codelineno-83-1"></a><span class="p">{</span>
+<a id="__codelineno-83-2" name="__codelineno-83-2" href="#__codelineno-83-2"></a><span class="w">  </span><span class="nt">"target_config"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-83-3" name="__codelineno-83-3" href="#__codelineno-83-3"></a><span class="w">    </span><span class="nt">"sink_config"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-83-4" name="__codelineno-83-4" href="#__codelineno-83-4"></a><span class="w">      </span><span class="nt">"post_export_archive"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-83-5" name="__codelineno-83-5" href="#__codelineno-83-5"></a><span class="w">        </span><span class="nt">"output_zip_path"</span><span class="p">:</span><span class="w"> </span><span class="s2">"/Volumes/{{catalog}}/egress/zips/"</span>
+<a id="__codelineno-83-6" name="__codelineno-83-6" href="#__codelineno-83-6"></a><span class="w">      </span><span class="p">}</span>
+<a id="__codelineno-83-7" name="__codelineno-83-7" href="#__codelineno-83-7"></a><span class="w">    </span><span class="p">}</span>
+<a id="__codelineno-83-8" name="__codelineno-83-8" href="#__codelineno-83-8"></a><span class="w">  </span><span class="p">}</span>
+<a id="__codelineno-83-9" name="__codelineno-83-9" href="#__codelineno-83-9"></a><span class="p">}</span>
 </code></pre></div>
 <div class="admonition tip">
 <p class="admonition-title">Best practice</p>
@@ -8174,17 +8296,17 @@ without leaving the form.</p>
 <h3 id="target-configsink-configpost-export-archivepgp-encryptionenabled"><code>target_config.sink_config.post_export_archive.pgp_encryption.enabled</code><a class="headerlink" href="#target-configsink-configpost-export-archivepgp-encryptionenabled" title="Permanent link">&para;</a></h3>
 <p>PGP-encrypt the output archive.</p>
 <p><strong>Type</strong> <code>boolean</code> · <strong>Required</strong> no · <strong>Section</strong> Target · sink config</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-83-1" name="__codelineno-83-1" href="#__codelineno-83-1"></a><span class="p">{</span>
-<a id="__codelineno-83-2" name="__codelineno-83-2" href="#__codelineno-83-2"></a><span class="w">  </span><span class="nt">"target_config"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-83-3" name="__codelineno-83-3" href="#__codelineno-83-3"></a><span class="w">    </span><span class="nt">"sink_config"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-83-4" name="__codelineno-83-4" href="#__codelineno-83-4"></a><span class="w">      </span><span class="nt">"post_export_archive"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-83-5" name="__codelineno-83-5" href="#__codelineno-83-5"></a><span class="w">        </span><span class="nt">"pgp_encryption"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-83-6" name="__codelineno-83-6" href="#__codelineno-83-6"></a><span class="w">          </span><span class="nt">"enabled"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span>
-<a id="__codelineno-83-7" name="__codelineno-83-7" href="#__codelineno-83-7"></a><span class="w">        </span><span class="p">}</span>
-<a id="__codelineno-83-8" name="__codelineno-83-8" href="#__codelineno-83-8"></a><span class="w">      </span><span class="p">}</span>
-<a id="__codelineno-83-9" name="__codelineno-83-9" href="#__codelineno-83-9"></a><span class="w">    </span><span class="p">}</span>
-<a id="__codelineno-83-10" name="__codelineno-83-10" href="#__codelineno-83-10"></a><span class="w">  </span><span class="p">}</span>
-<a id="__codelineno-83-11" name="__codelineno-83-11" href="#__codelineno-83-11"></a><span class="p">}</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-84-1" name="__codelineno-84-1" href="#__codelineno-84-1"></a><span class="p">{</span>
+<a id="__codelineno-84-2" name="__codelineno-84-2" href="#__codelineno-84-2"></a><span class="w">  </span><span class="nt">"target_config"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-84-3" name="__codelineno-84-3" href="#__codelineno-84-3"></a><span class="w">    </span><span class="nt">"sink_config"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-84-4" name="__codelineno-84-4" href="#__codelineno-84-4"></a><span class="w">      </span><span class="nt">"post_export_archive"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-84-5" name="__codelineno-84-5" href="#__codelineno-84-5"></a><span class="w">        </span><span class="nt">"pgp_encryption"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-84-6" name="__codelineno-84-6" href="#__codelineno-84-6"></a><span class="w">          </span><span class="nt">"enabled"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span>
+<a id="__codelineno-84-7" name="__codelineno-84-7" href="#__codelineno-84-7"></a><span class="w">        </span><span class="p">}</span>
+<a id="__codelineno-84-8" name="__codelineno-84-8" href="#__codelineno-84-8"></a><span class="w">      </span><span class="p">}</span>
+<a id="__codelineno-84-9" name="__codelineno-84-9" href="#__codelineno-84-9"></a><span class="w">    </span><span class="p">}</span>
+<a id="__codelineno-84-10" name="__codelineno-84-10" href="#__codelineno-84-10"></a><span class="w">  </span><span class="p">}</span>
+<a id="__codelineno-84-11" name="__codelineno-84-11" href="#__codelineno-84-11"></a><span class="p">}</span>
 </code></pre></div>
 <div class="admonition tip">
 <p class="admonition-title">Best practice</p>
@@ -8199,39 +8321,13 @@ without leaving the form.</p>
 <p>SYMMETRIC egress encryption — encrypt with a shared passphrase instead of a recipient key.</p>
 <p>SYMMETRIC egress encryption — encrypt with a shared passphrase instead of a recipient key. Mutually exclusive with recipient_public_key_secret: set exactly one. Signing is unavailable in this mode (it needs a sender keypair).</p>
 <p><strong>Type</strong> <code>string</code> · <strong>Required</strong> no · <strong>Section</strong> Target · sink config</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-84-1" name="__codelineno-84-1" href="#__codelineno-84-1"></a><span class="p">{</span>
-<a id="__codelineno-84-2" name="__codelineno-84-2" href="#__codelineno-84-2"></a><span class="w">  </span><span class="nt">"target_config"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-84-3" name="__codelineno-84-3" href="#__codelineno-84-3"></a><span class="w">    </span><span class="nt">"sink_config"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-84-4" name="__codelineno-84-4" href="#__codelineno-84-4"></a><span class="w">      </span><span class="nt">"post_export_archive"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-84-5" name="__codelineno-84-5" href="#__codelineno-84-5"></a><span class="w">        </span><span class="nt">"pgp_encryption"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-84-6" name="__codelineno-84-6" href="#__codelineno-84-6"></a><span class="w">          </span><span class="nt">"passphrase_secret"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-84-7" name="__codelineno-84-7" href="#__codelineno-84-7"></a><span class="w">            </span><span class="nt">"secret_catalog"</span><span class="p">:</span><span class="w"> </span><span class="s2">"{{catalog}}"</span>
-<a id="__codelineno-84-8" name="__codelineno-84-8" href="#__codelineno-84-8"></a><span class="w">          </span><span class="p">}</span>
-<a id="__codelineno-84-9" name="__codelineno-84-9" href="#__codelineno-84-9"></a><span class="w">        </span><span class="p">}</span>
-<a id="__codelineno-84-10" name="__codelineno-84-10" href="#__codelineno-84-10"></a><span class="w">      </span><span class="p">}</span>
-<a id="__codelineno-84-11" name="__codelineno-84-11" href="#__codelineno-84-11"></a><span class="w">    </span><span class="p">}</span>
-<a id="__codelineno-84-12" name="__codelineno-84-12" href="#__codelineno-84-12"></a><span class="w">  </span><span class="p">}</span>
-<a id="__codelineno-84-13" name="__codelineno-84-13" href="#__codelineno-84-13"></a><span class="p">}</span>
-</code></pre></div>
-<div class="admonition tip">
-<p class="admonition-title">Best practice</p>
-<ul>
-<li>Only applies to some configurations; the form hides it when it is not relevant.</li>
-</ul>
-</div>
-<p><strong>Databricks documentation:</strong> <a href="https://docs.databricks.com/security/secrets/index.html">secrets</a> · <a href="https://docs.databricks.com/data-governance/unity-catalog/manage-privileges/privileges.html">uc privileges</a></p>
-<hr />
-<h3 id="target-configsink-configpost-export-archivepgp-encryptionpassphrase-secretsecret-key"><code>target_config.sink_config.post_export_archive.pgp_encryption.passphrase_secret.secret_key</code><a class="headerlink" href="#target-configsink-configpost-export-archivepgp-encryptionpassphrase-secretsecret-key" title="Permanent link">&para;</a></h3>
-<p>SYMMETRIC egress encryption — encrypt with a shared passphrase instead of a recipient key.</p>
-<p>SYMMETRIC egress encryption — encrypt with a shared passphrase instead of a recipient key. Mutually exclusive with recipient_public_key_secret: set exactly one. Signing is unavailable in this mode (it needs a sender keypair).</p>
-<p><strong>Type</strong> <code>string</code> · <strong>Required</strong> no · <strong>Section</strong> Target · sink config</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-85-1" name="__codelineno-85-1" href="#__codelineno-85-1"></a><span class="p">{</span>
 <a id="__codelineno-85-2" name="__codelineno-85-2" href="#__codelineno-85-2"></a><span class="w">  </span><span class="nt">"target_config"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
 <a id="__codelineno-85-3" name="__codelineno-85-3" href="#__codelineno-85-3"></a><span class="w">    </span><span class="nt">"sink_config"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
 <a id="__codelineno-85-4" name="__codelineno-85-4" href="#__codelineno-85-4"></a><span class="w">      </span><span class="nt">"post_export_archive"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
 <a id="__codelineno-85-5" name="__codelineno-85-5" href="#__codelineno-85-5"></a><span class="w">        </span><span class="nt">"pgp_encryption"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
 <a id="__codelineno-85-6" name="__codelineno-85-6" href="#__codelineno-85-6"></a><span class="w">          </span><span class="nt">"passphrase_secret"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-85-7" name="__codelineno-85-7" href="#__codelineno-85-7"></a><span class="w">            </span><span class="nt">"secret_key"</span><span class="p">:</span><span class="w"> </span><span class="s2">"pii_encryption_key"</span>
+<a id="__codelineno-85-7" name="__codelineno-85-7" href="#__codelineno-85-7"></a><span class="w">            </span><span class="nt">"secret_catalog"</span><span class="p">:</span><span class="w"> </span><span class="s2">"{{catalog}}"</span>
 <a id="__codelineno-85-8" name="__codelineno-85-8" href="#__codelineno-85-8"></a><span class="w">          </span><span class="p">}</span>
 <a id="__codelineno-85-9" name="__codelineno-85-9" href="#__codelineno-85-9"></a><span class="w">        </span><span class="p">}</span>
 <a id="__codelineno-85-10" name="__codelineno-85-10" href="#__codelineno-85-10"></a><span class="w">      </span><span class="p">}</span>
@@ -8247,7 +8343,7 @@ without leaving the form.</p>
 </div>
 <p><strong>Databricks documentation:</strong> <a href="https://docs.databricks.com/security/secrets/index.html">secrets</a> · <a href="https://docs.databricks.com/data-governance/unity-catalog/manage-privileges/privileges.html">uc privileges</a></p>
 <hr />
-<h3 id="target-configsink-configpost-export-archivepgp-encryptionpassphrase-secretsecret-schema"><code>target_config.sink_config.post_export_archive.pgp_encryption.passphrase_secret.secret_schema</code><a class="headerlink" href="#target-configsink-configpost-export-archivepgp-encryptionpassphrase-secretsecret-schema" title="Permanent link">&para;</a></h3>
+<h3 id="target-configsink-configpost-export-archivepgp-encryptionpassphrase-secretsecret-key"><code>target_config.sink_config.post_export_archive.pgp_encryption.passphrase_secret.secret_key</code><a class="headerlink" href="#target-configsink-configpost-export-archivepgp-encryptionpassphrase-secretsecret-key" title="Permanent link">&para;</a></h3>
 <p>SYMMETRIC egress encryption — encrypt with a shared passphrase instead of a recipient key.</p>
 <p>SYMMETRIC egress encryption — encrypt with a shared passphrase instead of a recipient key. Mutually exclusive with recipient_public_key_secret: set exactly one. Signing is unavailable in this mode (it needs a sender keypair).</p>
 <p><strong>Type</strong> <code>string</code> · <strong>Required</strong> no · <strong>Section</strong> Target · sink config</p>
@@ -8257,7 +8353,7 @@ without leaving the form.</p>
 <a id="__codelineno-86-4" name="__codelineno-86-4" href="#__codelineno-86-4"></a><span class="w">      </span><span class="nt">"post_export_archive"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
 <a id="__codelineno-86-5" name="__codelineno-86-5" href="#__codelineno-86-5"></a><span class="w">        </span><span class="nt">"pgp_encryption"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
 <a id="__codelineno-86-6" name="__codelineno-86-6" href="#__codelineno-86-6"></a><span class="w">          </span><span class="nt">"passphrase_secret"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-86-7" name="__codelineno-86-7" href="#__codelineno-86-7"></a><span class="w">            </span><span class="nt">"secret_schema"</span><span class="p">:</span><span class="w"> </span><span class="s2">"security"</span>
+<a id="__codelineno-86-7" name="__codelineno-86-7" href="#__codelineno-86-7"></a><span class="w">            </span><span class="nt">"secret_key"</span><span class="p">:</span><span class="w"> </span><span class="s2">"pii_encryption_key"</span>
 <a id="__codelineno-86-8" name="__codelineno-86-8" href="#__codelineno-86-8"></a><span class="w">          </span><span class="p">}</span>
 <a id="__codelineno-86-9" name="__codelineno-86-9" href="#__codelineno-86-9"></a><span class="w">        </span><span class="p">}</span>
 <a id="__codelineno-86-10" name="__codelineno-86-10" href="#__codelineno-86-10"></a><span class="w">      </span><span class="p">}</span>
@@ -8273,16 +8369,17 @@ without leaving the form.</p>
 </div>
 <p><strong>Databricks documentation:</strong> <a href="https://docs.databricks.com/security/secrets/index.html">secrets</a> · <a href="https://docs.databricks.com/data-governance/unity-catalog/manage-privileges/privileges.html">uc privileges</a></p>
 <hr />
-<h3 id="target-configsink-configpost-export-archivepgp-encryptionrecipient-public-key-secretsecret-catalog"><code>target_config.sink_config.post_export_archive.pgp_encryption.recipient_public_key_secret.secret_catalog</code><a class="headerlink" href="#target-configsink-configpost-export-archivepgp-encryptionrecipient-public-key-secretsecret-catalog" title="Permanent link">&para;</a></h3>
-<p>Unity Catalog secret catalog holding the key.</p>
+<h3 id="target-configsink-configpost-export-archivepgp-encryptionpassphrase-secretsecret-schema"><code>target_config.sink_config.post_export_archive.pgp_encryption.passphrase_secret.secret_schema</code><a class="headerlink" href="#target-configsink-configpost-export-archivepgp-encryptionpassphrase-secretsecret-schema" title="Permanent link">&para;</a></h3>
+<p>SYMMETRIC egress encryption — encrypt with a shared passphrase instead of a recipient key.</p>
+<p>SYMMETRIC egress encryption — encrypt with a shared passphrase instead of a recipient key. Mutually exclusive with recipient_public_key_secret: set exactly one. Signing is unavailable in this mode (it needs a sender keypair).</p>
 <p><strong>Type</strong> <code>string</code> · <strong>Required</strong> no · <strong>Section</strong> Target · sink config</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-87-1" name="__codelineno-87-1" href="#__codelineno-87-1"></a><span class="p">{</span>
 <a id="__codelineno-87-2" name="__codelineno-87-2" href="#__codelineno-87-2"></a><span class="w">  </span><span class="nt">"target_config"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
 <a id="__codelineno-87-3" name="__codelineno-87-3" href="#__codelineno-87-3"></a><span class="w">    </span><span class="nt">"sink_config"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
 <a id="__codelineno-87-4" name="__codelineno-87-4" href="#__codelineno-87-4"></a><span class="w">      </span><span class="nt">"post_export_archive"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
 <a id="__codelineno-87-5" name="__codelineno-87-5" href="#__codelineno-87-5"></a><span class="w">        </span><span class="nt">"pgp_encryption"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-87-6" name="__codelineno-87-6" href="#__codelineno-87-6"></a><span class="w">          </span><span class="nt">"recipient_public_key_secret"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-87-7" name="__codelineno-87-7" href="#__codelineno-87-7"></a><span class="w">            </span><span class="nt">"secret_catalog"</span><span class="p">:</span><span class="w"> </span><span class="s2">"{{catalog}}"</span>
+<a id="__codelineno-87-6" name="__codelineno-87-6" href="#__codelineno-87-6"></a><span class="w">          </span><span class="nt">"passphrase_secret"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-87-7" name="__codelineno-87-7" href="#__codelineno-87-7"></a><span class="w">            </span><span class="nt">"secret_schema"</span><span class="p">:</span><span class="w"> </span><span class="s2">"security"</span>
 <a id="__codelineno-87-8" name="__codelineno-87-8" href="#__codelineno-87-8"></a><span class="w">          </span><span class="p">}</span>
 <a id="__codelineno-87-9" name="__codelineno-87-9" href="#__codelineno-87-9"></a><span class="w">        </span><span class="p">}</span>
 <a id="__codelineno-87-10" name="__codelineno-87-10" href="#__codelineno-87-10"></a><span class="w">      </span><span class="p">}</span>
@@ -8298,9 +8395,8 @@ without leaving the form.</p>
 </div>
 <p><strong>Databricks documentation:</strong> <a href="https://docs.databricks.com/security/secrets/index.html">secrets</a> · <a href="https://docs.databricks.com/data-governance/unity-catalog/manage-privileges/privileges.html">uc privileges</a></p>
 <hr />
-<h3 id="target-configsink-configpost-export-archivepgp-encryptionrecipient-public-key-secretsecret-key"><code>target_config.sink_config.post_export_archive.pgp_encryption.recipient_public_key_secret.secret_key</code><a class="headerlink" href="#target-configsink-configpost-export-archivepgp-encryptionrecipient-public-key-secretsecret-key" title="Permanent link">&para;</a></h3>
-<p>UC secret key name.</p>
-<p>UC secret key name. AES keys must be exactly 16, 24 or 32 bytes.</p>
+<h3 id="target-configsink-configpost-export-archivepgp-encryptionrecipient-public-key-secretsecret-catalog"><code>target_config.sink_config.post_export_archive.pgp_encryption.recipient_public_key_secret.secret_catalog</code><a class="headerlink" href="#target-configsink-configpost-export-archivepgp-encryptionrecipient-public-key-secretsecret-catalog" title="Permanent link">&para;</a></h3>
+<p>Unity Catalog secret catalog holding the key.</p>
 <p><strong>Type</strong> <code>string</code> · <strong>Required</strong> no · <strong>Section</strong> Target · sink config</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-88-1" name="__codelineno-88-1" href="#__codelineno-88-1"></a><span class="p">{</span>
 <a id="__codelineno-88-2" name="__codelineno-88-2" href="#__codelineno-88-2"></a><span class="w">  </span><span class="nt">"target_config"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
@@ -8308,7 +8404,7 @@ without leaving the form.</p>
 <a id="__codelineno-88-4" name="__codelineno-88-4" href="#__codelineno-88-4"></a><span class="w">      </span><span class="nt">"post_export_archive"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
 <a id="__codelineno-88-5" name="__codelineno-88-5" href="#__codelineno-88-5"></a><span class="w">        </span><span class="nt">"pgp_encryption"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
 <a id="__codelineno-88-6" name="__codelineno-88-6" href="#__codelineno-88-6"></a><span class="w">          </span><span class="nt">"recipient_public_key_secret"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-88-7" name="__codelineno-88-7" href="#__codelineno-88-7"></a><span class="w">            </span><span class="nt">"secret_key"</span><span class="p">:</span><span class="w"> </span><span class="s2">"pii_encryption_key"</span>
+<a id="__codelineno-88-7" name="__codelineno-88-7" href="#__codelineno-88-7"></a><span class="w">            </span><span class="nt">"secret_catalog"</span><span class="p">:</span><span class="w"> </span><span class="s2">"{{catalog}}"</span>
 <a id="__codelineno-88-8" name="__codelineno-88-8" href="#__codelineno-88-8"></a><span class="w">          </span><span class="p">}</span>
 <a id="__codelineno-88-9" name="__codelineno-88-9" href="#__codelineno-88-9"></a><span class="w">        </span><span class="p">}</span>
 <a id="__codelineno-88-10" name="__codelineno-88-10" href="#__codelineno-88-10"></a><span class="w">      </span><span class="p">}</span>
@@ -8324,8 +8420,9 @@ without leaving the form.</p>
 </div>
 <p><strong>Databricks documentation:</strong> <a href="https://docs.databricks.com/security/secrets/index.html">secrets</a> · <a href="https://docs.databricks.com/data-governance/unity-catalog/manage-privileges/privileges.html">uc privileges</a></p>
 <hr />
-<h3 id="target-configsink-configpost-export-archivepgp-encryptionrecipient-public-key-secretsecret-schema"><code>target_config.sink_config.post_export_archive.pgp_encryption.recipient_public_key_secret.secret_schema</code><a class="headerlink" href="#target-configsink-configpost-export-archivepgp-encryptionrecipient-public-key-secretsecret-schema" title="Permanent link">&para;</a></h3>
-<p>Unity Catalog secret schema.</p>
+<h3 id="target-configsink-configpost-export-archivepgp-encryptionrecipient-public-key-secretsecret-key"><code>target_config.sink_config.post_export_archive.pgp_encryption.recipient_public_key_secret.secret_key</code><a class="headerlink" href="#target-configsink-configpost-export-archivepgp-encryptionrecipient-public-key-secretsecret-key" title="Permanent link">&para;</a></h3>
+<p>UC secret key name.</p>
+<p>UC secret key name. AES keys must be exactly 16, 24 or 32 bytes.</p>
 <p><strong>Type</strong> <code>string</code> · <strong>Required</strong> no · <strong>Section</strong> Target · sink config</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-89-1" name="__codelineno-89-1" href="#__codelineno-89-1"></a><span class="p">{</span>
 <a id="__codelineno-89-2" name="__codelineno-89-2" href="#__codelineno-89-2"></a><span class="w">  </span><span class="nt">"target_config"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
@@ -8333,7 +8430,7 @@ without leaving the form.</p>
 <a id="__codelineno-89-4" name="__codelineno-89-4" href="#__codelineno-89-4"></a><span class="w">      </span><span class="nt">"post_export_archive"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
 <a id="__codelineno-89-5" name="__codelineno-89-5" href="#__codelineno-89-5"></a><span class="w">        </span><span class="nt">"pgp_encryption"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
 <a id="__codelineno-89-6" name="__codelineno-89-6" href="#__codelineno-89-6"></a><span class="w">          </span><span class="nt">"recipient_public_key_secret"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-89-7" name="__codelineno-89-7" href="#__codelineno-89-7"></a><span class="w">            </span><span class="nt">"secret_schema"</span><span class="p">:</span><span class="w"> </span><span class="s2">"security"</span>
+<a id="__codelineno-89-7" name="__codelineno-89-7" href="#__codelineno-89-7"></a><span class="w">            </span><span class="nt">"secret_key"</span><span class="p">:</span><span class="w"> </span><span class="s2">"pii_encryption_key"</span>
 <a id="__codelineno-89-8" name="__codelineno-89-8" href="#__codelineno-89-8"></a><span class="w">          </span><span class="p">}</span>
 <a id="__codelineno-89-9" name="__codelineno-89-9" href="#__codelineno-89-9"></a><span class="w">        </span><span class="p">}</span>
 <a id="__codelineno-89-10" name="__codelineno-89-10" href="#__codelineno-89-10"></a><span class="w">      </span><span class="p">}</span>
@@ -8349,16 +8446,16 @@ without leaving the form.</p>
 </div>
 <p><strong>Databricks documentation:</strong> <a href="https://docs.databricks.com/security/secrets/index.html">secrets</a> · <a href="https://docs.databricks.com/data-governance/unity-catalog/manage-privileges/privileges.html">uc privileges</a></p>
 <hr />
-<h3 id="target-configsink-configpost-export-archivepgp-encryptionsign-passphrase-secretsecret-catalog"><code>target_config.sink_config.post_export_archive.pgp_encryption.sign_passphrase_secret.secret_catalog</code><a class="headerlink" href="#target-configsink-configpost-export-archivepgp-encryptionsign-passphrase-secretsecret-catalog" title="Permanent link">&para;</a></h3>
-<p>Unity Catalog secret catalog holding the key.</p>
+<h3 id="target-configsink-configpost-export-archivepgp-encryptionrecipient-public-key-secretsecret-schema"><code>target_config.sink_config.post_export_archive.pgp_encryption.recipient_public_key_secret.secret_schema</code><a class="headerlink" href="#target-configsink-configpost-export-archivepgp-encryptionrecipient-public-key-secretsecret-schema" title="Permanent link">&para;</a></h3>
+<p>Unity Catalog secret schema.</p>
 <p><strong>Type</strong> <code>string</code> · <strong>Required</strong> no · <strong>Section</strong> Target · sink config</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-90-1" name="__codelineno-90-1" href="#__codelineno-90-1"></a><span class="p">{</span>
 <a id="__codelineno-90-2" name="__codelineno-90-2" href="#__codelineno-90-2"></a><span class="w">  </span><span class="nt">"target_config"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
 <a id="__codelineno-90-3" name="__codelineno-90-3" href="#__codelineno-90-3"></a><span class="w">    </span><span class="nt">"sink_config"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
 <a id="__codelineno-90-4" name="__codelineno-90-4" href="#__codelineno-90-4"></a><span class="w">      </span><span class="nt">"post_export_archive"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
 <a id="__codelineno-90-5" name="__codelineno-90-5" href="#__codelineno-90-5"></a><span class="w">        </span><span class="nt">"pgp_encryption"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-90-6" name="__codelineno-90-6" href="#__codelineno-90-6"></a><span class="w">          </span><span class="nt">"sign_passphrase_secret"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-90-7" name="__codelineno-90-7" href="#__codelineno-90-7"></a><span class="w">            </span><span class="nt">"secret_catalog"</span><span class="p">:</span><span class="w"> </span><span class="s2">"{{catalog}}"</span>
+<a id="__codelineno-90-6" name="__codelineno-90-6" href="#__codelineno-90-6"></a><span class="w">          </span><span class="nt">"recipient_public_key_secret"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-90-7" name="__codelineno-90-7" href="#__codelineno-90-7"></a><span class="w">            </span><span class="nt">"secret_schema"</span><span class="p">:</span><span class="w"> </span><span class="s2">"security"</span>
 <a id="__codelineno-90-8" name="__codelineno-90-8" href="#__codelineno-90-8"></a><span class="w">          </span><span class="p">}</span>
 <a id="__codelineno-90-9" name="__codelineno-90-9" href="#__codelineno-90-9"></a><span class="w">        </span><span class="p">}</span>
 <a id="__codelineno-90-10" name="__codelineno-90-10" href="#__codelineno-90-10"></a><span class="w">      </span><span class="p">}</span>
@@ -8374,9 +8471,8 @@ without leaving the form.</p>
 </div>
 <p><strong>Databricks documentation:</strong> <a href="https://docs.databricks.com/security/secrets/index.html">secrets</a> · <a href="https://docs.databricks.com/data-governance/unity-catalog/manage-privileges/privileges.html">uc privileges</a></p>
 <hr />
-<h3 id="target-configsink-configpost-export-archivepgp-encryptionsign-passphrase-secretsecret-key"><code>target_config.sink_config.post_export_archive.pgp_encryption.sign_passphrase_secret.secret_key</code><a class="headerlink" href="#target-configsink-configpost-export-archivepgp-encryptionsign-passphrase-secretsecret-key" title="Permanent link">&para;</a></h3>
-<p>UC secret key name.</p>
-<p>UC secret key name. AES keys must be exactly 16, 24 or 32 bytes.</p>
+<h3 id="target-configsink-configpost-export-archivepgp-encryptionsign-passphrase-secretsecret-catalog"><code>target_config.sink_config.post_export_archive.pgp_encryption.sign_passphrase_secret.secret_catalog</code><a class="headerlink" href="#target-configsink-configpost-export-archivepgp-encryptionsign-passphrase-secretsecret-catalog" title="Permanent link">&para;</a></h3>
+<p>Unity Catalog secret catalog holding the key.</p>
 <p><strong>Type</strong> <code>string</code> · <strong>Required</strong> no · <strong>Section</strong> Target · sink config</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-91-1" name="__codelineno-91-1" href="#__codelineno-91-1"></a><span class="p">{</span>
 <a id="__codelineno-91-2" name="__codelineno-91-2" href="#__codelineno-91-2"></a><span class="w">  </span><span class="nt">"target_config"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
@@ -8384,7 +8480,7 @@ without leaving the form.</p>
 <a id="__codelineno-91-4" name="__codelineno-91-4" href="#__codelineno-91-4"></a><span class="w">      </span><span class="nt">"post_export_archive"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
 <a id="__codelineno-91-5" name="__codelineno-91-5" href="#__codelineno-91-5"></a><span class="w">        </span><span class="nt">"pgp_encryption"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
 <a id="__codelineno-91-6" name="__codelineno-91-6" href="#__codelineno-91-6"></a><span class="w">          </span><span class="nt">"sign_passphrase_secret"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-91-7" name="__codelineno-91-7" href="#__codelineno-91-7"></a><span class="w">            </span><span class="nt">"secret_key"</span><span class="p">:</span><span class="w"> </span><span class="s2">"pii_encryption_key"</span>
+<a id="__codelineno-91-7" name="__codelineno-91-7" href="#__codelineno-91-7"></a><span class="w">            </span><span class="nt">"secret_catalog"</span><span class="p">:</span><span class="w"> </span><span class="s2">"{{catalog}}"</span>
 <a id="__codelineno-91-8" name="__codelineno-91-8" href="#__codelineno-91-8"></a><span class="w">          </span><span class="p">}</span>
 <a id="__codelineno-91-9" name="__codelineno-91-9" href="#__codelineno-91-9"></a><span class="w">        </span><span class="p">}</span>
 <a id="__codelineno-91-10" name="__codelineno-91-10" href="#__codelineno-91-10"></a><span class="w">      </span><span class="p">}</span>
@@ -8400,8 +8496,9 @@ without leaving the form.</p>
 </div>
 <p><strong>Databricks documentation:</strong> <a href="https://docs.databricks.com/security/secrets/index.html">secrets</a> · <a href="https://docs.databricks.com/data-governance/unity-catalog/manage-privileges/privileges.html">uc privileges</a></p>
 <hr />
-<h3 id="target-configsink-configpost-export-archivepgp-encryptionsign-passphrase-secretsecret-schema"><code>target_config.sink_config.post_export_archive.pgp_encryption.sign_passphrase_secret.secret_schema</code><a class="headerlink" href="#target-configsink-configpost-export-archivepgp-encryptionsign-passphrase-secretsecret-schema" title="Permanent link">&para;</a></h3>
-<p>Unity Catalog secret schema.</p>
+<h3 id="target-configsink-configpost-export-archivepgp-encryptionsign-passphrase-secretsecret-key"><code>target_config.sink_config.post_export_archive.pgp_encryption.sign_passphrase_secret.secret_key</code><a class="headerlink" href="#target-configsink-configpost-export-archivepgp-encryptionsign-passphrase-secretsecret-key" title="Permanent link">&para;</a></h3>
+<p>UC secret key name.</p>
+<p>UC secret key name. AES keys must be exactly 16, 24 or 32 bytes.</p>
 <p><strong>Type</strong> <code>string</code> · <strong>Required</strong> no · <strong>Section</strong> Target · sink config</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-92-1" name="__codelineno-92-1" href="#__codelineno-92-1"></a><span class="p">{</span>
 <a id="__codelineno-92-2" name="__codelineno-92-2" href="#__codelineno-92-2"></a><span class="w">  </span><span class="nt">"target_config"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
@@ -8409,7 +8506,7 @@ without leaving the form.</p>
 <a id="__codelineno-92-4" name="__codelineno-92-4" href="#__codelineno-92-4"></a><span class="w">      </span><span class="nt">"post_export_archive"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
 <a id="__codelineno-92-5" name="__codelineno-92-5" href="#__codelineno-92-5"></a><span class="w">        </span><span class="nt">"pgp_encryption"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
 <a id="__codelineno-92-6" name="__codelineno-92-6" href="#__codelineno-92-6"></a><span class="w">          </span><span class="nt">"sign_passphrase_secret"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-92-7" name="__codelineno-92-7" href="#__codelineno-92-7"></a><span class="w">            </span><span class="nt">"secret_schema"</span><span class="p">:</span><span class="w"> </span><span class="s2">"security"</span>
+<a id="__codelineno-92-7" name="__codelineno-92-7" href="#__codelineno-92-7"></a><span class="w">            </span><span class="nt">"secret_key"</span><span class="p">:</span><span class="w"> </span><span class="s2">"pii_encryption_key"</span>
 <a id="__codelineno-92-8" name="__codelineno-92-8" href="#__codelineno-92-8"></a><span class="w">          </span><span class="p">}</span>
 <a id="__codelineno-92-9" name="__codelineno-92-9" href="#__codelineno-92-9"></a><span class="w">        </span><span class="p">}</span>
 <a id="__codelineno-92-10" name="__codelineno-92-10" href="#__codelineno-92-10"></a><span class="w">      </span><span class="p">}</span>
@@ -8425,16 +8522,16 @@ without leaving the form.</p>
 </div>
 <p><strong>Databricks documentation:</strong> <a href="https://docs.databricks.com/security/secrets/index.html">secrets</a> · <a href="https://docs.databricks.com/data-governance/unity-catalog/manage-privileges/privileges.html">uc privileges</a></p>
 <hr />
-<h3 id="target-configsink-configpost-export-archivepgp-encryptionsign-with-private-key-secretsecret-catalog"><code>target_config.sink_config.post_export_archive.pgp_encryption.sign_with_private_key_secret.secret_catalog</code><a class="headerlink" href="#target-configsink-configpost-export-archivepgp-encryptionsign-with-private-key-secretsecret-catalog" title="Permanent link">&para;</a></h3>
-<p>Unity Catalog secret catalog holding the key.</p>
+<h3 id="target-configsink-configpost-export-archivepgp-encryptionsign-passphrase-secretsecret-schema"><code>target_config.sink_config.post_export_archive.pgp_encryption.sign_passphrase_secret.secret_schema</code><a class="headerlink" href="#target-configsink-configpost-export-archivepgp-encryptionsign-passphrase-secretsecret-schema" title="Permanent link">&para;</a></h3>
+<p>Unity Catalog secret schema.</p>
 <p><strong>Type</strong> <code>string</code> · <strong>Required</strong> no · <strong>Section</strong> Target · sink config</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-93-1" name="__codelineno-93-1" href="#__codelineno-93-1"></a><span class="p">{</span>
 <a id="__codelineno-93-2" name="__codelineno-93-2" href="#__codelineno-93-2"></a><span class="w">  </span><span class="nt">"target_config"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
 <a id="__codelineno-93-3" name="__codelineno-93-3" href="#__codelineno-93-3"></a><span class="w">    </span><span class="nt">"sink_config"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
 <a id="__codelineno-93-4" name="__codelineno-93-4" href="#__codelineno-93-4"></a><span class="w">      </span><span class="nt">"post_export_archive"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
 <a id="__codelineno-93-5" name="__codelineno-93-5" href="#__codelineno-93-5"></a><span class="w">        </span><span class="nt">"pgp_encryption"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-93-6" name="__codelineno-93-6" href="#__codelineno-93-6"></a><span class="w">          </span><span class="nt">"sign_with_private_key_secret"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-93-7" name="__codelineno-93-7" href="#__codelineno-93-7"></a><span class="w">            </span><span class="nt">"secret_catalog"</span><span class="p">:</span><span class="w"> </span><span class="s2">"{{catalog}}"</span>
+<a id="__codelineno-93-6" name="__codelineno-93-6" href="#__codelineno-93-6"></a><span class="w">          </span><span class="nt">"sign_passphrase_secret"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-93-7" name="__codelineno-93-7" href="#__codelineno-93-7"></a><span class="w">            </span><span class="nt">"secret_schema"</span><span class="p">:</span><span class="w"> </span><span class="s2">"security"</span>
 <a id="__codelineno-93-8" name="__codelineno-93-8" href="#__codelineno-93-8"></a><span class="w">          </span><span class="p">}</span>
 <a id="__codelineno-93-9" name="__codelineno-93-9" href="#__codelineno-93-9"></a><span class="w">        </span><span class="p">}</span>
 <a id="__codelineno-93-10" name="__codelineno-93-10" href="#__codelineno-93-10"></a><span class="w">      </span><span class="p">}</span>
@@ -8450,9 +8547,8 @@ without leaving the form.</p>
 </div>
 <p><strong>Databricks documentation:</strong> <a href="https://docs.databricks.com/security/secrets/index.html">secrets</a> · <a href="https://docs.databricks.com/data-governance/unity-catalog/manage-privileges/privileges.html">uc privileges</a></p>
 <hr />
-<h3 id="target-configsink-configpost-export-archivepgp-encryptionsign-with-private-key-secretsecret-key"><code>target_config.sink_config.post_export_archive.pgp_encryption.sign_with_private_key_secret.secret_key</code><a class="headerlink" href="#target-configsink-configpost-export-archivepgp-encryptionsign-with-private-key-secretsecret-key" title="Permanent link">&para;</a></h3>
-<p>UC secret key name.</p>
-<p>UC secret key name. AES keys must be exactly 16, 24 or 32 bytes.</p>
+<h3 id="target-configsink-configpost-export-archivepgp-encryptionsign-with-private-key-secretsecret-catalog"><code>target_config.sink_config.post_export_archive.pgp_encryption.sign_with_private_key_secret.secret_catalog</code><a class="headerlink" href="#target-configsink-configpost-export-archivepgp-encryptionsign-with-private-key-secretsecret-catalog" title="Permanent link">&para;</a></h3>
+<p>Unity Catalog secret catalog holding the key.</p>
 <p><strong>Type</strong> <code>string</code> · <strong>Required</strong> no · <strong>Section</strong> Target · sink config</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-94-1" name="__codelineno-94-1" href="#__codelineno-94-1"></a><span class="p">{</span>
 <a id="__codelineno-94-2" name="__codelineno-94-2" href="#__codelineno-94-2"></a><span class="w">  </span><span class="nt">"target_config"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
@@ -8460,7 +8556,7 @@ without leaving the form.</p>
 <a id="__codelineno-94-4" name="__codelineno-94-4" href="#__codelineno-94-4"></a><span class="w">      </span><span class="nt">"post_export_archive"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
 <a id="__codelineno-94-5" name="__codelineno-94-5" href="#__codelineno-94-5"></a><span class="w">        </span><span class="nt">"pgp_encryption"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
 <a id="__codelineno-94-6" name="__codelineno-94-6" href="#__codelineno-94-6"></a><span class="w">          </span><span class="nt">"sign_with_private_key_secret"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-94-7" name="__codelineno-94-7" href="#__codelineno-94-7"></a><span class="w">            </span><span class="nt">"secret_key"</span><span class="p">:</span><span class="w"> </span><span class="s2">"pii_encryption_key"</span>
+<a id="__codelineno-94-7" name="__codelineno-94-7" href="#__codelineno-94-7"></a><span class="w">            </span><span class="nt">"secret_catalog"</span><span class="p">:</span><span class="w"> </span><span class="s2">"{{catalog}}"</span>
 <a id="__codelineno-94-8" name="__codelineno-94-8" href="#__codelineno-94-8"></a><span class="w">          </span><span class="p">}</span>
 <a id="__codelineno-94-9" name="__codelineno-94-9" href="#__codelineno-94-9"></a><span class="w">        </span><span class="p">}</span>
 <a id="__codelineno-94-10" name="__codelineno-94-10" href="#__codelineno-94-10"></a><span class="w">      </span><span class="p">}</span>
@@ -8476,8 +8572,9 @@ without leaving the form.</p>
 </div>
 <p><strong>Databricks documentation:</strong> <a href="https://docs.databricks.com/security/secrets/index.html">secrets</a> · <a href="https://docs.databricks.com/data-governance/unity-catalog/manage-privileges/privileges.html">uc privileges</a></p>
 <hr />
-<h3 id="target-configsink-configpost-export-archivepgp-encryptionsign-with-private-key-secretsecret-schema"><code>target_config.sink_config.post_export_archive.pgp_encryption.sign_with_private_key_secret.secret_schema</code><a class="headerlink" href="#target-configsink-configpost-export-archivepgp-encryptionsign-with-private-key-secretsecret-schema" title="Permanent link">&para;</a></h3>
-<p>Unity Catalog secret schema.</p>
+<h3 id="target-configsink-configpost-export-archivepgp-encryptionsign-with-private-key-secretsecret-key"><code>target_config.sink_config.post_export_archive.pgp_encryption.sign_with_private_key_secret.secret_key</code><a class="headerlink" href="#target-configsink-configpost-export-archivepgp-encryptionsign-with-private-key-secretsecret-key" title="Permanent link">&para;</a></h3>
+<p>UC secret key name.</p>
+<p>UC secret key name. AES keys must be exactly 16, 24 or 32 bytes.</p>
 <p><strong>Type</strong> <code>string</code> · <strong>Required</strong> no · <strong>Section</strong> Target · sink config</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-95-1" name="__codelineno-95-1" href="#__codelineno-95-1"></a><span class="p">{</span>
 <a id="__codelineno-95-2" name="__codelineno-95-2" href="#__codelineno-95-2"></a><span class="w">  </span><span class="nt">"target_config"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
@@ -8485,7 +8582,7 @@ without leaving the form.</p>
 <a id="__codelineno-95-4" name="__codelineno-95-4" href="#__codelineno-95-4"></a><span class="w">      </span><span class="nt">"post_export_archive"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
 <a id="__codelineno-95-5" name="__codelineno-95-5" href="#__codelineno-95-5"></a><span class="w">        </span><span class="nt">"pgp_encryption"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
 <a id="__codelineno-95-6" name="__codelineno-95-6" href="#__codelineno-95-6"></a><span class="w">          </span><span class="nt">"sign_with_private_key_secret"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-95-7" name="__codelineno-95-7" href="#__codelineno-95-7"></a><span class="w">            </span><span class="nt">"secret_schema"</span><span class="p">:</span><span class="w"> </span><span class="s2">"security"</span>
+<a id="__codelineno-95-7" name="__codelineno-95-7" href="#__codelineno-95-7"></a><span class="w">            </span><span class="nt">"secret_key"</span><span class="p">:</span><span class="w"> </span><span class="s2">"pii_encryption_key"</span>
 <a id="__codelineno-95-8" name="__codelineno-95-8" href="#__codelineno-95-8"></a><span class="w">          </span><span class="p">}</span>
 <a id="__codelineno-95-9" name="__codelineno-95-9" href="#__codelineno-95-9"></a><span class="w">        </span><span class="p">}</span>
 <a id="__codelineno-95-10" name="__codelineno-95-10" href="#__codelineno-95-10"></a><span class="w">      </span><span class="p">}</span>
@@ -8501,20 +8598,22 @@ without leaving the form.</p>
 </div>
 <p><strong>Databricks documentation:</strong> <a href="https://docs.databricks.com/security/secrets/index.html">secrets</a> · <a href="https://docs.databricks.com/data-governance/unity-catalog/manage-privileges/privileges.html">uc privileges</a></p>
 <hr />
-<h3 id="target-configsink-configpost-export-archivesecretsecret-catalog"><code>target_config.sink_config.post_export_archive.secret.secret_catalog</code><a class="headerlink" href="#target-configsink-configpost-export-archivesecretsecret-catalog" title="Permanent link">&para;</a></h3>
-<p>Unity Catalog secret catalog holding the key.</p>
+<h3 id="target-configsink-configpost-export-archivepgp-encryptionsign-with-private-key-secretsecret-schema"><code>target_config.sink_config.post_export_archive.pgp_encryption.sign_with_private_key_secret.secret_schema</code><a class="headerlink" href="#target-configsink-configpost-export-archivepgp-encryptionsign-with-private-key-secretsecret-schema" title="Permanent link">&para;</a></h3>
+<p>Unity Catalog secret schema.</p>
 <p><strong>Type</strong> <code>string</code> · <strong>Required</strong> no · <strong>Section</strong> Target · sink config</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-96-1" name="__codelineno-96-1" href="#__codelineno-96-1"></a><span class="p">{</span>
 <a id="__codelineno-96-2" name="__codelineno-96-2" href="#__codelineno-96-2"></a><span class="w">  </span><span class="nt">"target_config"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
 <a id="__codelineno-96-3" name="__codelineno-96-3" href="#__codelineno-96-3"></a><span class="w">    </span><span class="nt">"sink_config"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
 <a id="__codelineno-96-4" name="__codelineno-96-4" href="#__codelineno-96-4"></a><span class="w">      </span><span class="nt">"post_export_archive"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-96-5" name="__codelineno-96-5" href="#__codelineno-96-5"></a><span class="w">        </span><span class="nt">"secret"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-96-6" name="__codelineno-96-6" href="#__codelineno-96-6"></a><span class="w">          </span><span class="nt">"secret_catalog"</span><span class="p">:</span><span class="w"> </span><span class="s2">"{{catalog}}"</span>
-<a id="__codelineno-96-7" name="__codelineno-96-7" href="#__codelineno-96-7"></a><span class="w">        </span><span class="p">}</span>
-<a id="__codelineno-96-8" name="__codelineno-96-8" href="#__codelineno-96-8"></a><span class="w">      </span><span class="p">}</span>
-<a id="__codelineno-96-9" name="__codelineno-96-9" href="#__codelineno-96-9"></a><span class="w">    </span><span class="p">}</span>
-<a id="__codelineno-96-10" name="__codelineno-96-10" href="#__codelineno-96-10"></a><span class="w">  </span><span class="p">}</span>
-<a id="__codelineno-96-11" name="__codelineno-96-11" href="#__codelineno-96-11"></a><span class="p">}</span>
+<a id="__codelineno-96-5" name="__codelineno-96-5" href="#__codelineno-96-5"></a><span class="w">        </span><span class="nt">"pgp_encryption"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-96-6" name="__codelineno-96-6" href="#__codelineno-96-6"></a><span class="w">          </span><span class="nt">"sign_with_private_key_secret"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-96-7" name="__codelineno-96-7" href="#__codelineno-96-7"></a><span class="w">            </span><span class="nt">"secret_schema"</span><span class="p">:</span><span class="w"> </span><span class="s2">"security"</span>
+<a id="__codelineno-96-8" name="__codelineno-96-8" href="#__codelineno-96-8"></a><span class="w">          </span><span class="p">}</span>
+<a id="__codelineno-96-9" name="__codelineno-96-9" href="#__codelineno-96-9"></a><span class="w">        </span><span class="p">}</span>
+<a id="__codelineno-96-10" name="__codelineno-96-10" href="#__codelineno-96-10"></a><span class="w">      </span><span class="p">}</span>
+<a id="__codelineno-96-11" name="__codelineno-96-11" href="#__codelineno-96-11"></a><span class="w">    </span><span class="p">}</span>
+<a id="__codelineno-96-12" name="__codelineno-96-12" href="#__codelineno-96-12"></a><span class="w">  </span><span class="p">}</span>
+<a id="__codelineno-96-13" name="__codelineno-96-13" href="#__codelineno-96-13"></a><span class="p">}</span>
 </code></pre></div>
 <div class="admonition tip">
 <p class="admonition-title">Best practice</p>
@@ -8524,16 +8623,15 @@ without leaving the form.</p>
 </div>
 <p><strong>Databricks documentation:</strong> <a href="https://docs.databricks.com/security/secrets/index.html">secrets</a> · <a href="https://docs.databricks.com/data-governance/unity-catalog/manage-privileges/privileges.html">uc privileges</a></p>
 <hr />
-<h3 id="target-configsink-configpost-export-archivesecretsecret-key"><code>target_config.sink_config.post_export_archive.secret.secret_key</code><a class="headerlink" href="#target-configsink-configpost-export-archivesecretsecret-key" title="Permanent link">&para;</a></h3>
-<p>UC secret key name.</p>
-<p>UC secret key name. AES keys must be exactly 16, 24 or 32 bytes.</p>
+<h3 id="target-configsink-configpost-export-archivesecretsecret-catalog"><code>target_config.sink_config.post_export_archive.secret.secret_catalog</code><a class="headerlink" href="#target-configsink-configpost-export-archivesecretsecret-catalog" title="Permanent link">&para;</a></h3>
+<p>Unity Catalog secret catalog holding the key.</p>
 <p><strong>Type</strong> <code>string</code> · <strong>Required</strong> no · <strong>Section</strong> Target · sink config</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-97-1" name="__codelineno-97-1" href="#__codelineno-97-1"></a><span class="p">{</span>
 <a id="__codelineno-97-2" name="__codelineno-97-2" href="#__codelineno-97-2"></a><span class="w">  </span><span class="nt">"target_config"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
 <a id="__codelineno-97-3" name="__codelineno-97-3" href="#__codelineno-97-3"></a><span class="w">    </span><span class="nt">"sink_config"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
 <a id="__codelineno-97-4" name="__codelineno-97-4" href="#__codelineno-97-4"></a><span class="w">      </span><span class="nt">"post_export_archive"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
 <a id="__codelineno-97-5" name="__codelineno-97-5" href="#__codelineno-97-5"></a><span class="w">        </span><span class="nt">"secret"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-97-6" name="__codelineno-97-6" href="#__codelineno-97-6"></a><span class="w">          </span><span class="nt">"secret_key"</span><span class="p">:</span><span class="w"> </span><span class="s2">"pii_encryption_key"</span>
+<a id="__codelineno-97-6" name="__codelineno-97-6" href="#__codelineno-97-6"></a><span class="w">          </span><span class="nt">"secret_catalog"</span><span class="p">:</span><span class="w"> </span><span class="s2">"{{catalog}}"</span>
 <a id="__codelineno-97-7" name="__codelineno-97-7" href="#__codelineno-97-7"></a><span class="w">        </span><span class="p">}</span>
 <a id="__codelineno-97-8" name="__codelineno-97-8" href="#__codelineno-97-8"></a><span class="w">      </span><span class="p">}</span>
 <a id="__codelineno-97-9" name="__codelineno-97-9" href="#__codelineno-97-9"></a><span class="w">    </span><span class="p">}</span>
@@ -8548,15 +8646,16 @@ without leaving the form.</p>
 </div>
 <p><strong>Databricks documentation:</strong> <a href="https://docs.databricks.com/security/secrets/index.html">secrets</a> · <a href="https://docs.databricks.com/data-governance/unity-catalog/manage-privileges/privileges.html">uc privileges</a></p>
 <hr />
-<h3 id="target-configsink-configpost-export-archivesecretsecret-schema"><code>target_config.sink_config.post_export_archive.secret.secret_schema</code><a class="headerlink" href="#target-configsink-configpost-export-archivesecretsecret-schema" title="Permanent link">&para;</a></h3>
-<p>Unity Catalog secret schema.</p>
+<h3 id="target-configsink-configpost-export-archivesecretsecret-key"><code>target_config.sink_config.post_export_archive.secret.secret_key</code><a class="headerlink" href="#target-configsink-configpost-export-archivesecretsecret-key" title="Permanent link">&para;</a></h3>
+<p>UC secret key name.</p>
+<p>UC secret key name. AES keys must be exactly 16, 24 or 32 bytes.</p>
 <p><strong>Type</strong> <code>string</code> · <strong>Required</strong> no · <strong>Section</strong> Target · sink config</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-98-1" name="__codelineno-98-1" href="#__codelineno-98-1"></a><span class="p">{</span>
 <a id="__codelineno-98-2" name="__codelineno-98-2" href="#__codelineno-98-2"></a><span class="w">  </span><span class="nt">"target_config"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
 <a id="__codelineno-98-3" name="__codelineno-98-3" href="#__codelineno-98-3"></a><span class="w">    </span><span class="nt">"sink_config"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
 <a id="__codelineno-98-4" name="__codelineno-98-4" href="#__codelineno-98-4"></a><span class="w">      </span><span class="nt">"post_export_archive"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
 <a id="__codelineno-98-5" name="__codelineno-98-5" href="#__codelineno-98-5"></a><span class="w">        </span><span class="nt">"secret"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-98-6" name="__codelineno-98-6" href="#__codelineno-98-6"></a><span class="w">          </span><span class="nt">"secret_schema"</span><span class="p">:</span><span class="w"> </span><span class="s2">"security"</span>
+<a id="__codelineno-98-6" name="__codelineno-98-6" href="#__codelineno-98-6"></a><span class="w">          </span><span class="nt">"secret_key"</span><span class="p">:</span><span class="w"> </span><span class="s2">"pii_encryption_key"</span>
 <a id="__codelineno-98-7" name="__codelineno-98-7" href="#__codelineno-98-7"></a><span class="w">        </span><span class="p">}</span>
 <a id="__codelineno-98-8" name="__codelineno-98-8" href="#__codelineno-98-8"></a><span class="w">      </span><span class="p">}</span>
 <a id="__codelineno-98-9" name="__codelineno-98-9" href="#__codelineno-98-9"></a><span class="w">    </span><span class="p">}</span>
@@ -8571,11 +8670,34 @@ without leaving the form.</p>
 </div>
 <p><strong>Databricks documentation:</strong> <a href="https://docs.databricks.com/security/secrets/index.html">secrets</a> · <a href="https://docs.databricks.com/data-governance/unity-catalog/manage-privileges/privileges.html">uc privileges</a></p>
 <hr />
+<h3 id="target-configsink-configpost-export-archivesecretsecret-schema"><code>target_config.sink_config.post_export_archive.secret.secret_schema</code><a class="headerlink" href="#target-configsink-configpost-export-archivesecretsecret-schema" title="Permanent link">&para;</a></h3>
+<p>Unity Catalog secret schema.</p>
+<p><strong>Type</strong> <code>string</code> · <strong>Required</strong> no · <strong>Section</strong> Target · sink config</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-99-1" name="__codelineno-99-1" href="#__codelineno-99-1"></a><span class="p">{</span>
+<a id="__codelineno-99-2" name="__codelineno-99-2" href="#__codelineno-99-2"></a><span class="w">  </span><span class="nt">"target_config"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-99-3" name="__codelineno-99-3" href="#__codelineno-99-3"></a><span class="w">    </span><span class="nt">"sink_config"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-99-4" name="__codelineno-99-4" href="#__codelineno-99-4"></a><span class="w">      </span><span class="nt">"post_export_archive"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-99-5" name="__codelineno-99-5" href="#__codelineno-99-5"></a><span class="w">        </span><span class="nt">"secret"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-99-6" name="__codelineno-99-6" href="#__codelineno-99-6"></a><span class="w">          </span><span class="nt">"secret_schema"</span><span class="p">:</span><span class="w"> </span><span class="s2">"security"</span>
+<a id="__codelineno-99-7" name="__codelineno-99-7" href="#__codelineno-99-7"></a><span class="w">        </span><span class="p">}</span>
+<a id="__codelineno-99-8" name="__codelineno-99-8" href="#__codelineno-99-8"></a><span class="w">      </span><span class="p">}</span>
+<a id="__codelineno-99-9" name="__codelineno-99-9" href="#__codelineno-99-9"></a><span class="w">    </span><span class="p">}</span>
+<a id="__codelineno-99-10" name="__codelineno-99-10" href="#__codelineno-99-10"></a><span class="w">  </span><span class="p">}</span>
+<a id="__codelineno-99-11" name="__codelineno-99-11" href="#__codelineno-99-11"></a><span class="p">}</span>
+</code></pre></div>
+<div class="admonition tip">
+<p class="admonition-title">Best practice</p>
+<ul>
+<li>Only applies to some configurations; the form hides it when it is not relevant.</li>
+</ul>
+</div>
+<p><strong>Databricks documentation:</strong> <a href="https://docs.databricks.com/security/secrets/index.html">secrets</a> · <a href="https://docs.databricks.com/data-governance/unity-catalog/manage-privileges/privileges.html">uc privileges</a></p>
+<hr />
 <h3 id="target-configsink-configstaged-file-format"><code>target_config.sink_config.staged_file_format</code><a class="headerlink" href="#target-configsink-configstaged-file-format" title="Permanent link">&para;</a></h3>
 <p>File format of the staged export files a pgp_zip sink writes before archiving.</p>
 <p>json (the default when absent) writes JSON-Lines; csv writes RFC-4180 files with a header row, one file per written partition. Only meaningful when sink_config.format is pgp_zip.</p>
 <p><strong>Type</strong> <code>string (enum)</code> · <strong>Required</strong> no · <strong>Section</strong> Target · sink config</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-99-1" name="__codelineno-99-1" href="#__codelineno-99-1"></a><span class="nt">"sink_config"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nt">"format"</span><span class="p">:</span><span class="w"> </span><span class="s2">"pgp_zip"</span><span class="p">,</span><span class="w"> </span><span class="nt">"path"</span><span class="p">:</span><span class="w"> </span><span class="s2">"/Volumes/{{catalog}}/egress/orders/"</span><span class="p">,</span><span class="w"> </span><span class="nt">"staged_file_format"</span><span class="p">:</span><span class="w"> </span><span class="s2">"csv"</span><span class="w"> </span><span class="p">}</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-100-1" name="__codelineno-100-1" href="#__codelineno-100-1"></a><span class="nt">"sink_config"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nt">"format"</span><span class="p">:</span><span class="w"> </span><span class="s2">"pgp_zip"</span><span class="p">,</span><span class="w"> </span><span class="nt">"path"</span><span class="p">:</span><span class="w"> </span><span class="s2">"/Volumes/{{catalog}}/egress/orders/"</span><span class="p">,</span><span class="w"> </span><span class="nt">"staged_file_format"</span><span class="p">:</span><span class="w"> </span><span class="s2">"csv"</span><span class="w"> </span><span class="p">}</span>
 </code></pre></div>
 <div class="admonition tip">
 <p class="admonition-title">Best practice</p>
@@ -8596,15 +8718,15 @@ without leaving the form.</p>
 <p>The field separator for the staged CSV a pgp_zip sink writes.</p>
 <p>Before v1.7.4 the writer used Python's csv <code>excel</code> dialect with no override — comma-separated, always headered, CRLF-terminated. A supplier interface that specifies anything else simply could not be expressed, which is what UC6's pipe-delimited Leidos feed needed.</p>
 <p><strong>Type</strong> <code>string</code> · <strong>Required</strong> no · <strong>Section</strong> Target · sink config</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-100-1" name="__codelineno-100-1" href="#__codelineno-100-1"></a><span class="nt">"sink_config"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-100-2" name="__codelineno-100-2" href="#__codelineno-100-2"></a><span class="w">  </span><span class="nt">"format"</span><span class="p">:</span><span class="w"> </span><span class="s2">"pgp_zip"</span><span class="p">,</span>
-<a id="__codelineno-100-3" name="__codelineno-100-3" href="#__codelineno-100-3"></a><span class="w">  </span><span class="nt">"staged_file_format"</span><span class="p">:</span><span class="w"> </span><span class="s2">"csv"</span><span class="p">,</span>
-<a id="__codelineno-100-4" name="__codelineno-100-4" href="#__codelineno-100-4"></a><span class="w">  </span><span class="nt">"staged_file_options"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-100-5" name="__codelineno-100-5" href="#__codelineno-100-5"></a><span class="w">    </span><span class="nt">"delimiter"</span><span class="p">:</span><span class="w"> </span><span class="s2">"|"</span><span class="p">,</span>
-<a id="__codelineno-100-6" name="__codelineno-100-6" href="#__codelineno-100-6"></a><span class="w">    </span><span class="nt">"include_header"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
-<a id="__codelineno-100-7" name="__codelineno-100-7" href="#__codelineno-100-7"></a><span class="w">    </span><span class="nt">"line_terminator"</span><span class="p">:</span><span class="w"> </span><span class="s2">"lf"</span>
-<a id="__codelineno-100-8" name="__codelineno-100-8" href="#__codelineno-100-8"></a><span class="w">  </span><span class="p">}</span>
-<a id="__codelineno-100-9" name="__codelineno-100-9" href="#__codelineno-100-9"></a><span class="p">}</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-101-1" name="__codelineno-101-1" href="#__codelineno-101-1"></a><span class="nt">"sink_config"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-101-2" name="__codelineno-101-2" href="#__codelineno-101-2"></a><span class="w">  </span><span class="nt">"format"</span><span class="p">:</span><span class="w"> </span><span class="s2">"pgp_zip"</span><span class="p">,</span>
+<a id="__codelineno-101-3" name="__codelineno-101-3" href="#__codelineno-101-3"></a><span class="w">  </span><span class="nt">"staged_file_format"</span><span class="p">:</span><span class="w"> </span><span class="s2">"csv"</span><span class="p">,</span>
+<a id="__codelineno-101-4" name="__codelineno-101-4" href="#__codelineno-101-4"></a><span class="w">  </span><span class="nt">"staged_file_options"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-101-5" name="__codelineno-101-5" href="#__codelineno-101-5"></a><span class="w">    </span><span class="nt">"delimiter"</span><span class="p">:</span><span class="w"> </span><span class="s2">"|"</span><span class="p">,</span>
+<a id="__codelineno-101-6" name="__codelineno-101-6" href="#__codelineno-101-6"></a><span class="w">    </span><span class="nt">"include_header"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+<a id="__codelineno-101-7" name="__codelineno-101-7" href="#__codelineno-101-7"></a><span class="w">    </span><span class="nt">"line_terminator"</span><span class="p">:</span><span class="w"> </span><span class="s2">"lf"</span>
+<a id="__codelineno-101-8" name="__codelineno-101-8" href="#__codelineno-101-8"></a><span class="w">  </span><span class="p">}</span>
+<a id="__codelineno-101-9" name="__codelineno-101-9" href="#__codelineno-101-9"></a><span class="p">}</span>
 </code></pre></div>
 <div class="admonition tip">
 <p class="admonition-title">Best practice</p>
@@ -8626,15 +8748,15 @@ without leaving the form.</p>
 <p>Write the header row.</p>
 <p>Write the header row. Absent = true. Set false for a supplier interface that specifies a headerless body. NOTE: with archive_format gzip the header is emitted per partition and all but the first are dropped on concatenation.</p>
 <p><strong>Type</strong> <code>boolean</code> · <strong>Required</strong> no · <strong>Section</strong> Target · sink config</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-101-1" name="__codelineno-101-1" href="#__codelineno-101-1"></a><span class="p">{</span>
-<a id="__codelineno-101-2" name="__codelineno-101-2" href="#__codelineno-101-2"></a><span class="w">  </span><span class="nt">"target_config"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-101-3" name="__codelineno-101-3" href="#__codelineno-101-3"></a><span class="w">    </span><span class="nt">"sink_config"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-101-4" name="__codelineno-101-4" href="#__codelineno-101-4"></a><span class="w">      </span><span class="nt">"staged_file_options"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-101-5" name="__codelineno-101-5" href="#__codelineno-101-5"></a><span class="w">        </span><span class="nt">"include_header"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span>
-<a id="__codelineno-101-6" name="__codelineno-101-6" href="#__codelineno-101-6"></a><span class="w">      </span><span class="p">}</span>
-<a id="__codelineno-101-7" name="__codelineno-101-7" href="#__codelineno-101-7"></a><span class="w">    </span><span class="p">}</span>
-<a id="__codelineno-101-8" name="__codelineno-101-8" href="#__codelineno-101-8"></a><span class="w">  </span><span class="p">}</span>
-<a id="__codelineno-101-9" name="__codelineno-101-9" href="#__codelineno-101-9"></a><span class="p">}</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-102-1" name="__codelineno-102-1" href="#__codelineno-102-1"></a><span class="p">{</span>
+<a id="__codelineno-102-2" name="__codelineno-102-2" href="#__codelineno-102-2"></a><span class="w">  </span><span class="nt">"target_config"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-102-3" name="__codelineno-102-3" href="#__codelineno-102-3"></a><span class="w">    </span><span class="nt">"sink_config"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-102-4" name="__codelineno-102-4" href="#__codelineno-102-4"></a><span class="w">      </span><span class="nt">"staged_file_options"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-102-5" name="__codelineno-102-5" href="#__codelineno-102-5"></a><span class="w">        </span><span class="nt">"include_header"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span>
+<a id="__codelineno-102-6" name="__codelineno-102-6" href="#__codelineno-102-6"></a><span class="w">      </span><span class="p">}</span>
+<a id="__codelineno-102-7" name="__codelineno-102-7" href="#__codelineno-102-7"></a><span class="w">    </span><span class="p">}</span>
+<a id="__codelineno-102-8" name="__codelineno-102-8" href="#__codelineno-102-8"></a><span class="w">  </span><span class="p">}</span>
+<a id="__codelineno-102-9" name="__codelineno-102-9" href="#__codelineno-102-9"></a><span class="p">}</span>
 </code></pre></div>
 <div class="admonition tip">
 <p class="admonition-title">Best practice</p>
@@ -8649,9 +8771,9 @@ without leaving the form.</p>
 <p>The record separator for the staged CSV: 'crlf' or 'lf'.</p>
 <p>Spelled as a name because JSON cannot carry a bare control character — you cannot write a literal CR in a JSON string and have it survive round-tripping.</p>
 <p><strong>Type</strong> <code>string (enum)</code> · <strong>Required</strong> no · <strong>Section</strong> Target · sink config</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-102-1" name="__codelineno-102-1" href="#__codelineno-102-1"></a><span class="nt">"staged_file_options"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nt">"line_terminator"</span><span class="p">:</span><span class="w"> </span><span class="s2">"lf"</span><span class="w"> </span><span class="p">}</span>
-<a id="__codelineno-102-2" name="__codelineno-102-2" href="#__codelineno-102-2"></a><span class="c1">// crlf (default when absent) = RFC-4180, the pre-1.7.4 behaviour</span>
-<a id="__codelineno-102-3" name="__codelineno-102-3" href="#__codelineno-102-3"></a><span class="c1">// lf                          = bare \n, what most Unix consumers expect</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-103-1" name="__codelineno-103-1" href="#__codelineno-103-1"></a><span class="nt">"staged_file_options"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nt">"line_terminator"</span><span class="p">:</span><span class="w"> </span><span class="s2">"lf"</span><span class="w"> </span><span class="p">}</span>
+<a id="__codelineno-103-2" name="__codelineno-103-2" href="#__codelineno-103-2"></a><span class="c1">// crlf (default when absent) = RFC-4180, the pre-1.7.4 behaviour</span>
+<a id="__codelineno-103-3" name="__codelineno-103-3" href="#__codelineno-103-3"></a><span class="c1">// lf                          = bare \n, what most Unix consumers expect</span>
 </code></pre></div>
 <div class="admonition tip">
 <p class="admonition-title">Best practice</p>
@@ -8671,13 +8793,13 @@ without leaving the form.</p>
 <p>Delta write mode.</p>
 <p>Delta write mode. Currently accepted but inert — @dlt.append_flow always appends.</p>
 <p><strong>Type</strong> <code>string (enum)</code> · <strong>Required</strong> no · <strong>Section</strong> Target · sink config</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-103-1" name="__codelineno-103-1" href="#__codelineno-103-1"></a><span class="p">{</span>
-<a id="__codelineno-103-2" name="__codelineno-103-2" href="#__codelineno-103-2"></a><span class="w">  </span><span class="nt">"target_config"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-103-3" name="__codelineno-103-3" href="#__codelineno-103-3"></a><span class="w">    </span><span class="nt">"sink_config"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-103-4" name="__codelineno-103-4" href="#__codelineno-103-4"></a><span class="w">      </span><span class="nt">"write_mode"</span><span class="p">:</span><span class="w"> </span><span class="s2">"append"</span>
-<a id="__codelineno-103-5" name="__codelineno-103-5" href="#__codelineno-103-5"></a><span class="w">    </span><span class="p">}</span>
-<a id="__codelineno-103-6" name="__codelineno-103-6" href="#__codelineno-103-6"></a><span class="w">  </span><span class="p">}</span>
-<a id="__codelineno-103-7" name="__codelineno-103-7" href="#__codelineno-103-7"></a><span class="p">}</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-104-1" name="__codelineno-104-1" href="#__codelineno-104-1"></a><span class="p">{</span>
+<a id="__codelineno-104-2" name="__codelineno-104-2" href="#__codelineno-104-2"></a><span class="w">  </span><span class="nt">"target_config"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-104-3" name="__codelineno-104-3" href="#__codelineno-104-3"></a><span class="w">    </span><span class="nt">"sink_config"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-104-4" name="__codelineno-104-4" href="#__codelineno-104-4"></a><span class="w">      </span><span class="nt">"write_mode"</span><span class="p">:</span><span class="w"> </span><span class="s2">"append"</span>
+<a id="__codelineno-104-5" name="__codelineno-104-5" href="#__codelineno-104-5"></a><span class="w">    </span><span class="p">}</span>
+<a id="__codelineno-104-6" name="__codelineno-104-6" href="#__codelineno-104-6"></a><span class="w">  </span><span class="p">}</span>
+<a id="__codelineno-104-7" name="__codelineno-104-7" href="#__codelineno-104-7"></a><span class="p">}</span>
 </code></pre></div>
 <div class="admonition tip">
 <p class="admonition-title">Best practice</p>
@@ -8691,11 +8813,11 @@ without leaving the form.</p>
 <p>Target table format.</p>
 <p>Target table format. iceberg is only valid when target_type is batch_table — for every other target type, leave this on delta and add the table property enable_iceberg_read_uniformity: true instead, which turns on Delta UniForm so Iceberg readers can read the Delta table.</p>
 <p><strong>Type</strong> <code>string (enum)</code> · <strong>Required</strong> no · <strong>Section</strong> Target · storage &amp; table</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-104-1" name="__codelineno-104-1" href="#__codelineno-104-1"></a><span class="p">{</span>
-<a id="__codelineno-104-2" name="__codelineno-104-2" href="#__codelineno-104-2"></a><span class="w">  </span><span class="nt">"target_config"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-104-3" name="__codelineno-104-3" href="#__codelineno-104-3"></a><span class="w">    </span><span class="nt">"storage_format"</span><span class="p">:</span><span class="w"> </span><span class="s2">"delta"</span>
-<a id="__codelineno-104-4" name="__codelineno-104-4" href="#__codelineno-104-4"></a><span class="w">  </span><span class="p">}</span>
-<a id="__codelineno-104-5" name="__codelineno-104-5" href="#__codelineno-104-5"></a><span class="p">}</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-105-1" name="__codelineno-105-1" href="#__codelineno-105-1"></a><span class="p">{</span>
+<a id="__codelineno-105-2" name="__codelineno-105-2" href="#__codelineno-105-2"></a><span class="w">  </span><span class="nt">"target_config"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-105-3" name="__codelineno-105-3" href="#__codelineno-105-3"></a><span class="w">    </span><span class="nt">"storage_format"</span><span class="p">:</span><span class="w"> </span><span class="s2">"delta"</span>
+<a id="__codelineno-105-4" name="__codelineno-105-4" href="#__codelineno-105-4"></a><span class="w">  </span><span class="p">}</span>
+<a id="__codelineno-105-5" name="__codelineno-105-5" href="#__codelineno-105-5"></a><span class="p">}</span>
 </code></pre></div>
 <div class="admonition tip">
 <p class="admonition-title">Best practice</p>
@@ -8710,10 +8832,10 @@ without leaving the form.</p>
 <p>Delta table properties applied to the target.</p>
 <p>Controls log retention, VACUUM safety windows, and Iceberg read compatibility.</p>
 <p><strong>Type</strong> <code>object&lt;string,string&gt;</code> · <strong>Required</strong> no · <strong>Section</strong> Target · storage &amp; table</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-105-1" name="__codelineno-105-1" href="#__codelineno-105-1"></a><span class="nt">"table_properties"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-105-2" name="__codelineno-105-2" href="#__codelineno-105-2"></a><span class="w">  </span><span class="nt">"log_retention_duration"</span><span class="p">:</span><span class="w"> </span><span class="s2">"interval 30 days"</span><span class="p">,</span>
-<a id="__codelineno-105-3" name="__codelineno-105-3" href="#__codelineno-105-3"></a><span class="w">  </span><span class="nt">"enable_iceberg_read_uniformity"</span><span class="p">:</span><span class="w"> </span><span class="s2">"true"</span>
-<a id="__codelineno-105-4" name="__codelineno-105-4" href="#__codelineno-105-4"></a><span class="p">}</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-106-1" name="__codelineno-106-1" href="#__codelineno-106-1"></a><span class="nt">"table_properties"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-106-2" name="__codelineno-106-2" href="#__codelineno-106-2"></a><span class="w">  </span><span class="nt">"log_retention_duration"</span><span class="p">:</span><span class="w"> </span><span class="s2">"interval 30 days"</span><span class="p">,</span>
+<a id="__codelineno-106-3" name="__codelineno-106-3" href="#__codelineno-106-3"></a><span class="w">  </span><span class="nt">"enable_iceberg_read_uniformity"</span><span class="p">:</span><span class="w"> </span><span class="s2">"true"</span>
+<a id="__codelineno-106-4" name="__codelineno-106-4" href="#__codelineno-106-4"></a><span class="p">}</span>
 </code></pre></div>
 <div class="admonition tip">
 <p class="admonition-title">Best practice</p>
@@ -8733,9 +8855,9 @@ without leaving the form.</p>
 <h3 id="target-schema"><code>target_schema</code><a class="headerlink" href="#target-schema" title="Permanent link">&para;</a></h3>
 <p>Schema for the target table.</p>
 <p><strong>Type</strong> <code>string</code> · <strong>Required</strong> yes · <strong>Section</strong> Target dataset</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-106-1" name="__codelineno-106-1" href="#__codelineno-106-1"></a><span class="p">{</span>
-<a id="__codelineno-106-2" name="__codelineno-106-2" href="#__codelineno-106-2"></a><span class="w">  </span><span class="nt">"target_schema"</span><span class="p">:</span><span class="w"> </span><span class="s2">"bronze_example"</span>
-<a id="__codelineno-106-3" name="__codelineno-106-3" href="#__codelineno-106-3"></a><span class="p">}</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-107-1" name="__codelineno-107-1" href="#__codelineno-107-1"></a><span class="p">{</span>
+<a id="__codelineno-107-2" name="__codelineno-107-2" href="#__codelineno-107-2"></a><span class="w">  </span><span class="nt">"target_schema"</span><span class="p">:</span><span class="w"> </span><span class="s2">"bronze_example"</span>
+<a id="__codelineno-107-3" name="__codelineno-107-3" href="#__codelineno-107-3"></a><span class="p">}</span>
 </code></pre></div>
 <div class="admonition tip">
 <p class="admonition-title">Best practice</p>
@@ -8747,9 +8869,9 @@ without leaving the form.</p>
 <h3 id="target-table"><code>target_table</code><a class="headerlink" href="#target-table" title="Permanent link">&para;</a></h3>
 <p>Target Delta table name.</p>
 <p><strong>Type</strong> <code>string</code> · <strong>Required</strong> yes · <strong>Section</strong> Target dataset</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-107-1" name="__codelineno-107-1" href="#__codelineno-107-1"></a><span class="p">{</span>
-<a id="__codelineno-107-2" name="__codelineno-107-2" href="#__codelineno-107-2"></a><span class="w">  </span><span class="nt">"target_table"</span><span class="p">:</span><span class="w"> </span><span class="s2">"example_raw"</span>
-<a id="__codelineno-107-3" name="__codelineno-107-3" href="#__codelineno-107-3"></a><span class="p">}</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-108-1" name="__codelineno-108-1" href="#__codelineno-108-1"></a><span class="p">{</span>
+<a id="__codelineno-108-2" name="__codelineno-108-2" href="#__codelineno-108-2"></a><span class="w">  </span><span class="nt">"target_table"</span><span class="p">:</span><span class="w"> </span><span class="s2">"example_raw"</span>
+<a id="__codelineno-108-3" name="__codelineno-108-3" href="#__codelineno-108-3"></a><span class="p">}</span>
 </code></pre></div>
 <div class="admonition tip">
 <p class="admonition-title">Best practice</p>
@@ -8762,7 +8884,7 @@ without leaving the form.</p>
 <p>The kind of Lakeflow dataset registered for this flow.</p>
 <p>Decides whether the target is incrementally maintained, fully recomputed, or export-only.</p>
 <p><strong>Type</strong> <code>string (enum)</code> · <strong>Required</strong> yes · <strong>Section</strong> Target dataset</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-108-1" name="__codelineno-108-1" href="#__codelineno-108-1"></a><span class="nt">"target_type"</span><span class="p">:</span><span class="w"> </span><span class="s2">"streaming_table"</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-109-1" name="__codelineno-109-1" href="#__codelineno-109-1"></a><span class="nt">"target_type"</span><span class="p">:</span><span class="w"> </span><span class="s2">"streaming_table"</span>
 </code></pre></div>
 <div class="admonition tip">
 <p class="admonition-title">Best practice</p>

@@ -2849,6 +2849,10 @@
       
         
       
+        
+      
+        
+      
     
     
     
@@ -2993,6 +2997,62 @@
     
   
     UC3 Excalibur master document
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../UC7/UC7_MASTER_DOCUMENT/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    UC7 CDR ASN.1 master document
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../UC7/UC7_PLAIN_ENGLISH_GUIDE/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    UC7 CDR ASN.1 plain-English guide
   
 
     
@@ -3791,6 +3851,66 @@ unconditionally required, so symmetric egress was unreachable from a spec.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="p">{</span><span class="w"> </span><span class="nt">"sink_config"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nt">"format"</span><span class="p">:</span><span class="w"> </span><span class="s2">"pgp_zip"</span><span class="p">,</span><span class="w"> </span><span class="nt">"path"</span><span class="p">:</span><span class="w"> </span><span class="s2">"/Volumes/flowx/staging/uc_6/output/_staging/tel/"</span><span class="p">,</span><span class="w"> </span><span class="nt">"staged_file_format"</span><span class="p">:</span><span class="w"> </span><span class="s2">"csv"</span><span class="p">,</span><span class="w"> </span><span class="nt">"staged_file_options"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nt">"delimiter"</span><span class="p">:</span><span class="w"> </span><span class="s2">"|"</span><span class="p">,</span><span class="w"> </span><span class="nt">"include_header"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span><span class="w"> </span><span class="nt">"line_terminator"</span><span class="p">:</span><span class="w"> </span><span class="s2">"lf"</span><span class="w"> </span><span class="p">},</span><span class="w"> </span><span class="nt">"post_export_archive"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nt">"enabled"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span><span class="w"> </span><span class="nt">"output_zip_path"</span><span class="p">:</span><span class="w"> </span><span class="s2">"/Volumes/flowx/staging/uc_6/output/"</span><span class="p">,</span><span class="w"> </span><span class="nt">"export_file_name_format"</span><span class="p">:</span><span class="w"> </span><span class="s2">"EE_2026-08-20-TELEPHONE_1of1"</span><span class="p">,</span><span class="w"> </span><span class="nt">"archive_format"</span><span class="p">:</span><span class="w"> </span><span class="s2">"gzip"</span><span class="p">,</span><span class="w"> </span><span class="nt">"pgp_encryption"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nt">"enabled"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span><span class="w"> </span><span class="nt">"passphrase_secret"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nt">"secret_catalog"</span><span class="p">:</span><span class="w"> </span><span class="s2">"flowx"</span><span class="p">,</span><span class="w"> </span><span class="nt">"secret_schema"</span><span class="p">:</span><span class="w"> </span><span class="s2">"config"</span><span class="p">,</span><span class="w"> </span><span class="nt">"secret_key"</span><span class="p">:</span><span class="w"> </span><span class="s2">"pgpkey"</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">}</span>
 </code></pre></div>
 <p>→ emits <code>EE_2026-08-20-TELEPHONE_1of1.csv.gz.gpg</code>, decryptable with a stock <code>gpg --decrypt</code>.</p>
+<hr />
+<h4 id="export-trigger-export_trigger-v175">Export trigger (<code>export_trigger</code>, v1.7.5)<a class="headerlink" href="#export-trigger-export_trigger-v175" title="Permanent link">&para;</a></h4>
+<p><code>sink_config.export_trigger</code> decides <strong>what drives the export</strong>:</p>
+<table>
+<thead>
+<tr>
+<th>Value</th>
+<th>Behaviour</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>"per_micro_batch"</code> (default when absent)</td>
+<td>The sink is fed from this flow's own staged view. One archive per micro-batch of an append-only stream. The only pre-v1.7.5 behaviour.</td>
+</tr>
+<tr>
+<td><code>"per_update"</code></td>
+<td>An update-scoped <strong>pulse</strong> drives the sink; the rows are read as a <strong>batch</strong>. Exactly one archive per pipeline update — including an update that ingested no new rows.</td>
+</tr>
+</tbody>
+</table>
+<h5 id="the-problem-per_update-exists-to-solve">The problem <code>"per_update"</code> exists to solve<a class="headerlink" href="#the-problem-per_update-exists-to-solve" title="Permanent link">&para;</a></h5>
+<p>Two facts, each individually reasonable, combined into a dead end:</p>
+<ol>
+<li>A Lakeflow sink is <strong>streaming-only</strong> — <em>"Only streaming queries are supported. Batch queries are not supported."</em></li>
+<li>Delta <strong>refuses to stream from a fully-recomputed table</strong> (<code>DELTA_SOURCE_TABLE_IGNORE_CHANGES</code>). <code>skipChangeCommits</code> is refused framework-wide because it silently drops changed rows.</li>
+</ol>
+<p>So an <strong>aggregating</strong> target — a <code>materialized_view</code>, or any <code>TRUNCATE_AND_LOAD</code> flow — could be computed and published, and then had <strong>no way to leave the platform as a file</strong>. Not a missing feature: a structural contradiction. A <code>GROUP BY</code> result was simply not exportable.</p>
+<h5 id="how-it-works-separate-the-trigger-from-the-payload">How it works: separate the trigger from the payload<a class="headerlink" href="#how-it-works-separate-the-trigger-from-the-payload" title="Permanent link">&para;</a></h5>
+<p>The default uses one stream for both — the staged view's rows are simultaneously <em>what schedules the write</em> and <em>what gets written</em>. That is why a non-streamable payload takes the trigger down with it. <code>"per_update"</code> splits them:</p>
+<ul>
+<li><strong>Trigger</strong> — a one-row streaming <em>pulse</em> (<code>_&lt;target_table&gt;_export_pulse</code>, a temporary dataset), deliberately independent of every business feed. It carries no data. Its only job is to make the append flow genuinely streaming, satisfying Lakeflow's constraint <strong>honestly</strong> rather than by relabelling metadata.</li>
+<li><strong>Payload</strong> — the staged view, read as a batch <code>dlt.read</code>. An aggregation is legal precisely because nothing streams it.</li>
+</ul>
+<p>The two are joined on a constant literal so the pulse's single row fans out across the payload; the gate column is dropped before any row reaches the sink.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="nt">"sink_config"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="w">  </span><span class="nt">"format"</span><span class="p">:</span><span class="w"> </span><span class="s2">"pgp_zip"</span><span class="p">,</span>
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="w">  </span><span class="nt">"path"</span><span class="p">:</span><span class="w"> </span><span class="s2">"/Volumes/{{catalog}}/staging/uc_6/output/_staging/tel/"</span><span class="p">,</span>
+<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="w">  </span><span class="nt">"staged_file_format"</span><span class="p">:</span><span class="w"> </span><span class="s2">"csv"</span><span class="p">,</span>
+<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="w">  </span><span class="nt">"staged_file_options"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nt">"delimiter"</span><span class="p">:</span><span class="w"> </span><span class="s2">"|"</span><span class="p">,</span><span class="w"> </span><span class="nt">"include_header"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span><span class="w"> </span><span class="nt">"line_terminator"</span><span class="p">:</span><span class="w"> </span><span class="s2">"lf"</span><span class="w"> </span><span class="p">},</span>
+<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="w">  </span><span class="nt">"export_trigger"</span><span class="p">:</span><span class="w"> </span><span class="s2">"per_update"</span><span class="p">,</span>
+<a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="w">  </span><span class="nt">"post_export_archive"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a><span class="w">    </span><span class="nt">"enabled"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+<a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a><span class="w">    </span><span class="nt">"output_zip_path"</span><span class="p">:</span><span class="w"> </span><span class="s2">"/Volumes/{{catalog}}/staging/uc_6/output/"</span><span class="p">,</span>
+<a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a><span class="w">    </span><span class="nt">"export_file_name_format"</span><span class="p">:</span><span class="w"> </span><span class="s2">"EE_${export_file_date}-LEIDOS_TELEPHONE_${export_file_sequence}"</span><span class="p">,</span>
+<a id="__codelineno-5-11" name="__codelineno-5-11" href="#__codelineno-5-11"></a><span class="w">    </span><span class="nt">"archive_format"</span><span class="p">:</span><span class="w"> </span><span class="s2">"gzip"</span>
+<a id="__codelineno-5-12" name="__codelineno-5-12" href="#__codelineno-5-12"></a><span class="w">  </span><span class="p">}</span>
+<a id="__codelineno-5-13" name="__codelineno-5-13" href="#__codelineno-5-13"></a><span class="p">}</span>
+</code></pre></div>
+<h5 id="why-the-pulse-is-a-rate-stream-and-not-an-upstream-business-feed">Why the pulse is a rate stream, and not an upstream business feed<a class="headerlink" href="#why-the-pulse-is-a-rate-stream-and-not-an-upstream-business-feed" title="Permanent link">&para;</a></h5>
+<p>This is the design decision worth understanding, because the obvious alternative is wrong.</p>
+<p>An earlier design pulsed off an upstream business stream. That fires per <strong>micro-batch of that stream</strong>, not per <strong>update</strong> — so an update in which the upstream advanced no offsets would recompute the aggregate and write <strong>no file at all</strong>. Silent missing output on a contractual feed is a worse failure than the error this feature removes.</p>
+<p>A rate-stream pulse is <strong>update-scoped</strong> instead. Verified live across three consecutive updates whose 2nd and 3rd ingested nothing: <strong>one export each, never zero.</strong></p>
+<h5 id="notes">Notes<a class="headerlink" href="#notes" title="Permanent link">&para;</a></h5>
+<ul>
+<li>The payload is read with <code>dlt.read</code>, never <code>spark.read.table</code> — lineage stays inside the graph (Single-Read DAG mandate rule 2), so the dependency is visible in the Lakeflow DAG and Lakeflow still orders the payload's computation before the export.</li>
+<li>Quarantined rows are filtered and the <code>__framework_dq_*</code> process columns dropped, identically to the default path. An export never leaks them, whatever triggered it.</li>
+<li><code>pgp_zip</code> only. <code>delta</code> and <code>kafka</code> are native Lakeflow sinks whose write cadence Lakeflow itself owns, so the attribute is presence-rejected there — the same contract as <code>staged_file_format</code>.</li>
+<li><strong>Do not</strong> work around the streaming error by relabelling an aggregating flow as a <code>streaming_table</code>. That silences a plan-time error and converts it into a runtime one, which is strictly worse.</li>
+</ul>
 <hr />
 <h2 id="3-eager-secret-resolution-principle">3. Eager Secret Resolution Principle<a class="headerlink" href="#3-eager-secret-resolution-principle" title="Permanent link">&para;</a></h2>
 <p>To ensure zero downtime and fail-fast validation:

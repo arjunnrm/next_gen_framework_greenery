@@ -554,6 +554,10 @@
       "page": "reference/json/ingestion-transformation/",
       "anchor": "#target-configsequence-by-column"
     },
+    "target_config.sink_config.export_trigger": {
+      "page": "reference/json/ingestion/",
+      "anchor": "#target-configsink-configexport-trigger"
+    },
     "target_config.sink_config.format": {
       "page": "reference/json/ingestion/",
       "anchor": "#target-configsink-configformat"

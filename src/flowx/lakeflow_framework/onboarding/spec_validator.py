@@ -303,9 +303,24 @@ ALLOWED_SOURCE_INPUT_KEYS = {
 }
 
 ALLOWED_SINK_CONFIG_KEYS = {
-    "format", "kafka_options", "kafka_secret_options", "path", "post_export_archive",
-    "staged_file_format", "staged_file_options", "write_mode"
+    "export_trigger", "format", "kafka_options", "kafka_secret_options", "path",
+    "post_export_archive", "staged_file_format", "staged_file_options", "write_mode"
 }
+
+#: ``sink_config.export_trigger`` (v1.7.5) -- WHAT drives a pgp_zip export.
+#:
+#: ``"per_micro_batch"`` (the default when absent, and the only pre-v1.7.5 behaviour) feeds the
+#: sink from the flow's own staged view, so one archive is produced per micro-batch of an
+#: append-only stream. That is correct for an append-only feed and IMPOSSIBLE for an
+#: aggregating one: a materialized_view / TRUNCATE_AND_LOAD target is fully recomputed each
+#: update, which Delta refuses to stream from at all (DELTA_SOURCE_TABLE_IGNORE_CHANGES), so
+#: those targets had no export path whatsoever before v1.7.5.
+#:
+#: ``"per_update"`` decouples the two: the sink is driven by an update-scoped pulse rather than
+#: by business rows, and the payload is read batch-side. Exactly one export per pipeline
+#: update, including an update in which no new source rows arrived -- verified live across
+#: three consecutive updates, the second and third of which ingested nothing.
+ALLOWED_EXPORT_TRIGGERS = {"per_micro_batch", "per_update"}
 
 #: ``sink_config.staged_file_options`` (v1.7.4) -- the staged CSV's dialect.
 ALLOWED_STAGED_FILE_OPTIONS_KEYS = {"delimiter", "include_header", "line_terminator"}
@@ -910,6 +925,26 @@ def _validate_sink_config(sink_config: Any, path_prefix: str, errors: List[str],
                 f"{path_prefix}.staged_file_format: only meaningful for format 'pgp_zip' (this "
                 f"framework's staging-then-archive sink); format {sink_format!r} is a native "
                 "Lakeflow sink with no staging step. Remove the attribute."
+            )
+
+    export_trigger = sink_config.get("export_trigger")
+    if export_trigger is not None:
+        # v1.7.5 -- see ALLOWED_EXPORT_TRIGGERS. Presence-rejected for the native sink formats
+        # for the same reason as staged_file_format: they have no framework-driven export step
+        # for a trigger to schedule, so accepting it would let a spec assert a cadence nothing
+        # honours.
+        if sink_format == "pgp_zip":
+            check_string(
+                export_trigger,
+                f"{path_prefix}.export_trigger",
+                errors,
+                allowed_values=ALLOWED_EXPORT_TRIGGERS,
+            )
+        else:
+            errors.append(
+                f"{path_prefix}.export_trigger: only meaningful for format 'pgp_zip' (this "
+                f"framework's staging-then-archive sink); format {sink_format!r} is a native "
+                "Lakeflow sink whose write cadence Lakeflow itself owns. Remove the attribute."
             )
 
     staged_file_options = sink_config.get("staged_file_options")

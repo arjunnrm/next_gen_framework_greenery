@@ -70,6 +70,28 @@ from flowx.lakeflow_framework.storage.table_properties import build_table_proper
 
 logger = logging.getLogger("flowx.lakeflow_framework.engine.sink_registration")
 
+#: Constant-literal join column for the v1.7.5 update-scoped export pulse. Carries the
+#: __framework_ prefix so it can never collide with a business column, and is dropped before
+#: any row reaches the sink.
+_PULSE_GATE_COLUMN = "__framework_export_pulse_gate"
+
+
+def _active_spark_session():
+    """The pipeline's active SparkSession.
+
+    Resolved at EXECUTION time inside the dataset closure, never captured at
+    graph-definition time -- a captured session would be serialized into the closure.
+    """
+    from pyspark.sql import SparkSession
+
+    session = SparkSession.getActiveSession()
+    if session is None:  # pragma: no cover - never None inside a live pipeline update
+        raise FrameworkConfigError(
+            "No active SparkSession: the update-scoped export pulse can only be built inside "
+            "a running Lakeflow pipeline update."
+        )
+    return session
+
 # Mirrors dq.quarantine._QUARANTINE_PROCESS_COLUMNS -- kept as a local literal (rather than
 # importing quarantine.py's private constant) since dq/quarantine.py is intentionally out of
 # this phase's file ownership; both modules must drop the same set of internal DQ-process
@@ -433,6 +455,26 @@ def register_sink_target(
     with logged_operation(
         "sink_registration", flow_label, target_table=target_table, target_type="sink", sink_format=(target_config.get("sink_config") or {}).get("format")
     ):
+        _sink_config_early = target_config.get("sink_config") or {}
+        if _sink_config_early.get("export_trigger") == "per_update":
+            # v1.7.5 -- the update-scoped export path. Deliberately branches BEFORE
+            # require_streaming_source: that guard exists because @dlt.append_flow is
+            # streaming-only, and this path satisfies it with an update-scoped PULSE rather
+            # than with business rows, so a batch (aggregating) payload is legal here. See
+            # register_per_update_sink_target for the full rationale.
+            register_per_update_sink_target(
+                flow_label=flow_label,
+                staged_view_name=staged_view_name,
+                target_table=target_table,
+                target_catalog=target_catalog,
+                target_schema=target_schema,
+                target_config=target_config,
+                dq_rules=dq_rules,
+                is_streaming=is_streaming,
+                quarantine_table_override=quarantine_table_override,
+            )
+            return
+
         require_streaming_source(
             flow_label,
             is_streaming,
@@ -467,6 +509,132 @@ def register_sink_target(
             sink_name,
             sink_config.get("format"),
         )
+
+
+def register_per_update_sink_target(
+    flow_label: str,
+    staged_view_name: str,
+    target_table: str,
+    target_catalog: str,
+    target_schema: str,
+    target_config: Dict[str, Any],
+    dq_rules: List[Dict[str, Any]],
+    is_streaming: bool,
+    quarantine_table_override: Optional[str] = None,
+) -> None:
+    """``sink_config.export_trigger: "per_update"`` -- one export per pipeline update (v1.7.5).
+
+    **The problem this exists to solve.** ``@dlt.append_flow`` is streaming-only, and Delta
+    refuses to stream from a table that is fully recomputed each update
+    (``DELTA_SOURCE_TABLE_IGNORE_CHANGES``; ``skipChangeCommits`` is refused framework-wide
+    because it silently drops changed rows). Those two facts together mean an **aggregating**
+    target -- a ``materialized_view``, or any ``TRUNCATE_AND_LOAD`` flow -- had NO export path
+    at all before v1.7.5. Not a missing feature: a structural contradiction. A ``GROUP BY``
+    result could be computed and published, and then could not leave the platform as a file.
+
+    **The fix: separate the TRIGGER from the PAYLOAD.** The default (``"per_micro_batch"``)
+    uses one stream for both -- the staged view's rows are simultaneously what schedules the
+    write and what gets written, which is why an aggregating (non-streamable) payload takes the
+    trigger down with it. Here they are decoupled:
+
+    * **Trigger** -- an update-scoped *pulse*: a one-row streaming source, deliberately
+      independent of every business feed, reduced to a single literal column. It carries no
+      data. Its only job is to make the append flow genuinely streaming, satisfying Lakeflow's
+      constraint honestly rather than by relabelling metadata.
+    * **Payload** -- the flow's staged view, read as a BATCH ``dlt.read``. An aggregation is
+      legal here precisely because nothing streams it.
+
+    The two are joined on a constant literal so the pulse's single row fans out across the
+    payload, and the gate column is dropped before any row reaches the sink. Net effect:
+    exactly one archive per update, containing the current aggregate.
+
+    **Why not a data-driven pulse** (the design this replaced). An earlier version pulsed off
+    an upstream business stream. That fires per MICRO-BATCH of that stream, not per update --
+    so an update in which the upstream advanced no offsets would recompute the aggregate and
+    write **no file at all**. Silent missing output on a contractual feed is a worse failure
+    than the error this feature removes. A rate-stream pulse is update-scoped instead, verified
+    live across three consecutive updates whose 2nd and 3rd ingested nothing: one invocation
+    each, never zero.
+
+    **Why the payload is not read via ``spark.read.table``.** That would bypass the Lakeflow
+    graph and violate the Single-Read DAG mandate's rule 2 (downstream lineage goes through
+    ``dlt.read``). ``dlt.read(staged_view_name)`` keeps the edge real, so the DAG still shows
+    the dependency and Lakeflow still orders the payload's computation before the export.
+
+    Quarantined rows are filtered and the ``_dq_*`` process columns dropped, identically to the
+    per-micro-batch path -- an export must never leak them regardless of what triggered it.
+    """
+    sink_config = target_config.get("sink_config") or {}
+    if not sink_config:
+        raise FrameworkConfigError(
+            f"Flow '{flow_label}': target_type 'sink' requires target_config.sink_config"
+        )
+
+    sink_format = sink_config.get("format")
+    if sink_format != "pgp_zip":
+        # Belt-and-braces: onboarding already rejects this, but a control-table row written by
+        # an older validator would otherwise reach here and take a path whose cadence the
+        # native sinks do not honour.
+        raise FrameworkConfigError(
+            f"Flow '{flow_label}': sink_config.export_trigger 'per_update' is only supported "
+            f"for format 'pgp_zip'; got {sink_format!r}."
+        )
+
+    _register_sink_quarantine_table_if_configured(
+        staged_view_name, target_table, target_catalog, target_schema, target_config, dq_rules,
+        is_streaming, quarantine_table_override,
+    )
+
+    pulse_table_name = f"_{target_table}_export_pulse"
+    sink_name = f"_{target_table}_sink"
+
+    @dlt.table(
+        name=pulse_table_name,
+        temporary=True,
+        comment=(
+            f"v1.7.5 update-scoped export pulse for '{target_table}'. One row, no business "
+            "data. Exists solely to make the export append_flow genuinely streaming so a "
+            "BATCH (aggregating) payload can be exported. Independent of every business feed "
+            "by design: it must tick even on an update that ingested nothing, or the export "
+            "would be silently skipped."
+        ),
+    )
+    def _export_pulse():
+        spark = _active_spark_session()
+        return (
+            spark.readStream.format("rate")
+            .option("rowsPerSecond", 1)
+            .load()
+            .select(F.lit(1).alias(_PULSE_GATE_COLUMN))
+            .limit(1)
+        )
+
+    _create_sink(flow_label, sink_name, sink_config)
+
+    @dlt.append_flow(
+        name=f"{target_table}_sink_flow",
+        target=sink_name,
+        comment=(
+            f"Update-scoped export of '{target_table}': pulse-triggered, batch payload "
+            "(export_trigger 'per_update')"
+        ),
+    )
+    def _sink_flow():
+        pulse = dlt.read_stream(pulse_table_name)
+        # dlt.read, NOT spark.read.table: keeps the lineage edge inside the graph (Single-Read
+        # DAG mandate rule 2) and lets Lakeflow order the payload's computation before this
+        # export runs. A batch read is exactly what makes an aggregating payload legal.
+        payload = dlt.read(staged_view_name).withColumn(_PULSE_GATE_COLUMN, F.lit(1))
+        # Equi-join on the constant: a non-equi join raises "Detected implicit cartesian
+        # product". The pulse's single row fans out across the payload rather than filtering it.
+        joined = payload.join(pulse, on=_PULSE_GATE_COLUMN, how="inner").drop(_PULSE_GATE_COLUMN)
+        return joined.filter(~F.col("__framework_dq_quarantine_flag")).drop(*_QUARANTINE_PROCESS_COLUMNS)
+
+    logger.info(
+        "Registered flow '%s' -> Lakeflow sink '%s' (format=%s, export_trigger=per_update, "
+        "pulse='%s', batch payload from '%s')",
+        flow_label, sink_name, sink_format, pulse_table_name, staged_view_name,
+    )
 
 
 def register_external_sink_export(

@@ -764,6 +764,13 @@
           ],
           "description": "v1.6.0, 'pgp_zip' only (presence-rejected for 'delta'/'kafka', which have no framework staging step): the staged per-partition file format inside the archive. 'json' (default when absent -- JSON-Lines, the only pre-v1.6.0 behaviour) or 'csv' (RFC-4180 with a header row; one staged file per non-empty partition per micro-batch, header order = the sink's write schema). See archive/pgp_zip_sink.py."
         },
+        "export_trigger": {
+          "enum": [
+            "per_micro_batch",
+            "per_update"
+          ],
+          "description": "v1.7.5, 'pgp_zip' only (presence-rejected for 'delta'/'kafka', whose write cadence Lakeflow itself owns): WHAT drives the export. 'per_micro_batch' (default when absent -- the only pre-v1.7.5 behaviour) feeds the sink from the flow's own staged view, producing one archive per micro-batch of an append-only stream. 'per_update' decouples trigger from payload: an update-scoped pulse drives the sink and the rows are read batch-side, producing exactly ONE export per pipeline update -- including an update that ingested no new rows. 'per_update' is what makes an aggregating materialized_view / TRUNCATE_AND_LOAD target exportable at all: such a target is fully recomputed each update, which Delta refuses to stream from (DELTA_SOURCE_TABLE_IGNORE_CHANGES), so before v1.7.5 it had no sink path. See engine/sink_registration.py."
+        },
         "staged_file_options": {
           "type": "object",
           "description": "v1.7.4. The staged CSV's dialect -- only valid alongside staged_file_format 'csv' (JSON-Lines has no delimiter or header). Before this, the writer used Python's csv `excel` default: comma-separated, always headered, CRLF-terminated, with no way to express a supplier interface that specifies otherwise.",
