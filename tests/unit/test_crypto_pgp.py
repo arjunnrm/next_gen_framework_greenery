@@ -13,7 +13,13 @@ exact class of bug if it ever regresses.
 
 import pytest
 
-from flowx.lakeflow_framework.crypto.pgp import pgp_decrypt, pgp_encrypt, pgp_verify
+from flowx.lakeflow_framework.crypto.pgp import (
+    pgp_decrypt,
+    pgp_decrypt_symmetric,
+    pgp_encrypt,
+    pgp_encrypt_symmetric,
+    pgp_verify,
+)
 from flowx.lakeflow_framework.exceptions import CryptoError
 
 pgpy = pytest.importorskip("pgpy")
@@ -190,3 +196,88 @@ def test_missing_pgpy_raises_clear_crypto_error(monkeypatch):
     monkeypatch.setattr(pgp_module, "_PGPY_AVAILABLE", False)
     with pytest.raises(CryptoError, match="PGPy"):
         pgp_encrypt(b"data", "not-a-real-key")
+
+
+# ---------------------------------------------------------------------------------------
+# Symmetric (passphrase) PGP -- v1.7.4, added for UC6's Environment Agency feed.
+#
+# These deliberately use the REAL PGPy encrypt/decrypt pair with no mocking, for the same
+# reason the asymmetric tests above do: the bug this module was previously bitten by
+# (bytearray vs bytes from a file=True message) is invisible to a mocked round-trip and only
+# surfaces against the genuine library.
+#
+# The gzip payloads are not incidental. UC6 encrypts an ALREADY-GZIPPED CSV, so the payload
+# is binary and non-UTF-8-decodable -- exactly the shape that triggered the original
+# bytearray bug. A test using a plain ASCII payload would pass even if the bug regressed.
+# ---------------------------------------------------------------------------------------
+
+UC6_PASSPHRASE = "EA-POC-Sample-2026!"
+
+
+def test_symmetric_round_trips_a_gzip_payload_exactly():
+    """The UC6 shape: gzip-then-encrypt, decrypt-then-gunzip, byte-identical."""
+    import gzip
+
+    original = b"targetAreaID|osapr|count|status\nT1|3040045625|1|Found\n"
+    encrypted = pgp_encrypt_symmetric(gzip.compress(original), UC6_PASSPHRASE)
+
+    assert encrypted.startswith(b"-----BEGIN PGP MESSAGE-----"), "must be ASCII-armored for an external gpg recipient"
+
+    decrypted = pgp_decrypt_symmetric(encrypted, UC6_PASSPHRASE)
+    assert isinstance(decrypted, bytes), "bytearray must be normalized to bytes -- see the module docstring"
+    assert gzip.decompress(decrypted) == original
+
+
+def test_symmetric_round_trips_arbitrary_binary_unchanged():
+    payload = bytes(range(256)) * 8
+    assert pgp_decrypt_symmetric(pgp_encrypt_symmetric(payload, UC6_PASSPHRASE), UC6_PASSPHRASE) == payload
+
+
+def test_symmetric_decrypt_with_wrong_passphrase_raises():
+    encrypted = pgp_encrypt_symmetric(b"sensitive", UC6_PASSPHRASE)
+    with pytest.raises(CryptoError):
+        pgp_decrypt_symmetric(encrypted, "not-the-passphrase")
+
+
+@pytest.mark.parametrize("empty", ["", None])
+def test_symmetric_requires_a_non_empty_passphrase(empty):
+    """An empty passphrase must fail loudly, never silently produce an unprotected message."""
+    with pytest.raises(CryptoError, match="passphrase"):
+        pgp_encrypt_symmetric(b"payload", empty)
+    with pytest.raises(CryptoError, match="passphrase"):
+        pgp_decrypt_symmetric(b"payload", empty)
+
+
+def test_symmetric_encrypt_rejects_an_unknown_cipher_by_name():
+    with pytest.raises(CryptoError, match="Unknown symmetric cipher"):
+        pgp_encrypt_symmetric(b"payload", UC6_PASSPHRASE, cipher="ROT13")
+
+
+def test_symmetric_default_cipher_is_aes256():
+    """UC6's interface specification mandates AES256; assert the default rather than trusting it."""
+    encrypted = pgp_encrypt_symmetric(b"payload", UC6_PASSPHRASE)
+    message = pgpy.PGPMessage.from_blob(encrypted)
+    # The Symmetric-Key Encrypted Session Key packet carries the algorithm the session key was
+    # wrapped under, on its `symalg` attribute (PGPy's spelling -- confirmed against a real
+    # SKESessionKeyV4 instance rather than assumed).
+    assert {packet.symalg for packet in message._sessionkeys} == {SymmetricKeyAlgorithm.AES256}
+
+    # And a non-default cipher is genuinely honoured, so asserting the default means something.
+    aes128 = pgpy.PGPMessage.from_blob(pgp_encrypt_symmetric(b"payload", UC6_PASSPHRASE, cipher="AES128"))
+    assert {packet.symalg for packet in aes128._sessionkeys} == {SymmetricKeyAlgorithm.AES128}
+
+
+def test_symmetric_decrypt_rejects_a_key_encrypted_message(keypair):
+    """A message encrypted TO A KEY is not passphrase-decryptable -- fail, don't half-work."""
+    public_key, _ = keypair
+    key_encrypted = pgp_encrypt(b"payload", public_key)
+    with pytest.raises(CryptoError):
+        pgp_decrypt_symmetric(key_encrypted, UC6_PASSPHRASE)
+
+
+def test_asymmetric_decrypt_rejects_a_symmetric_message(keypair):
+    """The mirror of the above: the two schemes must not silently cross over."""
+    _, private_key = keypair
+    symmetric = pgp_encrypt_symmetric(b"payload", UC6_PASSPHRASE)
+    with pytest.raises(CryptoError):
+        pgp_decrypt(symmetric, private_key)
