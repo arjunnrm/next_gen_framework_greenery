@@ -1,0 +1,107 @@
+# Drives the UC3 Excalibur batch-load + reconciliation group end to end:
+#
+#   setup_control_tables -> onboard_uc3_recon -> run_pipeline_update -> observability_export
+#
+# Self-contained and idempotent (control-table upsert + CREATE ... IF NOT EXISTS provisioning),
+# so it can be re-run at any time. Modelled directly on resources/uc7/uc7_cdr_asn_job.yml and
+# kept consistent with resources/uc3/uc3_streaming_cdc_job.yml.
+#
+# RUNTIME DEPENDENCY: this job must run AFTER 004_lfj_uc3_excalibur_streaming_cdc. The
+# reconciliation compares each batch table against flowx.bronze.<table>, which does not
+# exist until Job 2's pipeline has published it. Phase C order is Job 1 -> Job 2 -> Job 3, and
+# the three UC3 jobs must NOT be parallelised (see the setup_control_tables note below).
+#
+# ONBOARDING IS DELEGATED, NEVER INLINED. onboard_uc3_recon is a run_job_task against the generic
+# resources/flowx_config_jobs/onboarding_job.yml -- the single parameterised onboarding
+# entrypoint for the whole bundle (BUILD_CONTRACT.md section 7, and the repo's standing rule).
+# There is deliberately NO onboarding task or job defined here, and no notebook_task pointing at
+# 02_onboarding_engine.py. The older resources/feature_tests/flowx_test_*_job.yml files that pin
+# their own onboarding notebook_task are legacy drift; this file does not copy them.
+#
+# setup_control_tables is NOT boilerplate: it applies the additive control-table migration, and
+# `bundle deploy` does not apply it. It is kept here so this job stands alone even if Jobs 1/2
+# have not run in this workspace yet. The notebook is idempotent, so running it across all three
+# UC3 jobs is harmless PROVIDED they run sequentially -- concurrent runs risk the known Unity
+# Catalog create race, which is why Phase C never parallelises them.
+#
+# GOVERNANCE TAGGING IS A POST-DEPLOYMENT STEP, and needs its own task. The framework applies
+# `governance_tags` via control_plane/post_deployment.py::apply_all_governance_tags, which issues
+# ALTER TABLE ... SET TAGS / ALTER COLUMN ... SET TAGS against an ALREADY-MATERIALIZED table --
+# it is NOT part of the pipeline update. Phase C proved this the hard way: Job 2 succeeded end to
+# end with zero tags in information_schema.column_tags, because no task ever invoked it. The task
+# below calls notebooks/04_governance/04_apply_governance_and_egress.py after run_pipeline_update
+# (the table must exist first), mirroring resources/feature_tests/flowx_test_gov_001_tagging_job.yml.
+# This is still CONFIGURATION, not hand-written tagging: the tag values come from the spec's
+# governance_tags block and the DDL is the framework's own.
+#
+# PARAMETER CONTRACT for observability_export: pipeline_task_run_id must be a TASK
+# base_parameter, never a pipeline configuration: key. `{{tasks.<key>.run_id}}` is a Jobs dynamic
+# value resolved per job run, and a mistyped task_key is passed through as literal text rather
+# than failing at the platform layer -- runtime_params.py detects exactly that and names it. The
+# key below is `run_pipeline_update`, the task_key declared in this same file.
+#
+# NAME: 005_lfj_uc3_excalibur_batch_recon, driving pipeline 006_ldp_uc3_excalibur_batch_recon
+# -- 005/006, deliberately (BUILD_CONTRACT.md section 2).
+
+resources:
+  jobs:
+    uc3_batch_recon_job:
+      name: 005_lfj_uc3_excalibur_batch_recon
+
+      tasks:
+        - task_key: setup_control_tables
+          notebook_task:
+            notebook_path: ../../notebooks/01_setup/01_setup_control_tables.py
+            base_parameters:
+              catalog: ${var.catalog}
+          environment_key: framework_env
+
+        - task_key: onboard_uc3_recon
+          depends_on:
+            - task_key: setup_control_tables
+          run_job_task:
+            job_id: ${resources.jobs.onboarding_job.id}
+            job_parameters:
+              spec_file_path: "${workspace.file_path}/onboarding/uc3/uc3_excalibur_batch_recon.json"
+              catalog: ${var.catalog}
+              env: ${bundle.target}
+              action_type: CREATE
+
+        - task_key: run_pipeline_update
+          depends_on:
+            - task_key: onboard_uc3_recon
+          pipeline_task:
+            pipeline_id: ${resources.pipelines.uc3_batch_recon_pipeline.id}
+
+        - task_key: apply_governance_uc3_recon
+          depends_on:
+            - task_key: run_pipeline_update
+          notebook_task:
+            notebook_path: ../../notebooks/04_governance/04_apply_governance_and_egress.py
+            base_parameters:
+              catalog: ${var.catalog}
+              dataflow_group_id: dfg_uc3_excalibur_batch_recon
+              apply_abac: "true"
+              capture_cdc_change_counts: "false"
+          environment_key: framework_env
+
+        - task_key: observability_export
+          depends_on:
+            - task_key: apply_governance_uc3_recon
+          notebook_task:
+            notebook_path: ../../notebooks/08_observability/08_dlt_observability_engine.py
+            base_parameters:
+              dataflow_group_id: dfg_uc3_excalibur_batch_recon
+              catalog: ${var.catalog}
+              env: ${bundle.target}
+              pipeline_task_run_id: "{{tasks.run_pipeline_update.run_id}}"
+              service_name: dlt-observability-uc3-excalibur-batch-recon
+              fail_task_on_dispatch_error: "true"
+          environment_key: framework_env
+
+      environments:
+        - environment_key: framework_env
+          spec:
+            environment_version: "4"
+            dependencies:
+              - ../../dist/*.whl

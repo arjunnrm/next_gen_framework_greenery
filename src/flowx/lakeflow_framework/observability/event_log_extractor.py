@@ -266,8 +266,26 @@ def extract_raw_events(
         "start_ts": int(start_time_ms),
         "end_ts": int(end_time_ms),
     }
+    # PROJECT EXPLICITLY -- never `SELECT *`. event_log()'s `origin` is a ~30-field nested
+    # struct, and Spark Connect returns the result as multiple Arrow batches whose schemas
+    # disagree on nullability for it ("Schema at index 1 was different: origin: struct not null
+    # ... vs origin: struct"), so `.collect()` fails outright:
+    #   ObservabilityConfigError: Failed to query event_log(...): Schema at index 1 was
+    #   different: ... origin: struct not null ...
+    # Confirmed live on serverless against a 4-flow pipeline. Selecting the columns this
+    # function actually consumes -- and rebuilding `origin` from just the four subfields
+    # _flow_metrics/_flow_errors read (flow_id, update_id, flow_name, dataset_name) -- keeps the
+    # Arrow schema narrow and consistent across batches. Adding a field here means adding it to
+    # the named_struct too.
     query = (
-        "SELECT * FROM event_log(:pipeline_id) "
+        "SELECT id, timestamp, message, level, event_type, error, details, "
+        "named_struct("
+        "'flow_id', origin.flow_id, "
+        "'update_id', origin.update_id, "
+        "'flow_name', origin.flow_name, "
+        "'dataset_name', origin.dataset_name"
+        ") AS origin "
+        "FROM event_log(:pipeline_id) "
         "WHERE timestamp >= timestamp_millis(:start_ts) AND timestamp <= timestamp_millis(:end_ts)"
     )
     if update_ids:

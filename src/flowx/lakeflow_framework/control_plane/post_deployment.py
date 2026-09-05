@@ -54,7 +54,14 @@ from pyspark.sql import SparkSession
 
 from flowx.lakeflow_framework.cdc.change_metrics import capture_scd_change_counts
 from flowx.lakeflow_framework.control_plane.repository import load_active_group_metadata
-from flowx.lakeflow_framework.governance.tags import apply_governance_tags
+# apply_all_governance_tags MOVED to governance/tags.py in v1.7.x -- governance tagging is a
+# governance concern and now lives with the rest of the governance model, instead of sitting in
+# this module beside the unrelated CDC change-count capture. Re-exported here so the original
+# import path (and notebooks/04_governance/04_apply_governance_and_egress.py) keeps working.
+from flowx.lakeflow_framework.governance.tags import (  # noqa: F401
+    apply_all_governance_tags,
+    apply_governance_tags,
+)
 from flowx.lakeflow_framework.observability.structured_logger import log_flow_event
 from flowx.lakeflow_framework.storage.table_properties import qualified_table_name
 
@@ -68,31 +75,6 @@ logger = logging.getLogger("flowx.lakeflow_framework.control_plane.post_deployme
 # fact about the CDC engine, not something worth a shared-constant refactor across module
 # ownership boundaries for this phase.
 _CDC_DISPATCHED_STRATEGIES = {"SCD1", "SCD2", "SCD3", "FULL_SNAPSHOT_CDC"}
-
-
-def apply_all_governance_tags(spark: SparkSession, control_catalog: str, group_id: str) -> None:
-    """Apply governance tags (column + table) for every active flow in `group_id` with `governance_tags_json` set.
-
-    Tag DDL is naturally idempotent -- see ``governance/tags.py`` for why no idempotency
-    ledger is needed (v1's ``governance_applied_log`` is removed in the v2 schema).
-    """
-    md = load_active_group_metadata(spark, control_catalog, group_id)
-
-    for flow_row in list(md.ingestion_rows) + list(md.transformation_rows):
-        governance_tags_json = getattr(flow_row, "governance_tags_json", None)
-        if not governance_tags_json:
-            continue
-        governance_tags = json.loads(governance_tags_json)
-        if not governance_tags:
-            continue
-        apply_governance_tags(
-            spark,
-            flow_row.target_catalog,
-            flow_row.target_schema,
-            flow_row.target_table,
-            governance_tags,
-        )
-    logger.info("Governance tag application complete for group '%s'", group_id)
 
 
 def _advance_cdc_watermark(

@@ -281,7 +281,7 @@
         },
         "enable_iceberg_read_uniformity": {
           "type": "boolean",
-          "description": "delta.universalFormat.enabledFormats=iceberg -- valid for ANY target_type, unlike storage_format:'iceberg' which is batch_table-only."
+          "description": "Enables Iceberg read access (Delta UniForm). The emitted properties depend on target_type: a batch_table gets IcebergCompatV2 (columnMapping.mode=name, enableIcebergCompatV2, universalFormat.enabledFormats=iceberg); a pipeline-managed streaming_table/materialized_view gets IcebergCompatV3 instead (columnMapping.mode=name, enableIcebergCompatV3, enableRowTracking, pipelines.externalMetadata.enabled, universalFormat.enabledFormats=iceberg), because Databricks does not support IcebergCompatV2 on those types at all. NOTE: IcebergCompatV3 is mutually exclusive with Change Data Feed, so on a CDC-dispatched flow delta.enableChangeDataFeed is SUPPRESSED (logged at WARNING) and post-deployment SCD change-count capture will not work for that target. Valid for ANY target_type, unlike storage_format:'iceberg' which is batch_table-only."
         }
       },
       "additionalProperties": false,

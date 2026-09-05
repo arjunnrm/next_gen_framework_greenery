@@ -1,0 +1,37 @@
+# UC_7 CDR ASN.1 decoders -> flowx.bronze.
+#
+# Four ASN.1 ingestion flows (EMSC, PSGW, SGSN, TAP 3.10) share one dataflow group,
+# dfg_uc7_cdr_asn, defined in flowx_testing/UC7_cdr_asn_bronze.json. SMSC and MMSC are
+# deliberately NOT in the group: their raw payloads are CSV text, not ASN.1, and there is no
+# SMSC.asn1 module at all -- see UC7_CDR_ASN_Test_Report.md.
+#
+# One pipeline per dataflow group, by construction: a Lakeflow dataset has exactly one owning
+# pipeline, so this group's four tables are published by this pipeline and no other.
+#
+# The framework wheel is pinned by the `../../dist/*.whl` glob below, which DABs rewrites at
+# deploy time to <artifact_path>/.internal/, and artifact_path is
+# ${var.wheels_root}/${var.framework_version} = /Volumes/flowx/config/wheels/0.0.3. No version
+# string belongs in this file -- bump var.framework_version and pyproject.toml together instead.
+
+resources:
+  pipelines:
+    uc7_cdr_asn_pipeline:
+      name: 001_ldp_uc7_cdr_asn
+      catalog: flowx
+      schema: bronze
+      serverless: true
+      photon: true
+      development: true
+      continuous: false
+
+      libraries:
+        - notebook:
+            path: ../../notebooks/03_engine/03_lakeflow_declarative_pipeline.py
+
+      environment:
+        dependencies:
+          - ../../dist/*.whl
+
+      configuration:
+        dataflow.group.id: dfg_uc7_cdr_asn
+        dataflow.control.catalog: flowx

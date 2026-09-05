@@ -292,6 +292,7 @@ def register_main_and_quarantine_tables(
     needs_cdc_dispatch: bool,
     quarantine_table_override: Optional[str] = None,
     flow_label: Optional[str] = None,
+    target_type: Optional[str] = None,
 ) -> str:
     """Register the quarantine-filtered "clean" dataset, plus its sibling quarantine table if configured.
 
@@ -383,7 +384,7 @@ def register_main_and_quarantine_tables(
     """
     try:
         qualified_main_table = qualified_table_name(target_catalog, target_schema, target_table)
-        table_properties = build_table_properties(target_config)
+        table_properties = build_table_properties(target_config, target_type)
 
         def _clean_upstream():
             upstream = dlt.read_stream(base_view_name) if is_streaming else dlt.read(base_view_name)

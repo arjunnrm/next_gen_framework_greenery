@@ -299,12 +299,45 @@ As of v1.3.0 both columns — across ingestion, transformation, and reconciliati
 
 FlowX supports flexible parameter binding across deployment environments:
 
+**The two syntaxes have DIFFERENT lifecycles. Confusing them causes real, silent failures.**
+
+| | `{{catalog}}` / `{{env}}` | `${param}` |
+|---|---|---|
+| Resolved | **Onboarding time, once** | **Fresh on every pipeline update** |
+| By | `onboarding/spec_loader.py::substitute_environment_placeholders` — a raw-text replace on the spec file *before* it is parsed | `transformation/parameters.py::substitute_path_parameters` / `substitute_dynamic_parameters` |
+| Stored in the control tables as | the **resolved** value — the token is gone | the **raw placeholder** — resolved at read time |
+| Change it by | re-onboarding the spec | editing `pipeline_parameters` and re-running the pipeline (**no re-onboarding**) |
+
 ### Template Variables (Resolved at Onboarding Time)
 - `{{catalog}}`: Replaced with the active Unity Catalog catalog (e.g. `poc` in dev, `enterprise_prod` in prod).
 - `{{env}}`: Replaced with the deployment environment (e.g. `dev`, `stage`, `prod`).
 
+Because this is a plain text substitution over the whole file, it applies **anywhere** in the spec.
+
 ### Dynamic Runtime Parameters (`${param}`)
-Defined under root `pipeline_parameters` and dynamically substituted into SQL queries and filter expressions:
+
+Defined under root `pipeline_parameters` and substituted **at pipeline-update time**, not at
+onboarding. That is deliberate: it lets an operator retarget a group's paths or thresholds by
+editing `pipeline_parameters` and re-running, without re-onboarding the spec.
+
+**Where `${param}` applies — this is broader than SQL.** Every layer that reads a config JSON
+column resolves it:
+
+| Layer | Applies to |
+|---|---|
+| `engine/flow_generators.py` | `source_config_json`, `target_config_json` for ingestion and transformation flows |
+| `engine/source_plane.py` | `source_config_json` when building the base ingestion node — **this is what resolves `source_config.path`** |
+| `reconciliation/graph_registration.py` | `source_config_json`, `target_configs_json` |
+| `transformation_sql` / `filter_condition` | SQL text (via `substitute_dynamic_parameters`, which quotes strings) |
+
+> **`dq_config` is deliberately excluded** — its `expression` fields are SQL predicates, not paths.
+
+> **A missing parameter fails loudly at planning time**, naming the parameter, rather than letting
+> the literal text reach a reader. (Before v1.7.x the source plane silently skipped substitution,
+> and an unresolved path surfaced only as
+> `IllegalArgumentException: Path must be absolute: ${landing_root}/...` from inside Auto Loader.)
+
+Substituted into SQL queries, filter expressions **and file paths**:
 ```json
 {
   "pipeline_parameters": {

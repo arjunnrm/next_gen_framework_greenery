@@ -135,6 +135,17 @@ BIT_STRING_SPARK_TYPE = StructType(
 # underscore-prefixed convention for framework-added, non-source columns.
 CHOICE_DISCRIMINATOR_FIELD = "_choice"
 
+# Ordinal of a record within its source file (0-based). A concatenated-TLV CDR file yields N
+# rows that share every Auto Loader technical column (same path, same modificationTime), so
+# without this they are indistinguishable from one another; it is what makes a decoded row
+# traceable back to its exact position in the file it came from.
+RECORD_INDEX_FIELD = "_asn1_record_index"
+
+# Max decoded rows held in memory before a mapInPandas chunk is yielded. One CDR file can
+# explode into six figures of rows, and serverless caps a Python UDF at 1 GB; flushing on this
+# boundary keeps peak memory proportional to the chunk, not to the file.
+_DECODE_CHUNK_ROWS = 10000
+
 # ASN.1 "extension marker" (``...``) inside a SEQUENCE/SET/CHOICE body. ``asn1tools.parse_files``
 # emits it as a bare ``None`` entry in the node's ``members`` list rather than a member dict --
 # confirmed live against flowx_testing/BT_Testing/TAP.311.asn1, where 79 SEQUENCE/SET types
@@ -620,6 +631,74 @@ def _normalize_decoded_value(value: Any, node: Any, module_types: Dict[str, Any]
     return value
 
 
+def iter_ber_tlv_records(raw_bytes: bytes) -> Iterator[bytes]:
+    """Split a BER/DER payload into its top-level TLV records, yielding each one's own bytes.
+
+    Production CDR files are **concatenated TLVs**: one file holds N back-to-back top-level
+    records (a 42 MB SGSN ``.fin`` from ``/Volumes/flowx/landing/uc_7/raw/SGSN/`` holds
+    175,048 of them). The ingestion reader hands this function one whole file, because
+    ``ingestion/readers.py::read_asn1_source`` loads with ``cloudFiles.format=binaryFile``
+    -- the file *is* the row.
+
+    Calling ``asn1tools``' ``compiled.decode(pdu, whole_file)`` once on that payload returns
+    only the **first** record and silently discards the rest: asn1tools decodes one value and
+    ignores trailing octets rather than raising. That reported success while dropping
+    99.9994% of the SGSN file, which is a data-loss bug, not a decode result -- so the
+    partition decoder walks the payload with this function and emits one row per record.
+
+    A file holding exactly one top-level TLV (TAP, whose ``[APPLICATION 1] TransferBatch``
+    wraps its own ``CallEventDetailList``) yields exactly that one record, so batch-wrapped
+    formats are unaffected.
+
+    Only the *length* header of each record is parsed here -- never its content. An
+    indefinite-length record (``0x80``, seen in real EMSC and TAP files) cannot be skipped
+    without walking its interior, so it is yielded as the remainder of the payload and
+    iteration stops: that hands asn1tools exactly the bytes it would have received before,
+    preserving today's behaviour for those files rather than risking a mis-split.
+
+    Yields
+    ------
+    bytes
+        One top-level TLV per iteration, each independently decodable as ``pdu_name``.
+        A payload whose header is truncated/unparseable yields the unconsumed remainder,
+        letting the caller's own ``decode`` raise the real error into ``_asn1_decode_error``.
+    """
+    view = memoryview(raw_bytes)
+    total = len(view)
+    offset = 0
+    while offset < total:
+        start = offset
+        try:
+            offset += 1  # identifier octet
+            if view[start] & 0x1F == 0x1F:  # high-tag-number form: 7-bit continuation octets
+                while view[offset] & 0x80:
+                    offset += 1
+                offset += 1
+            length_octet = view[offset]
+            offset += 1
+            if length_octet == 0x80:
+                # Indefinite length: terminated by end-of-contents, only findable by walking
+                # the interior. Hand the caller everything left and stop -- see docstring.
+                yield bytes(view[start:])
+                return
+            if length_octet & 0x80:
+                n_octets = length_octet & 0x7F
+                length = int.from_bytes(bytes(view[offset : offset + n_octets]), "big")
+                offset += n_octets
+            else:
+                length = length_octet
+            end = offset + length
+            if end > total:
+                # Truncated final record: yield what is there so the decode error is real.
+                yield bytes(view[start:])
+                return
+        except IndexError:
+            yield bytes(view[start:])
+            return
+        yield bytes(view[start:end])
+        offset = end
+
+
 def make_partition_decoder(
     module_files: List[str],
     codec: str,
@@ -676,61 +755,87 @@ def make_partition_decoder(
     module_types = module_types or {}
     field_names = [field_def["name"] for field_def in field_defs]
     nodes_by_name = {field_def["name"]: field_def.get("asn1_node") for field_def in field_defs}
-    output_columns = passthrough_columns + field_names + ["_asn1_decode_error"]
+    output_columns = passthrough_columns + field_names + ["_asn1_decode_error", RECORD_INDEX_FIELD]
 
     def _decode_partition(batches: Iterator[pd.DataFrame]) -> Iterator[pd.DataFrame]:
         compiled = asn1tools.compile_files(module_files, codec)
+
+        def _decode_one(raw_bytes: Any, row_dict: Dict[str, Any]) -> Dict[str, Any]:
+            """Decode a single top-level record's bytes into one output row."""
+            result: Dict[str, Any] = {col: row_dict.get(col) for col in passthrough_columns}
+            for name in field_names:
+                result[name] = None
+            if raw_bytes is None:
+                result["_asn1_decode_error"] = "null_payload"
+            else:
+                try:
+                    decoded = compiled.decode(pdu_name, raw_bytes)
+                    if root_is_choice:
+                        # A root CHOICE decodes to a bare (arm_name, value) tuple, not a
+                        # dict -- spread it across the arm columns rather than .get()-ing
+                        # each column name out of something that has none.
+                        #
+                        # asn1tools does NOT raise when a CHOICE matches none of its arms:
+                        # it returns a bare ``(None, None)``. Confirmed live against
+                        # flowx_testing/BT_Testing/tap311_sample.ber, whose outer tag is
+                        # the high-tag-number form ``7f01`` where TAP.311's TransferBatch is
+                        # ``[APPLICATION 1]`` = short-form ``0x61`` -- i.e. the payload is
+                        # malformed for this PDU. Passing that through would write a row with
+                        # every arm NULL, a NULL discriminator and a NULL _asn1_decode_error:
+                        # a row indistinguishable from a successful decode of an empty record,
+                        # reported as SUCCESS. That is a data-integrity hazard, not a decode
+                        # result, so it is raised into this row's _asn1_decode_error instead.
+                        if not (isinstance(decoded, tuple) and len(decoded) == 2) or decoded[0] is None:
+                            raise Asn1DecodeError(
+                                f"ASN.1 CHOICE PDU '{pdu_name}' matched none of its arms -- "
+                                f"asn1tools returned {decoded!r} rather than raising. The payload "
+                                f"({len(raw_bytes)} bytes, leading octets "
+                                f"{bytes(raw_bytes[:8]).hex()}) does not encode this PDU: either it "
+                                f"is malformed/truncated, or asn1_pdu_name names the wrong root."
+                            )
+                        selected_name, selected_value = decoded
+                        result[CHOICE_DISCRIMINATOR_FIELD] = selected_name
+                        if selected_name in nodes_by_name:
+                            result[selected_name] = _normalize_decoded_value(
+                                selected_value, nodes_by_name[selected_name], module_types
+                            )
+                    else:
+                        for name in field_names:
+                            result[name] = _normalize_decoded_value(
+                                decoded.get(name), nodes_by_name.get(name), module_types
+                            )
+                    result["_asn1_decode_error"] = None
+                except Exception as decode_exc:  # noqa: BLE001 - isolate bad records, don't fail the batch
+                    result["_asn1_decode_error"] = f"{type(decode_exc).__name__}: {decode_exc}"
+            return result
+
         for batch in batches:
             records: List[Dict[str, Any]] = []
             for row in batch.itertuples(index=False):
                 row_dict = dict(zip(batch.columns, row))
                 raw_bytes = row_dict.get(binary_column)
-                result: Dict[str, Any] = {col: row_dict.get(col) for col in passthrough_columns}
-                for name in field_names:
-                    result[name] = None
                 if raw_bytes is None:
-                    result["_asn1_decode_error"] = "null_payload"
-                else:
-                    try:
-                        decoded = compiled.decode(pdu_name, raw_bytes)
-                        if root_is_choice:
-                            # A root CHOICE decodes to a bare (arm_name, value) tuple, not a
-                            # dict -- spread it across the arm columns rather than .get()-ing
-                            # each column name out of something that has none.
-                            #
-                            # asn1tools does NOT raise when a CHOICE matches none of its arms:
-                            # it returns a bare ``(None, None)``. Confirmed live against
-                            # flowx_testing/BT_Testing/tap311_sample.ber, whose outer tag is
-                            # the high-tag-number form ``7f01`` where TAP.311's TransferBatch is
-                            # ``[APPLICATION 1]`` = short-form ``0x61`` -- i.e. the payload is
-                            # malformed for this PDU. Passing that through would write a row with
-                            # every arm NULL, a NULL discriminator and a NULL _asn1_decode_error:
-                            # a row indistinguishable from a successful decode of an empty record,
-                            # reported as SUCCESS. That is a data-integrity hazard, not a decode
-                            # result, so it is raised into this row's _asn1_decode_error instead.
-                            if not (isinstance(decoded, tuple) and len(decoded) == 2) or decoded[0] is None:
-                                raise Asn1DecodeError(
-                                    f"ASN.1 CHOICE PDU '{pdu_name}' matched none of its arms -- "
-                                    f"asn1tools returned {decoded!r} rather than raising. The payload "
-                                    f"({len(raw_bytes)} bytes, leading octets "
-                                    f"{bytes(raw_bytes[:8]).hex()}) does not encode this PDU: either it "
-                                    f"is malformed/truncated, or asn1_pdu_name names the wrong root."
-                                )
-                            selected_name, selected_value = decoded
-                            result[CHOICE_DISCRIMINATOR_FIELD] = selected_name
-                            if selected_name in nodes_by_name:
-                                result[selected_name] = _normalize_decoded_value(
-                                    selected_value, nodes_by_name[selected_name], module_types
-                                )
-                        else:
-                            for name in field_names:
-                                result[name] = _normalize_decoded_value(
-                                    decoded.get(name), nodes_by_name.get(name), module_types
-                                )
-                        result["_asn1_decode_error"] = None
-                    except Exception as decode_exc:  # noqa: BLE001 - isolate bad records, don't fail the batch
-                        result["_asn1_decode_error"] = f"{type(decode_exc).__name__}: {decode_exc}"
-                records.append(result)
+                    records.append(_decode_one(None, row_dict))
+                    continue
+                # One row per top-level TLV, not one per file: a concatenated-TLV CDR file
+                # holds N records and decoding the payload once would silently keep only the
+                # first. See iter_ber_tlv_records for the measured data-loss this fixes.
+                for record_index, record_bytes in enumerate(iter_ber_tlv_records(bytes(raw_bytes))):
+                    decoded_row = _decode_one(record_bytes, row_dict)
+                    decoded_row[RECORD_INDEX_FIELD] = record_index
+                    records.append(decoded_row)
+                    # Flush in bounded chunks. One input row can explode into hundreds of
+                    # thousands of output rows (a 42 MB SGSN .fin holds 175,048 records),
+                    # and holding them all as decoded Python dicts before yielding overran
+                    # serverless's 1 GB per-UDF memory cap:
+                    # UDF_PYSPARK_USER_CODE_ERROR.MEMORY_LIMIT_SERVERLESS. mapInPandas
+                    # consumes a generator, so yielding here streams the partition instead
+                    # of materializing it.
+                    if len(records) >= _DECODE_CHUNK_ROWS:
+                        yield pd.DataFrame.from_records(records, columns=output_columns)
+                        records = []
+            # Always yield -- an empty final frame still carries the output schema, which is
+            # what mapInPandas needs when a partition produced no rows.
             yield pd.DataFrame.from_records(records, columns=output_columns)
 
     return _decode_partition
@@ -836,7 +941,14 @@ def decode_asn1_binary_stream(
 
     passthrough_fields = [f for f in df.schema.fields if f.name != binary_column]
     decoded_fields = [StructField(field_def["name"], field_def["spark_type"], True) for field_def in field_defs]
-    output_schema = StructType(passthrough_fields + decoded_fields + [StructField("_asn1_decode_error", StringType(), True)])
+    output_schema = StructType(
+        passthrough_fields
+        + decoded_fields
+        + [
+            StructField("_asn1_decode_error", StringType(), True),
+            StructField(RECORD_INDEX_FIELD, LongType(), True),
+        ]
+    )
 
     partition_decoder = make_partition_decoder(
         [schema_path],

@@ -1,0 +1,119 @@
+# UC3 Excalibur -- Job 1 of 3: the streaming simulator.
+#
+#   delta_table_setup -> stream_producer
+#
+# WHAT THIS IS, AND WHY IT IS HAND-WRITTEN CODE
+#
+# BUILD_CONTRACT.md 0.1 and 4: this is THE ONE job in the UC3 build that is legitimately
+# hand-written. It fakes a source system -- draining test CSVs on a timer to stand in for
+# ZeroBus/Kafka -- and there is no framework feature for "pretend to be a message bus".
+#
+# Everything else in UC3 is FlowX configuration. This job deliberately implements NO CDC,
+# NO hashing, NO tagging and NO SCD logic; those are Job 2's and Job 3's onboarding specs.
+# It only creates staging tables and moves rows into them.
+#
+# TYPE: a Lakeflow JOB (plain tasks), NOT a declarative pipeline. A pipeline would impose
+# the DLT dataset model on what is deliberately an imperative timer-driven producer.
+#
+# PARAMETERISATION (contract 1): `flowx` / `staging` appear ONLY as job-parameter
+# defaults and notebook widget defaults -- never inline in a notebook body. `catalog`
+# defaults to ${var.catalog}, which is `flowx` per the bundle's own variable.
+#
+# SCHEMA SOURCE (contract 6): the three staging tables' column lists are NOT hand-typed.
+# They are derived at run time from docs/UC3/{PHYSICAL_DEVICE,CUSTOMER,SUBSCRIBER}_DDL.csv
+# by notebooks/uc3/simulator/uc3_ddl_schema.py, which applies contract 6's parsing rules
+# (header-quirk fallbacks, the `Feed column name` ingestibility test) and 6.5's
+# Oracle->Spark type mapping. delta_table_setup asserts the resulting PK order, Drop(DF)
+# and Null(DF) sets against contract 3/4 BEFORE it issues any DDL.
+#
+# The CSVs reach the workspace because databricks.yml declares no `sync:` block, so the
+# whole repo (minus .gitignore) syncs to ${workspace.file_path}. `ddl_dir` is left empty so
+# the notebook resolves docs/UC3 relative to its own deployed location.
+#
+# PREREQUISITES, which this job deliberately does NOT create (contract 13 -- author, do not
+# execute; no CREATE SCHEMA in Phase B):
+#   - catalog  ${var.catalog}                       (UI-created workspace prerequisite)
+#   - schema   ${var.catalog}.staging           (check quota headroom first -- contract 1
+#                                                    records a 50-schema/volume ceiling)
+#   - volume   ${var.catalog}.staging.uc_3   (holding the generated test CSVs)
+# delta_table_setup fails with an actionable message if the schema is not reachable.
+#
+# IDEMPOTENT: every DDL is CREATE ... IF NOT EXISTS; the producer resumes from a Delta
+# cursor rather than reloading. Re-running after a full drain is a no-op.
+
+resources:
+  jobs:
+    uc3_streaming_simulator_job:
+      name: 003_lfj_uc3_excalibur_streaming_simulator
+
+      description: >-
+        UC3 Excalibur streaming simulator. Stands in for ZeroBus/Kafka by draining the
+        generated test CSVs from the landing volume into the three <table>_stream staging
+        tables on a timer, so Job 2's streaming CDC read sees multiple micro-batches.
+
+      # Contract 4 -- the job parameters. Everything downstream reads these; the notebooks
+      # carry the same values only as widget defaults.
+      parameters:
+        - name: catalog
+          default: ${var.catalog}
+        - name: schema
+          default: staging
+        - name: sleep_seconds
+          default: "20"
+
+      tasks:
+        # ------------------------------------------------------------------
+        # Task A -- idempotent CREATE TABLE IF NOT EXISTS for the three
+        # <table>_stream tables plus the producer's cursor table.
+        # ------------------------------------------------------------------
+        - task_key: delta_table_setup
+          notebook_task:
+            notebook_path: ../../notebooks/uc3/simulator/01_delta_table_setup.py
+            base_parameters:
+              catalog: "{{job.parameters.catalog}}"
+              schema: "{{job.parameters.schema}}"
+              # Empty => resolve docs/UC3 relative to the notebook's deployed location.
+              ddl_dir: ""
+          environment_key: framework_env
+
+        # ------------------------------------------------------------------
+        # Task B -- the timer-driven producer. Appends the next distinct slice
+        # of each source CSV every `sleep_seconds` until all three are drained.
+        #
+        # The three tables are drained in PARALLEL WITHIN Task B (a
+        # ThreadPoolExecutor of 3), not as three sub-tasks: they share one
+        # cursor table and one tick clock, so keeping them in a single task
+        # keeps the three streams advancing together and avoids three
+        # independently-drifting timers.
+        #
+        # chunk_size 15 sits in contract 4's ~10-20 band: 100 source rows
+        # spread over ~7 ticks per table.
+        #
+        # max_ticks is a hard ceiling so the loop CANNOT run forever even if
+        # the source were misconfigured; the normal exit is "all tables
+        # exhausted", which the task logs as a completion summary.
+        # ------------------------------------------------------------------
+        - task_key: stream_producer
+          depends_on:
+            - task_key: delta_table_setup
+          notebook_task:
+            notebook_path: ../../notebooks/uc3/simulator/02_stream_producer.py
+            base_parameters:
+              catalog: "{{job.parameters.catalog}}"
+              schema: "{{job.parameters.schema}}"
+              sleep_seconds: "{{job.parameters.sleep_seconds}}"
+              chunk_size: "15"
+              max_ticks: "200"
+              landing_subpath: "uc_3/streaming"
+              reset_offsets: "false"
+          environment_key: framework_env
+
+      # Serverless environment, matching the house style in resources/uc7/.
+      # The simulator itself does not import flowx, but the shared wheel keeps this job's
+      # runtime identical to every other job in the bundle.
+      environments:
+        - environment_key: framework_env
+          spec:
+            environment_version: "4"
+            dependencies:
+              - ../../dist/*.whl

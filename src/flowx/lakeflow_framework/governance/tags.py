@@ -10,9 +10,31 @@ masking/filtering based on that label is out of scope here.
 **Important**: ``ALTER TABLE ... SET TAGS`` / ``ALTER TABLE ... ALTER COLUMN ... SET TAGS``
 are Unity Catalog DDL operations against a materialized table. They must be invoked *after*
 a Lakeflow Declarative Pipeline update has created/updated the target table -- never from
-inside the pipeline's own graph-definition code. Call ``apply_governance_tags`` from a
-downstream orchestration step -- see ``03_engine/03_lakeflow_declarative_pipeline.py``'s
-``apply_all_governance_tags``.
+inside the pipeline's own graph-definition code. Call :func:`apply_all_governance_tags` (this module's group-level entrypoint) from a
+downstream orchestration step -- it is what ``notebooks/04_governance/
+04_apply_governance_and_egress.py`` invokes as its own job task. :func:`apply_governance_tags`
+is the single-table primitive underneath it.
+
+**Module ownership (v1.7.x)**: ``apply_all_governance_tags`` lives HERE, with the rest of the
+governance model, rather than in ``control_plane/post_deployment.py`` where it originally sat
+next to unrelated CDC change-count capture. Governance tagging is a governance concern: it reads
+``governance_tags_json`` and emits tag DDL, and shares nothing with the CDC watermark logic it
+used to be filed beside. ``post_deployment`` re-exports it for backward compatibility, so both
+import paths keep working.
+
+**Verifying that tags landed -- ALWAYS qualify the catalog.** ``information_schema`` is
+**catalog-scoped**, so an unqualified ``SELECT ... FROM information_schema.column_tags`` resolves
+against ``current_catalog()``. A SQL warehouse with no default catalog puts every session in
+``workspace``, where a freshly tagged table in another catalog does not appear -- the query
+truthfully returns 0 rows for the wrong catalog. This produced a real, long-lived misdiagnosis
+("tags are not supported on this workspace") when tags had in fact been applied correctly all
+along. Use one of::
+
+    SELECT * FROM <catalog>.information_schema.column_tags WHERE schema_name = '...';
+    SELECT * FROM system.information_schema.column_tags;   -- metastore-wide
+
+There is no ``SHOW TAGS`` statement in Databricks SQL; its ``PARSE_SYNTAX_ERROR`` says nothing
+about whether tagging works.
 
 **Idempotency**: unlike the v1 ABAC-policy-binding model (which needed an idempotency
 ledger, since re-issuing ``SET ROW FILTER``/``SET MASK`` with a *different* function could
@@ -21,6 +43,7 @@ key-value pair is a no-op, and applying a *changed* value for an existing key si
 overwrites it. No ledger table is needed (see docs/23 for the removal rationale).
 """
 
+import json
 import logging
 from typing import Any, Dict, List
 
@@ -120,3 +143,53 @@ def apply_governance_tags(
         raise AbacApplicationError(f"{len(errors)} governance tag application failure(s) on {qualified_table}: {errors}")
 
     logger.info("Successfully processed all governance tags for %s", qualified_table)
+
+
+def apply_all_governance_tags(spark: SparkSession, control_catalog: str, group_id: str) -> None:
+    """Apply governance tags (column + table) for every active flow in ``group_id``.
+
+    The group-level entrypoint: loads the group's active control-table metadata, and for each
+    ingestion/transformation flow carrying a non-empty ``governance_tags_json`` delegates to
+    :func:`apply_governance_tags`. Flows with no governance block are skipped silently -- tagging
+    is opt-in per flow.
+
+    This is a genuine *post-deployment* step and needs its own orchestration task. It issues
+    ``ALTER TABLE ... SET TAGS`` DDL against an already-materialized table, so it must run AFTER
+    the pipeline update that creates that table -- a Lakeflow pipeline cannot apply it from
+    inside its own graph-definition code. A pipeline that runs green with no tagging task applies
+    NO tags and reports no error, so verify the effect in ``information_schema.column_tags``
+    rather than inferring it from a successful run.
+
+    Tag DDL is naturally idempotent -- see this module's docstring for why no idempotency ledger
+    is needed (v1's ``governance_applied_log`` is removed in the v2 schema).
+
+    Parameters
+    ----------
+    spark:
+        Active session.
+    control_catalog:
+        Catalog holding the framework's control tables.
+    group_id:
+        ``dataflow_group_id`` whose active flows should be tagged.
+    """
+    # Imported lazily: control_plane.post_deployment re-exports this function, so a module-level
+    # import of the control plane here would create a governance <-> control_plane import cycle.
+    from flowx.lakeflow_framework.control_plane.repository import load_active_group_metadata
+
+    md = load_active_group_metadata(spark, control_catalog, group_id)
+
+    for flow_row in list(md.ingestion_rows) + list(md.transformation_rows):
+        governance_tags_json = getattr(flow_row, "governance_tags_json", None)
+        if not governance_tags_json:
+            continue
+        governance_tags = json.loads(governance_tags_json)
+        if not governance_tags:
+            continue
+        apply_governance_tags(
+            spark,
+            flow_row.target_catalog,
+            flow_row.target_schema,
+            flow_row.target_table,
+            governance_tags,
+        )
+    logger.info("Governance tag application complete for group '%s'", group_id)

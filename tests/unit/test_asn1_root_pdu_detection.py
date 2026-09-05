@@ -33,6 +33,7 @@ import pandas as pd
 import pytest
 
 from flowx.lakeflow_framework.asn1.decoder import (
+    RECORD_INDEX_FIELD,
     CHOICE_DISCRIMINATOR_FIELD,
     derive_asn1_field_defs,
     detect_root_pdu_name,
@@ -356,9 +357,13 @@ class TestUnmatchedChoiceIsNotSilentlyEmpty:
             pytest.skip(f"fixture not present: {sample}")
 
         result = self._decode_one(schema_path, "DataInterChange", sample.read_bytes())
-        assert len(result) == 1
-        assert result["_asn1_decode_error"].iloc[0] is None
-        assert result[CHOICE_DISCRIMINATOR_FIELD].iloc[0] in ("transferBatch", "notification")
+        # This fixture holds 10 records concatenated as back-to-back TLVs in ONE file. The
+        # decoder emits one row per record (iter_ber_tlv_records); it previously decoded the
+        # payload once and kept only the first, silently dropping 9 while reporting success.
+        assert len(result) == 10
+        assert result["_asn1_decode_error"].isna().all(), list(result["_asn1_decode_error"].dropna())
+        assert set(result[CHOICE_DISCRIMINATOR_FIELD]) <= {"transferBatch", "notification"}
+        assert list(result[RECORD_INDEX_FIELD]) == list(range(10))
 
     @pytest.mark.parametrize("filename,expected_root", _REAL_MODULES)
     def test_synthetic_payloads_decode_under_auto_detected_root(self, filename, expected_root):
@@ -377,6 +382,9 @@ class TestUnmatchedChoiceIsNotSilentlyEmpty:
         assert detected == expected_root
 
         result = self._decode_one(schema_path, detected, sample.read_bytes())
-        assert len(result) == 1
-        assert result["_asn1_decode_error"].iloc[0] is None, result["_asn1_decode_error"].iloc[0]
-        assert result[CHOICE_DISCRIMINATOR_FIELD].iloc[0] is not None
+        # One row per top-level TLV: these synthetic fixtures are concatenated-record files,
+        # so assert EVERY record decoded rather than just the first one.
+        assert len(result) >= 1
+        assert result["_asn1_decode_error"].isna().all(), list(result["_asn1_decode_error"].dropna())
+        assert result[CHOICE_DISCRIMINATOR_FIELD].notna().all()
+        assert list(result[RECORD_INDEX_FIELD]) == list(range(len(result)))

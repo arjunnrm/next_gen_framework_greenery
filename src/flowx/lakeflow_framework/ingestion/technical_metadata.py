@@ -10,10 +10,29 @@ from pyspark.sql import functions as F
 
 logger = logging.getLogger("common.ingestion.technical_metadata")
 
+#: ``{output column: (extraction expression, Spark type)}``.
+#:
+#: The TYPE is load-bearing and must match what ``_metadata`` natively produces: ``file_size`` is
+#: ``BIGINT`` and ``file_modification_time`` is ``TIMESTAMP``; only ``file_name`` is a ``STRING``.
+#: It is used to cast BOTH branches below -- the successful extraction and the NULL fallback --
+#: so the emitted schema is identical either way.
+#:
+#: Why that matters: ``_metadata`` is a FILE-SOURCE pseudo-column. Against a non-file source (a
+#: ``zerobus`` read of an existing Delta table) the expression may or may not resolve depending on
+#: how the plan is analysed, so the same flow can take either branch on different runs. When the
+#: fallback cast to ``string`` unconditionally while the success path yielded ``LongType``, the
+#: emitted schema FLIPPED between runs and Delta then refused to merge it::
+#:
+#:     [DELTA_FAILED_TO_MERGE_FIELDS] Failed to merge fields '__framework_source_file_size' ...
+#:     [DELTA_MERGE_INCOMPATIBLE_DATATYPE] Failed to merge incompatible data types
+#:                                          StringType and LongType
+#:
+#: That is a graph-ANALYSIS failure, so it killed the whole pipeline update (every table in the
+#: group, not just the one named). Pinning the type on both branches makes it deterministic.
 _METADATA_FIELD_EXTRACTIONS = {
-    "__framework_source_file_name": "_metadata.file_name",
-    "__framework_source_file_size": "_metadata.file_size",
-    "__framework_source_file_modification_time": "_metadata.file_modification_time",
+    "__framework_source_file_name": ("_metadata.file_name", "string"),
+    "__framework_source_file_size": ("_metadata.file_size", "bigint"),
+    "__framework_source_file_modification_time": ("_metadata.file_modification_time", "timestamp"),
 }
 
 FRAMEWORK_INGESTION_TIMESTAMP_COLUMN = "__framework_ingestion_timestamp_utc"
@@ -31,12 +50,14 @@ def attach_technical_metadata(df: DataFrame, source_config: Dict[str, Any]) -> D
         return df
 
     result_df = df
-    for output_col, source_expr in _METADATA_FIELD_EXTRACTIONS.items():
+    for output_col, (source_expr, spark_type) in _METADATA_FIELD_EXTRACTIONS.items():
         try:
-            result_df = result_df.withColumn(output_col, F.expr(source_expr))
+            # Cast the SUCCESS path too, not just the fallback -- the two must agree, and an
+            # explicit cast to the field's own native type is a no-op when it resolves.
+            result_df = result_df.withColumn(output_col, F.expr(source_expr).cast(spark_type))
         except Exception as exc:  # noqa: BLE001
             logger.warning("Metadata field '%s' unavailable for this source, defaulting to NULL: %s", source_expr, exc)
-            result_df = result_df.withColumn(output_col, F.lit(None).cast("string"))
+            result_df = result_df.withColumn(output_col, F.lit(None).cast(spark_type))
 
     try:
         # Real bug fixed here: this used to read `_metadata.file_metadata`, a field that has

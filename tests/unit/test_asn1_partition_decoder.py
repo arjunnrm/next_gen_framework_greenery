@@ -20,6 +20,8 @@ import pandas as pd
 
 from flowx.lakeflow_framework.asn1.decoder import (
     CHOICE_DISCRIMINATOR_FIELD,
+    RECORD_INDEX_FIELD,
+    iter_ber_tlv_records,
     make_partition_decoder,
 )
 
@@ -222,7 +224,14 @@ def test_output_columns_are_passthrough_plus_decoded_fields_plus_error_no_binary
         )
         result = list(decoder(iter([batch])))[0]
 
-    assert list(result.columns) == ["path", "modificationTime", "imsi", "callDurationSeconds", "_asn1_decode_error"]
+    assert list(result.columns) == [
+        "path",
+        "modificationTime",
+        "imsi",
+        "callDurationSeconds",
+        "_asn1_decode_error",
+        RECORD_INDEX_FIELD,
+    ]
     assert "content" not in result.columns
 
 
@@ -356,3 +365,158 @@ def test_root_choice_pdu_spreads_the_selected_arm_across_arm_columns():
     assert row["notification"] == {"sender": "BT", "seq": 4}
     assert row["transferBatch"] is None, "an unselected CHOICE arm must be NULL"
     assert row["_asn1_decode_error"] is None
+
+
+# ---------------------------------------------------------------------------
+# Multi-record (concatenated-TLV) files -- one row per record, not per file.
+#
+# Regression coverage for a measured data-loss bug: production CDR files hold N back-to-back
+# top-level TLVs, and the decoder used to call compiled.decode() once on the whole file.
+# asn1tools decodes the first value and ignores trailing octets rather than raising, so a
+# 42 MB SGSN file (/Volumes/flowx/landing/uc_7/raw/SGSN/, 175,048 records) ingested exactly
+# 1 row and reported SUCCESS, discarding 99.9994% of it.
+# ---------------------------------------------------------------------------
+
+
+def _tlv(tag: int, payload: bytes) -> bytes:
+    """Encode one short-form definite-length TLV (payload < 128 bytes)."""
+    assert len(payload) < 0x80
+    return bytes([tag, len(payload)]) + payload
+
+
+class TestIterBerTlvRecords:
+    def test_single_record_file_yields_exactly_that_record(self):
+        """A batch-wrapped format (TAP's [APPLICATION 1] TransferBatch) must be untouched."""
+        one = _tlv(0x61, b"batch-payload")
+        assert list(iter_ber_tlv_records(one)) == [one]
+
+    def test_concatenated_records_are_split_into_one_payload_each(self):
+        first, second, third = _tlv(0x30, b"aa"), _tlv(0x30, b"bbbb"), _tlv(0x31, b"c")
+        assert list(iter_ber_tlv_records(first + second + third)) == [first, second, third]
+
+    def test_long_form_length_header_is_parsed(self):
+        """0x82 => the next 2 octets are the length; a 300-byte record must not mis-split."""
+        payload = b"x" * 300
+        record = bytes([0x30, 0x82]) + (300).to_bytes(2, "big") + payload
+        assert list(iter_ber_tlv_records(record + record)) == [record, record]
+
+    def test_high_tag_number_form_identifier_is_skipped(self):
+        """bf4f (context tag 79) is the real leading tag of a PSGW .fin record."""
+        record = bytes([0xBF, 0x4F, 0x03]) + b"abc"
+        assert list(iter_ber_tlv_records(record + record)) == [record, record]
+
+    def test_indefinite_length_yields_remainder_and_stops(self):
+        """0x80 length cannot be skipped without walking the interior -- hand it over whole."""
+        payload = bytes([0x30, 0x80]) + b"anything at all"
+        assert list(iter_ber_tlv_records(payload)) == [payload]
+
+    def test_truncated_record_yields_remainder_so_the_decode_error_is_real(self):
+        """A length claiming more bytes than exist must not silently drop the tail."""
+        truncated = bytes([0x30, 0x40]) + b"only-a-few"
+        assert list(iter_ber_tlv_records(truncated)) == [truncated]
+
+    def test_empty_payload_yields_nothing(self):
+        assert list(iter_ber_tlv_records(b"")) == []
+
+
+class TestPartitionDecoderEmitsOneRowPerRecord:
+    def test_a_three_record_file_produces_three_rows_not_one(self):
+        decoder = make_partition_decoder(
+            module_files=["/x.asn"], codec="ber", pdu_name="CallDetailRecord", field_defs=FIELD_DEFS,
+            binary_column="content", passthrough_columns=["path"],
+        )
+        # _FakeCompiled.decode returns a fixed dict for any non-b"BAD" payload, so all three
+        # rows decode; what is under test is the row *count* and the per-row index.
+        content = _tlv(0x30, b"r1") + _tlv(0x30, b"r2") + _tlv(0x30, b"r3")
+        with patch("flowx.lakeflow_framework.asn1.decoder.asn1tools.compile_files", return_value=_FakeCompiled()):
+            batch = pd.DataFrame([{"path": "cdr.fin", "content": content}], columns=["path", "content"])
+            result = list(decoder(iter([batch])))[0]
+
+        assert len(result) == 3
+        assert list(result[RECORD_INDEX_FIELD]) == [0, 1, 2]
+        # Every row keeps the technical columns of the file it came from.
+        assert set(result["path"]) == {"cdr.fin"}
+        assert result["_asn1_decode_error"].isna().all()
+
+    def test_one_bad_record_is_quarantinable_without_losing_its_siblings(self):
+        """A corrupt record in the middle must not cost the file its other records."""
+        decoder = make_partition_decoder(
+            module_files=["/x.asn"], codec="ber", pdu_name="CallDetailRecord", field_defs=FIELD_DEFS,
+            binary_column="content", passthrough_columns=["path"],
+        )
+        content = _tlv(0x30, b"ok1") + _tlv(0x30, b"BAD") + _tlv(0x30, b"ok2")
+
+        class _FailsOnMiddleRecord:
+            """Raises for the record whose *payload* is b"BAD" -- the splitter passes the
+            whole TLV (header + payload), so match on containment, not equality."""
+
+            def decode(self, pdu_name, raw_bytes):
+                if b"BAD" in raw_bytes:
+                    raise ValueError("corrupt payload")
+                return {"imsi": raw_bytes.hex(), "callDurationSeconds": len(raw_bytes)}
+
+        with patch(
+            "flowx.lakeflow_framework.asn1.decoder.asn1tools.compile_files",
+            return_value=_FailsOnMiddleRecord(),
+        ):
+            batch = pd.DataFrame([{"path": "cdr.fin", "content": content}], columns=["path", "content"])
+            result = list(decoder(iter([batch])))[0]
+
+        assert len(result) == 3
+        errors = list(result["_asn1_decode_error"])
+        assert errors[0] is None and errors[2] is None
+        # The middle record carries the error text that dq_config routes to quarantine.
+        assert "corrupt payload" in errors[1]
+
+    def test_null_payload_still_yields_exactly_one_error_row(self):
+        decoder = make_partition_decoder(
+            module_files=["/x.asn"], codec="ber", pdu_name="CallDetailRecord", field_defs=FIELD_DEFS,
+            binary_column="content", passthrough_columns=["path"],
+        )
+        with patch("flowx.lakeflow_framework.asn1.decoder.asn1tools.compile_files", return_value=_FakeCompiled()):
+            batch = pd.DataFrame([{"path": "empty.fin", "content": None}], columns=["path", "content"])
+            result = list(decoder(iter([batch])))[0]
+
+        assert len(result) == 1
+        assert result["_asn1_decode_error"].iloc[0] == "null_payload"
+
+
+class TestChunkedYieldKeepsMemoryBounded:
+    """One input row can explode into six figures of output rows; accumulating them all before
+    yielding overran serverless's 1 GB per-UDF cap (MEMORY_LIMIT_SERVERLESS) on the real 42 MB
+    SGSN file. The decoder must stream chunks instead of materializing the whole partition."""
+
+    def test_a_file_larger_than_the_chunk_size_yields_multiple_frames(self):
+        from flowx.lakeflow_framework.asn1.decoder import _DECODE_CHUNK_ROWS
+
+        n_records = _DECODE_CHUNK_ROWS + 25
+        content = _tlv(0x30, b"r") * n_records
+        decoder = make_partition_decoder(
+            module_files=["/x.asn"], codec="ber", pdu_name="CallDetailRecord", field_defs=FIELD_DEFS,
+            binary_column="content", passthrough_columns=["path"],
+        )
+        with patch("flowx.lakeflow_framework.asn1.decoder.asn1tools.compile_files", return_value=_FakeCompiled()):
+            batch = pd.DataFrame([{"path": "big.fin", "content": content}], columns=["path", "content"])
+            frames = list(decoder(iter([batch])))
+
+        # Streamed, not materialized as one frame.
+        assert len(frames) > 1
+        # No row is lost or duplicated by the chunk boundary.
+        combined = pd.concat(frames, ignore_index=True)
+        assert len(combined) == n_records
+        assert list(combined[RECORD_INDEX_FIELD]) == list(range(n_records))
+
+    def test_partition_with_no_rows_still_yields_a_schema_bearing_frame(self):
+        decoder = make_partition_decoder(
+            module_files=["/x.asn"], codec="ber", pdu_name="CallDetailRecord", field_defs=FIELD_DEFS,
+            binary_column="content", passthrough_columns=["path"],
+        )
+        with patch("flowx.lakeflow_framework.asn1.decoder.asn1tools.compile_files", return_value=_FakeCompiled()):
+            empty = pd.DataFrame({"path": [], "content": []})
+            frames = list(decoder(iter([empty])))
+
+        assert len(frames) == 1
+        assert len(frames[0]) == 0
+        assert list(frames[0].columns) == [
+            "path", "imsi", "callDurationSeconds", "_asn1_decode_error", RECORD_INDEX_FIELD,
+        ]

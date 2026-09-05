@@ -354,6 +354,7 @@ def register_flow_output(
             needs_cdc_dispatch,
             quarantine_table_override=quarantine_table_override,
             flow_label=flow_label,
+            target_type=target_type,
         )
 
         if needs_cdc_dispatch:
@@ -365,7 +366,7 @@ def register_flow_output(
                 target_catalog,
                 target_schema,
                 target_config,
-                build_table_properties(target_config),
+                build_table_properties(target_config, target_type),
                 is_streaming,
             )
 

@@ -1,0 +1,619 @@
+{
+  "$schema": "../../onboarding_templates/onboarding_spec.schema.json",
+  "_purpose": "UC3 Excalibur Job 3 -- batch load + reconciliation + heal/append into bronze. Section 6 of the build prompt, governed by docs/UC3/BUILD_CONTRACT.md. PURE CONFIGURATION: no hand-written comparison, MERGE or hash exists anywhere in this build. The three ingestion_flows land the dated batch CSVs into flowx.staging.<table>_batch; the three reconciliation_flows compare each batch table against the Job 2 bronze target on the composite PK and heal the difference back into bronze through the framework's own append lane.",
+  "_provenance": {
+    "contract": "docs/UC3/BUILD_CONTRACT.md (sections 1-9), docs/UC3/FRAMEWORK_CAPABILITY_MAP.md",
+    "governance_source": "docs/UC3/{PHYSICAL_DEVICE,CUSTOMER,SUBSCRIBER}_DDL.csv -- every PK, Drop(DF)/Null(DF) flag, type and tag value below was read from these sheets, never hand-typed. Header quirks handled: 'Sesnitive Columns' is misspelled in the source and PHYSICAL_DEVICE spells the tier flag 'csql.securedro' (no underscore); both are read verbatim and emitted as csql_secured_ro.",
+    "column_metadata_reuse": "Column-level governance is NOT duplicated from Job 2. The bronze tables flowx.bronze.* are owned and tagged by dfg_uc3_excalibur_streaming_cdc (onboarding/uc3/uc3_excalibur_streaming_cdc.json). This spec tags only the staging tables it actually creates, and applies the identical Null(DF)=Y forced-NULL rules from BUILD_CONTRACT.md section 4 so a batch row can never re-introduce a value that streaming nulled out.",
+    "sibling_spec": "onboarding/uc3/uc3_excalibur_streaming_cdc.json (dfg_uc3_excalibur_streaming_cdc) -- read for consistency, never edited by this spec's author."
+  },
+  "_hash_specification": {
+    "algorithm": "SHA-256, hex (framework canonical; NOT base64 - see capability map 2.1)",
+    "expression": "sha2(concat_ws('||', coalesce(trim(lower(cast(c AS STRING))), '__NULL__'), ...), 256)",
+    "excluded_from_hash_value": [
+      "<pk columns>",
+      "sys_creation_date",
+      "sys_update_date"
+    ],
+    "ordering": "alphabetical, resolved by cdc/comparison_columns.py at runtime",
+    "_note": "Declared here for audit only. Nothing in this spec implements it: cdc/hashing.py is the single canonical implementation and is never rebuilt locally. The batch staging tables are APPEND, so they do NOT carry __framework_hash_key/__framework_hash_value -- which is exactly why every reconciliation_flows[].source_config below sets hash_precomputed:false and each target sets it true (the bronze side already carries them from Job 2's CDC dispatch)."
+  },
+  "_dropped_source_columns": {
+    "subscriber": {
+      "columns": [
+        "ctn_password",
+        "sub_password"
+      ],
+      "reason": "Drop(Specific to Data Fabric)=Y in SUBSCRIBER_DDL.csv. Both columns also carry Null(DF)=Y, and Drop wins (BUILD_CONTRACT.md section 4): a dropped column cannot also be a nulled column because it does not exist in the target. They therefore appear in NO data_standardization_sql anywhere in this spec."
+    },
+    "all_tables": {
+      "columns": [
+        "gcp_insert_date",
+        "gcp_insert_user",
+        "gcp_update_date",
+        "gcp_update_user"
+      ],
+      "reason": "legacy_gcp_audit_superseded_by_framework_technical_metadata"
+    },
+    "hash_value": {
+      "reason": "Target-only column in all three sheets; supplied by the framework as __framework_hash_value when generate_hash_columns is true. No hash_value column is ever created."
+    }
+  },
+  "_batch_date_grain_finding": "Section 6.1 asks for the four counts per batch_date. This is NOT expressible in one reconciliation flow: reconciliation/graph_registration.py::_counts_query is a hard-coded ungrouped .agg() producing exactly ONE row per (flow, target, run), and ALLOWED_RECONCILIATION_FLOW_KEYS admits no group-by/grain key. transform_sql does not help -- it reshapes the miss set before append (appender.py::apply_transform_sql), never the metrics. The only config-expressible per-date grain is source_config.filter_condition, i.e. one flow per (table, batch_date) = 12 flows with dates hard-coded into the spec. That is rejected here as spec-time date pinning. This spec therefore reconciles the WHOLE batch table per table (3 flows), and the per-batch_date breakdown is reported as a capability gap rather than hand-rolled.",
+  "dataflow_group_id": "dfg_uc3_excalibur_batch_recon",
+  "pipeline_parameters": {
+    "landing_root": "/Volumes/flowx/staging/uc_3/batch"
+  },
+  "ingestion_flows": [
+    {
+      "_table": "physical_device -- 31 business columns; PK is 4 columns wide (BUILD_CONTRACT.md section 3).",
+      "dataflow_id": "df_uc3_physical_device_batch_load",
+      "source_system": "excalibur",
+      "source_database": "excalibur",
+      "source_table_name": "PHYSICAL_DEVICE",
+      "source_description": "Dated Excalibur PHYSICAL_DEVICE batch extracts, one batch_date=YYYY-MM-DD partition folder per set (2026-08-01..04).",
+      "source_type": "autoloader",
+      "source_config": {
+        "path": "${landing_root}/physical_device/",
+        "format": "csv",
+        "schema_location": "/Volumes/flowx/staging/uc_3/_schemas/physical_device_batch/",
+        "reader_options": {
+          "header": "true",
+          "delimiter": ",",
+          "cloudFiles.inferColumnTypes": "true"
+        },
+        "capture_technical_metadata": true,
+        "column_normalization": {
+          "enabled": true,
+          "case": "lower"
+        },
+        "data_standardization_sql": [
+          "CAST(NULL AS STRING) AS esn_pin",
+          "CAST(NULL AS STRING) AS blacklist_password"
+        ]
+      },
+      "target_catalog": "flowx",
+      "target_schema": "staging",
+      "target_table": "physical_device_batch",
+      "target_type": "streaming_table",
+      "target_config": {
+        "_why_append": "Staging keeps all four dated sets side by side (BUILD_CONTRACT.md section 10), so this is a pure APPEND landing table -- NOT a CDC target. cdc_operation_column/columns_to_exclude/generate_hash_columns are deliberately absent: the validator scopes them to SCD strategies, and the batch side's hashes are computed by the reconciliation engine itself (hash_precomputed:false below).",
+        "cdc_load_strategy": "APPEND",
+        "partition_columns": [
+          "batch_date"
+        ]
+      },
+      "governance_tags": {
+        "table_tags": {
+          "source_system": "excalibur",
+          "use_case": "uc3",
+          "domain": "crm",
+          "layer": "staging",
+          "load_pattern": "batch"
+        },
+        "column_tags": [
+          {
+            "column": "esn_pin",
+            "tags": {
+              "sensitive": "N",
+              "tokenise_pii": "Y",
+              "csql_ro": "Y",
+              "csql_secured_ro": "Y",
+              "bq_deid_ro": "?",
+              "data_fabric_action": "NULL_AT_SOURCE"
+            }
+          },
+          {
+            "column": "blacklist_password",
+            "tags": {
+              "sensitive": "Y",
+              "tokenise_pii": "N",
+              "csql_ro": "N",
+              "csql_secured_ro": "N",
+              "bq_deid_ro": "Y",
+              "data_fabric_action": "NULL_AT_SOURCE"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "_table": "customer -- 90 business columns; single-column PK, SCD2 in bronze.",
+      "dataflow_id": "df_uc3_customer_batch_load",
+      "source_system": "excalibur",
+      "source_database": "excalibur",
+      "source_table_name": "CUSTOMER",
+      "source_description": "Dated Excalibur CUSTOMER batch extracts, one batch_date=YYYY-MM-DD partition folder per set (2026-08-01..04).",
+      "source_type": "autoloader",
+      "source_config": {
+        "path": "${landing_root}/customer/",
+        "format": "csv",
+        "schema_location": "/Volumes/flowx/staging/uc_3/_schemas/customer_batch/",
+        "reader_options": {
+          "header": "true",
+          "delimiter": ",",
+          "cloudFiles.inferColumnTypes": "true"
+        },
+        "capture_technical_metadata": true,
+        "column_normalization": {
+          "enabled": true,
+          "case": "lower"
+        },
+        "data_standardization_sql": [
+          "CAST(NULL AS STRING) AS acc_password",
+          "CAST(NULL AS STRING) AS imei_black_list_pass",
+          "CAST(NULL AS STRING) AS gur_cr_card_no"
+        ]
+      },
+      "target_catalog": "flowx",
+      "target_schema": "staging",
+      "target_table": "customer_batch",
+      "target_type": "streaming_table",
+      "target_config": {
+        "cdc_load_strategy": "APPEND",
+        "partition_columns": [
+          "batch_date"
+        ]
+      },
+      "governance_tags": {
+        "table_tags": {
+          "source_system": "excalibur",
+          "use_case": "uc3",
+          "domain": "crm",
+          "layer": "staging",
+          "load_pattern": "batch"
+        },
+        "column_tags": [
+          {
+            "column": "acc_password",
+            "tags": {
+              "sensitive": "Y",
+              "tokenise_pii": "?",
+              "csql_ro": "N",
+              "csql_secured_ro": "N",
+              "bq_deid_ro": "Y",
+              "data_fabric_action": "NULL_AT_SOURCE"
+            }
+          },
+          {
+            "column": "imei_black_list_pass",
+            "tags": {
+              "sensitive": "N",
+              "tokenise_pii": "?",
+              "csql_ro": "N",
+              "csql_secured_ro": "N",
+              "bq_deid_ro": "Y",
+              "data_fabric_action": "NULL_AT_SOURCE"
+            }
+          },
+          {
+            "column": "gur_cr_card_no",
+            "tags": {
+              "sensitive": "Y",
+              "tokenise_pii": "?",
+              "csql_ro": "N",
+              "csql_secured_ro": "N",
+              "bq_deid_ro": "Y",
+              "data_fabric_action": "NULL_AT_SOURCE"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "_table": "subscriber -- 133 business columns; ctn_password/sub_password are DROPPED (Drop wins over Null), so they appear in no data_standardization_sql and carry no column_tags here.",
+      "dataflow_id": "df_uc3_subscriber_batch_load",
+      "source_system": "excalibur",
+      "source_database": "excalibur",
+      "source_table_name": "SUBSCRIBER",
+      "source_description": "Dated Excalibur SUBSCRIBER batch extracts, one batch_date=YYYY-MM-DD partition folder per set (2026-08-01..04).",
+      "source_type": "autoloader",
+      "source_config": {
+        "path": "${landing_root}/subscriber/",
+        "format": "csv",
+        "schema_location": "/Volumes/flowx/staging/uc_3/_schemas/subscriber_batch/",
+        "reader_options": {
+          "header": "true",
+          "delimiter": ",",
+          "cloudFiles.inferColumnTypes": "true"
+        },
+        "capture_technical_metadata": true,
+        "column_normalization": {
+          "enabled": true,
+          "case": "lower"
+        }
+      },
+      "target_catalog": "flowx",
+      "target_schema": "staging",
+      "target_table": "subscriber_batch",
+      "target_type": "streaming_table",
+      "target_config": {
+        "cdc_load_strategy": "APPEND",
+        "partition_columns": [
+          "batch_date"
+        ]
+      },
+      "governance_tags": {
+        "table_tags": {
+          "source_system": "excalibur",
+          "use_case": "uc3",
+          "domain": "crm",
+          "layer": "staging",
+          "load_pattern": "batch"
+        }
+      }
+    }
+  ],
+  "reconciliation_flows": [
+    {
+      "_intent": "Compare the whole physical_device batch staging table against the Job 2 bronze target on the composite PK, publish the four counts, and heal missing/drifted rows back into bronze through the framework's own append lane. No comparison, MERGE or hash is written by hand anywhere.",
+      "reconciliation_id": "rf_uc3_physical_device_batch_vs_bronze",
+      "dataflow_group_id": "dfg_uc3_excalibur_batch_recon",
+      "execution_mode": "pipeline",
+      "publish_schema": "staging",
+      "match_keys": [
+        "customer_id",
+        "subscriber_no",
+        "equipment_no",
+        "phy_seq_no"
+      ],
+      "source_config": {
+        "type": "table",
+        "table": "flowx.staging.physical_device_batch",
+        "read_mode": "batch",
+        "hash_precomputed": false
+      },
+      "target_configs": [
+        {
+          "target_id": "bronze_physical_device",
+          "type": "table",
+          "table": "flowx.bronze.physical_device",
+          "read_mode": "batch",
+          "hash_precomputed": false,
+          "comparison_direction": "both",
+          "append_target_table": "flowx.staging.physical_device_stream"
+        }
+      ],
+      "two_tier_verification": true,
+      "error_handling": {
+        "on_failure": "warn"
+      },
+      "logging_config": {
+        "run_log_capture": true,
+        "mismatch_log_capture": false
+      },
+      "compare_columns": [
+        "operator_id",
+        "application_id",
+        "dl_service_code",
+        "dl_update_stamp",
+        "effective_date_time",
+        "expiration_date_time",
+        "equipment_ind",
+        "ownership_code",
+        "machine_serial_no",
+        "change_reason_code",
+        "change_equip_actv",
+        "model_code",
+        "lock_code",
+        "esn_pin",
+        "conv_run_no",
+        "blacklist_password",
+        "upgrade_amt",
+        "f_o_c_ind",
+        "upgrade_type",
+        "max_foc_code",
+        "retention_offer_id",
+        "wrh_order_no",
+        "dealer_code",
+        "chg_created_ind",
+        "dvc_unlock_chgdate"
+      ]
+    },
+    {
+      "_intent": "customer is SCD2 in bronze. Batch rows older than what bronze already holds must NOT regress history -- that is the framework SCD engine's job via sequence_by_column: sys_update_date on the Job 2 flow, and is deliberately NOT special-cased here.",
+      "reconciliation_id": "rf_uc3_customer_batch_vs_bronze",
+      "dataflow_group_id": "dfg_uc3_excalibur_batch_recon",
+      "execution_mode": "pipeline",
+      "publish_schema": "staging",
+      "match_keys": [
+        "customer_id"
+      ],
+      "source_config": {
+        "type": "table",
+        "table": "flowx.staging.customer_batch",
+        "read_mode": "batch",
+        "hash_precomputed": false
+      },
+      "target_configs": [
+        {
+          "target_id": "bronze_customer",
+          "type": "table",
+          "table": "flowx.bronze.customer",
+          "read_mode": "batch",
+          "hash_precomputed": false,
+          "comparison_direction": "both",
+          "append_target_table": "flowx.staging.customer_stream"
+        }
+      ],
+      "two_tier_verification": true,
+      "error_handling": {
+        "on_failure": "warn"
+      },
+      "logging_config": {
+        "run_log_capture": true,
+        "mismatch_log_capture": false
+      },
+      "compare_columns": [
+        "operator_id",
+        "application_id",
+        "dl_service_code",
+        "dl_update_stamp",
+        "contact_telno",
+        "contact_tn_extno",
+        "contact_faxno",
+        "contact_country_code",
+        "work_telno",
+        "work_tn_extno",
+        "home_telno",
+        "other_telno",
+        "other_extno",
+        "other_tn_type",
+        "birth_date",
+        "employment_dt",
+        "emplyr_name",
+        "employee_qty",
+        "years_in_business",
+        "employee_position",
+        "business_est_date",
+        "market_id",
+        "gur_cr_card_type",
+        "gur_cr_card_no",
+        "gur_cr_card_exp_dt",
+        "acc_password",
+        "verified_date",
+        "company_register_num",
+        "business_category",
+        "conv_run_no",
+        "legacy_cst_num",
+        "e_mail_addr",
+        "mailshot",
+        "imei_black_list_pass",
+        "company_type",
+        "cust_gender",
+        "cust_personal_id",
+        "cust_nationality",
+        "autprsn_birth_date",
+        "autprsn_personal_id",
+        "guarantor_type",
+        "gur_personal_id",
+        "gur_company_reg_num",
+        "start_time_at_bank",
+        "gur_birth_date",
+        "gur_tax_number",
+        "register_ind",
+        "contact_telno_2nd",
+        "contact_tn_extno_2nd",
+        "contact_faxno_2nd",
+        "contact_country_code_2nd",
+        "credit_card_ind",
+        "authorized_sec",
+        "etu_count",
+        "contact_email_address",
+        "contact_department",
+        "contact_job_description",
+        "bac_cust_support_team",
+        "bac_territory_code",
+        "external_id",
+        "open_date",
+        "customer_type",
+        "assistant_user_id",
+        "marketing_channel",
+        "ch_node_id",
+        "lock_customer_ind",
+        "resource_pool",
+        "spc_memo_ind",
+        "bill_cycle",
+        "bill_cyc_prod_freq",
+        "change_cycle_ind",
+        "chg_cycle_req_sts",
+        "new_cycle",
+        "new_cyc_prod_freq",
+        "tax_exempt_int",
+        "tax_exempt_date",
+        "hierarchy_policy",
+        "credit_class",
+        "cust_sub_type",
+        "dflt_pre_pcn",
+        "dflt_post_pcn",
+        "legacy_cust_no",
+        "dealer_code",
+        "cust_desc_cd",
+        "charity_reg_num",
+        "no_email_reason",
+        "hint_id"
+      ]
+    },
+    {
+      "_intent": "subscriber -- 2-column composite PK in declared order (subscriber_no, customer_id), matching BUILD_CONTRACT.md section 3 exactly. Order is load-bearing: it is the basis of __framework_hash_key on the bronze side.",
+      "reconciliation_id": "rf_uc3_subscriber_batch_vs_bronze",
+      "dataflow_group_id": "dfg_uc3_excalibur_batch_recon",
+      "execution_mode": "pipeline",
+      "publish_schema": "staging",
+      "match_keys": [
+        "subscriber_no",
+        "customer_id"
+      ],
+      "source_config": {
+        "type": "table",
+        "table": "flowx.staging.subscriber_batch",
+        "read_mode": "batch",
+        "hash_precomputed": false
+      },
+      "target_configs": [
+        {
+          "target_id": "bronze_subscriber",
+          "type": "table",
+          "table": "flowx.bronze.subscriber",
+          "read_mode": "batch",
+          "hash_precomputed": false,
+          "comparison_direction": "both",
+          "append_target_table": "flowx.staging.subscriber_stream"
+        }
+      ],
+      "two_tier_verification": true,
+      "error_handling": {
+        "on_failure": "warn"
+      },
+      "logging_config": {
+        "run_log_capture": true,
+        "mismatch_log_capture": false
+      },
+      "compare_columns": [
+        "operator_id",
+        "application_id",
+        "dl_service_code",
+        "dl_update_stamp",
+        "effective_date",
+        "init_activation_date",
+        "sub_status",
+        "sub_status_date",
+        "sub_status_last_act",
+        "sub_status_rsn_code",
+        "customer_ban",
+        "commit_start_date",
+        "commit_end_date",
+        "commit_reason_code",
+        "commit_orig_no_month",
+        "susp_rc_rate_type",
+        "req_deposit_amt",
+        "allocation_code_1",
+        "allocation_code_2",
+        "activation_method",
+        "last_actv_code",
+        "last_actv_reason",
+        "last_actv_date",
+        "ttn",
+        "ttn_ind",
+        "next_ctn",
+        "next_ctn_chg_date",
+        "prv_ctn",
+        "prv_ctn_chg_date",
+        "next_ban",
+        "next_ban_move_date",
+        "prv_ban",
+        "prv_ban_move_date",
+        "conv_run_no",
+        "default_uc_ben",
+        "default_oc_ben",
+        "default_rc_ben",
+        "rc_ben_level_code",
+        "vin",
+        "car_registration",
+        "subscriber_ref",
+        "np_code",
+        "product_code",
+        "arrangment",
+        "sub_customer_value",
+        "dir_publish_ind",
+        "threshold_class",
+        "pre_payment_ind",
+        "pre_active_ind",
+        "manual_upgrade_amt",
+        "manual_upgrade_given_date",
+        "manual_upgrade_last_date",
+        "partner_ind",
+        "max_partners",
+        "f_o_c_ind",
+        "crefit_limit_prim_ind",
+        "prec_upgrade",
+        "next_coupon_actv_date",
+        "next_coupon_policy_code",
+        "next_coupon_policy_step",
+        "interlock_code",
+        "pstn",
+        "tenure_date_prec",
+        "tenure_date_euro",
+        "dual_sim_link_ind",
+        "pcli",
+        "disability_code",
+        "max_foc_code",
+        "foc_upgrade_status",
+        "foc_tenure_date",
+        "enforce_restriction",
+        "enforce_restr_exp_date",
+        "waive_restriction",
+        "waive_restr_exp_date",
+        "handset_option",
+        "rc_level",
+        "threshold_amount",
+        "sub_seq_no",
+        "external_id",
+        "ext_parent_id",
+        "ch_node_id",
+        "sub_sts_issue_date",
+        "dealer_code",
+        "initial_dlr_code",
+        "subscriber_type",
+        "act_waive_rsn_cd",
+        "earliest_actv_date",
+        "change_pp_cnt",
+        "formal_cancel_date",
+        "retention_code",
+        "prim_resource_tp",
+        "prim_res_param_cd",
+        "prim_resource_val",
+        "calc_pym_category",
+        "retention_start_dt",
+        "init_act_date",
+        "sub_sts_last_act",
+        "sub_sts_rsn_cd",
+        "subscr_seq_no",
+        "dd_amount",
+        "dd_pp_status",
+        "dd_prepay_ind",
+        "dd_pp_due_date",
+        "dd_pp_bill_seq_no",
+        "payment_combination",
+        "pre_notify_type",
+        "sub_email",
+        "multi_sim_master",
+        "multi_sim_sec_num",
+        "bundle_group",
+        "cntr_ext_non_upg",
+        "retention_offer_id",
+        "to_nonupg_end_date",
+        "to_upg_end_date",
+        "no_downward_end_date",
+        "minimal_rc",
+        "family_role",
+        "lifetime_id",
+        "pcc_id",
+        "pcc_email",
+        "source_brand",
+        "source_ban",
+        "start_service_date",
+        "exchg_eqp_restrict_ind",
+        "pp_type",
+        "contract_ind",
+        "price_rise_segment"
+      ]
+    }
+  ],
+  "observability": [
+    {
+      "id": "uc3_batch_recon_volume_export",
+      "enabled": true,
+      "mode": "triggered",
+      "type": "DATABRICKS_VOLUME",
+      "destination_config": {
+        "volume_path": "/Volumes/flowx/observability/app_logs/batch_recon",
+        "file_format": "JSONL",
+        "compressed": true
+      }
+    }
+  ],
+  "_iceberg_deferral": "REMOVED 2026-09-05 (Phase C): table_properties.enable_iceberg_read_uniformity. Databricks does not support Iceberg reads on STREAMING TABLES or MATERIALIZED VIEWS via IcebergCompatV2 -- see docs 'Read Delta Lake tables with Iceberg clients': \"Iceberg reads can't be enabled on materialized views or streaming tables using IcebergCompatV2\". Three genuine framework defects were found and FIXED en route (delta.enableIcebergCompatV2, delta.columnMapping.mode=name, and the deletion-vector prerequisite), and those fixes remain correct for batch_table targets. The supported path for pipeline-managed streaming tables is IcebergCompatV3, which additionally requires DBR 17.3+, pipeline setting pipelines.externalMetadata.enabled=true, and delta.enableChangeDataFeed=false -- the last conflicting directly with FlowX setting CDF=true for every CDC-dispatched strategy. Deferred by explicit user decision; tracked as a known gap.",
+  "_compare_columns_rationale": "compare_columns MUST be declared explicitly. reconciliation/matcher.py: 'None/empty means key-presence-only matching ... every co-present key counts as matched regardless of its other column values' -- which made value_drift_count structurally 0 on the first Job 3 run, even though 40 of the 72 overlapping rows per table genuinely differ. The set mirrors the 5.1 hash spec: every non-dropped business column EXCEPT the primary keys and the two timestamps (sys_creation_date, sys_update_date), plus src_deleted_flg excluded as the CDC control column. Derived from the DDL sheets, never hand-typed.",
+  "_hash_precomputed_rationale": "target hash_precomputed MUST be false here. It was true, which told reconciliation to trust the bronze table's stored __framework_hash_value verbatim. That hash was computed by the CDC engine over ITS resolved comparison set (every non-PK column, including sys_creation_date/sys_update_date and src_deleted_flg), whereas reconciliation hashes the source over this flow's compare_columns (87 cols, timestamps and the CDC control column excluded). matcher.py states the precondition plainly: 'the upstream flow's primary_keys must be this flow's match_keys, and its resolved comparison columns this flow's compare_columns ... when they disagree nothing errors -- the hashes simply never match and every row reports as drifted.' That is exactly what happened: matched_count collapsed to 0 and value_drift_count absorbed all 72 overlapping keys. With hash_precomputed=false both sides are hashed inline from the SAME compare_columns, so matched vs drifted is computed on like-for-like input."
+}

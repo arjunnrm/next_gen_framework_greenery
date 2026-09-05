@@ -1,0 +1,74 @@
+# Drives the UC_7 CDR ASN.1 group end to end:
+#
+#   setup_control_tables -> onboard_uc7 -> run_pipeline_update -> observability_export
+#
+# Self-contained and idempotent (control-table upsert + CREATE ... IF NOT EXISTS schema
+# provisioning), so it can be re-run at any time.
+#
+# ONBOARDING IS DELEGATED, NEVER INLINED. onboard_uc7 is a run_job_task against the generic
+# resources/flowx_config_jobs/onboarding_job.yml -- the single parameterised onboarding
+# entrypoint for the whole bundle. The older flowx_test_*_job.yml files that each pin their own
+# 02_onboarding_engine.py notebook_task are legacy drift; this file deliberately does not copy
+# them.
+#
+# setup_control_tables is NOT boilerplate: it applies the additive control-table migration, and
+# `bundle deploy` does not apply it. flowx.config had no control tables at all before this job
+# first ran on the metaflow_v7 workspace.
+#
+# PARAMETER CONTRACT for observability_export: pipeline_task_run_id must be a TASK
+# base_parameter, never a pipeline configuration: key. `{{tasks.<key>.run_id}}` is a Jobs
+# dynamic value resolved per job run, and a mistyped task_key is passed through as literal text
+# rather than failing at the platform layer -- runtime_params.py detects exactly that and names
+# it. The task also cross-checks dataflow_group_id against the pipeline it observed and fails if
+# they disagree, which catches a copy-paste left pointing at the job it came from.
+
+resources:
+  jobs:
+    uc7_cdr_asn_job:
+      name: 001_lfj_uc7_cdr_asn
+
+      tasks:
+        - task_key: setup_control_tables
+          notebook_task:
+            notebook_path: ../../notebooks/01_setup/01_setup_control_tables.py
+            base_parameters:
+              catalog: flowx
+          environment_key: framework_env
+
+        - task_key: onboard_uc7
+          depends_on:
+            - task_key: setup_control_tables
+          run_job_task:
+            job_id: ${resources.jobs.onboarding_job.id}
+            job_parameters:
+              spec_file_path: "${workspace.file_path}/flowx_testing/UC7_cdr_asn_bronze.json"
+              catalog: flowx
+              env: ${bundle.target}
+              action_type: CREATE
+
+        - task_key: run_pipeline_update
+          depends_on:
+            - task_key: onboard_uc7
+          pipeline_task:
+            pipeline_id: ${resources.pipelines.uc7_cdr_asn_pipeline.id}
+
+        - task_key: observability_export
+          depends_on:
+            - task_key: run_pipeline_update
+          notebook_task:
+            notebook_path: ../../notebooks/08_observability/08_dlt_observability_engine.py
+            base_parameters:
+              dataflow_group_id: dfg_uc7_cdr_asn
+              catalog: flowx
+              env: ${bundle.target}
+              pipeline_task_run_id: "{{tasks.run_pipeline_update.run_id}}"
+              service_name: dlt-observability-uc7-cdr-asn
+              fail_task_on_dispatch_error: "true"
+          environment_key: framework_env
+
+      environments:
+        - environment_key: framework_env
+          spec:
+            environment_version: "4"
+            dependencies:
+              - ../../dist/*.whl

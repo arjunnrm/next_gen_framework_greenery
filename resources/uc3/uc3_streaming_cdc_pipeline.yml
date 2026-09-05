@@ -1,0 +1,43 @@
+# UC3 Excalibur streaming CDC -> flowx.bronze.
+#
+# One pipeline per dataflow group, by construction: a Lakeflow dataset has exactly one owning
+# pipeline, so the three CDC-applied tables of dfg_uc3_excalibur_streaming_cdc
+# (physical_device, customer, subscriber) are published by this pipeline and no other. The
+# group is defined in onboarding/uc3/uc3_excalibur_streaming_cdc.json and reaches the engine
+# through the control tables, not through this file -- the only wiring here is the group id.
+#
+# Catalog/schema come from BUILD_CONTRACT.md section 1: the shared `flowx` catalog via
+# ${var.catalog} (never hardcoded), and the `bronze` governed schema. The `uc3_` prefix
+# carries the use-case identity that a dedicated `uc3` catalog would otherwise have carried;
+# bare `bronze` is already taken by UC7 in this same catalog.
+#
+# The framework wheel is pinned by the `../../dist/*.whl` glob below, which DABs rewrites at
+# deploy time to <artifact_path>/.internal/, and artifact_path is
+# ${var.wheels_root}/${var.framework_version}. No version string belongs in this file -- bump
+# var.framework_version and pyproject.toml together instead.
+#
+# NAME: 004_ldp_uc3_excalibur_streaming_cdc. The job that drives it is 004_lfj_... -- both are
+# 004, deliberately (BUILD_CONTRACT.md section 2), unlike the 005/006 split used by Job 3.
+
+resources:
+  pipelines:
+    uc3_streaming_cdc_pipeline:
+      name: 004_ldp_uc3_excalibur_streaming_cdc
+      catalog: ${var.catalog}
+      schema: bronze
+      serverless: true
+      photon: true
+      development: true
+      continuous: false
+
+      libraries:
+        - notebook:
+            path: ../../notebooks/03_engine/03_lakeflow_declarative_pipeline.py
+
+      environment:
+        dependencies:
+          - ../../dist/*.whl
+
+      configuration:
+        dataflow.group.id: dfg_uc3_excalibur_streaming_cdc
+        dataflow.control.catalog: ${var.catalog}

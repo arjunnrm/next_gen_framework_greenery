@@ -54,10 +54,13 @@ except ImportError:
             f"'../../src' resolves. Original error: {exc}"
         ) from exc
 
+# apply_all_governance_tags comes from the GOVERNANCE module (v1.7.x) -- it was moved there from
+# control_plane.post_deployment, which still re-exports it for backward compatibility. Import it
+# from its real home so this notebook does not depend on that compatibility shim.
 from flowx.lakeflow_framework.control_plane.post_deployment import (  # noqa: E402
-    apply_all_governance_tags,
     capture_all_scd_change_counts,
 )
+from flowx.lakeflow_framework.governance.tags import apply_all_governance_tags  # noqa: E402
 
 # COMMAND ----------
 

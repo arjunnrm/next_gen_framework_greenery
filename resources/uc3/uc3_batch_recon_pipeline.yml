@@ -1,0 +1,37 @@
+# UC3 Excalibur batch load + reconciliation -> flowx.bronze.
+#
+# Three autoloader ingestion flows land the 4 dated batch CSV sets per table into
+# flowx.staging.<table>_batch, and three reconciliation flows (execution_mode "pipeline")
+# compare each batch table against its bronze counterpart INSIDE this pipeline's DAG, then feed
+# healed rows back through Job 2's CDC engine via append_target_table. All of it is declared in
+# onboarding/uc3/uc3_excalibur_batch_recon.json -- this file only declares the pipeline that
+# executes that group.
+#
+# NAME: 006_ldp_uc3_excalibur_batch_recon, driven by job 005_lfj_uc3_excalibur_batch_recon.
+# The 005/006 mismatch is DELIBERATE (BUILD_CONTRACT.md section 2) -- Job 2's job and pipeline are
+# both 004, Job 3's are 005 and 006. Preserve it.
+#
+# Modelled on resources/uc7/uc7_cdr_asn_pipeline.yml and kept structurally identical to
+# resources/uc3/uc3_streaming_cdc_pipeline.yml, differing only in name, dataflow group and the
+# `schema` default -- reconciliation publishes its own datasets under publish_schema, declared
+# per-flow in the spec.
+
+resources:
+  pipelines:
+    uc3_batch_recon_pipeline:
+      name: 006_ldp_uc3_excalibur_batch_recon
+      catalog: ${var.catalog}
+      schema: bronze
+      serverless: true
+      photon: true
+      development: true
+      continuous: false
+      libraries:
+        - notebook:
+            path: ../../notebooks/03_engine/03_lakeflow_declarative_pipeline.py
+      environment:
+        dependencies:
+          - ../../dist/*.whl
+      configuration:
+        dataflow.group.id: dfg_uc3_excalibur_batch_recon
+        dataflow.control.catalog: ${var.catalog}

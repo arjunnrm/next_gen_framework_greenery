@@ -79,6 +79,7 @@ from flowx.lakeflow_framework.ingestion.readers import (
     read_locator,
 )
 from flowx.lakeflow_framework.storage.table_properties import qualified_table_name
+from flowx.lakeflow_framework.transformation.parameters import substitute_path_parameters
 
 logger = logging.getLogger("common.engine.source_plane")
 
@@ -348,6 +349,7 @@ def _collect_in_graph_targets(
 
 def _requests_from_ingestion_rows(
     ingestion_rows: List[Any],
+    pipeline_parameters: Optional[Dict[str, Any]] = None,
 ) -> Tuple[List[ConsumerRequest], Dict[str, str], Dict[ReadIdentity, Dict[str, Any]], Dict[str, str]]:
     """Derive one :class:`ConsumerRequest` per non-snapshot ingestion row's raw source read.
 
@@ -376,7 +378,7 @@ def _requests_from_ingestion_rows(
 
         dataflow_id = _row_get(row, "dataflow_id")
         source_type = _row_get(row, "source_type")
-        source_config = _json_loads(_row_get(row, "source_config_json"), {})
+        source_config = _load_source_config(row, pipeline_parameters)
 
         locator_kind, locator = read_locator(source_config, source_type)
         options_fingerprint = _fingerprint(base_read_options(source_type, source_config))
@@ -445,6 +447,7 @@ _JOB_EXECUTION_MODE = "job"
 
 def _requests_from_reconciliation_rows(
     reconciliation_rows: List[Any],
+    pipeline_parameters: Optional[Dict[str, Any]] = None,
 ) -> Tuple[List[ConsumerRequest], Dict[str, str], Dict[ReadIdentity, Dict[str, Any]]]:
     """Derive the ``"<reconciliation_id>:source"`` and ``"<reconciliation_id>:target:<target_id>"``
     :class:`ConsumerRequest`\\ s for every pipeline-mode reconciliation row.
@@ -472,7 +475,7 @@ def _requests_from_reconciliation_rows(
         reconciliation_id = _row_get(row, "reconciliation_id")
         owner_id = f"__reconciliation__{reconciliation_id}"
 
-        source_config = _json_loads(_row_get(row, "source_config_json"), {})
+        source_config = _load_source_config(row, pipeline_parameters)
         source_table = source_config["table"]
         source_identity = _table_identity(source_table)
         source_consumer_id = f"{reconciliation_id}:source"
@@ -568,6 +571,31 @@ def _apply_guards(
             )
 
 
+
+def _load_source_config(row: Any, pipeline_parameters: Optional[Dict[str, Any]]) -> Dict[str, Any]:
+    """Parse a row's ``source_config_json`` with ``${param}`` placeholders RESOLVED.
+
+    Substitution must happen here, not only in ``engine/flow_generators.py``. The source plane
+    runs FIRST -- it is what builds the base ingestion node that actually issues the read -- so a
+    path left unresolved at this layer reaches the reader verbatim and fails at execution time
+    with ``IllegalArgumentException: Path must be absolute: ${landing_root}/subscriber``.
+
+    This module previously accepted ``pipeline_parameters`` and never used it, on the documented
+    assumption that ``onboarding/spec_loader.py`` had already substituted before the control-table
+    write. That assumption conflated TWO different placeholder syntaxes with two different
+    lifecycles. ``spec_loader.py::substitute_environment_placeholders`` resolves ``{{catalog}}`` /
+    ``{{env}}`` -- and ONLY those -- as a raw-text replace before the spec is even parsed, so the
+    control tables do store resolved catalog/env. It never touches ``${param}``, and the control
+    tables demonstrably store that placeholder raw. Substitution is instead
+    applied fresh on every pipeline update (see ``transformation/parameters.py``), which is what
+    lets an operator retarget a group's paths without re-onboarding -- so this layer has to do it
+    too, and with the SAME function, so the two can never disagree about a path's meaning.
+    """
+    raw = _row_get(row, "source_config_json")
+    if not raw:
+        return {}
+    return _json_loads(substitute_path_parameters(raw, pipeline_parameters or {}), {})
+
 def plan_source_plane(
     ingestion_rows: List[Any],
     transformation_rows: List[Any],
@@ -591,10 +619,17 @@ def plan_source_plane(
         already pre-filtered to pipeline-mode rows there; a stray ``"job"``-mode row reaching
         this function is additionally skipped here, defensively).
     pipeline_parameters:
-        The group's ``${param}`` substitution map. Accepted for forward compatibility (a future
-        guard or node-naming rule may need it) -- unused today, since every row's JSON columns
-        have already had ``${param}``/``{{catalog}}`` substitution applied by
-        ``onboarding/spec_loader.py`` before reaching the control tables.
+        The group's ``${param}`` substitution map, applied to every row's ``source_config_json``
+        as it is parsed (see :func:`_load_source_config`).
+
+        This was previously documented as "unused today, since ``onboarding/spec_loader.py`` has
+        already substituted before the control-table write". That conflated two syntaxes:
+        ``spec_loader.py`` resolves ``{{catalog}}``/``{{env}}`` at onboarding time (correctly), but
+        never ``${param}`` -- which the control tables demonstrably store raw. Substitution is deliberately applied fresh on
+        every pipeline update -- that is what lets an operator retarget a group's paths without
+        re-onboarding -- so this layer must apply it too. Leaving it unapplied here sent the
+        literal text to the reader and failed the update with
+        ``IllegalArgumentException: Path must be absolute: ${landing_root}/subscriber``.
     materialize:
         ``"always"`` (default since v1.7.3) -- materialize EVERY external read identity into
         its own base node, at any fanout, so N source identities yield N base ingestion nodes
@@ -646,13 +681,13 @@ def plan_source_plane(
     )
 
     ingestion_requests, ingestion_owners, ingestion_reader_specs, side_effect_keys = _requests_from_ingestion_rows(
-        ingestion_rows
+        ingestion_rows, pipeline_parameters
     )
     transformation_requests, transformation_owners, transformation_reader_specs = _requests_from_transformation_rows(
         transformation_rows
     )
     reconciliation_requests, reconciliation_owners, reconciliation_reader_specs = _requests_from_reconciliation_rows(
-        reconciliation_rows
+        reconciliation_rows, pipeline_parameters
     )
 
     all_requests = ingestion_requests + transformation_requests + reconciliation_requests

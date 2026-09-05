@@ -60,6 +60,10 @@ MAX_LIQUID_CLUSTERING_COLUMNS = 3
 # Feed enabled so cdc/change_metrics.py::capture_scd_change_counts can query
 # table_changes(...) for exact inserted/updated/deleted row counts per pipeline update,
 # instead of a manual, double-scanning diff.
+#: Target types whose datasets are created and owned by a Lakeflow pipeline. IcebergCompatV2 does
+#: not work on these at all; they need IcebergCompatV3 plus pipelines.externalMetadata.enabled.
+_PIPELINE_MANAGED_TARGET_TYPES = frozenset({"streaming_table", "materialized_view"})
+
 _CDC_DISPATCHED_STRATEGIES = {"SCD1", "SCD2", "SCD3", "FULL_SNAPSHOT_CDC"}
 
 
@@ -90,7 +94,7 @@ def qualified_table_name(catalog: str, schema: str, table: str) -> str:
     return f"{catalog}.{schema}.{table}"
 
 
-def build_table_properties(target_config: Dict[str, Any]) -> Dict[str, str]:
+def build_table_properties(target_config: Dict[str, Any], target_type: Optional[str] = None) -> Dict[str, str]:
     """Translate a ``target_config`` dict into Delta/Lakeflow table properties.
 
     Supports Liquid Clustering (via ``cluster_by``/``partition_cols`` on the ``@dlt.table``
@@ -117,7 +121,35 @@ def build_table_properties(target_config: Dict[str, Any]) -> Dict[str, str]:
         table_properties_config = target_config.get("table_properties") or {}
 
         if target_config.get("storage_format") == "iceberg" or table_properties_config.get("enable_iceberg_read_uniformity"):
+            # Iceberg read access (UniForm) needs a DIFFERENT property set depending on the
+            # target type, because Databricks supports two IcebergCompat generations and only
+            # one of them works on pipeline-managed datasets:
+            #
+            #   batch_table                        -> IcebergCompatV2  (3 properties)
+            #   streaming_table / materialized_view -> IcebergCompatV3 (5 properties)
+            #
+            # "Iceberg reads can't be enabled on materialized views or streaming tables using
+            # IcebergCompatV2. However, for pipeline-managed materialized views and streaming
+            # tables, you can enable external Iceberg access using IcebergCompatV3 instead."
+            # -- docs.databricks.com/aws/en/delta/uniform
+            #
+            # Every property below was discovered by a live failure, one per update, because
+            # Delta validates them in sequence and reports only the NEXT missing one:
+            #   enabledFormats alone      -> DELTA_UNIVERSAL_FORMAT_VIOLATION
+            #   + enableIcebergCompatV2   -> WRONG_REQUIRED_TABLE_PROPERTY (columnMapping.mode)
+            #   + columnMapping.mode=name -> DELETION_VECTORS_SHOULD_BE_DISABLED (V2 on an ST)
+            # The last one is the wall that V2 cannot clear on a streaming table at all.
+            properties["delta.columnMapping.mode"] = "name"
             properties["delta.universalFormat.enabledFormats"] = "iceberg"
+
+            if target_type in _PIPELINE_MANAGED_TARGET_TYPES:
+                # V3 path. Row tracking is a hard prerequisite of IcebergCompatV3, and
+                # externalMetadata is what makes a pipeline-managed dataset externally readable.
+                properties["delta.enableIcebergCompatV3"] = "true"
+                properties["delta.enableRowTracking"] = "true"
+                properties["pipelines.externalMetadata.enabled"] = "true"
+            else:
+                properties["delta.enableIcebergCompatV2"] = "true"
 
         if table_properties_config.get("log_retention_duration"):
             properties["delta.logRetentionDuration"] = table_properties_config["log_retention_duration"]
@@ -126,7 +158,22 @@ def build_table_properties(target_config: Dict[str, Any]) -> Dict[str, str]:
             properties["delta.deletedFileRetentionDuration"] = table_properties_config["deleted_file_retention_duration"]
 
         if target_config.get("cdc_load_strategy") in _CDC_DISPATCHED_STRATEGIES:
-            properties["delta.enableChangeDataFeed"] = "true"
+            # IcebergCompatV3 and Change Data Feed are mutually exclusive: Delta rejects a table
+            # carrying both. CDF is a framework convenience (it powers post-deployment SCD
+            # change-count capture), whereas Iceberg read access is an explicit, opt-in request
+            # from the spec author -- so the explicit request wins and CDF is suppressed, loudly.
+            # This is NOT a silent ignore: the omission is logged at WARNING naming the exact
+            # capability lost, and validation additionally warns at onboarding time.
+            if properties.get("delta.enableIcebergCompatV3") == "true":
+                logger.warning(
+                    "delta.enableChangeDataFeed suppressed: IcebergCompatV3 (requested via "
+                    "table_properties.enable_iceberg_read_uniformity on a pipeline-managed target) "
+                    "is incompatible with Change Data Feed. Consequence: capture_all_scd_change_counts "
+                    "cannot compute insert/update/delete counts for this target. Drop the Iceberg "
+                    "request if those counts matter more than external Iceberg read access."
+                )
+            else:
+                properties["delta.enableChangeDataFeed"] = "true"
 
         properties.setdefault("delta.autoOptimize.optimizeWrite", "true")
         properties.setdefault("delta.autoOptimize.autoCompact", "true")

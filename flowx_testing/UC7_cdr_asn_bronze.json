@@ -1,0 +1,198 @@
+{
+  "_provenance": "UC_7 CDR ASN.1 decoders -> flowx.bronze. Sources land under /Volumes/flowx/landing/uc_7/raw/<ELEMENT>/ and ASN.1 modules under /Volumes/flowx/landing/uc_7/asn_schema/. Target env is the metaflow_v7 workspace, catalog flowx, framework wheel 0.0.3 (/Volumes/flowx/config/wheels/0.0.3/.internal/flowx-0.0.3-py3-none-any.whl).",
+  "_test_case_note": "SCHEMA MAPPING IS VERIFIED BY DECODING REAL BYTES, NOT BY FILENAME. Each raw payload was pulled from the landing Volume, walked as BER TLVs and decoded against its candidate module with asn1tools: EMSC -> EMSC.asn1 (module MSC12A, root CallDataRecord, 137/137 records decoded, arms uMTSGSMPLMNCallDataRecord x136 + compositeCallDataRecord x1); PSGW -> PSGW.asn1 (module CDRF-R9, root CallEventRecord, 91/91 decoded, arms sGWRecord x68 + pGWRecord x23); SGSN -> SGSN.asn1 (module CDRF-R9, root CallEventRecord, 175048/175048 decoded, all sgsnPDPRecord); TAP -> TAP.310.asn1 (module TAP-0310, root DataInterChange, 3/3 files decoded, arm transferBatch). ROOT PDU AUTO-DETECTION is used throughout: asn1_pdu_name is deliberately OMITTED so asn1/decoder.py::detect_root_pdu_name resolves it from the module itself -- verified to return exactly the four roots above. TAP VERSION IS PROVEN FROM THE DATA, not the filename: BER tag 201 (SpecificationVersionNumber) = 3 and tag 189 (ReleaseVersionNumber) = 10 in every TAP file => TAP 3.10, so TAP.310.asn1 is correct and TAP.311.asn1 is NOT interchangeable (3.11 drops the valueAddedService CHOICE arm). SGSN.asn1 and GGSN.asn1 are byte-identical (md5 8acb26e3...), as are TAP.311.asn1 and TAP.311.MVR.asn1 (md5 e8d3d260...); PSGW.asn1 is SGSN.asn1 plus RANSecondaryRATUsageReport and the extended-bitrate QoS members. SMSC AND MMSC ARE DELIBERATELY EXCLUDED: their raw payloads are CSV text, not ASN.1 (SMSC = a single-line 48-field quoted CSV; MMSC = a 70+ column CSV), there is no SMSC.asn1 module in asn_schema/ at all, and both fail to decode against EVERY available module with DecodeTagError. Onboarding them as source_type asn1 would quarantine 100 percent of their rows. Tracked as open items in UC7_CDR_ASN_Test_Report.md. MULTI-RECORD FILES: these are real production CDR files holding N back-to-back top-level TLVs in ONE file (SGSN 175048, EMSC 137, PSGW 91), which the decoder used to under-ingest to 1 row per file while reporting success; asn1/decoder.py::iter_ber_tlv_records now emits one row per record and _asn1_record_index carries each record 0-based ordinal within its file. DQ RULES ARE DELIBERATELY THIN: every member of these SEQUENCE/SET records is OPTIONAL, so asserting any individual subfield non-null would false-quarantine valid records. The rules assert only what was measured to hold on 100 percent of decoded records: decode succeeded, a CHOICE arm was selected, and the selected arm decoded to a non-null struct. Failing records are routed to quarantine, never dropped. record_id_column is _choice, a genuine top-level column -- dq/quarantine.py requires the column to be in df.columns and silently ignores a dotted struct path.",
+  "_expected_result": "Four streaming tables in flowx.bronze: emsc_cdr_raw, psgw_cdr_raw, sgsn_cdr_raw, tap310_raw. Every row has _asn1_decode_error IS NULL, a non-null _choice naming the decoded CDR type, and _asn1_record_index >= 0. Records failing decode or arm selection are routed to the matching <table>_quarantine table rather than dropped or failing the pipeline.",
+  "dataflow_group_id": "dfg_uc7_cdr_asn",
+  "pipeline_parameters": {},
+  "ingestion_flows": [
+    {
+      "dataflow_id": "df_uc7_emsc_cdr_ingest",
+      "source_system": "emsc_cdr_feed",
+      "source_database": "uc_7",
+      "source_table_name": "emsc_call_data_record",
+      "source_description": "UC_7 EMSC (mobile switching centre) BER-encoded call data records, decoded against EMSC.asn1 (module MSC12A). Root PDU auto-detected as CallDataRecord, a CHOICE -- decoding projects one column per arm plus the _choice discriminator. Concatenated-TLV: one .raw file holds many records.",
+      "source_type": "asn1",
+      "target_catalog": "{{catalog}}",
+      "target_schema": "bronze",
+      "target_table": "emsc_cdr_raw",
+      "target_type": "streaming_table",
+      "source_config": {
+        "path": "/Volumes/{{catalog}}/landing/uc_7/raw/EMSC/",
+        "schema_location": "/Volumes/{{catalog}}/landing/uc_7/_schemas/emsc_cdr_raw/",
+        "asn1_schema_path": "/Volumes/{{catalog}}/landing/uc_7/asn_schema/EMSC.asn1",
+        "asn1_codec": "ber",
+        "capture_technical_metadata": true
+      },
+      "target_config": {
+        "cdc_load_strategy": "APPEND",
+        "storage_format": "delta"
+      },
+      "dq_config": {
+        "rules": [
+          {
+            "rule_id": "dq_emsc_asn1_decode_ok",
+            "expression": "_asn1_decode_error IS NULL",
+            "action": "quarantine"
+          },
+          {
+            "rule_id": "dq_emsc_choice_arm_selected",
+            "expression": "_choice IS NOT NULL AND _choice <> ''",
+            "action": "quarantine"
+          },
+          {
+            "rule_id": "dq_emsc_arm_populated",
+            "expression": "_choice <> 'uMTSGSMPLMNCallDataRecord' OR uMTSGSMPLMNCallDataRecord IS NOT NULL",
+            "action": "quarantine"
+          }
+        ],
+        "quarantine_table": "emsc_cdr_raw_quarantine",
+        "record_id_column": "_choice"
+      },
+      "governance_tags": {}
+    },
+    {
+      "dataflow_id": "df_uc7_psgw_cdr_ingest",
+      "source_system": "psgw_cdr_feed",
+      "source_database": "uc_7",
+      "source_table_name": "psgw_call_event_record",
+      "source_description": "UC_7 PSGW (packet-switched gateway, PGW/SGW) BER-encoded call event records, decoded against PSGW.asn1 (module CDRF-R9). Root PDU auto-detected as CallEventRecord; observed arms sGWRecord and pGWRecord. Concatenated-TLV.",
+      "source_type": "asn1",
+      "target_catalog": "{{catalog}}",
+      "target_schema": "bronze",
+      "target_table": "psgw_cdr_raw",
+      "target_type": "streaming_table",
+      "source_config": {
+        "path": "/Volumes/{{catalog}}/landing/uc_7/raw/PSGW/",
+        "schema_location": "/Volumes/{{catalog}}/landing/uc_7/_schemas/psgw_cdr_raw/",
+        "asn1_schema_path": "/Volumes/{{catalog}}/landing/uc_7/asn_schema/PSGW.asn1",
+        "asn1_codec": "ber",
+        "capture_technical_metadata": true
+      },
+      "target_config": {
+        "cdc_load_strategy": "APPEND",
+        "storage_format": "delta"
+      },
+      "dq_config": {
+        "rules": [
+          {
+            "rule_id": "dq_psgw_asn1_decode_ok",
+            "expression": "_asn1_decode_error IS NULL",
+            "action": "quarantine"
+          },
+          {
+            "rule_id": "dq_psgw_choice_arm_selected",
+            "expression": "_choice IS NOT NULL AND _choice <> ''",
+            "action": "quarantine"
+          }
+        ],
+        "quarantine_table": "psgw_cdr_raw_quarantine",
+        "record_id_column": "_choice"
+      },
+      "governance_tags": {}
+    },
+    {
+      "dataflow_id": "df_uc7_sgsn_cdr_ingest",
+      "source_system": "sgsn_cdr_feed",
+      "source_database": "uc_7",
+      "source_table_name": "sgsn_call_event_record",
+      "source_description": "UC_7 SGSN (serving GPRS support node) BER-encoded call event records, decoded against SGSN.asn1 (module CDRF-R9). Root PDU auto-detected as CallEventRecord; all observed records select sgsnPDPRecord. Concatenated-TLV and large: one 42MB .fin file holds 175,048 records.",
+      "source_type": "asn1",
+      "target_catalog": "{{catalog}}",
+      "target_schema": "bronze",
+      "target_table": "sgsn_cdr_raw",
+      "target_type": "streaming_table",
+      "source_config": {
+        "path": "/Volumes/{{catalog}}/landing/uc_7/raw/SGSN/",
+        "schema_location": "/Volumes/{{catalog}}/landing/uc_7/_schemas/sgsn_cdr_raw/",
+        "asn1_schema_path": "/Volumes/{{catalog}}/landing/uc_7/asn_schema/SGSN.asn1",
+        "asn1_codec": "ber",
+        "capture_technical_metadata": true
+      },
+      "target_config": {
+        "cdc_load_strategy": "APPEND",
+        "storage_format": "delta"
+      },
+      "dq_config": {
+        "rules": [
+          {
+            "rule_id": "dq_sgsn_asn1_decode_ok",
+            "expression": "_asn1_decode_error IS NULL",
+            "action": "quarantine"
+          },
+          {
+            "rule_id": "dq_sgsn_choice_arm_selected",
+            "expression": "_choice IS NOT NULL AND _choice <> ''",
+            "action": "quarantine"
+          },
+          {
+            "rule_id": "dq_sgsn_arm_populated",
+            "expression": "_choice <> 'sgsnPDPRecord' OR sgsnPDPRecord IS NOT NULL",
+            "action": "quarantine"
+          }
+        ],
+        "quarantine_table": "sgsn_cdr_raw_quarantine",
+        "record_id_column": "_choice"
+      },
+      "governance_tags": {}
+    },
+    {
+      "dataflow_id": "df_uc7_tap310_ingest",
+      "source_system": "tap310_tap_feed",
+      "source_database": "uc_7",
+      "source_table_name": "tap310_data_interchange",
+      "source_description": "UC_7 TAP 3.10 transferred-account-procedure data interchange batches, decoded against TAP.310.asn1 (module TAP-0310). Root PDU auto-detected as DataInterChange, a 2-arm CHOICE; observed files select transferBatch. Version proven from the payload: SpecificationVersionNumber=3, ReleaseVersionNumber=10. Each file is ONE batch wrapping its own record list, so one file yields one row by design.",
+      "source_type": "asn1",
+      "target_catalog": "{{catalog}}",
+      "target_schema": "bronze",
+      "target_table": "tap310_raw",
+      "target_type": "streaming_table",
+      "source_config": {
+        "path": "/Volumes/{{catalog}}/landing/uc_7/raw/TAP/",
+        "schema_location": "/Volumes/{{catalog}}/landing/uc_7/_schemas/tap310_raw/",
+        "asn1_schema_path": "/Volumes/{{catalog}}/landing/uc_7/asn_schema/TAP.310.asn1",
+        "asn1_codec": "ber",
+        "capture_technical_metadata": true
+      },
+      "target_config": {
+        "cdc_load_strategy": "APPEND",
+        "storage_format": "delta"
+      },
+      "dq_config": {
+        "rules": [
+          {
+            "rule_id": "dq_tap310_asn1_decode_ok",
+            "expression": "_asn1_decode_error IS NULL",
+            "action": "quarantine"
+          },
+          {
+            "rule_id": "dq_tap310_choice_arm_selected",
+            "expression": "_choice IS NOT NULL AND _choice <> ''",
+            "action": "quarantine"
+          },
+          {
+            "rule_id": "dq_tap310_arm_populated",
+            "expression": "_choice <> 'transferBatch' OR transferBatch IS NOT NULL",
+            "action": "quarantine"
+          }
+        ],
+        "quarantine_table": "tap310_raw_quarantine",
+        "record_id_column": "_choice"
+      },
+      "governance_tags": {}
+    }
+  ],
+  "transformation_flows": [],
+  "reconciliation_flows": [],
+  "observability": [
+    {
+      "id": "dest-uc7-volume",
+      "enabled": true,
+      "type": "DATABRICKS_VOLUME",
+      "destination_config": {
+        "volume_path": "/Volumes/{{catalog}}/observability/app_logs/",
+        "compression": "GZIP",
+        "file_format": "JSONL"
+      }
+    }
+  ]
+}

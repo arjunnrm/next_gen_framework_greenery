@@ -159,6 +159,7 @@ nav:
   - Help:
       - FAQ: faq.md
       - Multi-role FAQs: 10_multi_role_faqs.md
+      - Use case implementation guide: 16_usecase_implementation_guide.md
       - Agent skills & prompt library: 15_agent_skills_and_prompts.md
       - Known limitations & gotchas: 13_known_limitations_and_gotchas.md
 

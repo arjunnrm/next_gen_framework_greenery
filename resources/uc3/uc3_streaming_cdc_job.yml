@@ -1,0 +1,103 @@
+# Drives the UC3 Excalibur streaming-CDC group end to end:
+#
+#   setup_control_tables -> onboard_uc3 -> run_pipeline_update -> observability_export
+#
+# Self-contained and idempotent (control-table upsert + CREATE ... IF NOT EXISTS schema
+# provisioning), so it can be re-run at any time. Modelled directly on
+# resources/uc7/uc7_cdr_asn_job.yml, the current house style and most recent working precedent.
+#
+# ONBOARDING IS DELEGATED, NEVER INLINED. onboard_uc3 is a run_job_task against the generic
+# resources/flowx_config_jobs/onboarding_job.yml -- the single parameterised onboarding
+# entrypoint for the whole bundle (BUILD_CONTRACT.md section 7, and the repo's standing rule).
+# The older resources/feature_tests/flowx_test_*_job.yml files that each pin their own
+# 02_onboarding_engine.py notebook_task are legacy drift; this file deliberately does not copy
+# them. The spec itself is owned by a different author -- this job depends on its PATH only.
+#
+# setup_control_tables is NOT boilerplate: it applies the additive control-table migration, and
+# `bundle deploy` does not apply it. It is kept here so this job stands alone even if Job 1 or
+# Job 3 has not run in this workspace yet; the notebook is idempotent, so running it three times
+# across the three UC3 jobs is harmless.
+#
+# GOVERNANCE TAGGING IS A POST-DEPLOYMENT STEP, and needs its own task. The framework applies
+# `governance_tags` via control_plane/post_deployment.py::apply_all_governance_tags, which issues
+# ALTER TABLE ... SET TAGS / ALTER COLUMN ... SET TAGS against an ALREADY-MATERIALIZED table --
+# it is NOT part of the pipeline update. Phase C proved this the hard way: Job 2 succeeded end to
+# end with zero tags in information_schema.column_tags, because no task ever invoked it. The task
+# below calls notebooks/04_governance/04_apply_governance_and_egress.py after run_pipeline_update
+# (the table must exist first), mirroring resources/feature_tests/flowx_test_gov_001_tagging_job.yml.
+# This is still CONFIGURATION, not hand-written tagging: the tag values come from the spec's
+# governance_tags block and the DDL is the framework's own.
+#
+# PARAMETER CONTRACT for observability_export: pipeline_task_run_id must be a TASK
+# base_parameter, never a pipeline configuration: key. `{{tasks.<key>.run_id}}` is a Jobs
+# dynamic value resolved per job run, and a mistyped task_key is passed through as literal text
+# rather than failing at the platform layer -- runtime_params.py detects exactly that and names
+# it. The key below is `run_pipeline_update`, which is the task_key declared in this same file.
+# The task also cross-checks dataflow_group_id against the pipeline it observed and fails if
+# they disagree, which catches a copy-paste left pointing at the job it came from.
+#
+# NAME: 004_lfj_uc3_excalibur_streaming_cdc, driving pipeline 004_ldp_uc3_excalibur_streaming_cdc
+# -- both 004, deliberately (BUILD_CONTRACT.md section 2).
+
+resources:
+  jobs:
+    uc3_streaming_cdc_job:
+      name: 004_lfj_uc3_excalibur_streaming_cdc
+
+      tasks:
+        - task_key: setup_control_tables
+          notebook_task:
+            notebook_path: ../../notebooks/01_setup/01_setup_control_tables.py
+            base_parameters:
+              catalog: ${var.catalog}
+          environment_key: framework_env
+
+        - task_key: onboard_uc3
+          depends_on:
+            - task_key: setup_control_tables
+          run_job_task:
+            job_id: ${resources.jobs.onboarding_job.id}
+            job_parameters:
+              spec_file_path: "${workspace.file_path}/onboarding/uc3/uc3_excalibur_streaming_cdc.json"
+              catalog: ${var.catalog}
+              env: ${bundle.target}
+              action_type: CREATE
+
+        - task_key: run_pipeline_update
+          depends_on:
+            - task_key: onboard_uc3
+          pipeline_task:
+            pipeline_id: ${resources.pipelines.uc3_streaming_cdc_pipeline.id}
+
+        - task_key: apply_governance_uc3
+          depends_on:
+            - task_key: run_pipeline_update
+          notebook_task:
+            notebook_path: ../../notebooks/04_governance/04_apply_governance_and_egress.py
+            base_parameters:
+              catalog: ${var.catalog}
+              dataflow_group_id: dfg_uc3_excalibur_streaming_cdc
+              apply_abac: "true"
+              capture_cdc_change_counts: "false"
+          environment_key: framework_env
+
+        - task_key: observability_export
+          depends_on:
+            - task_key: apply_governance_uc3
+          notebook_task:
+            notebook_path: ../../notebooks/08_observability/08_dlt_observability_engine.py
+            base_parameters:
+              dataflow_group_id: dfg_uc3_excalibur_streaming_cdc
+              catalog: ${var.catalog}
+              env: ${bundle.target}
+              pipeline_task_run_id: "{{tasks.run_pipeline_update.run_id}}"
+              service_name: dlt-observability-uc3-excalibur-streaming-cdc
+              fail_task_on_dispatch_error: "true"
+          environment_key: framework_env
+
+      environments:
+        - environment_key: framework_env
+          spec:
+            environment_version: "4"
+            dependencies:
+              - ../../dist/*.whl
