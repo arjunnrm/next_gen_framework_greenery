@@ -1369,7 +1369,7 @@
     },
     "logging_config.mismatch_log_capture": {
       "purpose": "Per-flow gate on mismatch-log writes.",
-      "why": "Per-flow gate on mismatch-log writes. Overridable at runtime by the recon_mismatch_log job parameter.",
+      "why": "Per-flow gate on mismatch-log writes. DEFAULTS TO FALSE since v1.7.3 (it defaulted to true through v1.7.2): leaving this unset means no reconciliation_mismatch_log rows and, in pipeline mode, no recon__*__mismatch dataset. Set it true to opt in. Overridable at runtime by the recon_mismatch_log job parameter.",
       "samples": [
         {
           "language": "json",
@@ -1377,6 +1377,7 @@
         }
       ],
       "tips": [
+        "v1.7.3: defaults false -- auditing is opt-in",
         "Omitting the attribute is not the same as setting it false — check the default above."
       ],
       "errors": [],
@@ -1394,7 +1395,7 @@
     },
     "logging_config.run_log_capture": {
       "purpose": "Per-flow gate on run-log writes.",
-      "why": "Per-flow gate on run-log writes. Overridable at runtime by the recon_run_log_capture job parameter.",
+      "why": "Per-flow gate on run-log writes. DEFAULTS TO FALSE since v1.7.3 (it defaulted to true through v1.7.2): reconciliation is silent by default, so leaving this unset means no reconciliation_run_log or reconciliation_result rows and, in pipeline mode, no recon__*__metrics dataset at all. Set it true to opt in -- and you MUST set it true when the flow declares dq_config.rules, whose expectations attach to that dataset. Overridable at runtime by the recon_run_log_capture job parameter.",
       "samples": [
         {
           "language": "json",
@@ -1402,6 +1403,7 @@
         }
       ],
       "tips": [
+        "v1.7.3: defaults false -- auditing is opt-in",
         "Omitting the attribute is not the same as setting it false — check the default above."
       ],
       "errors": [],
@@ -2425,9 +2427,50 @@
         "generated": true
       }
     },
+    "source_config.source_zip_handling.member_format": {
+      "purpose": "The landing archive's CONTAINER — how the bytes are packed, independent of whether they are also encrypted.",
+      "why": "'zip' is a real archive: a member table plus N named entries, opened by pyzipper. 'gzip' is a single compressed stream with no member table at all, so pyzipper cannot open it. Before v1.7.4 the extractor assumed ZIP unconditionally, which made an encrypted .gz unreachable — you could decrypt it or decompress it, never both.",
+      "samples": [
+        {
+          "language": "json",
+          "code": "// An ENCRYPTED gzip: EA_REQUEST_20260901.csv.gz.gpg\n\"source_zip_handling\": {\n  \"enabled\": true,\n  \"source_zip_path\": \"/Volumes/{{catalog}}/staging/uc_6/raw/\",\n  \"zip_file_pattern\": \"*.csv.gz.gpg\",\n  \"target_volume_path\": \"/Volumes/{{catalog}}/staging/uc_6/raw/\",\n  \"member_format\": \"gzip\",\n  \"pre_extraction_decryption\": {\n    \"type\": \"pgp_symmetric\",\n    \"passphrase_secret\": {\n      \"secret_catalog\": \"{{catalog}}\",\n      \"secret_schema\": \"config\",\n      \"secret_key\": \"pgpkey\"\n    }\n  }\n}"
+        }
+      ],
+      "tips": [
+        "An UNENCRYPTED .gz needs no ZIP handling whatsoever. Spark and Auto Loader decompress gzip natively on read — just point source_config.path at it and leave source_zip_handling disabled. Turning it on buys you nothing and costs a copy.",
+        "Use 'gzip' only when the .gz is wrapped in something Spark cannot read through, which in practice means encryption: .csv.gz.gpg.",
+        "A gzip stream holds exactly ONE member, so there is no member-selection step and no per-member pattern. The output file is named by stripping the envelope suffixes (.gpg/.pgp/.decrypted) and then the compression suffix (.gz/.gzip)."
+      ],
+      "errors": [
+        {
+          "symptom": "Extraction reports success, the file lands, and ingestion reads ZERO rows while the update still reports SUCCESS.",
+          "cause": "The landed filename kept an envelope suffix (e.g. EA_REQUEST.csv.gz.gpg became EA_REQUEST.csv.gz.gpg.decompressed), so it matched no pathGlobFilter and Auto Loader silently ignored it.",
+          "fix": "Fixed in v1.7.4 — the suffix strip now removes .gpg/.pgp/.decrypted before the .gz. If you see this on an older build, check the actual filename in target_volume_path against your reader_options pathGlobFilter."
+        },
+        {
+          "symptom": "BadZipFile: File is not a zip file",
+          "cause": "member_format is 'zip' (or absent) but the payload is a gzip stream.",
+          "fix": "Set member_format to 'gzip'."
+        }
+      ],
+      "refs": [
+        "uc_volumes",
+        "files_api"
+      ],
+      "_meta": {
+        "type": "string (enum)",
+        "required": false,
+        "flows": [
+          "ingestion"
+        ],
+        "section": "Source · ZIP handling",
+        "doc": "#7-source-zip-handling",
+        "generated": false
+      }
+    },
     "source_config.source_zip_handling.pre_extraction_decryption.passphrase_secret.secret_catalog": {
-      "purpose": "Passphrase protecting the PGP PRIVATE KEY above.",
-      "why": "Passphrase protecting the PGP PRIVATE KEY above. Optional — only when the key itself is passphrase-protected. Not the ZIP's password: that is secret_passphrase, below.",
+      "purpose": "Depends on type.",
+      "why": "Depends on type. Under 'pgp_symmetric' this is REQUIRED and is the passphrase the OpenPGP message itself was encrypted with (`gpg --symmetric`). Under 'pgp' it is OPTIONAL and protects the PRIVATE KEY above. Neither is the ZIP's AES password: that is secret_passphrase, below.",
       "samples": [
         {
           "language": "json",
@@ -2454,8 +2497,8 @@
       }
     },
     "source_config.source_zip_handling.pre_extraction_decryption.passphrase_secret.secret_key": {
-      "purpose": "Passphrase protecting the PGP PRIVATE KEY above.",
-      "why": "Passphrase protecting the PGP PRIVATE KEY above. Optional — only when the key itself is passphrase-protected. Not the ZIP's password: that is secret_passphrase, below.",
+      "purpose": "Depends on type.",
+      "why": "Depends on type. Under 'pgp_symmetric' this is REQUIRED and is the passphrase the OpenPGP message itself was encrypted with (`gpg --symmetric`). Under 'pgp' it is OPTIONAL and protects the PRIVATE KEY above. Neither is the ZIP's AES password: that is secret_passphrase, below.",
       "samples": [
         {
           "language": "json",
@@ -2482,8 +2525,8 @@
       }
     },
     "source_config.source_zip_handling.pre_extraction_decryption.passphrase_secret.secret_schema": {
-      "purpose": "Passphrase protecting the PGP PRIVATE KEY above.",
-      "why": "Passphrase protecting the PGP PRIVATE KEY above. Optional — only when the key itself is passphrase-protected. Not the ZIP's password: that is secret_passphrase, below.",
+      "purpose": "Depends on type.",
+      "why": "Depends on type. Under 'pgp_symmetric' this is REQUIRED and is the passphrase the OpenPGP message itself was encrypted with (`gpg --symmetric`). Under 'pgp' it is OPTIONAL and protects the PRIVATE KEY above. Neither is the ZIP's AES password: that is secret_passphrase, below.",
       "samples": [
         {
           "language": "json",
@@ -2681,28 +2724,29 @@
       }
     },
     "source_config.source_zip_handling.pre_extraction_decryption.type": {
-      "purpose": "Decryption applied to the archive before it is unzipped.",
-      "why": "Encrypted archives must be decrypted as a distinct outer layer before any member can be read.",
+      "purpose": "Which OpenPGP decryption to apply to the landing file before it is unpacked.",
+      "why": "'pgp' and 'pgp_symmetric' are not two ways to do one thing — they decrypt two structurally different messages. A key-encrypted message carries a PKESK packet addressed to a recipient keypair; a passphrase-encrypted one carries a SKESK packet derived from a shared secret. Neither can open the other, which is why this is one select rather than an optional extra secret.",
       "samples": [
         {
           "language": "json",
-          "code": "\"pre_extraction_decryption\": {\n  \"type\": \"pgp\",\n  \"private_key_secret\": { \"secret_catalog\": \"{{catalog}}\", \"secret_schema\": \"security\", \"secret_key\": \"pgp_private_key\" }\n}"
+          "code": "// Symmetric — what `gpg --symmetric --cipher-algo AES256 file` produces.\n\"pre_extraction_decryption\": {\n  \"type\": \"pgp_symmetric\",\n  \"passphrase_secret\": {\n    \"secret_catalog\": \"{{catalog}}\",\n    \"secret_schema\": \"config\",\n    \"secret_key\": \"pgpkey\"\n  }\n}\n\n// Asymmetric — encrypted to your public key by the sender.\n\"pre_extraction_decryption\": {\n  \"type\": \"pgp\",\n  \"private_key_secret\": { \"...\": \"the recipient private key\" },\n  \"passphrase_secret\":  { \"...\": \"optional: unlocks that key\" }\n}"
         }
       ],
       "tips": [
-        "Only pgp is supported.",
-        "Choosing a type is what reveals the secret fields below — they stay hidden until then.",
-        "Secrets are referenced by catalog/schema/key. Never paste key material into the spec."
+        "Three different secrets live in this block and they are easy to confuse. Under 'pgp_symmetric', passphrase_secret is the passphrase THE MESSAGE was encrypted with. Under 'pgp', passphrase_secret unlocks the PRIVATE KEY. In both cases secret_passphrase (note the reversed name) is something else entirely: the AES password on a ZIP archive.",
+        "Store the passphrase as a Unity Catalog secret and reference it. Never inline the literal — the builder blocks 'passphrase' as a forbidden key name for this reason.",
+        "Verified against GnuPG 2.4.9 in both directions: the framework decrypts what gpg wrote, and gpg decrypts what the framework wrote."
       ],
       "errors": [
         {
-          "symptom": "Decryption fails with no obvious cause",
-          "cause": "The passphrase secret is missing while the private key requires one.",
-          "fix": "Populate secret_passphrase as well as private_key_secret."
+          "symptom": "CryptoError: Symmetric PGP decryption failed",
+          "cause": "Wrong passphrase, or the message is key-encrypted rather than passphrase-encrypted.",
+          "fix": "Confirm the message type with `gpg --list-packets`. A SKESK packet means symmetric ('pgp_symmetric'); a PKESK packet means asymmetric ('pgp')."
         }
       ],
       "refs": [
-        "secrets"
+        "uc_volumes",
+        "files_api"
       ],
       "_meta": {
         "type": "string (enum)",
@@ -4027,6 +4071,42 @@
         "generated": true
       }
     },
+    "target_config.sink_config.post_export_archive.archive_format": {
+      "purpose": "The container the finished export is delivered in: 'zip' or 'gzip'.",
+      "why": "The sink was ZIP-only, so an interface specifying a .csv.gz drop could not be served without a downstream repack — which would have meant either breaking the supplier contract or hand-rolling file handling outside the framework.",
+      "samples": [
+        {
+          "language": "json",
+          "code": "// Emits EE_20260901-LEIDOS_TELEPHONE_001.csv.gz\n\"post_export_archive\": {\n  \"enabled\": true,\n  \"output_zip_path\": \"/Volumes/{{catalog}}/staging/uc_6/output/\",\n  \"export_file_name_format\": \"EE_${export_file_date}-LEIDOS_TELEPHONE_${export_file_sequence}\",\n  \"archive_format\": \"gzip\"\n}\n// add pgp_encryption.passphrase_secret -> ....csv.gz.gpg"
+        }
+      ],
+      "tips": [
+        "A gzip holds exactly ONE member, so the staged partition files are concatenated into a single stream. The CSV header is written per partition, so all but the first are dropped during concatenation.",
+        "A gzip stream has no archive password: post_export_archive.secret does not apply. To protect a gzip export, use pgp_encryption.",
+        "The extension follows the content: .csv.gz or .jsonl.gz, and .gpg is appended when pgp_encryption is on (a ZIP archive uses .pgp instead)."
+      ],
+      "errors": [
+        {
+          "symptom": "The consumer rejects the file as a corrupt gzip.",
+          "cause": "Some tools stop at the first member boundary in a multi-member gzip.",
+          "fix": "The framework emits a single-member stream, so this should not occur. If it does, confirm nothing downstream is re-concatenating the exports."
+        }
+      ],
+      "refs": [
+        "sinks"
+      ],
+      "_meta": {
+        "type": "string (enum)",
+        "required": false,
+        "flows": [
+          "ingestion",
+          "transformation"
+        ],
+        "section": "Target · sink config",
+        "doc": "#10-sink-config-target_configsink_config",
+        "generated": false
+      }
+    },
     "target_config.sink_config.post_export_archive.enabled": {
       "purpose": "Enable post-write archiving for pgp_zip exports.",
       "why": "",
@@ -4142,6 +4222,129 @@
         "generated": true
       }
     },
+    "target_config.sink_config.post_export_archive.pgp_encryption.passphrase_secret": {
+      "purpose": "Encrypt the export with a SHARED PASSPHRASE instead of a recipient's public key.",
+      "why": "Egress encryption previously required a recipient keypair. Where two parties already share a passphrase — as UC6 does, using the same secret that decrypts the inbound request — demanding a keypair means managing one purely as ceremony.",
+      "samples": [
+        {
+          "language": "json",
+          "code": "\"pgp_encryption\": {\n  \"enabled\": true,\n  \"passphrase_secret\": {\n    \"secret_catalog\": \"{{catalog}}\",\n    \"secret_schema\": \"config\",\n    \"secret_key\": \"pgpkey\"\n  }\n}\n// AES256. Decrypts with: gpg --decrypt file.csv.gz.gpg"
+        }
+      ],
+      "tips": [
+        "Mutually exclusive with recipient_public_key_secret — set exactly one. The builder hides whichever you did not choose.",
+        "Signing is unavailable in this mode: sign_with_private_key_secret needs a sender keypair, which symmetric encryption does not have.",
+        "Anyone holding the passphrase can both decrypt AND forge an identical file. Where you need provenance rather than only confidentiality, use a recipient key and sign."
+      ],
+      "errors": [
+        {
+          "symptom": "Onboarding rejects the flow with 'mutually exclusive — set exactly one'.",
+          "cause": "Both passphrase_secret and recipient_public_key_secret are present.",
+          "fix": "Delete whichever you are not using. Leaving both is ambiguous rather than additive."
+        }
+      ],
+      "refs": [
+        "secrets",
+        "uc_privileges"
+      ],
+      "_meta": {
+        "type": "string",
+        "required": false,
+        "flows": [
+          "ingestion+transformation"
+        ],
+        "section": "",
+        "doc": "",
+        "generated": false
+      }
+    },
+    "target_config.sink_config.post_export_archive.pgp_encryption.passphrase_secret.secret_catalog": {
+      "purpose": "SYMMETRIC egress encryption — encrypt with a shared passphrase instead of a recipient key.",
+      "why": "SYMMETRIC egress encryption — encrypt with a shared passphrase instead of a recipient key. Mutually exclusive with recipient_public_key_secret: set exactly one. Signing is unavailable in this mode (it needs a sender keypair).",
+      "samples": [
+        {
+          "language": "json",
+          "code": "{\n  \"target_config\": {\n    \"sink_config\": {\n      \"post_export_archive\": {\n        \"pgp_encryption\": {\n          \"passphrase_secret\": {\n            \"secret_catalog\": \"{{catalog}}\"\n          }\n        }\n      }\n    }\n  }\n}"
+        }
+      ],
+      "tips": [
+        "Only applies to some configurations; the form hides it when it is not relevant."
+      ],
+      "errors": [],
+      "refs": [
+        "secrets",
+        "uc_privileges"
+      ],
+      "_meta": {
+        "type": "string",
+        "required": false,
+        "flows": [
+          "ingestion",
+          "transformation"
+        ],
+        "section": "Target · sink config",
+        "doc": "#10-sink-config-target_configsink_config",
+        "generated": true
+      }
+    },
+    "target_config.sink_config.post_export_archive.pgp_encryption.passphrase_secret.secret_key": {
+      "purpose": "SYMMETRIC egress encryption — encrypt with a shared passphrase instead of a recipient key.",
+      "why": "SYMMETRIC egress encryption — encrypt with a shared passphrase instead of a recipient key. Mutually exclusive with recipient_public_key_secret: set exactly one. Signing is unavailable in this mode (it needs a sender keypair).",
+      "samples": [
+        {
+          "language": "json",
+          "code": "{\n  \"target_config\": {\n    \"sink_config\": {\n      \"post_export_archive\": {\n        \"pgp_encryption\": {\n          \"passphrase_secret\": {\n            \"secret_key\": \"pii_encryption_key\"\n          }\n        }\n      }\n    }\n  }\n}"
+        }
+      ],
+      "tips": [
+        "Only applies to some configurations; the form hides it when it is not relevant."
+      ],
+      "errors": [],
+      "refs": [
+        "secrets",
+        "uc_privileges"
+      ],
+      "_meta": {
+        "type": "string",
+        "required": false,
+        "flows": [
+          "ingestion",
+          "transformation"
+        ],
+        "section": "Target · sink config",
+        "doc": "#10-sink-config-target_configsink_config",
+        "generated": true
+      }
+    },
+    "target_config.sink_config.post_export_archive.pgp_encryption.passphrase_secret.secret_schema": {
+      "purpose": "SYMMETRIC egress encryption — encrypt with a shared passphrase instead of a recipient key.",
+      "why": "SYMMETRIC egress encryption — encrypt with a shared passphrase instead of a recipient key. Mutually exclusive with recipient_public_key_secret: set exactly one. Signing is unavailable in this mode (it needs a sender keypair).",
+      "samples": [
+        {
+          "language": "json",
+          "code": "{\n  \"target_config\": {\n    \"sink_config\": {\n      \"post_export_archive\": {\n        \"pgp_encryption\": {\n          \"passphrase_secret\": {\n            \"secret_schema\": \"security\"\n          }\n        }\n      }\n    }\n  }\n}"
+        }
+      ],
+      "tips": [
+        "Only applies to some configurations; the form hides it when it is not relevant."
+      ],
+      "errors": [],
+      "refs": [
+        "secrets",
+        "uc_privileges"
+      ],
+      "_meta": {
+        "type": "string",
+        "required": false,
+        "flows": [
+          "ingestion",
+          "transformation"
+        ],
+        "section": "Target · sink config",
+        "doc": "#10-sink-config-target_configsink_config",
+        "generated": true
+      }
+    },
     "target_config.sink_config.post_export_archive.pgp_encryption.recipient_public_key_secret.secret_catalog": {
       "purpose": "Unity Catalog secret catalog holding the key.",
       "why": "",
@@ -4152,7 +4355,6 @@
         }
       ],
       "tips": [
-        "Required — onboarding rejects the flow if this is missing.",
         "Only applies to some configurations; the form hides it when it is not relevant."
       ],
       "errors": [],
@@ -4162,7 +4364,7 @@
       ],
       "_meta": {
         "type": "string",
-        "required": true,
+        "required": false,
         "flows": [
           "ingestion",
           "transformation"
@@ -4182,7 +4384,6 @@
         }
       ],
       "tips": [
-        "Required — onboarding rejects the flow if this is missing.",
         "Only applies to some configurations; the form hides it when it is not relevant."
       ],
       "errors": [],
@@ -4192,7 +4393,7 @@
       ],
       "_meta": {
         "type": "string",
-        "required": true,
+        "required": false,
         "flows": [
           "ingestion",
           "transformation"
@@ -4212,7 +4413,6 @@
         }
       ],
       "tips": [
-        "Required — onboarding rejects the flow if this is missing.",
         "Only applies to some configurations; the form hides it when it is not relevant."
       ],
       "errors": [],
@@ -4222,7 +4422,7 @@
       ],
       "_meta": {
         "type": "string",
-        "required": true,
+        "required": false,
         "flows": [
           "ingestion",
           "transformation"
@@ -4511,6 +4711,105 @@
           "symptom": "Onboarding rejects staged_file_format",
           "cause": "It was set on a sink whose format is not pgp_zip.",
           "fix": "Remove the attribute, or switch sink_config.format to pgp_zip."
+        }
+      ],
+      "refs": [
+        "sinks"
+      ],
+      "_meta": {
+        "type": "string (enum)",
+        "required": false,
+        "flows": [
+          "ingestion",
+          "transformation"
+        ],
+        "section": "Target · sink config",
+        "doc": "#10-sink-config-target_configsink_config",
+        "generated": false
+      }
+    },
+    "target_config.sink_config.staged_file_options.delimiter": {
+      "purpose": "The field separator for the staged CSV a pgp_zip sink writes.",
+      "why": "Before v1.7.4 the writer used Python's csv `excel` dialect with no override — comma-separated, always headered, CRLF-terminated. A supplier interface that specifies anything else simply could not be expressed, which is what UC6's pipe-delimited Leidos feed needed.",
+      "samples": [
+        {
+          "language": "json",
+          "code": "\"sink_config\": {\n  \"format\": \"pgp_zip\",\n  \"staged_file_format\": \"csv\",\n  \"staged_file_options\": {\n    \"delimiter\": \"|\",\n    \"include_header\": true,\n    \"line_terminator\": \"lf\"\n  }\n}"
+        }
+      ],
+      "tips": [
+        "Exactly one character. Python's csv writer cannot emit a multi-character delimiter and the framework rejects one rather than silently truncating it.",
+        "Omit the whole staged_file_options object to keep the pre-1.7.4 dialect exactly.",
+        "Only applies to staged_file_format 'csv'. A JSON-Lines export has no delimiter."
+      ],
+      "errors": [
+        {
+          "symptom": "The consumer reads one giant column, or splits on the wrong character.",
+          "cause": "The delimiter here does not match what the receiving interface expects.",
+          "fix": "Match the interface specification exactly. If fields can contain the delimiter, the writer quotes them per RFC-4180 — confirm the consumer honours quoting."
+        }
+      ],
+      "refs": [
+        "sinks"
+      ],
+      "_meta": {
+        "type": "string",
+        "required": false,
+        "flows": [
+          "ingestion",
+          "transformation"
+        ],
+        "section": "Target · sink config",
+        "doc": "#10-sink-config-target_configsink_config",
+        "generated": false
+      }
+    },
+    "target_config.sink_config.staged_file_options.include_header": {
+      "purpose": "Write the header row.",
+      "why": "Write the header row. Absent = true. Set false for a supplier interface that specifies a headerless body. NOTE: with archive_format gzip the header is emitted per partition and all but the first are dropped on concatenation.",
+      "samples": [
+        {
+          "language": "json",
+          "code": "{\n  \"target_config\": {\n    \"sink_config\": {\n      \"staged_file_options\": {\n        \"include_header\": true\n      }\n    }\n  }\n}"
+        }
+      ],
+      "tips": [
+        "Only applies to some configurations; the form hides it when it is not relevant.",
+        "Omitting the attribute is not the same as setting it false — check the default above."
+      ],
+      "errors": [],
+      "refs": [
+        "sinks"
+      ],
+      "_meta": {
+        "type": "boolean",
+        "required": false,
+        "flows": [
+          "ingestion",
+          "transformation"
+        ],
+        "section": "Target · sink config",
+        "doc": "#10-sink-config-target_configsink_config",
+        "generated": true
+      }
+    },
+    "target_config.sink_config.staged_file_options.line_terminator": {
+      "purpose": "The record separator for the staged CSV: 'crlf' or 'lf'.",
+      "why": "Spelled as a name because JSON cannot carry a bare control character — you cannot write a literal CR in a JSON string and have it survive round-tripping.",
+      "samples": [
+        {
+          "language": "json",
+          "code": "\"staged_file_options\": { \"line_terminator\": \"lf\" }\n// crlf (default when absent) = RFC-4180, the pre-1.7.4 behaviour\n// lf                          = bare \\n, what most Unix consumers expect"
+        }
+      ],
+      "tips": [
+        "Absent = crlf. Legacy mainframe and Windows interfaces usually want crlf; most Unix-side consumers want lf."
+      ],
+      "errors": [
+        {
+          "symptom": "The consumer reports a stray \\r at the end of the last field on every row.",
+          "cause": "The file is CRLF-terminated but the consumer splits on \\n only.",
+          "fix": "Set line_terminator to 'lf'."
         }
       ],
       "refs": [
