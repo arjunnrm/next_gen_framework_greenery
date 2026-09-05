@@ -105,7 +105,7 @@ from pyspark.sql.datasource import DataSource, DataSourceStreamWriter, WriterCom
 from pyspark.sql.types import StructType
 
 from flowx.lakeflow_framework.archive.zip_utils import compress_and_encrypt_sink
-from flowx.lakeflow_framework.crypto.pgp import pgp_encrypt
+from flowx.lakeflow_framework.crypto.pgp import pgp_encrypt, pgp_encrypt_symmetric
 from flowx.lakeflow_framework.exceptions import ArchiveError
 
 logger = logging.getLogger("flowx.lakeflow_framework.archive.pgp_zip_sink")
@@ -119,6 +119,43 @@ _STAGED_FILE_SUFFIXES = {"json": ".json", "csv": ".csv"}
 #: pre-v1.6.0 behaviour) stages JSON-Lines; "csv" stages RFC-4180 CSV with a header row --
 #: one staged file per non-empty partition per micro-batch, each carrying its own header.
 _ALLOWED_STAGED_FILE_FORMATS = tuple(_STAGED_FILE_SUFFIXES)
+
+#: ``sink_config.staged_file_options.line_terminator`` (v1.7.4). Spelled as names rather
+#: than raw escapes because a JSON spec cannot carry a bare control character and
+#: "\r\n" vs "\\r\\n" in a JSON string is a classic silent-escaping trap.
+_LINE_TERMINATORS = {"crlf": "\r\n", "lf": "\n"}
+
+
+def _concatenate_and_gzip(staged_file_paths: List[str], output_path: str, skip_repeated_header: bool) -> int:
+    """Concatenate this micro-batch's staged partition files into ONE gzip stream (v1.7.4).
+
+    A ZIP holds N named members, so the pre-v1.7.4 sink could simply hand a whole directory to
+    ``compress_and_encrypt_sink``. A gzip stream holds exactly one, so the partition files must
+    be joined first -- which is safe only because every staged file in one micro-batch shares a
+    single schema.
+
+    ``skip_repeated_header`` drops the first line of every file after the first. It is passed
+    ``True`` only for headered CSV: ``write()`` emits a header per staged file (it has no way to
+    know which partition will land first), so concatenating N files verbatim would interleave
+    N-1 spurious header rows into the middle of the export. JSON-Lines has no header and must
+    never have a line dropped.
+
+    Streamed in 1 MiB chunks rather than read whole, matching the driver-memory discipline the
+    rest of this module keeps: a micro-batch's export can be arbitrarily large.
+
+    Returns the number of source files concatenated.
+    """
+    import gzip as _gzip
+    import shutil as _shutil
+
+    os.makedirs(os.path.dirname(output_path) or ".", exist_ok=True)
+    with _gzip.open(output_path, "wb") as archive:
+        for index, staged_file_path in enumerate(staged_file_paths):
+            with open(staged_file_path, "rb") as staged_file:
+                if skip_repeated_header and index > 0:
+                    staged_file.readline()  # discard this partition's own header row
+                _shutil.copyfileobj(staged_file, archive, length=1024 * 1024)
+    return len(staged_file_paths)
 
 
 @dataclass
@@ -164,6 +201,40 @@ class _PgpZipStreamWriter(DataSourceStreamWriter):
                 f"(allowed: {', '.join(_ALLOWED_STAGED_FILE_FORMATS)}) -- see "
                 "onboarding_spec.schema.json's sink_config.staged_file_format."
             )
+        # v1.7.4: the staged CSV's dialect. The writer previously used csv.DictWriter with no
+        # dialect arguments at all, i.e. Python's `excel` default -- comma-separated, always
+        # with a header. A supplier interface that specifies a pipe-delimited, headerless
+        # extract (UC6's Leidos/EA feed) had no way to express that, and no workaround short
+        # of post-processing the archive.
+        self._staged_delimiter = options.get("staged_delimiter") or ","
+        if len(self._staged_delimiter) != 1:
+            raise ArchiveError(
+                f"pgp_zip sink: staged_delimiter must be exactly one character, got "
+                f"{self._staged_delimiter!r} -- Python's csv module cannot write a multi-character "
+                "delimiter."
+            )
+        self._staged_include_header = str(options.get("staged_include_header", "true")).strip().lower() == "true"
+        # Python's csv module writes RFC-4180 CRLF by default. That is correct for RFC 4180 and
+        # is the pre-v1.7.4 behaviour, so it stays the default -- but a legacy mainframe/ETL
+        # interface commonly specifies a bare LF record delimiter (UC6's does), and a stray 
+        # at the end of every field-final value is exactly the kind of defect that survives
+        # eyeballing and breaks the consumer's parser.
+        self._staged_line_terminator = _LINE_TERMINATORS.get(
+            (options.get("staged_line_terminator") or "crlf").strip().lower()
+        )
+        if self._staged_line_terminator is None:
+            raise ArchiveError(
+                f"pgp_zip sink: unsupported staged_line_terminator "
+                f"{options.get('staged_line_terminator')!r} (allowed: {', '.join(_LINE_TERMINATORS)})."
+            )
+        # v1.7.4: "zip" (default, unchanged) or "gzip". A gzip stream holds exactly ONE member,
+        # so the multi-partition staging model has to converge to a single file before it can
+        # be gzipped -- see _archive_gzip in commit().
+        self._archive_format = (options.get("archive_format") or "zip").strip().lower()
+        if self._archive_format not in ("zip", "gzip"):
+            raise ArchiveError(
+                f"pgp_zip sink: unsupported archive_format {self._archive_format!r} (allowed: gzip, zip)."
+            )
         self._schema_field_names = list(schema.fieldNames()) if schema is not None else None
         self._zip_secret_value = options.get("zip_secret_value")
         self._pgp_enabled = str(options.get("pgp_enabled", "false")).strip().lower() == "true"
@@ -173,15 +244,28 @@ class _PgpZipStreamWriter(DataSourceStreamWriter):
         # meaningful (and only ever populated by engine/sink_registration.py) alongside
         # self._pgp_sign_key_armored.
         self._pgp_sign_passphrase = options.get("pgp_sign_passphrase_secret_value") if self._pgp_sign_key_armored else None
+        # v1.7.4: symmetric (passphrase) PGP -- mutually exclusive with the recipient-key path
+        # above. When set, the archive is encrypted under this shared passphrase rather than to
+        # a recipient's public key. Resolved upstream in engine/sink_registration.py like every
+        # other secret value this class receives.
+        self._pgp_passphrase = options.get("pgp_passphrase_secret_value") if self._pgp_enabled else None
         # Optional -- controls the exported archive's own file name (never the full path,
         # output_zip_path already names the destination directory). Supported placeholders:
         # {batch_id} (the microbatch id) and {timestamp} (UTC, YYYYMMDDTHHMMSSZ, resolved at
         # commit time). Defaults to "batch_{batch_id}", preserving the original naming.
         self._export_file_name_format = options.get("export_file_name_format") or "batch_{batch_id}"
-        if self._pgp_enabled and not self._pgp_recipient_key_armored:
+        if self._pgp_enabled and not (self._pgp_recipient_key_armored or self._pgp_passphrase):
             raise ArchiveError(
-                "pgp_zip sink has pgp_enabled=true but is missing the pgp_recipient_secret_value option "
-                "(the resolved recipient public key) -- see engine/sink_registration.py::_build_sink_options."
+                "pgp_zip sink has pgp_enabled=true but is missing BOTH pgp_recipient_secret_value "
+                "(the resolved recipient public key, for key-based encryption) and "
+                "pgp_passphrase_secret_value (for symmetric encryption) -- exactly one is required. "
+                "See engine/sink_registration.py::_build_sink_options."
+            )
+        if self._pgp_enabled and self._pgp_recipient_key_armored and self._pgp_passphrase:
+            raise ArchiveError(
+                "pgp_zip sink: pgp_recipient_secret_value and pgp_passphrase_secret_value are mutually "
+                "exclusive -- a PGP message is either encrypted to a recipient key or under a shared "
+                "passphrase, never both."
             )
 
     # -- executor side -----------------------------------------------------------------
@@ -222,8 +306,15 @@ class _PgpZipStreamWriter(DataSourceStreamWriter):
                         # one (stable across partitions and micro-batches), else this
                         # partition's first row's own field order.
                         field_names = self._schema_field_names or list(row_dict)
-                        csv_writer = csv.DictWriter(staged_file, fieldnames=field_names, extrasaction="ignore")
-                        csv_writer.writeheader()
+                        csv_writer = csv.DictWriter(
+                            staged_file,
+                            fieldnames=field_names,
+                            extrasaction="ignore",
+                            delimiter=self._staged_delimiter,
+                            lineterminator=self._staged_line_terminator,
+                        )
+                        if self._staged_include_header:
+                            csv_writer.writeheader()
                     csv_writer.writerow({name: _csv_cell(row_dict.get(name)) for name in csv_writer.fieldnames})
                 else:
                     # default=str: a row can carry dates/decimals/binary columns that
@@ -238,6 +329,13 @@ class _PgpZipStreamWriter(DataSourceStreamWriter):
             os.remove(staged_file_path)
             return PgpZipCommitMessage(staged_file_path=None, row_count=0)
         return PgpZipCommitMessage(staged_file_path=staged_file_path, row_count=row_count)
+
+    def _staged_suffix(self) -> str:
+        """The data-format suffix for a gzip export's file name, e.g. ``csv`` in
+        ``<name>.csv.gz``. Derived from ``staged_file_format`` so the exported name always
+        describes what is actually inside, rather than being separately configurable and able
+        to disagree with it."""
+        return "csv" if self._staged_file_format == "csv" else "jsonl"
 
     def _render_export_file_name(self, batch_id: int) -> str:
         """Render ``self._export_file_name_format`` for one micro-batch's exported archive
@@ -280,24 +378,46 @@ class _PgpZipStreamWriter(DataSourceStreamWriter):
                 shutil.move(staged_file_path, os.path.join(commit_staging_dir, os.path.basename(staged_file_path)))
 
             export_file_name = self._render_export_file_name(batchId)
-            plain_zip_path = os.path.join(self._output_dir, f"{export_file_name}.zip")
-            compress_and_encrypt_sink(
-                None,
-                source_dir=commit_staging_dir,
-                output_zip_path=plain_zip_path,
-                passphrase=self._zip_secret_value,
-            )
+            if self._archive_format == "gzip":
+                # A gzip stream holds exactly one member, so the N staged partition files must
+                # be concatenated first. Concatenation is only meaningful because every staged
+                # file shares one schema and, when a header is written, it is written per file
+                # -- so the header of every file after the first is dropped here. This is why
+                # `staged_include_header` and `archive_format` interact and are validated
+                # together rather than independently.
+                plain_output_path = os.path.join(self._output_dir, f"{export_file_name}.{self._staged_suffix()}.gz")
+                _concatenate_and_gzip(
+                    sorted(os.path.join(commit_staging_dir, name) for name in os.listdir(commit_staging_dir)),
+                    plain_output_path,
+                    skip_repeated_header=self._staged_include_header and self._staged_file_format == "csv",
+                )
+            else:
+                plain_output_path = os.path.join(self._output_dir, f"{export_file_name}.zip")
+                compress_and_encrypt_sink(
+                    None,
+                    source_dir=commit_staging_dir,
+                    output_zip_path=plain_output_path,
+                    passphrase=self._zip_secret_value,
+                )
+            plain_zip_path = plain_output_path
 
             if self._pgp_enabled:
                 with open(plain_zip_path, "rb") as zip_file:
                     zip_bytes = zip_file.read()
-                encrypted_bytes = pgp_encrypt(
-                    zip_bytes,
-                    self._pgp_recipient_key_armored,
-                    sign_with_private_key_armored=self._pgp_sign_key_armored,
-                    sign_passphrase=self._pgp_sign_passphrase,
-                )
-                encrypted_zip_path = f"{plain_zip_path}.pgp"
+                if self._pgp_passphrase:
+                    encrypted_bytes = pgp_encrypt_symmetric(zip_bytes, self._pgp_passphrase)
+                else:
+                    encrypted_bytes = pgp_encrypt(
+                        zip_bytes,
+                        self._pgp_recipient_key_armored,
+                        sign_with_private_key_armored=self._pgp_sign_key_armored,
+                        sign_passphrase=self._pgp_sign_passphrase,
+                    )
+                # ".gpg" for a gzip export, ".pgp" for a zip one: the former is what the GnuPG
+                # CLI produces and what a supplier interface spelling "<name>.csv.gz.gpg"
+                # expects, the latter is this sink's pre-v1.7.4 suffix and must not change for
+                # existing specs.
+                encrypted_zip_path = f"{plain_zip_path}{'.gpg' if self._archive_format == 'gzip' else '.pgp'}"
                 with open(encrypted_zip_path, "wb") as encrypted_file:
                     encrypted_file.write(encrypted_bytes)
                 # Never leave the un-encrypted intermediate zip behind once it's wrapped --

@@ -585,6 +585,10 @@
           "$ref": "#/$defs/secretRef",
           "description": "Required when enabled == true."
         },
+        "passphrase_secret": {
+          "$ref": "#/$defs/secretRef",
+          "description": "v1.7.4. Symmetric (passphrase) encryption -- the shape `gpg --symmetric --cipher-algo AES256` produces. MUTUALLY EXCLUSIVE with recipient_public_key_secret: a PGP message is encrypted either to a recipient key or under a shared passphrase, never both. Signing (sign_with_private_key_secret) requires a sender keypair and is not available for symmetric encryption."
+        },
         "sign_with_private_key_secret": {
           "$ref": "#/$defs/secretRef"
         },
@@ -645,6 +649,13 @@
         "output_zip_path": {
           "type": "string",
           "description": "Required when enabled. One finished archive file per micro-batch."
+        },
+        "archive_format": {
+          "enum": [
+            "zip",
+            "gzip"
+          ],
+          "description": "v1.7.4. Default 'zip' (unchanged): an AES-capable ZIP holding one file per staged partition. 'gzip' concatenates this micro-batch's staged files into a single gzip stream (a gzip holds exactly one member) and names the export '<export_file_name_format>.<csv|jsonl>.gz', or '....gz.gpg' when pgp_encryption is enabled. Note 'secret' (an AES password on a ZIP) has no meaning for 'gzip'."
         },
         "export_file_name_format": {
           "type": "string",
@@ -708,6 +719,30 @@
             "csv"
           ],
           "description": "v1.6.0, 'pgp_zip' only (presence-rejected for 'delta'/'kafka', which have no framework staging step): the staged per-partition file format inside the archive. 'json' (default when absent -- JSON-Lines, the only pre-v1.6.0 behaviour) or 'csv' (RFC-4180 with a header row; one staged file per non-empty partition per micro-batch, header order = the sink's write schema). See archive/pgp_zip_sink.py."
+        },
+        "staged_file_options": {
+          "type": "object",
+          "description": "v1.7.4. The staged CSV's dialect -- only valid alongside staged_file_format 'csv' (JSON-Lines has no delimiter or header). Before this, the writer used Python's csv `excel` default: comma-separated, always headered, CRLF-terminated, with no way to express a supplier interface that specifies otherwise.",
+          "properties": {
+            "delimiter": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 1,
+              "description": "Exactly one character, e.g. '|'. Default ','."
+            },
+            "include_header": {
+              "type": "boolean",
+              "description": "Default true. False emits data rows only."
+            },
+            "line_terminator": {
+              "enum": [
+                "crlf",
+                "lf"
+              ],
+              "description": "Default 'crlf' (RFC 4180, and the pre-v1.7.4 behaviour). 'lf' for an interface specifying a bare LF record delimiter. Spelled as a name because a JSON string cannot carry a bare control character unambiguously."
+            }
+          },
+          "additionalProperties": false
         },
         "kafka_options": {
           "type": "object",

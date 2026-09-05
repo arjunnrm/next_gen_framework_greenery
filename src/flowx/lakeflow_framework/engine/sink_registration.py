@@ -227,6 +227,26 @@ def _build_sink_options(flow_label: str, sink_format: str, sink_config: Dict[str
         if staged_file_format:
             options["staged_file_format"] = staged_file_format
 
+        # Optional (v1.7.4) -- the staged CSV's dialect. Before this, the writer used
+        # csv.DictWriter with no dialect arguments, i.e. Python's `excel` default: comma,
+        # always headered, CRLF. A supplier interface specifying a pipe-delimited, LF-
+        # terminated extract had no way to express that at all.
+        staged_file_options = sink_config.get("staged_file_options") or {}
+        for spec_key, option_key in (
+            ("delimiter", "staged_delimiter"),
+            ("line_terminator", "staged_line_terminator"),
+        ):
+            value = staged_file_options.get(spec_key)
+            if value is not None:
+                options[option_key] = str(value)
+        if staged_file_options.get("include_header") is not None:
+            options["staged_include_header"] = "true" if staged_file_options["include_header"] else "false"
+
+        # Optional (v1.7.4) -- "zip" (default) or "gzip". See archive/pgp_zip_sink.py.
+        archive_format = archive_config.get("archive_format")
+        if archive_format:
+            options["archive_format"] = archive_format
+
         zip_secret = archive_config.get("secret")
         if zip_secret:
             _resolve_secret_into_options(options, "zip", zip_secret)
@@ -234,6 +254,13 @@ def _build_sink_options(flow_label: str, sink_format: str, sink_config: Dict[str
         pgp_encryption = archive_config.get("pgp_encryption") or {}
         if pgp_encryption.get("enabled"):
             options["pgp_enabled"] = "true"
+            # v1.7.4: symmetric (passphrase) OR asymmetric (recipient key) -- exactly one, and
+            # _validate_sink_config rejects both/neither at onboarding time. Symmetric is the
+            # shape `gpg --symmetric` produces and the one UC6's supplier interface specifies.
+            passphrase_secret = pgp_encryption.get("passphrase_secret")
+            if passphrase_secret:
+                _resolve_secret_into_options(options, "pgp_passphrase", passphrase_secret)
+                return options
             _resolve_secret_into_options(options, "pgp_recipient", pgp_encryption["recipient_public_key_secret"])
             sign_secret = pgp_encryption.get("sign_with_private_key_secret")
             if sign_secret:
