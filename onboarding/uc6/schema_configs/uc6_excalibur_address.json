@@ -1,0 +1,306 @@
+{
+  "$comment": "COMMA-delimited (NOT pipe -- the supplied brief states pipe for every file, but this feed has 43 comma-separated fields and no pipes at all; see FRAMEWORK_CAPABILITY_MAP.md 3.1). Headerless pipe-delimited source: Spark names the columns _c0.._cN positionally, so source_name is the ORDINAL, not a name from the file. Verified against the real sample file's field count -- a mismatch is a hard error at ingest (schema_config.py raises when a source_name is absent), which is the intended behaviour: a source that changed shape must fail loudly, not land misaligned columns. Field count: 43. VERIFIED against the real sample file: two record variants exist (address in fields 18-20 vs 19-22), field 33 is the postcode, field 5 the MSISDN, and field 32 is COUNTY ('MIDDLESEX'), NOT the post town -- the brief's PAF table maps Post Town to ADR_CITY, but no city column is present in this feed, so the district field carries locality instead.",
+  "columns": [
+    {
+      "source_name": "_c0",
+      "target_name": "excalibur_id",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Excalibur record identifier."
+    },
+    {
+      "source_name": "_c1",
+      "target_name": "adr_f2",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Unmapped Excalibur field 2 -- retained verbatim."
+    },
+    {
+      "source_name": "_c2",
+      "target_name": "adr_f3",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Unmapped Excalibur field 3 -- retained verbatim."
+    },
+    {
+      "source_name": "_c3",
+      "target_name": "adr_f4",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Unmapped Excalibur field 4 -- retained verbatim."
+    },
+    {
+      "source_name": "_c4",
+      "target_name": "msisdn",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "The mobile number (MSISDN) -- populated on subscriber rows only."
+    },
+    {
+      "source_name": "_c5",
+      "target_name": "adr_f6",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Unmapped Excalibur field 6 -- retained verbatim."
+    },
+    {
+      "source_name": "_c6",
+      "target_name": "adr_f7",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Unmapped Excalibur field 7 -- retained verbatim."
+    },
+    {
+      "source_name": "_c7",
+      "target_name": "adr_f8",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Unmapped Excalibur field 8 -- retained verbatim."
+    },
+    {
+      "source_name": "_c8",
+      "target_name": "adr_f9",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Unmapped Excalibur field 9 -- retained verbatim."
+    },
+    {
+      "source_name": "_c9",
+      "target_name": "adr_f10",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Unmapped Excalibur field 10 -- retained verbatim."
+    },
+    {
+      "source_name": "_c10",
+      "target_name": "adr_f11",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Unmapped Excalibur field 11 -- retained verbatim."
+    },
+    {
+      "source_name": "_c11",
+      "target_name": "adr_f12",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Unmapped Excalibur field 12 -- retained verbatim."
+    },
+    {
+      "source_name": "_c12",
+      "target_name": "adr_f13",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Unmapped Excalibur field 13 -- retained verbatim."
+    },
+    {
+      "source_name": "_c13",
+      "target_name": "adr_f14",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Unmapped Excalibur field 14 -- retained verbatim."
+    },
+    {
+      "source_name": "_c14",
+      "target_name": "adr_f15",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Unmapped Excalibur field 15 -- retained verbatim."
+    },
+    {
+      "source_name": "_c15",
+      "target_name": "adr_f16",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Unmapped Excalibur field 16 -- retained verbatim."
+    },
+    {
+      "source_name": "_c16",
+      "target_name": "adr_f17",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Unmapped Excalibur field 17 -- retained verbatim."
+    },
+    {
+      "source_name": "_c17",
+      "target_name": "adr_addr_line1",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Address line 1 in the variant-A record shape (e.g. '66 HIGH STREET' -- number and thoroughfare combined)."
+    },
+    {
+      "source_name": "_c18",
+      "target_name": "adr_primary_ln",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "PAF Thoroughfare Name (variant B) / building name (variant A). Both variants are handled in the PAF normalisation SQL."
+    },
+    {
+      "source_name": "_c19",
+      "target_name": "adr_district",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "PAF Dependent Locality / district (e.g. 'NORTHWOOD')."
+    },
+    {
+      "source_name": "_c20",
+      "target_name": "adr_house_no",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "PAF Building Number (variant B; right-padded in the source)."
+    },
+    {
+      "source_name": "_c21",
+      "target_name": "adr_house_name",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "PAF Building Name (variant B, e.g. 'ALTON HOUSE')."
+    },
+    {
+      "source_name": "_c22",
+      "target_name": "adr_f23",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Unmapped Excalibur field 23 -- retained verbatim."
+    },
+    {
+      "source_name": "_c23",
+      "target_name": "adr_f24",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Unmapped Excalibur field 24 -- retained verbatim."
+    },
+    {
+      "source_name": "_c24",
+      "target_name": "adr_f25",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Unmapped Excalibur field 25 -- retained verbatim."
+    },
+    {
+      "source_name": "_c25",
+      "target_name": "adr_f26",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Unmapped Excalibur field 26 -- retained verbatim."
+    },
+    {
+      "source_name": "_c26",
+      "target_name": "adr_f27",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Unmapped Excalibur field 27 -- retained verbatim."
+    },
+    {
+      "source_name": "_c27",
+      "target_name": "adr_f28",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Unmapped Excalibur field 28 -- retained verbatim."
+    },
+    {
+      "source_name": "_c28",
+      "target_name": "adr_f29",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Unmapped Excalibur field 29 -- retained verbatim."
+    },
+    {
+      "source_name": "_c29",
+      "target_name": "adr_f30",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Unmapped Excalibur field 30 -- retained verbatim."
+    },
+    {
+      "source_name": "_c30",
+      "target_name": "adr_country",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Country code (e.g. 'UK')."
+    },
+    {
+      "source_name": "_c31",
+      "target_name": "adr_county",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "County (e.g. 'MIDDLESEX') -- NOT a PAF element and NOT the post town."
+    },
+    {
+      "source_name": "_c32",
+      "target_name": "adr_post_code",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "PAF Postcode -- the EA match join key. Right-padded in the source, so must be trimmed before comparison."
+    },
+    {
+      "source_name": "_c33",
+      "target_name": "adr_f34",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Unmapped Excalibur field 34 -- retained verbatim."
+    },
+    {
+      "source_name": "_c34",
+      "target_name": "adr_f35",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Unmapped Excalibur field 35 -- retained verbatim."
+    },
+    {
+      "source_name": "_c35",
+      "target_name": "adr_f36",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Unmapped Excalibur field 36 -- retained verbatim."
+    },
+    {
+      "source_name": "_c36",
+      "target_name": "adr_f37",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Unmapped Excalibur field 37 -- retained verbatim."
+    },
+    {
+      "source_name": "_c37",
+      "target_name": "adr_f38",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Unmapped Excalibur field 38 -- retained verbatim."
+    },
+    {
+      "source_name": "_c38",
+      "target_name": "adr_f39",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Unmapped Excalibur field 39 -- retained verbatim."
+    },
+    {
+      "source_name": "_c39",
+      "target_name": "adr_f40",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Unmapped Excalibur field 40 -- retained verbatim."
+    },
+    {
+      "source_name": "_c40",
+      "target_name": "adr_f41",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Unmapped Excalibur field 41 -- retained verbatim."
+    },
+    {
+      "source_name": "_c41",
+      "target_name": "adr_f42",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Unmapped Excalibur field 42 -- retained verbatim."
+    },
+    {
+      "source_name": "_c42",
+      "target_name": "adr_f43",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Unmapped Excalibur field 43 -- retained verbatim."
+    }
+  ]
+}

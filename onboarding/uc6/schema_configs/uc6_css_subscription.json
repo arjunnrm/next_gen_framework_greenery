@@ -1,0 +1,334 @@
+{
+  "$comment": "Headerless pipe-delimited source: Spark names the columns _c0.._cN positionally, so source_name is the ORDINAL, not a name from the file. Verified against the real sample file's field count -- a mismatch is a hard error at ingest (schema_config.py raises when a source_name is absent), which is the intended behaviour: a source that changed shape must fail loudly, not land misaligned columns. Field count: 47. Only the fields UC6 actually consumes are named; the rest are retained positionally rather than dropped, so a later requirement can name one without re-ingesting.",
+  "columns": [
+    {
+      "source_name": "_c0",
+      "target_name": "record_type",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Record type indicator."
+    },
+    {
+      "source_name": "_c1",
+      "target_name": "subscription_id",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Subscription identifier."
+    },
+    {
+      "source_name": "_c2",
+      "target_name": "sub_f3",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Unmapped CSS Subscription field 3 -- retained verbatim."
+    },
+    {
+      "source_name": "_c3",
+      "target_name": "sub_f4",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Unmapped CSS Subscription field 4 -- retained verbatim."
+    },
+    {
+      "source_name": "_c4",
+      "target_name": "customerid",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "CSS customer identifier -- join key to CSS Account."
+    },
+    {
+      "source_name": "_c5",
+      "target_name": "account_no",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "CSS account number."
+    },
+    {
+      "source_name": "_c6",
+      "target_name": "sub_f7",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Unmapped CSS Subscription field 7 -- retained verbatim."
+    },
+    {
+      "source_name": "_c7",
+      "target_name": "sub_f8",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Unmapped CSS Subscription field 8 -- retained verbatim."
+    },
+    {
+      "source_name": "_c8",
+      "target_name": "sub_f9",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Unmapped CSS Subscription field 9 -- retained verbatim."
+    },
+    {
+      "source_name": "_c9",
+      "target_name": "msisdn",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "The mobile number (MSISDN) -- the value UC6 ultimately outputs."
+    },
+    {
+      "source_name": "_c10",
+      "target_name": "sub_f11",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Unmapped CSS Subscription field 11 -- retained verbatim."
+    },
+    {
+      "source_name": "_c11",
+      "target_name": "sub_f12",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Unmapped CSS Subscription field 12 -- retained verbatim."
+    },
+    {
+      "source_name": "_c12",
+      "target_name": "contract_start_date",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Contract start date."
+    },
+    {
+      "source_name": "_c13",
+      "target_name": "contract_end_date",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Contract end date."
+    },
+    {
+      "source_name": "_c14",
+      "target_name": "sub_f15",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Unmapped CSS Subscription field 15 -- retained verbatim."
+    },
+    {
+      "source_name": "_c15",
+      "target_name": "sub_f16",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Unmapped CSS Subscription field 16 -- retained verbatim."
+    },
+    {
+      "source_name": "_c16",
+      "target_name": "sub_f17",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Unmapped CSS Subscription field 17 -- retained verbatim."
+    },
+    {
+      "source_name": "_c17",
+      "target_name": "sub_f18",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Unmapped CSS Subscription field 18 -- retained verbatim."
+    },
+    {
+      "source_name": "_c18",
+      "target_name": "sub_f19",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Unmapped CSS Subscription field 19 -- retained verbatim."
+    },
+    {
+      "source_name": "_c19",
+      "target_name": "sub_f20",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Unmapped CSS Subscription field 20 -- retained verbatim."
+    },
+    {
+      "source_name": "_c20",
+      "target_name": "sub_f21",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Unmapped CSS Subscription field 21 -- retained verbatim."
+    },
+    {
+      "source_name": "_c21",
+      "target_name": "sub_f22",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Unmapped CSS Subscription field 22 -- retained verbatim."
+    },
+    {
+      "source_name": "_c22",
+      "target_name": "sub_f23",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Unmapped CSS Subscription field 23 -- retained verbatim."
+    },
+    {
+      "source_name": "_c23",
+      "target_name": "sub_f24",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Unmapped CSS Subscription field 24 -- retained verbatim."
+    },
+    {
+      "source_name": "_c24",
+      "target_name": "sub_f25",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Unmapped CSS Subscription field 25 -- retained verbatim."
+    },
+    {
+      "source_name": "_c25",
+      "target_name": "sub_f26",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Unmapped CSS Subscription field 26 -- retained verbatim."
+    },
+    {
+      "source_name": "_c26",
+      "target_name": "sub_f27",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Unmapped CSS Subscription field 27 -- retained verbatim."
+    },
+    {
+      "source_name": "_c27",
+      "target_name": "sub_f28",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Unmapped CSS Subscription field 28 -- retained verbatim."
+    },
+    {
+      "source_name": "_c28",
+      "target_name": "sub_f29",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Unmapped CSS Subscription field 29 -- retained verbatim."
+    },
+    {
+      "source_name": "_c29",
+      "target_name": "sub_f30",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Unmapped CSS Subscription field 30 -- retained verbatim."
+    },
+    {
+      "source_name": "_c30",
+      "target_name": "sub_f31",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Unmapped CSS Subscription field 31 -- retained verbatim."
+    },
+    {
+      "source_name": "_c31",
+      "target_name": "sub_f32",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Unmapped CSS Subscription field 32 -- retained verbatim."
+    },
+    {
+      "source_name": "_c32",
+      "target_name": "sub_f33",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Unmapped CSS Subscription field 33 -- retained verbatim."
+    },
+    {
+      "source_name": "_c33",
+      "target_name": "sub_f34",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Unmapped CSS Subscription field 34 -- retained verbatim."
+    },
+    {
+      "source_name": "_c34",
+      "target_name": "sub_f35",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Unmapped CSS Subscription field 35 -- retained verbatim."
+    },
+    {
+      "source_name": "_c35",
+      "target_name": "sub_f36",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Unmapped CSS Subscription field 36 -- retained verbatim."
+    },
+    {
+      "source_name": "_c36",
+      "target_name": "sub_f37",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Unmapped CSS Subscription field 37 -- retained verbatim."
+    },
+    {
+      "source_name": "_c37",
+      "target_name": "sub_f38",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Unmapped CSS Subscription field 38 -- retained verbatim."
+    },
+    {
+      "source_name": "_c38",
+      "target_name": "sub_f39",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Unmapped CSS Subscription field 39 -- retained verbatim."
+    },
+    {
+      "source_name": "_c39",
+      "target_name": "sub_f40",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Unmapped CSS Subscription field 40 -- retained verbatim."
+    },
+    {
+      "source_name": "_c40",
+      "target_name": "sub_f41",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Unmapped CSS Subscription field 41 -- retained verbatim."
+    },
+    {
+      "source_name": "_c41",
+      "target_name": "valid_to_ts",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Record validity end timestamp (9999-12-31 = current)."
+    },
+    {
+      "source_name": "_c42",
+      "target_name": "sub_f43",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Unmapped CSS Subscription field 43 -- retained verbatim."
+    },
+    {
+      "source_name": "_c43",
+      "target_name": "sub_f44",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Unmapped CSS Subscription field 44 -- retained verbatim."
+    },
+    {
+      "source_name": "_c44",
+      "target_name": "sub_f45",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Unmapped CSS Subscription field 45 -- retained verbatim."
+    },
+    {
+      "source_name": "_c45",
+      "target_name": "sub_f46",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Unmapped CSS Subscription field 46 -- retained verbatim."
+    },
+    {
+      "source_name": "_c46",
+      "target_name": "sub_f47",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Unmapped CSS Subscription field 47 -- retained verbatim."
+    }
+  ]
+}

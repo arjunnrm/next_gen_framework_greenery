@@ -50,6 +50,7 @@ include:
   - resources/flowx_app/*.yml
   - resources/flowx_config_jobs/*.yml
   - resources/flowx_bi/*.yml
+  - resources/uc6/*.yml
 #  - resources/observability/*.yml
 #  - resources/bt_tests/*.yml
 #  - resources/feature_tests/*.yml

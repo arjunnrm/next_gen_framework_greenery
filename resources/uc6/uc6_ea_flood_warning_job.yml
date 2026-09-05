@@ -1,0 +1,114 @@
+# UC6 -- Flood Warning System (Environment Agency -> Leidos). Drives the group end to end:
+#
+#   setup_control_tables -> onboard_uc6 -> run_pipeline_update -> apply_governance_uc6
+#                        -> observability_export
+#
+# THIS JOB IS ORCHESTRATION ONLY. It performs no file I/O, no decryption, no archiving and no
+# business logic -- all of that is the pipeline's, and the use case's design calls that split
+# out explicitly so scheduling/alerting changes and data-engineering changes can be deployed
+# independently. The framework enforces the same split structurally: ingestion, DQ, crypto and
+# sinks are Lakeflow graph-definition concerns and cannot run from a job task.
+#
+# apply_governance_uc6 is the ONE apparent exception, and it is not a counter-example: Unity
+# Catalog tag DDL (ALTER TABLE ... SET TAGS) runs against an ALREADY-MATERIALIZED table and is
+# illegal inside a pipeline's graph-definition code. It is post-deployment DDL, not file
+# handling. Phase C of the UC3 build proved the cost of omitting it -- a pipeline succeeded end
+# to end with zero tags in information_schema, because no task ever invoked it. The tag VALUES
+# still come from the spec's governance_tags block; nothing is hand-written here.
+#
+# ONBOARDING IS DELEGATED, NEVER INLINED. onboard_uc6 is a run_job_task against the generic
+# resources/flowx_config_jobs/onboarding_job.yml -- the single parameterised onboarding
+# entrypoint for the whole bundle. There is deliberately no onboarding task defined here and no
+# notebook_task pointing at 02_onboarding_engine.py; the older flowx_test_*_job.yml files that
+# pin their own are legacy drift.
+#
+# setup_control_tables is NOT boilerplate: it applies the additive control-table migration,
+# which `bundle deploy` does not. It is idempotent, so it is safe to keep here even though UC3
+# and UC7 also run it -- PROVIDED those jobs are not run concurrently with this one, which
+# risks the known Unity Catalog create race.
+#
+# PARAMETER CONTRACT for observability_export: pipeline_task_run_id must be a TASK
+# base_parameter, never a pipeline `configuration:` key. `{{tasks.<key>.run_id}}` is a Jobs
+# dynamic value resolved per run, and a mistyped task_key is passed through as literal text
+# rather than failing at the platform layer -- runtime_params.py detects exactly that.
+#
+# SCHEDULE: none is declared. The legacy cadence is weekly, but the POC is run on demand and an
+# unattended schedule would fire against an empty raw/ and fail the presence gates by design.
+# Add a `schedule:` block when the upstream EA delivery is actually wired up.
+#
+# MANUAL PREREQUISITES (both fail loudly, neither degrades silently):
+#   1. The UC secret ${var.catalog}.config.pgpkey must exist. It decrypts the inbound EA
+#      request AND encrypts two of the four outputs, so a missing secret fails the update
+#      rather than emitting plaintext.
+#   2. The uc_6 volume and its raw/ + output/ folders must exist:
+#        CREATE VOLUME IF NOT EXISTS ${var.catalog}.staging.uc_6;
+#      then upload the six source files into /Volumes/<catalog>/staging/uc_6/raw/.
+#
+# NAME: 007_lfj_uc6_ea_flood_warning, driving pipeline 008_ldp_uc6_ea_flood_warning -- 007/008,
+# the next free pair (001 = UC7, 003-006 = UC3). The supplied brief asked for
+# "007_uc6_lfj_EA"/"008_uc6_ldp_EA"; every existing asset in this repo puts the number first
+# and the type second, lowercase, so the repo convention wins per the brief's own instruction.
+# See docs/UC6/FRAMEWORK_CAPABILITY_MAP.md section 2.1.
+
+resources:
+  jobs:
+    uc6_ea_flood_warning_job:
+      name: 007_lfj_uc6_ea_flood_warning
+
+      tasks:
+        - task_key: setup_control_tables
+          notebook_task:
+            notebook_path: ../../notebooks/01_setup/01_setup_control_tables.py
+            base_parameters:
+              catalog: ${var.catalog}
+          environment_key: framework_env
+
+        - task_key: onboard_uc6
+          depends_on:
+            - task_key: setup_control_tables
+          run_job_task:
+            job_id: ${resources.jobs.onboarding_job.id}
+            job_parameters:
+              spec_file_path: "${workspace.file_path}/onboarding/uc6/uc6_ea_flood_warning.json"
+              catalog: ${var.catalog}
+              env: ${bundle.target}
+              action_type: CREATE
+
+        - task_key: run_pipeline_update
+          depends_on:
+            - task_key: onboard_uc6
+          pipeline_task:
+            pipeline_id: ${resources.pipelines.uc6_ea_flood_warning_pipeline.id}
+
+        - task_key: apply_governance_uc6
+          depends_on:
+            - task_key: run_pipeline_update
+          notebook_task:
+            notebook_path: ../../notebooks/04_governance/04_apply_governance_and_egress.py
+            base_parameters:
+              catalog: ${var.catalog}
+              dataflow_group_id: dfg_uc6_ea_flood_warning
+              apply_abac: "true"
+              capture_cdc_change_counts: "false"
+          environment_key: framework_env
+
+        - task_key: observability_export
+          depends_on:
+            - task_key: apply_governance_uc6
+          notebook_task:
+            notebook_path: ../../notebooks/08_observability/08_dlt_observability_engine.py
+            base_parameters:
+              dataflow_group_id: dfg_uc6_ea_flood_warning
+              catalog: ${var.catalog}
+              env: ${bundle.target}
+              pipeline_task_run_id: "{{tasks.run_pipeline_update.run_id}}"
+              service_name: dlt-observability-uc6-ea-flood-warning
+              fail_task_on_dispatch_error: "true"
+          environment_key: framework_env
+
+      environments:
+        - environment_key: framework_env
+          spec:
+            environment_version: "4"
+            dependencies:
+              - ../../dist/*.whl
