@@ -564,6 +564,8 @@
       
         
       
+        
+      
     
     
     
@@ -708,6 +710,34 @@
     
   
     4 · Deploying with DABs
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../onboarding/05_new_workspace_bootstrap/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    5 · New-workspace bootstrap
   
 
     
@@ -4143,6 +4173,12 @@ every decoded column NULL, which is what makes <code>"expression": "_asn1_decode
 <td>Extraction destination — typically the same path the downstream <code>autoloader</code>/<code>asn1</code> reader's <code>path</code> points at.</td>
 </tr>
 <tr>
+<td><code>member_format</code></td>
+<td>string</td>
+<td>no</td>
+<td><strong>v1.7.4.</strong> <code>"zip"</code> (default — the only pre-v1.7.4 behaviour) or <code>"gzip"</code>. Selects the archive <strong>container</strong>, orthogonally to any decryption layer. See below.</td>
+</tr>
+<tr>
 <td><code>pre_extraction_decryption</code></td>
 <td>object</td>
 <td>no</td>
@@ -4162,7 +4198,36 @@ The correct field names are <strong><code>source_zip_path</code></strong>, <stro
 </blockquote>
 <p><code>pre_extraction_decryption</code> — two independent, combinable concerns, both optional:
 - <strong><code>type: "pgp"</code></strong> — decrypts the whole file with a PGP private key (<code>private_key_secret</code>, required; <code>passphrase_secret</code>, optional — a real, properly-secured PGP private key is routinely passphrase-protected) <em>before</em> it is treated as a ZIP at all. Omit <code>type</code> entirely when the archive has no outer PGP layer.
-- <strong><code>secret_passphrase</code></strong> — the AES-256 password on the ZIP archive itself, resolved independently of <code>type</code>. Present with no <code>type</code> means "just a password-protected ZIP." Both present means "decrypt the PGP envelope first, then extract the password-protected ZIP it contained."</p>
+- <strong><code>secret_passphrase</code></strong> — the AES-256 password on the ZIP archive itself, resolved independently of <code>type</code>. Present with no <code>type</code> means "just a password-protected ZIP." Both present means "decrypt the PGP envelope first, then extract the password-protected ZIP it contained."
+- <strong><code>type: "pgp_symmetric"</code></strong> (v1.7.4) — decrypts a <strong>passphrase</strong>-encrypted OpenPGP message, the shape <code>gpg --symmetric --cipher-algo AES256</code> produces. <code>passphrase_secret</code> is <strong>required</strong> here (it is the entire secret, not merely a key unlock), and <code>private_key_secret</code> is <strong>rejected</strong>. It is a distinct <code>type</code> rather than an option on <code>"pgp"</code> because the two are mutually exclusive at the message level: a key-encrypted message is not passphrase-decryptable, and vice versa.</p>
+<h4 id="member_format-zip-archives-vs-gzip-streams-v174"><code>member_format</code>: ZIP archives vs. gzip streams (v1.7.4)<a class="headerlink" href="#member_format-zip-archives-vs-gzip-streams-v174" title="Permanent link">&para;</a></h4>
+<p>Everything above assumes a ZIP — a container holding N <em>named</em> members, opened by <code>pyzipper</code>. A gzip file is not that: it is a single compressed stream with no member table, and <code>pyzipper</code> cannot open one at all.</p>
+<table>
+<thead>
+<tr>
+<th><code>member_format</code></th>
+<th>When to use it</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>"zip"</code> (default)</td>
+<td>Any <code>.zip</code>, with or without an AES password, with or without an outer PGP envelope. Unchanged behaviour.</td>
+</tr>
+<tr>
+<td><code>"gzip"</code></td>
+<td>An <strong>encrypted</strong> gzip file, e.g. <code>.csv.gz.gpg</code> — decrypt the envelope, then decompress the bare gzip stream it contained.</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>[!IMPORTANT]
+An <strong>unencrypted</strong> <code>.gz</code> needs no <code>source_zip_handling</code> at all. Spark's Hadoop codec layer decompresses it transparently on read, so configuring a handling block for one buys nothing but a staging copy. <code>member_format: "gzip"</code> exists for the encrypted case, where the file must be decrypted to disk before anything can read it.</p>
+</blockquote>
+<p><code>secret_passphrase</code> is <strong>rejected</strong> for <code>"gzip"</code> — a gzip stream has no archive password, and accepting one would let a spec assert protection that nothing applies.</p>
+<p>The landed filename has its <code>.gz</code> <strong>and</strong> any <code>.gpg</code>/<code>.pgp</code> envelope suffix stripped, so <code>EE_2026-08-20-REQUEST_1OF1.csv.gz.gpg</code> lands as <code>EE_2026-08-20-REQUEST_1OF1.csv</code>. That matters beyond tidiness: the landed name is what the downstream reader's <code>file_pattern</code> glob matches, so a leftover suffix silently matches nothing rather than failing.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="p">{</span><span class="w"> </span><span class="nt">"source_zip_handling"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nt">"enabled"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span><span class="w"> </span><span class="nt">"source_zip_path"</span><span class="p">:</span><span class="w"> </span><span class="s2">"/Volumes/flowx/staging/uc_6/raw/"</span><span class="p">,</span><span class="w"> </span><span class="nt">"zip_file_pattern"</span><span class="p">:</span><span class="w"> </span><span class="s2">"EE_*-REQUEST_*[Oo][Ff]*.csv.gz.gpg"</span><span class="p">,</span><span class="w"> </span><span class="nt">"target_volume_path"</span><span class="p">:</span><span class="w"> </span><span class="s2">"/Volumes/flowx/staging/uc_6/_extracted/ea_request/"</span><span class="p">,</span><span class="w"> </span><span class="nt">"member_format"</span><span class="p">:</span><span class="w"> </span><span class="s2">"gzip"</span><span class="p">,</span><span class="w"> </span><span class="nt">"pre_extraction_decryption"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nt">"type"</span><span class="p">:</span><span class="w"> </span><span class="s2">"pgp_symmetric"</span><span class="p">,</span><span class="w"> </span><span class="nt">"passphrase_secret"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nt">"secret_catalog"</span><span class="p">:</span><span class="w"> </span><span class="s2">"flowx"</span><span class="p">,</span><span class="w"> </span><span class="nt">"secret_schema"</span><span class="p">:</span><span class="w"> </span><span class="s2">"config"</span><span class="p">,</span><span class="w"> </span><span class="nt">"secret_key"</span><span class="p">:</span><span class="w"> </span><span class="s2">"pgpkey"</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">},</span><span class="w"> </span><span class="nt">"delete_source_after_extract"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nt">"action"</span><span class="p">:</span><span class="w"> </span><span class="s2">"delete_now"</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">}</span>
+</code></pre></div>
 <h3 id="deleting-the-source-archive-after-extraction-delete_source_after_extract">Deleting the source archive after extraction (<code>delete_source_after_extract</code>)<a class="headerlink" href="#deleting-the-source-archive-after-extraction-delete_source_after_extract" title="Permanent link">&para;</a></h3>
 <p><code>source_zip_handling.delete_source_after_extract</code> controls what happens to the <strong>raw</strong> archive once it has been successfully extracted — distinct from <code>landing_retention_policy</code> (§2), which governs the <em>already-extracted</em> files. Both the legacy boolean and a new nested object are accepted:</p>
 <table>
@@ -4201,9 +4266,9 @@ The correct field names are <strong><code>source_zip_path</code></strong>, <stro
 </tr>
 </tbody>
 </table>
-<p><div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="p">{</span><span class="w"> </span><span class="nt">"source_zip_handling"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nt">"enabled"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span><span class="w"> </span><span class="nt">"source_zip_path"</span><span class="p">:</span><span class="w"> </span><span class="s2">"/Volumes/poc/sales/landing_zip/incoming/"</span><span class="p">,</span><span class="w"> </span><span class="nt">"zip_file_pattern"</span><span class="p">:</span><span class="w"> </span><span class="s2">"orders_*.zip"</span><span class="p">,</span><span class="w"> </span><span class="nt">"target_volume_path"</span><span class="p">:</span><span class="w"> </span><span class="s2">"/Volumes/poc/sales/landing_zip/extracted/orders/"</span><span class="p">,</span><span class="w"> </span><span class="nt">"delete_source_after_extract"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nt">"action"</span><span class="p">:</span><span class="w"> </span><span class="s2">"delete_now"</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">}</span>
+<p><div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="p">{</span><span class="w"> </span><span class="nt">"source_zip_handling"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nt">"enabled"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span><span class="w"> </span><span class="nt">"source_zip_path"</span><span class="p">:</span><span class="w"> </span><span class="s2">"/Volumes/poc/sales/landing_zip/incoming/"</span><span class="p">,</span><span class="w"> </span><span class="nt">"zip_file_pattern"</span><span class="p">:</span><span class="w"> </span><span class="s2">"orders_*.zip"</span><span class="p">,</span><span class="w"> </span><span class="nt">"target_volume_path"</span><span class="p">:</span><span class="w"> </span><span class="s2">"/Volumes/poc/sales/landing_zip/extracted/orders/"</span><span class="p">,</span><span class="w"> </span><span class="nt">"delete_source_after_extract"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nt">"action"</span><span class="p">:</span><span class="w"> </span><span class="s2">"delete_now"</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">}</span>
 </code></pre></div>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="p">{</span><span class="w"> </span><span class="nt">"source_zip_handling"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nt">"enabled"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span><span class="w"> </span><span class="nt">"source_zip_path"</span><span class="p">:</span><span class="w"> </span><span class="s2">"/Volumes/poc/sales/landing_zip/incoming/"</span><span class="p">,</span><span class="w"> </span><span class="nt">"zip_file_pattern"</span><span class="p">:</span><span class="w"> </span><span class="s2">"orders_*.zip"</span><span class="p">,</span><span class="w"> </span><span class="nt">"target_volume_path"</span><span class="p">:</span><span class="w"> </span><span class="s2">"/Volumes/poc/sales/landing_zip/extracted/orders/"</span><span class="p">,</span><span class="w"> </span><span class="nt">"delete_source_after_extract"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nt">"action"</span><span class="p">:</span><span class="w"> </span><span class="s2">"delete_after_x_days"</span><span class="p">,</span><span class="w"> </span><span class="nt">"days"</span><span class="p">:</span><span class="w"> </span><span class="mi">30</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">}</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="p">{</span><span class="w"> </span><span class="nt">"source_zip_handling"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nt">"enabled"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span><span class="w"> </span><span class="nt">"source_zip_path"</span><span class="p">:</span><span class="w"> </span><span class="s2">"/Volumes/poc/sales/landing_zip/incoming/"</span><span class="p">,</span><span class="w"> </span><span class="nt">"zip_file_pattern"</span><span class="p">:</span><span class="w"> </span><span class="s2">"orders_*.zip"</span><span class="p">,</span><span class="w"> </span><span class="nt">"target_volume_path"</span><span class="p">:</span><span class="w"> </span><span class="s2">"/Volumes/poc/sales/landing_zip/extracted/orders/"</span><span class="p">,</span><span class="w"> </span><span class="nt">"delete_source_after_extract"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nt">"action"</span><span class="p">:</span><span class="w"> </span><span class="s2">"delete_after_x_days"</span><span class="p">,</span><span class="w"> </span><span class="nt">"days"</span><span class="p">:</span><span class="w"> </span><span class="mi">30</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">}</span>
 </code></pre></div></p>
 <blockquote>
 <p>[!IMPORTANT]
@@ -4252,24 +4317,24 @@ This distinction is <strong>load-bearing</strong>: it is what prevents a silent 
 </tr>
 </tbody>
 </table>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="p">{</span><span class="w"> </span><span class="nt">"source_config"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nt">"path"</span><span class="p">:</span><span class="w"> </span><span class="s2">"/Volumes/poc/iot/landing_json/"</span><span class="p">,</span><span class="w"> </span><span class="nt">"format"</span><span class="p">:</span><span class="w"> </span><span class="s2">"json"</span><span class="p">,</span><span class="w"> </span><span class="nt">"explode_columns"</span><span class="p">:</span><span class="w"> </span><span class="p">[]</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">}</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="p">{</span><span class="w"> </span><span class="nt">"source_config"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nt">"path"</span><span class="p">:</span><span class="w"> </span><span class="s2">"/Volumes/poc/iot/landing_json/"</span><span class="p">,</span><span class="w"> </span><span class="nt">"format"</span><span class="p">:</span><span class="w"> </span><span class="s2">"json"</span><span class="p">,</span><span class="w"> </span><span class="nt">"explode_columns"</span><span class="p">:</span><span class="w"> </span><span class="p">[]</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">}</span>
 </code></pre></div>
 <p><strong>Why the distinction exists, in one sentence:</strong> <code>explode_columns</code> is optional, so a spec that simply never mentions it must never undergo <em>any</em> implicit flattening — this exact protection exists because an earlier regression let an unconfigured source silently explode into a cartesian product of rows. Explicitly writing <code>"explode_columns": []</code>, by contrast, is an unambiguous, deliberate instruction to flatten everything, and only an explicit, literal empty list is treated that way — <code>null</code> and "key not present" are not.</p>
 <p>A column named in a populated <code>explode_columns</code> list that isn't on the DataFrame, or that resolves to neither a struct nor an array, raises <code>FrameworkConfigError</code> at runtime. (The onboarding validator only checks that the field is a list of strings — it has no access to the source's actual runtime schema at onboarding time.)</p>
 <h3 id="json-held-in-a-string-column-json_string_columns">JSON held in a STRING column: <code>json_string_columns</code><a class="headerlink" href="#json-held-in-a-string-column-json_string_columns" title="Permanent link">&para;</a></h3>
 <p>Parquet, CSV, Delta, and Zerobus sources frequently carry a JSON document inside an ordinary string column rather than as a native nested type. <code>source_config.json_string_columns</code> parses each named column with <code>from_json</code> into a struct <strong>immediately before</strong> the <code>explode_columns</code>/auto-flatten pass above runs, so the same struct-flatten/array-explode logic then applies to it unchanged — there is no separate, parallel flattening path for non-JSON source formats. (Struct/array columns Parquet already carries natively need nothing new here — they flow straight into the <code>explode_columns</code> handling above.)</p>
 <p>Two per-item shapes are accepted:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="p">{</span>
-<a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a><span class="w">  </span><span class="nt">"source_config"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a><span class="w">    </span><span class="nt">"path"</span><span class="p">:</span><span class="w"> </span><span class="s2">"/Volumes/poc/sales/landing_parquet/"</span><span class="p">,</span>
-<a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a><span class="w">    </span><span class="nt">"format"</span><span class="p">:</span><span class="w"> </span><span class="s2">"parquet"</span><span class="p">,</span>
-<a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a><span class="w">    </span><span class="nt">"json_string_columns"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
-<a id="__codelineno-12-6" name="__codelineno-12-6" href="#__codelineno-12-6"></a><span class="w">      </span><span class="p">{</span><span class="w"> </span><span class="nt">"column"</span><span class="p">:</span><span class="w"> </span><span class="s2">"payload"</span><span class="p">,</span><span class="w"> </span><span class="nt">"schema_ddl"</span><span class="p">:</span><span class="w"> </span><span class="s2">"struct&lt;order_id:string,total:double&gt;"</span><span class="w"> </span><span class="p">},</span>
-<a id="__codelineno-12-7" name="__codelineno-12-7" href="#__codelineno-12-7"></a><span class="w">      </span><span class="p">{</span><span class="w"> </span><span class="nt">"column"</span><span class="p">:</span><span class="w"> </span><span class="s2">"attributes"</span><span class="w"> </span><span class="p">}</span>
-<a id="__codelineno-12-8" name="__codelineno-12-8" href="#__codelineno-12-8"></a><span class="w">    </span><span class="p">],</span>
-<a id="__codelineno-12-9" name="__codelineno-12-9" href="#__codelineno-12-9"></a><span class="w">    </span><span class="nt">"explode_columns"</span><span class="p">:</span><span class="w"> </span><span class="p">[]</span>
-<a id="__codelineno-12-10" name="__codelineno-12-10" href="#__codelineno-12-10"></a><span class="w">  </span><span class="p">}</span>
-<a id="__codelineno-12-11" name="__codelineno-12-11" href="#__codelineno-12-11"></a><span class="p">}</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="p">{</span>
+<a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a><span class="w">  </span><span class="nt">"source_config"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a><span class="w">    </span><span class="nt">"path"</span><span class="p">:</span><span class="w"> </span><span class="s2">"/Volumes/poc/sales/landing_parquet/"</span><span class="p">,</span>
+<a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a><span class="w">    </span><span class="nt">"format"</span><span class="p">:</span><span class="w"> </span><span class="s2">"parquet"</span><span class="p">,</span>
+<a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a><span class="w">    </span><span class="nt">"json_string_columns"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<a id="__codelineno-13-6" name="__codelineno-13-6" href="#__codelineno-13-6"></a><span class="w">      </span><span class="p">{</span><span class="w"> </span><span class="nt">"column"</span><span class="p">:</span><span class="w"> </span><span class="s2">"payload"</span><span class="p">,</span><span class="w"> </span><span class="nt">"schema_ddl"</span><span class="p">:</span><span class="w"> </span><span class="s2">"struct&lt;order_id:string,total:double&gt;"</span><span class="w"> </span><span class="p">},</span>
+<a id="__codelineno-13-7" name="__codelineno-13-7" href="#__codelineno-13-7"></a><span class="w">      </span><span class="p">{</span><span class="w"> </span><span class="nt">"column"</span><span class="p">:</span><span class="w"> </span><span class="s2">"attributes"</span><span class="w"> </span><span class="p">}</span>
+<a id="__codelineno-13-8" name="__codelineno-13-8" href="#__codelineno-13-8"></a><span class="w">    </span><span class="p">],</span>
+<a id="__codelineno-13-9" name="__codelineno-13-9" href="#__codelineno-13-9"></a><span class="w">    </span><span class="nt">"explode_columns"</span><span class="p">:</span><span class="w"> </span><span class="p">[]</span>
+<a id="__codelineno-13-10" name="__codelineno-13-10" href="#__codelineno-13-10"></a><span class="w">  </span><span class="p">}</span>
+<a id="__codelineno-13-11" name="__codelineno-13-11" href="#__codelineno-13-11"></a><span class="p">}</span>
 </code></pre></div>
 <ul>
 <li><strong><code>{"column": "payload", "schema_ddl": "struct&lt;order_id:string,total:double&gt;"}</code> — the recommended form.</strong> A fully deterministic <code>from_json</code> with an explicit schema; behaves identically on batch and streaming DataFrames.</li>
@@ -4278,7 +4343,7 @@ This distinction is <strong>load-bearing</strong>: it is what prevents a silent 
 <blockquote>
 <p>[!WARNING]
 <strong>The no-<code>schema_ddl</code> shorthand only works on a streaming DataFrame.</strong> On a batch/materialized source it raises <code>FrameworkConfigError</code>:
-<div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>json_string_columns entry '&lt;column&gt;' has no schema_ddl and this flow's DataFrame is not streaming -- schema inference via from_json's schemaLocationKey requires a streaming source with a checkpoint. Supply an explicit schema_ddl (e.g. 'struct&lt;a:string,b:int&gt;') for this column.
+<div class="highlight"><pre><span></span><code><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>json_string_columns entry '&lt;column&gt;' has no schema_ddl and this flow's DataFrame is not streaming -- schema inference via from_json's schemaLocationKey requires a streaming source with a checkpoint. Supply an explicit schema_ddl (e.g. 'struct&lt;a:string,b:int&gt;') for this column.
 </code></pre></div>
 This is a hard architectural constraint, not a missing feature: the ingestion staged view is built lazily inside a <code>@dlt.view</code> closure, and inferring a schema by sampling a value (<code>schema_of_json(lit(...))</code>) would require an eager action — illegal on a streaming plan, and a full extra scan on a batch one. Always supply <code>schema_ddl</code> for a batch/materialized source.</p>
 </blockquote>
@@ -4286,14 +4351,14 @@ This is a hard architectural constraint, not a missing feature: the ingestion st
 <hr />
 <h2 id="7-full-row-streaming-deduplication-remove_dups">7. Full-Row Streaming Deduplication (<code>remove_dups</code>)<a class="headerlink" href="#7-full-row-streaming-deduplication-remove_dups" title="Permanent link">&para;</a></h2>
 <p><code>source_config.remove_dups</code> (boolean, default <code>false</code>) applies full-row deduplication to the ingested stream, implemented in <code>ingestion/dedup.py</code>.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="p">{</span>
-<a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a><span class="w">  </span><span class="nt">"source_config"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a><span class="w">    </span><span class="nt">"path"</span><span class="p">:</span><span class="w"> </span><span class="s2">"/Volumes/poc/sales/landing/orders/"</span><span class="p">,</span>
-<a id="__codelineno-14-4" name="__codelineno-14-4" href="#__codelineno-14-4"></a><span class="w">    </span><span class="nt">"format"</span><span class="p">:</span><span class="w"> </span><span class="s2">"csv"</span><span class="p">,</span>
-<a id="__codelineno-14-5" name="__codelineno-14-5" href="#__codelineno-14-5"></a><span class="w">    </span><span class="nt">"remove_dups"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
-<a id="__codelineno-14-6" name="__codelineno-14-6" href="#__codelineno-14-6"></a><span class="w">    </span><span class="nt">"dedup_watermark"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nt">"event_time_column"</span><span class="p">:</span><span class="w"> </span><span class="s2">"order_ts"</span><span class="p">,</span><span class="w"> </span><span class="nt">"delay_threshold"</span><span class="p">:</span><span class="w"> </span><span class="s2">"2 hours"</span><span class="w"> </span><span class="p">}</span>
-<a id="__codelineno-14-7" name="__codelineno-14-7" href="#__codelineno-14-7"></a><span class="w">  </span><span class="p">}</span>
-<a id="__codelineno-14-8" name="__codelineno-14-8" href="#__codelineno-14-8"></a><span class="p">}</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a><span class="p">{</span>
+<a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a><span class="w">  </span><span class="nt">"source_config"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a><span class="w">    </span><span class="nt">"path"</span><span class="p">:</span><span class="w"> </span><span class="s2">"/Volumes/poc/sales/landing/orders/"</span><span class="p">,</span>
+<a id="__codelineno-15-4" name="__codelineno-15-4" href="#__codelineno-15-4"></a><span class="w">    </span><span class="nt">"format"</span><span class="p">:</span><span class="w"> </span><span class="s2">"csv"</span><span class="p">,</span>
+<a id="__codelineno-15-5" name="__codelineno-15-5" href="#__codelineno-15-5"></a><span class="w">    </span><span class="nt">"remove_dups"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+<a id="__codelineno-15-6" name="__codelineno-15-6" href="#__codelineno-15-6"></a><span class="w">    </span><span class="nt">"dedup_watermark"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nt">"event_time_column"</span><span class="p">:</span><span class="w"> </span><span class="s2">"order_ts"</span><span class="p">,</span><span class="w"> </span><span class="nt">"delay_threshold"</span><span class="p">:</span><span class="w"> </span><span class="s2">"2 hours"</span><span class="w"> </span><span class="p">}</span>
+<a id="__codelineno-15-7" name="__codelineno-15-7" href="#__codelineno-15-7"></a><span class="w">  </span><span class="p">}</span>
+<a id="__codelineno-15-8" name="__codelineno-15-8" href="#__codelineno-15-8"></a><span class="p">}</span>
 </code></pre></div>
 <p><strong>Dedup subset.</strong> When <code>remove_dups: true</code>, the framework deduplicates over <strong>every column on the DataFrame at that point in the chain, except</strong>:
 - any column prefixed <code>__framework_</code> (per-run/per-file technical metadata — <code>__framework_source_file_name</code>, <code>__framework_ingestion_timestamp_utc</code>, and the like — including these would make every row unique and defeat full-row dedup entirely), and
@@ -4303,7 +4368,7 @@ This is a hard architectural constraint, not a missing feature: the ingestion st
 <blockquote>
 <p>[!WARNING]
 <strong>Unbounded streaming state.</strong> On a streaming source with no <code>dedup_watermark</code> configured, <code>dropDuplicates</code> keeps state for <strong>every distinct row seen since the stream started, forever.</strong> On a long-running streaming table this state grows without bound and will eventually degrade or fail the pipeline. The framework logs this once per flow whenever it detects the combination:
-<div class="highlight"><pre><span></span><code><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a>remove_dups is enabled on a STREAMING DataFrame with no dedup_watermark -- dropDuplicates will keep UNBOUNDED state (every distinct row seen since the stream started is retained forever). Configure source_config.dedup_watermark for any continuously-running stream.
+<div class="highlight"><pre><span></span><code><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a>remove_dups is enabled on a STREAMING DataFrame with no dedup_watermark -- dropDuplicates will keep UNBOUNDED state (every distinct row seen since the stream started is retained forever). Configure source_config.dedup_watermark for any continuously-running stream.
 </code></pre></div>
 Configure <code>dedup_watermark</code> for any stream expected to run continuously.</p>
 </blockquote>
@@ -4335,7 +4400,7 @@ Configure <code>dedup_watermark</code> for any stream expected to run continuous
 <p>When configured <strong>and</strong> the source is streaming, the chain becomes <code>df.withWatermark(event_time_column, delay_threshold).dropDuplicatesWithinWatermark(subset)</code> — trading exactness (a late-arriving duplicate outside the watermark survives as a distinct row) for bounded memory. <code>dropDuplicates</code> (no watermark) is the <strong>default</strong>, deliberately, so that exactness/memory trade-off is always an explicit operator choice, never one the framework makes silently on your behalf.</p>
 <p>On a <strong>non-streaming (batch)</strong> source, <code>dropDuplicates</code> is a plain shuffle with no state to bound, and <code>dedup_watermark</code> — if present — is simply ignored (logged at <code>INFO</code>).</p>
 <p>Configuring <code>dedup_watermark</code> without <code>remove_dups: true</code> is rejected at onboarding time — the block would configure nothing on its own:
-<div class="highlight"><pre><span></span><code><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a>&lt;path&gt;.dedup_watermark: only meaningful alongside remove_dups: true, but remove_dups is not enabled for this source
+<div class="highlight"><pre><span></span><code><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a>&lt;path&gt;.dedup_watermark: only meaningful alongside remove_dups: true, but remove_dups is not enabled for this source
 </code></pre></div></p>
 <hr />
 <h2 id="8-technical-metadata-column-normalization">8. Technical Metadata &amp; Column Normalization<a class="headerlink" href="#8-technical-metadata-column-normalization" title="Permanent link">&para;</a></h2>
@@ -4347,7 +4412,7 @@ Configure <code>dedup_watermark</code> for any stream expected to run continuous
 - <code>__framework_ingestion_timestamp_utc</code>: Exact UTC timestamp when the record entered the Delta table.</p>
 <h3 id="column-normalization">Column Normalization<a class="headerlink" href="#column-normalization" title="Permanent link">&para;</a></h3>
 <p>Bronze/raw column-name normalization is configured in exactly one place:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a><span class="p">{</span><span class="w"> </span><span class="nt">"source_config"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nt">"column_normalization"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nt">"enabled"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span><span class="w"> </span><span class="nt">"case"</span><span class="p">:</span><span class="w"> </span><span class="s2">"preserve"</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">}</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a><span class="p">{</span><span class="w"> </span><span class="nt">"source_config"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nt">"column_normalization"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nt">"enabled"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span><span class="w"> </span><span class="nt">"case"</span><span class="p">:</span><span class="w"> </span><span class="s2">"preserve"</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">}</span>
 </code></pre></div>
 <ul>
 <li><strong><code>enabled</code></strong> (boolean, default <code>false</code>) — the switch. Absent object, absent key and explicit
@@ -4412,7 +4477,7 @@ off. If your spec relied on that deferral, add the explicit <code>"enabled": tru
    the casing actually written to the target — is what makes <code>case: "preserve"</code>/<code>"upper"</code> safe:
    whatever casing lands in the table, the framework has already proven its lowercase projection
    is unique. A collision raises:
-   <div class="highlight"><pre><span></span><code><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a>column_normalization: normalization produced duplicate column names -- '&lt;col_a&gt;' and '&lt;col_b&gt;' both normalize to '&lt;name&gt;'. Rename one of the source columns, or use schema_config_path for explicit renaming instead.
+   <div class="highlight"><pre><span></span><code><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a>column_normalization: normalization produced duplicate column names -- '&lt;col_a&gt;' and '&lt;col_b&gt;' both normalize to '&lt;name&gt;'. Rename one of the source columns, or use schema_config_path for explicit renaming instead.
 </code></pre></div></li>
 </ol>
 <p><strong>Ordering.</strong> Normalization runs immediately after the raw source read and after
@@ -4421,15 +4486,15 @@ off. If your spec relied on that deferral, add the explicit <code>"enabled": tru
 reference are all written against the <strong>normalized</strong> names, never the source's raw ones.</p>
 <h3 id="explicit-schema-configuration-schema_config_path">Explicit Schema Configuration (<code>schema_config_path</code>)<a class="headerlink" href="#explicit-schema-configuration-schema_config_path" title="Permanent link">&para;</a></h3>
 <p>When integrating with rigid upstream enterprise schemas, point <code>schema_config_path</code> to an external JSON/YAML dictionary defining target data types, nullability constraints, Unity Catalog comments, and renames:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a><span class="nt">columns</span><span class="p">:</span>
-<a id="__codelineno-19-2" name="__codelineno-19-2" href="#__codelineno-19-2"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">source_name</span><span class="p">:</span><span class="w"> </span><span class="s">"tx_id"</span>
-<a id="__codelineno-19-3" name="__codelineno-19-3" href="#__codelineno-19-3"></a><span class="w">    </span><span class="nt">data_type</span><span class="p">:</span><span class="w"> </span><span class="s">"string"</span>
-<a id="__codelineno-19-4" name="__codelineno-19-4" href="#__codelineno-19-4"></a><span class="w">    </span><span class="nt">nullable</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span>
-<a id="__codelineno-19-5" name="__codelineno-19-5" href="#__codelineno-19-5"></a><span class="w">    </span><span class="nt">comment</span><span class="p">:</span><span class="w"> </span><span class="s">"Unique</span><span class="nv"> </span><span class="s">transaction</span><span class="nv"> </span><span class="s">identifier"</span>
-<a id="__codelineno-19-6" name="__codelineno-19-6" href="#__codelineno-19-6"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">source_name</span><span class="p">:</span><span class="w"> </span><span class="s">"amt"</span>
-<a id="__codelineno-19-7" name="__codelineno-19-7" href="#__codelineno-19-7"></a><span class="w">    </span><span class="nt">target_name</span><span class="p">:</span><span class="w"> </span><span class="s">"transaction_amount"</span>
-<a id="__codelineno-19-8" name="__codelineno-19-8" href="#__codelineno-19-8"></a><span class="w">    </span><span class="nt">data_type</span><span class="p">:</span><span class="w"> </span><span class="s">"decimal(18,4)"</span>
-<a id="__codelineno-19-9" name="__codelineno-19-9" href="#__codelineno-19-9"></a><span class="w">    </span><span class="nt">nullable</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a><span class="nt">columns</span><span class="p">:</span>
+<a id="__codelineno-20-2" name="__codelineno-20-2" href="#__codelineno-20-2"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">source_name</span><span class="p">:</span><span class="w"> </span><span class="s">"tx_id"</span>
+<a id="__codelineno-20-3" name="__codelineno-20-3" href="#__codelineno-20-3"></a><span class="w">    </span><span class="nt">data_type</span><span class="p">:</span><span class="w"> </span><span class="s">"string"</span>
+<a id="__codelineno-20-4" name="__codelineno-20-4" href="#__codelineno-20-4"></a><span class="w">    </span><span class="nt">nullable</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span>
+<a id="__codelineno-20-5" name="__codelineno-20-5" href="#__codelineno-20-5"></a><span class="w">    </span><span class="nt">comment</span><span class="p">:</span><span class="w"> </span><span class="s">"Unique</span><span class="nv"> </span><span class="s">transaction</span><span class="nv"> </span><span class="s">identifier"</span>
+<a id="__codelineno-20-6" name="__codelineno-20-6" href="#__codelineno-20-6"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">source_name</span><span class="p">:</span><span class="w"> </span><span class="s">"amt"</span>
+<a id="__codelineno-20-7" name="__codelineno-20-7" href="#__codelineno-20-7"></a><span class="w">    </span><span class="nt">target_name</span><span class="p">:</span><span class="w"> </span><span class="s">"transaction_amount"</span>
+<a id="__codelineno-20-8" name="__codelineno-20-8" href="#__codelineno-20-8"></a><span class="w">    </span><span class="nt">data_type</span><span class="p">:</span><span class="w"> </span><span class="s">"decimal(18,4)"</span>
+<a id="__codelineno-20-9" name="__codelineno-20-9" href="#__codelineno-20-9"></a><span class="w">    </span><span class="nt">nullable</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
 </code></pre></div>
 <blockquote>
 <p>[!TIP]

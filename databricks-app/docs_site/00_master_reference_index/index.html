@@ -564,6 +564,8 @@
       
         
       
+        
+      
     
     
     
@@ -708,6 +710,34 @@
     
   
     4 · Deploying with DABs
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../onboarding/05_new_workspace_bootstrap/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    5 · New-workspace bootstrap
   
 
     
@@ -4438,12 +4468,20 @@
 <td>Extraction destination.</td>
 </tr>
 <tr>
+<td><code>member_format</code></td>
+<td><code>string</code></td>
+<td>No</td>
+<td><code>"zip"</code></td>
+<td><code>"zip"</code>, <code>"gzip"</code></td>
+<td><strong>v1.7.4.</strong> The archive's <em>container</em>, orthogonal to any decryption layer. <code>"zip"</code> is a real archive with N named members (<code>pyzipper</code>); <code>"gzip"</code> is a single compressed stream with no member table, which <code>pyzipper</code> cannot open. An <strong>unencrypted</strong> <code>.gz</code> needs no <code>source_zip_handling</code> at all — Spark decompresses it natively on read — so use <code>"gzip"</code> only for an <strong>encrypted</strong> one, e.g. <code>.csv.gz.gpg</code>.</td>
+</tr>
+<tr>
 <td><code>pre_extraction_decryption</code></td>
 <td><code>object</code></td>
 <td>No</td>
 <td>—</td>
 <td>PGP decryption config</td>
-<td>Optional PGP decryption applied to encrypted ZIP files prior to extraction.</td>
+<td>Optional PGP decryption applied to an encrypted landing file before extraction. <code>type</code> is <code>"pgp"</code> (encrypted to a recipient keypair — takes <code>private_key_secret</code>, plus <code>passphrase_secret</code> if that key is itself protected) or, <strong>v1.7.4</strong>, <code>"pgp_symmetric"</code> (encrypted with a shared passphrase — takes <code>passphrase_secret</code> only, and <strong>rejects</strong> <code>private_key_secret</code>). Neither type can open the other's messages. A third field, <code>secret_passphrase</code>, is <strong>not</strong> PGP at all: it is the AES password on the ZIP archive itself, and is rejected when <code>member_format</code> is <code>"gzip"</code>. See <a href="../05_security_and_cryptography/">§5 §4.1</a>.</td>
 </tr>
 <tr>
 <td><code>delete_source_after_extract</code></td>

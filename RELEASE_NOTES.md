@@ -70,8 +70,30 @@ confirms all four OSAPR status branches, the telephone privacy safeguard and the
 and caught a real defect doing so (an under-17 customer reaching the telephone list, traced to a
 sqlglot precedence bug; the spec now parenthesises the expression and a test pins it).
 
-**Not deployed.** No pipeline has run; the Databricks App is not updated
-(`docs/v1.7.4_json_attribute_delta.json` is the machine-readable input for that work). See
+**The Spec Builder, the agent skills and the wiki now carry the five attributes too.** An
+attribute that exists only in the validator is, from an author's seat, an attribute that does not
+exist — and it fails late, at onboarding, after the builder has already accepted the spec. So:
+6 new registry fields with conditional visibility (choosing symmetric encryption hides the
+recipient-key and signing pickers, and vice versa — the two are mutually exclusive); 12 new
+validation rules; 5 hand-written attribute-inspector entries; `registry.js` mirrored and
+`npm run build` run, without which `web/dist/` keeps serving the old form; two new flows in the
+agent skills' full-reference spec, which by contract exercises *every* documented field; and
+§4.1 of the security page setting out asymmetric vs symmetric as two different **messages**
+rather than two settings — including that symmetric gives confidentiality but not provenance,
+since anyone holding the passphrase can also forge the file.
+
+That pass also corrected a **wrong** statement in the validation-rules page: it claimed
+`pgp_encryption.enabled: true` without `recipient_public_key_secret` is rejected, which stopped
+being true when symmetric egress landed. A validation page that overstates a rule is worse than
+one that omits it, because it is trusted.
+
+`Builder.jsx` was deliberately left untouched: it is a generic renderer driving off the
+`registry.js` descriptors, and every new field renders through the existing widgets and its own
+visibility predicate. Adding per-attribute special-casing there would work against the design —
+and this repo has twice damaged that file with broad regexes.
+
+**Not deployed.** No pipeline has run, and the app is updated but not redeployed — that is two
+steps (`bundle deploy` then `bundle run`); deploy alone leaves the app on its previous code. See
 `enhancement_logs/v1.7.05_enhancement_log.md` for the full scope, the seven defects found, and
 the known gaps.
 

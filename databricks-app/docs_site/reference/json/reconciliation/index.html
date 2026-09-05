@@ -564,6 +564,8 @@
       
         
       
+        
+      
     
     
     
@@ -708,6 +710,34 @@
     
   
     4 · Deploying with DABs
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../onboarding/05_new_workspace_bootstrap/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    5 · New-workspace bootstrap
   
 
     
@@ -4542,7 +4572,7 @@ without leaving the form.</p>
 <hr />
 <h3 id="logging-configmismatch-log-capture"><code>logging_config.mismatch_log_capture</code><a class="headerlink" href="#logging-configmismatch-log-capture" title="Permanent link">&para;</a></h3>
 <p>Per-flow gate on mismatch-log writes.</p>
-<p>Per-flow gate on mismatch-log writes. Overridable at runtime by the recon_mismatch_log job parameter.</p>
+<p>Per-flow gate on mismatch-log writes. DEFAULTS TO FALSE since v1.7.3 (it defaulted to true through v1.7.2): leaving this unset means no reconciliation_mismatch_log rows and, in pipeline mode, no recon__*__mismatch dataset. Set it true to opt in. Overridable at runtime by the recon_mismatch_log job parameter.</p>
 <p><strong>Type</strong> <code>boolean</code> · <strong>Required</strong> no · <strong>Section</strong> Reconciliation identity</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="p">{</span>
 <a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="w">  </span><span class="nt">"logging_config"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
@@ -4553,13 +4583,14 @@ without leaving the form.</p>
 <div class="admonition tip">
 <p class="admonition-title">Best practice</p>
 <ul>
+<li>v1.7.3: defaults false -- auditing is opt-in</li>
 <li>Omitting the attribute is not the same as setting it false — check the default above.</li>
 </ul>
 </div>
 <hr />
 <h3 id="logging-configrun-log-capture"><code>logging_config.run_log_capture</code><a class="headerlink" href="#logging-configrun-log-capture" title="Permanent link">&para;</a></h3>
 <p>Per-flow gate on run-log writes.</p>
-<p>Per-flow gate on run-log writes. Overridable at runtime by the recon_run_log_capture job parameter.</p>
+<p>Per-flow gate on run-log writes. DEFAULTS TO FALSE since v1.7.3 (it defaulted to true through v1.7.2): reconciliation is silent by default, so leaving this unset means no reconciliation_run_log or reconciliation_result rows and, in pipeline mode, no recon__*__metrics dataset at all. Set it true to opt in -- and you MUST set it true when the flow declares dq_config.rules, whose expectations attach to that dataset. Overridable at runtime by the recon_run_log_capture job parameter.</p>
 <p><strong>Type</strong> <code>boolean</code> · <strong>Required</strong> no · <strong>Section</strong> Reconciliation identity</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="p">{</span>
 <a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="w">  </span><span class="nt">"logging_config"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
@@ -4570,6 +4601,7 @@ without leaving the form.</p>
 <div class="admonition tip">
 <p class="admonition-title">Best practice</p>
 <ul>
+<li>v1.7.3: defaults false -- auditing is opt-in</li>
 <li>Omitting the attribute is not the same as setting it false — check the default above.</li>
 </ul>
 </div>

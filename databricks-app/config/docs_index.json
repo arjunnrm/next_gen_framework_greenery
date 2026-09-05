@@ -342,6 +342,10 @@
       "page": "reference/json/ingestion/",
       "anchor": "#source-configsource-zip-handlingenabled"
     },
+    "source_config.source_zip_handling.member_format": {
+      "page": "reference/json/ingestion/",
+      "anchor": "#source-configsource-zip-handlingmember-format"
+    },
     "source_config.source_zip_handling.pre_extraction_decryption.passphrase_secret.secret_catalog": {
       "page": "reference/json/ingestion/",
       "anchor": "#source-configsource-zip-handlingpre-extraction-decryptionpassphrase-secretsecret-catalog"
@@ -562,6 +566,10 @@
       "page": "reference/json/ingestion/",
       "anchor": "#target-configsink-configpath"
     },
+    "target_config.sink_config.post_export_archive.archive_format": {
+      "page": "reference/json/ingestion/",
+      "anchor": "#target-configsink-configpost-export-archivearchive-format"
+    },
     "target_config.sink_config.post_export_archive.enabled": {
       "page": "reference/json/ingestion/",
       "anchor": "#target-configsink-configpost-export-archiveenabled"
@@ -577,6 +585,22 @@
     "target_config.sink_config.post_export_archive.pgp_encryption.enabled": {
       "page": "reference/json/ingestion/",
       "anchor": "#target-configsink-configpost-export-archivepgp-encryptionenabled"
+    },
+    "target_config.sink_config.post_export_archive.pgp_encryption.passphrase_secret": {
+      "page": "reference/json/ingestion-transformation/",
+      "anchor": "#target-configsink-configpost-export-archivepgp-encryptionpassphrase-secret"
+    },
+    "target_config.sink_config.post_export_archive.pgp_encryption.passphrase_secret.secret_catalog": {
+      "page": "reference/json/ingestion/",
+      "anchor": "#target-configsink-configpost-export-archivepgp-encryptionpassphrase-secretsecret-catalog"
+    },
+    "target_config.sink_config.post_export_archive.pgp_encryption.passphrase_secret.secret_key": {
+      "page": "reference/json/ingestion/",
+      "anchor": "#target-configsink-configpost-export-archivepgp-encryptionpassphrase-secretsecret-key"
+    },
+    "target_config.sink_config.post_export_archive.pgp_encryption.passphrase_secret.secret_schema": {
+      "page": "reference/json/ingestion/",
+      "anchor": "#target-configsink-configpost-export-archivepgp-encryptionpassphrase-secretsecret-schema"
     },
     "target_config.sink_config.post_export_archive.pgp_encryption.recipient_public_key_secret.secret_catalog": {
       "page": "reference/json/ingestion/",
@@ -629,6 +653,18 @@
     "target_config.sink_config.staged_file_format": {
       "page": "reference/json/ingestion/",
       "anchor": "#target-configsink-configstaged-file-format"
+    },
+    "target_config.sink_config.staged_file_options.delimiter": {
+      "page": "reference/json/ingestion/",
+      "anchor": "#target-configsink-configstaged-file-optionsdelimiter"
+    },
+    "target_config.sink_config.staged_file_options.include_header": {
+      "page": "reference/json/ingestion/",
+      "anchor": "#target-configsink-configstaged-file-optionsinclude-header"
+    },
+    "target_config.sink_config.staged_file_options.line_terminator": {
+      "page": "reference/json/ingestion/",
+      "anchor": "#target-configsink-configstaged-file-optionsline-terminator"
     },
     "target_config.sink_config.write_mode": {
       "page": "reference/json/ingestion/",

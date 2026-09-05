@@ -296,7 +296,7 @@ In-pipeline reconciliation is the whole point of v1.5.0: ingestion, transformati
 Per-flow gate on mismatch-log writes.
 
 
-Per-flow gate on mismatch-log writes. Overridable at runtime by the recon_mismatch_log job parameter.
+Per-flow gate on mismatch-log writes. DEFAULTS TO FALSE since v1.7.3 (it defaulted to true through v1.7.2): leaving this unset means no reconciliation_mismatch_log rows and, in pipeline mode, no recon__*__mismatch dataset. Set it true to opt in. Overridable at runtime by the recon_mismatch_log job parameter.
 
 
 **Type** `boolean` · **Required** no · **Section** Reconciliation identity
@@ -313,6 +313,7 @@ Per-flow gate on mismatch-log writes. Overridable at runtime by the recon_mismat
 
 !!! tip "Best practice"
 
+    - v1.7.3: defaults false -- auditing is opt-in
     - Omitting the attribute is not the same as setting it false — check the default above.
 
 
@@ -323,7 +324,7 @@ Per-flow gate on mismatch-log writes. Overridable at runtime by the recon_mismat
 Per-flow gate on run-log writes.
 
 
-Per-flow gate on run-log writes. Overridable at runtime by the recon_run_log_capture job parameter.
+Per-flow gate on run-log writes. DEFAULTS TO FALSE since v1.7.3 (it defaulted to true through v1.7.2): reconciliation is silent by default, so leaving this unset means no reconciliation_run_log or reconciliation_result rows and, in pipeline mode, no recon__*__metrics dataset at all. Set it true to opt in -- and you MUST set it true when the flow declares dq_config.rules, whose expectations attach to that dataset. Overridable at runtime by the recon_run_log_capture job parameter.
 
 
 **Type** `boolean` · **Required** no · **Section** Reconciliation identity
@@ -340,6 +341,7 @@ Per-flow gate on run-log writes. Overridable at runtime by the recon_run_log_cap
 
 !!! tip "Best practice"
 
+    - v1.7.3: defaults false -- auditing is opt-in
     - Omitting the attribute is not the same as setting it false — check the default above.
 
 

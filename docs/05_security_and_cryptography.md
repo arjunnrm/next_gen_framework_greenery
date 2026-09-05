@@ -97,6 +97,67 @@ For secure file ingest and egress:
 - **Pre-Extraction PGP Decryption**: Ingest encrypted `.pgp` or `.gpg` archives, decrypting in-memory before unzipping or reading.
 - **PGP-Signed Egress Sinks**: Export Delta tables as PGP-encrypted, compressed ZIP archives to external Volumes or cloud buckets.
 
+### 4.1 Asymmetric vs symmetric — two different messages, not two settings
+
+OpenPGP can protect a message in two structurally different ways, and the framework supports
+both. **They are not interchangeable**: a message encrypted one way cannot be opened the other
+way, which is why the choice is an explicit `type` rather than an optional extra secret.
+
+| | **Asymmetric** (recipient keypair) | **Symmetric** (shared passphrase) |
+|---|---|---|
+| Packet in the message | PKESK — addressed to a key | SKESK — derived from a passphrase |
+| Produced by | `gpg --encrypt --recipient you@example.com` | `gpg --symmetric --cipher-algo AES256` |
+| Ingest `pre_extraction_decryption.type` | `"pgp"` | `"pgp_symmetric"` **(v1.7.4)** |
+| Ingest secret | `private_key_secret` (+ optional `passphrase_secret` to unlock that key) | `passphrase_secret` — the passphrase the **message** was encrypted with |
+| Egress `pgp_encryption` secret | `recipient_public_key_secret` | `passphrase_secret` **(v1.7.4)** |
+| Signing available? | **Yes** — `sign_with_private_key_secret` | **No.** Signing needs a sender keypair, which symmetric encryption has none of. |
+| Who can decrypt | Only the holder of the private key | Anyone holding the passphrase |
+| Who can *forge* | Nobody (a signature proves origin) | **Anyone holding the passphrase** |
+
+The last row is the one that decides the choice. Symmetric encryption gives you
+confidentiality but **not provenance**: the same secret both encrypts and decrypts, so every
+party who can read a file can also produce an identical one. Prefer a recipient key plus a
+signature wherever the receiver must be able to prove who sent the file. Symmetric is the right
+answer when the two parties already share a passphrase out of band and the exchange is
+point-to-point — which is exactly the case where demanding a keypair means managing one purely
+as ceremony.
+
+At the spec level the two egress secrets are **mutually exclusive — set exactly one**.
+Supplying both is rejected at onboarding rather than resolved by precedence, because either
+resolution order would silently encrypt to something the author did not choose.
+
+```json
+// Ingest: an encrypted gzip, e.g. EA_REQUEST_20260901.csv.gz.gpg
+"source_zip_handling": {
+  "enabled": true,
+  "member_format": "gzip",
+  "pre_extraction_decryption": {
+    "type": "pgp_symmetric",
+    "passphrase_secret": {
+      "secret_catalog": "{{catalog}}", "secret_schema": "config", "secret_key": "pgpkey"
+    }
+  }
+}
+
+// Egress: the same passphrase, producing <stem>.csv.gz.gpg
+"pgp_encryption": {
+  "enabled": true,
+  "passphrase_secret": {
+    "secret_catalog": "{{catalog}}", "secret_schema": "config", "secret_key": "pgpkey"
+  }
+}
+```
+
+Both directions are AES256 by default and were verified against the **GnuPG 2.4.9 CLI in both
+directions**: the framework decrypts what `gpg` wrote, and `gpg` decrypts what the framework
+wrote. Implementation: `crypto/pgp.py::pgp_decrypt_symmetric` / `pgp_encrypt_symmetric`.
+
+!!! warning "The passphrase is a secret reference, never a literal"
+    `passphrase_secret` takes a Unity Catalog secret *reference*
+    (`secret_catalog`/`secret_schema`/`secret_key`) and the resolved value never enters the
+    spec, the control tables, or a log line. The Spec Builder additionally blocks
+    `passphrase` as a literal key name. See §1 and §5.
+
 ---
 
 ## 5. Secret Provisioning & Key Rotation Runbook

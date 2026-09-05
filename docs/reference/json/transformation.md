@@ -7,7 +7,7 @@
 One entry per `transformation_flows[]` element — SQL plus a CDC load strategy.
 
 
-!!! info "69 attributes"
+!!! info "76 attributes"
     Every attribute below is also available in the Spec Builder's attribute
     inspector — click the **i** beside any field to see this same content
     without leaving the form.
@@ -62,13 +62,17 @@ One entry per `transformation_flows[]` element — SQL plus a CDC load strategy.
 | [`target_config.sink_config.format`](#target-configsink-configformat) | string (enum) | **yes** | — |
 | [`target_config.sink_config.kafka_options`](#target-configsink-configkafka-options) | object<string,string> | **yes** | — |
 | [`target_config.sink_config.path`](#target-configsink-configpath) | string | **yes** | — |
+| [`target_config.sink_config.post_export_archive.archive_format`](#target-configsink-configpost-export-archivearchive-format) | string (enum) | no | — |
 | [`target_config.sink_config.post_export_archive.enabled`](#target-configsink-configpost-export-archiveenabled) | boolean | no | — |
 | [`target_config.sink_config.post_export_archive.export_file_name_format`](#target-configsink-configpost-export-archiveexport-file-name-format) | string | no | — |
 | [`target_config.sink_config.post_export_archive.output_zip_path`](#target-configsink-configpost-export-archiveoutput-zip-path) | string | **yes** | — |
 | [`target_config.sink_config.post_export_archive.pgp_encryption.enabled`](#target-configsink-configpost-export-archivepgp-encryptionenabled) | boolean | no | — |
-| [`target_config.sink_config.post_export_archive.pgp_encryption.recipient_public_key_secret.secret_catalog`](#target-configsink-configpost-export-archivepgp-encryptionrecipient-public-key-secretsecret-catalog) | string | **yes** | — |
-| [`target_config.sink_config.post_export_archive.pgp_encryption.recipient_public_key_secret.secret_key`](#target-configsink-configpost-export-archivepgp-encryptionrecipient-public-key-secretsecret-key) | string | **yes** | — |
-| [`target_config.sink_config.post_export_archive.pgp_encryption.recipient_public_key_secret.secret_schema`](#target-configsink-configpost-export-archivepgp-encryptionrecipient-public-key-secretsecret-schema) | string | **yes** | — |
+| [`target_config.sink_config.post_export_archive.pgp_encryption.passphrase_secret.secret_catalog`](#target-configsink-configpost-export-archivepgp-encryptionpassphrase-secretsecret-catalog) | string | no | — |
+| [`target_config.sink_config.post_export_archive.pgp_encryption.passphrase_secret.secret_key`](#target-configsink-configpost-export-archivepgp-encryptionpassphrase-secretsecret-key) | string | no | — |
+| [`target_config.sink_config.post_export_archive.pgp_encryption.passphrase_secret.secret_schema`](#target-configsink-configpost-export-archivepgp-encryptionpassphrase-secretsecret-schema) | string | no | — |
+| [`target_config.sink_config.post_export_archive.pgp_encryption.recipient_public_key_secret.secret_catalog`](#target-configsink-configpost-export-archivepgp-encryptionrecipient-public-key-secretsecret-catalog) | string | no | — |
+| [`target_config.sink_config.post_export_archive.pgp_encryption.recipient_public_key_secret.secret_key`](#target-configsink-configpost-export-archivepgp-encryptionrecipient-public-key-secretsecret-key) | string | no | — |
+| [`target_config.sink_config.post_export_archive.pgp_encryption.recipient_public_key_secret.secret_schema`](#target-configsink-configpost-export-archivepgp-encryptionrecipient-public-key-secretsecret-schema) | string | no | — |
 | [`target_config.sink_config.post_export_archive.pgp_encryption.sign_passphrase_secret.secret_catalog`](#target-configsink-configpost-export-archivepgp-encryptionsign-passphrase-secretsecret-catalog) | string | no | — |
 | [`target_config.sink_config.post_export_archive.pgp_encryption.sign_passphrase_secret.secret_key`](#target-configsink-configpost-export-archivepgp-encryptionsign-passphrase-secretsecret-key) | string | no | — |
 | [`target_config.sink_config.post_export_archive.pgp_encryption.sign_passphrase_secret.secret_schema`](#target-configsink-configpost-export-archivepgp-encryptionsign-passphrase-secretsecret-schema) | string | no | — |
@@ -79,6 +83,9 @@ One entry per `transformation_flows[]` element — SQL plus a CDC load strategy.
 | [`target_config.sink_config.post_export_archive.secret.secret_key`](#target-configsink-configpost-export-archivesecretsecret-key) | string | no | — |
 | [`target_config.sink_config.post_export_archive.secret.secret_schema`](#target-configsink-configpost-export-archivesecretsecret-schema) | string | no | — |
 | [`target_config.sink_config.staged_file_format`](#target-configsink-configstaged-file-format) | string (enum) | no | — |
+| [`target_config.sink_config.staged_file_options.delimiter`](#target-configsink-configstaged-file-optionsdelimiter) | string | no | — |
+| [`target_config.sink_config.staged_file_options.include_header`](#target-configsink-configstaged-file-optionsinclude-header) | boolean | no | — |
+| [`target_config.sink_config.staged_file_options.line_terminator`](#target-configsink-configstaged-file-optionsline-terminator) | string (enum) | no | — |
 | [`target_config.sink_config.write_mode`](#target-configsink-configwrite-mode) | string (enum) | no | — |
 | [`target_config.storage_format`](#target-configstorage-format) | string (enum) | no | — |
 | [`target_config.table_properties`](#target-configtable-properties) | object<string,string> | no | — |
@@ -1317,6 +1324,48 @@ Output directory. Required for delta and pgp_zip.
 
 ---
 
+### `target_config.sink_config.post_export_archive.archive_format` { #target-configsink-configpost-export-archivearchive-format }
+
+The container the finished export is delivered in: 'zip' or 'gzip'.
+
+
+The sink was ZIP-only, so an interface specifying a .csv.gz drop could not be served without a downstream repack — which would have meant either breaking the supplier contract or hand-rolling file handling outside the framework.
+
+
+**Type** `string (enum)` · **Required** no · **Section** Target · sink config
+
+
+```json
+// Emits EE_20260901-LEIDOS_TELEPHONE_001.csv.gz
+"post_export_archive": {
+  "enabled": true,
+  "output_zip_path": "/Volumes/{{catalog}}/staging/uc_6/output/",
+  "export_file_name_format": "EE_${export_file_date}-LEIDOS_TELEPHONE_${export_file_sequence}",
+  "archive_format": "gzip"
+}
+// add pgp_encryption.passphrase_secret -> ....csv.gz.gpg
+```
+
+
+!!! tip "Best practice"
+
+    - A gzip holds exactly ONE member, so the staged partition files are concatenated into a single stream. The CSV header is written per partition, so all but the first are dropped during concatenation.
+    - A gzip stream has no archive password: post_export_archive.secret does not apply. To protect a gzip export, use pgp_encryption.
+    - The extension follows the content: .csv.gz or .jsonl.gz, and .gpg is appended when pgp_encryption is on (a ZIP archive uses .pgp instead).
+
+
+!!! warning "Known errors and limitations"
+
+    **The consumer rejects the file as a corrupt gzip.**  
+    *Cause:* Some tools stop at the first member boundary in a multi-member gzip.  
+    *Fix:* The framework emits a single-member stream, so this should not occur. If it does, confirm nothing downstream is re-concatenating the exports.
+
+
+**Databricks documentation:** [sinks](https://docs.databricks.com/delta-live-tables/sinks.html)
+
+
+---
+
 ### `target_config.sink_config.post_export_archive.enabled` { #target-configsink-configpost-export-archiveenabled }
 
 Enable post-write archiving for pgp_zip exports.
@@ -1449,12 +1498,126 @@ PGP-encrypt the output archive.
 
 ---
 
+### `target_config.sink_config.post_export_archive.pgp_encryption.passphrase_secret.secret_catalog` { #target-configsink-configpost-export-archivepgp-encryptionpassphrase-secretsecret-catalog }
+
+SYMMETRIC egress encryption — encrypt with a shared passphrase instead of a recipient key.
+
+
+SYMMETRIC egress encryption — encrypt with a shared passphrase instead of a recipient key. Mutually exclusive with recipient_public_key_secret: set exactly one. Signing is unavailable in this mode (it needs a sender keypair).
+
+
+**Type** `string` · **Required** no · **Section** Target · sink config
+
+
+```json
+{
+  "target_config": {
+    "sink_config": {
+      "post_export_archive": {
+        "pgp_encryption": {
+          "passphrase_secret": {
+            "secret_catalog": "{{catalog}}"
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+
+!!! tip "Best practice"
+
+    - Only applies to some configurations; the form hides it when it is not relevant.
+
+
+**Databricks documentation:** [secrets](https://docs.databricks.com/security/secrets/index.html) · [uc privileges](https://docs.databricks.com/data-governance/unity-catalog/manage-privileges/privileges.html)
+
+
+---
+
+### `target_config.sink_config.post_export_archive.pgp_encryption.passphrase_secret.secret_key` { #target-configsink-configpost-export-archivepgp-encryptionpassphrase-secretsecret-key }
+
+SYMMETRIC egress encryption — encrypt with a shared passphrase instead of a recipient key.
+
+
+SYMMETRIC egress encryption — encrypt with a shared passphrase instead of a recipient key. Mutually exclusive with recipient_public_key_secret: set exactly one. Signing is unavailable in this mode (it needs a sender keypair).
+
+
+**Type** `string` · **Required** no · **Section** Target · sink config
+
+
+```json
+{
+  "target_config": {
+    "sink_config": {
+      "post_export_archive": {
+        "pgp_encryption": {
+          "passphrase_secret": {
+            "secret_key": "pii_encryption_key"
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+
+!!! tip "Best practice"
+
+    - Only applies to some configurations; the form hides it when it is not relevant.
+
+
+**Databricks documentation:** [secrets](https://docs.databricks.com/security/secrets/index.html) · [uc privileges](https://docs.databricks.com/data-governance/unity-catalog/manage-privileges/privileges.html)
+
+
+---
+
+### `target_config.sink_config.post_export_archive.pgp_encryption.passphrase_secret.secret_schema` { #target-configsink-configpost-export-archivepgp-encryptionpassphrase-secretsecret-schema }
+
+SYMMETRIC egress encryption — encrypt with a shared passphrase instead of a recipient key.
+
+
+SYMMETRIC egress encryption — encrypt with a shared passphrase instead of a recipient key. Mutually exclusive with recipient_public_key_secret: set exactly one. Signing is unavailable in this mode (it needs a sender keypair).
+
+
+**Type** `string` · **Required** no · **Section** Target · sink config
+
+
+```json
+{
+  "target_config": {
+    "sink_config": {
+      "post_export_archive": {
+        "pgp_encryption": {
+          "passphrase_secret": {
+            "secret_schema": "security"
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+
+!!! tip "Best practice"
+
+    - Only applies to some configurations; the form hides it when it is not relevant.
+
+
+**Databricks documentation:** [secrets](https://docs.databricks.com/security/secrets/index.html) · [uc privileges](https://docs.databricks.com/data-governance/unity-catalog/manage-privileges/privileges.html)
+
+
+---
+
 ### `target_config.sink_config.post_export_archive.pgp_encryption.recipient_public_key_secret.secret_catalog` { #target-configsink-configpost-export-archivepgp-encryptionrecipient-public-key-secretsecret-catalog }
 
 Unity Catalog secret catalog holding the key.
 
 
-**Type** `string` · **Required** yes · **Section** Target · sink config
+**Type** `string` · **Required** no · **Section** Target · sink config
 
 
 ```json
@@ -1476,7 +1639,6 @@ Unity Catalog secret catalog holding the key.
 
 !!! tip "Best practice"
 
-    - Required — onboarding rejects the flow if this is missing.
     - Only applies to some configurations; the form hides it when it is not relevant.
 
 
@@ -1493,7 +1655,7 @@ UC secret key name.
 UC secret key name. AES keys must be exactly 16, 24 or 32 bytes.
 
 
-**Type** `string` · **Required** yes · **Section** Target · sink config
+**Type** `string` · **Required** no · **Section** Target · sink config
 
 
 ```json
@@ -1515,7 +1677,6 @@ UC secret key name. AES keys must be exactly 16, 24 or 32 bytes.
 
 !!! tip "Best practice"
 
-    - Required — onboarding rejects the flow if this is missing.
     - Only applies to some configurations; the form hides it when it is not relevant.
 
 
@@ -1529,7 +1690,7 @@ UC secret key name. AES keys must be exactly 16, 24 or 32 bytes.
 Unity Catalog secret schema.
 
 
-**Type** `string` · **Required** yes · **Section** Target · sink config
+**Type** `string` · **Required** no · **Section** Target · sink config
 
 
 ```json
@@ -1551,7 +1712,6 @@ Unity Catalog secret schema.
 
 !!! tip "Best practice"
 
-    - Required — onboarding rejects the flow if this is missing.
     - Only applies to some configurations; the form hides it when it is not relevant.
 
 
@@ -1905,6 +2065,119 @@ json (the default when absent) writes JSON-Lines; csv writes RFC-4180 files with
     **Onboarding rejects staged_file_format**  
     *Cause:* It was set on a sink whose format is not pgp_zip.  
     *Fix:* Remove the attribute, or switch sink_config.format to pgp_zip.
+
+
+**Databricks documentation:** [sinks](https://docs.databricks.com/delta-live-tables/sinks.html)
+
+
+---
+
+### `target_config.sink_config.staged_file_options.delimiter` { #target-configsink-configstaged-file-optionsdelimiter }
+
+The field separator for the staged CSV a pgp_zip sink writes.
+
+
+Before v1.7.4 the writer used Python's csv `excel` dialect with no override — comma-separated, always headered, CRLF-terminated. A supplier interface that specifies anything else simply could not be expressed, which is what UC6's pipe-delimited Leidos feed needed.
+
+
+**Type** `string` · **Required** no · **Section** Target · sink config
+
+
+```json
+"sink_config": {
+  "format": "pgp_zip",
+  "staged_file_format": "csv",
+  "staged_file_options": {
+    "delimiter": "|",
+    "include_header": true,
+    "line_terminator": "lf"
+  }
+}
+```
+
+
+!!! tip "Best practice"
+
+    - Exactly one character. Python's csv writer cannot emit a multi-character delimiter and the framework rejects one rather than silently truncating it.
+    - Omit the whole staged_file_options object to keep the pre-1.7.4 dialect exactly.
+    - Only applies to staged_file_format 'csv'. A JSON-Lines export has no delimiter.
+
+
+!!! warning "Known errors and limitations"
+
+    **The consumer reads one giant column, or splits on the wrong character.**  
+    *Cause:* The delimiter here does not match what the receiving interface expects.  
+    *Fix:* Match the interface specification exactly. If fields can contain the delimiter, the writer quotes them per RFC-4180 — confirm the consumer honours quoting.
+
+
+**Databricks documentation:** [sinks](https://docs.databricks.com/delta-live-tables/sinks.html)
+
+
+---
+
+### `target_config.sink_config.staged_file_options.include_header` { #target-configsink-configstaged-file-optionsinclude-header }
+
+Write the header row.
+
+
+Write the header row. Absent = true. Set false for a supplier interface that specifies a headerless body. NOTE: with archive_format gzip the header is emitted per partition and all but the first are dropped on concatenation.
+
+
+**Type** `boolean` · **Required** no · **Section** Target · sink config
+
+
+```json
+{
+  "target_config": {
+    "sink_config": {
+      "staged_file_options": {
+        "include_header": true
+      }
+    }
+  }
+}
+```
+
+
+!!! tip "Best practice"
+
+    - Only applies to some configurations; the form hides it when it is not relevant.
+    - Omitting the attribute is not the same as setting it false — check the default above.
+
+
+**Databricks documentation:** [sinks](https://docs.databricks.com/delta-live-tables/sinks.html)
+
+
+---
+
+### `target_config.sink_config.staged_file_options.line_terminator` { #target-configsink-configstaged-file-optionsline-terminator }
+
+The record separator for the staged CSV: 'crlf' or 'lf'.
+
+
+Spelled as a name because JSON cannot carry a bare control character — you cannot write a literal CR in a JSON string and have it survive round-tripping.
+
+
+**Type** `string (enum)` · **Required** no · **Section** Target · sink config
+
+
+```json
+"staged_file_options": { "line_terminator": "lf" }
+// crlf (default when absent) = RFC-4180, the pre-1.7.4 behaviour
+// lf                          = bare \n, what most Unix consumers expect
+```
+
+
+!!! tip "Best practice"
+
+    - Absent = crlf. Legacy mainframe and Windows interfaces usually want crlf; most Unix-side consumers want lf.
+
+
+!!! warning "Known errors and limitations"
+
+    **The consumer reports a stray \r at the end of the last field on every row.**  
+    *Cause:* The file is CRLF-terminated but the consumer splits on \n only.  
+    *Fix:* Set line_terminator to 'lf'.
 
 
 **Databricks documentation:** [sinks](https://docs.databricks.com/delta-live-tables/sinks.html)
