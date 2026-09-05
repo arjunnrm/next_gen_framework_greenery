@@ -44,7 +44,6 @@ Post-deployment governance (ABAC tag application), run *after* a pipeline update
 
 | Signature | Purpose |
 |---|---|
-| `apply_all_governance_tags(spark: SparkSession, control_catalog: str, group_id: str) -> None` | Apply governance tags (column + table) for every active flow in `group_id` with `governance_tags_json` set. |
 | `capture_all_scd_change_counts(spark: SparkSession, control_catalog: str, group_id: str) -> None` | Best-effort insert/update/delete count capture (Phase 10) for every CDC-dispatched flow in ``group_id``, emitted as structured JSON log events via ``observability.structured_logger.log_flow_event`` -- the "records updated, inserted, deleted" half of this framework's structured-logging requirement for SCD/CDC flows, closing out the dependency an earlier phase's own code comment in ``cdc/change_metrics.py`` left for this one. |
 
 

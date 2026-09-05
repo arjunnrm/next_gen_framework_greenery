@@ -3033,6 +3033,10 @@
       
         
       
+        
+      
+        
+      
     
     
     
@@ -3121,6 +3125,62 @@
     
   
     Multi-role FAQs
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../16_usecase_implementation_guide/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Use case implementation guide
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../UC3/UC3_MASTER_DOCUMENT/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    UC3 Excalibur master document
   
 
     
@@ -3969,7 +4029,7 @@
 <td>No</td>
 <td><code>{}</code></td>
 <td>Key-value map (e.g. <code>{"filter_country": "US", "min_amount": "0"}</code>)</td>
-<td>Runtime parameters dynamically substituted into <code>${param}</code> placeholders in SQL queries and conditions.</td>
+<td>Runtime parameters substituted into <code>${param}</code> placeholders in SQL queries, conditions <strong>and file paths</strong> (<code>source_config.path</code>, <code>target_config</code>), resolved fresh on every pipeline update.</td>
 <td><a href="../03_transformation_and_cdc/#5-parameter-substitution-param-catalog-env">Parameters Guide</a></td>
 </tr>
 <tr>
@@ -5235,8 +5295,8 @@
 <tr>
 <td><code>${param}</code></td>
 <td><code>${param_name}</code></td>
-<td><code>transformation_sql</code>, <code>filter_condition</code></td>
-<td>Runtime parameter dynamically replaced with values from <code>pipeline_parameters</code>.</td>
+<td><code>transformation_sql</code>, <code>filter_condition</code>, <strong><code>source_config</code> (incl. <code>path</code>) and <code>target_config</code></strong></td>
+<td>Runtime parameter replaced with values from <code>pipeline_parameters</code>, resolved <strong>fresh on every pipeline update</strong> (not at onboarding) — so paths can be retargeted without re-onboarding. Applied by <code>flow_generators.py</code>, <code>source_plane.py</code> and <code>reconciliation/graph_registration.py</code>. <code>dq_config</code> is deliberately excluded (its expressions are SQL predicates, not paths). A missing parameter raises at planning time.</td>
 </tr>
 </tbody>
 </table>

@@ -30,7 +30,7 @@ Delta/Lakeflow storage optimization: table properties, Liquid Clustering, UniFor
 | Signature | Purpose |
 |---|---|
 | `qualified_table_name(catalog: str, schema: str, table: str) -> str` | Build a fully-qualified ``catalog.schema.table`` name for a ``@dlt.table``/``@dlt.view`` ``name=`` argument. |
-| `build_table_properties(target_config: Dict[str, Any]) -> Dict[str, str]` | Translate a ``target_config`` dict into Delta/Lakeflow table properties. |
+| `build_table_properties(target_config: Dict[str, Any], target_type: Optional[str] = None) -> Dict[str, str]` | Translate a ``target_config`` dict into Delta/Lakeflow table properties. |
 | `build_auto_ttl_kwarg(target_config: Dict[str, Any]) -> Optional[Dict[str, Any]]` | Build the ``auto_ttl`` keyword argument for a ``@dlt.table``/``dlt.create_streaming_table`` call. |
 | `build_partition_and_cluster_kwargs(target_config: Dict[str, Any], table_label: Optional[str] = None) -> Dict[str, Any]` | Build the ``partition_cols``/``cluster_by`` keyword arguments for a ``@dlt.table`` call. |
 

@@ -28,11 +28,14 @@ Requires Databricks Runtime 17.3 LTS+ or serverless environment version 4+ (UC s
 minimum supported runtime).
 """
 
+import logging
 import re
 
 from pyspark.sql import SparkSession
 
 from flowx.lakeflow_framework.exceptions import SecretResolutionError
+
+logger = logging.getLogger(__name__)
 
 _IDENTIFIER_PATTERN = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 
@@ -68,6 +71,21 @@ def qualified_secret_label(secret_catalog: str, secret_schema: str, secret_key: 
     return f"{secret_catalog}.{secret_schema}.{secret_key}"
 
 
+def _fallback_scope_names(secret_catalog: str, secret_schema: str) -> list:
+    """Classic workspace scope names to try when a UC secret cannot be resolved.
+
+    A classic scope has a single flat name, so a three-level UC reference has no canonical
+    spelling as one. These are the conventional encodings, most-specific first, and they are
+    only ever tried after the UC lookup has already failed.
+    """
+    return [
+        f"{secret_catalog}.{secret_schema}",
+        f"{secret_catalog}_{secret_schema}",
+        secret_schema,
+        secret_catalog,
+    ]
+
+
 def resolve_secret_value(spark: SparkSession, secret_catalog: str, secret_schema: str, secret_key: str) -> str:
     """Resolve the plaintext value of a Unity Catalog secret.
 
@@ -87,9 +105,40 @@ def resolve_secret_value(spark: SparkSession, secret_catalog: str, secret_schema
         from pyspark.dbutils import DBUtils
 
         dbutils = DBUtils(spark)
-        return dbutils.secrets.get(catalog=secret_catalog, schema=secret_schema, key=secret_key)
     except Exception as exc:  # noqa: BLE001
         raise SecretResolutionError(f"Unable to resolve Unity Catalog secret '{label}': {exc}") from exc
+
+    try:
+        return dbutils.secrets.get(catalog=secret_catalog, schema=secret_schema, key=secret_key)
+    except Exception as uc_exc:  # noqa: BLE001
+        # A metastore with UC secrets switched off raises UC_SECRETS_NOT_ENABLED here. That is
+        # an environment capability, not a spec error: the same reference is still resolvable
+        # from a classic workspace scope, so fall back rather than failing the update.
+        #
+        # The fallback is deliberately NOT a second spelling of a secret reference -- the spec
+        # keeps exactly one shape, `{secret_catalog, secret_schema, secret_key}`. Only the
+        # RESOLUTION is widened, and only after the UC lookup has actually failed, so a
+        # workspace with UC secrets enabled behaves exactly as before and never consults a
+        # scope. See docs/05_security_and_cryptography.md section 4.2.
+        for scope in _fallback_scope_names(secret_catalog, secret_schema):
+            try:
+                value = dbutils.secrets.get(scope=scope, key=secret_key)
+            except Exception:  # noqa: BLE001, S112
+                continue
+            logger.warning(
+                "Unity Catalog secret '%s' was not resolvable (%s); resolved it from the "
+                "classic workspace scope '%s' instead. This fallback exists for metastores "
+                "where UC secrets are not enabled -- enable them and recreate the secret as "
+                "%s to remove the ambiguity.",
+                label, type(uc_exc).__name__, scope, label,
+            )
+            return value
+
+        raise SecretResolutionError(
+            f"Unable to resolve Unity Catalog secret '{label}': {uc_exc}. No classic workspace "
+            f"scope fallback matched either (tried: "
+            f"{', '.join(repr(s) for s in _fallback_scope_names(secret_catalog, secret_schema))})."
+        ) from uc_exc
 
 
 def resolve_secret_ref(spark: SparkSession, secret_ref: dict) -> str:

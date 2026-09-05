@@ -1381,6 +1381,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#42-when-unity-catalog-secrets-are-not-enabled" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.2 When Unity Catalog secrets are not enabled
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -2912,6 +2923,10 @@
       
         
       
+        
+      
+        
+      
     
     
     
@@ -3000,6 +3015,62 @@
     
   
     Multi-role FAQs
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../16_usecase_implementation_guide/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Use case implementation guide
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../UC3/UC3_MASTER_DOCUMENT/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    UC3 Excalibur master document
   
 
     
@@ -3594,6 +3665,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#42-when-unity-catalog-secrets-are-not-enabled" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.2 When Unity Catalog secrets are not enabled
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -3844,14 +3926,75 @@ spec, the control tables, or a log line. The Spec Builder additionally blocks
 <code>passphrase</code> as a literal key name. See §1 and §5.</p>
 </div>
 <hr />
+<h3 id="42-when-unity-catalog-secrets-are-not-enabled">4.2 When Unity Catalog secrets are not enabled<a class="headerlink" href="#42-when-unity-catalog-secrets-are-not-enabled" title="Permanent link">&para;</a></h3>
+<p>UC secrets are an <strong>opt-in metastore capability</strong>. On a metastore where they are switched
+off, <code>dbutils.secrets.get(catalog=, schema=, key=)</code> raises:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>[UC_SECRETS_NOT_ENABLED] Support for Unity Catalog Secrets is not enabled. SQLSTATE: 56038
+</code></pre></div>
+<p><code>CREATE SECRET flowx.config.pgpkey VALUE '...'</code> fails the same way — the syntax parses, so
+this is a <em>feature flag</em>, not a permissions or naming problem. Before v1.7.4 that made every
+crypto-bearing spec unrunnable on such a workspace, with no configuration-level workaround.</p>
+<p><code>resolve_secret_value</code> now tries the UC lookup first and, <strong>only if it raises</strong>, falls back to
+a classic workspace scope, trying these names in order:</p>
+<table>
+<thead>
+<tr>
+<th>Order</th>
+<th>Scope name for <code>flowx.config.pgpkey</code></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td><code>flowx.config</code> — catalog and schema, dot-joined</td>
+</tr>
+<tr>
+<td>2</td>
+<td><code>flowx_config</code> — underscore-joined</td>
+</tr>
+<tr>
+<td>3</td>
+<td><code>config</code> — schema alone</td>
+</tr>
+<tr>
+<td>4</td>
+<td><code>flowx</code> — catalog alone</td>
+</tr>
+</tbody>
+</table>
+<p>The key name is always <code>secret_key</code> unchanged. Create one with:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>databricks<span class="w"> </span>secrets<span class="w"> </span>create-scope<span class="w"> </span>flowx.config
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>databricks<span class="w"> </span>secrets<span class="w"> </span>put-secret<span class="w"> </span>flowx.config<span class="w"> </span>pgpkey<span class="w">   </span><span class="c1"># prompts; the value never hits your shell history</span>
+</code></pre></div>
+<p>Three properties are worth being explicit about, because each is a place this could have gone
+wrong:</p>
+<ul>
+<li><strong>The spec does not change.</strong> A secret reference keeps exactly one shape —
+  <code>{secret_catalog, secret_schema, secret_key}</code>. Only <em>resolution</em> is widened, so there is no
+  second spelling to keep in sync, no new attribute in the JSON schema, and nothing for the
+  Spec Builder to render. A spec written for a UC-secrets workspace runs unmodified on one
+  without them, and vice versa.</li>
+<li><strong>A healthy workspace never consults a scope.</strong> The fallback is reached only after the UC
+  lookup has already raised, so where UC secrets work, behaviour is byte-for-byte what it was.</li>
+<li><strong>The fallback cannot tell "UC is off" from "UC is on and the secret is missing"</strong>, because
+  distinguishing them means parsing vendor error text. So in the second case it <em>does</em> try the
+  scopes, and a scope of a matching name holding that key <strong>will</strong> be used. This is deliberate
+  and logged at <code>WARNING</code> naming both the UC label and the scope it resolved from. If that
+  ambiguity is unacceptable in your environment, do not create scopes named after a catalog or
+  schema.</li>
+</ul>
+<p>When nothing resolves, the error names the qualified UC label, preserves the original UC
+cause, and lists every scope tried — so the failure says which of the two systems was
+misconfigured rather than only that a secret was missing.</p>
+<hr />
 <h2 id="5-secret-provisioning-key-rotation-runbook">5. Secret Provisioning &amp; Key Rotation Runbook<a class="headerlink" href="#5-secret-provisioning-key-rotation-runbook" title="Permanent link">&para;</a></h2>
 <h3 id="step-1-provision-secrets-in-databricks-cli">Step 1: Provision Secrets in Databricks CLI<a class="headerlink" href="#step-1-provision-secrets-in-databricks-cli" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="c1"># 1. Create a security secret scope</span>
-<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>databricks<span class="w"> </span>secrets<span class="w"> </span>create-scope<span class="w"> </span>security
-<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>
-<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="c1"># 2. Generate a cryptographically secure 256-bit key and store as secret</span>
-<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>databricks<span class="w"> </span>secrets<span class="w"> </span>put-secret<span class="w"> </span>security<span class="w"> </span>pii_aes_gcm_key<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="w">  </span>--string-value<span class="w"> </span><span class="s2">"</span><span class="k">$(</span>openssl<span class="w"> </span>rand<span class="w"> </span>-hex<span class="w"> </span><span class="m">16</span><span class="k">)</span><span class="s2">"</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="c1"># 1. Create a security secret scope</span>
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>databricks<span class="w"> </span>secrets<span class="w"> </span>create-scope<span class="w"> </span>security
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>
+<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="c1"># 2. Generate a cryptographically secure 256-bit key and store as secret</span>
+<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>databricks<span class="w"> </span>secrets<span class="w"> </span>put-secret<span class="w"> </span>security<span class="w"> </span>pii_aes_gcm_key<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="w">  </span>--string-value<span class="w"> </span><span class="s2">"</span><span class="k">$(</span>openssl<span class="w"> </span>rand<span class="w"> </span>-hex<span class="w"> </span><span class="m">16</span><span class="k">)</span><span class="s2">"</span>
 </code></pre></div>
 <h3 id="step-2-key-rotation-workflow">Step 2: Key Rotation Workflow<a class="headerlink" href="#step-2-key-rotation-workflow" title="Permanent link">&para;</a></h3>
 <ol>

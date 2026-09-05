@@ -2860,6 +2860,10 @@
       
         
       
+        
+      
+        
+      
     
     
     
@@ -2948,6 +2952,62 @@
     
   
     Multi-role FAQs
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../16_usecase_implementation_guide/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Use case implementation guide
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../UC3/UC3_MASTER_DOCUMENT/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    UC3 Excalibur master document
   
 
     
@@ -3598,7 +3658,7 @@
 <td>Attach quarantine routing + diagnostic metadata for <code>action: quarantine</code> rules.</td>
 </tr>
 <tr>
-<td><code>register_main_and_quarantine_tables(base_view_name: str, target_table: str, target_catalog: str, target_schema: str, target_config: Dict[str, Any], dq_rules: List[Dict[str, Any]], comment: Optional[str], is_streaming: bool, needs_cdc_dispatch: bool, quarantine_table_override: Optional[str] = None, flow_label: Optional[str] = None) -&gt; str</code></td>
+<td><code>register_main_and_quarantine_tables(base_view_name: str, target_table: str, target_catalog: str, target_schema: str, target_config: Dict[str, Any], dq_rules: List[Dict[str, Any]], comment: Optional[str], is_streaming: bool, needs_cdc_dispatch: bool, quarantine_table_override: Optional[str] = None, flow_label: Optional[str] = None, target_type: Optional[str] = None) -&gt; str</code></td>
 <td>Register the quarantine-filtered "clean" dataset, plus its sibling quarantine table if configured.</td>
 </tr>
 </tbody>

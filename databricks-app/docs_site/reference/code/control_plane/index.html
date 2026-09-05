@@ -2899,6 +2899,10 @@
       
         
       
+        
+      
+        
+      
     
     
     
@@ -2987,6 +2991,62 @@
     
   
     Multi-role FAQs
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../16_usecase_implementation_guide/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Use case implementation guide
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../UC3/UC3_MASTER_DOCUMENT/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    UC3 Excalibur master document
   
 
     
@@ -3723,10 +3783,6 @@
 </tr>
 </thead>
 <tbody>
-<tr>
-<td><code>apply_all_governance_tags(spark: SparkSession, control_catalog: str, group_id: str) -&gt; None</code></td>
-<td>Apply governance tags (column + table) for every active flow in <code>group_id</code> with <code>governance_tags_json</code> set.</td>
-</tr>
 <tr>
 <td><code>capture_all_scd_change_counts(spark: SparkSession, control_catalog: str, group_id: str) -&gt; None</code></td>
 <td>Best-effort insert/update/delete count capture (Phase 10) for every CDC-dispatched flow in <code>group_id</code>, emitted as structured JSON log events via <code>observability.structured_logger.log_flow_event</code> -- the "records updated, inserted, deleted" half of this framework's structured-logging requirement for SCD/CDC flows, closing out the dependency an earlier phase's own code comment in <code>cdc/change_metrics.py</code> left for this one.</td>

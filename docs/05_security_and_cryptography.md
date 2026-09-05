@@ -160,6 +160,59 @@ wrote. Implementation: `crypto/pgp.py::pgp_decrypt_symmetric` / `pgp_encrypt_sym
 
 ---
 
+### 4.2 When Unity Catalog secrets are not enabled
+
+UC secrets are an **opt-in metastore capability**. On a metastore where they are switched
+off, `dbutils.secrets.get(catalog=, schema=, key=)` raises:
+
+```
+[UC_SECRETS_NOT_ENABLED] Support for Unity Catalog Secrets is not enabled. SQLSTATE: 56038
+```
+
+`CREATE SECRET flowx.config.pgpkey VALUE '...'` fails the same way — the syntax parses, so
+this is a *feature flag*, not a permissions or naming problem. Before v1.7.4 that made every
+crypto-bearing spec unrunnable on such a workspace, with no configuration-level workaround.
+
+`resolve_secret_value` now tries the UC lookup first and, **only if it raises**, falls back to
+a classic workspace scope, trying these names in order:
+
+| Order | Scope name for `flowx.config.pgpkey` |
+|---|---|
+| 1 | `flowx.config` — catalog and schema, dot-joined |
+| 2 | `flowx_config` — underscore-joined |
+| 3 | `config` — schema alone |
+| 4 | `flowx` — catalog alone |
+
+The key name is always `secret_key` unchanged. Create one with:
+
+```bash
+databricks secrets create-scope flowx.config
+databricks secrets put-secret flowx.config pgpkey   # prompts; the value never hits your shell history
+```
+
+Three properties are worth being explicit about, because each is a place this could have gone
+wrong:
+
+- **The spec does not change.** A secret reference keeps exactly one shape —
+  `{secret_catalog, secret_schema, secret_key}`. Only *resolution* is widened, so there is no
+  second spelling to keep in sync, no new attribute in the JSON schema, and nothing for the
+  Spec Builder to render. A spec written for a UC-secrets workspace runs unmodified on one
+  without them, and vice versa.
+- **A healthy workspace never consults a scope.** The fallback is reached only after the UC
+  lookup has already raised, so where UC secrets work, behaviour is byte-for-byte what it was.
+- **The fallback cannot tell "UC is off" from "UC is on and the secret is missing"**, because
+  distinguishing them means parsing vendor error text. So in the second case it *does* try the
+  scopes, and a scope of a matching name holding that key **will** be used. This is deliberate
+  and logged at `WARNING` naming both the UC label and the scope it resolved from. If that
+  ambiguity is unacceptable in your environment, do not create scopes named after a catalog or
+  schema.
+
+When nothing resolves, the error names the qualified UC label, preserves the original UC
+cause, and lists every scope tried — so the failure says which of the two systems was
+misconfigured rather than only that a secret was missing.
+
+---
+
 ## 5. Secret Provisioning & Key Rotation Runbook
 
 ### Step 1: Provision Secrets in Databricks CLI

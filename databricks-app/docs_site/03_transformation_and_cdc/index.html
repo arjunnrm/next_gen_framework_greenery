@@ -2978,6 +2978,10 @@
       
         
       
+        
+      
+        
+      
     
     
     
@@ -3066,6 +3070,62 @@
     
   
     Multi-role FAQs
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../16_usecase_implementation_guide/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Use case implementation guide
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../UC3/UC3_MASTER_DOCUMENT/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    UC3 Excalibur master document
   
 
     
@@ -4176,13 +4236,84 @@ no longer front-loaded by <code>storage/column_ordering.py</code>.</p>
 <hr />
 <h2 id="5-parameter-substitution-param-catalog-env">5. Parameter Substitution (<code>${param}</code>, <code>{{catalog}}</code>, <code>{{env}}</code>)<a class="headerlink" href="#5-parameter-substitution-param-catalog-env" title="Permanent link">&para;</a></h2>
 <p>FlowX supports flexible parameter binding across deployment environments:</p>
+<p><strong>The two syntaxes have DIFFERENT lifecycles. Confusing them causes real, silent failures.</strong></p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th><code>{{catalog}}</code> / <code>{{env}}</code></th>
+<th><code>${param}</code></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Resolved</td>
+<td><strong>Onboarding time, once</strong></td>
+<td><strong>Fresh on every pipeline update</strong></td>
+</tr>
+<tr>
+<td>By</td>
+<td><code>onboarding/spec_loader.py::substitute_environment_placeholders</code> — a raw-text replace on the spec file <em>before</em> it is parsed</td>
+<td><code>transformation/parameters.py::substitute_path_parameters</code> / <code>substitute_dynamic_parameters</code></td>
+</tr>
+<tr>
+<td>Stored in the control tables as</td>
+<td>the <strong>resolved</strong> value — the token is gone</td>
+<td>the <strong>raw placeholder</strong> — resolved at read time</td>
+</tr>
+<tr>
+<td>Change it by</td>
+<td>re-onboarding the spec</td>
+<td>editing <code>pipeline_parameters</code> and re-running the pipeline (<strong>no re-onboarding</strong>)</td>
+</tr>
+</tbody>
+</table>
 <h3 id="template-variables-resolved-at-onboarding-time">Template Variables (Resolved at Onboarding Time)<a class="headerlink" href="#template-variables-resolved-at-onboarding-time" title="Permanent link">&para;</a></h3>
 <ul>
 <li><code>{{catalog}}</code>: Replaced with the active Unity Catalog catalog (e.g. <code>poc</code> in dev, <code>enterprise_prod</code> in prod).</li>
 <li><code>{{env}}</code>: Replaced with the deployment environment (e.g. <code>dev</code>, <code>stage</code>, <code>prod</code>).</li>
 </ul>
+<p>Because this is a plain text substitution over the whole file, it applies <strong>anywhere</strong> in the spec.</p>
 <h3 id="dynamic-runtime-parameters-param">Dynamic Runtime Parameters (<code>${param}</code>)<a class="headerlink" href="#dynamic-runtime-parameters-param" title="Permanent link">&para;</a></h3>
-<p>Defined under root <code>pipeline_parameters</code> and dynamically substituted into SQL queries and filter expressions:
+<p>Defined under root <code>pipeline_parameters</code> and substituted <strong>at pipeline-update time</strong>, not at
+onboarding. That is deliberate: it lets an operator retarget a group's paths or thresholds by
+editing <code>pipeline_parameters</code> and re-running, without re-onboarding the spec.</p>
+<p><strong>Where <code>${param}</code> applies — this is broader than SQL.</strong> Every layer that reads a config JSON
+column resolves it:</p>
+<table>
+<thead>
+<tr>
+<th>Layer</th>
+<th>Applies to</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>engine/flow_generators.py</code></td>
+<td><code>source_config_json</code>, <code>target_config_json</code> for ingestion and transformation flows</td>
+</tr>
+<tr>
+<td><code>engine/source_plane.py</code></td>
+<td><code>source_config_json</code> when building the base ingestion node — <strong>this is what resolves <code>source_config.path</code></strong></td>
+</tr>
+<tr>
+<td><code>reconciliation/graph_registration.py</code></td>
+<td><code>source_config_json</code>, <code>target_configs_json</code></td>
+</tr>
+<tr>
+<td><code>transformation_sql</code> / <code>filter_condition</code></td>
+<td>SQL text (via <code>substitute_dynamic_parameters</code>, which quotes strings)</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong><code>dq_config</code> is deliberately excluded</strong> — its <code>expression</code> fields are SQL predicates, not paths.</p>
+<p><strong>A missing parameter fails loudly at planning time</strong>, naming the parameter, rather than letting
+the literal text reach a reader. (Before v1.7.x the source plane silently skipped substitution,
+and an unresolved path surfaced only as
+<code>IllegalArgumentException: Path must be absolute: ${landing_root}/...</code> from inside Auto Loader.)</p>
+</blockquote>
+<p>Substituted into SQL queries, filter expressions <strong>and file paths</strong>:
 <div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="p">{</span>
 <a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a><span class="w">  </span><span class="nt">"pipeline_parameters"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
 <a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a><span class="w">    </span><span class="nt">"min_order_value"</span><span class="p">:</span><span class="w"> </span><span class="mf">100.00</span><span class="p">,</span>

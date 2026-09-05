@@ -2804,6 +2804,10 @@
       
         
       
+        
+      
+        
+      
     
     
     
@@ -2892,6 +2896,62 @@
     
   
     Multi-role FAQs
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../16_usecase_implementation_guide/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Use case implementation guide
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../UC3/UC3_MASTER_DOCUMENT/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    UC3 Excalibur master document
   
 
     
@@ -3475,6 +3535,10 @@
 <tr>
 <td><code>derive_asn1_field_defs(schema_path: str, pdu_name: Any = None) -&gt; List[Dict[str, Any]]</code></td>
 <td>Derive the Spark output field list for <code>pdu_name</code> directly from a real ASN.1 module file, via <code>asn1tools.parse_files</code> introspection -- no hand-authored field list.</td>
+</tr>
+<tr>
+<td><code>iter_ber_tlv_records(raw_bytes: bytes) -&gt; Iterator[bytes]</code></td>
+<td>Split a BER/DER payload into its top-level TLV records, yielding each one's own bytes.</td>
 </tr>
 <tr>
 <td><code>make_partition_decoder(module_files: List[str], codec: str, pdu_name: str, field_defs: List[Dict[str, Any]], binary_column: str, passthrough_columns: List[str], module_types: Dict[str, Any] = None, root_is_choice: bool = False) -&gt; Callable[[Iterator[pd.DataFrame]], Iterator[pd.DataFrame]]</code></td>
