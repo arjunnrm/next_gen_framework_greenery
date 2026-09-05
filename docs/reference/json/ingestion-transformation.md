@@ -7,7 +7,7 @@
 Attributes under `target_config` that only apply to particular CDC load strategies. The Spec Builder shows these on the **Load strategy** step and hides the ones the selected strategy does not use.
 
 
-!!! info "9 attributes"
+!!! info "10 attributes"
     Every attribute below is also available in the Spec Builder's attribute
     inspector — click the **i** beside any field to see this same content
     without leaving the form.
@@ -26,6 +26,7 @@ Attributes under `target_config` that only apply to particular CDC load strategi
 | [`target_config.generate_hash_columns`](#target-configgenerate-hash-columns) | boolean | no | — |
 | [`target_config.primary_keys`](#target-configprimary-keys) | array<string> | **yes** | — |
 | [`target_config.sequence_by_column`](#target-configsequence-by-column) | string | no | — |
+| [`target_config.sink_config.post_export_archive.pgp_encryption.passphrase_secret`](#target-configsink-configpost-export-archivepgp-encryptionpassphrase-secret) | string | no | — |
 
 ## Attributes
 
@@ -374,6 +375,49 @@ apply_changes always needs a sequencer. Omit this and the framework sequences by
 
 
 **Databricks documentation:** [apply changes](https://docs.databricks.com/delta-live-tables/cdc.html)
+
+
+---
+
+### `target_config.sink_config.post_export_archive.pgp_encryption.passphrase_secret` { #target-configsink-configpost-export-archivepgp-encryptionpassphrase-secret }
+
+Encrypt the export with a SHARED PASSPHRASE instead of a recipient's public key.
+
+
+Egress encryption previously required a recipient keypair. Where two parties already share a passphrase — as UC6 does, using the same secret that decrypts the inbound request — demanding a keypair means managing one purely as ceremony.
+
+
+**Type** `string` · **Required** no
+
+
+```json
+"pgp_encryption": {
+  "enabled": true,
+  "passphrase_secret": {
+    "secret_catalog": "{{catalog}}",
+    "secret_schema": "config",
+    "secret_key": "pgpkey"
+  }
+}
+// AES256. Decrypts with: gpg --decrypt file.csv.gz.gpg
+```
+
+
+!!! tip "Best practice"
+
+    - Mutually exclusive with recipient_public_key_secret — set exactly one. The builder hides whichever you did not choose.
+    - Signing is unavailable in this mode: sign_with_private_key_secret needs a sender keypair, which symmetric encryption does not have.
+    - Anyone holding the passphrase can both decrypt AND forge an identical file. Where you need provenance rather than only confidentiality, use a recipient key and sign.
+
+
+!!! warning "Known errors and limitations"
+
+    **Onboarding rejects the flow with 'mutually exclusive — set exactly one'.**  
+    *Cause:* Both passphrase_secret and recipient_public_key_secret are present.  
+    *Fix:* Delete whichever you are not using. Leaving both is ambiguous rather than additive.
+
+
+**Databricks documentation:** [secrets](https://docs.databricks.com/security/secrets/index.html) · [uc privileges](https://docs.databricks.com/data-governance/unity-catalog/manage-privileges/privileges.html)
 
 
 ---

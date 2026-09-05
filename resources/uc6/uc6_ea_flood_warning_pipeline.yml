@@ -1,0 +1,52 @@
+# UC6 -- Flood Warning System (Environment Agency -> Leidos).
+#
+# The Lakeflow Declarative Pipeline hosting dfg_uc6_ea_flood_warning: six ingestion flows
+# (the GPG-symmetric EA request plus five plain-gzip internal address feeds), six
+# transformation flows (PAF normalisation, matching, and the OSAPR/telephone decision tables),
+# four export sinks, and six source-presence reconciliation gates.
+#
+# ALL data engineering lives here, per the use case's own separation of concerns: file
+# discovery, decryption, decompression, DQ gating, joins, business rules, output generation and
+# archiving. The companion job (007_lfj_uc6_ea_flood_warning) only orchestrates.
+#
+# One pipeline per dataflow group, by construction: a Lakeflow dataset has exactly one owning
+# pipeline, so this group's tables are published by this pipeline and no other.
+#
+# continuous: false is deliberate and is NOT a "batch pipeline" in the Lakeflow sense. This
+# framework has no batch file reader at all -- engine/source_plane.py rejects a batch bind of
+# an ingestion source, and every source_type is unconditionally a spark.readStream. UC6's
+# weekly cadence therefore runs as a TRIGGERED streaming update that consumes whatever is in
+# raw/ and stops, exactly as UC7 and UC3 do.
+#
+# MANUAL PREREQUISITES, both of which fail the update loudly rather than silently degrading:
+#   1. The UC secret flowx.config.pgpkey must exist -- it decrypts the inbound EA request AND
+#      encrypts two of the four outputs.
+#   2. The uc_6 volume must exist with raw/, output/ and the framework's staging subfolders.
+#      See resources/uc6/uc6_ea_flood_warning_job.yml's header for the bootstrap command.
+#
+# The framework wheel is pinned by the ../../dist/*.whl glob below, which DABs rewrites at
+# deploy time to <artifact_path>/.internal/. No version string belongs in this file -- bump
+# var.framework_version and pyproject.toml together instead.
+
+resources:
+  pipelines:
+    uc6_ea_flood_warning_pipeline:
+      name: 008_ldp_uc6_ea_flood_warning
+      catalog: ${var.catalog}
+      schema: bronze
+      serverless: true
+      photon: true
+      development: true
+      continuous: false
+
+      libraries:
+        - notebook:
+            path: ../../notebooks/03_engine/03_lakeflow_declarative_pipeline.py
+
+      environment:
+        dependencies:
+          - ../../dist/*.whl
+
+      configuration:
+        dataflow.group.id: dfg_uc6_ea_flood_warning
+        dataflow.control.catalog: ${var.catalog}

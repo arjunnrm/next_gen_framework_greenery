@@ -419,3 +419,141 @@ def test_staged_file_format_is_presence_rejected_for_native_sink_formats():
     delta_config = {"format": "delta", "path": "/Volumes/c/egress/out/", "staged_file_format": "csv"}
     errors = _sink_config_errors(delta_config)
     assert any("staged_file_format" in error and "pgp_zip" in error for error in errors)
+
+
+# ---------------------------------------------------------------------------
+# v1.7.4: CSV dialect, gzip archive format, symmetric PGP (added for UC6).
+#
+# These use the REAL pgp_encrypt_symmetric (not the monkeypatched pgp_encrypt the tests
+# above use) because symmetric PGP needs no key material to be generated -- so the
+# round-trip can be asserted genuinely rather than by stub. The point of the whole change
+# is byte-level interface compliance, and a stub cannot verify that.
+# ---------------------------------------------------------------------------
+
+import gzip as _gzip  # noqa: E402
+
+
+def _uc6_writer(tmp_path, **extra):
+    """A writer shaped like UC6's supplier interface: pipe-delimited, LF-terminated CSV
+    concatenated into one gzip stream."""
+    options = {
+        "staged_file_format": "csv",
+        "staged_delimiter": "|",
+        "staged_line_terminator": "lf",
+        "archive_format": "gzip",
+    }
+    options.update(extra)
+    return _writer(tmp_path, **options)
+
+
+def _archive_bytes(tmp_path, name):
+    return (tmp_path / "archives" / name).read_bytes()
+
+
+def test_gzip_archive_produces_the_supplier_interface_filename(tmp_path):
+    writer = _uc6_writer(tmp_path, export_file_name_format="EE_2026-08-20-LEIDOS_TELEPHONE_1of1")
+    message = writer.write(iter([Row(targetAreaID="T1", telephone="07700900001")]))
+    writer.commit([message], 0)
+
+    assert (tmp_path / "archives" / "EE_2026-08-20-LEIDOS_TELEPHONE_1of1.csv.gz").exists()
+
+
+def test_gzip_archive_is_pipe_delimited_lf_terminated_with_one_header(tmp_path):
+    """The header is written per staged file, so N partitions must still yield ONE header."""
+    writer = _uc6_writer(tmp_path, export_file_name_format="export")
+    first = writer.write(iter([Row(targetAreaID="T1", telephone="07700900001")]))
+    second = writer.write(iter([Row(targetAreaID="T2", telephone="07700900002")]))
+    writer.commit([first, second], 0)
+
+    content = _gzip.decompress(_archive_bytes(tmp_path, "export.csv.gz")).decode()
+    assert "\r" not in content, "line_terminator 'lf' must not emit CRLF"
+    lines = content.splitlines()
+    assert lines[0] == "targetAreaID|telephone"
+    assert sorted(lines[1:]) == ["T1|07700900001", "T2|07700900002"]
+    assert content.count("targetAreaID") == 1, "exactly one header across all partitions"
+
+
+def test_gzip_archive_can_omit_the_header_entirely(tmp_path):
+    writer = _uc6_writer(tmp_path, export_file_name_format="export", staged_include_header="false")
+    message = writer.write(iter([Row(targetAreaID="T1", telephone="07700900001")]))
+    writer.commit([message], 0)
+
+    content = _gzip.decompress(_archive_bytes(tmp_path, "export.csv.gz")).decode()
+    assert content.splitlines() == ["T1|07700900001"]
+
+
+def test_symmetric_pgp_gzip_export_round_trips(tmp_path):
+    from flowx.lakeflow_framework.crypto.pgp import pgp_decrypt_symmetric
+
+    writer = _uc6_writer(
+        tmp_path,
+        export_file_name_format="EE_2026-08-20-TELEPHONE_1of1",
+        pgp_enabled="true",
+        pgp_passphrase_secret_value="EA-POC-Sample-2026!",
+    )
+    message = writer.write(iter([Row(targetAreaID="T1", telephone="07700900001")]))
+    writer.commit([message], 0)
+
+    encrypted_path = tmp_path / "archives" / "EE_2026-08-20-TELEPHONE_1of1.csv.gz.gpg"
+    assert encrypted_path.exists(), "a gzip export must use the .gpg suffix, matching the gpg CLI"
+    assert not (tmp_path / "archives" / "EE_2026-08-20-TELEPHONE_1of1.csv.gz").exists(), (
+        "the plaintext intermediate must never be left behind"
+    )
+
+    decrypted = pgp_decrypt_symmetric(encrypted_path.read_bytes(), "EA-POC-Sample-2026!")
+    assert _gzip.decompress(decrypted).decode().splitlines()[1] == "T1|07700900001"
+
+
+def test_zip_archive_format_remains_the_default_and_keeps_its_pgp_suffix(tmp_path):
+    """No silent change for any pre-v1.7.4 spec."""
+    writer = _writer(tmp_path, staged_file_format="csv", export_file_name_format="legacy")
+    message = writer.write(iter([Row(a="1", b="2")]))
+    writer.commit([message], 0)
+
+    assert (tmp_path / "archives" / "legacy.zip").exists()
+    with zipfile.ZipFile(tmp_path / "archives" / "legacy.zip") as archive:
+        staged = archive.read(archive.namelist()[0]).decode()
+    assert staged.splitlines()[0] == "a,b", "default dialect stays comma-delimited"
+    assert "\r\n" in staged, "default line terminator stays CRLF (RFC 4180)"
+
+
+def test_multi_character_delimiter_is_rejected(tmp_path):
+    with pytest.raises(ArchiveError, match="one character"):
+        _uc6_writer(tmp_path, staged_delimiter="||")
+
+
+def test_unknown_line_terminator_is_rejected(tmp_path):
+    with pytest.raises(ArchiveError, match="staged_line_terminator"):
+        _uc6_writer(tmp_path, staged_line_terminator="cr")
+
+
+def test_unknown_archive_format_is_rejected(tmp_path):
+    with pytest.raises(ArchiveError, match="archive_format"):
+        _writer(tmp_path, archive_format="tar")
+
+
+def test_pgp_enabled_with_neither_key_nor_passphrase_is_rejected(tmp_path):
+    with pytest.raises(ArchiveError, match="pgp_passphrase_secret_value"):
+        _writer(tmp_path, pgp_enabled="true")
+
+
+def test_pgp_key_and_passphrase_together_are_rejected(tmp_path):
+    """A PGP message is encrypted to a key OR under a passphrase, never both."""
+    with pytest.raises(ArchiveError, match="mutually exclusive"):
+        _writer(
+            tmp_path,
+            pgp_enabled="true",
+            pgp_recipient_secret_value="-----BEGIN PGP PUBLIC KEY BLOCK-----",
+            pgp_passphrase_secret_value="pw",
+        )
+
+
+def test_gzip_archive_of_jsonl_staging_drops_no_lines(tmp_path):
+    """JSON-Lines has no header, so concatenation must never discard a first line."""
+    writer = _writer(tmp_path, archive_format="gzip", export_file_name_format="events")
+    first = writer.write(iter([Row(id="1")]))
+    second = writer.write(iter([Row(id="2")]))
+    writer.commit([first, second], 0)
+
+    content = _gzip.decompress(_archive_bytes(tmp_path, "events.jsonl.gz")).decode()
+    assert len([line for line in content.splitlines() if line.strip()]) == 2

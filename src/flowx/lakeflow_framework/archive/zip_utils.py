@@ -690,3 +690,104 @@ def compress_and_encrypt_sink(
 
     logger.info("Archived %d file(s) from '%s' into '%s'", len(candidate_files), source_dir, output_zip_path)
     return output_zip_path
+
+
+# ---------------------------------------------------------------------------------------
+# gzip landing members -- v1.7.4, added for UC6.
+#
+# `source_zip_handling` was built entirely around ZIP *archives*: a container holding N named
+# members, unpacked with pyzipper. A gzip file is not that -- it is a single compressed
+# stream with no member table and no name of its own beyond the filename convention
+# `<name>.gz`. Spark's Hadoop codec layer already decompresses a plain `.gz` transparently on
+# read, so for an UNENCRYPTED gzip source no pre-ingest step is needed at all and none should
+# be configured.
+#
+# The case that genuinely needs this function is the encrypted one: a `.csv.gz.gpg` must be
+# decrypted to a real file before anything can read it, and once decrypted the result is a
+# bare gzip stream with no ZIP container for extract_encrypted_zip to open. Routing that
+# through pyzipper fails with "not a zip file"; the honest fix is a separate member format,
+# not a special case bolted onto the ZIP path.
+# ---------------------------------------------------------------------------------------
+
+
+def _decompressed_member_name(source_path: str) -> str:
+    """Derive the output filename for a decompressed gzip member.
+
+    ``foo.csv.gz`` -> ``foo.csv``, and ``foo.csv.gz.gpg.decrypted`` -> ``foo.csv`` as well.
+
+    Two throwaway suffixes are stripped before the compression suffix is considered, and both
+    strips are load-bearing rather than cosmetic:
+
+    * ``.decrypted`` -- the temp file ``ingestion/readers.py::_extract_one_zip_file`` writes
+      when an outer decryption layer ran.
+    * the *encryption envelope* suffix (``.gpg``/``.pgp``) -- because the real-world name is
+      ``<stem>.csv.gz.gpg``, so after decryption the remaining name still ends in ``.gpg`` and
+      the ``.gz`` test would miss. Caught by a live run against UC6's own fixture, which
+      landed as ``EE_...csv.gz.gpg.decompressed`` instead of ``EE_....csv``. That matters
+      beyond tidiness: the landed name is what Auto Loader's ``file_pattern`` glob matches, so
+      a stray ``.gz.gpg.decompressed`` tail silently matches nothing.
+
+    Anything with no recognized compression suffix gets ``.decompressed`` appended rather than
+    silently colliding with its own source name.
+    """
+    name = os.path.basename(source_path)
+    for throwaway in (".decrypted", ".gpg", ".pgp"):
+        if name.lower().endswith(throwaway):
+            name = name[: -len(throwaway)]
+    for suffix in (".gz", ".gzip"):
+        if name.lower().endswith(suffix):
+            return name[: -len(suffix)]
+    return f"{name}.decompressed"
+
+
+def extract_gzip_member(
+    source_path: str,
+    target_volume_path: str,
+    delete_source_after_extract: bool = True,
+) -> List[str]:
+    """Decompress one gzip file into ``target_volume_path``.
+
+    The gzip counterpart to :func:`extract_encrypted_zip`, with a deliberately identical
+    signature shape (source path, target directory, delete flag) and an identical return
+    contract -- a list of absolute written paths -- so ``ingestion/readers.py`` can dispatch to
+    either on one ``member_format`` key without branching on the result.
+
+    Returns a single-element list: a gzip stream holds exactly one member, unlike a ZIP.
+
+    Streamed in 1 MiB chunks via ``shutil.copyfileobj`` rather than ``gzip.decompress(...)`` on
+    the whole payload, so a multi-GB landing file never materializes in the calling process's
+    heap -- the same driver-memory concern this module's docstring documents for the ZIP path.
+
+    Raises
+    ------
+    ArchiveError
+        If the target directory can't be created, the source isn't valid gzip, or the write
+        fails.
+    """
+    import gzip as _gzip
+    import shutil
+
+    try:
+        os.makedirs(target_volume_path, exist_ok=True)
+    except OSError as exc:
+        raise ArchiveError(f"Failed to create target_volume_path '{target_volume_path}': {exc}") from exc
+
+    destination = os.path.join(target_volume_path, _decompressed_member_name(source_path))
+    try:
+        with _gzip.open(source_path, "rb") as compressed, open(destination, "wb") as decompressed:
+            shutil.copyfileobj(compressed, decompressed, length=1024 * 1024)
+    except OSError as exc:
+        # gzip.BadGzipFile subclasses OSError, as do the plain I/O failures -- one except
+        # clause covers "not gzip at all" and "gzip but unreadable" alike, and the message
+        # names the file either way.
+        raise ArchiveError(f"Failed to decompress gzip member '{source_path}': {exc}") from exc
+
+    if delete_source_after_extract:
+        try:
+            os.remove(source_path)
+            logger.info("Removed source gzip file after successful decompression: %s", source_path)
+        except OSError as exc:
+            logger.warning("Decompression succeeded but source cleanup failed for '%s': %s", source_path, exc)
+
+    logger.info("Decompressed gzip member '%s' into '%s'", source_path, destination)
+    return [destination]

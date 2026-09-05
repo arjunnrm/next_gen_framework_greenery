@@ -7,7 +7,7 @@
 One entry per `ingestion_flows[]` element — reading from a landing zone into Bronze.
 
 
-!!! info "101 attributes"
+!!! info "109 attributes"
     Every attribute below is also available in the Spec Builder's attribute
     inspector — click the **i** beside any field to see this same content
     without leaving the form.
@@ -59,6 +59,7 @@ One entry per `ingestion_flows[]` element — reading from a landing zone into B
 | [`source_config.source_zip_handling.delete_source_after_extract.action`](#source-configsource-zip-handlingdelete-source-after-extractaction) | string (enum) | no | — |
 | [`source_config.source_zip_handling.delete_source_after_extract.days`](#source-configsource-zip-handlingdelete-source-after-extractdays) | integer | **yes** | — |
 | [`source_config.source_zip_handling.enabled`](#source-configsource-zip-handlingenabled) | boolean | **yes** | — |
+| [`source_config.source_zip_handling.member_format`](#source-configsource-zip-handlingmember-format) | string (enum) | no | — |
 | [`source_config.source_zip_handling.pre_extraction_decryption.passphrase_secret.secret_catalog`](#source-configsource-zip-handlingpre-extraction-decryptionpassphrase-secretsecret-catalog) | string | no | — |
 | [`source_config.source_zip_handling.pre_extraction_decryption.passphrase_secret.secret_key`](#source-configsource-zip-handlingpre-extraction-decryptionpassphrase-secretsecret-key) | string | no | — |
 | [`source_config.source_zip_handling.pre_extraction_decryption.passphrase_secret.secret_schema`](#source-configsource-zip-handlingpre-extraction-decryptionpassphrase-secretsecret-schema) | string | no | — |
@@ -95,13 +96,17 @@ One entry per `ingestion_flows[]` element — reading from a landing zone into B
 | [`target_config.sink_config.format`](#target-configsink-configformat) | string (enum) | **yes** | — |
 | [`target_config.sink_config.kafka_options`](#target-configsink-configkafka-options) | object<string,string> | **yes** | — |
 | [`target_config.sink_config.path`](#target-configsink-configpath) | string | **yes** | — |
+| [`target_config.sink_config.post_export_archive.archive_format`](#target-configsink-configpost-export-archivearchive-format) | string (enum) | no | — |
 | [`target_config.sink_config.post_export_archive.enabled`](#target-configsink-configpost-export-archiveenabled) | boolean | no | — |
 | [`target_config.sink_config.post_export_archive.export_file_name_format`](#target-configsink-configpost-export-archiveexport-file-name-format) | string | no | — |
 | [`target_config.sink_config.post_export_archive.output_zip_path`](#target-configsink-configpost-export-archiveoutput-zip-path) | string | **yes** | — |
 | [`target_config.sink_config.post_export_archive.pgp_encryption.enabled`](#target-configsink-configpost-export-archivepgp-encryptionenabled) | boolean | no | — |
-| [`target_config.sink_config.post_export_archive.pgp_encryption.recipient_public_key_secret.secret_catalog`](#target-configsink-configpost-export-archivepgp-encryptionrecipient-public-key-secretsecret-catalog) | string | **yes** | — |
-| [`target_config.sink_config.post_export_archive.pgp_encryption.recipient_public_key_secret.secret_key`](#target-configsink-configpost-export-archivepgp-encryptionrecipient-public-key-secretsecret-key) | string | **yes** | — |
-| [`target_config.sink_config.post_export_archive.pgp_encryption.recipient_public_key_secret.secret_schema`](#target-configsink-configpost-export-archivepgp-encryptionrecipient-public-key-secretsecret-schema) | string | **yes** | — |
+| [`target_config.sink_config.post_export_archive.pgp_encryption.passphrase_secret.secret_catalog`](#target-configsink-configpost-export-archivepgp-encryptionpassphrase-secretsecret-catalog) | string | no | — |
+| [`target_config.sink_config.post_export_archive.pgp_encryption.passphrase_secret.secret_key`](#target-configsink-configpost-export-archivepgp-encryptionpassphrase-secretsecret-key) | string | no | — |
+| [`target_config.sink_config.post_export_archive.pgp_encryption.passphrase_secret.secret_schema`](#target-configsink-configpost-export-archivepgp-encryptionpassphrase-secretsecret-schema) | string | no | — |
+| [`target_config.sink_config.post_export_archive.pgp_encryption.recipient_public_key_secret.secret_catalog`](#target-configsink-configpost-export-archivepgp-encryptionrecipient-public-key-secretsecret-catalog) | string | no | — |
+| [`target_config.sink_config.post_export_archive.pgp_encryption.recipient_public_key_secret.secret_key`](#target-configsink-configpost-export-archivepgp-encryptionrecipient-public-key-secretsecret-key) | string | no | — |
+| [`target_config.sink_config.post_export_archive.pgp_encryption.recipient_public_key_secret.secret_schema`](#target-configsink-configpost-export-archivepgp-encryptionrecipient-public-key-secretsecret-schema) | string | no | — |
 | [`target_config.sink_config.post_export_archive.pgp_encryption.sign_passphrase_secret.secret_catalog`](#target-configsink-configpost-export-archivepgp-encryptionsign-passphrase-secretsecret-catalog) | string | no | — |
 | [`target_config.sink_config.post_export_archive.pgp_encryption.sign_passphrase_secret.secret_key`](#target-configsink-configpost-export-archivepgp-encryptionsign-passphrase-secretsecret-key) | string | no | — |
 | [`target_config.sink_config.post_export_archive.pgp_encryption.sign_passphrase_secret.secret_schema`](#target-configsink-configpost-export-archivepgp-encryptionsign-passphrase-secretsecret-schema) | string | no | — |
@@ -112,6 +117,9 @@ One entry per `ingestion_flows[]` element — reading from a landing zone into B
 | [`target_config.sink_config.post_export_archive.secret.secret_key`](#target-configsink-configpost-export-archivesecretsecret-key) | string | no | — |
 | [`target_config.sink_config.post_export_archive.secret.secret_schema`](#target-configsink-configpost-export-archivesecretsecret-schema) | string | no | — |
 | [`target_config.sink_config.staged_file_format`](#target-configsink-configstaged-file-format) | string (enum) | no | — |
+| [`target_config.sink_config.staged_file_options.delimiter`](#target-configsink-configstaged-file-optionsdelimiter) | string | no | — |
+| [`target_config.sink_config.staged_file_options.include_header`](#target-configsink-configstaged-file-optionsinclude-header) | boolean | no | — |
+| [`target_config.sink_config.staged_file_options.line_terminator`](#target-configsink-configstaged-file-optionsline-terminator) | string (enum) | no | — |
 | [`target_config.sink_config.write_mode`](#target-configsink-configwrite-mode) | string (enum) | no | — |
 | [`target_config.storage_format`](#target-configstorage-format) | string (enum) | no | — |
 | [`target_config.table_properties`](#target-configtable-properties) | object<string,string> | no | — |
@@ -1332,12 +1340,66 @@ Master switch for ZIP extraction.
 
 ---
 
+### `source_config.source_zip_handling.member_format` { #source-configsource-zip-handlingmember-format }
+
+The landing archive's CONTAINER — how the bytes are packed, independent of whether they are also encrypted.
+
+
+'zip' is a real archive: a member table plus N named entries, opened by pyzipper. 'gzip' is a single compressed stream with no member table at all, so pyzipper cannot open it. Before v1.7.4 the extractor assumed ZIP unconditionally, which made an encrypted .gz unreachable — you could decrypt it or decompress it, never both.
+
+
+**Type** `string (enum)` · **Required** no · **Section** Source · ZIP handling
+
+
+```json
+// An ENCRYPTED gzip: EA_REQUEST_20260901.csv.gz.gpg
+"source_zip_handling": {
+  "enabled": true,
+  "source_zip_path": "/Volumes/{{catalog}}/staging/uc_6/raw/",
+  "zip_file_pattern": "*.csv.gz.gpg",
+  "target_volume_path": "/Volumes/{{catalog}}/staging/uc_6/raw/",
+  "member_format": "gzip",
+  "pre_extraction_decryption": {
+    "type": "pgp_symmetric",
+    "passphrase_secret": {
+      "secret_catalog": "{{catalog}}",
+      "secret_schema": "config",
+      "secret_key": "pgpkey"
+    }
+  }
+}
+```
+
+
+!!! tip "Best practice"
+
+    - An UNENCRYPTED .gz needs no ZIP handling whatsoever. Spark and Auto Loader decompress gzip natively on read — just point source_config.path at it and leave source_zip_handling disabled. Turning it on buys you nothing and costs a copy.
+    - Use 'gzip' only when the .gz is wrapped in something Spark cannot read through, which in practice means encryption: .csv.gz.gpg.
+    - A gzip stream holds exactly ONE member, so there is no member-selection step and no per-member pattern. The output file is named by stripping the envelope suffixes (.gpg/.pgp/.decrypted) and then the compression suffix (.gz/.gzip).
+
+
+!!! warning "Known errors and limitations"
+
+    **Extraction reports success, the file lands, and ingestion reads ZERO rows while the update still reports SUCCESS.**  
+    *Cause:* The landed filename kept an envelope suffix (e.g. EA_REQUEST.csv.gz.gpg became EA_REQUEST.csv.gz.gpg.decompressed), so it matched no pathGlobFilter and Auto Loader silently ignored it.  
+    *Fix:* Fixed in v1.7.4 — the suffix strip now removes .gpg/.pgp/.decrypted before the .gz. If you see this on an older build, check the actual filename in target_volume_path against your reader_options pathGlobFilter.
+
+    **BadZipFile: File is not a zip file**  
+    *Cause:* member_format is 'zip' (or absent) but the payload is a gzip stream.  
+    *Fix:* Set member_format to 'gzip'.
+
+
+**Databricks documentation:** [uc volumes](https://docs.databricks.com/connect/unity-catalog/volumes.html) · [files api](https://docs.databricks.com/api/workspace/files)
+
+
+---
+
 ### `source_config.source_zip_handling.pre_extraction_decryption.passphrase_secret.secret_catalog` { #source-configsource-zip-handlingpre-extraction-decryptionpassphrase-secretsecret-catalog }
 
-Passphrase protecting the PGP PRIVATE KEY above.
+Depends on type.
 
 
-Passphrase protecting the PGP PRIVATE KEY above. Optional — only when the key itself is passphrase-protected. Not the ZIP's password: that is secret_passphrase, below.
+Depends on type. Under 'pgp_symmetric' this is REQUIRED and is the passphrase the OpenPGP message itself was encrypted with (`gpg --symmetric`). Under 'pgp' it is OPTIONAL and protects the PRIVATE KEY above. Neither is the ZIP's AES password: that is secret_passphrase, below.
 
 
 **Type** `string` · **Required** no · **Section** Source · ZIP handling
@@ -1370,10 +1432,10 @@ Passphrase protecting the PGP PRIVATE KEY above. Optional — only when the key 
 
 ### `source_config.source_zip_handling.pre_extraction_decryption.passphrase_secret.secret_key` { #source-configsource-zip-handlingpre-extraction-decryptionpassphrase-secretsecret-key }
 
-Passphrase protecting the PGP PRIVATE KEY above.
+Depends on type.
 
 
-Passphrase protecting the PGP PRIVATE KEY above. Optional — only when the key itself is passphrase-protected. Not the ZIP's password: that is secret_passphrase, below.
+Depends on type. Under 'pgp_symmetric' this is REQUIRED and is the passphrase the OpenPGP message itself was encrypted with (`gpg --symmetric`). Under 'pgp' it is OPTIONAL and protects the PRIVATE KEY above. Neither is the ZIP's AES password: that is secret_passphrase, below.
 
 
 **Type** `string` · **Required** no · **Section** Source · ZIP handling
@@ -1406,10 +1468,10 @@ Passphrase protecting the PGP PRIVATE KEY above. Optional — only when the key 
 
 ### `source_config.source_zip_handling.pre_extraction_decryption.passphrase_secret.secret_schema` { #source-configsource-zip-handlingpre-extraction-decryptionpassphrase-secretsecret-schema }
 
-Passphrase protecting the PGP PRIVATE KEY above.
+Depends on type.
 
 
-Passphrase protecting the PGP PRIVATE KEY above. Optional — only when the key itself is passphrase-protected. Not the ZIP's password: that is secret_passphrase, below.
+Depends on type. Under 'pgp_symmetric' this is REQUIRED and is the passphrase the OpenPGP message itself was encrypted with (`gpg --symmetric`). Under 'pgp' it is OPTIONAL and protects the PRIVATE KEY above. Neither is the ZIP's AES password: that is secret_passphrase, below.
 
 
 **Type** `string` · **Required** no · **Section** Source · ZIP handling
@@ -1655,38 +1717,50 @@ AES password on the ZIP ARCHIVE itself, resolved by pyzipper at extraction time.
 
 ### `source_config.source_zip_handling.pre_extraction_decryption.type` { #source-configsource-zip-handlingpre-extraction-decryptiontype }
 
-Decryption applied to the archive before it is unzipped.
+Which OpenPGP decryption to apply to the landing file before it is unpacked.
 
 
-Encrypted archives must be decrypted as a distinct outer layer before any member can be read.
+'pgp' and 'pgp_symmetric' are not two ways to do one thing — they decrypt two structurally different messages. A key-encrypted message carries a PKESK packet addressed to a recipient keypair; a passphrase-encrypted one carries a SKESK packet derived from a shared secret. Neither can open the other, which is why this is one select rather than an optional extra secret.
 
 
 **Type** `string (enum)` · **Required** no · **Section** Source · ZIP handling
 
 
 ```json
+// Symmetric — what `gpg --symmetric --cipher-algo AES256 file` produces.
+"pre_extraction_decryption": {
+  "type": "pgp_symmetric",
+  "passphrase_secret": {
+    "secret_catalog": "{{catalog}}",
+    "secret_schema": "config",
+    "secret_key": "pgpkey"
+  }
+}
+
+// Asymmetric — encrypted to your public key by the sender.
 "pre_extraction_decryption": {
   "type": "pgp",
-  "private_key_secret": { "secret_catalog": "{{catalog}}", "secret_schema": "security", "secret_key": "pgp_private_key" }
+  "private_key_secret": { "...": "the recipient private key" },
+  "passphrase_secret":  { "...": "optional: unlocks that key" }
 }
 ```
 
 
 !!! tip "Best practice"
 
-    - Only pgp is supported.
-    - Choosing a type is what reveals the secret fields below — they stay hidden until then.
-    - Secrets are referenced by catalog/schema/key. Never paste key material into the spec.
+    - Three different secrets live in this block and they are easy to confuse. Under 'pgp_symmetric', passphrase_secret is the passphrase THE MESSAGE was encrypted with. Under 'pgp', passphrase_secret unlocks the PRIVATE KEY. In both cases secret_passphrase (note the reversed name) is something else entirely: the AES password on a ZIP archive.
+    - Store the passphrase as a Unity Catalog secret and reference it. Never inline the literal — the builder blocks 'passphrase' as a forbidden key name for this reason.
+    - Verified against GnuPG 2.4.9 in both directions: the framework decrypts what gpg wrote, and gpg decrypts what the framework wrote.
 
 
 !!! warning "Known errors and limitations"
 
-    **Decryption fails with no obvious cause**  
-    *Cause:* The passphrase secret is missing while the private key requires one.  
-    *Fix:* Populate secret_passphrase as well as private_key_secret.
+    **CryptoError: Symmetric PGP decryption failed**  
+    *Cause:* Wrong passphrase, or the message is key-encrypted rather than passphrase-encrypted.  
+    *Fix:* Confirm the message type with `gpg --list-packets`. A SKESK packet means symmetric ('pgp_symmetric'); a PKESK packet means asymmetric ('pgp').
 
 
-**Databricks documentation:** [secrets](https://docs.databricks.com/security/secrets/index.html)
+**Databricks documentation:** [uc volumes](https://docs.databricks.com/connect/unity-catalog/volumes.html) · [files api](https://docs.databricks.com/api/workspace/files)
 
 
 ---
@@ -2404,6 +2478,48 @@ Output directory. Required for delta and pgp_zip.
 
 ---
 
+### `target_config.sink_config.post_export_archive.archive_format` { #target-configsink-configpost-export-archivearchive-format }
+
+The container the finished export is delivered in: 'zip' or 'gzip'.
+
+
+The sink was ZIP-only, so an interface specifying a .csv.gz drop could not be served without a downstream repack — which would have meant either breaking the supplier contract or hand-rolling file handling outside the framework.
+
+
+**Type** `string (enum)` · **Required** no · **Section** Target · sink config
+
+
+```json
+// Emits EE_20260901-LEIDOS_TELEPHONE_001.csv.gz
+"post_export_archive": {
+  "enabled": true,
+  "output_zip_path": "/Volumes/{{catalog}}/staging/uc_6/output/",
+  "export_file_name_format": "EE_${export_file_date}-LEIDOS_TELEPHONE_${export_file_sequence}",
+  "archive_format": "gzip"
+}
+// add pgp_encryption.passphrase_secret -> ....csv.gz.gpg
+```
+
+
+!!! tip "Best practice"
+
+    - A gzip holds exactly ONE member, so the staged partition files are concatenated into a single stream. The CSV header is written per partition, so all but the first are dropped during concatenation.
+    - A gzip stream has no archive password: post_export_archive.secret does not apply. To protect a gzip export, use pgp_encryption.
+    - The extension follows the content: .csv.gz or .jsonl.gz, and .gpg is appended when pgp_encryption is on (a ZIP archive uses .pgp instead).
+
+
+!!! warning "Known errors and limitations"
+
+    **The consumer rejects the file as a corrupt gzip.**  
+    *Cause:* Some tools stop at the first member boundary in a multi-member gzip.  
+    *Fix:* The framework emits a single-member stream, so this should not occur. If it does, confirm nothing downstream is re-concatenating the exports.
+
+
+**Databricks documentation:** [sinks](https://docs.databricks.com/delta-live-tables/sinks.html)
+
+
+---
+
 ### `target_config.sink_config.post_export_archive.enabled` { #target-configsink-configpost-export-archiveenabled }
 
 Enable post-write archiving for pgp_zip exports.
@@ -2536,12 +2652,126 @@ PGP-encrypt the output archive.
 
 ---
 
+### `target_config.sink_config.post_export_archive.pgp_encryption.passphrase_secret.secret_catalog` { #target-configsink-configpost-export-archivepgp-encryptionpassphrase-secretsecret-catalog }
+
+SYMMETRIC egress encryption — encrypt with a shared passphrase instead of a recipient key.
+
+
+SYMMETRIC egress encryption — encrypt with a shared passphrase instead of a recipient key. Mutually exclusive with recipient_public_key_secret: set exactly one. Signing is unavailable in this mode (it needs a sender keypair).
+
+
+**Type** `string` · **Required** no · **Section** Target · sink config
+
+
+```json
+{
+  "target_config": {
+    "sink_config": {
+      "post_export_archive": {
+        "pgp_encryption": {
+          "passphrase_secret": {
+            "secret_catalog": "{{catalog}}"
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+
+!!! tip "Best practice"
+
+    - Only applies to some configurations; the form hides it when it is not relevant.
+
+
+**Databricks documentation:** [secrets](https://docs.databricks.com/security/secrets/index.html) · [uc privileges](https://docs.databricks.com/data-governance/unity-catalog/manage-privileges/privileges.html)
+
+
+---
+
+### `target_config.sink_config.post_export_archive.pgp_encryption.passphrase_secret.secret_key` { #target-configsink-configpost-export-archivepgp-encryptionpassphrase-secretsecret-key }
+
+SYMMETRIC egress encryption — encrypt with a shared passphrase instead of a recipient key.
+
+
+SYMMETRIC egress encryption — encrypt with a shared passphrase instead of a recipient key. Mutually exclusive with recipient_public_key_secret: set exactly one. Signing is unavailable in this mode (it needs a sender keypair).
+
+
+**Type** `string` · **Required** no · **Section** Target · sink config
+
+
+```json
+{
+  "target_config": {
+    "sink_config": {
+      "post_export_archive": {
+        "pgp_encryption": {
+          "passphrase_secret": {
+            "secret_key": "pii_encryption_key"
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+
+!!! tip "Best practice"
+
+    - Only applies to some configurations; the form hides it when it is not relevant.
+
+
+**Databricks documentation:** [secrets](https://docs.databricks.com/security/secrets/index.html) · [uc privileges](https://docs.databricks.com/data-governance/unity-catalog/manage-privileges/privileges.html)
+
+
+---
+
+### `target_config.sink_config.post_export_archive.pgp_encryption.passphrase_secret.secret_schema` { #target-configsink-configpost-export-archivepgp-encryptionpassphrase-secretsecret-schema }
+
+SYMMETRIC egress encryption — encrypt with a shared passphrase instead of a recipient key.
+
+
+SYMMETRIC egress encryption — encrypt with a shared passphrase instead of a recipient key. Mutually exclusive with recipient_public_key_secret: set exactly one. Signing is unavailable in this mode (it needs a sender keypair).
+
+
+**Type** `string` · **Required** no · **Section** Target · sink config
+
+
+```json
+{
+  "target_config": {
+    "sink_config": {
+      "post_export_archive": {
+        "pgp_encryption": {
+          "passphrase_secret": {
+            "secret_schema": "security"
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+
+!!! tip "Best practice"
+
+    - Only applies to some configurations; the form hides it when it is not relevant.
+
+
+**Databricks documentation:** [secrets](https://docs.databricks.com/security/secrets/index.html) · [uc privileges](https://docs.databricks.com/data-governance/unity-catalog/manage-privileges/privileges.html)
+
+
+---
+
 ### `target_config.sink_config.post_export_archive.pgp_encryption.recipient_public_key_secret.secret_catalog` { #target-configsink-configpost-export-archivepgp-encryptionrecipient-public-key-secretsecret-catalog }
 
 Unity Catalog secret catalog holding the key.
 
 
-**Type** `string` · **Required** yes · **Section** Target · sink config
+**Type** `string` · **Required** no · **Section** Target · sink config
 
 
 ```json
@@ -2563,7 +2793,6 @@ Unity Catalog secret catalog holding the key.
 
 !!! tip "Best practice"
 
-    - Required — onboarding rejects the flow if this is missing.
     - Only applies to some configurations; the form hides it when it is not relevant.
 
 
@@ -2580,7 +2809,7 @@ UC secret key name.
 UC secret key name. AES keys must be exactly 16, 24 or 32 bytes.
 
 
-**Type** `string` · **Required** yes · **Section** Target · sink config
+**Type** `string` · **Required** no · **Section** Target · sink config
 
 
 ```json
@@ -2602,7 +2831,6 @@ UC secret key name. AES keys must be exactly 16, 24 or 32 bytes.
 
 !!! tip "Best practice"
 
-    - Required — onboarding rejects the flow if this is missing.
     - Only applies to some configurations; the form hides it when it is not relevant.
 
 
@@ -2616,7 +2844,7 @@ UC secret key name. AES keys must be exactly 16, 24 or 32 bytes.
 Unity Catalog secret schema.
 
 
-**Type** `string` · **Required** yes · **Section** Target · sink config
+**Type** `string` · **Required** no · **Section** Target · sink config
 
 
 ```json
@@ -2638,7 +2866,6 @@ Unity Catalog secret schema.
 
 !!! tip "Best practice"
 
-    - Required — onboarding rejects the flow if this is missing.
     - Only applies to some configurations; the form hides it when it is not relevant.
 
 
@@ -2992,6 +3219,119 @@ json (the default when absent) writes JSON-Lines; csv writes RFC-4180 files with
     **Onboarding rejects staged_file_format**  
     *Cause:* It was set on a sink whose format is not pgp_zip.  
     *Fix:* Remove the attribute, or switch sink_config.format to pgp_zip.
+
+
+**Databricks documentation:** [sinks](https://docs.databricks.com/delta-live-tables/sinks.html)
+
+
+---
+
+### `target_config.sink_config.staged_file_options.delimiter` { #target-configsink-configstaged-file-optionsdelimiter }
+
+The field separator for the staged CSV a pgp_zip sink writes.
+
+
+Before v1.7.4 the writer used Python's csv `excel` dialect with no override — comma-separated, always headered, CRLF-terminated. A supplier interface that specifies anything else simply could not be expressed, which is what UC6's pipe-delimited Leidos feed needed.
+
+
+**Type** `string` · **Required** no · **Section** Target · sink config
+
+
+```json
+"sink_config": {
+  "format": "pgp_zip",
+  "staged_file_format": "csv",
+  "staged_file_options": {
+    "delimiter": "|",
+    "include_header": true,
+    "line_terminator": "lf"
+  }
+}
+```
+
+
+!!! tip "Best practice"
+
+    - Exactly one character. Python's csv writer cannot emit a multi-character delimiter and the framework rejects one rather than silently truncating it.
+    - Omit the whole staged_file_options object to keep the pre-1.7.4 dialect exactly.
+    - Only applies to staged_file_format 'csv'. A JSON-Lines export has no delimiter.
+
+
+!!! warning "Known errors and limitations"
+
+    **The consumer reads one giant column, or splits on the wrong character.**  
+    *Cause:* The delimiter here does not match what the receiving interface expects.  
+    *Fix:* Match the interface specification exactly. If fields can contain the delimiter, the writer quotes them per RFC-4180 — confirm the consumer honours quoting.
+
+
+**Databricks documentation:** [sinks](https://docs.databricks.com/delta-live-tables/sinks.html)
+
+
+---
+
+### `target_config.sink_config.staged_file_options.include_header` { #target-configsink-configstaged-file-optionsinclude-header }
+
+Write the header row.
+
+
+Write the header row. Absent = true. Set false for a supplier interface that specifies a headerless body. NOTE: with archive_format gzip the header is emitted per partition and all but the first are dropped on concatenation.
+
+
+**Type** `boolean` · **Required** no · **Section** Target · sink config
+
+
+```json
+{
+  "target_config": {
+    "sink_config": {
+      "staged_file_options": {
+        "include_header": true
+      }
+    }
+  }
+}
+```
+
+
+!!! tip "Best practice"
+
+    - Only applies to some configurations; the form hides it when it is not relevant.
+    - Omitting the attribute is not the same as setting it false — check the default above.
+
+
+**Databricks documentation:** [sinks](https://docs.databricks.com/delta-live-tables/sinks.html)
+
+
+---
+
+### `target_config.sink_config.staged_file_options.line_terminator` { #target-configsink-configstaged-file-optionsline-terminator }
+
+The record separator for the staged CSV: 'crlf' or 'lf'.
+
+
+Spelled as a name because JSON cannot carry a bare control character — you cannot write a literal CR in a JSON string and have it survive round-tripping.
+
+
+**Type** `string (enum)` · **Required** no · **Section** Target · sink config
+
+
+```json
+"staged_file_options": { "line_terminator": "lf" }
+// crlf (default when absent) = RFC-4180, the pre-1.7.4 behaviour
+// lf                          = bare \n, what most Unix consumers expect
+```
+
+
+!!! tip "Best practice"
+
+    - Absent = crlf. Legacy mainframe and Windows interfaces usually want crlf; most Unix-side consumers want lf.
+
+
+!!! warning "Known errors and limitations"
+
+    **The consumer reports a stray \r at the end of the last field on every row.**  
+    *Cause:* The file is CRLF-terminated but the consumer splits on \n only.  
+    *Fix:* Set line_terminator to 'lf'.
 
 
 **Databricks documentation:** [sinks](https://docs.databricks.com/delta-live-tables/sinks.html)

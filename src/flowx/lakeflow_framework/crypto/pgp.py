@@ -174,3 +174,126 @@ def pgp_verify(data: bytes, signed_message: bytes, signer_public_key_armored: st
         return bool(verification)
     except Exception as exc:  # noqa: BLE001
         raise CryptoError(f"PGP signature verification failed: {exc}") from exc
+
+
+# ---------------------------------------------------------------------------------------
+# Symmetric (passphrase-based) PGP -- added v1.7.4 for UC6.
+#
+# The four functions above are all ASYMMETRIC: they take ASCII-armored public/private key
+# material and encrypt to a recipient's key. That is the right default for a supplier
+# integration where each party publishes a key. It is NOT the only shape in the wild: an
+# OpenPGP message may instead be protected by a Symmetric-Key Encrypted Session Key (SKESK)
+# packet, where a passphrase plus a string-to-key derivation yields the session key directly
+# and no keypair exists at all. That is what `gpg --symmetric --cipher-algo AES256` produces,
+# and it is what UC6's Environment Agency feed and its two Fujitsu-equivalent outputs use.
+#
+# Round-tripped against the real GnuPG 2.4.9 CLI in BOTH directions before shipping (not just
+# against this module's own encrypt/decrypt pair -- the trap `pgp_encrypt` above documents):
+#   * `pgp_decrypt_symmetric` reads a file produced by `gpg --symmetric --cipher-algo AES256`.
+#   * `gpg --decrypt` reads a file produced by `pgp_encrypt_symmetric`.
+# Both verified with a gzip payload, so the compress-then-encrypt ordering UC6 needs is
+# covered rather than assumed.
+# ---------------------------------------------------------------------------------------
+
+
+def pgp_decrypt_symmetric(data: bytes, passphrase: str) -> bytes:
+    """Decrypt a passphrase-encrypted (symmetric) PGP payload.
+
+    The counterpart to :func:`pgp_encrypt_symmetric`, and the reader for anything produced by
+    ``gpg --symmetric``. No keypair is involved: the passphrase derives the session key via the
+    message's own string-to-key specifier, so the cipher and S2K parameters come from the
+    message rather than from this call.
+
+    Parameters
+    ----------
+    data:
+        The encrypted payload (an OpenPGP message, ASCII-armored or binary).
+    passphrase:
+        The shared passphrase. Always resolve this from a Unity Catalog secret at the call
+        site (see ``crypto/secrets.py``); never a literal in an onboarding spec.
+
+    Returns
+    -------
+    bytes
+        The decrypted plaintext.
+
+    Raises
+    ------
+    CryptoError
+        If PGPy is unavailable, the payload can't be parsed, the passphrase is wrong, or the
+        message is key-encrypted rather than passphrase-encrypted (use :func:`pgp_decrypt`).
+    """
+    _require_pgpy()
+    if not passphrase:
+        raise CryptoError("Symmetric PGP decryption requires a passphrase, but an empty one was supplied.")
+    try:
+        message = pgpy.PGPMessage.from_blob(data)
+        decrypted_message = message.decrypt(passphrase)
+
+        payload = decrypted_message.message
+        # Same bytearray/str/bytes split `pgp_decrypt` documents at length above: PGPy returns
+        # a `bytearray` for a binary ("file=True") message and a `str` for a text one. Both are
+        # normalized to `bytes` here so callers never have to care which shape arrived.
+        if isinstance(payload, (bytes, bytearray)):
+            return bytes(payload)
+        return payload.encode("utf-8")
+    except CryptoError:
+        raise
+    except Exception as exc:  # noqa: BLE001
+        raise CryptoError(f"Symmetric PGP decryption failed: {exc}") from exc
+
+
+def pgp_encrypt_symmetric(
+    data: bytes,
+    passphrase: str,
+    cipher: str = "AES256",
+) -> bytes:
+    """Encrypt a payload under a shared passphrase (symmetric PGP), ASCII-armored.
+
+    Parameters
+    ----------
+    data:
+        The plaintext payload to encrypt (e.g. an already-gzipped CSV export).
+    passphrase:
+        The shared passphrase, resolved from a Unity Catalog secret by the caller.
+    cipher:
+        Symmetric cipher name, matching a :class:`pgpy.constants.SymmetricKeyAlgorithm`
+        member. Defaults to ``"AES256"`` -- the cipher UC6's interface specification mandates
+        and the one ``gpg --symmetric --cipher-algo AES256`` produces.
+
+    Returns
+    -------
+    bytes
+        The encrypted message, ASCII-armored (UTF-8 encoded).
+
+    Raises
+    ------
+    CryptoError
+        If PGPy is unavailable, ``cipher`` names no known algorithm, or encryption fails.
+
+    Notes
+    -----
+    Returns **armored text**, not the compact binary packet format, for exactly the reason
+    recorded in :func:`pgp_encrypt`: ``bytes(PGPMessage)`` serializes to binary while
+    ``str(PGPMessage)`` produces the armored form an external ``gpg`` CLI recipient expects.
+    ``.encode("utf-8")`` is safe because PGP ASCII armor is 7-bit-safe base64 plus headers.
+    """
+    _require_pgpy()
+    if not passphrase:
+        raise CryptoError("Symmetric PGP encryption requires a passphrase, but an empty one was supplied.")
+    try:
+        from pgpy.constants import SymmetricKeyAlgorithm
+
+        try:
+            cipher_algorithm = getattr(SymmetricKeyAlgorithm, cipher)
+        except AttributeError as exc:
+            known = sorted(member.name for member in SymmetricKeyAlgorithm)
+            raise CryptoError(f"Unknown symmetric cipher {cipher!r} for PGP encryption (known: {known}).") from exc
+
+        message = pgpy.PGPMessage.new(data, file=True)
+        encrypted_message = message.encrypt(passphrase, cipher=cipher_algorithm)
+        return str(encrypted_message).encode("utf-8")
+    except CryptoError:
+        raise
+    except Exception as exc:  # noqa: BLE001
+        raise CryptoError(f"Symmetric PGP encryption failed: {exc}") from exc

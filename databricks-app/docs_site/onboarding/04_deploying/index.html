@@ -16,7 +16,7 @@
         <link rel="prev" href="../03_spec_builder_app/">
       
       
-        <link rel="next" href="../../09_developer_guide_and_recipes/">
+        <link rel="next" href="../05_new_workspace_bootstrap/">
       
       
         
@@ -571,6 +571,8 @@
       
         
       
+        
+      
     
     
     
@@ -845,6 +847,34 @@
   
 </nav>
       
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../05_new_workspace_bootstrap/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    5 · New-workspace bootstrap
+  
+
+    
+  </span>
+  
+  
+
+      </a>
     </li>
   
 
@@ -3582,13 +3612,19 @@ v1.13.0 with the catalog and schema resources in place). What changed in v1.7.1 
 bootstrap is now a deploy of declared resources instead of hand-run <code>CREATE</code> statements:</p>
 <ol>
 <li>create the catalog in the UI, if it does not exist yet;</li>
-<li>comment out that target's <code>artifact_path:</code> line -- safe, it is a workspace setting, not a
-   resource, so unsetting it deletes nothing;</li>
-<li><code>databricks bundle deploy -t &lt;target&gt; -p &lt;profile&gt; --select schemas.config_schema,volumes.framework_wheels_volume</code></li>
-<li>uncomment the <code>artifact_path:</code> line and deploy normally.</li>
+<li>deploy the schema and the Volume with <code>wheels_root</code> overridden away from the Volume --
+   a FLAG, not a file edit (v1.7.4):
+   <div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>databricks bundle deploy -t &lt;target&gt; -p &lt;profile&gt;          --select schemas.config_schema,volumes.framework_wheels_volume          --var="wheels_root=/Workspace/Users/&lt;you&gt;/.bundle/flowx/&lt;target&gt;/artifacts"
+</code></pre></div></li>
+<li>deploy normally -- <code>wheels_root</code> is back at its default and resolves into the Volume
+   that step 1 just created.</li>
 </ol>
-<p>Once per workspace; <code>bundle validate</code> prints OK from then on. <strong>Completed for <code>arjun_2</code> on
-2026-09-02</strong> -- schemas and all six Volumes created, <code>artifact_path</code> restored, full deploy green.</p>
+<p>Once per workspace; <code>bundle validate</code> prints OK from then on. <code>python
+scripts/bootstrap_workspace.py -t &lt;target&gt; -p &lt;profile&gt;</code> runs both steps for you, and the
+full runbook is <a href="../05_new_workspace_bootstrap/">5 · New-workspace bootstrap</a>.</p>
+<p>Before v1.7.4 step 1 meant commenting out each target's <code>artifact_path:</code> line and restoring
+it afterwards; the override replaces that, so no half-finished edit can be committed.
+<strong>Completed for <code>arjun_2</code> on 2026-09-02</strong> and for <code>metaflow_v7</code> on 2026-09-04.</p>
 </div>
 <div class="admonition danger">
 <p class="admonition-title">Never deploy while a pipeline or test wave is running</p>
@@ -3624,13 +3660,13 @@ mitigation is operational: never <code>bundle deploy</code> while a pipeline or 
 <p>Each target pairs with its own CLI profile. Deploying with a mismatched profile fails
 authentication rather than deploying somewhere unexpected.</p>
 <h2 id="verify">Verify<a class="headerlink" href="#verify" title="Permanent link">&para;</a></h2>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>databricks<span class="w"> </span>bundle<span class="w"> </span>validate<span class="w"> </span>-t<span class="w"> </span>dev_flowx
-<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>databricks<span class="w"> </span>bundle<span class="w"> </span>summary<span class="w">  </span>-t<span class="w"> </span>dev_flowx
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>databricks<span class="w"> </span>bundle<span class="w"> </span>validate<span class="w"> </span>-t<span class="w"> </span>dev_flowx
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>databricks<span class="w"> </span>bundle<span class="w"> </span>summary<span class="w">  </span>-t<span class="w"> </span>dev_flowx
 </code></pre></div>
 <h2 id="bulk-onboarding">Bulk onboarding<a class="headerlink" href="#bulk-onboarding" title="Permanent link">&para;</a></h2>
 <p>Point the onboarding job at a directory to process every spec in it:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>databricks<span class="w"> </span>bundle<span class="w"> </span>run<span class="w"> </span>framework_config_onboarding_job<span class="w"> </span>-t<span class="w"> </span>dev_flowx<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="w">  </span>--params<span class="w"> </span><span class="nv">config_dir</span><span class="o">=</span>/Volumes/flowx/framework/onboarding_specs/
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>databricks<span class="w"> </span>bundle<span class="w"> </span>run<span class="w"> </span>framework_config_onboarding_job<span class="w"> </span>-t<span class="w"> </span>dev_flowx<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="w">  </span>--params<span class="w"> </span><span class="nv">config_dir</span><span class="o">=</span>/Volumes/flowx/framework/onboarding_specs/
 </code></pre></div>
 <h2 id="common-failures">Common failures<a class="headerlink" href="#common-failures" title="Permanent link">&para;</a></h2>
 <table>

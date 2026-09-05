@@ -1,0 +1,1097 @@
+{
+  "_use_case": "UC6 -- Flood Warning System (Environment Agency -> Leidos). Matches EA flood-risk area postcodes against EE mobile customer addresses to identify the MSISDNs to warn, replacing a ~10-year-old Ab Initio ETL. Binding design: docs/UC6/BUILD_CONTRACT.md. Every deviation from the supplied brief, with evidence: docs/UC6/FRAMEWORK_CAPABILITY_MAP.md.",
+  "dataflow_group_id": "dfg_uc6_ea_flood_warning",
+  "pipeline_parameters": {
+    "match_strength_threshold": 50,
+    "min_addresses_per_area": 1,
+    "min_age_years": 17,
+    "excluded_business_unit_code": "BS",
+    "export_file_date": "2026-08-20",
+    "export_file_sequence": "1of1"
+  },
+  "ingestion_flows": [
+    {
+      "dataflow_id": "df_uc6_ea_request_ingest",
+      "source_system": "env_agency",
+      "source_database": "uc6_flood_warning",
+      "source_table_name": "ea_request",
+      "source_description": "UC6: the Environment Agency's weekly flood-risk address request (PAF-shaped, 14 pipe-delimited fields WITH a header row). Delivered gzip-then-GPG-symmetric (AES256); the framework decrypts the envelope using the flowx.config.pgpkey UC secret and decompresses the gzip member before Auto Loader reads it, all inside one pipeline update.",
+      "source_type": "autoloader",
+      "target_catalog": "{{catalog}}",
+      "target_schema": "bronze",
+      "target_table": "uc6_ea_request",
+      "target_type": "streaming_table",
+      "source_config": {
+        "path": "/Volumes/{{catalog}}/staging/uc_6/_extracted/ea_request/",
+        "format": "csv",
+        "schema_location": "/Volumes/{{catalog}}/staging/uc_6/_schemas/ea_request/",
+        "file_pattern": "EE_*-REQUEST_*.csv",
+        "reader_options": {
+          "header": "true",
+          "delimiter": "|",
+          "mode": "PERMISSIVE"
+        },
+        "capture_technical_metadata": true,
+        "source_zip_handling": {
+          "enabled": true,
+          "source_zip_path": "/Volumes/{{catalog}}/staging/uc_6/raw/",
+          "zip_file_pattern": "EE_*-REQUEST_*[Oo][Ff]*.csv.gz.gpg",
+          "target_volume_path": "/Volumes/{{catalog}}/staging/uc_6/_extracted/ea_request/",
+          "member_format": "gzip",
+          "pre_extraction_decryption": {
+            "type": "pgp_symmetric",
+            "passphrase_secret": {
+              "secret_catalog": "{{catalog}}",
+              "secret_schema": "config",
+              "secret_key": "pgpkey"
+            }
+          },
+          "delete_source_after_extract": {
+            "action": "delete_now"
+          }
+        }
+      },
+      "target_config": {
+        "cdc_load_strategy": "APPEND",
+        "storage_format": "delta"
+      },
+      "dq_config": {
+        "rules": [
+          {
+            "rule_id": "uc6_ea_target_area_present",
+            "expression": "targetAreaID IS NOT NULL AND length(trim(targetAreaID)) > 0",
+            "action": "fail"
+          },
+          {
+            "rule_id": "uc6_ea_osapr_present",
+            "expression": "osapr IS NOT NULL AND length(trim(osapr)) > 0",
+            "action": "fail"
+          },
+          {
+            "rule_id": "uc6_ea_target_area_max_32",
+            "expression": "length(targetAreaID) <= 32",
+            "action": "warn"
+          },
+          {
+            "rule_id": "uc6_ea_osapr_max_12_digits",
+            "expression": "length(trim(osapr)) <= 12",
+            "action": "warn"
+          },
+          {
+            "rule_id": "uc6_ea_postcode_max_7",
+            "expression": "postcode IS NULL OR length(replace(trim(postcode), ' ', '')) <= 7",
+            "action": "warn"
+          }
+        ]
+      },
+      "governance_tags": {
+        "table_tags": {
+          "use_case": "uc6",
+          "source_system": "env_agency",
+          "data_classification": "confidential",
+          "pii": "false",
+          "owner": "business_data_and_ai",
+          "environment": "poc"
+        }
+      }
+    },
+    {
+      "dataflow_id": "df_uc6_css_account_address_ingest",
+      "source_system": "css",
+      "source_database": "uc6_flood_warning",
+      "source_table_name": "css_account_address",
+      "source_description": "UC6: CSS account address records (PAYM/OUK). 19 pipe-delimited fields, headerless. Joined to CSS Account on customerid and normalised into the common PAF shape.",
+      "source_type": "autoloader",
+      "target_catalog": "{{catalog}}",
+      "target_schema": "bronze",
+      "target_table": "uc6_css_account_address",
+      "target_type": "streaming_table",
+      "source_config": {
+        "path": "/Volumes/{{catalog}}/staging/uc_6/_extracted/css_account_address/",
+        "format": "csv",
+        "schema_location": "/Volumes/{{catalog}}/staging/uc_6/_schemas/css_account_address/",
+        "file_pattern": "CSS_account_address_*.dat.gz",
+        "reader_options": {
+          "header": "false",
+          "delimiter": "|",
+          "mode": "PERMISSIVE"
+        },
+        "capture_technical_metadata": true,
+        "schema_config_path": "/Volumes/{{catalog}}/staging/uc_6/_schema_configs/uc6_css_account_address.json"
+      },
+      "target_config": {
+        "cdc_load_strategy": "APPEND",
+        "storage_format": "delta"
+      },
+      "dq_config": {
+        "rules": [
+          {
+            "rule_id": "uc6_css_addr_customerid_present",
+            "expression": "customerid IS NOT NULL",
+            "action": "drop"
+          }
+        ]
+      },
+      "governance_tags": {
+        "table_tags": {
+          "use_case": "uc6",
+          "source_system": "css",
+          "data_classification": "confidential",
+          "pii": "true",
+          "owner": "business_data_and_ai",
+          "environment": "poc"
+        }
+      }
+    },
+    {
+      "dataflow_id": "df_uc6_css_subscription_ingest",
+      "source_system": "css",
+      "source_database": "uc6_flood_warning",
+      "source_table_name": "css_subscription",
+      "source_description": "UC6: CSS subscription records (PAYM/OUK) carrying the MSISDN. 47 pipe-delimited fields, headerless. The driving side of the CSS three-way join.",
+      "source_type": "autoloader",
+      "target_catalog": "{{catalog}}",
+      "target_schema": "bronze",
+      "target_table": "uc6_css_subscription",
+      "target_type": "streaming_table",
+      "source_config": {
+        "path": "/Volumes/{{catalog}}/staging/uc_6/_extracted/css_subscription/",
+        "format": "csv",
+        "schema_location": "/Volumes/{{catalog}}/staging/uc_6/_schemas/css_subscription/",
+        "file_pattern": "CSS_subscription_*.dat.gz",
+        "reader_options": {
+          "header": "false",
+          "delimiter": "|",
+          "mode": "PERMISSIVE"
+        },
+        "capture_technical_metadata": true,
+        "schema_config_path": "/Volumes/{{catalog}}/staging/uc_6/_schema_configs/uc6_css_subscription.json"
+      },
+      "target_config": {
+        "cdc_load_strategy": "APPEND",
+        "storage_format": "delta"
+      },
+      "dq_config": {
+        "rules": [
+          {
+            "rule_id": "uc6_css_sub_customerid_present",
+            "expression": "customerid IS NOT NULL",
+            "action": "drop"
+          },
+          {
+            "rule_id": "uc6_css_sub_msisdn_max_16",
+            "expression": "msisdn IS NULL OR length(trim(msisdn)) <= 16",
+            "action": "warn"
+          }
+        ]
+      },
+      "governance_tags": {
+        "table_tags": {
+          "use_case": "uc6",
+          "source_system": "css",
+          "data_classification": "confidential",
+          "pii": "true",
+          "owner": "business_data_and_ai",
+          "environment": "poc"
+        }
+      }
+    },
+    {
+      "dataflow_id": "df_uc6_css_account_ingest",
+      "source_system": "css",
+      "source_database": "uc6_flood_warning",
+      "source_table_name": "css_account",
+      "source_description": "UC6: CSS account records (PAYM/OUK) carrying dateofbirth and customerbusinessunitcode -- the two documented business filters (age > 17, unit code != 'BS'). 56 pipe-delimited fields, headerless. NOTE the file_pattern is CSS_account_[0-9]*, not CSS_account_*: the latter ALSO matches CSS_account_address_*, whose 19-field schema would corrupt this 56-field table.",
+      "source_type": "autoloader",
+      "target_catalog": "{{catalog}}",
+      "target_schema": "bronze",
+      "target_table": "uc6_css_account",
+      "target_type": "streaming_table",
+      "source_config": {
+        "path": "/Volumes/{{catalog}}/staging/uc_6/_extracted/css_account/",
+        "format": "csv",
+        "schema_location": "/Volumes/{{catalog}}/staging/uc_6/_schemas/css_account/",
+        "file_pattern": "CSS_account_[0-9]*.dat.gz",
+        "reader_options": {
+          "header": "false",
+          "delimiter": "|",
+          "mode": "PERMISSIVE"
+        },
+        "capture_technical_metadata": true,
+        "schema_config_path": "/Volumes/{{catalog}}/staging/uc_6/_schema_configs/uc6_css_account.json"
+      },
+      "target_config": {
+        "cdc_load_strategy": "APPEND",
+        "storage_format": "delta"
+      },
+      "dq_config": {
+        "rules": [
+          {
+            "rule_id": "uc6_css_acct_customerid_present",
+            "expression": "customerid IS NOT NULL",
+            "action": "drop"
+          }
+        ]
+      },
+      "governance_tags": {
+        "table_tags": {
+          "use_case": "uc6",
+          "source_system": "css",
+          "data_classification": "confidential",
+          "pii": "true",
+          "owner": "business_data_and_ai",
+          "environment": "poc"
+        }
+      }
+    },
+    {
+      "dataflow_id": "df_uc6_jt_customer_ingest",
+      "source_system": "jt",
+      "source_database": "uc6_flood_warning",
+      "source_table_name": "jt_customer",
+      "source_description": "UC6: JT Customer Details (PAYG/OUK). 34 pipe-delimited fields, headerless, carrying address and MSISDN inline -- there is no separate address feed for this channel.",
+      "source_type": "autoloader",
+      "target_catalog": "{{catalog}}",
+      "target_schema": "bronze",
+      "target_table": "uc6_jt_customer",
+      "target_type": "streaming_table",
+      "source_config": {
+        "path": "/Volumes/{{catalog}}/staging/uc_6/_extracted/jt_customer/",
+        "format": "csv",
+        "schema_location": "/Volumes/{{catalog}}/staging/uc_6/_schemas/jt_customer/",
+        "file_pattern": "CM_JT_Customer_Details_*.dat.gz",
+        "reader_options": {
+          "header": "false",
+          "delimiter": "|",
+          "mode": "PERMISSIVE"
+        },
+        "capture_technical_metadata": true,
+        "schema_config_path": "/Volumes/{{catalog}}/staging/uc_6/_schema_configs/uc6_jt_customer.json"
+      },
+      "target_config": {
+        "cdc_load_strategy": "APPEND",
+        "storage_format": "delta"
+      },
+      "dq_config": {
+        "rules": [
+          {
+            "rule_id": "uc6_jt_msisdn_max_16",
+            "expression": "msisdn IS NULL OR length(trim(msisdn)) <= 16",
+            "action": "warn"
+          }
+        ]
+      },
+      "governance_tags": {
+        "table_tags": {
+          "use_case": "uc6",
+          "source_system": "jt",
+          "data_classification": "confidential",
+          "pii": "true",
+          "owner": "business_data_and_ai",
+          "environment": "poc"
+        }
+      }
+    },
+    {
+      "dataflow_id": "df_uc6_excalibur_address_ingest",
+      "source_system": "excalibur",
+      "source_database": "uc6_flood_warning",
+      "source_table_name": "excalibur_address",
+      "source_description": "UC6: Excalibur address records (EE/TMUK). 43 COMMA-delimited fields, headerless -- the supplied brief states pipe for every source, but this feed contains no pipes at all (see docs/UC6/FRAMEWORK_CAPABILITY_MAP.md section 3.1). Two record variants place the address in fields 18-20 or 19-22; both are handled in the PAF normalisation SQL.",
+      "source_type": "autoloader",
+      "target_catalog": "{{catalog}}",
+      "target_schema": "bronze",
+      "target_table": "uc6_excalibur_address",
+      "target_type": "streaming_table",
+      "source_config": {
+        "path": "/Volumes/{{catalog}}/staging/uc_6/_extracted/excalibur_address/",
+        "format": "csv",
+        "schema_location": "/Volumes/{{catalog}}/staging/uc_6/_schemas/excalibur_address/",
+        "file_pattern": "CM_EXCALIBUR_ADDRESS_*.dat.gz",
+        "reader_options": {
+          "header": "false",
+          "delimiter": ",",
+          "mode": "PERMISSIVE"
+        },
+        "capture_technical_metadata": true,
+        "schema_config_path": "/Volumes/{{catalog}}/staging/uc_6/_schema_configs/uc6_excalibur_address.json"
+      },
+      "target_config": {
+        "cdc_load_strategy": "APPEND",
+        "storage_format": "delta"
+      },
+      "dq_config": {
+        "rules": [
+          {
+            "rule_id": "uc6_exc_postcode_present",
+            "expression": "adr_post_code IS NOT NULL",
+            "action": "drop"
+          }
+        ]
+      },
+      "governance_tags": {
+        "table_tags": {
+          "use_case": "uc6",
+          "source_system": "excalibur",
+          "data_classification": "confidential",
+          "pii": "true",
+          "owner": "business_data_and_ai",
+          "environment": "poc"
+        }
+      }
+    }
+  ],
+  "transformation_flows": [
+    {
+      "flow_step_id": "ts_uc6_ea_base",
+      "dataflow_id": "df_uc6_ea_request_ingest",
+      "source_description": "UC6 silver: the EA base file -- one row per osapr, carrying its targetAreaID. The legacy design dedupes the request feed on {osapr}; ROW_NUMBER over the ingestion timestamp makes 'which duplicate wins' explicit and deterministic rather than arbitrary.",
+      "target_catalog": "{{catalog}}",
+      "target_schema": "silver",
+      "target_table": "uc6_ea_base",
+      "target_type": "materialized_view",
+      "source_inputs": [
+        {
+          "input_name": "uc6_ea_request_base",
+          "table": "{{catalog}}.bronze.uc6_ea_request",
+          "is_streaming": true
+        }
+      ],
+      "transformation_sql": "SELECT targetAreaID, osapr, postcode, town FROM (SELECT targetAreaID, trim(osapr) AS osapr, postcode, town, ROW_NUMBER() OVER (PARTITION BY trim(osapr) ORDER BY __framework_ingestion_timestamp_utc DESC) AS rn FROM uc6_ea_request_base WHERE osapr IS NOT NULL AND trim(osapr) <> '') WHERE rn = 1",
+      "target_config": {
+        "cdc_load_strategy": "TRUNCATE_AND_LOAD",
+        "storage_format": "delta"
+      },
+      "dq_config": {
+        "rules": []
+      },
+      "governance_tags": {
+        "table_tags": {
+          "use_case": "uc6",
+          "source_system": "env_agency",
+          "data_classification": "confidential",
+          "pii": "false",
+          "owner": "business_data_and_ai",
+          "environment": "poc"
+        }
+      }
+    },
+    {
+      "flow_step_id": "ts_uc6_ea_address",
+      "dataflow_id": "df_uc6_ea_request_ingest",
+      "source_description": "UC6 silver: the normalised EA address set -- deduped on {postcode, address, town} per the legacy design, carrying osapr for the join back to the base file. PO Box rows are retained here and excluded at match time, so the exclusion is visible in one place rather than implied by absence.",
+      "target_catalog": "{{catalog}}",
+      "target_schema": "silver",
+      "target_table": "uc6_ea_address",
+      "target_type": "materialized_view",
+      "source_inputs": [
+        {
+          "input_name": "uc6_ea_request_addr",
+          "table": "{{catalog}}.bronze.uc6_ea_request",
+          "is_streaming": true
+        }
+      ],
+      "transformation_sql": "SELECT osapr, postcode_norm, address_norm, town_norm, has_po_box, targetAreaID FROM (SELECT trim(osapr) AS osapr, nullif(upper(regexp_replace(coalesce(postcode, ''), '[^A-Za-z0-9]', '')), '') AS postcode_norm, concat_ws(' ', nullif(trim(regexp_replace(regexp_replace(upper(coalesce(sub_bld_name, '')), '[^A-Z0-9 ]', ' '), ' +', ' ')), ''), nullif(trim(regexp_replace(regexp_replace(upper(coalesce(bld_name, '')), '[^A-Z0-9 ]', ' '), ' +', ' ')), ''), nullif(trim(regexp_replace(regexp_replace(upper(coalesce(bld_number, '')), '[^A-Z0-9 ]', ' '), ' +', ' ')), ''), nullif(trim(regexp_replace(regexp_replace(upper(coalesce(thfare2, '')), '[^A-Z0-9 ]', ' '), ' +', ' ')), ''), nullif(trim(regexp_replace(regexp_replace(upper(coalesce(thfare1, '')), '[^A-Z0-9 ]', ' '), ' +', ' ')), ''), nullif(trim(regexp_replace(regexp_replace(upper(coalesce(dbl_dep_loc, '')), '[^A-Z0-9 ]', ' '), ' +', ' ')), ''), nullif(trim(regexp_replace(regexp_replace(upper(coalesce(dep_loc, '')), '[^A-Z0-9 ]', ' '), ' +', ' ')), '')) AS address_norm, nullif(trim(regexp_replace(regexp_replace(upper(coalesce(town, '')), '[^A-Z0-9 ]', ' '), ' +', ' ')), '') AS town_norm, CASE WHEN po_box IS NOT NULL AND trim(po_box) <> '' THEN true ELSE false END AS has_po_box, targetAreaID, ROW_NUMBER() OVER (PARTITION BY nullif(upper(regexp_replace(coalesce(postcode, ''), '[^A-Za-z0-9]', '')), ''), concat_ws(' ', nullif(trim(regexp_replace(regexp_replace(upper(coalesce(sub_bld_name, '')), '[^A-Z0-9 ]', ' '), ' +', ' ')), ''), nullif(trim(regexp_replace(regexp_replace(upper(coalesce(bld_name, '')), '[^A-Z0-9 ]', ' '), ' +', ' ')), ''), nullif(trim(regexp_replace(regexp_replace(upper(coalesce(bld_number, '')), '[^A-Z0-9 ]', ' '), ' +', ' ')), ''), nullif(trim(regexp_replace(regexp_replace(upper(coalesce(thfare2, '')), '[^A-Z0-9 ]', ' '), ' +', ' ')), ''), nullif(trim(regexp_replace(regexp_replace(upper(coalesce(thfare1, '')), '[^A-Z0-9 ]', ' '), ' +', ' ')), ''), nullif(trim(regexp_replace(regexp_replace(upper(coalesce(dbl_dep_loc, '')), '[^A-Z0-9 ]', ' '), ' +', ' ')), ''), nullif(trim(regexp_replace(regexp_replace(upper(coalesce(dep_loc, '')), '[^A-Z0-9 ]', ' '), ' +', ' ')), '')), nullif(trim(regexp_replace(regexp_replace(upper(coalesce(town, '')), '[^A-Z0-9 ]', ' '), ' +', ' ')), '') ORDER BY trim(osapr)) AS rn FROM uc6_ea_request_addr WHERE osapr IS NOT NULL AND trim(osapr) <> '') WHERE rn = 1",
+      "target_config": {
+        "cdc_load_strategy": "TRUNCATE_AND_LOAD",
+        "storage_format": "delta"
+      },
+      "dq_config": {
+        "rules": []
+      },
+      "governance_tags": {
+        "table_tags": {
+          "use_case": "uc6",
+          "source_system": "env_agency",
+          "data_classification": "confidential",
+          "pii": "false",
+          "owner": "business_data_and_ai",
+          "environment": "poc"
+        }
+      }
+    },
+    {
+      "flow_step_id": "ts_uc6_ee_address_paf",
+      "dataflow_id": "df_uc6_ea_request_ingest",
+      "source_description": "UC6 silver: every EE address normalised into the common PAF shape and unioned -- CSS (PAYM/OUK, the three-way join plus the age>17 and unit-code<>'BS' business filters), JT (PAYG/OUK) and Excalibur (EE/TMUK). One flow with a UNION ALL rather than three staging tables, per the repo's Single-Read DAG mandate rule 3: reshaping before a union belongs inside the consuming table. Excalibur's two record variants are reconciled with a coalesce rather than a separate branch.",
+      "target_catalog": "{{catalog}}",
+      "target_schema": "silver",
+      "target_table": "uc6_ee_address_paf",
+      "target_type": "streaming_table",
+      "source_inputs": [
+        {
+          "input_name": "uc6_css_sub",
+          "table": "{{catalog}}.bronze.uc6_css_subscription",
+          "is_streaming": true
+        },
+        {
+          "input_name": "uc6_css_acct",
+          "table": "{{catalog}}.bronze.uc6_css_account",
+          "is_streaming": false
+        },
+        {
+          "input_name": "uc6_css_addr",
+          "table": "{{catalog}}.bronze.uc6_css_account_address",
+          "is_streaming": false
+        },
+        {
+          "input_name": "uc6_jt_cust",
+          "table": "{{catalog}}.bronze.uc6_jt_customer",
+          "is_streaming": false
+        },
+        {
+          "input_name": "uc6_exc_addr",
+          "table": "{{catalog}}.bronze.uc6_excalibur_address",
+          "is_streaming": false
+        }
+      ],
+      "transformation_sql": "SELECT 'css' AS source_system, s.msisdn AS msisdn, nullif(upper(regexp_replace(coalesce(a.postcode, ''), '[^A-Za-z0-9]', '')), '') AS postcode_norm, concat_ws(' ', nullif(trim(regexp_replace(regexp_replace(upper(coalesce(a.building_name1, '')), '[^A-Z0-9 ]', ' '), ' +', ' ')), ''), nullif(trim(regexp_replace(regexp_replace(upper(coalesce(a.building_name, '')), '[^A-Z0-9 ]', ' '), ' +', ' ')), ''), nullif(trim(regexp_replace(regexp_replace(upper(coalesce(a.building_number, '')), '[^A-Z0-9 ]', ' '), ' +', ' ')), ''), nullif(trim(regexp_replace(regexp_replace(upper(coalesce(a.street1, '')), '[^A-Z0-9 ]', ' '), ' +', ' ')), ''), nullif(trim(regexp_replace(regexp_replace(upper(coalesce(a.street2, '')), '[^A-Z0-9 ]', ' '), ' +', ' ')), ''), nullif(trim(regexp_replace(regexp_replace(upper(coalesce(a.locality1, '')), '[^A-Z0-9 ]', ' '), ' +', ' ')), ''), nullif(trim(regexp_replace(regexp_replace(upper(coalesce(a.locality2, '')), '[^A-Z0-9 ]', ' '), ' +', ' ')), '')) AS address_norm, nullif(trim(regexp_replace(regexp_replace(upper(coalesce(a.county, '')), '[^A-Z0-9 ]', ' '), ' +', ' ')), '') AS town_norm, CASE WHEN a.po_box IS NOT NULL AND trim(a.po_box) <> '' THEN true ELSE false END AS has_po_box FROM uc6_css_sub s INNER JOIN uc6_css_acct c ON s.customerid = c.customerid INNER JOIN uc6_css_addr a ON c.customerid = a.customerid WHERE c.customerbusinessunitcode <> ${excluded_business_unit_code} AND c.dateofbirth IS NOT NULL AND floor((months_between(current_date(), to_date(c.dateofbirth, 'yyyy-MM-dd'))) / 12) > ${min_age_years} AND s.msisdn IS NOT NULL AND trim(s.msisdn) <> '' UNION ALL SELECT 'jt' AS source_system, msisdn, nullif(upper(regexp_replace(coalesce(postcode, ''), '[^A-Za-z0-9]', '')), '') AS postcode_norm, concat_ws(' ', nullif(trim(regexp_replace(regexp_replace(upper(coalesce(building_number, '')), '[^A-Z0-9 ]', ' '), ' +', ' ')), ''), nullif(trim(regexp_replace(regexp_replace(upper(coalesce(street2, '')), '[^A-Z0-9 ]', ' '), ' +', ' ')), ''), nullif(trim(regexp_replace(regexp_replace(upper(coalesce(locality2, '')), '[^A-Z0-9 ]', ' '), ' +', ' ')), '')) AS address_norm, nullif(trim(regexp_replace(regexp_replace(upper(coalesce(town, '')), '[^A-Z0-9 ]', ' '), ' +', ' ')), '') AS town_norm, false AS has_po_box FROM uc6_jt_cust WHERE dateofbirth IS NOT NULL AND floor((months_between(current_date(), to_date(dateofbirth, 'yyyyMMdd'))) / 12) > ${min_age_years} AND msisdn IS NOT NULL AND trim(msisdn) <> '' UNION ALL SELECT 'excalibur' AS source_system, msisdn, nullif(upper(regexp_replace(coalesce(adr_post_code, ''), '[^A-Za-z0-9]', '')), '') AS postcode_norm, concat_ws(' ', nullif(trim(regexp_replace(regexp_replace(upper(coalesce(adr_house_name, '')), '[^A-Z0-9 ]', ' '), ' +', ' ')), ''), coalesce(nullif(trim(regexp_replace(regexp_replace(upper(coalesce(concat_ws(' ', adr_house_no, adr_primary_ln), '')), '[^A-Z0-9 ]', ' '), ' +', ' ')), ''), nullif(trim(regexp_replace(regexp_replace(upper(coalesce(adr_addr_line1, '')), '[^A-Z0-9 ]', ' '), ' +', ' ')), '')), nullif(trim(regexp_replace(regexp_replace(upper(coalesce(adr_district, '')), '[^A-Z0-9 ]', ' '), ' +', ' ')), '')) AS address_norm, nullif(trim(regexp_replace(regexp_replace(upper(coalesce(adr_district, '')), '[^A-Z0-9 ]', ' '), ' +', ' ')), '') AS town_norm, false AS has_po_box FROM uc6_exc_addr WHERE msisdn IS NOT NULL AND trim(msisdn) <> ''",
+      "target_config": {
+        "cdc_load_strategy": "APPEND",
+        "storage_format": "delta"
+      },
+      "dq_config": {
+        "rules": [
+          {
+            "rule_id": "uc6_paf_postcode_present",
+            "expression": "postcode_norm IS NOT NULL",
+            "action": "drop"
+          },
+          {
+            "rule_id": "uc6_paf_msisdn_present",
+            "expression": "msisdn IS NOT NULL",
+            "action": "drop"
+          }
+        ]
+      },
+      "governance_tags": {
+        "table_tags": {
+          "use_case": "uc6",
+          "source_system": "derived",
+          "data_classification": "confidential",
+          "pii": "true",
+          "owner": "business_data_and_ai",
+          "environment": "poc"
+        }
+      }
+    },
+    {
+      "flow_step_id": "ts_uc6_matched_address",
+      "dataflow_id": "df_uc6_ea_request_ingest",
+      "source_description": "UC6 silver: EA addresses matched to EE addresses on normalised postcode, excluding PO Boxes, scored by address-token overlap. IMPORTANT: match_strength is a DOCUMENTED ASSUMPTION -- the legacy Ab Initio scoring algorithm appears in none of the supplied documents. It is deliberately confined to this one expression, and the threshold is a pipeline parameter, so it can be replaced wholesale when the real algorithm surfaces. See docs/UC6/BUILD_CONTRACT.md section 6.",
+      "target_catalog": "{{catalog}}",
+      "target_schema": "silver",
+      "target_table": "uc6_matched_address",
+      "target_type": "streaming_table",
+      "source_inputs": [
+        {
+          "input_name": "uc6_ea_addr_match",
+          "table": "{{catalog}}.silver.uc6_ea_address",
+          "is_streaming": false
+        },
+        {
+          "input_name": "uc6_ee_paf_match",
+          "table": "{{catalog}}.silver.uc6_ee_address_paf",
+          "is_streaming": true
+        }
+      ],
+      "transformation_sql": "SELECT ea.osapr, ea.targetAreaID, ea.postcode_norm AS postcode, ea.address_norm AS address, ea.town_norm AS town, ee.msisdn AS msisdn, ee.source_system, CASE WHEN ea.address_norm IS NULL OR ee.address_norm IS NULL THEN 0 ELSE cast(round(100.0 * size(array_intersect(split(ea.address_norm, ' '), split(ee.address_norm, ' '))) / greatest(size(split(ea.address_norm, ' ')), 1)) AS INT) END AS match_strength FROM uc6_ee_paf_match ee INNER JOIN uc6_ea_addr_match ea ON ee.postcode_norm = ea.postcode_norm WHERE ea.has_po_box = false AND ee.has_po_box = false",
+      "target_config": {
+        "cdc_load_strategy": "APPEND",
+        "storage_format": "delta"
+      },
+      "dq_config": {
+        "rules": []
+      },
+      "governance_tags": {
+        "table_tags": {
+          "use_case": "uc6",
+          "source_system": "derived",
+          "data_classification": "confidential",
+          "pii": "true",
+          "owner": "business_data_and_ai",
+          "environment": "poc"
+        }
+      }
+    },
+    {
+      "flow_step_id": "ts_uc6_osapr_output",
+      "dataflow_id": "df_uc6_ea_request_ingest",
+      "source_description": "UC6 gold: one row per (targetAreaID, osapr) with its match COUNT and STATUS. Implements the four documented branches: Found (above threshold and the area has >1 matched address), Not Found (above threshold but only one), Bad OSAPR (at or below threshold), Single Addr (the area only ever had one address candidate at all). Both thresholds are pipeline parameters, never literals.",
+      "target_catalog": "{{catalog}}",
+      "target_schema": "gold",
+      "target_table": "uc6_osapr_output",
+      "target_type": "materialized_view",
+      "source_inputs": [
+        {
+          "input_name": "uc6_ea_base_osapr",
+          "table": "{{catalog}}.silver.uc6_ea_base",
+          "is_streaming": false
+        },
+        {
+          "input_name": "uc6_matched_osapr",
+          "table": "{{catalog}}.silver.uc6_matched_address",
+          "is_streaming": false
+        }
+      ],
+      "transformation_sql": "WITH scored AS (  SELECT b.targetAreaID, b.osapr, max(coalesce(m.match_strength, 0)) AS best_match_strength,          count(DISTINCT m.msisdn) AS count_of_msisdn   FROM uc6_ea_base_osapr b LEFT JOIN uc6_matched_osapr m ON b.osapr = m.osapr   GROUP BY b.targetAreaID, b.osapr), area AS (  SELECT targetAreaID,          count(*) AS candidate_osapr_count,          sum(CASE WHEN best_match_strength > ${match_strength_threshold} THEN 1 ELSE 0 END) AS matched_osapr_count   FROM scored GROUP BY targetAreaID) SELECT s.targetAreaID, s.osapr,   CASE WHEN s.best_match_strength > ${match_strength_threshold}             AND a.matched_osapr_count > ${min_addresses_per_area} THEN 1 ELSE 0 END AS count,   CASE WHEN a.candidate_osapr_count <= ${min_addresses_per_area} THEN 'Single Addr'        WHEN s.best_match_strength <= ${match_strength_threshold} THEN 'Bad OSAPR'        WHEN a.matched_osapr_count > ${min_addresses_per_area} THEN 'Found'        ELSE 'Not Found' END AS status,   s.count_of_msisdn, a.matched_osapr_count AS count_of_osapr, s.best_match_strength AS match_strength FROM scored s JOIN area a ON s.targetAreaID = a.targetAreaID",
+      "target_config": {
+        "cdc_load_strategy": "TRUNCATE_AND_LOAD",
+        "storage_format": "delta"
+      },
+      "dq_config": {
+        "rules": [
+          {
+            "rule_id": "uc6_osapr_status_known",
+            "expression": "status IN ('Found', 'Not Found', 'Bad OSAPR', 'Single Addr')",
+            "action": "fail"
+          },
+          {
+            "rule_id": "uc6_osapr_count_numeric_max_999",
+            "expression": "count BETWEEN 0 AND 999",
+            "action": "fail"
+          },
+          {
+            "rule_id": "uc6_osapr_target_area_max_32",
+            "expression": "length(targetAreaID) <= 32",
+            "action": "warn"
+          },
+          {
+            "rule_id": "uc6_osapr_max_12_digits",
+            "expression": "length(osapr) <= 12",
+            "action": "warn"
+          },
+          {
+            "rule_id": "uc6_osapr_status_max_100",
+            "expression": "length(status) <= 100",
+            "action": "warn"
+          }
+        ]
+      },
+      "governance_tags": {
+        "table_tags": {
+          "use_case": "uc6",
+          "source_system": "derived",
+          "data_classification": "confidential",
+          "pii": "true",
+          "owner": "business_data_and_ai",
+          "environment": "poc"
+        }
+      }
+    },
+    {
+      "flow_step_id": "ts_uc6_telephone_output",
+      "dataflow_id": "df_uc6_ea_request_ingest",
+      "source_description": "UC6 gold: the telephone list. Case 1 of the design (above threshold, MSISDN populated, and the area has more than one matched address) is included; Case 2 (only one matched address in the area) is EXCLUDED -- an anti-singling-out privacy safeguard, not an optimisation, so it is expressed as an explicit join against the areas that qualify rather than as a filter that could be lost in a rewrite.",
+      "target_catalog": "{{catalog}}",
+      "target_schema": "gold",
+      "target_table": "uc6_telephone_output",
+      "target_type": "materialized_view",
+      "source_inputs": [
+        {
+          "input_name": "uc6_matched_tel",
+          "table": "{{catalog}}.silver.uc6_matched_address",
+          "is_streaming": false
+        },
+        {
+          "input_name": "uc6_osapr_tel",
+          "table": "{{catalog}}.gold.uc6_osapr_output",
+          "is_streaming": false
+        }
+      ],
+      "transformation_sql": "SELECT DISTINCT m.targetAreaID, m.msisdn AS telephone FROM uc6_matched_tel m INNER JOIN uc6_osapr_tel o ON m.targetAreaID = o.targetAreaID AND m.osapr = o.osapr WHERE m.match_strength > ${match_strength_threshold} AND m.msisdn IS NOT NULL AND trim(m.msisdn) <> '' AND o.count_of_osapr > ${min_addresses_per_area}",
+      "target_config": {
+        "cdc_load_strategy": "TRUNCATE_AND_LOAD",
+        "storage_format": "delta"
+      },
+      "dq_config": {
+        "rules": [
+          {
+            "rule_id": "uc6_tel_msisdn_max_16",
+            "expression": "length(telephone) <= 16",
+            "action": "fail"
+          },
+          {
+            "rule_id": "uc6_tel_target_area_max_32",
+            "expression": "length(targetAreaID) <= 32",
+            "action": "warn"
+          }
+        ]
+      },
+      "governance_tags": {
+        "table_tags": {
+          "use_case": "uc6",
+          "source_system": "derived",
+          "data_classification": "confidential",
+          "pii": "true",
+          "owner": "business_data_and_ai",
+          "environment": "poc"
+        }
+      }
+    },
+    {
+      "flow_step_id": "ts_uc6_export_leidos_telephone",
+      "dataflow_id": "df_uc6_ea_request_ingest",
+      "source_description": "UC6 egress 1 of 4: the Leidos telephone list, plain gzip (no GPG). Fields exactly targetAreaID|telephone, per the interface specification.",
+      "target_catalog": "{{catalog}}",
+      "target_schema": "gold",
+      "target_table": "uc6_export_leidos_telephone",
+      "target_type": "sink",
+      "source_inputs": [
+        {
+          "input_name": "uc6_tel_leidos",
+          "table": "{{catalog}}.gold.uc6_telephone_output",
+          "is_streaming": true
+        }
+      ],
+      "transformation_sql": "SELECT targetAreaID, telephone FROM uc6_tel_leidos",
+      "target_config": {
+        "cdc_load_strategy": "APPEND",
+        "storage_format": "delta",
+        "sink_config": {
+          "format": "pgp_zip",
+          "path": "/Volumes/{{catalog}}/staging/uc_6/output/_staging/uc6_export_leidos_telephone/",
+          "staged_file_format": "csv",
+          "staged_file_options": {
+            "delimiter": "|",
+            "include_header": true,
+            "line_terminator": "lf"
+          },
+          "post_export_archive": {
+            "enabled": true,
+            "output_zip_path": "/Volumes/{{catalog}}/staging/uc_6/output/",
+            "export_file_name_format": "EE_${export_file_date}-LEIDOS_TELEPHONE_${export_file_sequence}",
+            "archive_format": "gzip"
+          }
+        }
+      },
+      "dq_config": {
+        "rules": []
+      },
+      "governance_tags": {
+        "table_tags": {
+          "use_case": "uc6",
+          "source_system": "derived",
+          "data_classification": "confidential",
+          "pii": "true",
+          "owner": "business_data_and_ai",
+          "environment": "poc"
+        }
+      }
+    },
+    {
+      "flow_step_id": "ts_uc6_export_leidos_osapr",
+      "dataflow_id": "df_uc6_ea_request_ingest",
+      "source_description": "UC6 egress 2 of 4: the Leidos OSAPR match-status list, plain gzip (no GPG). Fields exactly targetAreaID|osapr|count|status.",
+      "target_catalog": "{{catalog}}",
+      "target_schema": "gold",
+      "target_table": "uc6_export_leidos_osapr",
+      "target_type": "sink",
+      "source_inputs": [
+        {
+          "input_name": "uc6_osapr_leidos",
+          "table": "{{catalog}}.gold.uc6_osapr_output",
+          "is_streaming": true
+        }
+      ],
+      "transformation_sql": "SELECT targetAreaID, osapr, count, status FROM uc6_osapr_leidos",
+      "target_config": {
+        "cdc_load_strategy": "APPEND",
+        "storage_format": "delta",
+        "sink_config": {
+          "format": "pgp_zip",
+          "path": "/Volumes/{{catalog}}/staging/uc_6/output/_staging/uc6_export_leidos_osapr/",
+          "staged_file_format": "csv",
+          "staged_file_options": {
+            "delimiter": "|",
+            "include_header": true,
+            "line_terminator": "lf"
+          },
+          "post_export_archive": {
+            "enabled": true,
+            "output_zip_path": "/Volumes/{{catalog}}/staging/uc_6/output/",
+            "export_file_name_format": "EE_${export_file_date}-LEIDOS_OSAPR_${export_file_sequence}",
+            "archive_format": "gzip"
+          }
+        }
+      },
+      "dq_config": {
+        "rules": []
+      },
+      "governance_tags": {
+        "table_tags": {
+          "use_case": "uc6",
+          "source_system": "derived",
+          "data_classification": "confidential",
+          "pii": "true",
+          "owner": "business_data_and_ai",
+          "environment": "poc"
+        }
+      }
+    },
+    {
+      "flow_step_id": "ts_uc6_export_telephone",
+      "dataflow_id": "df_uc6_ea_request_ingest",
+      "source_description": "UC6 egress 3 of 4: the Fujitsu-equivalent telephone list, gzip + GPG symmetric (AES256) under the flowx.config.pgpkey secret -- the same passphrase that decrypts the inbound EA request. Identical content to the Leidos file; the two exist so the Fujitsu-to-Leidos cutover can run in parallel with no gap in flood warnings.",
+      "target_catalog": "{{catalog}}",
+      "target_schema": "gold",
+      "target_table": "uc6_export_telephone",
+      "target_type": "sink",
+      "source_inputs": [
+        {
+          "input_name": "uc6_tel_fujitsu",
+          "table": "{{catalog}}.gold.uc6_telephone_output",
+          "is_streaming": true
+        }
+      ],
+      "transformation_sql": "SELECT targetAreaID, telephone FROM uc6_tel_fujitsu",
+      "target_config": {
+        "cdc_load_strategy": "APPEND",
+        "storage_format": "delta",
+        "sink_config": {
+          "format": "pgp_zip",
+          "path": "/Volumes/{{catalog}}/staging/uc_6/output/_staging/uc6_export_telephone/",
+          "staged_file_format": "csv",
+          "staged_file_options": {
+            "delimiter": "|",
+            "include_header": true,
+            "line_terminator": "lf"
+          },
+          "post_export_archive": {
+            "enabled": true,
+            "output_zip_path": "/Volumes/{{catalog}}/staging/uc_6/output/",
+            "export_file_name_format": "EE_${export_file_date}-TELEPHONE_${export_file_sequence}",
+            "archive_format": "gzip",
+            "pgp_encryption": {
+              "enabled": true,
+              "passphrase_secret": {
+                "secret_catalog": "{{catalog}}",
+                "secret_schema": "config",
+                "secret_key": "pgpkey"
+              }
+            }
+          }
+        }
+      },
+      "dq_config": {
+        "rules": []
+      },
+      "governance_tags": {
+        "table_tags": {
+          "use_case": "uc6",
+          "source_system": "derived",
+          "data_classification": "confidential",
+          "pii": "true",
+          "owner": "business_data_and_ai",
+          "environment": "poc"
+        }
+      }
+    },
+    {
+      "flow_step_id": "ts_uc6_export_osapr",
+      "dataflow_id": "df_uc6_ea_request_ingest",
+      "source_description": "UC6 egress 4 of 4: the Fujitsu-equivalent OSAPR match-status list, gzip + GPG symmetric.",
+      "target_catalog": "{{catalog}}",
+      "target_schema": "gold",
+      "target_table": "uc6_export_osapr",
+      "target_type": "sink",
+      "source_inputs": [
+        {
+          "input_name": "uc6_osapr_fujitsu",
+          "table": "{{catalog}}.gold.uc6_osapr_output",
+          "is_streaming": true
+        }
+      ],
+      "transformation_sql": "SELECT targetAreaID, osapr, count, status FROM uc6_osapr_fujitsu",
+      "target_config": {
+        "cdc_load_strategy": "APPEND",
+        "storage_format": "delta",
+        "sink_config": {
+          "format": "pgp_zip",
+          "path": "/Volumes/{{catalog}}/staging/uc_6/output/_staging/uc6_export_osapr/",
+          "staged_file_format": "csv",
+          "staged_file_options": {
+            "delimiter": "|",
+            "include_header": true,
+            "line_terminator": "lf"
+          },
+          "post_export_archive": {
+            "enabled": true,
+            "output_zip_path": "/Volumes/{{catalog}}/staging/uc_6/output/",
+            "export_file_name_format": "EE_${export_file_date}-OSAPR_${export_file_sequence}",
+            "archive_format": "gzip",
+            "pgp_encryption": {
+              "enabled": true,
+              "passphrase_secret": {
+                "secret_catalog": "{{catalog}}",
+                "secret_schema": "config",
+                "secret_key": "pgpkey"
+              }
+            }
+          }
+        }
+      },
+      "dq_config": {
+        "rules": []
+      },
+      "governance_tags": {
+        "table_tags": {
+          "use_case": "uc6",
+          "source_system": "derived",
+          "data_classification": "confidential",
+          "pii": "true",
+          "owner": "business_data_and_ai",
+          "environment": "poc"
+        }
+      }
+    }
+  ],
+  "reconciliation_flows": [
+    {
+      "reconciliation_id": "rf_uc6_ea_request_presence",
+      "dataflow_group_id": "dfg_uc6_ea_flood_warning",
+      "source_config": {
+        "type": "table",
+        "table": "{{catalog}}.bronze.uc6_ea_request",
+        "read_mode": "batch",
+        "hash_precomputed": false
+      },
+      "target_configs": [
+        {
+          "target_id": "ea_request_self",
+          "type": "table",
+          "table": "{{catalog}}.bronze.uc6_ea_request",
+          "read_mode": "batch",
+          "hash_precomputed": false,
+          "comparison_direction": "target_to_source"
+        }
+      ],
+      "match_keys": [
+        "__framework_hash_key"
+      ],
+      "compare_columns": [],
+      "execution_mode": "pipeline",
+      "dq_config": {
+        "rules": [
+          {
+            "rule_id": "uc6_ea_request_not_empty",
+            "expression": "source_record_count > 0",
+            "action": "fail"
+          }
+        ]
+      },
+      "error_handling": {
+        "on_failure": "fail"
+      },
+      "logging_config": {
+        "run_log_capture": true,
+        "mismatch_log_capture": false
+      }
+    },
+    {
+      "reconciliation_id": "rf_uc6_css_account_presence",
+      "dataflow_group_id": "dfg_uc6_ea_flood_warning",
+      "source_config": {
+        "type": "table",
+        "table": "{{catalog}}.bronze.uc6_css_account",
+        "read_mode": "batch",
+        "hash_precomputed": false
+      },
+      "target_configs": [
+        {
+          "target_id": "css_account_self",
+          "type": "table",
+          "table": "{{catalog}}.bronze.uc6_css_account",
+          "read_mode": "batch",
+          "hash_precomputed": false,
+          "comparison_direction": "target_to_source"
+        }
+      ],
+      "match_keys": [
+        "__framework_hash_key"
+      ],
+      "compare_columns": [],
+      "execution_mode": "pipeline",
+      "dq_config": {
+        "rules": [
+          {
+            "rule_id": "uc6_css_account_not_empty",
+            "expression": "source_record_count > 0",
+            "action": "fail"
+          }
+        ]
+      },
+      "error_handling": {
+        "on_failure": "fail"
+      },
+      "logging_config": {
+        "run_log_capture": true,
+        "mismatch_log_capture": false
+      }
+    },
+    {
+      "reconciliation_id": "rf_uc6_css_account_address_presence",
+      "dataflow_group_id": "dfg_uc6_ea_flood_warning",
+      "source_config": {
+        "type": "table",
+        "table": "{{catalog}}.bronze.uc6_css_account_address",
+        "read_mode": "batch",
+        "hash_precomputed": false
+      },
+      "target_configs": [
+        {
+          "target_id": "css_account_address_self",
+          "type": "table",
+          "table": "{{catalog}}.bronze.uc6_css_account_address",
+          "read_mode": "batch",
+          "hash_precomputed": false,
+          "comparison_direction": "target_to_source"
+        }
+      ],
+      "match_keys": [
+        "__framework_hash_key"
+      ],
+      "compare_columns": [],
+      "execution_mode": "pipeline",
+      "dq_config": {
+        "rules": [
+          {
+            "rule_id": "uc6_css_account_address_not_empty",
+            "expression": "source_record_count > 0",
+            "action": "fail"
+          }
+        ]
+      },
+      "error_handling": {
+        "on_failure": "fail"
+      },
+      "logging_config": {
+        "run_log_capture": true,
+        "mismatch_log_capture": false
+      }
+    },
+    {
+      "reconciliation_id": "rf_uc6_css_subscription_presence",
+      "dataflow_group_id": "dfg_uc6_ea_flood_warning",
+      "source_config": {
+        "type": "table",
+        "table": "{{catalog}}.bronze.uc6_css_subscription",
+        "read_mode": "batch",
+        "hash_precomputed": false
+      },
+      "target_configs": [
+        {
+          "target_id": "css_subscription_self",
+          "type": "table",
+          "table": "{{catalog}}.bronze.uc6_css_subscription",
+          "read_mode": "batch",
+          "hash_precomputed": false,
+          "comparison_direction": "target_to_source"
+        }
+      ],
+      "match_keys": [
+        "__framework_hash_key"
+      ],
+      "compare_columns": [],
+      "execution_mode": "pipeline",
+      "dq_config": {
+        "rules": [
+          {
+            "rule_id": "uc6_css_subscription_not_empty",
+            "expression": "source_record_count > 0",
+            "action": "fail"
+          }
+        ]
+      },
+      "error_handling": {
+        "on_failure": "fail"
+      },
+      "logging_config": {
+        "run_log_capture": true,
+        "mismatch_log_capture": false
+      }
+    },
+    {
+      "reconciliation_id": "rf_uc6_jt_customer_presence",
+      "dataflow_group_id": "dfg_uc6_ea_flood_warning",
+      "source_config": {
+        "type": "table",
+        "table": "{{catalog}}.bronze.uc6_jt_customer",
+        "read_mode": "batch",
+        "hash_precomputed": false
+      },
+      "target_configs": [
+        {
+          "target_id": "jt_customer_self",
+          "type": "table",
+          "table": "{{catalog}}.bronze.uc6_jt_customer",
+          "read_mode": "batch",
+          "hash_precomputed": false,
+          "comparison_direction": "target_to_source"
+        }
+      ],
+      "match_keys": [
+        "__framework_hash_key"
+      ],
+      "compare_columns": [],
+      "execution_mode": "pipeline",
+      "dq_config": {
+        "rules": [
+          {
+            "rule_id": "uc6_jt_customer_not_empty",
+            "expression": "source_record_count > 0",
+            "action": "fail"
+          }
+        ]
+      },
+      "error_handling": {
+        "on_failure": "fail"
+      },
+      "logging_config": {
+        "run_log_capture": true,
+        "mismatch_log_capture": false
+      }
+    },
+    {
+      "reconciliation_id": "rf_uc6_excalibur_address_presence",
+      "dataflow_group_id": "dfg_uc6_ea_flood_warning",
+      "source_config": {
+        "type": "table",
+        "table": "{{catalog}}.bronze.uc6_excalibur_address",
+        "read_mode": "batch",
+        "hash_precomputed": false
+      },
+      "target_configs": [
+        {
+          "target_id": "excalibur_address_self",
+          "type": "table",
+          "table": "{{catalog}}.bronze.uc6_excalibur_address",
+          "read_mode": "batch",
+          "hash_precomputed": false,
+          "comparison_direction": "target_to_source"
+        }
+      ],
+      "match_keys": [
+        "__framework_hash_key"
+      ],
+      "compare_columns": [],
+      "execution_mode": "pipeline",
+      "dq_config": {
+        "rules": [
+          {
+            "rule_id": "uc6_excalibur_address_not_empty",
+            "expression": "source_record_count > 0",
+            "action": "fail"
+          }
+        ]
+      },
+      "error_handling": {
+        "on_failure": "fail"
+      },
+      "logging_config": {
+        "run_log_capture": true,
+        "mismatch_log_capture": false
+      }
+    }
+  ]
+}

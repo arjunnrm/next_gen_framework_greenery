@@ -35,6 +35,8 @@ PGP encrypt/decrypt/sign, via ``PGPy`` -- pure Python, no external ``gpg`` binar
 | `pgp_decrypt(data: bytes, private_key_armored: str, passphrase: Optional[str] = None) -> bytes` | Decrypt a PGP-encrypted binary payload with an ASCII-armored private key. |
 | `pgp_encrypt(data: bytes, recipient_public_key_armored: str, sign_with_private_key_armored: Optional[str] = None, sign_passphrase: Optional[str] = None) -> bytes` | Encrypt a binary payload for a recipient's PGP public key, optionally signing it. |
 | `pgp_verify(data: bytes, signed_message: bytes, signer_public_key_armored: str) -> bool` | Verify a PGP signature over ``data`` using the signer's ASCII-armored public key. |
+| `pgp_decrypt_symmetric(data: bytes, passphrase: str) -> bytes` | Decrypt a passphrase-encrypted (symmetric) PGP payload. |
+| `pgp_encrypt_symmetric(data: bytes, passphrase: str, cipher: str = 'AES256') -> bytes` | Encrypt a payload under a shared passphrase (symmetric PGP), ASCII-armored. |
 
 
 ## `lakeflow_framework/crypto/secrets.py`

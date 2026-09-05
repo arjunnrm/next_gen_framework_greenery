@@ -288,7 +288,10 @@ latest-modified-file-in-a-directory — `ingestion/schema_config.py`; see
 `docs/28_ingestion_schema_config.md` for the exact ordering between these two and every other
 column-touching field). `autoloader` and `asn1` additionally support `source_zip_handling`
 (decrypt, then unzip, before Auto Loader ever reads the extracted files — see
-`ingestion/readers.py::_apply_source_zip_handling`) and, for JSON `autoloader` sources,
+`ingestion/readers.py::_apply_source_zip_handling`; `member_format` selects the
+container — `"zip"` (default) or `"gzip"` (**v1.7.4**) for a single compressed
+stream such as `.csv.gz.gpg`, and `pre_extraction_decryption.type` is `"pgp"`
+(recipient keypair) or `"pgp_symmetric"` (**v1.7.4**, shared passphrase)) and, for JSON `autoloader` sources,
 `explode_columns` (`ingestion/json_flattening.py`).
 
 ASN.1 detail worth knowing before touching a CDR spec: the Spark output schema is **derived
@@ -398,7 +401,7 @@ was removed entirely once this was fixed — see
 |---|---|---|
 | `"delta"` | `sink_config.path` | Native Lakeflow Delta sink. |
 | `"kafka"` | `sink_config.kafka_options` (at minimum `kafka.bootstrap.servers`, `topic`); optional `kafka_secret_options` for a connector option needing a literal resolved secret value | Native Lakeflow Kafka sink — same options a Spark Structured Streaming Kafka writer takes. |
-| `"pgp_zip"` | `sink_config.path` (staging dir) + `sink_config.post_export_archive.output_zip_path`; optional `sink_config.staged_file_format` (`"json"` default \| `"csv"`, **v1.6.0**) | This framework's own **custom Lakeflow sink** (`archive/pgp_zip_sink.py::PgpZipDataSource`, a real `pyspark.sql.datasource.DataSource`) — stages every micro-batch's rows per partition (JSON-Lines, or RFC-4180 CSV with a header row when `staged_file_format: "csv"`), then zips (optionally AES-password-protects via `post_export_archive.secret`, optionally PGP-encrypts+signs) them into one archive file. `staged_file_format` is presence-rejected on `"delta"`/`"kafka"`, which have no staging step. |
+| `"pgp_zip"` | `sink_config.path` (staging dir) + `sink_config.post_export_archive.output_zip_path`; optional `sink_config.staged_file_format` (`"json"` default \| `"csv"`, **v1.6.0**), optional `sink_config.staged_file_options` (**v1.7.4**: `delimiter` \| `include_header` \| `line_terminator` `"crlf"`/`"lf"` — csv only), optional `post_export_archive.archive_format` (**v1.7.4**: `"zip"` default \| `"gzip"`) | This framework's own **custom Lakeflow sink** (`archive/pgp_zip_sink.py::PgpZipDataSource`, a real `pyspark.sql.datasource.DataSource`) — stages every micro-batch's rows per partition (JSON-Lines, or RFC-4180 CSV with a header row when `staged_file_format: "csv"`), then zips (optionally AES-password-protects via `post_export_archive.secret`, optionally PGP-encrypts+signs) them into one archive file. **v1.7.4**: with `archive_format: "gzip"` it instead concatenates that micro-batch's staged files into ONE gzip stream named `<stem>.csv.gz` (or `.csv.gz.gpg` when encrypted) — a gzip holds exactly one member, has no archive password, and drops all but the first per-partition CSV header. `pgp_encryption` takes **exactly one** of `recipient_public_key_secret` (asymmetric, signable) or `passphrase_secret` (symmetric, **v1.7.4**, not signable). `staged_file_format` is presence-rejected on `"delta"`/`"kafka"`, which have no staging step. |
 
 Hard constraint (Databricks platform limitation, not a framework choice): `dlt.create_sink`/
 `@dlt.append_flow` are **streaming-only** — a batch/non-streaming source cannot feed a sink at

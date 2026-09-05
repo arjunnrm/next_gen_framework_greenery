@@ -1,0 +1,178 @@
+{
+  "version": "1.7.4",
+  "summary": "Three additive spec capabilities driven by UC6 (Flood Warning System, EA -> Leidos): symmetric (passphrase) PGP on both the ingest and egress sides, gzip as a landing-member container, and a configurable CSV dialect plus gzip archive format on the pgp_zip sink. Plus two JSON-schema-only fixes. NOTHING IS REMOVED and every default preserves pre-1.7.4 behaviour, so no existing spec changes shape or needs migrating.",
+  "breaking": false,
+  "removed_attributes": [],
+  "added_attributes": [
+    {
+      "path": "ingestion_flows[].source_config.source_zip_handling.member_format",
+      "type": "string",
+      "enum": [
+        "zip",
+        "gzip"
+      ],
+      "default": "zip",
+      "required": false,
+      "applies_when": "source_zip_handling.enabled == true",
+      "description": "The landing archive's CONTAINER, orthogonal to any decryption layer. 'zip' is a real archive with N named members, opened by pyzipper. 'gzip' is a single compressed stream with no member table, which pyzipper cannot open at all.",
+      "ui_action": "Add a select to the ZIP-handling section, labelled 'Archive container', options zip (default) / gzip. Show a hint under 'gzip': 'An UNENCRYPTED .gz needs no ZIP handling at all -- Spark decompresses it on read. Use gzip only for an encrypted .gz (e.g. .csv.gz.gpg).'",
+      "validation": "Reject any other value. When 'gzip', reject pre_extraction_decryption.secret_passphrase.",
+      "rejection_message_verbatim": "source_config.source_zip_handling.member_format 'tar' is not supported (known formats: ['gzip', 'zip'])",
+      "migration": "None -- absent means 'zip', the only pre-1.7.4 behaviour.",
+      "source_of_truth": "src/flowx/lakeflow_framework/ingestion/readers.py::_extract_one_zip_file"
+    },
+    {
+      "path": "ingestion_flows[].source_config.source_zip_handling.pre_extraction_decryption.type",
+      "change": "enum_extended",
+      "enum_before": [
+        "pgp"
+      ],
+      "enum_after": [
+        "pgp",
+        "pgp_symmetric"
+      ],
+      "description": "'pgp_symmetric' decrypts a passphrase-encrypted OpenPGP message -- the shape `gpg --symmetric --cipher-algo AES256` produces. Kept as a distinct type rather than an optional extra secret on 'pgp' because the two are mutually exclusive at the message level: a key-encrypted message is not passphrase-decryptable and vice versa.",
+      "ui_action": "Add 'pgp_symmetric' to the decryption-type select. When selected, HIDE private_key_secret and make passphrase_secret REQUIRED. When 'pgp' is selected, keep today's behaviour (private_key_secret required, passphrase_secret optional).",
+      "validation": "type 'pgp_symmetric' REQUIRES passphrase_secret and REJECTS private_key_secret.",
+      "rejection_message_verbatim": "source_config.source_zip_handling.pre_extraction_decryption.private_key_secret: not valid for type 'pgp_symmetric' -- a passphrase-encrypted OpenPGP message has no recipient keypair. Use type 'pgp' for a key-encrypted message.",
+      "migration": "None -- 'pgp' is unchanged.",
+      "source_of_truth": "src/flowx/lakeflow_framework/crypto/pgp.py::pgp_decrypt_symmetric"
+    },
+    {
+      "path": "*.target_config.sink_config.staged_file_options",
+      "type": "object",
+      "required": false,
+      "applies_when": "sink_config.format == 'pgp_zip' AND sink_config.staged_file_format == 'csv'",
+      "shape": {
+        "delimiter": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1,
+          "default": ","
+        },
+        "include_header": {
+          "type": "boolean",
+          "default": true
+        },
+        "line_terminator": {
+          "type": "string",
+          "enum": [
+            "crlf",
+            "lf"
+          ],
+          "default": "crlf"
+        }
+      },
+      "description": "The staged CSV's dialect. Before 1.7.4 the writer used Python's csv `excel` default -- comma-separated, always headered, CRLF-terminated -- with no way to express a supplier interface that specifies otherwise.",
+      "ui_action": "Add a collapsible 'CSV format' group under the sink editor, shown ONLY when format is pgp_zip and staged_file_format is csv. Three controls: a single-character text input (delimiter), a checkbox (include_header), and a select crlf/lf (line_terminator). line_terminator is spelled as a name because JSON cannot carry a bare control character.",
+      "validation": "Reject when staged_file_format != 'csv'; reject a multi-character delimiter; reject a line_terminator outside {crlf, lf}.",
+      "rejection_message_verbatim": "target_config.sink_config.staged_file_options.delimiter: must be exactly one character, got '||' -- Python's csv writer cannot emit a multi-character delimiter.",
+      "migration": "None -- omitting the object reproduces the pre-1.7.4 dialect exactly.",
+      "source_of_truth": "src/flowx/lakeflow_framework/archive/pgp_zip_sink.py::_PgpZipStreamWriter"
+    },
+    {
+      "path": "*.target_config.sink_config.post_export_archive.archive_format",
+      "type": "string",
+      "enum": [
+        "zip",
+        "gzip"
+      ],
+      "default": "zip",
+      "required": false,
+      "description": "The finished export's container. 'gzip' concatenates this micro-batch's staged partition files into ONE gzip stream (a gzip holds exactly one member) and names the export '<export_file_name_format>.<csv|jsonl>.gz', or '....gz.gpg' when pgp_encryption is on. The per-file CSV header is emitted per partition, so all but the first are dropped on concatenation.",
+      "ui_action": "Add a select 'Archive format' to the export section: zip (default) / gzip. When gzip is selected, DISABLE the 'secret' (AES ZIP password) field with the hint 'A gzip stream has no archive password.' and update the filename preview to <stem>.csv.gz[.gpg].",
+      "validation": "Reject any other value.",
+      "rejection_message_verbatim": "target_config.sink_config.post_export_archive.archive_format: must be one of ['gzip', 'zip']",
+      "migration": "None -- absent means 'zip'.",
+      "source_of_truth": "src/flowx/lakeflow_framework/archive/pgp_zip_sink.py::commit"
+    },
+    {
+      "path": "*.target_config.sink_config.post_export_archive.pgp_encryption.passphrase_secret",
+      "type": {
+        "type": "object",
+        "shape": {
+          "secret_catalog": "string",
+          "secret_schema": "string",
+          "secret_key": "string"
+        }
+      },
+      "required": false,
+      "mutually_exclusive_with": [
+        "recipient_public_key_secret"
+      ],
+      "description": "Symmetric (passphrase) egress encryption. Exactly one of passphrase_secret or recipient_public_key_secret must be set when pgp_encryption.enabled is true. Before 1.7.4 the recipient key was unconditionally required, so symmetric encryption was unreachable from a spec.",
+      "ui_action": "In the PGP-encryption section add a radio: 'Encrypt to a recipient key' (today's behaviour) vs 'Encrypt with a shared passphrase'. Passphrase mode shows ONE secret picker and HIDES recipient_public_key_secret, sign_with_private_key_secret and sign_passphrase_secret -- signing needs a sender keypair and is unavailable here.",
+      "validation": "Reject when both secrets are present; reject when neither is and enabled is true; reject signing fields alongside passphrase_secret.",
+      "rejection_message_verbatim": "target_config.sink_config.post_export_archive.pgp_encryption: 'passphrase_secret' (symmetric) and 'recipient_public_key_secret' (asymmetric) are mutually exclusive -- set exactly one.",
+      "migration": "None -- existing recipient-key specs are unchanged.",
+      "source_of_truth": "src/flowx/lakeflow_framework/crypto/pgp.py::pgp_encrypt_symmetric"
+    }
+  ],
+  "modified_attributes": [
+    {
+      "path": "*.target_config.sink_config.post_export_archive.pgp_encryption.recipient_public_key_secret",
+      "change": "no_longer_unconditionally_required",
+      "before": "REQUIRED whenever pgp_encryption.enabled is true.",
+      "after": "Required only when passphrase_secret is absent (exactly-one-of).",
+      "ui_action": "Drive the required flag from the encryption-mode radio above, not from `enabled`.",
+      "migration": "None -- a spec that sets it keeps working unchanged."
+    },
+    {
+      "path": "transformation_flows[].source_description",
+      "change": "json_schema_fix_only",
+      "before": "Accepted by the Python validator (in ALLOWED_TRANSFORMATION_FLOW_KEYS) but ABSENT from the JSON schema, whose additionalProperties:false rejected it -- so a spec setting it passed validate_spec and was then refused at onboarding.",
+      "after": "Declared in the schema; both gates now agree.",
+      "ui_action": "The description field may now be shown for transformation flows as well as ingestion flows. It becomes the target table's Unity Catalog COMMENT.",
+      "migration": "None."
+    },
+    {
+      "path": "reconciliation_flows[].target_configs[]",
+      "change": "json_schema_fix_only",
+      "before": "reconciliationTargetConfig composes reconciliationDatasetConfig via allOf; the base def set additionalProperties:false, which cannot see sibling-branch properties, so target_id / comparison_direction / append_target_table were always rejected. EVERY reconciliation spec in flowx_testing/ failed the schema.",
+      "after": "Closed with unevaluatedProperties at the composed level, which evaluates across allOf branches. Unknown keys are still rejected.",
+      "ui_action": "None functionally. If the app previously worked around this by skipping schema validation for reconciliation target configs, that workaround can be removed.",
+      "migration": "None."
+    }
+  ],
+  "app_update_checklist": [
+    "databricks-app/config/registry/*.json -- add the 5 new attributes with their types, defaults, enums and applies_when conditions.",
+    "databricks-app/config/attribute_knowledge*.json -- add the descriptions verbatim from this file; they explain WHY each attribute exists, which is what the assistant surfaces.",
+    "databricks-app/config/validation/rules.json -- add the exactly-one-of rule for pgp_encryption, the single-character delimiter rule, the two enum rules, and the member_format 'gzip' vs secret_passphrase conflict.",
+    "databricks-app/web/src/registry.js and Builder.jsx -- render the conditional groups described in each ui_action. Anchor edits on exact line prefixes; never a broad regex (a DOTALL re.sub once swallowed ~650 lines of Builder.jsx). Run `node --check` after.",
+    "databricks-app/server/settings.py -- no change expected; confirm explicitly rather than assuming.",
+    "npm run build in databricks-app/web -- REQUIRED. Databricks Apps does not build at deploy time, so an un-rebuilt web/dist/ keeps serving the old form.",
+    "Deploy is TWO steps: `bundle deploy` then `bundle run` -- deploy alone leaves the app on its previous code."
+  ],
+  "verification": {
+    "unit_tests_added": 32,
+    "suites": [
+      "tests/unit/test_crypto_pgp.py",
+      "tests/unit/test_zip_source_handling.py",
+      "tests/unit/test_pgp_zip_sink.py",
+      "tests/unit/test_spec_validator.py",
+      "tests/unit/test_uc6_spec.py"
+    ],
+    "regression_check": "Full tests/unit diffed by failing-test-ID against a pre-change baseline: 125 vs 127. Zero regressions; two pre-existing resource-layout failures fixed. Counts alone are unreliable in this repo (the offline baseline swings widely), so the ID sets were compared.",
+    "bundle_validate": "databricks bundle validate -t dev_flowx --var=wheels_root=... -> Validation OK!",
+    "external_interop": "Symmetric PGP round-tripped against the real GnuPG 2.4.9 CLI in BOTH directions with a gzip payload: the framework decrypts what gpg wrote, and gpg decrypts what the framework wrote."
+  },
+  "app_update_status": {
+    "state": "COMPLETE",
+    "date": "2026-09-05",
+    "note": "Every item in app_update_checklist below is done. Retained as the record of what was asked for and what was actually built, since the two differ in two places (see deviations).",
+    "completed": {
+      "config/registry/ingestion.json": "member_format select; pre_extraction_decryption.type gains pgp_symmetric; private_key_secret gated to type=='pgp'; a required passphrase_secret picker for pgp_symmetric.",
+      "config/registry/shared.target.json": "staged_file_options.{delimiter,include_header,line_terminator}; post_export_archive.archive_format; pgp_encryption.passphrase_secret; recipient_public_key_secret no longer unconditionally required.",
+      "config/validation/rules.json": "12 rules added (11 error, 1 warning): both enums, the exactly-one-of and neither-set pgp_encryption pair, single-character delimiter, line_terminator enum, staged_file_options csv-only, the member_format gzip vs secret_passphrase conflict, pgp_symmetric requires-passphrase and rejects-private-key, symmetric-rejects-signing, and a warning for a ZIP password on a gzip archive.",
+      "config/attribute_knowledge.curated.json": "5 curated entries (purpose/why/samples/tips/errors), then scripts/build_attribute_knowledge.py re-run: 187 attributes, 31 curated.",
+      "web/src/registry.js": "Same 6 fields mirrored, plus mutual-exclusion visibility in both directions. node --check passes; 538 -> 544 lines.",
+      "web/dist (npm run build)": "Rebuilt. Asserted by test_v174_attributes.py::test_new_attributes_reach_the_shipped_bundle.",
+      "server/settings.py": "NO CHANGE NEEDED - confirmed explicitly, not assumed: the module carries no attribute allowlist or per-field coupling.",
+      "databricks-app/tests/test_v174_attributes.py": "NEW - 45 tests. Suite is 208 passed / 19 skipped / 0 failed against a 163/19/0 baseline."
+    },
+    "deviations_from_this_checklist": [
+      "Builder.jsx was NOT modified. The checklist assumed per-attribute rendering, but Builder.jsx is a generic renderer driving off registry.js field descriptors; all six fields render through existing widgets (select/text/boolean) and their visible_when predicates. Editing it would add special-casing to a file whose design avoids it, and which this repo has twice damaged with broad regexes.",
+      "Conditional REQUIREDness is enforced in rules.json, not in the registry. registry.js consumes `req` as a plain truthy scalar (f.req?'REQUIRED':''), never as a predicate, so a function would mark the field REQUIRED in every mode. The ui_action entries below that say 'make X REQUIRED' are therefore satisfied by a validation rule plus a `reason` string explaining the gating, not by a registry flag."
+    ]
+  }
+}

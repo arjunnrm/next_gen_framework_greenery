@@ -310,6 +310,75 @@
         ]
       },
       "governance_tags": {}
+    },
+    {
+      "dataflow_id": "df_ref_autoloader_full",
+      "source_system": "ref_source_system",
+      "source_database": "ref_source_db",
+      "source_table_name": "ref_gzip_symmetric",
+      "source_description": "Reference ingestion flow for an ENCRYPTED GZIP landing drop (v1.7.4): source_zip_handling.member_format 'gzip' plus pre_extraction_decryption.type 'pgp_symmetric'. This is the shape `gpg --symmetric --cipher-algo AES256 file.csv.gz` produces -- a single compressed stream inside a passphrase-encrypted OpenPGP message, which pyzipper cannot open and which has no recipient keypair. An UNENCRYPTED .gz needs no source_zip_handling at all; Spark decompresses it natively on read.",
+      "source_type": "autoloader",
+      "target_catalog": "{{catalog}}",
+      "target_schema": "ref_bronze",
+      "target_table": "ref_gzip_symmetric",
+      "target_type": "streaming_table",
+      "source_config": {
+        "path": "/Volumes/{{catalog}}/landing/ref_gzip_zone/incoming/",
+        "format": "csv",
+        "schema_location": "/Volumes/{{catalog}}/landing/_schemas/ref_gzip_symmetric/",
+        "file_pattern": "ref_gzip_feed_*.csv",
+        "reader_options": {
+          "header": "true",
+          "delimiter": "|"
+        },
+        "source_zip_handling": {
+          "enabled": true,
+          "source_zip_path": "/Volumes/{{catalog}}/landing/ref_gzip_zone/incoming/",
+          "zip_file_pattern": "ref_gzip_feed_*.csv.gz.gpg",
+          "target_volume_path": "/Volumes/{{catalog}}/landing/ref_gzip_zone/incoming/",
+          "member_format": "gzip",
+          "delete_source_after_extract": {
+            "action": "delete_now"
+          },
+          "pre_extraction_decryption": {
+            "type": "pgp_symmetric",
+            "passphrase_secret": {
+              "secret_catalog": "{{catalog}}",
+              "secret_schema": "security",
+              "secret_key": "ref_gzip_message_passphrase"
+            }
+          }
+        }
+      },
+      "target_config": {
+        "cdc_load_strategy": "APPEND",
+        "storage_format": "delta"
+      },
+      "dq_config": {
+        "rules": []
+      },
+      "governance_tags": {
+        "column_tags": [
+          {
+            "column": "pii_column",
+            "tags": {
+              "mask": "PII",
+              "classification": "restricted"
+            }
+          },
+          {
+            "column": "account_number",
+            "tags": {
+              "mask": "PII"
+            }
+          }
+        ],
+        "table_tags": {
+          "row_filter": "region_restricted",
+          "domain": "reference",
+          "owner": "data-platform-team"
+        }
+      }
     }
   ],
   "transformation_flows": [
@@ -788,6 +857,11 @@
           "format": "pgp_zip",
           "path": "/Volumes/{{catalog}}/egress/ref_pure_sink_pgp_zip/{{env}}/_staging/",
           "staged_file_format": "csv",
+          "staged_file_options": {
+            "delimiter": "|",
+            "include_header": true,
+            "line_terminator": "lf"
+          },
           "post_export_archive": {
             "enabled": true,
             "output_zip_path": "/Volumes/{{catalog}}/egress/zips/ref_pure_sink_pgp_zip/{{env}}/",
@@ -843,6 +917,52 @@
       "transformation_sql": "SELECT customer_id, region, amount FROM ref_union_left UNION ALL SELECT event_id AS customer_id, NULL AS region, CAST(NULL AS DOUBLE) AS amount FROM ref_union_right",
       "target_config": {
         "cdc_load_strategy": "APPEND"
+      },
+      "dq_config": {},
+      "governance_tags": {}
+    },
+    {
+      "flow_step_id": "ts_ref_pure_sink_gzip_symmetric",
+      "dataflow_id": "df_ref_autoloader_full",
+      "source_description": "Reference egress flow for a GZIP + SYMMETRIC-PGP export (v1.7.4). archive_format 'gzip' concatenates the micro-batch's staged partition files into ONE gzip stream (a gzip holds exactly one member) named <stem>.csv.gz, and pgp_encryption.passphrase_secret encrypts it to <stem>.csv.gz.gpg with a shared passphrase rather than a recipient key. passphrase_secret and recipient_public_key_secret are mutually exclusive -- set exactly one -- and signing is unavailable in passphrase mode because it needs a sender keypair. post_export_archive.secret is omitted: a gzip stream has no archive password.",
+      "target_catalog": "{{catalog}}",
+      "target_schema": "ref_silver",
+      "target_table": "ref_pure_sink_gzip_symmetric",
+      "target_type": "sink",
+      "source_inputs": [
+        {
+          "input_name": "ref_pure_sink_gzip_symmetric_src",
+          "table": "{{catalog}}.ref_bronze.ref_autoloader_full",
+          "is_streaming": true
+        }
+      ],
+      "transformation_sql": "SELECT customer_id, region, amount, updated_at FROM ref_pure_sink_gzip_symmetric_src",
+      "target_config": {
+        "cdc_load_strategy": "APPEND",
+        "sink_config": {
+          "format": "pgp_zip",
+          "path": "/Volumes/{{catalog}}/egress/ref_pure_sink_gzip_symmetric/{{env}}/_staging/",
+          "staged_file_format": "csv",
+          "staged_file_options": {
+            "delimiter": ",",
+            "include_header": false,
+            "line_terminator": "crlf"
+          },
+          "post_export_archive": {
+            "enabled": true,
+            "output_zip_path": "/Volumes/{{catalog}}/egress/zips/ref_pure_sink_gzip_symmetric/{{env}}/",
+            "export_file_name_format": "ref_export_{timestamp}_{batch_id}",
+            "archive_format": "gzip",
+            "pgp_encryption": {
+              "enabled": true,
+              "passphrase_secret": {
+                "secret_catalog": "{{catalog}}",
+                "secret_schema": "security",
+                "secret_key": "ref_egress_message_passphrase"
+              }
+            }
+          }
+        }
       },
       "dq_config": {},
       "governance_tags": {}

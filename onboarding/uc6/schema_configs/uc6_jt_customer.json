@@ -1,0 +1,243 @@
+{
+  "$comment": "Headerless pipe-delimited source: Spark names the columns _c0.._cN positionally, so source_name is the ORDINAL, not a name from the file. Verified against the real sample file's field count -- a mismatch is a hard error at ingest (schema_config.py raises when a source_name is absent), which is the intended behaviour: a source that changed shape must fail loudly, not land misaligned columns. Field count: 34. PAYG/OUK customers; this feed carries its address inline rather than in a separate address file.",
+  "columns": [
+    {
+      "source_name": "_c0",
+      "target_name": "jt_customer_id",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "JT customer identifier."
+    },
+    {
+      "source_name": "_c1",
+      "target_name": "jt_f2",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Unmapped JT Customer Details field 2 -- retained verbatim."
+    },
+    {
+      "source_name": "_c2",
+      "target_name": "title",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Customer title."
+    },
+    {
+      "source_name": "_c3",
+      "target_name": "first_name",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Customer first name."
+    },
+    {
+      "source_name": "_c4",
+      "target_name": "jt_f5",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Unmapped JT Customer Details field 5 -- retained verbatim."
+    },
+    {
+      "source_name": "_c5",
+      "target_name": "last_name",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Customer surname."
+    },
+    {
+      "source_name": "_c6",
+      "target_name": "jt_f7",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Unmapped JT Customer Details field 7 -- retained verbatim."
+    },
+    {
+      "source_name": "_c7",
+      "target_name": "jt_f8",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Unmapped JT Customer Details field 8 -- retained verbatim."
+    },
+    {
+      "source_name": "_c8",
+      "target_name": "building_number",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "PAF Building Number."
+    },
+    {
+      "source_name": "_c9",
+      "target_name": "street2",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "PAF Thoroughfare Name (address line 1 in this feed)."
+    },
+    {
+      "source_name": "_c10",
+      "target_name": "locality2",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "PAF Dependent Locality."
+    },
+    {
+      "source_name": "_c11",
+      "target_name": "county",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "County -- not a PAF element."
+    },
+    {
+      "source_name": "_c12",
+      "target_name": "jt_f13",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Unmapped JT Customer Details field 13 -- retained verbatim."
+    },
+    {
+      "source_name": "_c13",
+      "target_name": "town",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "PAF Post Town."
+    },
+    {
+      "source_name": "_c14",
+      "target_name": "jt_f15",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Unmapped JT Customer Details field 15 -- retained verbatim."
+    },
+    {
+      "source_name": "_c15",
+      "target_name": "postcode",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "PAF Postcode -- the EA match join key."
+    },
+    {
+      "source_name": "_c16",
+      "target_name": "jt_f17",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Unmapped JT Customer Details field 17 -- retained verbatim."
+    },
+    {
+      "source_name": "_c17",
+      "target_name": "landline",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Fixed-line number -- OUT OF SCOPE for UC6 (mobile only)."
+    },
+    {
+      "source_name": "_c18",
+      "target_name": "jt_f19",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Unmapped JT Customer Details field 19 -- retained verbatim."
+    },
+    {
+      "source_name": "_c19",
+      "target_name": "jt_f20",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Unmapped JT Customer Details field 20 -- retained verbatim."
+    },
+    {
+      "source_name": "_c20",
+      "target_name": "jt_f21",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Unmapped JT Customer Details field 21 -- retained verbatim."
+    },
+    {
+      "source_name": "_c21",
+      "target_name": "jt_f22",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Unmapped JT Customer Details field 22 -- retained verbatim."
+    },
+    {
+      "source_name": "_c22",
+      "target_name": "jt_f23",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Unmapped JT Customer Details field 23 -- retained verbatim."
+    },
+    {
+      "source_name": "_c23",
+      "target_name": "jt_f24",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Unmapped JT Customer Details field 24 -- retained verbatim."
+    },
+    {
+      "source_name": "_c24",
+      "target_name": "jt_f25",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Unmapped JT Customer Details field 25 -- retained verbatim."
+    },
+    {
+      "source_name": "_c25",
+      "target_name": "jt_f26",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Unmapped JT Customer Details field 26 -- retained verbatim."
+    },
+    {
+      "source_name": "_c26",
+      "target_name": "jt_f27",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Unmapped JT Customer Details field 27 -- retained verbatim."
+    },
+    {
+      "source_name": "_c27",
+      "target_name": "jt_f28",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Unmapped JT Customer Details field 28 -- retained verbatim."
+    },
+    {
+      "source_name": "_c28",
+      "target_name": "jt_f29",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Unmapped JT Customer Details field 29 -- retained verbatim."
+    },
+    {
+      "source_name": "_c29",
+      "target_name": "jt_f30",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Unmapped JT Customer Details field 30 -- retained verbatim."
+    },
+    {
+      "source_name": "_c30",
+      "target_name": "dateofbirth",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Date of birth (YYYYMMDD) -- drives the age > 17 filter."
+    },
+    {
+      "source_name": "_c31",
+      "target_name": "msisdn",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "The mobile number (MSISDN) -- the value UC6 ultimately outputs."
+    },
+    {
+      "source_name": "_c32",
+      "target_name": "jt_f33",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Unmapped JT Customer Details field 33 -- retained verbatim."
+    },
+    {
+      "source_name": "_c33",
+      "target_name": "jt_f34",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Unmapped JT Customer Details field 34 -- retained verbatim."
+    }
+  ]
+}

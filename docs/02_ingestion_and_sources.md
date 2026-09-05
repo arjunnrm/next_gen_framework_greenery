@@ -270,6 +270,7 @@ FlowX can transparently decrypt PGP-encrypted files and extract ZIP archives bef
 | `source_zip_path` | string | yes (when enabled) | A landing **directory** — never a single file. A real landing zone routinely accumulates more than one archive between pipeline updates (one per source extract/drop). |
 | `zip_file_pattern` | string | yes (when enabled) | A glob selecting which archive(s) in `source_zip_path` this update processes, e.g. `"orders_*.zip"` or `"*.zip"`. Matched with `fnmatchcase` — case-sensitive, matching the Linux runtime Databricks compute actually runs on, regardless of what OS last edited the spec. |
 | `target_volume_path` | string | yes (when enabled) | Extraction destination — typically the same path the downstream `autoloader`/`asn1` reader's `path` points at. |
+| `member_format` | string | no | **v1.7.4.** `"zip"` (default — the only pre-v1.7.4 behaviour) or `"gzip"`. Selects the archive **container**, orthogonally to any decryption layer. See below. |
 | `pre_extraction_decryption` | object | no | Fully optional at every level — absent or `{}` means a plain, unencrypted, non-password-protected ZIP. See below. |
 | `delete_source_after_extract` | boolean \| object | no | Default `{"action": "delete_now"}`. See the subsection immediately below. |
 
@@ -279,6 +280,27 @@ FlowX can transparently decrypt PGP-encrypted files and extract ZIP archives bef
 `pre_extraction_decryption` — two independent, combinable concerns, both optional:
 - **`type: "pgp"`** — decrypts the whole file with a PGP private key (`private_key_secret`, required; `passphrase_secret`, optional — a real, properly-secured PGP private key is routinely passphrase-protected) *before* it is treated as a ZIP at all. Omit `type` entirely when the archive has no outer PGP layer.
 - **`secret_passphrase`** — the AES-256 password on the ZIP archive itself, resolved independently of `type`. Present with no `type` means "just a password-protected ZIP." Both present means "decrypt the PGP envelope first, then extract the password-protected ZIP it contained."
+- **`type: "pgp_symmetric"`** (v1.7.4) — decrypts a **passphrase**-encrypted OpenPGP message, the shape `gpg --symmetric --cipher-algo AES256` produces. `passphrase_secret` is **required** here (it is the entire secret, not merely a key unlock), and `private_key_secret` is **rejected**. It is a distinct `type` rather than an option on `"pgp"` because the two are mutually exclusive at the message level: a key-encrypted message is not passphrase-decryptable, and vice versa.
+
+#### `member_format`: ZIP archives vs. gzip streams (v1.7.4)
+
+Everything above assumes a ZIP — a container holding N *named* members, opened by `pyzipper`. A gzip file is not that: it is a single compressed stream with no member table, and `pyzipper` cannot open one at all.
+
+| `member_format` | When to use it |
+|---|---|
+| `"zip"` (default) | Any `.zip`, with or without an AES password, with or without an outer PGP envelope. Unchanged behaviour. |
+| `"gzip"` | An **encrypted** gzip file, e.g. `.csv.gz.gpg` — decrypt the envelope, then decompress the bare gzip stream it contained. |
+
+> [!IMPORTANT]
+> An **unencrypted** `.gz` needs no `source_zip_handling` at all. Spark's Hadoop codec layer decompresses it transparently on read, so configuring a handling block for one buys nothing but a staging copy. `member_format: "gzip"` exists for the encrypted case, where the file must be decrypted to disk before anything can read it.
+
+`secret_passphrase` is **rejected** for `"gzip"` — a gzip stream has no archive password, and accepting one would let a spec assert protection that nothing applies.
+
+The landed filename has its `.gz` **and** any `.gpg`/`.pgp` envelope suffix stripped, so `EE_2026-08-20-REQUEST_1OF1.csv.gz.gpg` lands as `EE_2026-08-20-REQUEST_1OF1.csv`. That matters beyond tidiness: the landed name is what the downstream reader's `file_pattern` glob matches, so a leftover suffix silently matches nothing rather than failing.
+
+```json
+{ "source_zip_handling": { "enabled": true, "source_zip_path": "/Volumes/flowx/staging/uc_6/raw/", "zip_file_pattern": "EE_*-REQUEST_*[Oo][Ff]*.csv.gz.gpg", "target_volume_path": "/Volumes/flowx/staging/uc_6/_extracted/ea_request/", "member_format": "gzip", "pre_extraction_decryption": { "type": "pgp_symmetric", "passphrase_secret": { "secret_catalog": "flowx", "secret_schema": "config", "secret_key": "pgpkey" } }, "delete_source_after_extract": { "action": "delete_now" } } }
+```
 
 ### Deleting the source archive after extraction (`delete_source_after_extract`)
 

@@ -15,6 +15,90 @@ resolving. Per-version directories fix that structurally.
 
 ---
 
+## 0.0.3b — UC6 Flood Warning System, and symmetric PGP / gzip on both boundaries — 2026-09-05
+
+**New use case, and the three framework capabilities it needed.** UC6 replaces a ~10-year-old
+Ab Initio ETL that matches Environment Agency flood-risk postcodes against EE mobile customer
+addresses to identify the phone numbers to warn. The supplier is changing from Fujitsu to Leidos
+and the output contract cannot change during the parallel run.
+
+UC6 itself is **pure configuration** — one onboarding spec (6 ingestion flows, 6 transformation
+flows, 4 export sinks, 6 source-presence gates) plus `007_lfj_uc6_ea_flood_warning`
+(orchestration only) and `008_ldp_uc6_ea_flood_warning` (all data engineering). No use-case
+pipeline code exists.
+
+Getting there needed three genuinely missing framework capabilities, all on the
+encryption/compression boundary and all landed as separate reusable commits *before* any UC6
+config:
+
+- **Symmetric (passphrase) PGP.** `crypto/pgp.py` was asymmetric-only. `pgp_encrypt_symmetric` /
+  `pgp_decrypt_symmetric` handle the `gpg --symmetric --cipher-algo AES256` shape, round-tripped
+  against the real GnuPG 2.4.9 CLI in **both** directions — not merely against our own encrypt/
+  decrypt pair, which is exactly the trap `pgp_encrypt`'s own comment records from a prior bug.
+- **gzip landing members.** `source_zip_handling.member_format: "gzip"` plus
+  `pre_extraction_decryption.type: "pgp_symmetric"`. A `.csv.gz.gpg` decrypts to a bare gzip
+  stream that pyzipper cannot open; an *unencrypted* `.gz` still needs no handling block at all.
+- **gzip egress with a CSV dialect.** `sink_config.staged_file_options`
+  (delimiter / include_header / line_terminator) and
+  `post_export_archive.archive_format: "gzip"` and `pgp_encryption.passphrase_secret`. The sink
+  previously emitted only comma-delimited, always-headered, CRLF CSV inside a ZIP, encrypted to
+  a recipient key — so an interface specifying `.csv.gz` / `.csv.gz.gpg`, pipe-delimited, was
+  unreachable from a spec.
+
+Everything is additive and every default reproduces pre-1.7.4 behaviour, so **no existing spec
+changes shape or needs migrating.**
+
+**Two JSON-schema defects fixed, both pre-existing and neither UC6-specific.**
+`reconciliationTargetConfig` composes a base def via `allOf` and adds three keys, but the base
+def's `additionalProperties: false` cannot see sibling-branch properties — so **every**
+reconciliation spec in `flowx_testing/` failed schema validation. `unevaluatedProperties` is the
+keyword that evaluates across `allOf` branches and is what now closes it. Separately,
+`transformationFlow` omitted `source_description`, which the Python validator has always
+accepted and which becomes the table's Unity Catalog COMMENT. Since v1.7.2 the schema is what
+actually rejects unknown keys at onboarding, so a spec could pass `validate_spec` and still be
+refused.
+
+**Three of the four enhancements the brief asked for already existed** — glob file matching,
+a configurable delimiter, and archive-on-ingest are all long-standing `source_config` features.
+The three that were genuinely missing were not on its list.
+
+**Verification.** `tests/unit` diffed by failing-test-**ID** against a baseline from the clean
+tree (counts alone swing widely here): 125 vs 127 — zero regressions, two pre-existing
+`test_resource_layout.py` failures fixed. +32 tests. `databricks bundle validate -t dev_flowx`:
+OK. `scripts/verify_uc6_business_rules.py` executes the spec's *own* SQL against two fixtures and
+confirms all four OSAPR status branches, the telephone privacy safeguard and the age filter —
+and caught a real defect doing so (an under-17 customer reaching the telephone list, traced to a
+sqlglot precedence bug; the spec now parenthesises the expression and a test pins it).
+
+**The Spec Builder, the agent skills and the wiki now carry the five attributes too.** An
+attribute that exists only in the validator is, from an author's seat, an attribute that does not
+exist — and it fails late, at onboarding, after the builder has already accepted the spec. So:
+6 new registry fields with conditional visibility (choosing symmetric encryption hides the
+recipient-key and signing pickers, and vice versa — the two are mutually exclusive); 12 new
+validation rules; 5 hand-written attribute-inspector entries; `registry.js` mirrored and
+`npm run build` run, without which `web/dist/` keeps serving the old form; two new flows in the
+agent skills' full-reference spec, which by contract exercises *every* documented field; and
+§4.1 of the security page setting out asymmetric vs symmetric as two different **messages**
+rather than two settings — including that symmetric gives confidentiality but not provenance,
+since anyone holding the passphrase can also forge the file.
+
+That pass also corrected a **wrong** statement in the validation-rules page: it claimed
+`pgp_encryption.enabled: true` without `recipient_public_key_secret` is rejected, which stopped
+being true when symmetric egress landed. A validation page that overstates a rule is worse than
+one that omits it, because it is trusted.
+
+`Builder.jsx` was deliberately left untouched: it is a generic renderer driving off the
+`registry.js` descriptors, and every new field renders through the existing widgets and its own
+visibility predicate. Adding per-attribute special-casing there would work against the design —
+and this repo has twice damaged that file with broad regexes.
+
+**Not deployed.** No pipeline has run, and the app is updated but not redeployed — that is two
+steps (`bundle deploy` then `bundle run`); deploy alone leaves the app on its previous code. See
+`enhancement_logs/v1.7.05_enhancement_log.md` for the full scope, the seven defects found, and
+the known gaps.
+
+---
+
 ## 0.0.3a — New-workspace bootstrap is a flag, not a file edit — 2026-09-04
 
 **Deployment ergonomics.** Standing FlowX up on a workspace that has never held the bundle used to

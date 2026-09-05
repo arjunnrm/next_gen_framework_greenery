@@ -685,6 +685,26 @@
         "description": "Which ZIP files to pick up (case-sensitive fnmatchcase)."
       },
       {
+        "path": "source_config.source_zip_handling.member_format",
+        "label": "source_zip_handling.member_format",
+        "widget": "select",
+        "type": "string",
+        "indent": 1,
+        "visible_when": {
+          "eq": [
+            "source_config.source_zip_handling.enabled",
+            true
+          ]
+        },
+        "options": [
+          "",
+          "zip",
+          "gzip"
+        ],
+        "hint": "unset = zip",
+        "description": "The landing archive's CONTAINER, orthogonal to any decryption layer. 'zip' (the default when absent) is a real archive with N named members, opened by pyzipper. 'gzip' is a single compressed stream with no member table, which pyzipper cannot open at all. An UNENCRYPTED .gz needs no ZIP handling whatsoever -- Spark decompresses it on read. Choose gzip only for an ENCRYPTED .gz, e.g. .csv.gz.gpg."
+      },
+      {
         "path": "source_config.source_zip_handling.target_volume_path",
         "label": "source_zip_handling.target_volume_path",
         "widget": "text",
@@ -760,9 +780,10 @@
         },
         "options": [
           "",
-          "pgp"
+          "pgp",
+          "pgp_symmetric"
         ],
-        "description": "Outer decryption layer applied before extraction. Only pgp is supported."
+        "description": "Outer decryption layer applied before extraction. 'pgp' decrypts a message encrypted to a RECIPIENT KEYPAIR (private_key_secret required). 'pgp_symmetric' decrypts a PASSPHRASE-encrypted message -- what `gpg --symmetric --cipher-algo AES256` produces -- and requires passphrase_secret instead. The two are mutually exclusive at the message level: a key-encrypted message is not passphrase-decryptable, and vice versa."
       },
       {
         "$fragment": "secret_ref",
@@ -782,6 +803,29 @@
               "eq": [
                 "source_config.source_zip_handling.pre_extraction_decryption.type",
                 "pgp"
+              ]
+            }
+          ]
+        }
+      },
+      {
+        "$fragment": "secret_ref",
+        "prefix": "source_config.source_zip_handling.pre_extraction_decryption.passphrase_secret",
+        "params": {
+          "required": true
+        },
+        "visible_when": {
+          "and": [
+            {
+              "eq": [
+                "source_config.source_zip_handling.enabled",
+                true
+              ]
+            },
+            {
+              "eq": [
+                "source_config.source_zip_handling.pre_extraction_decryption.type",
+                "pgp_symmetric"
               ]
             }
           ]

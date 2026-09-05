@@ -1,0 +1,397 @@
+{
+  "$comment": "Headerless pipe-delimited source: Spark names the columns _c0.._cN positionally, so source_name is the ORDINAL, not a name from the file. Verified against the real sample file's field count -- a mismatch is a hard error at ingest (schema_config.py raises when a source_name is absent), which is the intended behaviour: a source that changed shape must fail loudly, not land misaligned columns. Field count: 56. dateofbirth and customerbusinessunitcode carry the two documented business filters.",
+  "columns": [
+    {
+      "source_name": "_c0",
+      "target_name": "record_type",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Record type indicator."
+    },
+    {
+      "source_name": "_c1",
+      "target_name": "customerid",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "CSS customer identifier -- join key to Subscription/Address."
+    },
+    {
+      "source_name": "_c2",
+      "target_name": "account_no",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "CSS account number."
+    },
+    {
+      "source_name": "_c3",
+      "target_name": "org_name",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "PAF Organisation Name."
+    },
+    {
+      "source_name": "_c4",
+      "target_name": "acct_f5",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Unmapped CSS Account field 5 -- retained verbatim."
+    },
+    {
+      "source_name": "_c5",
+      "target_name": "acct_f6",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Unmapped CSS Account field 6 -- retained verbatim."
+    },
+    {
+      "source_name": "_c6",
+      "target_name": "acct_f7",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Unmapped CSS Account field 7 -- retained verbatim."
+    },
+    {
+      "source_name": "_c7",
+      "target_name": "first_name",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Customer first name."
+    },
+    {
+      "source_name": "_c8",
+      "target_name": "last_name",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Customer surname."
+    },
+    {
+      "source_name": "_c9",
+      "target_name": "acct_f10",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Unmapped CSS Account field 10 -- retained verbatim."
+    },
+    {
+      "source_name": "_c10",
+      "target_name": "acct_f11",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Unmapped CSS Account field 11 -- retained verbatim."
+    },
+    {
+      "source_name": "_c11",
+      "target_name": "dateofbirth",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Date of birth -- drives the age > 17 business filter."
+    },
+    {
+      "source_name": "_c12",
+      "target_name": "acct_f13",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Unmapped CSS Account field 13 -- retained verbatim."
+    },
+    {
+      "source_name": "_c13",
+      "target_name": "acct_f14",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Unmapped CSS Account field 14 -- retained verbatim."
+    },
+    {
+      "source_name": "_c14",
+      "target_name": "customerbusinessunitcode",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Business unit code. Rows where this is 'BS' are EXCLUDED."
+    },
+    {
+      "source_name": "_c15",
+      "target_name": "acct_f16",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Unmapped CSS Account field 16 -- retained verbatim."
+    },
+    {
+      "source_name": "_c16",
+      "target_name": "acct_f17",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Unmapped CSS Account field 17 -- retained verbatim."
+    },
+    {
+      "source_name": "_c17",
+      "target_name": "acct_f18",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Unmapped CSS Account field 18 -- retained verbatim."
+    },
+    {
+      "source_name": "_c18",
+      "target_name": "acct_f19",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Unmapped CSS Account field 19 -- retained verbatim."
+    },
+    {
+      "source_name": "_c19",
+      "target_name": "acct_f20",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Unmapped CSS Account field 20 -- retained verbatim."
+    },
+    {
+      "source_name": "_c20",
+      "target_name": "acct_f21",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Unmapped CSS Account field 21 -- retained verbatim."
+    },
+    {
+      "source_name": "_c21",
+      "target_name": "acct_f22",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Unmapped CSS Account field 22 -- retained verbatim."
+    },
+    {
+      "source_name": "_c22",
+      "target_name": "acct_f23",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Unmapped CSS Account field 23 -- retained verbatim."
+    },
+    {
+      "source_name": "_c23",
+      "target_name": "acct_f24",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Unmapped CSS Account field 24 -- retained verbatim."
+    },
+    {
+      "source_name": "_c24",
+      "target_name": "acct_f25",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Unmapped CSS Account field 25 -- retained verbatim."
+    },
+    {
+      "source_name": "_c25",
+      "target_name": "acct_f26",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Unmapped CSS Account field 26 -- retained verbatim."
+    },
+    {
+      "source_name": "_c26",
+      "target_name": "acct_f27",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Unmapped CSS Account field 27 -- retained verbatim."
+    },
+    {
+      "source_name": "_c27",
+      "target_name": "acct_f28",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Unmapped CSS Account field 28 -- retained verbatim."
+    },
+    {
+      "source_name": "_c28",
+      "target_name": "acct_f29",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Unmapped CSS Account field 29 -- retained verbatim."
+    },
+    {
+      "source_name": "_c29",
+      "target_name": "acct_f30",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Unmapped CSS Account field 30 -- retained verbatim."
+    },
+    {
+      "source_name": "_c30",
+      "target_name": "acct_f31",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Unmapped CSS Account field 31 -- retained verbatim."
+    },
+    {
+      "source_name": "_c31",
+      "target_name": "acct_f32",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Unmapped CSS Account field 32 -- retained verbatim."
+    },
+    {
+      "source_name": "_c32",
+      "target_name": "acct_f33",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Unmapped CSS Account field 33 -- retained verbatim."
+    },
+    {
+      "source_name": "_c33",
+      "target_name": "acct_f34",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Unmapped CSS Account field 34 -- retained verbatim."
+    },
+    {
+      "source_name": "_c34",
+      "target_name": "acct_f35",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Unmapped CSS Account field 35 -- retained verbatim."
+    },
+    {
+      "source_name": "_c35",
+      "target_name": "acct_f36",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Unmapped CSS Account field 36 -- retained verbatim."
+    },
+    {
+      "source_name": "_c36",
+      "target_name": "acct_f37",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Unmapped CSS Account field 37 -- retained verbatim."
+    },
+    {
+      "source_name": "_c37",
+      "target_name": "acct_f38",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Unmapped CSS Account field 38 -- retained verbatim."
+    },
+    {
+      "source_name": "_c38",
+      "target_name": "acct_f39",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Unmapped CSS Account field 39 -- retained verbatim."
+    },
+    {
+      "source_name": "_c39",
+      "target_name": "acct_f40",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Unmapped CSS Account field 40 -- retained verbatim."
+    },
+    {
+      "source_name": "_c40",
+      "target_name": "acct_f41",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Unmapped CSS Account field 41 -- retained verbatim."
+    },
+    {
+      "source_name": "_c41",
+      "target_name": "acct_f42",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Unmapped CSS Account field 42 -- retained verbatim."
+    },
+    {
+      "source_name": "_c42",
+      "target_name": "acct_f43",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Unmapped CSS Account field 43 -- retained verbatim."
+    },
+    {
+      "source_name": "_c43",
+      "target_name": "acct_f44",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Unmapped CSS Account field 44 -- retained verbatim."
+    },
+    {
+      "source_name": "_c44",
+      "target_name": "acct_f45",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Unmapped CSS Account field 45 -- retained verbatim."
+    },
+    {
+      "source_name": "_c45",
+      "target_name": "acct_f46",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Unmapped CSS Account field 46 -- retained verbatim."
+    },
+    {
+      "source_name": "_c46",
+      "target_name": "acct_f47",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Unmapped CSS Account field 47 -- retained verbatim."
+    },
+    {
+      "source_name": "_c47",
+      "target_name": "acct_f48",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Unmapped CSS Account field 48 -- retained verbatim."
+    },
+    {
+      "source_name": "_c48",
+      "target_name": "acct_f49",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Unmapped CSS Account field 49 -- retained verbatim."
+    },
+    {
+      "source_name": "_c49",
+      "target_name": "acct_f50",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Unmapped CSS Account field 50 -- retained verbatim."
+    },
+    {
+      "source_name": "_c50",
+      "target_name": "acct_f51",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Unmapped CSS Account field 51 -- retained verbatim."
+    },
+    {
+      "source_name": "_c51",
+      "target_name": "acct_f52",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Unmapped CSS Account field 52 -- retained verbatim."
+    },
+    {
+      "source_name": "_c52",
+      "target_name": "acct_f53",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Unmapped CSS Account field 53 -- retained verbatim."
+    },
+    {
+      "source_name": "_c53",
+      "target_name": "acct_f54",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Unmapped CSS Account field 54 -- retained verbatim."
+    },
+    {
+      "source_name": "_c54",
+      "target_name": "acct_f55",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Unmapped CSS Account field 55 -- retained verbatim."
+    },
+    {
+      "source_name": "_c55",
+      "target_name": "acct_f56",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Unmapped CSS Account field 56 -- retained verbatim."
+    }
+  ]
+}

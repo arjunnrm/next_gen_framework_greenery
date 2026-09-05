@@ -1,0 +1,138 @@
+{
+  "$comment": "Headerless pipe-delimited source: Spark names the columns _c0.._cN positionally, so source_name is the ORDINAL, not a name from the file. Verified against the real sample file's field count -- a mismatch is a hard error at ingest (schema_config.py raises when a source_name is absent), which is the intended behaviour: a source that changed shape must fail loudly, not land misaligned columns. Field count: 19.",
+  "columns": [
+    {
+      "source_name": "_c0",
+      "target_name": "record_type",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Record type indicator (I = insert)."
+    },
+    {
+      "source_name": "_c1",
+      "target_name": "address_id",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Address record identifier."
+    },
+    {
+      "source_name": "_c2",
+      "target_name": "customerid",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "CSS customer identifier -- the join key to CSS Account/Subscription."
+    },
+    {
+      "source_name": "_c3",
+      "target_name": "addr_line_0",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Unused address slot in this feed."
+    },
+    {
+      "source_name": "_c4",
+      "target_name": "addr_line_1",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Unused address slot in this feed."
+    },
+    {
+      "source_name": "_c5",
+      "target_name": "building_name1",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "PAF Sub Building Name (e.g. '1St Floor')."
+    },
+    {
+      "source_name": "_c6",
+      "target_name": "dept_name",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "PAF Department Name."
+    },
+    {
+      "source_name": "_c7",
+      "target_name": "po_box",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "PAF PO Box Number. Rows with a PO Box are EXCLUDED from matching."
+    },
+    {
+      "source_name": "_c8",
+      "target_name": "building_name",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "PAF Building Name (e.g. 'Foundation House')."
+    },
+    {
+      "source_name": "_c9",
+      "target_name": "street1",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "PAF Dependent Thoroughfare Name."
+    },
+    {
+      "source_name": "_c10",
+      "target_name": "street2",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "PAF Thoroughfare Name."
+    },
+    {
+      "source_name": "_c11",
+      "target_name": "locality1",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "PAF Double Dependent Locality."
+    },
+    {
+      "source_name": "_c12",
+      "target_name": "locality2",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "PAF Dependent Locality."
+    },
+    {
+      "source_name": "_c13",
+      "target_name": "county",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "County -- not a PAF element; retained for provenance."
+    },
+    {
+      "source_name": "_c14",
+      "target_name": "building_number",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "PAF Building Number."
+    },
+    {
+      "source_name": "_c15",
+      "target_name": "postcode",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "PAF Postcode -- the EA match join key."
+    },
+    {
+      "source_name": "_c16",
+      "target_name": "last_updated_ts",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Source last-updated timestamp."
+    },
+    {
+      "source_name": "_c17",
+      "target_name": "address_status",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Address status flag (C = current)."
+    },
+    {
+      "source_name": "_c18",
+      "target_name": "filler",
+      "data_type": "STRING",
+      "nullable": true,
+      "comment": "Trailing empty field produced by the source's line terminator."
+    }
+  ]
+}

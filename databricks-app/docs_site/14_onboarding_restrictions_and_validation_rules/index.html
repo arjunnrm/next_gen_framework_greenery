@@ -564,6 +564,8 @@
       
         
       
+        
+      
     
     
     
@@ -708,6 +710,34 @@
     
   
     4 · Deploying with DABs
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../onboarding/05_new_workspace_bootstrap/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    5 · New-workspace bootstrap
   
 
     
@@ -4327,6 +4357,24 @@ value produces <code>"&lt;path&gt;: has invalid value '&lt;x&gt;' -- allowed val
 <td><strong>New in v1.6.0.</strong> The staged per-partition file format inside a <code>pgp_zip</code> archive; absent means <code>json</code> (JSON-Lines, the only pre-v1.6.0 behaviour). Presence-rejected for <code>delta</code>/<code>kafka</code> (§4.3).</td>
 </tr>
 <tr>
+<td><code>source_zip_handling.member_format</code></td>
+<td><code>ALLOWED_SOURCE_MEMBER_FORMATS</code></td>
+<td><code>zip</code>, <code>gzip</code></td>
+<td><strong>New in v1.7.4.</strong> The landing archive's <em>container</em>, orthogonal to any decryption layer. Absent means <code>zip</code> (the only pre-v1.7.4 behaviour). Use <code>gzip</code> only for an <strong>encrypted</strong> <code>.gz</code> — an unencrypted one needs no ZIP handling at all, because Spark decompresses it natively on read.</td>
+</tr>
+<tr>
+<td><code>post_export_archive.archive_format</code></td>
+<td><code>ALLOWED_ARCHIVE_FORMATS</code></td>
+<td><code>zip</code>, <code>gzip</code></td>
+<td><strong>New in v1.7.4.</strong> The finished export's container. Absent means <code>zip</code>. <code>gzip</code> concatenates the micro-batch's staged files into one single-member stream named <code>&lt;stem&gt;.csv.gz</code> (<code>.csv.gz.gpg</code> when encrypted), and has no archive password — <code>post_export_archive.secret</code> does not apply.</td>
+</tr>
+<tr>
+<td><code>staged_file_options.line_terminator</code></td>
+<td><code>ALLOWED_STAGED_LINE_TERMINATORS</code></td>
+<td><code>crlf</code>, <code>lf</code></td>
+<td><strong>New in v1.7.4.</strong> Absent means <code>crlf</code> (RFC-4180). Spelled as a name because JSON cannot carry a bare control character. Only valid alongside <code>staged_file_format: "csv"</code>.</td>
+</tr>
+<tr>
 <td><code>reconciliation_flows[].error_handling.on_failure</code></td>
 <td><code>ALLOWED_RECONCILIATION_FAILURE_MODES</code></td>
 <td><code>fail</code>, <code>warn</code></td>
@@ -4365,8 +4413,8 @@ value produces <code>"&lt;path&gt;: has invalid value '&lt;x&gt;' -- allowed val
 <tr>
 <td><code>pre_extraction_decryption.type</code></td>
 <td><code>ALLOWED_PRE_EXTRACTION_DECRYPTION_TYPES</code></td>
-<td><code>pgp</code></td>
-<td>Adding an algorithm later means a new handler + a new name here, never a schema restructure.</td>
+<td><code>pgp</code>, <code>pgp_symmetric</code></td>
+<td><code>pgp_symmetric</code> is <strong>new in v1.7.4</strong>: a passphrase-encrypted message (SKESK) rather than one encrypted to a recipient keypair (PKESK). The two take different secrets and neither opens the other's messages — see <a href="../05_security_and_cryptography/"><code>05_security_and_cryptography.md</code> §4.1</a>. Adding an algorithm later means a new handler + a new name here, never a schema restructure.</td>
 </tr>
 <tr>
 <td><code>observability[].type</code></td>
@@ -4758,13 +4806,13 @@ persists only to its business targets. Both flags default to <code>true</code> a
 </tr>
 <tr>
 <td>6</td>
-<td><code>post_export_archive.pgp_encryption.enabled: true</code> without <code>recipient_public_key_secret</code></td>
-<td>The recipient key is required to encrypt at all.</td>
+<td><code>post_export_archive.pgp_encryption.enabled: true</code> with <strong>neither</strong> <code>recipient_public_key_secret</code> <strong>nor</strong> <code>passphrase_secret</code></td>
+<td><strong>Amended v1.7.4.</strong> Encryption needs a key or a passphrase. Before v1.7.4 the recipient key was unconditionally required; it is now required only when <code>passphrase_secret</code> is absent. Exactly one of the two.</td>
 </tr>
 <tr>
 <td>7</td>
 <td><code>pgp_encryption.sign_passphrase_secret</code> without <code>sign_with_private_key_secret</code></td>
-<td>A passphrase is only meaningful alongside a signing key.</td>
+<td>A passphrase is only meaningful alongside a signing key. <strong>v1.7.4</strong>: neither is valid alongside <code>passphrase_secret</code> — signing needs a sender keypair, which symmetric encryption does not have.</td>
 </tr>
 <tr>
 <td>8</td>
@@ -4855,6 +4903,41 @@ persists only to its business targets. Both flags default to <code>true</code> a
 <td>25</td>
 <td>An undefined <code>${param}</code> in SQL or in any path field</td>
 <td><code>_validate_sql_syntax</code> / <code>_validate_path_parameters</code> — checked against <code>pipeline_parameters</code> at onboarding time.</td>
+</tr>
+<tr>
+<td>26</td>
+<td><code>post_export_archive.pgp_encryption</code> with <strong>both</strong> <code>recipient_public_key_secret</code> and <code>passphrase_secret</code></td>
+<td><strong>v1.7.4.</strong> Asymmetric and symmetric encryption are mutually exclusive — set exactly one. Rejected rather than resolved by precedence, because either resolution order would silently encrypt to something the author did not choose. (<code>_validate_sink_config</code>)</td>
+</tr>
+<tr>
+<td>27</td>
+<td><code>source_zip_handling.pre_extraction_decryption.private_key_secret</code> with <code>type: "pgp_symmetric"</code></td>
+<td><strong>v1.7.4.</strong> A passphrase-encrypted OpenPGP message carries a SKESK packet and has no recipient keypair. Use <code>type: "pgp"</code> for a key-encrypted message.</td>
+</tr>
+<tr>
+<td>28</td>
+<td><code>type: "pgp_symmetric"</code> without <code>passphrase_secret</code></td>
+<td><strong>v1.7.4.</strong> The passphrase <em>is</em> the decryption key here — there is nothing else to try.</td>
+</tr>
+<tr>
+<td>29</td>
+<td><code>source_zip_handling.pre_extraction_decryption.secret_passphrase</code> with <code>member_format: "gzip"</code></td>
+<td><strong>v1.7.4.</strong> <code>secret_passphrase</code> is the AES password on a <strong>ZIP archive</strong>; a gzip stream has no archive password, so the value would be silently inert. (Note the two similarly-named fields: <code>passphrase_secret</code> is PGP, <code>secret_passphrase</code> is the ZIP password.)</td>
+</tr>
+<tr>
+<td>30</td>
+<td><code>source_zip_handling.member_format</code> outside <code>{"zip", "gzip"}</code>, or <code>post_export_archive.archive_format</code> outside <code>{"zip", "gzip"}</code></td>
+<td><strong>v1.7.4.</strong> Both default to <code>"zip"</code> when absent. No other container is implemented — <code>tar</code> and friends are rejected rather than silently treated as ZIP.</td>
+</tr>
+<tr>
+<td>31</td>
+<td><code>sink_config.staged_file_options</code> with <code>staged_file_format</code> other than <code>"csv"</code></td>
+<td><strong>v1.7.4.</strong> A JSON-Lines export has no delimiter, header row or configurable record separator, so the object would assert a file shape nothing produces — the same reasoning as row 4.</td>
+</tr>
+<tr>
+<td>32</td>
+<td><code>staged_file_options.delimiter</code> longer than one character, or <code>line_terminator</code> outside <code>{"crlf", "lf"}</code></td>
+<td><strong>v1.7.4.</strong> Python's <code>csv</code> writer cannot emit a multi-character delimiter. <code>line_terminator</code> is spelled as a name because JSON cannot carry a bare control character.</td>
 </tr>
 </tbody>
 </table>

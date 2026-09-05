@@ -13,7 +13,7 @@
       
       
       
-        <link rel="prev" href="../onboarding/04_deploying/">
+        <link rel="prev" href="../onboarding/05_new_workspace_bootstrap/">
       
       
         <link rel="next" href="../01_platform_architecture/">
@@ -569,6 +569,8 @@
       
         
       
+        
+      
     
     
     
@@ -716,6 +718,34 @@
     
   
     4 · Deploying with DABs
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../onboarding/05_new_workspace_bootstrap/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    5 · New-workspace bootstrap
   
 
     
@@ -4149,9 +4179,13 @@ resource</strong>: these accounts use UC Default Storage, so a <code>catalogs.*<
 from YAML at all (see that folder's <code>README.md</code>) — create it in the UI once per workspace.</p>
 <p>The <code>artifact_path</code> bootstrap is a <em>separate</em> mechanism and survives: that check runs during config
 resolution, before any resource is created, so a Volume declared in the same bundle cannot satisfy
-it. On a fresh workspace, deploy
-<code>--select schemas.config_schema,volumes.framework_wheels_volume</code> once with the target's
-<code>artifact_path:</code> line commented out, then uncomment it. Where <code>flowx.config</code> already exists
+it. Since v1.7.4 that one-time step is a <strong>flag, not a file edit</strong> — every target composes
+<code>artifact_path</code> from <code>${var.wheels_root}</code>, so a fresh workspace is brought up with</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>databricks<span class="w"> </span>bundle<span class="w"> </span>deploy<span class="w"> </span>-t<span class="w"> </span>&lt;target&gt;<span class="w"> </span>-p<span class="w"> </span>&lt;profile&gt;<span class="w">   </span>--select<span class="w"> </span>schemas.config_schema,volumes.framework_wheels_volume<span class="w">   </span>--var<span class="o">=</span><span class="s2">"wheels_root=/Workspace/Users/&lt;you&gt;/.bundle/flowx/&lt;target&gt;/artifacts"</span>
+</code></pre></div>
+<p>followed by an ordinary deploy. <code>python scripts/bootstrap_workspace.py -t &lt;target&gt; -p &lt;profile&gt;</code>
+runs the whole sequence; the step-by-step runbook is
+<code>docs/onboarding/05_new_workspace_bootstrap.md</code>. Where <code>flowx.config</code> already exists
 outside the bundle (<code>dev_flowx</code>, <code>hoonartek</code>), <code>bundle deployment bind</code> it instead — see
 <code>docs/onboarding/04_deploying.md</code>.</p>
 <p>DABs <strong>prunes</strong>
@@ -4221,7 +4255,7 @@ file that declares it, and a stale <code>../</code> passes <code>bundle validate
 <h4 id="deploying-only-part-of-the-bundle">Deploying only part of the bundle<a class="headerlink" href="#deploying-only-part-of-the-bundle" title="Permanent link">&para;</a></h4>
 <p>The command above deploys every resource in the bundle. To deploy the app, the two config jobs and
 the wheel and nothing else — the everyday loop — use <code>--select</code> (Databricks CLI ≥ v1.13.0):</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>databricks<span class="w"> </span>bundle<span class="w"> </span>deploy<span class="w"> </span>-t<span class="w"> </span>dev_flowx<span class="w"> </span>-p<span class="w"> </span>dev_flowx<span class="w">   </span>--select<span class="w"> </span>apps.flowx_onboarding_app,jobs.onboarding_job,jobs.framework_config_onboarding_job,volumes.onboarding_specs_volume,volumes.framework_wheels_volume
+<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>databricks<span class="w"> </span>bundle<span class="w"> </span>deploy<span class="w"> </span>-t<span class="w"> </span>dev_flowx<span class="w"> </span>-p<span class="w"> </span>dev_flowx<span class="w">   </span>--select<span class="w"> </span>apps.flowx_onboarding_app,jobs.onboarding_job,jobs.framework_config_onboarding_job,volumes.onboarding_specs_volume,volumes.framework_wheels_volume
 </code></pre></div>
 <p>The wheel is still built by <code>scripts/bump_and_build.py</code> and uploaded, because the selected jobs
 declare <code>../../dist/*.whl</code> in <code>environments[].spec.dependencies</code>. Keep <code>jobs.onboarding_job</code> and
@@ -4240,90 +4274,90 @@ next deploy. <code>--select</code> leaves unselected resources untouched; a miss
 running app on its previous code until <code>databricks bundle run flowx_onboarding_app</code>.</p>
 <h3 id="step-9-onboard-spec-to-control-tables">Step 9: Onboard Spec to Control Tables<a class="headerlink" href="#step-9-onboard-spec-to-control-tables" title="Permanent link">&para;</a></h3>
 <p>Trigger the reusable onboarding job:
-<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>databricks<span class="w"> </span>bundle<span class="w"> </span>run<span class="w"> </span>onboarding_job<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="w">  </span>--params<span class="w"> </span><span class="nv">spec_file_path</span><span class="o">=</span>/Workspace/.../my_pipeline.json,catalog<span class="o">=</span>poc,env<span class="o">=</span>dev,action_type<span class="o">=</span>CREATE
+<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>databricks<span class="w"> </span>bundle<span class="w"> </span>run<span class="w"> </span>onboarding_job<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="w">  </span>--params<span class="w"> </span><span class="nv">spec_file_path</span><span class="o">=</span>/Workspace/.../my_pipeline.json,catalog<span class="o">=</span>poc,env<span class="o">=</span>dev,action_type<span class="o">=</span>CREATE
 </code></pre></div></p>
 <h3 id="step-10-run-the-lakeflow-pipeline">Step 10: Run the Lakeflow Pipeline<a class="headerlink" href="#step-10-run-the-lakeflow-pipeline" title="Permanent link">&para;</a></h3>
 <p>Trigger the Lakeflow Declarative Pipeline for your <code>dataflow_group_id</code>:
-<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>databricks<span class="w"> </span>pipelines<span class="w"> </span>start<span class="w"> </span>--pipeline-id<span class="w"> </span>&lt;pipeline_id&gt;
+<div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>databricks<span class="w"> </span>pipelines<span class="w"> </span>start<span class="w"> </span>--pipeline-id<span class="w"> </span>&lt;pipeline_id&gt;
 </code></pre></div></p>
 <h3 id="step-11-verify-target-tables-metrics">Step 11: Verify Target Tables &amp; Metrics<a class="headerlink" href="#step-11-verify-target-tables-metrics" title="Permanent link">&para;</a></h3>
 <p>Query target tables in SQL Editor:
-<div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="k">SELECT</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">poc</span><span class="p">.</span><span class="n">silver_ecommerce</span><span class="p">.</span><span class="n">orders_dim</span><span class="w"> </span><span class="k">LIMIT</span><span class="w"> </span><span class="mi">10</span><span class="p">;</span>
-<a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a><span class="k">SELECT</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">poc</span><span class="p">.</span><span class="n">silver_ecommerce</span><span class="p">.</span><span class="n">orders_dim_quarantine</span><span class="w"> </span><span class="k">LIMIT</span><span class="w"> </span><span class="mi">10</span><span class="p">;</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="k">SELECT</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">poc</span><span class="p">.</span><span class="n">silver_ecommerce</span><span class="p">.</span><span class="n">orders_dim</span><span class="w"> </span><span class="k">LIMIT</span><span class="w"> </span><span class="mi">10</span><span class="p">;</span>
+<a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a><span class="k">SELECT</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">poc</span><span class="p">.</span><span class="n">silver_ecommerce</span><span class="p">.</span><span class="n">orders_dim_quarantine</span><span class="w"> </span><span class="k">LIMIT</span><span class="w"> </span><span class="mi">10</span><span class="p">;</span>
 </code></pre></div></p>
 <hr />
 <h2 id="3-production-copy-paste-recipes">3. Production Copy-Paste Recipes<a class="headerlink" href="#3-production-copy-paste-recipes" title="Permanent link">&para;</a></h2>
 <h3 id="recipe-a-auto-loader-json-with-schema-evolution-rescued-data">Recipe A: Auto Loader JSON with Schema Evolution &amp; Rescued Data<a class="headerlink" href="#recipe-a-auto-loader-json-with-schema-evolution-rescued-data" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="p">{</span>
-<a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a><span class="w">  </span><span class="nt">"dataflow_id"</span><span class="p">:</span><span class="w"> </span><span class="s2">"df_iot_telemetry"</span><span class="p">,</span>
-<a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a><span class="w">  </span><span class="nt">"source_type"</span><span class="p">:</span><span class="w"> </span><span class="s2">"autoloader"</span><span class="p">,</span>
-<a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a><span class="w">  </span><span class="nt">"target_catalog"</span><span class="p">:</span><span class="w"> </span><span class="s2">"{{catalog}}"</span><span class="p">,</span>
-<a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a><span class="w">  </span><span class="nt">"target_schema"</span><span class="p">:</span><span class="w"> </span><span class="s2">"bronze_iot"</span><span class="p">,</span>
-<a id="__codelineno-13-6" name="__codelineno-13-6" href="#__codelineno-13-6"></a><span class="w">  </span><span class="nt">"target_table"</span><span class="p">:</span><span class="w"> </span><span class="s2">"sensor_telemetry"</span><span class="p">,</span>
-<a id="__codelineno-13-7" name="__codelineno-13-7" href="#__codelineno-13-7"></a><span class="w">  </span><span class="nt">"target_type"</span><span class="p">:</span><span class="w"> </span><span class="s2">"streaming_table"</span><span class="p">,</span>
-<a id="__codelineno-13-8" name="__codelineno-13-8" href="#__codelineno-13-8"></a><span class="w">  </span><span class="nt">"source_config"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-13-9" name="__codelineno-13-9" href="#__codelineno-13-9"></a><span class="w">    </span><span class="nt">"path"</span><span class="p">:</span><span class="w"> </span><span class="s2">"/Volumes/{{catalog}}/iot/landing"</span><span class="p">,</span>
-<a id="__codelineno-13-10" name="__codelineno-13-10" href="#__codelineno-13-10"></a><span class="w">    </span><span class="nt">"format"</span><span class="p">:</span><span class="w"> </span><span class="s2">"json"</span><span class="p">,</span>
-<a id="__codelineno-13-11" name="__codelineno-13-11" href="#__codelineno-13-11"></a><span class="w">    </span><span class="nt">"schema_evolution_mode"</span><span class="p">:</span><span class="w"> </span><span class="s2">"rescue"</span><span class="p">,</span>
-<a id="__codelineno-13-12" name="__codelineno-13-12" href="#__codelineno-13-12"></a><span class="w">    </span><span class="nt">"capture_technical_metadata"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span>
-<a id="__codelineno-13-13" name="__codelineno-13-13" href="#__codelineno-13-13"></a><span class="w">  </span><span class="p">},</span>
-<a id="__codelineno-13-14" name="__codelineno-13-14" href="#__codelineno-13-14"></a><span class="w">  </span><span class="nt">"target_config"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nt">"cdc_load_strategy"</span><span class="p">:</span><span class="w"> </span><span class="s2">"APPEND"</span><span class="w"> </span><span class="p">}</span>
-<a id="__codelineno-13-15" name="__codelineno-13-15" href="#__codelineno-13-15"></a><span class="p">}</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="p">{</span>
+<a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a><span class="w">  </span><span class="nt">"dataflow_id"</span><span class="p">:</span><span class="w"> </span><span class="s2">"df_iot_telemetry"</span><span class="p">,</span>
+<a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a><span class="w">  </span><span class="nt">"source_type"</span><span class="p">:</span><span class="w"> </span><span class="s2">"autoloader"</span><span class="p">,</span>
+<a id="__codelineno-14-4" name="__codelineno-14-4" href="#__codelineno-14-4"></a><span class="w">  </span><span class="nt">"target_catalog"</span><span class="p">:</span><span class="w"> </span><span class="s2">"{{catalog}}"</span><span class="p">,</span>
+<a id="__codelineno-14-5" name="__codelineno-14-5" href="#__codelineno-14-5"></a><span class="w">  </span><span class="nt">"target_schema"</span><span class="p">:</span><span class="w"> </span><span class="s2">"bronze_iot"</span><span class="p">,</span>
+<a id="__codelineno-14-6" name="__codelineno-14-6" href="#__codelineno-14-6"></a><span class="w">  </span><span class="nt">"target_table"</span><span class="p">:</span><span class="w"> </span><span class="s2">"sensor_telemetry"</span><span class="p">,</span>
+<a id="__codelineno-14-7" name="__codelineno-14-7" href="#__codelineno-14-7"></a><span class="w">  </span><span class="nt">"target_type"</span><span class="p">:</span><span class="w"> </span><span class="s2">"streaming_table"</span><span class="p">,</span>
+<a id="__codelineno-14-8" name="__codelineno-14-8" href="#__codelineno-14-8"></a><span class="w">  </span><span class="nt">"source_config"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-14-9" name="__codelineno-14-9" href="#__codelineno-14-9"></a><span class="w">    </span><span class="nt">"path"</span><span class="p">:</span><span class="w"> </span><span class="s2">"/Volumes/{{catalog}}/iot/landing"</span><span class="p">,</span>
+<a id="__codelineno-14-10" name="__codelineno-14-10" href="#__codelineno-14-10"></a><span class="w">    </span><span class="nt">"format"</span><span class="p">:</span><span class="w"> </span><span class="s2">"json"</span><span class="p">,</span>
+<a id="__codelineno-14-11" name="__codelineno-14-11" href="#__codelineno-14-11"></a><span class="w">    </span><span class="nt">"schema_evolution_mode"</span><span class="p">:</span><span class="w"> </span><span class="s2">"rescue"</span><span class="p">,</span>
+<a id="__codelineno-14-12" name="__codelineno-14-12" href="#__codelineno-14-12"></a><span class="w">    </span><span class="nt">"capture_technical_metadata"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span>
+<a id="__codelineno-14-13" name="__codelineno-14-13" href="#__codelineno-14-13"></a><span class="w">  </span><span class="p">},</span>
+<a id="__codelineno-14-14" name="__codelineno-14-14" href="#__codelineno-14-14"></a><span class="w">  </span><span class="nt">"target_config"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nt">"cdc_load_strategy"</span><span class="p">:</span><span class="w"> </span><span class="s2">"APPEND"</span><span class="w"> </span><span class="p">}</span>
+<a id="__codelineno-14-15" name="__codelineno-14-15" href="#__codelineno-14-15"></a><span class="p">}</span>
 </code></pre></div>
 <h3 id="recipe-b-scd2-dimension-with-aes-encryption">Recipe B: SCD2 Dimension with AES Encryption<a class="headerlink" href="#recipe-b-scd2-dimension-with-aes-encryption" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="p">{</span>
-<a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a><span class="w">  </span><span class="nt">"dataflow_id"</span><span class="p">:</span><span class="w"> </span><span class="s2">"tf_customer_scd2"</span><span class="p">,</span>
-<a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a><span class="w">  </span><span class="nt">"flow_step_id"</span><span class="p">:</span><span class="w"> </span><span class="s2">"step_cust_scd2"</span><span class="p">,</span>
-<a id="__codelineno-14-4" name="__codelineno-14-4" href="#__codelineno-14-4"></a><span class="w">  </span><span class="nt">"source_inputs"</span><span class="p">:</span><span class="w"> </span><span class="p">[{</span><span class="w"> </span><span class="nt">"table"</span><span class="p">:</span><span class="w"> </span><span class="s2">"{{catalog}}.bronze_crm.raw_customers"</span><span class="p">,</span><span class="w"> </span><span class="nt">"alias"</span><span class="p">:</span><span class="w"> </span><span class="s2">"c"</span><span class="w"> </span><span class="p">}],</span>
-<a id="__codelineno-14-5" name="__codelineno-14-5" href="#__codelineno-14-5"></a><span class="w">  </span><span class="nt">"transformation_sql"</span><span class="p">:</span><span class="w"> </span><span class="s2">"SELECT c.customer_id, c.email, c.ssn, c.updated_at FROM c"</span><span class="p">,</span>
-<a id="__codelineno-14-6" name="__codelineno-14-6" href="#__codelineno-14-6"></a><span class="w">  </span><span class="nt">"target_catalog"</span><span class="p">:</span><span class="w"> </span><span class="s2">"{{catalog}}"</span><span class="p">,</span>
-<a id="__codelineno-14-7" name="__codelineno-14-7" href="#__codelineno-14-7"></a><span class="w">  </span><span class="nt">"target_schema"</span><span class="p">:</span><span class="w"> </span><span class="s2">"silver_crm"</span><span class="p">,</span>
-<a id="__codelineno-14-8" name="__codelineno-14-8" href="#__codelineno-14-8"></a><span class="w">  </span><span class="nt">"target_table"</span><span class="p">:</span><span class="w"> </span><span class="s2">"customer_scd2_dim"</span><span class="p">,</span>
-<a id="__codelineno-14-9" name="__codelineno-14-9" href="#__codelineno-14-9"></a><span class="w">  </span><span class="nt">"target_type"</span><span class="p">:</span><span class="w"> </span><span class="s2">"streaming_table"</span><span class="p">,</span>
-<a id="__codelineno-14-10" name="__codelineno-14-10" href="#__codelineno-14-10"></a><span class="w">  </span><span class="nt">"target_config"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-14-11" name="__codelineno-14-11" href="#__codelineno-14-11"></a><span class="w">    </span><span class="nt">"cdc_load_strategy"</span><span class="p">:</span><span class="w"> </span><span class="s2">"SCD2"</span><span class="p">,</span>
-<a id="__codelineno-14-12" name="__codelineno-14-12" href="#__codelineno-14-12"></a><span class="w">    </span><span class="nt">"primary_keys"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">"customer_id"</span><span class="p">],</span>
-<a id="__codelineno-14-13" name="__codelineno-14-13" href="#__codelineno-14-13"></a><span class="w">    </span><span class="nt">"sequence_by_column"</span><span class="p">:</span><span class="w"> </span><span class="s2">"updated_at"</span><span class="p">,</span>
-<a id="__codelineno-14-14" name="__codelineno-14-14" href="#__codelineno-14-14"></a><span class="w">    </span><span class="nt">"encrypted_columns"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
-<a id="__codelineno-14-15" name="__codelineno-14-15" href="#__codelineno-14-15"></a><span class="w">      </span><span class="p">{</span>
-<a id="__codelineno-14-16" name="__codelineno-14-16" href="#__codelineno-14-16"></a><span class="w">        </span><span class="nt">"column_name"</span><span class="p">:</span><span class="w"> </span><span class="s2">"ssn"</span><span class="p">,</span>
-<a id="__codelineno-14-17" name="__codelineno-14-17" href="#__codelineno-14-17"></a><span class="w">        </span><span class="nt">"algorithm"</span><span class="p">:</span><span class="w"> </span><span class="s2">"AES"</span><span class="p">,</span>
-<a id="__codelineno-14-18" name="__codelineno-14-18" href="#__codelineno-14-18"></a><span class="w">        </span><span class="nt">"mode"</span><span class="p">:</span><span class="w"> </span><span class="s2">"GCM"</span><span class="p">,</span>
-<a id="__codelineno-14-19" name="__codelineno-14-19" href="#__codelineno-14-19"></a><span class="w">        </span><span class="nt">"secret"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-14-20" name="__codelineno-14-20" href="#__codelineno-14-20"></a><span class="w">          </span><span class="nt">"secret_catalog"</span><span class="p">:</span><span class="w"> </span><span class="s2">"poc"</span><span class="p">,</span>
-<a id="__codelineno-14-21" name="__codelineno-14-21" href="#__codelineno-14-21"></a><span class="w">          </span><span class="nt">"secret_schema"</span><span class="p">:</span><span class="w"> </span><span class="s2">"security"</span><span class="p">,</span>
-<a id="__codelineno-14-22" name="__codelineno-14-22" href="#__codelineno-14-22"></a><span class="w">          </span><span class="nt">"secret_key"</span><span class="p">:</span><span class="w"> </span><span class="s2">"pii_aes_gcm_key"</span>
-<a id="__codelineno-14-23" name="__codelineno-14-23" href="#__codelineno-14-23"></a><span class="w">        </span><span class="p">}</span>
-<a id="__codelineno-14-24" name="__codelineno-14-24" href="#__codelineno-14-24"></a><span class="w">      </span><span class="p">}</span>
-<a id="__codelineno-14-25" name="__codelineno-14-25" href="#__codelineno-14-25"></a><span class="w">    </span><span class="p">]</span>
-<a id="__codelineno-14-26" name="__codelineno-14-26" href="#__codelineno-14-26"></a><span class="w">  </span><span class="p">}</span>
-<a id="__codelineno-14-27" name="__codelineno-14-27" href="#__codelineno-14-27"></a><span class="p">}</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a><span class="p">{</span>
+<a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a><span class="w">  </span><span class="nt">"dataflow_id"</span><span class="p">:</span><span class="w"> </span><span class="s2">"tf_customer_scd2"</span><span class="p">,</span>
+<a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a><span class="w">  </span><span class="nt">"flow_step_id"</span><span class="p">:</span><span class="w"> </span><span class="s2">"step_cust_scd2"</span><span class="p">,</span>
+<a id="__codelineno-15-4" name="__codelineno-15-4" href="#__codelineno-15-4"></a><span class="w">  </span><span class="nt">"source_inputs"</span><span class="p">:</span><span class="w"> </span><span class="p">[{</span><span class="w"> </span><span class="nt">"table"</span><span class="p">:</span><span class="w"> </span><span class="s2">"{{catalog}}.bronze_crm.raw_customers"</span><span class="p">,</span><span class="w"> </span><span class="nt">"alias"</span><span class="p">:</span><span class="w"> </span><span class="s2">"c"</span><span class="w"> </span><span class="p">}],</span>
+<a id="__codelineno-15-5" name="__codelineno-15-5" href="#__codelineno-15-5"></a><span class="w">  </span><span class="nt">"transformation_sql"</span><span class="p">:</span><span class="w"> </span><span class="s2">"SELECT c.customer_id, c.email, c.ssn, c.updated_at FROM c"</span><span class="p">,</span>
+<a id="__codelineno-15-6" name="__codelineno-15-6" href="#__codelineno-15-6"></a><span class="w">  </span><span class="nt">"target_catalog"</span><span class="p">:</span><span class="w"> </span><span class="s2">"{{catalog}}"</span><span class="p">,</span>
+<a id="__codelineno-15-7" name="__codelineno-15-7" href="#__codelineno-15-7"></a><span class="w">  </span><span class="nt">"target_schema"</span><span class="p">:</span><span class="w"> </span><span class="s2">"silver_crm"</span><span class="p">,</span>
+<a id="__codelineno-15-8" name="__codelineno-15-8" href="#__codelineno-15-8"></a><span class="w">  </span><span class="nt">"target_table"</span><span class="p">:</span><span class="w"> </span><span class="s2">"customer_scd2_dim"</span><span class="p">,</span>
+<a id="__codelineno-15-9" name="__codelineno-15-9" href="#__codelineno-15-9"></a><span class="w">  </span><span class="nt">"target_type"</span><span class="p">:</span><span class="w"> </span><span class="s2">"streaming_table"</span><span class="p">,</span>
+<a id="__codelineno-15-10" name="__codelineno-15-10" href="#__codelineno-15-10"></a><span class="w">  </span><span class="nt">"target_config"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-15-11" name="__codelineno-15-11" href="#__codelineno-15-11"></a><span class="w">    </span><span class="nt">"cdc_load_strategy"</span><span class="p">:</span><span class="w"> </span><span class="s2">"SCD2"</span><span class="p">,</span>
+<a id="__codelineno-15-12" name="__codelineno-15-12" href="#__codelineno-15-12"></a><span class="w">    </span><span class="nt">"primary_keys"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">"customer_id"</span><span class="p">],</span>
+<a id="__codelineno-15-13" name="__codelineno-15-13" href="#__codelineno-15-13"></a><span class="w">    </span><span class="nt">"sequence_by_column"</span><span class="p">:</span><span class="w"> </span><span class="s2">"updated_at"</span><span class="p">,</span>
+<a id="__codelineno-15-14" name="__codelineno-15-14" href="#__codelineno-15-14"></a><span class="w">    </span><span class="nt">"encrypted_columns"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<a id="__codelineno-15-15" name="__codelineno-15-15" href="#__codelineno-15-15"></a><span class="w">      </span><span class="p">{</span>
+<a id="__codelineno-15-16" name="__codelineno-15-16" href="#__codelineno-15-16"></a><span class="w">        </span><span class="nt">"column_name"</span><span class="p">:</span><span class="w"> </span><span class="s2">"ssn"</span><span class="p">,</span>
+<a id="__codelineno-15-17" name="__codelineno-15-17" href="#__codelineno-15-17"></a><span class="w">        </span><span class="nt">"algorithm"</span><span class="p">:</span><span class="w"> </span><span class="s2">"AES"</span><span class="p">,</span>
+<a id="__codelineno-15-18" name="__codelineno-15-18" href="#__codelineno-15-18"></a><span class="w">        </span><span class="nt">"mode"</span><span class="p">:</span><span class="w"> </span><span class="s2">"GCM"</span><span class="p">,</span>
+<a id="__codelineno-15-19" name="__codelineno-15-19" href="#__codelineno-15-19"></a><span class="w">        </span><span class="nt">"secret"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-15-20" name="__codelineno-15-20" href="#__codelineno-15-20"></a><span class="w">          </span><span class="nt">"secret_catalog"</span><span class="p">:</span><span class="w"> </span><span class="s2">"poc"</span><span class="p">,</span>
+<a id="__codelineno-15-21" name="__codelineno-15-21" href="#__codelineno-15-21"></a><span class="w">          </span><span class="nt">"secret_schema"</span><span class="p">:</span><span class="w"> </span><span class="s2">"security"</span><span class="p">,</span>
+<a id="__codelineno-15-22" name="__codelineno-15-22" href="#__codelineno-15-22"></a><span class="w">          </span><span class="nt">"secret_key"</span><span class="p">:</span><span class="w"> </span><span class="s2">"pii_aes_gcm_key"</span>
+<a id="__codelineno-15-23" name="__codelineno-15-23" href="#__codelineno-15-23"></a><span class="w">        </span><span class="p">}</span>
+<a id="__codelineno-15-24" name="__codelineno-15-24" href="#__codelineno-15-24"></a><span class="w">      </span><span class="p">}</span>
+<a id="__codelineno-15-25" name="__codelineno-15-25" href="#__codelineno-15-25"></a><span class="w">    </span><span class="p">]</span>
+<a id="__codelineno-15-26" name="__codelineno-15-26" href="#__codelineno-15-26"></a><span class="w">  </span><span class="p">}</span>
+<a id="__codelineno-15-27" name="__codelineno-15-27" href="#__codelineno-15-27"></a><span class="p">}</span>
 </code></pre></div>
 <h3 id="recipe-c-native-delta-lake-egress-sink">Recipe C: Native Delta Lake Egress Sink<a class="headerlink" href="#recipe-c-native-delta-lake-egress-sink" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a><span class="p">{</span>
-<a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a><span class="w">  </span><span class="nt">"dataflow_id"</span><span class="p">:</span><span class="w"> </span><span class="s2">"tf_export_partner"</span><span class="p">,</span>
-<a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a><span class="w">  </span><span class="nt">"flow_step_id"</span><span class="p">:</span><span class="w"> </span><span class="s2">"step_export_partner"</span><span class="p">,</span>
-<a id="__codelineno-15-4" name="__codelineno-15-4" href="#__codelineno-15-4"></a><span class="w">  </span><span class="nt">"source_inputs"</span><span class="p">:</span><span class="w"> </span><span class="p">[{</span><span class="w"> </span><span class="nt">"table"</span><span class="p">:</span><span class="w"> </span><span class="s2">"{{catalog}}.silver_crm.customer_scd2_dim"</span><span class="p">,</span><span class="w"> </span><span class="nt">"alias"</span><span class="p">:</span><span class="w"> </span><span class="s2">"src"</span><span class="w"> </span><span class="p">}],</span>
-<a id="__codelineno-15-5" name="__codelineno-15-5" href="#__codelineno-15-5"></a><span class="w">  </span><span class="nt">"transformation_sql"</span><span class="p">:</span><span class="w"> </span><span class="s2">"SELECT src.customer_id, src.email FROM src WHERE src.__end_at IS NULL"</span><span class="p">,</span>
-<a id="__codelineno-15-6" name="__codelineno-15-6" href="#__codelineno-15-6"></a><span class="w">  </span><span class="nt">"target_type"</span><span class="p">:</span><span class="w"> </span><span class="s2">"sink"</span><span class="p">,</span>
-<a id="__codelineno-15-7" name="__codelineno-15-7" href="#__codelineno-15-7"></a><span class="w">  </span><span class="nt">"target_config"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-15-8" name="__codelineno-15-8" href="#__codelineno-15-8"></a><span class="w">    </span><span class="nt">"sink_config"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-15-9" name="__codelineno-15-9" href="#__codelineno-15-9"></a><span class="w">      </span><span class="nt">"format"</span><span class="p">:</span><span class="w"> </span><span class="s2">"delta"</span><span class="p">,</span>
-<a id="__codelineno-15-10" name="__codelineno-15-10" href="#__codelineno-15-10"></a><span class="w">      </span><span class="nt">"path"</span><span class="p">:</span><span class="w"> </span><span class="s2">"/Volumes/partner_catalog/drops/customer_export"</span><span class="p">,</span>
-<a id="__codelineno-15-11" name="__codelineno-15-11" href="#__codelineno-15-11"></a><span class="w">      </span><span class="nt">"mode"</span><span class="p">:</span><span class="w"> </span><span class="s2">"append"</span>
-<a id="__codelineno-15-12" name="__codelineno-15-12" href="#__codelineno-15-12"></a><span class="w">    </span><span class="p">}</span>
-<a id="__codelineno-15-13" name="__codelineno-15-13" href="#__codelineno-15-13"></a><span class="w">  </span><span class="p">}</span>
-<a id="__codelineno-15-14" name="__codelineno-15-14" href="#__codelineno-15-14"></a><span class="p">}</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a><span class="p">{</span>
+<a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a><span class="w">  </span><span class="nt">"dataflow_id"</span><span class="p">:</span><span class="w"> </span><span class="s2">"tf_export_partner"</span><span class="p">,</span>
+<a id="__codelineno-16-3" name="__codelineno-16-3" href="#__codelineno-16-3"></a><span class="w">  </span><span class="nt">"flow_step_id"</span><span class="p">:</span><span class="w"> </span><span class="s2">"step_export_partner"</span><span class="p">,</span>
+<a id="__codelineno-16-4" name="__codelineno-16-4" href="#__codelineno-16-4"></a><span class="w">  </span><span class="nt">"source_inputs"</span><span class="p">:</span><span class="w"> </span><span class="p">[{</span><span class="w"> </span><span class="nt">"table"</span><span class="p">:</span><span class="w"> </span><span class="s2">"{{catalog}}.silver_crm.customer_scd2_dim"</span><span class="p">,</span><span class="w"> </span><span class="nt">"alias"</span><span class="p">:</span><span class="w"> </span><span class="s2">"src"</span><span class="w"> </span><span class="p">}],</span>
+<a id="__codelineno-16-5" name="__codelineno-16-5" href="#__codelineno-16-5"></a><span class="w">  </span><span class="nt">"transformation_sql"</span><span class="p">:</span><span class="w"> </span><span class="s2">"SELECT src.customer_id, src.email FROM src WHERE src.__end_at IS NULL"</span><span class="p">,</span>
+<a id="__codelineno-16-6" name="__codelineno-16-6" href="#__codelineno-16-6"></a><span class="w">  </span><span class="nt">"target_type"</span><span class="p">:</span><span class="w"> </span><span class="s2">"sink"</span><span class="p">,</span>
+<a id="__codelineno-16-7" name="__codelineno-16-7" href="#__codelineno-16-7"></a><span class="w">  </span><span class="nt">"target_config"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-16-8" name="__codelineno-16-8" href="#__codelineno-16-8"></a><span class="w">    </span><span class="nt">"sink_config"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-16-9" name="__codelineno-16-9" href="#__codelineno-16-9"></a><span class="w">      </span><span class="nt">"format"</span><span class="p">:</span><span class="w"> </span><span class="s2">"delta"</span><span class="p">,</span>
+<a id="__codelineno-16-10" name="__codelineno-16-10" href="#__codelineno-16-10"></a><span class="w">      </span><span class="nt">"path"</span><span class="p">:</span><span class="w"> </span><span class="s2">"/Volumes/partner_catalog/drops/customer_export"</span><span class="p">,</span>
+<a id="__codelineno-16-11" name="__codelineno-16-11" href="#__codelineno-16-11"></a><span class="w">      </span><span class="nt">"mode"</span><span class="p">:</span><span class="w"> </span><span class="s2">"append"</span>
+<a id="__codelineno-16-12" name="__codelineno-16-12" href="#__codelineno-16-12"></a><span class="w">    </span><span class="p">}</span>
+<a id="__codelineno-16-13" name="__codelineno-16-13" href="#__codelineno-16-13"></a><span class="w">  </span><span class="p">}</span>
+<a id="__codelineno-16-14" name="__codelineno-16-14" href="#__codelineno-16-14"></a><span class="p">}</span>
 </code></pre></div>
 <hr />
 <h2 id="4-local-testing-verification-patterns">4. Local Testing &amp; Verification Patterns<a class="headerlink" href="#4-local-testing-verification-patterns" title="Permanent link">&para;</a></h2>
 <p>Run fast unit tests without requiring a remote cluster:
-<div class="highlight"><pre><span></span><code><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a><span class="c"># Run all unit tests</span>
-<a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a><span class="n">uv</span> <span class="n">run</span> <span class="n">pytest</span> <span class="n">tests</span><span class="p">/</span><span class="n">unit</span><span class="p">/</span> <span class="n">-v</span>
-<a id="__codelineno-16-3" name="__codelineno-16-3" href="#__codelineno-16-3"></a>
-<a id="__codelineno-16-4" name="__codelineno-16-4" href="#__codelineno-16-4"></a><span class="c"># Test specific onboarding spec validation</span>
-<a id="__codelineno-16-5" name="__codelineno-16-5" href="#__codelineno-16-5"></a><span class="n">uv</span> <span class="n">run</span> <span class="n">pytest</span> <span class="n">tests</span><span class="p">/</span><span class="n">unit</span><span class="p">/</span><span class="n">test_spec_validator</span><span class="p">.</span><span class="n">py</span> <span class="n">-v</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a><span class="c"># Run all unit tests</span>
+<a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a><span class="n">uv</span> <span class="n">run</span> <span class="n">pytest</span> <span class="n">tests</span><span class="p">/</span><span class="n">unit</span><span class="p">/</span> <span class="n">-v</span>
+<a id="__codelineno-17-3" name="__codelineno-17-3" href="#__codelineno-17-3"></a>
+<a id="__codelineno-17-4" name="__codelineno-17-4" href="#__codelineno-17-4"></a><span class="c"># Test specific onboarding spec validation</span>
+<a id="__codelineno-17-5" name="__codelineno-17-5" href="#__codelineno-17-5"></a><span class="n">uv</span> <span class="n">run</span> <span class="n">pytest</span> <span class="n">tests</span><span class="p">/</span><span class="n">unit</span><span class="p">/</span><span class="n">test_spec_validator</span><span class="p">.</span><span class="n">py</span> <span class="n">-v</span>
 </code></pre></div></p>
 <hr />
 <h2 id="5-recipes-in-pipeline-reconciliation-and-workspace-bring-up">5. Recipes: In-Pipeline Reconciliation and Workspace Bring-Up<a class="headerlink" href="#5-recipes-in-pipeline-reconciliation-and-workspace-bring-up" title="Permanent link">&para;</a></h2>
@@ -4394,8 +4428,8 @@ in <code>control_plane/ddl_definitions.py</code>, applied by <code>ensure_contro
 <code>control_plane/schema_provisioner.py</code>, which <code>ensure_control_schema_exists</code> now calls at the end.
 Its only entrypoint is <code>notebooks/01_setup/01_setup_control_tables.py</code>.</p>
 <p>Check whether you need it:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a><span class="k">DESCRIBE</span><span class="w"> </span><span class="k">TABLE</span><span class="w"> </span><span class="n">flowx</span><span class="p">.</span><span class="n">config</span><span class="p">.</span><span class="n">reconciliation_flow_spec</span><span class="p">;</span>
-<a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a><span class="c1">-- look for: execution_mode, publish_schema, dq_config_json</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a><span class="k">DESCRIBE</span><span class="w"> </span><span class="k">TABLE</span><span class="w"> </span><span class="n">flowx</span><span class="p">.</span><span class="n">config</span><span class="p">.</span><span class="n">reconciliation_flow_spec</span><span class="p">;</span>
+<a id="__codelineno-18-2" name="__codelineno-18-2" href="#__codelineno-18-2"></a><span class="c1">-- look for: execution_mode, publish_schema, dq_config_json</span>
 </code></pre></div>
 <p>If any of the three is absent, run the setup task once before onboarding — for example as the first
 task of the job that will do the onboarding (this is exactly why
@@ -4406,23 +4440,23 @@ deliberately <em>not</em> written as <code>ADD COLUMNS IF NOT EXISTS</code> — 
 <code>PARSE_SYNTAX_ERROR</code> (verified). Idempotence is caller-side: columns already present are skipped,
 and a narrow duplicate-column race is swallowed.</p>
 <h4 id="d2-set-execution_mode-in-the-spec">D.2 — Set <code>execution_mode</code> in the spec<a class="headerlink" href="#d2-set-execution_mode-in-the-spec" title="Permanent link">&para;</a></h4>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a><span class="p">{</span>
-<a id="__codelineno-18-2" name="__codelineno-18-2" href="#__codelineno-18-2"></a><span class="w">  </span><span class="nt">"reconciliation_id"</span><span class="p">:</span><span class="w"> </span><span class="s2">"recon_orders_bronze_vs_silver"</span><span class="p">,</span>
-<a id="__codelineno-18-3" name="__codelineno-18-3" href="#__codelineno-18-3"></a><span class="w">  </span><span class="nt">"dataflow_group_id"</span><span class="p">:</span><span class="w"> </span><span class="s2">"dfg_ecommerce_orders_pipeline"</span><span class="p">,</span>
-<a id="__codelineno-18-4" name="__codelineno-18-4" href="#__codelineno-18-4"></a><span class="w">  </span><span class="nt">"execution_mode"</span><span class="p">:</span><span class="w"> </span><span class="s2">"pipeline"</span><span class="p">,</span>
-<a id="__codelineno-18-5" name="__codelineno-18-5" href="#__codelineno-18-5"></a><span class="w">  </span><span class="nt">"publish_schema"</span><span class="p">:</span><span class="w"> </span><span class="s2">"recon_ecommerce"</span><span class="p">,</span>
-<a id="__codelineno-18-6" name="__codelineno-18-6" href="#__codelineno-18-6"></a><span class="w">  </span><span class="nt">"source_config"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nt">"type"</span><span class="p">:</span><span class="w"> </span><span class="s2">"table"</span><span class="p">,</span><span class="w"> </span><span class="nt">"table"</span><span class="p">:</span><span class="w"> </span><span class="s2">"{{catalog}}.bronze_ecommerce.raw_orders"</span><span class="p">,</span><span class="w"> </span><span class="nt">"read_mode"</span><span class="p">:</span><span class="w"> </span><span class="s2">"batch"</span><span class="w"> </span><span class="p">},</span>
-<a id="__codelineno-18-7" name="__codelineno-18-7" href="#__codelineno-18-7"></a><span class="w">  </span><span class="nt">"target_configs"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
-<a id="__codelineno-18-8" name="__codelineno-18-8" href="#__codelineno-18-8"></a><span class="w">    </span><span class="p">{</span><span class="w"> </span><span class="nt">"target_id"</span><span class="p">:</span><span class="w"> </span><span class="s2">"silver_orders"</span><span class="p">,</span><span class="w"> </span><span class="nt">"type"</span><span class="p">:</span><span class="w"> </span><span class="s2">"table"</span><span class="p">,</span><span class="w"> </span><span class="nt">"table"</span><span class="p">:</span><span class="w"> </span><span class="s2">"{{catalog}}.silver_ecommerce.orders_dim"</span><span class="p">,</span><span class="w"> </span><span class="nt">"read_mode"</span><span class="p">:</span><span class="w"> </span><span class="s2">"batch"</span><span class="w"> </span><span class="p">}</span>
-<a id="__codelineno-18-9" name="__codelineno-18-9" href="#__codelineno-18-9"></a><span class="w">  </span><span class="p">],</span>
-<a id="__codelineno-18-10" name="__codelineno-18-10" href="#__codelineno-18-10"></a><span class="w">  </span><span class="nt">"match_keys"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">"order_id"</span><span class="p">],</span>
-<a id="__codelineno-18-11" name="__codelineno-18-11" href="#__codelineno-18-11"></a><span class="w">  </span><span class="nt">"compare_columns"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">"amount"</span><span class="p">,</span><span class="w"> </span><span class="s2">"order_status"</span><span class="p">],</span>
-<a id="__codelineno-18-12" name="__codelineno-18-12" href="#__codelineno-18-12"></a><span class="w">  </span><span class="nt">"dq_config"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-18-13" name="__codelineno-18-13" href="#__codelineno-18-13"></a><span class="w">    </span><span class="nt">"rules"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
-<a id="__codelineno-18-14" name="__codelineno-18-14" href="#__codelineno-18-14"></a><span class="w">      </span><span class="p">{</span><span class="w"> </span><span class="nt">"name"</span><span class="p">:</span><span class="w"> </span><span class="s2">"no_missing_in_target"</span><span class="p">,</span><span class="w"> </span><span class="nt">"sql_condition"</span><span class="p">:</span><span class="w"> </span><span class="s2">"missing_in_target_count = 0"</span><span class="p">,</span><span class="w"> </span><span class="nt">"action"</span><span class="p">:</span><span class="w"> </span><span class="s2">"warn"</span><span class="w"> </span><span class="p">}</span>
-<a id="__codelineno-18-15" name="__codelineno-18-15" href="#__codelineno-18-15"></a><span class="w">    </span><span class="p">]</span>
-<a id="__codelineno-18-16" name="__codelineno-18-16" href="#__codelineno-18-16"></a><span class="w">  </span><span class="p">}</span>
-<a id="__codelineno-18-17" name="__codelineno-18-17" href="#__codelineno-18-17"></a><span class="p">}</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a><span class="p">{</span>
+<a id="__codelineno-19-2" name="__codelineno-19-2" href="#__codelineno-19-2"></a><span class="w">  </span><span class="nt">"reconciliation_id"</span><span class="p">:</span><span class="w"> </span><span class="s2">"recon_orders_bronze_vs_silver"</span><span class="p">,</span>
+<a id="__codelineno-19-3" name="__codelineno-19-3" href="#__codelineno-19-3"></a><span class="w">  </span><span class="nt">"dataflow_group_id"</span><span class="p">:</span><span class="w"> </span><span class="s2">"dfg_ecommerce_orders_pipeline"</span><span class="p">,</span>
+<a id="__codelineno-19-4" name="__codelineno-19-4" href="#__codelineno-19-4"></a><span class="w">  </span><span class="nt">"execution_mode"</span><span class="p">:</span><span class="w"> </span><span class="s2">"pipeline"</span><span class="p">,</span>
+<a id="__codelineno-19-5" name="__codelineno-19-5" href="#__codelineno-19-5"></a><span class="w">  </span><span class="nt">"publish_schema"</span><span class="p">:</span><span class="w"> </span><span class="s2">"recon_ecommerce"</span><span class="p">,</span>
+<a id="__codelineno-19-6" name="__codelineno-19-6" href="#__codelineno-19-6"></a><span class="w">  </span><span class="nt">"source_config"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nt">"type"</span><span class="p">:</span><span class="w"> </span><span class="s2">"table"</span><span class="p">,</span><span class="w"> </span><span class="nt">"table"</span><span class="p">:</span><span class="w"> </span><span class="s2">"{{catalog}}.bronze_ecommerce.raw_orders"</span><span class="p">,</span><span class="w"> </span><span class="nt">"read_mode"</span><span class="p">:</span><span class="w"> </span><span class="s2">"batch"</span><span class="w"> </span><span class="p">},</span>
+<a id="__codelineno-19-7" name="__codelineno-19-7" href="#__codelineno-19-7"></a><span class="w">  </span><span class="nt">"target_configs"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<a id="__codelineno-19-8" name="__codelineno-19-8" href="#__codelineno-19-8"></a><span class="w">    </span><span class="p">{</span><span class="w"> </span><span class="nt">"target_id"</span><span class="p">:</span><span class="w"> </span><span class="s2">"silver_orders"</span><span class="p">,</span><span class="w"> </span><span class="nt">"type"</span><span class="p">:</span><span class="w"> </span><span class="s2">"table"</span><span class="p">,</span><span class="w"> </span><span class="nt">"table"</span><span class="p">:</span><span class="w"> </span><span class="s2">"{{catalog}}.silver_ecommerce.orders_dim"</span><span class="p">,</span><span class="w"> </span><span class="nt">"read_mode"</span><span class="p">:</span><span class="w"> </span><span class="s2">"batch"</span><span class="w"> </span><span class="p">}</span>
+<a id="__codelineno-19-9" name="__codelineno-19-9" href="#__codelineno-19-9"></a><span class="w">  </span><span class="p">],</span>
+<a id="__codelineno-19-10" name="__codelineno-19-10" href="#__codelineno-19-10"></a><span class="w">  </span><span class="nt">"match_keys"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">"order_id"</span><span class="p">],</span>
+<a id="__codelineno-19-11" name="__codelineno-19-11" href="#__codelineno-19-11"></a><span class="w">  </span><span class="nt">"compare_columns"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">"amount"</span><span class="p">,</span><span class="w"> </span><span class="s2">"order_status"</span><span class="p">],</span>
+<a id="__codelineno-19-12" name="__codelineno-19-12" href="#__codelineno-19-12"></a><span class="w">  </span><span class="nt">"dq_config"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-19-13" name="__codelineno-19-13" href="#__codelineno-19-13"></a><span class="w">    </span><span class="nt">"rules"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<a id="__codelineno-19-14" name="__codelineno-19-14" href="#__codelineno-19-14"></a><span class="w">      </span><span class="p">{</span><span class="w"> </span><span class="nt">"name"</span><span class="p">:</span><span class="w"> </span><span class="s2">"no_missing_in_target"</span><span class="p">,</span><span class="w"> </span><span class="nt">"sql_condition"</span><span class="p">:</span><span class="w"> </span><span class="s2">"missing_in_target_count = 0"</span><span class="p">,</span><span class="w"> </span><span class="nt">"action"</span><span class="p">:</span><span class="w"> </span><span class="s2">"warn"</span><span class="w"> </span><span class="p">}</span>
+<a id="__codelineno-19-15" name="__codelineno-19-15" href="#__codelineno-19-15"></a><span class="w">    </span><span class="p">]</span>
+<a id="__codelineno-19-16" name="__codelineno-19-16" href="#__codelineno-19-16"></a><span class="w">  </span><span class="p">}</span>
+<a id="__codelineno-19-17" name="__codelineno-19-17" href="#__codelineno-19-17"></a><span class="p">}</span>
 </code></pre></div>
 <p><code>publish_schema</code> is optional. Omit it and the L3–L5 nodes are published into the pipeline's own
 schema, resolved by the notebook's fallback chain
@@ -4441,24 +4475,24 @@ onboarding contract drifts between callers. This convention is already applied i
 <code>flowx_test_104_geneva_tariffs_recon_job.yml</code>.</p>
 </blockquote>
 <p>In a job resource, delegate with a <code>run_job_task</code>:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a><span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">task_key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">onboard_x</span>
-<a id="__codelineno-19-2" name="__codelineno-19-2" href="#__codelineno-19-2"></a><span class="w">          </span><span class="nt">run_job_task</span><span class="p">:</span>
-<a id="__codelineno-19-3" name="__codelineno-19-3" href="#__codelineno-19-3"></a><span class="w">            </span><span class="nt">job_id</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">${resources.jobs.onboarding_job.id}</span>
-<a id="__codelineno-19-4" name="__codelineno-19-4" href="#__codelineno-19-4"></a><span class="w">            </span><span class="nt">job_parameters</span><span class="p">:</span>
-<a id="__codelineno-19-5" name="__codelineno-19-5" href="#__codelineno-19-5"></a><span class="w">              </span><span class="nt">spec_file_path</span><span class="p">:</span><span class="w"> </span><span class="s">"${workspace.file_path}/flowx_testing/&lt;spec&gt;.json"</span>
-<a id="__codelineno-19-6" name="__codelineno-19-6" href="#__codelineno-19-6"></a><span class="w">              </span><span class="nt">catalog</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">flowx</span>
-<a id="__codelineno-19-7" name="__codelineno-19-7" href="#__codelineno-19-7"></a><span class="w">              </span><span class="nt">env</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">dev</span>
-<a id="__codelineno-19-8" name="__codelineno-19-8" href="#__codelineno-19-8"></a><span class="w">              </span><span class="nt">action_type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">CREATE</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a><span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">task_key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">onboard_x</span>
+<a id="__codelineno-20-2" name="__codelineno-20-2" href="#__codelineno-20-2"></a><span class="w">          </span><span class="nt">run_job_task</span><span class="p">:</span>
+<a id="__codelineno-20-3" name="__codelineno-20-3" href="#__codelineno-20-3"></a><span class="w">            </span><span class="nt">job_id</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">${resources.jobs.onboarding_job.id}</span>
+<a id="__codelineno-20-4" name="__codelineno-20-4" href="#__codelineno-20-4"></a><span class="w">            </span><span class="nt">job_parameters</span><span class="p">:</span>
+<a id="__codelineno-20-5" name="__codelineno-20-5" href="#__codelineno-20-5"></a><span class="w">              </span><span class="nt">spec_file_path</span><span class="p">:</span><span class="w"> </span><span class="s">"${workspace.file_path}/flowx_testing/&lt;spec&gt;.json"</span>
+<a id="__codelineno-20-6" name="__codelineno-20-6" href="#__codelineno-20-6"></a><span class="w">              </span><span class="nt">catalog</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">flowx</span>
+<a id="__codelineno-20-7" name="__codelineno-20-7" href="#__codelineno-20-7"></a><span class="w">              </span><span class="nt">env</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">dev</span>
+<a id="__codelineno-20-8" name="__codelineno-20-8" href="#__codelineno-20-8"></a><span class="w">              </span><span class="nt">action_type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">CREATE</span>
 </code></pre></div>
 <p>Or, ad hoc from the CLI:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a>databricks<span class="w"> </span>bundle<span class="w"> </span>run<span class="w"> </span>onboarding_job<span class="w"> </span>-t<span class="w"> </span>dev<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-20-2" name="__codelineno-20-2" href="#__codelineno-20-2"></a><span class="w">  </span>--params<span class="w"> </span><span class="nv">spec_file_path</span><span class="o">=</span>/Workspace/.../my_pipeline.json,catalog<span class="o">=</span>flowx,env<span class="o">=</span>dev,action_type<span class="o">=</span>CREATE
+<div class="highlight"><pre><span></span><code><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a>databricks<span class="w"> </span>bundle<span class="w"> </span>run<span class="w"> </span>onboarding_job<span class="w"> </span>-t<span class="w"> </span>dev<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-21-2" name="__codelineno-21-2" href="#__codelineno-21-2"></a><span class="w">  </span>--params<span class="w"> </span><span class="nv">spec_file_path</span><span class="o">=</span>/Workspace/.../my_pipeline.json,catalog<span class="o">=</span>flowx,env<span class="o">=</span>dev,action_type<span class="o">=</span>CREATE
 </code></pre></div>
 <p>Re-onboarding the same <code>reconciliation_id</code> <strong>MERGEs in place</strong>; onboarding a spec that declares the
 same group with <em>different</em> flow ids adds duplicate flows instead of replacing them. If you are
 mirroring flows that already exist in the control tables, mirror their real ids.</p>
 <h4 id="d4-run-the-pipeline-and-delete-the-now-duplicate-recon-job-task">D.4 — Run the pipeline (and delete the now-duplicate recon job task)<a class="headerlink" href="#d4-run-the-pipeline-and-delete-the-now-duplicate-recon-job-task" title="Permanent link">&para;</a></h4>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a>databricks<span class="w"> </span>pipelines<span class="w"> </span>start<span class="w"> </span>--pipeline-id<span class="w"> </span>&lt;pipeline_id&gt;
+<div class="highlight"><pre><span></span><code><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a>databricks<span class="w"> </span>pipelines<span class="w"> </span>start<span class="w"> </span>--pipeline-id<span class="w"> </span>&lt;pipeline_id&gt;
 </code></pre></div>
 <p>Before you do, <strong>check the job graph for a standalone reconciliation task</strong>. Under
 <code>execution_mode: "pipeline"</code> the L3/L4/L5 datasets are registered by the pipeline update itself; a
@@ -4472,13 +4506,13 @@ into the pipeline. See
 <h4 id="d5-verify">D.5 — Verify<a class="headerlink" href="#d5-verify" title="Permanent link">&para;</a></h4>
 <p>From the pipeline's event log, the update should contain the L3 prepare nodes, the three L4
 datasets, and — in <code>"pipeline"</code> mode only — the L5 pulse and heal flow:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a>_recon__&lt;rid&gt;__src                    STREAMING_TABLE / MATERIALIZED_VIEW   (L3)
-<a id="__codelineno-22-2" name="__codelineno-22-2" href="#__codelineno-22-2"></a>_recon__&lt;rid&gt;__&lt;tid&gt;__tgt             MATERIALIZED_VIEW                     (L3)
-<a id="__codelineno-22-3" name="__codelineno-22-3" href="#__codelineno-22-3"></a>recon__&lt;rid&gt;__&lt;tid&gt;__classified       MATERIALIZED_VIEW                     (L4, published)
-<a id="__codelineno-22-4" name="__codelineno-22-4" href="#__codelineno-22-4"></a>recon__&lt;rid&gt;__&lt;tid&gt;__metrics          MATERIALIZED_VIEW                     (L4, published, 1 row)
-<a id="__codelineno-22-5" name="__codelineno-22-5" href="#__codelineno-22-5"></a>recon__&lt;rid&gt;__&lt;tid&gt;__mismatch         MATERIALIZED_VIEW                     (L4, published)
-<a id="__codelineno-22-6" name="__codelineno-22-6" href="#__codelineno-22-6"></a>_recon__&lt;rid&gt;__pulse                  STREAMING_TABLE                       (L5, "pipeline" only)
-<a id="__codelineno-22-7" name="__codelineno-22-7" href="#__codelineno-22-7"></a>recon__&lt;rid&gt;__heal_flow               APPEND flow                           (L5, "pipeline" only)
+<div class="highlight"><pre><span></span><code><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a>_recon__&lt;rid&gt;__src                    STREAMING_TABLE / MATERIALIZED_VIEW   (L3)
+<a id="__codelineno-23-2" name="__codelineno-23-2" href="#__codelineno-23-2"></a>_recon__&lt;rid&gt;__&lt;tid&gt;__tgt             MATERIALIZED_VIEW                     (L3)
+<a id="__codelineno-23-3" name="__codelineno-23-3" href="#__codelineno-23-3"></a>recon__&lt;rid&gt;__&lt;tid&gt;__classified       MATERIALIZED_VIEW                     (L4, published)
+<a id="__codelineno-23-4" name="__codelineno-23-4" href="#__codelineno-23-4"></a>recon__&lt;rid&gt;__&lt;tid&gt;__metrics          MATERIALIZED_VIEW                     (L4, published, 1 row)
+<a id="__codelineno-23-5" name="__codelineno-23-5" href="#__codelineno-23-5"></a>recon__&lt;rid&gt;__&lt;tid&gt;__mismatch         MATERIALIZED_VIEW                     (L4, published)
+<a id="__codelineno-23-6" name="__codelineno-23-6" href="#__codelineno-23-6"></a>_recon__&lt;rid&gt;__pulse                  STREAMING_TABLE                       (L5, "pipeline" only)
+<a id="__codelineno-23-7" name="__codelineno-23-7" href="#__codelineno-23-7"></a>recon__&lt;rid&gt;__heal_flow               APPEND flow                           (L5, "pipeline" only)
 </code></pre></div>
 <p>This exact shape was observed live on 2026-08-31 for pipeline
 <code>flowx_test_003_autoload_recon_pipeline</code> — see
@@ -4503,18 +4537,18 @@ v1.5.0. You still run <code>setup_control_tables</code> first — it is what cre
    <code>spec_file_path</code>. Do not inline <code>02_onboarding_engine.py</code> in a new job in either case.</li>
 <li><strong>Run the pipeline</strong> for the <code>dataflow_group_id</code> you just onboarded.</li>
 </ol>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a><span class="c1"># 1. control tables (once per workspace/catalog)</span>
-<a id="__codelineno-23-2" name="__codelineno-23-2" href="#__codelineno-23-2"></a>databricks<span class="w"> </span>bundle<span class="w"> </span>run<span class="w"> </span>&lt;job<span class="w"> </span>containing<span class="w"> </span>setup_control_tables&gt;<span class="w"> </span>-t<span class="w"> </span>&lt;target&gt;
-<a id="__codelineno-23-3" name="__codelineno-23-3" href="#__codelineno-23-3"></a>
-<a id="__codelineno-23-4" name="__codelineno-23-4" href="#__codelineno-23-4"></a><span class="c1"># 2. onboard one spec ...</span>
-<a id="__codelineno-23-5" name="__codelineno-23-5" href="#__codelineno-23-5"></a>databricks<span class="w"> </span>bundle<span class="w"> </span>run<span class="w"> </span>onboarding_job<span class="w"> </span>-t<span class="w"> </span>&lt;target&gt;<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-23-6" name="__codelineno-23-6" href="#__codelineno-23-6"></a><span class="w">  </span>--params<span class="w"> </span><span class="nv">spec_file_path</span><span class="o">=</span>/Workspace/.../my_pipeline.json,catalog<span class="o">=</span>&lt;catalog&gt;,env<span class="o">=</span>&lt;env&gt;,action_type<span class="o">=</span>CREATE
-<a id="__codelineno-23-7" name="__codelineno-23-7" href="#__codelineno-23-7"></a>
-<a id="__codelineno-23-8" name="__codelineno-23-8" href="#__codelineno-23-8"></a><span class="c1"># 2'. ... or a whole directory</span>
-<a id="__codelineno-23-9" name="__codelineno-23-9" href="#__codelineno-23-9"></a>databricks<span class="w"> </span>bundle<span class="w"> </span>run<span class="w"> </span>framework_config_onboarding_job<span class="w"> </span>-t<span class="w"> </span>&lt;target&gt;
-<a id="__codelineno-23-10" name="__codelineno-23-10" href="#__codelineno-23-10"></a>
-<a id="__codelineno-23-11" name="__codelineno-23-11" href="#__codelineno-23-11"></a><span class="c1"># 3. run the pipeline</span>
-<a id="__codelineno-23-12" name="__codelineno-23-12" href="#__codelineno-23-12"></a>databricks<span class="w"> </span>pipelines<span class="w"> </span>start<span class="w"> </span>--pipeline-id<span class="w"> </span>&lt;pipeline_id&gt;
+<div class="highlight"><pre><span></span><code><a id="__codelineno-24-1" name="__codelineno-24-1" href="#__codelineno-24-1"></a><span class="c1"># 1. control tables (once per workspace/catalog)</span>
+<a id="__codelineno-24-2" name="__codelineno-24-2" href="#__codelineno-24-2"></a>databricks<span class="w"> </span>bundle<span class="w"> </span>run<span class="w"> </span>&lt;job<span class="w"> </span>containing<span class="w"> </span>setup_control_tables&gt;<span class="w"> </span>-t<span class="w"> </span>&lt;target&gt;
+<a id="__codelineno-24-3" name="__codelineno-24-3" href="#__codelineno-24-3"></a>
+<a id="__codelineno-24-4" name="__codelineno-24-4" href="#__codelineno-24-4"></a><span class="c1"># 2. onboard one spec ...</span>
+<a id="__codelineno-24-5" name="__codelineno-24-5" href="#__codelineno-24-5"></a>databricks<span class="w"> </span>bundle<span class="w"> </span>run<span class="w"> </span>onboarding_job<span class="w"> </span>-t<span class="w"> </span>&lt;target&gt;<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-24-6" name="__codelineno-24-6" href="#__codelineno-24-6"></a><span class="w">  </span>--params<span class="w"> </span><span class="nv">spec_file_path</span><span class="o">=</span>/Workspace/.../my_pipeline.json,catalog<span class="o">=</span>&lt;catalog&gt;,env<span class="o">=</span>&lt;env&gt;,action_type<span class="o">=</span>CREATE
+<a id="__codelineno-24-7" name="__codelineno-24-7" href="#__codelineno-24-7"></a>
+<a id="__codelineno-24-8" name="__codelineno-24-8" href="#__codelineno-24-8"></a><span class="c1"># 2'. ... or a whole directory</span>
+<a id="__codelineno-24-9" name="__codelineno-24-9" href="#__codelineno-24-9"></a>databricks<span class="w"> </span>bundle<span class="w"> </span>run<span class="w"> </span>framework_config_onboarding_job<span class="w"> </span>-t<span class="w"> </span>&lt;target&gt;
+<a id="__codelineno-24-10" name="__codelineno-24-10" href="#__codelineno-24-10"></a>
+<a id="__codelineno-24-11" name="__codelineno-24-11" href="#__codelineno-24-11"></a><span class="c1"># 3. run the pipeline</span>
+<a id="__codelineno-24-12" name="__codelineno-24-12" href="#__codelineno-24-12"></a>databricks<span class="w"> </span>pipelines<span class="w"> </span>start<span class="w"> </span>--pipeline-id<span class="w"> </span>&lt;pipeline_id&gt;
 </code></pre></div>
 <blockquote>
 <p>[!WARNING]
@@ -4583,11 +4617,11 @@ schema <strong><code>flowx.flowx_sample</code></strong>.</p>
 <p>Fixtures are <strong>not</strong> produced by the sample jobs. They are all produced by the single
 <code>flowx_sample_seed_job</code> (<code>resources/sample_jobs/flowx_sample_seed_job.yml</code>), which holds one
 chain of three iteration tasks per sample behind a serial <code>provision_sample_schema</code> root:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-24-1" name="__codelineno-24-1" href="#__codelineno-24-1"></a>provision_sample_schema                       (serial root)
-<a id="__codelineno-24-2" name="__codelineno-24-2" href="#__codelineno-24-2"></a>  |-- seed_sample_01_iteration1 -&gt; _iteration2 -&gt; _iteration3
-<a id="__codelineno-24-3" name="__codelineno-24-3" href="#__codelineno-24-3"></a>  |-- seed_sample_02_iteration1 -&gt; _iteration2 -&gt; _iteration3
-<a id="__codelineno-24-4" name="__codelineno-24-4" href="#__codelineno-24-4"></a>  |-- ... one chain per sample, chains run in parallel ...
-<a id="__codelineno-24-5" name="__codelineno-24-5" href="#__codelineno-24-5"></a>  `-- seed_sample_06_iteration1 -&gt; _iteration2 -&gt; _iteration3
+<div class="highlight"><pre><span></span><code><a id="__codelineno-25-1" name="__codelineno-25-1" href="#__codelineno-25-1"></a>provision_sample_schema                       (serial root)
+<a id="__codelineno-25-2" name="__codelineno-25-2" href="#__codelineno-25-2"></a>  |-- seed_sample_01_iteration1 -&gt; _iteration2 -&gt; _iteration3
+<a id="__codelineno-25-3" name="__codelineno-25-3" href="#__codelineno-25-3"></a>  |-- seed_sample_02_iteration1 -&gt; _iteration2 -&gt; _iteration3
+<a id="__codelineno-25-4" name="__codelineno-25-4" href="#__codelineno-25-4"></a>  |-- ... one chain per sample, chains run in parallel ...
+<a id="__codelineno-25-5" name="__codelineno-25-5" href="#__codelineno-25-5"></a>  `-- seed_sample_06_iteration1 -&gt; _iteration2 -&gt; _iteration3
 </code></pre></div>
 <p>Two structural rules are load-bearing here:</p>
 <ul>
@@ -4604,22 +4638,22 @@ chain of three iteration tasks per sample behind a serial <code>provision_sample
   produces fixtures that do not match what the specs describe.</li>
 </ul>
 <h3 id="62-run-order">6.2 Run order<a class="headerlink" href="#62-run-order" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-25-1" name="__codelineno-25-1" href="#__codelineno-25-1"></a><span class="c1"># 1. Seed everything, once. All six samples, all three iterations.</span>
-<a id="__codelineno-25-2" name="__codelineno-25-2" href="#__codelineno-25-2"></a>databricks<span class="w"> </span>bundle<span class="w"> </span>run<span class="w"> </span>flowx_sample_seed_job<span class="w"> </span>-t<span class="w"> </span>dev_flowx<span class="w"> </span>-p<span class="w"> </span>dev_flowx
-<a id="__codelineno-25-3" name="__codelineno-25-3" href="#__codelineno-25-3"></a>
-<a id="__codelineno-25-4" name="__codelineno-25-4" href="#__codelineno-25-4"></a><span class="c1"># 2. Then any sample job, in any order - each is independent of the others.</span>
-<a id="__codelineno-25-5" name="__codelineno-25-5" href="#__codelineno-25-5"></a>databricks<span class="w"> </span>bundle<span class="w"> </span>run<span class="w"> </span>flowx_sample_01_multi_scd_job<span class="w">  </span>-t<span class="w"> </span>dev_flowx<span class="w"> </span>-p<span class="w"> </span>dev_flowx
-<a id="__codelineno-25-6" name="__codelineno-25-6" href="#__codelineno-25-6"></a>databricks<span class="w"> </span>bundle<span class="w"> </span>run<span class="w"> </span>flowx_sample_06_asn1_tap3_job<span class="w">  </span>-t<span class="w"> </span>dev_flowx<span class="w"> </span>-p<span class="w"> </span>dev_flowx
+<div class="highlight"><pre><span></span><code><a id="__codelineno-26-1" name="__codelineno-26-1" href="#__codelineno-26-1"></a><span class="c1"># 1. Seed everything, once. All six samples, all three iterations.</span>
+<a id="__codelineno-26-2" name="__codelineno-26-2" href="#__codelineno-26-2"></a>databricks<span class="w"> </span>bundle<span class="w"> </span>run<span class="w"> </span>flowx_sample_seed_job<span class="w"> </span>-t<span class="w"> </span>dev_flowx<span class="w"> </span>-p<span class="w"> </span>dev_flowx
+<a id="__codelineno-26-3" name="__codelineno-26-3" href="#__codelineno-26-3"></a>
+<a id="__codelineno-26-4" name="__codelineno-26-4" href="#__codelineno-26-4"></a><span class="c1"># 2. Then any sample job, in any order - each is independent of the others.</span>
+<a id="__codelineno-26-5" name="__codelineno-26-5" href="#__codelineno-26-5"></a>databricks<span class="w"> </span>bundle<span class="w"> </span>run<span class="w"> </span>flowx_sample_01_multi_scd_job<span class="w">  </span>-t<span class="w"> </span>dev_flowx<span class="w"> </span>-p<span class="w"> </span>dev_flowx
+<a id="__codelineno-26-6" name="__codelineno-26-6" href="#__codelineno-26-6"></a>databricks<span class="w"> </span>bundle<span class="w"> </span>run<span class="w"> </span>flowx_sample_06_asn1_tap3_job<span class="w">  </span>-t<span class="w"> </span>dev_flowx<span class="w"> </span>-p<span class="w"> </span>dev_flowx
 </code></pre></div>
 <p>Each sample job is now <strong>exactly two tasks</strong> — <code>pipeline_task</code> -&gt; <code>observability_task</code>. That is the
 developer blueprint: clone a sample job and you get the pipeline run plus its telemetry export, and
 nothing else to delete.</p>
 <p>All provisioning moved into the one suite-wide seed job, whose serial root is now a three-link
 chain:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-26-1" name="__codelineno-26-1" href="#__codelineno-26-1"></a>flowx_sample_seed_job
-<a id="__codelineno-26-2" name="__codelineno-26-2" href="#__codelineno-26-2"></a>  provision_sample_schema -&gt; setup_control_tables -&gt; onboard_all_samples
-<a id="__codelineno-26-3" name="__codelineno-26-3" href="#__codelineno-26-3"></a>                                                       |
-<a id="__codelineno-26-4" name="__codelineno-26-4" href="#__codelineno-26-4"></a>                          six parallel seed chains  &lt;--+
+<div class="highlight"><pre><span></span><code><a id="__codelineno-27-1" name="__codelineno-27-1" href="#__codelineno-27-1"></a>flowx_sample_seed_job
+<a id="__codelineno-27-2" name="__codelineno-27-2" href="#__codelineno-27-2"></a>  provision_sample_schema -&gt; setup_control_tables -&gt; onboard_all_samples
+<a id="__codelineno-27-3" name="__codelineno-27-3" href="#__codelineno-27-3"></a>                                                       |
+<a id="__codelineno-27-4" name="__codelineno-27-4" href="#__codelineno-27-4"></a>                          six parallel seed chains  &lt;--+
 </code></pre></div>
 <p><code>onboard_all_samples</code> onboards <strong>all six specs in one run</strong> by pointing the generic
 <code>framework_config_onboarding_job</code> at the bundle's spec directory
@@ -4633,8 +4667,8 @@ control tables. A group that was never onboarded fails in
 Onboarding is provisioning, so it happens once in the seed job rather than on every developer run.</p>
 </blockquote>
 <p>Run the seed job once, then any sample job as often as you like:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-27-1" name="__codelineno-27-1" href="#__codelineno-27-1"></a>databricks<span class="w"> </span>bundle<span class="w"> </span>run<span class="w"> </span>flowx_sample_seed_job<span class="w">         </span>-t<span class="w"> </span>&lt;target&gt;<span class="w"> </span>-p<span class="w"> </span>&lt;profile&gt;<span class="w">   </span><span class="c1"># once</span>
-<a id="__codelineno-27-2" name="__codelineno-27-2" href="#__codelineno-27-2"></a>databricks<span class="w"> </span>bundle<span class="w"> </span>run<span class="w"> </span>flowx_sample_01_multi_scd_job<span class="w"> </span>-t<span class="w"> </span>&lt;target&gt;<span class="w"> </span>-p<span class="w"> </span>&lt;profile&gt;
+<div class="highlight"><pre><span></span><code><a id="__codelineno-28-1" name="__codelineno-28-1" href="#__codelineno-28-1"></a>databricks<span class="w"> </span>bundle<span class="w"> </span>run<span class="w"> </span>flowx_sample_seed_job<span class="w">         </span>-t<span class="w"> </span>&lt;target&gt;<span class="w"> </span>-p<span class="w"> </span>&lt;profile&gt;<span class="w">   </span><span class="c1"># once</span>
+<a id="__codelineno-28-2" name="__codelineno-28-2" href="#__codelineno-28-2"></a>databricks<span class="w"> </span>bundle<span class="w"> </span>run<span class="w"> </span>flowx_sample_01_multi_scd_job<span class="w"> </span>-t<span class="w"> </span>&lt;target&gt;<span class="w"> </span>-p<span class="w"> </span>&lt;profile&gt;
 </code></pre></div>
 <p>Pass <code>action_type=UPDATE</code> to the seed job to re-onboard specs that changed after first onboarding.</p>
 <h3 id="64-sample-06-the-real-gsma-tap3-module-and-why-the-pdu-is-notification">6.4 Sample 06: the real GSMA TAP3 module, and why the PDU is <code>Notification</code><a class="headerlink" href="#64-sample-06-the-real-gsma-tap3-module-and-why-the-pdu-is-notification" title="Permanent link">&para;</a></h3>

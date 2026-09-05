@@ -1576,3 +1576,224 @@ def test_source_plane_absent_or_empty_is_valid():
             del spec["source_plane"]
         _, _, _, _, errors = validate_spec(None, spec)
         assert errors == [], (block, errors)
+
+
+# --- v1.7.4: pgp_symmetric + member_format (added for UC6) --------------------------------
+#
+# Both keys are new spec surface, so both must be simultaneously (a) accepted by the Python
+# validator and (b) present in the JSON schema, whose additionalProperties:false is what
+# actually rejects unknown keys since v1.7.2. A test that only exercised validate_spec would
+# pass while real onboarding still rejected the spec.
+
+
+def _uc6_passphrase_secret():
+    return {"secret_catalog": "flowx", "secret_schema": "config", "secret_key": "pgpkey"}
+
+
+def test_pre_extraction_decryption_pgp_symmetric_with_passphrase_has_no_errors():
+    """UC6's Environment Agency feed: gzip inside a symmetric-PGP envelope."""
+    spec = {
+        "dataflow_group_id": "dfg_test",
+        "ingestion_flows": [
+            _base_ingestion_flow(
+                source_config=_zip_handling_source_config(
+                    zip_file_pattern="EE_*-REQUEST_*.csv.gz.gpg",
+                    member_format="gzip",
+                    pre_extraction_decryption={
+                        "type": "pgp_symmetric",
+                        "passphrase_secret": _uc6_passphrase_secret(),
+                    },
+                )
+            )
+        ],
+    }
+    _, _, _, _, errors = validate_spec(None, spec)
+    assert errors == []
+
+
+def test_pgp_symmetric_without_passphrase_secret_reports_error():
+    """The shared passphrase IS the key -- unlike 'pgp', it cannot be optional."""
+    spec = {
+        "dataflow_group_id": "dfg_test",
+        "ingestion_flows": [
+            _base_ingestion_flow(
+                source_config=_zip_handling_source_config(pre_extraction_decryption={"type": "pgp_symmetric"})
+            )
+        ],
+    }
+    _, _, _, _, errors = validate_spec(None, spec)
+    assert any("passphrase_secret" in error for error in errors), errors
+
+
+def test_pgp_symmetric_with_a_private_key_reports_error():
+    """A passphrase-encrypted OpenPGP message has no recipient keypair -- naming one means the
+    author picked the wrong type, and silently ignoring it would decrypt nothing."""
+    spec = {
+        "dataflow_group_id": "dfg_test",
+        "ingestion_flows": [
+            _base_ingestion_flow(
+                source_config=_zip_handling_source_config(
+                    pre_extraction_decryption={
+                        "type": "pgp_symmetric",
+                        "passphrase_secret": _uc6_passphrase_secret(),
+                        "private_key_secret": _uc6_passphrase_secret(),
+                    }
+                )
+            )
+        ],
+    }
+    _, _, _, _, errors = validate_spec(None, spec)
+    assert any("private_key_secret" in error for error in errors), errors
+
+
+def test_gzip_member_format_with_a_zip_password_reports_error():
+    spec = {
+        "dataflow_group_id": "dfg_test",
+        "ingestion_flows": [
+            _base_ingestion_flow(
+                source_config=_zip_handling_source_config(
+                    member_format="gzip",
+                    pre_extraction_decryption={"secret_passphrase": _uc6_passphrase_secret()},
+                )
+            )
+        ],
+    }
+    _, _, _, _, errors = validate_spec(None, spec)
+    assert any("secret_passphrase" in error for error in errors), errors
+
+
+def test_unknown_member_format_reports_error():
+    spec = {
+        "dataflow_group_id": "dfg_test",
+        "ingestion_flows": [_base_ingestion_flow(source_config=_zip_handling_source_config(member_format="tar"))],
+    }
+    _, _, _, _, errors = validate_spec(None, spec)
+    assert any("member_format" in error for error in errors), errors
+
+
+def test_new_v1_7_4_keys_are_present_in_the_json_schema():
+    """Guard the half of the contract validate_spec cannot see: since v1.7.2 the JSON schema's
+    additionalProperties:false is what rejects unknown keys at onboarding, so a key accepted
+    here but missing there is still rejected in production."""
+    import json
+    from pathlib import Path
+
+    schema_path = Path(__file__).resolve().parents[2] / "onboarding_templates" / "onboarding_spec.schema.json"
+    schema = json.loads(schema_path.read_text(encoding="utf-8"))
+
+    decryption_types = schema["$defs"]["preExtractionDecryption"]["properties"]["type"]["enum"]
+    assert "pgp_symmetric" in decryption_types, decryption_types
+
+    member_formats = schema["$defs"]["sourceZipHandling"]["properties"]["member_format"]["enum"]
+    assert set(member_formats) == {"zip", "gzip"}, member_formats
+
+
+# --- v1.7.4 sink surface: staged_file_options + archive_format + symmetric PGP -------------
+
+
+def _sink_flow(sink_config):
+    return {
+        "flow_step_id": "ts_uc6_export",
+        "dataflow_id": "df_uc6_source",
+        "target_catalog": "flowx",
+        "target_schema": "gold",
+        "target_table": "uc6_telephone_output",
+        "target_type": "sink",
+        "source_inputs": [{"input_name": "uc6_gold_in", "table": "flowx.gold.uc6_telephone", "is_streaming": True}],
+        "transformation_sql": "SELECT targetAreaID, telephone FROM uc6_gold_in",
+        "target_config": {"cdc_load_strategy": "APPEND", "storage_format": "delta", "sink_config": sink_config},
+    }
+
+
+def _uc6_sink_config(**overrides):
+    config = {
+        "format": "pgp_zip",
+        "path": "/Volumes/flowx/staging/uc_6/output/_staging/",
+        "staged_file_format": "csv",
+        "staged_file_options": {"delimiter": "|", "line_terminator": "lf", "include_header": True},
+        "post_export_archive": {
+            "enabled": True,
+            "output_zip_path": "/Volumes/flowx/staging/uc_6/output/",
+            "export_file_name_format": "EE_2026-08-20-LEIDOS_TELEPHONE_1of1",
+            "archive_format": "gzip",
+        },
+    }
+    config.update(overrides)
+    return config
+
+
+def _errors_for_sink(sink_config):
+    spec = {"dataflow_group_id": "dfg_test", "transformation_flows": [_sink_flow(sink_config)]}
+    _, _, _, _, errors = validate_spec(None, spec)
+    return errors
+
+
+def test_uc6_gzip_pipe_delimited_sink_has_no_errors():
+    assert _errors_for_sink(_uc6_sink_config()) == []
+
+
+def test_symmetric_pgp_sink_has_no_errors():
+    config = _uc6_sink_config()
+    config["post_export_archive"]["pgp_encryption"] = {
+        "enabled": True,
+        "passphrase_secret": {"secret_catalog": "flowx", "secret_schema": "config", "secret_key": "pgpkey"},
+    }
+    assert _errors_for_sink(config) == []
+
+
+def test_sink_pgp_passphrase_and_recipient_key_together_report_error():
+    secret = {"secret_catalog": "flowx", "secret_schema": "config", "secret_key": "pgpkey"}
+    config = _uc6_sink_config()
+    config["post_export_archive"]["pgp_encryption"] = {
+        "enabled": True,
+        "passphrase_secret": secret,
+        "recipient_public_key_secret": secret,
+    }
+    assert any("mutually exclusive" in error for error in _errors_for_sink(config))
+
+
+def test_sink_symmetric_pgp_rejects_signing():
+    secret = {"secret_catalog": "flowx", "secret_schema": "config", "secret_key": "pgpkey"}
+    config = _uc6_sink_config()
+    config["post_export_archive"]["pgp_encryption"] = {
+        "enabled": True,
+        "passphrase_secret": secret,
+        "sign_with_private_key_secret": secret,
+    }
+    assert any("sign_with_private_key_secret" in error for error in _errors_for_sink(config))
+
+
+def test_staged_file_options_rejected_without_csv_staging():
+    config = _uc6_sink_config(staged_file_format="json")
+    assert any("staged_file_options" in error for error in _errors_for_sink(config))
+
+
+def test_multi_character_staged_delimiter_reports_error():
+    config = _uc6_sink_config(staged_file_options={"delimiter": "||"})
+    assert any("one character" in error for error in _errors_for_sink(config))
+
+
+def test_unknown_staged_line_terminator_reports_error():
+    config = _uc6_sink_config(staged_file_options={"line_terminator": "cr"})
+    assert any("line_terminator" in error for error in _errors_for_sink(config))
+
+
+def test_unknown_archive_format_reports_error():
+    config = _uc6_sink_config()
+    config["post_export_archive"]["archive_format"] = "tar"
+    assert any("archive_format" in error for error in _errors_for_sink(config))
+
+
+def test_v1_7_4_sink_keys_are_present_in_the_json_schema():
+    import json
+    from pathlib import Path
+
+    schema_path = Path(__file__).resolve().parents[2] / "onboarding_templates" / "onboarding_spec.schema.json"
+    schema = json.loads(schema_path.read_text(encoding="utf-8"))
+
+    assert "staged_file_options" in schema["$defs"]["sinkConfig"]["properties"]
+    assert schema["$defs"]["postExportArchive"]["properties"]["archive_format"]["enum"] == ["zip", "gzip"]
+    assert "passphrase_secret" in schema["$defs"]["pgpEncryption"]["properties"]
+    assert "recipient_public_key_secret" not in schema["$defs"]["pgpEncryption"].get("required", []), (
+        "must not be schema-required once symmetric encryption is an alternative"
+    )

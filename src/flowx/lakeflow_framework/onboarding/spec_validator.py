@@ -304,8 +304,15 @@ ALLOWED_SOURCE_INPUT_KEYS = {
 
 ALLOWED_SINK_CONFIG_KEYS = {
     "format", "kafka_options", "kafka_secret_options", "path", "post_export_archive",
-    "staged_file_format", "write_mode"
+    "staged_file_format", "staged_file_options", "write_mode"
 }
+
+#: ``sink_config.staged_file_options`` (v1.7.4) -- the staged CSV's dialect.
+ALLOWED_STAGED_FILE_OPTIONS_KEYS = {"delimiter", "include_header", "line_terminator"}
+ALLOWED_STAGED_LINE_TERMINATORS = {"crlf", "lf"}
+
+#: ``post_export_archive.archive_format`` (v1.7.4) -- the finished archive's container.
+ALLOWED_ARCHIVE_FORMATS = {"gzip", "zip"}
 
 ALLOWED_RECONCILIATION_FLOW_KEYS = {
     "compare_columns", "dataflow_group_id", "dq_config", "error_handling", "execution_mode",
@@ -492,7 +499,16 @@ _CREDENTIAL_REF_PATTERN = re.compile(r"^(env:[A-Za-z_][A-Za-z0-9_]*|secret:[^:]+
 # Registry of supported pre-extraction decryption algorithms -- see
 # `ingestion/readers.py::_apply_source_zip_handling`. Adding a new algorithm later means adding
 # a new key here (and a new handler function) -- never a schema change.
-ALLOWED_PRE_EXTRACTION_DECRYPTION_TYPES = {"pgp"}
+#: ``source_zip_handling.pre_extraction_decryption.type``. ``pgp`` is key-based (asymmetric);
+#: ``pgp_symmetric`` (v1.7.4) is passphrase-based, the shape ``gpg --symmetric`` produces.
+#: They are mutually exclusive at the OpenPGP message level -- a key-encrypted message is not
+#: passphrase-decryptable and vice versa -- so they are separate types rather than one type
+#: with two optional secret shapes.
+ALLOWED_PRE_EXTRACTION_DECRYPTION_TYPES = {"pgp", "pgp_symmetric"}
+
+#: ``source_zip_handling.member_format`` (v1.7.4) -- the CONTAINER, orthogonal to any
+#: decryption layer. ``zip`` is the pre-v1.7.4 default and only behaviour.
+ALLOWED_SOURCE_MEMBER_FORMATS = {"gzip", "zip"}
 
 # Data-standardization SQL is a column-expression allowlist, never a full statement. Any bare
 # occurrence of these keywords (case-insensitive, word-boundary matched) is rejected outright --
@@ -896,6 +912,42 @@ def _validate_sink_config(sink_config: Any, path_prefix: str, errors: List[str],
                 "Lakeflow sink with no staging step. Remove the attribute."
             )
 
+    staged_file_options = sink_config.get("staged_file_options")
+    if staged_file_options is not None:
+        options_path = f"{path_prefix}.staged_file_options"
+        if sink_format != "pgp_zip":
+            errors.append(
+                f"{options_path}: only meaningful for format 'pgp_zip' (this framework's "
+                f"staging-then-archive sink); format {sink_format!r} is a native Lakeflow sink "
+                "with no staging step. Remove the attribute."
+            )
+        elif check_dict(staged_file_options, options_path, errors):
+            reject_unknown_keys(staged_file_options, options_path, errors, ALLOWED_STAGED_FILE_OPTIONS_KEYS)
+            if sink_config.get("staged_file_format") != "csv":
+                # A dialect is a CSV concept. JSON-Lines has no delimiter and no header, so
+                # accepting these there would let a spec assert a file shape nothing produces.
+                errors.append(
+                    f"{options_path}: only meaningful when staged_file_format == 'csv' "
+                    "(JSON-Lines staging has no delimiter or header row)."
+                )
+            delimiter = staged_file_options.get("delimiter")
+            if delimiter is not None:
+                check_string(delimiter, f"{options_path}.delimiter", errors)
+                if isinstance(delimiter, str) and len(delimiter) != 1:
+                    errors.append(
+                        f"{options_path}.delimiter: must be exactly one character, got {delimiter!r} -- "
+                        "Python's csv writer cannot emit a multi-character delimiter."
+                    )
+            if staged_file_options.get("include_header") is not None:
+                check_bool(staged_file_options.get("include_header"), f"{options_path}.include_header", errors)
+            if staged_file_options.get("line_terminator") is not None:
+                check_string(
+                    staged_file_options.get("line_terminator"),
+                    f"{options_path}.line_terminator",
+                    errors,
+                    allowed_values=ALLOWED_STAGED_LINE_TERMINATORS,
+                )
+
     archive_config = sink_config.get("post_export_archive")
     # post_export_archive is REQUIRED for "pgp_zip" -- archiving (optionally PGP-encrypting)
     # every microbatch's output is the entire point of that sink format; it's still accepted
@@ -925,6 +977,13 @@ def _validate_sink_config(sink_config: Any, path_prefix: str, errors: List[str],
                         f"{path_prefix}.post_export_archive.export_file_name_format",
                         errors,
                     )
+                if archive_config.get("archive_format") is not None:
+                    check_string(
+                        archive_config.get("archive_format"),
+                        f"{path_prefix}.post_export_archive.archive_format",
+                        errors,
+                        allowed_values=ALLOWED_ARCHIVE_FORMATS,
+                    )
                 if archive_config.get("secret") is not None:
                     # Optional AES password protection on the ZIP itself (archive/zip_utils.py),
                     # independent of -- and combinable with -- pgp_encryption below.
@@ -934,24 +993,50 @@ def _validate_sink_config(sink_config: Any, path_prefix: str, errors: List[str],
                     pgp_path = f"{path_prefix}.post_export_archive.pgp_encryption"
                     check_bool(pgp_encryption.get("enabled"), f"{pgp_path}.enabled", errors, required=True)
                     if pgp_encryption.get("enabled"):
-                        check_secret_ref(
-                            pgp_encryption.get("recipient_public_key_secret"), f"{pgp_path}.recipient_public_key_secret", errors, required=True
-                        )
-                        if pgp_encryption.get("sign_with_private_key_secret") is not None:
-                            check_secret_ref(
-                                pgp_encryption.get("sign_with_private_key_secret"), f"{pgp_path}.sign_with_private_key_secret", errors
+                        # v1.7.4: EXACTLY ONE of passphrase_secret (symmetric) or
+                        # recipient_public_key_secret (asymmetric). A PGP message is encrypted
+                        # either to a recipient key or under a shared passphrase, never both,
+                        # and a spec naming both leaves which one applies ambiguous.
+                        passphrase_secret = pgp_encryption.get("passphrase_secret")
+                        recipient_secret = pgp_encryption.get("recipient_public_key_secret")
+                        if passphrase_secret is not None and recipient_secret is not None:
+                            errors.append(
+                                f"{pgp_path}: 'passphrase_secret' (symmetric) and "
+                                "'recipient_public_key_secret' (asymmetric) are mutually exclusive -- "
+                                "set exactly one."
                             )
-                        # sign_passphrase_secret is only meaningful alongside a signing key --
-                        # a real, properly-secured signing private key is routinely
-                        # passphrase-protected. Optional even when sign_with_private_key_secret
-                        # is set (an unprotected signing key is a valid configuration too).
-                        if pgp_encryption.get("sign_passphrase_secret") is not None:
-                            if not pgp_encryption.get("sign_with_private_key_secret"):
-                                errors.append(
-                                    f"{pgp_path}.sign_passphrase_secret: only meaningful alongside "
-                                    "sign_with_private_key_secret, but that field is not set"
+                        elif passphrase_secret is not None:
+                            check_secret_ref(passphrase_secret, f"{pgp_path}.passphrase_secret", errors, required=True)
+                            for asymmetric_only in ("sign_with_private_key_secret", "sign_passphrase_secret"):
+                                if pgp_encryption.get(asymmetric_only) is not None:
+                                    errors.append(
+                                        f"{pgp_path}.{asymmetric_only}: signing requires a sender keypair and is "
+                                        "not available for symmetric ('passphrase_secret') encryption."
+                                    )
+                        else:
+                            check_secret_ref(recipient_secret, f"{pgp_path}.recipient_public_key_secret", errors, required=True)
+                        # Signing is asymmetric-only, and the symmetric branch above has already
+                        # rejected both signing keys with a specific message -- so skip rather
+                        # than re-report them here as generic secret-ref errors. Deliberately a
+                        # guard rather than an early `return`: this block is currently last in
+                        # the function, and a `return` would silently skip anything appended
+                        # after it.
+                        if passphrase_secret is None:
+                            if pgp_encryption.get("sign_with_private_key_secret") is not None:
+                                check_secret_ref(
+                                    pgp_encryption.get("sign_with_private_key_secret"), f"{pgp_path}.sign_with_private_key_secret", errors
                                 )
-                            check_secret_ref(pgp_encryption.get("sign_passphrase_secret"), f"{pgp_path}.sign_passphrase_secret", errors)
+                            # sign_passphrase_secret is only meaningful alongside a signing key --
+                            # a real, properly-secured signing private key is routinely
+                            # passphrase-protected. Optional even when sign_with_private_key_secret
+                            # is set (an unprotected signing key is a valid configuration too).
+                            if pgp_encryption.get("sign_passphrase_secret") is not None:
+                                if not pgp_encryption.get("sign_with_private_key_secret"):
+                                    errors.append(
+                                        f"{pgp_path}.sign_passphrase_secret: only meaningful alongside "
+                                        "sign_with_private_key_secret, but that field is not set"
+                                    )
+                                check_secret_ref(pgp_encryption.get("sign_passphrase_secret"), f"{pgp_path}.sign_passphrase_secret", errors)
 
 
 def _validate_target_config(
@@ -1154,7 +1239,17 @@ def _validate_pre_extraction_decryption(config: Any, path_prefix: str, errors: L
     decryption_type = config.get("type")
     if decryption_type is not None:
         check_string(decryption_type, f"{path_prefix}.type", errors, allowed_values=ALLOWED_PRE_EXTRACTION_DECRYPTION_TYPES)
-        if decryption_type == "pgp":
+        if decryption_type == "pgp_symmetric":
+            # The shared passphrase IS the key here, so it is REQUIRED -- unlike the "pgp"
+            # branch below, where passphrase_secret merely unlocks a protected private key.
+            check_secret_ref(config.get("passphrase_secret"), f"{path_prefix}.passphrase_secret", errors, required=True)
+            if config.get("private_key_secret") is not None:
+                errors.append(
+                    f"{path_prefix}.private_key_secret: not valid for type 'pgp_symmetric' -- a "
+                    "passphrase-encrypted OpenPGP message has no recipient keypair. Use type 'pgp' "
+                    "for a key-encrypted message."
+                )
+        elif decryption_type == "pgp":
             check_secret_ref(config.get("private_key_secret"), f"{path_prefix}.private_key_secret", errors, required=True)
             # passphrase_secret is OPTIONAL -- a real, properly-secured PGP private key is
             # routinely passphrase-protected, unlike this project's own throwaway test keypairs.
@@ -1231,6 +1326,22 @@ def _validate_source_zip_handling(zip_handling: Any, path_prefix: str, errors: L
         _validate_pre_extraction_decryption(
             zip_handling.get("pre_extraction_decryption"), f"{path_prefix}.pre_extraction_decryption", errors
         )
+        member_format = zip_handling.get("member_format")
+        if member_format is not None:
+            check_string(
+                member_format, f"{path_prefix}.member_format", errors, allowed_values=ALLOWED_SOURCE_MEMBER_FORMATS
+            )
+            if member_format == "gzip":
+                # A gzip stream has no archive password. Accepting one would let a spec assert
+                # protection that nothing applies -- rejected here as well as at runtime so the
+                # error arrives at onboarding, not mid-update.
+                decryption = zip_handling.get("pre_extraction_decryption") or {}
+                if isinstance(decryption, dict) and decryption.get("secret_passphrase") is not None:
+                    errors.append(
+                        f"{path_prefix}.pre_extraction_decryption.secret_passphrase: an AES password on a "
+                        "ZIP archive, meaningless for member_format 'gzip' (a gzip stream has no password). "
+                        "Use pre_extraction_decryption.type to decrypt an outer envelope."
+                    )
 
 
 def _validate_json_string_columns(value: Any, path_prefix: str, errors: List[str]) -> None:

@@ -67,4 +67,5 @@ Normalized internal representation of ``source_zip_handling.delete_source_after_
 | `resolve_zip_delete_policy(raw: Any) -> ZipDeletePolicy` | Normalize the raw spec value (``None`` / ``bool`` / ``dict``) into one :class:`ZipDeletePolicy`. |
 | `sweep_aged_archives(source_zip_dir: str, zip_file_pattern: str, days: int, exclude_paths: Optional[Iterable[str]] = None) -> List[str]` | Delete every already-aged archive in a landing directory. |
 | `compress_and_encrypt_sink(spark: Optional[SparkSession], source_dir: str, output_zip_path: str, secret_catalog: Optional[str] = None, secret_schema: Optional[str] = None, secret_key: Optional[str] = None, passphrase: Optional[str] = None, include_glob_suffixes: Tuple[str, ...] = ('.csv', '.json', '.parquet', '.avro', '.txt')) -> str` | Bundle partitioned egress-sink output files into a single (optionally encrypted) ZIP. |
+| `extract_gzip_member(source_path: str, target_volume_path: str, delete_source_after_extract: bool = True) -> List[str]` | Decompress one gzip file into ``target_volume_path``. |
 

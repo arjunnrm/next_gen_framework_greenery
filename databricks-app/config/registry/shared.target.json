@@ -288,6 +288,83 @@
         "description": "File format of the staged export files a pgp_zip sink writes before archiving — json (default when absent, JSON-Lines) or csv (RFC-4180 with header row; one file per written partition). Only meaningful when sink_config.format is pgp_zip."
       },
       {
+        "path": "target_config.sink_config.staged_file_options.delimiter",
+        "label": "staged_file_options.delimiter",
+        "widget": "text",
+        "type": "string",
+        "indent": 1,
+        "visible_when": {
+          "and": [
+            {
+              "eq": [
+                "target_config.sink_config.format",
+                "pgp_zip"
+              ]
+            },
+            {
+              "eq": [
+                "target_config.sink_config.staged_file_format",
+                "csv"
+              ]
+            }
+          ]
+        },
+        "description": "Single-character field separator for the staged CSV. Absent = ',' (Python's csv `excel` dialect, the pre-1.7.4 behaviour). A multi-character delimiter is rejected: Python's csv writer cannot emit one."
+      },
+      {
+        "path": "target_config.sink_config.staged_file_options.include_header",
+        "label": "staged_file_options.include_header",
+        "widget": "boolean",
+        "type": "boolean",
+        "indent": 1,
+        "visible_when": {
+          "and": [
+            {
+              "eq": [
+                "target_config.sink_config.format",
+                "pgp_zip"
+              ]
+            },
+            {
+              "eq": [
+                "target_config.sink_config.staged_file_format",
+                "csv"
+              ]
+            }
+          ]
+        },
+        "description": "Write the header row. Absent = true. Set false for a supplier interface that specifies a headerless body. NOTE: with archive_format gzip the header is emitted per partition and all but the first are dropped on concatenation."
+      },
+      {
+        "path": "target_config.sink_config.staged_file_options.line_terminator",
+        "label": "staged_file_options.line_terminator",
+        "widget": "select",
+        "type": "string",
+        "indent": 1,
+        "visible_when": {
+          "and": [
+            {
+              "eq": [
+                "target_config.sink_config.format",
+                "pgp_zip"
+              ]
+            },
+            {
+              "eq": [
+                "target_config.sink_config.staged_file_format",
+                "csv"
+              ]
+            }
+          ]
+        },
+        "options": [
+          "",
+          "crlf",
+          "lf"
+        ],
+        "description": "Record separator. Absent = crlf (RFC-4180, the pre-1.7.4 behaviour). Spelled as a name because JSON cannot carry a bare control character."
+      },
+      {
         "path": "target_config.sink_config.kafka_options",
         "label": "sink_config.kafka_options",
         "widget": "kv",
@@ -365,6 +442,26 @@
         "description": "str.format()-style template for the exported archive's own file name. Placeholders: {batch_id}, {timestamp}. Omit for the framework default."
       },
       {
+        "path": "target_config.sink_config.post_export_archive.archive_format",
+        "label": "post_export_archive.archive_format",
+        "widget": "select",
+        "type": "string",
+        "indent": 1,
+        "visible_when": {
+          "eq": [
+            "target_config.sink_config.post_export_archive.enabled",
+            true
+          ]
+        },
+        "options": [
+          "",
+          "zip",
+          "gzip"
+        ],
+        "hint": "unset = zip",
+        "description": "The finished export's container. 'zip' (default when absent) writes an AES-capable ZIP. 'gzip' concatenates this micro-batch's staged partition files into ONE gzip stream -- a gzip holds exactly one member -- named <export_file_name_format>.<csv|jsonl>.gz, or ....gz.gpg when pgp_encryption is on. A gzip stream has no archive password, so post_export_archive.secret is ignored."
+      },
+      {
         "$fragment": "secret_ref",
         "prefix": "target_config.sink_config.post_export_archive.secret",
         "params": {
@@ -395,7 +492,30 @@
         "$fragment": "secret_ref",
         "prefix": "target_config.sink_config.post_export_archive.pgp_encryption.recipient_public_key_secret",
         "params": {
-          "required": true
+          "required": false
+        },
+        "visible_when": {
+          "and": [
+            {
+              "eq": [
+                "target_config.sink_config.post_export_archive.enabled",
+                true
+              ]
+            },
+            {
+              "eq": [
+                "target_config.sink_config.post_export_archive.pgp_encryption.enabled",
+                true
+              ]
+            }
+          ]
+        }
+      },
+      {
+        "$fragment": "secret_ref",
+        "prefix": "target_config.sink_config.post_export_archive.pgp_encryption.passphrase_secret",
+        "params": {
+          "required": false
         },
         "visible_when": {
           "and": [

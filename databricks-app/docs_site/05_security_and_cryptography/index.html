@@ -564,6 +564,8 @@
       
         
       
+        
+      
     
     
     
@@ -708,6 +710,34 @@
     
   
     4 · Deploying with DABs
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../onboarding/05_new_workspace_bootstrap/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    5 · New-workspace bootstrap
   
 
     
@@ -1336,6 +1366,23 @@
       
     </span>
   </a>
+  
+    <nav class="md-nav" aria-label="4. PGP Decryption &amp; Digital Signatures">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#41-asymmetric-vs-symmetric-two-different-messages-not-two-settings" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.1 Asymmetric vs symmetric — two different messages, not two settings
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -3533,6 +3580,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="4. PGP Decryption &amp; Digital Signatures">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#41-asymmetric-vs-symmetric-two-different-messages-not-two-settings" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.1 Asymmetric vs symmetric — two different messages, not two settings
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -3684,15 +3748,110 @@
 <p>For secure file ingest and egress:
 - <strong>Pre-Extraction PGP Decryption</strong>: Ingest encrypted <code>.pgp</code> or <code>.gpg</code> archives, decrypting in-memory before unzipping or reading.
 - <strong>PGP-Signed Egress Sinks</strong>: Export Delta tables as PGP-encrypted, compressed ZIP archives to external Volumes or cloud buckets.</p>
+<h3 id="41-asymmetric-vs-symmetric-two-different-messages-not-two-settings">4.1 Asymmetric vs symmetric — two different messages, not two settings<a class="headerlink" href="#41-asymmetric-vs-symmetric-two-different-messages-not-two-settings" title="Permanent link">&para;</a></h3>
+<p>OpenPGP can protect a message in two structurally different ways, and the framework supports
+both. <strong>They are not interchangeable</strong>: a message encrypted one way cannot be opened the other
+way, which is why the choice is an explicit <code>type</code> rather than an optional extra secret.</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th><strong>Asymmetric</strong> (recipient keypair)</th>
+<th><strong>Symmetric</strong> (shared passphrase)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Packet in the message</td>
+<td>PKESK — addressed to a key</td>
+<td>SKESK — derived from a passphrase</td>
+</tr>
+<tr>
+<td>Produced by</td>
+<td><code>gpg --encrypt --recipient you@example.com</code></td>
+<td><code>gpg --symmetric --cipher-algo AES256</code></td>
+</tr>
+<tr>
+<td>Ingest <code>pre_extraction_decryption.type</code></td>
+<td><code>"pgp"</code></td>
+<td><code>"pgp_symmetric"</code> <strong>(v1.7.4)</strong></td>
+</tr>
+<tr>
+<td>Ingest secret</td>
+<td><code>private_key_secret</code> (+ optional <code>passphrase_secret</code> to unlock that key)</td>
+<td><code>passphrase_secret</code> — the passphrase the <strong>message</strong> was encrypted with</td>
+</tr>
+<tr>
+<td>Egress <code>pgp_encryption</code> secret</td>
+<td><code>recipient_public_key_secret</code></td>
+<td><code>passphrase_secret</code> <strong>(v1.7.4)</strong></td>
+</tr>
+<tr>
+<td>Signing available?</td>
+<td><strong>Yes</strong> — <code>sign_with_private_key_secret</code></td>
+<td><strong>No.</strong> Signing needs a sender keypair, which symmetric encryption has none of.</td>
+</tr>
+<tr>
+<td>Who can decrypt</td>
+<td>Only the holder of the private key</td>
+<td>Anyone holding the passphrase</td>
+</tr>
+<tr>
+<td>Who can <em>forge</em></td>
+<td>Nobody (a signature proves origin)</td>
+<td><strong>Anyone holding the passphrase</strong></td>
+</tr>
+</tbody>
+</table>
+<p>The last row is the one that decides the choice. Symmetric encryption gives you
+confidentiality but <strong>not provenance</strong>: the same secret both encrypts and decrypts, so every
+party who can read a file can also produce an identical one. Prefer a recipient key plus a
+signature wherever the receiver must be able to prove who sent the file. Symmetric is the right
+answer when the two parties already share a passphrase out of band and the exchange is
+point-to-point — which is exactly the case where demanding a keypair means managing one purely
+as ceremony.</p>
+<p>At the spec level the two egress secrets are <strong>mutually exclusive — set exactly one</strong>.
+Supplying both is rejected at onboarding rather than resolved by precedence, because either
+resolution order would silently encrypt to something the author did not choose.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="c1">// Ingest: an encrypted gzip, e.g. EA_REQUEST_20260901.csv.gz.gpg</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="nt">"source_zip_handling"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="w">  </span><span class="nt">"enabled"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="w">  </span><span class="nt">"member_format"</span><span class="p">:</span><span class="w"> </span><span class="s2">"gzip"</span><span class="p">,</span>
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="w">  </span><span class="nt">"pre_extraction_decryption"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="w">    </span><span class="nt">"type"</span><span class="p">:</span><span class="w"> </span><span class="s2">"pgp_symmetric"</span><span class="p">,</span>
+<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="w">    </span><span class="nt">"passphrase_secret"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="w">      </span><span class="nt">"secret_catalog"</span><span class="p">:</span><span class="w"> </span><span class="s2">"{{catalog}}"</span><span class="p">,</span><span class="w"> </span><span class="nt">"secret_schema"</span><span class="p">:</span><span class="w"> </span><span class="s2">"config"</span><span class="p">,</span><span class="w"> </span><span class="nt">"secret_key"</span><span class="p">:</span><span class="w"> </span><span class="s2">"pgpkey"</span>
+<a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a><span class="w">    </span><span class="p">}</span>
+<a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a><span class="w">  </span><span class="p">}</span>
+<a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a><span class="p">}</span>
+<a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a>
+<a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a><span class="c1">// Egress: the same passphrase, producing &lt;stem&gt;.csv.gz.gpg</span>
+<a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a><span class="nt">"pgp_encryption"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-2-15" name="__codelineno-2-15" href="#__codelineno-2-15"></a><span class="w">  </span><span class="nt">"enabled"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+<a id="__codelineno-2-16" name="__codelineno-2-16" href="#__codelineno-2-16"></a><span class="w">  </span><span class="nt">"passphrase_secret"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<a id="__codelineno-2-17" name="__codelineno-2-17" href="#__codelineno-2-17"></a><span class="w">    </span><span class="nt">"secret_catalog"</span><span class="p">:</span><span class="w"> </span><span class="s2">"{{catalog}}"</span><span class="p">,</span><span class="w"> </span><span class="nt">"secret_schema"</span><span class="p">:</span><span class="w"> </span><span class="s2">"config"</span><span class="p">,</span><span class="w"> </span><span class="nt">"secret_key"</span><span class="p">:</span><span class="w"> </span><span class="s2">"pgpkey"</span>
+<a id="__codelineno-2-18" name="__codelineno-2-18" href="#__codelineno-2-18"></a><span class="w">  </span><span class="p">}</span>
+<a id="__codelineno-2-19" name="__codelineno-2-19" href="#__codelineno-2-19"></a><span class="p">}</span>
+</code></pre></div>
+<p>Both directions are AES256 by default and were verified against the <strong>GnuPG 2.4.9 CLI in both
+directions</strong>: the framework decrypts what <code>gpg</code> wrote, and <code>gpg</code> decrypts what the framework
+wrote. Implementation: <code>crypto/pgp.py::pgp_decrypt_symmetric</code> / <code>pgp_encrypt_symmetric</code>.</p>
+<div class="admonition warning">
+<p class="admonition-title">The passphrase is a secret reference, never a literal</p>
+<p><code>passphrase_secret</code> takes a Unity Catalog secret <em>reference</em>
+(<code>secret_catalog</code>/<code>secret_schema</code>/<code>secret_key</code>) and the resolved value never enters the
+spec, the control tables, or a log line. The Spec Builder additionally blocks
+<code>passphrase</code> as a literal key name. See §1 and §5.</p>
+</div>
 <hr />
 <h2 id="5-secret-provisioning-key-rotation-runbook">5. Secret Provisioning &amp; Key Rotation Runbook<a class="headerlink" href="#5-secret-provisioning-key-rotation-runbook" title="Permanent link">&para;</a></h2>
 <h3 id="step-1-provision-secrets-in-databricks-cli">Step 1: Provision Secrets in Databricks CLI<a class="headerlink" href="#step-1-provision-secrets-in-databricks-cli" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="c1"># 1. Create a security secret scope</span>
-<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>databricks<span class="w"> </span>secrets<span class="w"> </span>create-scope<span class="w"> </span>security
-<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>
-<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="c1"># 2. Generate a cryptographically secure 256-bit key and store as secret</span>
-<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>databricks<span class="w"> </span>secrets<span class="w"> </span>put-secret<span class="w"> </span>security<span class="w"> </span>pii_aes_gcm_key<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="w">  </span>--string-value<span class="w"> </span><span class="s2">"</span><span class="k">$(</span>openssl<span class="w"> </span>rand<span class="w"> </span>-hex<span class="w"> </span><span class="m">16</span><span class="k">)</span><span class="s2">"</span>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="c1"># 1. Create a security secret scope</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>databricks<span class="w"> </span>secrets<span class="w"> </span>create-scope<span class="w"> </span>security
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="c1"># 2. Generate a cryptographically secure 256-bit key and store as secret</span>
+<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>databricks<span class="w"> </span>secrets<span class="w"> </span>put-secret<span class="w"> </span>security<span class="w"> </span>pii_aes_gcm_key<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="w">  </span>--string-value<span class="w"> </span><span class="s2">"</span><span class="k">$(</span>openssl<span class="w"> </span>rand<span class="w"> </span>-hex<span class="w"> </span><span class="m">16</span><span class="k">)</span><span class="s2">"</span>
 </code></pre></div>
 <h3 id="step-2-key-rotation-workflow">Step 2: Key Rotation Workflow<a class="headerlink" href="#step-2-key-rotation-workflow" title="Permanent link">&para;</a></h3>
 <ol>

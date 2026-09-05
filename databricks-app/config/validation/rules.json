@@ -838,6 +838,316 @@
       "message": "sink_config.staged_file_format is only meaningful for format 'pgp_zip' (the framework's staging-then-archive sink); 'delta' and 'kafka' are native Lakeflow sinks with no staging step. Remove the attribute.",
       "field_path": "target_config.sink_config.staged_file_format",
       "doc": "#5-sink-configuration"
+    },
+    {
+      "id": "member_format_enum",
+      "severity": "error",
+      "scope": "flow",
+      "when": {
+        "and": [
+          {
+            "nonempty": [
+              "source_config.source_zip_handling.member_format"
+            ]
+          },
+          {
+            "nin": [
+              "source_config.source_zip_handling.member_format",
+              [
+                "zip",
+                "gzip"
+              ]
+            ]
+          }
+        ]
+      },
+      "message": "source_config.source_zip_handling.member_format must be one of ['gzip', 'zip']. 'zip' (the default when absent) is a real archive with named members; 'gzip' is a single compressed stream.",
+      "field_path": "source_config.source_zip_handling.member_format",
+      "doc": "#2-ingestion-and-sources"
+    },
+    {
+      "id": "gzip_member_rejects_zip_passphrase",
+      "severity": "error",
+      "scope": "flow",
+      "when": {
+        "and": [
+          {
+            "eq": [
+              "source_config.source_zip_handling.member_format",
+              "gzip"
+            ]
+          },
+          {
+            "nonempty": [
+              "source_config.source_zip_handling.pre_extraction_decryption.secret_passphrase.secret_key"
+            ]
+          }
+        ]
+      },
+      "message": "pre_extraction_decryption.secret_passphrase has no meaning for member_format 'gzip' -- a gzip stream has no archive password. It is the AES password on a ZIP archive. Remove it, or use member_format 'zip'.",
+      "field_path": "source_config.source_zip_handling.pre_extraction_decryption.secret_passphrase.secret_key",
+      "doc": "#2-ingestion-and-sources"
+    },
+    {
+      "id": "pgp_symmetric_requires_passphrase",
+      "severity": "error",
+      "scope": "flow",
+      "when": {
+        "and": [
+          {
+            "eq": [
+              "source_config.source_zip_handling.pre_extraction_decryption.type",
+              "pgp_symmetric"
+            ]
+          },
+          {
+            "empty": [
+              "source_config.source_zip_handling.pre_extraction_decryption.passphrase_secret.secret_key"
+            ]
+          }
+        ]
+      },
+      "message": "pre_extraction_decryption.passphrase_secret is required for type 'pgp_symmetric' -- a passphrase-encrypted OpenPGP message has no recipient keypair to decrypt with.",
+      "field_path": "source_config.source_zip_handling.pre_extraction_decryption.passphrase_secret.secret_key",
+      "doc": "#2-ingestion-and-sources"
+    },
+    {
+      "id": "pgp_symmetric_rejects_private_key",
+      "severity": "error",
+      "scope": "flow",
+      "when": {
+        "and": [
+          {
+            "eq": [
+              "source_config.source_zip_handling.pre_extraction_decryption.type",
+              "pgp_symmetric"
+            ]
+          },
+          {
+            "nonempty": [
+              "source_config.source_zip_handling.pre_extraction_decryption.private_key_secret.secret_key"
+            ]
+          }
+        ]
+      },
+      "message": "source_config.source_zip_handling.pre_extraction_decryption.private_key_secret: not valid for type 'pgp_symmetric' -- a passphrase-encrypted OpenPGP message has no recipient keypair. Use type 'pgp' for a key-encrypted message.",
+      "field_path": "source_config.source_zip_handling.pre_extraction_decryption.private_key_secret.secret_key",
+      "doc": "#2-ingestion-and-sources"
+    },
+    {
+      "id": "staged_file_options_csv_only",
+      "severity": "error",
+      "scope": "flow",
+      "when": {
+        "and": [
+          {
+            "or": [
+              {
+                "nonempty": [
+                  "target_config.sink_config.staged_file_options.delimiter"
+                ]
+              },
+              {
+                "nonempty": [
+                  "target_config.sink_config.staged_file_options.line_terminator"
+                ]
+              },
+              {
+                "set": [
+                  "target_config.sink_config.staged_file_options.include_header"
+                ]
+              }
+            ]
+          },
+          {
+            "ne": [
+              "target_config.sink_config.staged_file_format",
+              "csv"
+            ]
+          }
+        ]
+      },
+      "message": "sink_config.staged_file_options only applies when staged_file_format is 'csv'. A JSON-Lines export has no delimiter, header row or configurable record separator.",
+      "field_path": "target_config.sink_config.staged_file_options.delimiter",
+      "doc": "#6-egress-and-lakeflow-sinks"
+    },
+    {
+      "id": "staged_delimiter_single_character",
+      "severity": "error",
+      "scope": "flow",
+      "when": {
+        "and": [
+          {
+            "nonempty": [
+              "target_config.sink_config.staged_file_options.delimiter"
+            ]
+          },
+          {
+            "not": {
+              "matches": [
+                "target_config.sink_config.staged_file_options.delimiter",
+                "^.$"
+              ]
+            }
+          }
+        ]
+      },
+      "message": "target_config.sink_config.staged_file_options.delimiter: must be exactly one character -- Python's csv writer cannot emit a multi-character delimiter.",
+      "field_path": "target_config.sink_config.staged_file_options.delimiter",
+      "doc": "#6-egress-and-lakeflow-sinks"
+    },
+    {
+      "id": "staged_line_terminator_enum",
+      "severity": "error",
+      "scope": "flow",
+      "when": {
+        "and": [
+          {
+            "nonempty": [
+              "target_config.sink_config.staged_file_options.line_terminator"
+            ]
+          },
+          {
+            "nin": [
+              "target_config.sink_config.staged_file_options.line_terminator",
+              [
+                "crlf",
+                "lf"
+              ]
+            ]
+          }
+        ]
+      },
+      "message": "target_config.sink_config.staged_file_options.line_terminator must be one of ['crlf', 'lf']. It is spelled as a name because JSON cannot carry a bare control character.",
+      "field_path": "target_config.sink_config.staged_file_options.line_terminator",
+      "doc": "#6-egress-and-lakeflow-sinks"
+    },
+    {
+      "id": "archive_format_enum",
+      "severity": "error",
+      "scope": "flow",
+      "when": {
+        "and": [
+          {
+            "nonempty": [
+              "target_config.sink_config.post_export_archive.archive_format"
+            ]
+          },
+          {
+            "nin": [
+              "target_config.sink_config.post_export_archive.archive_format",
+              [
+                "zip",
+                "gzip"
+              ]
+            ]
+          }
+        ]
+      },
+      "message": "target_config.sink_config.post_export_archive.archive_format: must be one of ['gzip', 'zip']",
+      "field_path": "target_config.sink_config.post_export_archive.archive_format",
+      "doc": "#6-egress-and-lakeflow-sinks"
+    },
+    {
+      "id": "pgp_encryption_exactly_one_secret",
+      "severity": "error",
+      "scope": "flow",
+      "when": {
+        "and": [
+          {
+            "eq": [
+              "target_config.sink_config.post_export_archive.pgp_encryption.enabled",
+              true
+            ]
+          },
+          {
+            "nonempty": [
+              "target_config.sink_config.post_export_archive.pgp_encryption.passphrase_secret.secret_key"
+            ]
+          },
+          {
+            "nonempty": [
+              "target_config.sink_config.post_export_archive.pgp_encryption.recipient_public_key_secret.secret_key"
+            ]
+          }
+        ]
+      },
+      "message": "target_config.sink_config.post_export_archive.pgp_encryption: 'passphrase_secret' (symmetric) and 'recipient_public_key_secret' (asymmetric) are mutually exclusive -- set exactly one.",
+      "field_path": "target_config.sink_config.post_export_archive.pgp_encryption.passphrase_secret.secret_key",
+      "doc": "#6-egress-and-lakeflow-sinks"
+    },
+    {
+      "id": "pgp_encryption_requires_a_secret",
+      "severity": "error",
+      "scope": "flow",
+      "when": {
+        "and": [
+          {
+            "eq": [
+              "target_config.sink_config.post_export_archive.pgp_encryption.enabled",
+              true
+            ]
+          },
+          {
+            "empty": [
+              "target_config.sink_config.post_export_archive.pgp_encryption.passphrase_secret.secret_key"
+            ]
+          },
+          {
+            "empty": [
+              "target_config.sink_config.post_export_archive.pgp_encryption.recipient_public_key_secret.secret_key"
+            ]
+          }
+        ]
+      },
+      "message": "target_config.sink_config.post_export_archive.pgp_encryption is enabled but neither 'recipient_public_key_secret' (encrypt to a recipient key) nor 'passphrase_secret' (encrypt with a shared passphrase) is set -- set exactly one.",
+      "field_path": "target_config.sink_config.post_export_archive.pgp_encryption.recipient_public_key_secret.secret_key",
+      "doc": "#6-egress-and-lakeflow-sinks"
+    },
+    {
+      "id": "pgp_symmetric_egress_rejects_signing",
+      "severity": "error",
+      "scope": "flow",
+      "when": {
+        "and": [
+          {
+            "nonempty": [
+              "target_config.sink_config.post_export_archive.pgp_encryption.passphrase_secret.secret_key"
+            ]
+          },
+          {
+            "nonempty": [
+              "target_config.sink_config.post_export_archive.pgp_encryption.sign_with_private_key_secret.secret_key"
+            ]
+          }
+        ]
+      },
+      "message": "target_config.sink_config.post_export_archive.pgp_encryption.sign_with_private_key_secret is not valid alongside 'passphrase_secret' -- signing needs a sender keypair, which symmetric (passphrase) encryption does not have.",
+      "field_path": "target_config.sink_config.post_export_archive.pgp_encryption.sign_with_private_key_secret.secret_key",
+      "doc": "#6-egress-and-lakeflow-sinks"
+    },
+    {
+      "id": "gzip_archive_ignores_zip_password",
+      "severity": "warning",
+      "scope": "flow",
+      "when": {
+        "and": [
+          {
+            "eq": [
+              "target_config.sink_config.post_export_archive.archive_format",
+              "gzip"
+            ]
+          },
+          {
+            "nonempty": [
+              "target_config.sink_config.post_export_archive.secret.secret_key"
+            ]
+          }
+        ]
+      },
+      "message": "post_export_archive.secret (the AES ZIP password) has no effect when archive_format is 'gzip' -- a gzip stream has no archive password. Use pgp_encryption to protect a gzip export, or switch archive_format to 'zip'.",
+      "field_path": "target_config.sink_config.post_export_archive.secret.secret_key",
+      "doc": "#6-egress-and-lakeflow-sinks"
     }
   ]
 }
