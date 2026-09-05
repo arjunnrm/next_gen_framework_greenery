@@ -610,10 +610,30 @@
             ]
           },
           "then": {
-            "required": [
-              "recipient_public_key_secret"
+            "oneOf": [
+              {
+                "required": [
+                  "recipient_public_key_secret"
+                ],
+                "not": {
+                  "required": [
+                    "passphrase_secret"
+                  ]
+                }
+              },
+              {
+                "required": [
+                  "passphrase_secret"
+                ],
+                "not": {
+                  "required": [
+                    "recipient_public_key_secret"
+                  ]
+                }
+              }
             ]
-          }
+          },
+          "$comment": "v1.7.4: exactly one of recipient_public_key_secret (asymmetric, encrypt to a recipient's key) or passphrase_secret (symmetric, encrypt under a shared passphrase). A PGP message is one or the other, never both, and _validate_sink_config states the same rule with a clearer message. Before v1.7.4 the recipient key was unconditionally required, which is why symmetric encryption was unreachable from a spec at all."
         },
         {
           "if": {
@@ -627,6 +647,30 @@
             ]
           },
           "$comment": "_validate_sink_config hard-errors when sign_passphrase_secret is set without sign_with_private_key_secret -- 'only meaningful alongside a signing key'."
+        },
+        {
+          "if": {
+            "required": [
+              "passphrase_secret"
+            ]
+          },
+          "then": {
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "sign_with_private_key_secret"
+                  ]
+                },
+                {
+                  "required": [
+                    "sign_passphrase_secret"
+                  ]
+                }
+              ]
+            }
+          },
+          "$comment": "Signing requires a sender keypair, so it has no meaning for symmetric encryption."
         }
       ],
       "additionalProperties": false,
@@ -1584,6 +1628,10 @@
           "minLength": 1,
           "description": "Dependency-ordering label only -- the real data dependency is source_inputs[].table."
         },
+        "source_description": {
+          "type": "string",
+          "description": "Free text describing what this flow produces; becomes the target table's Unity Catalog COMMENT, exactly as it does for an ingestion flow. Present in the Python validator's ALLOWED_TRANSFORMATION_FLOW_KEYS since the v2 schema but omitted here, so a spec setting it passed validate_spec and was then rejected by this schema's additionalProperties:false -- the two gates disagreed. Added in v1.7.4 to close that drift."
+        },
         "target_catalog": {
           "type": "string",
           "minLength": 1
@@ -1789,12 +1837,12 @@
           }
         }
       ],
-      "additionalProperties": false,
       "patternProperties": {
         "^_": {
           "description": "Author comment; ignored by the framework."
         }
-      }
+      },
+      "$comment": "additionalProperties is deliberately NOT set here. This def is composed via allOf by reconciliationTargetConfig, which adds target_id/comparison_direction/append_target_table -- and a subschema's additionalProperties cannot see properties declared in a SIBLING allOf subschema, so closing it here rejected every valid target_config (and every reconciliation spec in flowx_testing/). Unknown keys are still rejected, by spec_validator.py's reject_unknown_keys against ALLOWED_RECONCILIATION_SOURCE_CONFIG_KEYS / ALLOWED_RECONCILIATION_TARGET_CONFIG_KEYS. Fixed in v1.7.4."
     },
     "reconciliationTargetConfig": {
       "allOf": [
@@ -1847,7 +1895,9 @@
             }
           ]
         }
-      ]
+      ],
+      "unevaluatedProperties": false,
+      "$comment": "unevaluatedProperties (NOT additionalProperties) is what closes this composed def. additionalProperties only sees properties declared in its OWN subschema, so setting it on either allOf branch rejects the other branch's keys -- putting it on the base def rejected target_id/comparison_direction/append_target_table, and putting it on the target branch rejected type/table/read_mode/hash_precomputed. unevaluatedProperties evaluates after all allOf branches and therefore sees the union. Fixed in v1.7.4."
     },
     "reconciliationErrorHandling": {
       "type": "object",
