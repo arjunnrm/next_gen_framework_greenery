@@ -75,8 +75,11 @@ flow. `readers.py::read_ingestion_source(spark, source_type, source_config)` dis
 `read_autoloader_source` / `read_zerobus_source` / `read_asn1_source` (the 3 `source_type`
 values — see `SKILL.md` §4); `_apply_source_zip_handling` (private, called from within the
 `autoloader`/`asn1` readers) decrypts (optionally, via a type-dispatched
-`pre_extraction_decryption` registry — `"pgp"` today) and unzips a landing directory before
-Auto Loader ever reads it. `json_flattening.py::apply_explode_columns` flattens
+`pre_extraction_decryption` registry — `"pgp"` for a recipient keypair, `"pgp_symmetric"`
+for a shared passphrase, **v1.7.4**) and unpacks a landing directory before
+Auto Loader ever reads it — `source_zip_handling.member_format` picks the container: `"zip"`
+(default, `pyzipper`) or `"gzip"` (**v1.7.4**, `zip_utils.py::extract_gzip_member`, a single
+compressed stream with no member table). `json_flattening.py::apply_explode_columns` flattens
 struct/explodes array columns for JSON sources. `standardization_sql.py::
 apply_data_standardization_sql` applies the restricted, single-column-expression
 `data_standardization_sql` allowlist. `technical_metadata.py::attach_technical_metadata` /
@@ -265,7 +268,7 @@ at 0 while the target table is untouched.
 
 ZIP/PGP archive handling, for both ingestion (unzip a landing drop) and egress (a genuine
 Lakeflow sink format). `zip_utils.py::extract_encrypted_zip` (optionally AES-password-
-protected ZIP extraction into a UC Volume, via `pyzipper`) and `compress_and_encrypt_sink`
+protected ZIP extraction into a UC Volume, via `pyzipper`), `extract_gzip_member` (**v1.7.4**, a single-member gzip stream; strips the `.gpg`/`.pgp`/`.decrypted` envelope suffix before the `.gz` so the landed name still matches the reader's `pathGlobFilter`) and `compress_and_encrypt_sink`
 (bundles files into a ZIP built in an in-memory `BytesIO` buffer — required because Volumes'
 FUSE mount doesn't support seek-on-write). `pgp_zip_sink.py::PgpZipDataSource` /
 `_PgpZipStreamWriter` is the genuine custom Lakeflow sink backing `sink_config.format:
@@ -273,7 +276,7 @@ FUSE mount doesn't support seek-on-write). `pgp_zip_sink.py::PgpZipDataSource` /
 `spark.dataSource.register`) — stages rows per-partition on `write()` (executor-side) as
 JSON-Lines, or as RFC-4180 CSV with a header row when `sink_config.staged_file_format: "csv"`
 (v1.6.0; header order follows the sink's write schema, nested values stage as JSON text),
-zips+optionally-PGP-encrypts exactly that micro-batch's files on `commit()` (driver-side); every
+zips+optionally-PGP-encrypts exactly that micro-batch's files on `commit()` (driver-side) — **v1.7.4** adds `staged_file_options` (`delimiter`/`include_header`/`line_terminator`) for the staged CSV dialect, `post_export_archive.archive_format: "gzip"` to emit one concatenated `.csv.gz`/`.csv.gz.gpg` stream instead of a ZIP, and `pgp_encryption.passphrase_secret` for symmetric (passphrase) egress encryption, mutually exclusive with `recipient_public_key_secret`; every
 secret it uses was already resolved upstream by `engine/sink_registration.py`. `zip_ingestion_pipeline.py::validate_zip_batch` /
 `ingest_zip_batch` is the multi-ZIP batch orchestration (validate → extract → load → join →
 re-archive) backing `notebooks/06_zip_ingestion/`.
