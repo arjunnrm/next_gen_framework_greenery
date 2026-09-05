@@ -120,6 +120,56 @@ presence for `"delta"`/`"kafka"`, which are native Lakeflow sinks with no framew
 Both formats share the same tolerance philosophy: the sink's job is to archive the data for
 downstream consumption, never to crash a micro-batch over one awkward column type.
 
+#### CSV dialect (`staged_file_options`, v1.7.4)
+
+Before v1.7.4 the staged CSV was written by `csv.DictWriter` with **no dialect arguments at all**,
+i.e. Python's `excel` default: comma-separated, always headered, CRLF-terminated. A supplier
+interface specifying anything else could not be expressed, and there was no workaround short of
+post-processing the finished archive.
+
+`sink_config.staged_file_options` is valid **only** alongside `staged_file_format: "csv"` —
+JSON-Lines has no delimiter and no header row, so accepting these there would let a spec assert a
+file shape nothing produces.
+
+| Key | Type | Default | Notes |
+|---|---|---|---|
+| `delimiter` | string | `","` | Exactly **one** character — Python's csv writer cannot emit a multi-character delimiter. |
+| `include_header` | boolean | `true` | `false` emits data rows only. |
+| `line_terminator` | string | `"crlf"` | `"crlf"` (RFC 4180, and the pre-v1.7.4 behaviour) or `"lf"`. Spelled as a **name** because a JSON string cannot carry a bare control character unambiguously, and `"
+"` vs `"\r\n"` is a classic silent-escaping trap. |
+
+#### Archive container (`post_export_archive.archive_format`, v1.7.4)
+
+| Value | Output |
+|---|---|
+| `"zip"` (default) | One AES-capable ZIP per micro-batch, holding one file per non-empty partition. Unchanged; the encrypted variant keeps its `.zip.pgp` suffix. |
+| `"gzip"` | The micro-batch's staged files are **concatenated into one gzip stream** (a gzip holds exactly one member) and named `<export_file_name_format>.<csv\|jsonl>.gz`, or `....gz.gpg` when encrypted. |
+
+Concatenation is only safe because every staged file in one micro-batch shares a schema. Since a
+headered CSV writes its header **per staged file** (the writer cannot know which partition lands
+first), all but the first header are dropped on concatenation — which is why `include_header` and
+`archive_format` interact. JSON-Lines has no header and never has a line dropped.
+
+`post_export_archive.secret` (an AES password on the ZIP) has no meaning for `"gzip"`.
+
+#### Symmetric egress encryption (`pgp_encryption.passphrase_secret`, v1.7.4)
+
+`pgp_encryption` now accepts **exactly one** of:
+
+- `recipient_public_key_secret` — encrypt to a recipient's public key (asymmetric, unchanged), optionally signed via `sign_with_private_key_secret`;
+- `passphrase_secret` — encrypt under a **shared passphrase** (symmetric), the shape `gpg --symmetric --cipher-algo AES256` produces.
+
+Setting both is rejected: a PGP message is one or the other, never both. Signing is **not**
+available for symmetric encryption — it requires a sender keypair — and naming a signing key
+alongside `passphrase_secret` is rejected rather than ignored. Before v1.7.4 the recipient key was
+unconditionally required, so symmetric egress was unreachable from a spec.
+
+```json
+{ "sink_config": { "format": "pgp_zip", "path": "/Volumes/flowx/staging/uc_6/output/_staging/tel/", "staged_file_format": "csv", "staged_file_options": { "delimiter": "|", "include_header": true, "line_terminator": "lf" }, "post_export_archive": { "enabled": true, "output_zip_path": "/Volumes/flowx/staging/uc_6/output/", "export_file_name_format": "EE_2026-08-20-TELEPHONE_1of1", "archive_format": "gzip", "pgp_encryption": { "enabled": true, "passphrase_secret": { "secret_catalog": "flowx", "secret_schema": "config", "secret_key": "pgpkey" } } } } }
+```
+
+→ emits `EE_2026-08-20-TELEPHONE_1of1.csv.gz.gpg`, decryptable with a stock `gpg --decrypt`.
+
 ---
 
 ## 3. Eager Secret Resolution Principle
