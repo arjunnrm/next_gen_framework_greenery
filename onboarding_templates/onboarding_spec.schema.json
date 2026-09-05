@@ -435,13 +435,14 @@
     },
     "preExtractionDecryption": {
       "type": "object",
-      "description": "Fully optional at every level -- absent, or {}, means a plain, unencrypted, non-password-protected ZIP. 'type' (an outer whole-file decryption layer, e.g. PGP) and 'secret_passphrase' (the ZIP archive's own AES password) are independently optional and combinable: decrypt the envelope via 'type', then extract the password-protected ZIP it contained via 'secret_passphrase'.",
+      "description": "Fully optional at every level -- absent, or {}, means a plain, unencrypted, non-password-protected ZIP. 'type' (an outer whole-file decryption layer, e.g. PGP) and 'secret_passphrase' (the ZIP archive's own AES password) are independently optional and combinable: decrypt the envelope via 'type', then extract the password-protected ZIP it contained via 'secret_passphrase'. For member_format 'gzip', 'secret_passphrase' is rejected -- a gzip stream has no archive password.",
       "properties": {
         "type": {
           "enum": [
-            "pgp"
+            "pgp",
+            "pgp_symmetric"
           ],
-          "description": "Type-dispatched registry -- {'pgp'} is the only currently-registered algorithm. Omit entirely when there's no outer decryption layer."
+          "description": "Type-dispatched registry. 'pgp' is key-based (asymmetric) and requires private_key_secret; 'pgp_symmetric' (v1.7.4) is passphrase-based -- the shape `gpg --symmetric --cipher-algo AES256` produces -- and requires passphrase_secret instead. The two are mutually exclusive at the OpenPGP message level, so a message encrypted one way cannot be decrypted the other. Omit entirely when there is no outer decryption layer."
         },
         "private_key_secret": {
           "$ref": "#/$defs/secretRef",
@@ -449,7 +450,7 @@
         },
         "passphrase_secret": {
           "$ref": "#/$defs/secretRef",
-          "description": "Optional, only meaningful when type == 'pgp' -- only when the private key itself is passphrase-protected."
+          "description": "Required when type == 'pgp_symmetric' (the shared passphrase IS the key). Optional when type == 'pgp', where it only unlocks a passphrase-protected private key."
         },
         "secret_passphrase": {
           "$ref": "#/$defs/secretRef",
@@ -465,7 +466,7 @@
     },
     "sourceZipHandling": {
       "type": "object",
-      "description": "Shared by source_type in {autoloader, asn1} -- not applicable to zerobus (no landing-zone file to unzip). source_zip_path is a landing DIRECTORY, never a single file.",
+      "description": "Shared by source_type in {autoloader, asn1} -- not applicable to zerobus (no landing-zone file to unzip). source_zip_path is a landing DIRECTORY, never a single file. member_format selects the container (zip/gzip), orthogonally to any decryption layer.",
       "required": [
         "enabled"
       ],
@@ -480,6 +481,13 @@
         "zip_file_pattern": {
           "type": "string",
           "description": "Required when enabled. A glob, e.g. 'orders_*.zip'."
+        },
+        "member_format": {
+          "enum": [
+            "zip",
+            "gzip"
+          ],
+          "description": "Default 'zip' (the only pre-v1.7.4 behaviour): a real archive with N named members, opened by pyzipper. 'gzip' (v1.7.4) is a single compressed stream with no member table, which pyzipper cannot open at all. Note an UNENCRYPTED .gz needs no source_zip_handling whatsoever -- Spark's codec layer decompresses it transparently on read; 'gzip' is for the encrypted case (e.g. .csv.gz.gpg), where the file must be decrypted to disk first and what remains is a bare gzip stream. The landed filename has its .gz plus any .gpg/.pgp envelope suffix stripped, since that landed name is what file_pattern matches."
         },
         "target_volume_path": {
           "type": "string",

@@ -25,11 +25,12 @@ from flowx.lakeflow_framework.archive.zip_utils import (
     ZIP_DELETE_AFTER_X_DAYS,
     ZipDeletePolicy,
     extract_encrypted_zip,
+    extract_gzip_member,
     resolve_zip_delete_policy,
     sweep_aged_archives,
 )
 from flowx.lakeflow_framework.asn1.decoder import decode_asn1_binary_stream
-from flowx.lakeflow_framework.crypto.pgp import pgp_decrypt
+from flowx.lakeflow_framework.crypto.pgp import pgp_decrypt, pgp_decrypt_symmetric
 from flowx.lakeflow_framework.crypto.secrets import resolve_secret_ref
 from flowx.lakeflow_framework.exceptions import ArchiveError, FrameworkConfigError
 from flowx.lakeflow_framework.storage.table_properties import CLEAN_SOURCE_MODE_MAP
@@ -63,7 +64,33 @@ def _decrypt_pgp(spark: SparkSession, data: bytes, config: Dict[str, Any]) -> by
     return pgp_decrypt(data, private_key_armored, passphrase=passphrase)
 
 
-_PRE_EXTRACTION_DECRYPTION_HANDLERS = {"pgp": _decrypt_pgp}
+def _decrypt_pgp_symmetric(spark: SparkSession, data: bytes, config: Dict[str, Any]) -> bytes:
+    """``pre_extraction_decryption.type == "pgp_symmetric"`` handler (v1.7.4).
+
+    The passphrase-based counterpart to :func:`_decrypt_pgp`. There is no keypair: the message
+    carries a Symmetric-Key Encrypted Session Key packet and the shared passphrase derives the
+    session key. This is the shape ``gpg --symmetric --cipher-algo AES256`` produces, and the
+    reason it needs its own handler rather than an extra optional key on the ``pgp`` one is
+    that the two are mutually exclusive at the message level -- a key-encrypted message is not
+    passphrase-decryptable and vice versa (both directions asserted in
+    ``tests/unit/test_crypto_pgp.py``). Folding them together would let a spec name a private
+    key AND a passphrase and leave which one actually applies ambiguous.
+
+    ``passphrase_secret`` is REQUIRED here (it is optional for ``pgp``, where it merely unlocks
+    a protected private key) -- it is the entire secret.
+    """
+    passphrase_secret = config.get("passphrase_secret")
+    if not passphrase_secret:
+        raise FrameworkConfigError(
+            "source_config.source_zip_handling.pre_extraction_decryption.type 'pgp_symmetric' "
+            "requires 'passphrase_secret' -- the shared passphrase IS the key for a symmetric "
+            "message, so there is no other way to decrypt it."
+        )
+    passphrase = resolve_secret_ref(spark, passphrase_secret)
+    return pgp_decrypt_symmetric(data, passphrase)
+
+
+_PRE_EXTRACTION_DECRYPTION_HANDLERS = {"pgp": _decrypt_pgp, "pgp_symmetric": _decrypt_pgp_symmetric}
 
 
 #: Days a landing file is kept before ``clean_source`` archives/deletes it, when
@@ -666,17 +693,42 @@ def _extract_one_zip_file(
     # absent) means a plain, unprotected ZIP -- extract_encrypted_zip handles that natively
     # when every secret_* argument is None.
     secret_ref = pre_extraction_decryption.get("secret_passphrase") or {}
+    # `member_format` (v1.7.4) selects the CONTAINER, orthogonally to the decryption layer
+    # above. "zip" (the default, and the only pre-v1.7.4 behaviour) is a real archive with N
+    # named members; "gzip" is a single compressed stream with no member table, which pyzipper
+    # cannot open at all. Note an UNENCRYPTED `.gz` needs no pre-ingest step whatsoever --
+    # Spark's codec layer decompresses it on read -- so "gzip" here is for the encrypted case,
+    # where the file must be decrypted to disk first and what lands is a bare gzip stream.
+    member_format = zip_handling.get("member_format", "zip")
     try:
-        extract_encrypted_zip(
-            spark=spark,
-            source_zip_path=zip_path_to_extract,
-            target_volume_path=target_volume_path,
-            secret_catalog=secret_ref.get("secret_catalog"),
-            secret_schema=secret_ref.get("secret_schema"),
-            secret_key=secret_ref.get("secret_key"),
-            delete_source_after_extract=delete_policy.delete_current_archive,
-        )
-    except ArchiveError:
+        if member_format == "gzip":
+            if secret_ref:
+                raise FrameworkConfigError(
+                    "source_config.source_zip_handling: 'secret_passphrase' is an AES password on a "
+                    "ZIP archive and has no meaning for member_format 'gzip' (a gzip stream has no "
+                    "password). Use pre_extraction_decryption.type to decrypt the outer envelope."
+                )
+            extract_gzip_member(
+                source_path=zip_path_to_extract,
+                target_volume_path=target_volume_path,
+                delete_source_after_extract=delete_policy.delete_current_archive,
+            )
+        elif member_format == "zip":
+            extract_encrypted_zip(
+                spark=spark,
+                source_zip_path=zip_path_to_extract,
+                target_volume_path=target_volume_path,
+                secret_catalog=secret_ref.get("secret_catalog"),
+                secret_schema=secret_ref.get("secret_schema"),
+                secret_key=secret_ref.get("secret_key"),
+                delete_source_after_extract=delete_policy.delete_current_archive,
+            )
+        else:
+            raise FrameworkConfigError(
+                f"source_config.source_zip_handling.member_format {member_format!r} is not supported "
+                "(known formats: ['gzip', 'zip'])"
+            )
+    except (ArchiveError, FrameworkConfigError):
         raise
     except Exception as exc:  # noqa: BLE001
         raise ArchiveError(f"Failed to extract source_zip_handling archive '{source_zip_path}': {exc}") from exc

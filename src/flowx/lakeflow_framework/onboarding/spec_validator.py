@@ -492,7 +492,16 @@ _CREDENTIAL_REF_PATTERN = re.compile(r"^(env:[A-Za-z_][A-Za-z0-9_]*|secret:[^:]+
 # Registry of supported pre-extraction decryption algorithms -- see
 # `ingestion/readers.py::_apply_source_zip_handling`. Adding a new algorithm later means adding
 # a new key here (and a new handler function) -- never a schema change.
-ALLOWED_PRE_EXTRACTION_DECRYPTION_TYPES = {"pgp"}
+#: ``source_zip_handling.pre_extraction_decryption.type``. ``pgp`` is key-based (asymmetric);
+#: ``pgp_symmetric`` (v1.7.4) is passphrase-based, the shape ``gpg --symmetric`` produces.
+#: They are mutually exclusive at the OpenPGP message level -- a key-encrypted message is not
+#: passphrase-decryptable and vice versa -- so they are separate types rather than one type
+#: with two optional secret shapes.
+ALLOWED_PRE_EXTRACTION_DECRYPTION_TYPES = {"pgp", "pgp_symmetric"}
+
+#: ``source_zip_handling.member_format`` (v1.7.4) -- the CONTAINER, orthogonal to any
+#: decryption layer. ``zip`` is the pre-v1.7.4 default and only behaviour.
+ALLOWED_SOURCE_MEMBER_FORMATS = {"gzip", "zip"}
 
 # Data-standardization SQL is a column-expression allowlist, never a full statement. Any bare
 # occurrence of these keywords (case-insensitive, word-boundary matched) is rejected outright --
@@ -1154,7 +1163,17 @@ def _validate_pre_extraction_decryption(config: Any, path_prefix: str, errors: L
     decryption_type = config.get("type")
     if decryption_type is not None:
         check_string(decryption_type, f"{path_prefix}.type", errors, allowed_values=ALLOWED_PRE_EXTRACTION_DECRYPTION_TYPES)
-        if decryption_type == "pgp":
+        if decryption_type == "pgp_symmetric":
+            # The shared passphrase IS the key here, so it is REQUIRED -- unlike the "pgp"
+            # branch below, where passphrase_secret merely unlocks a protected private key.
+            check_secret_ref(config.get("passphrase_secret"), f"{path_prefix}.passphrase_secret", errors, required=True)
+            if config.get("private_key_secret") is not None:
+                errors.append(
+                    f"{path_prefix}.private_key_secret: not valid for type 'pgp_symmetric' -- a "
+                    "passphrase-encrypted OpenPGP message has no recipient keypair. Use type 'pgp' "
+                    "for a key-encrypted message."
+                )
+        elif decryption_type == "pgp":
             check_secret_ref(config.get("private_key_secret"), f"{path_prefix}.private_key_secret", errors, required=True)
             # passphrase_secret is OPTIONAL -- a real, properly-secured PGP private key is
             # routinely passphrase-protected, unlike this project's own throwaway test keypairs.
@@ -1231,6 +1250,22 @@ def _validate_source_zip_handling(zip_handling: Any, path_prefix: str, errors: L
         _validate_pre_extraction_decryption(
             zip_handling.get("pre_extraction_decryption"), f"{path_prefix}.pre_extraction_decryption", errors
         )
+        member_format = zip_handling.get("member_format")
+        if member_format is not None:
+            check_string(
+                member_format, f"{path_prefix}.member_format", errors, allowed_values=ALLOWED_SOURCE_MEMBER_FORMATS
+            )
+            if member_format == "gzip":
+                # A gzip stream has no archive password. Accepting one would let a spec assert
+                # protection that nothing applies -- rejected here as well as at runtime so the
+                # error arrives at onboarding, not mid-update.
+                decryption = zip_handling.get("pre_extraction_decryption") or {}
+                if isinstance(decryption, dict) and decryption.get("secret_passphrase") is not None:
+                    errors.append(
+                        f"{path_prefix}.pre_extraction_decryption.secret_passphrase: an AES password on a "
+                        "ZIP archive, meaningless for member_format 'gzip' (a gzip stream has no password). "
+                        "Use pre_extraction_decryption.type to decrypt an outer envelope."
+                    )
 
 
 def _validate_json_string_columns(value: Any, path_prefix: str, errors: List[str]) -> None:

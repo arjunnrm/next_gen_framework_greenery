@@ -392,3 +392,107 @@ def test_pre_extraction_decryption_type_only_no_secret_passphrase_decrypts_then_
     assert (tmp_path / "extracted" / "data.csv").exists(), "the PGP-decrypted, unprotected ZIP must still extract with no password"
     assert not original_source.exists(), "delete_source_after_extract defaults to True"
     assert not (incoming / "batch.zip.pgp.decrypted").exists(), "the decrypted temp intermediate must be cleaned up after success too"
+
+
+# ---------------------------------------------------------------------------------------
+# member_format: "gzip" -- v1.7.4, added for UC6's Environment Agency feed.
+#
+# The whole of source_zip_handling above assumes a ZIP *archive*: a container with N named
+# members. A gzip file is a single compressed stream with no member table, which pyzipper
+# cannot open at all. These tests cover the container dispatch and, most importantly, the
+# landed FILENAME -- which is what Auto Loader's file_pattern glob subsequently matches, so a
+# wrong name means a silent zero-row ingest rather than a loud failure.
+# ---------------------------------------------------------------------------------------
+
+import gzip as _gzip  # noqa: E402
+
+
+def _make_gzip(path, content=b"a|b\n1|2\n"):
+    with _gzip.open(path, "wb") as handle:
+        handle.write(content)
+
+
+def test_gzip_member_format_decompresses_into_the_landing_path(tmp_path):
+    incoming = tmp_path / "incoming"
+    incoming.mkdir()
+    _make_gzip(incoming / "CSS_account_20250127_00000008.dat.gz", b"S|2873|Henley\n")
+
+    _apply_source_zip_handling(
+        None,
+        _zip_handling(tmp_path, zip_file_pattern="CSS_account_[0-9]*.dat.gz", member_format="gzip"),
+    )
+
+    landed = tmp_path / "extracted" / "CSS_account_20250127_00000008.dat"
+    assert landed.exists(), "the .gz suffix must be stripped -- file_pattern globs match the landed name"
+    assert landed.read_bytes() == b"S|2873|Henley\n"
+
+
+def test_gzip_member_format_strips_the_encryption_envelope_from_the_landed_name(tmp_path):
+    """UC6's real shape: <stem>.csv.gz.gpg decrypted to <stem>.csv.gz.gpg.decrypted.
+
+    Regression test for a bug caught by a live run against UC6's own fixture: only
+    ``.decrypted`` was stripped, so the name still ended ``.gpg``, the ``.gz`` test missed, and
+    the file landed as ``EE_...csv.gz.gpg.decompressed`` -- matching no glob any spec would
+    write.
+    """
+    from flowx.lakeflow_framework.archive.zip_utils import _decompressed_member_name
+
+    assert _decompressed_member_name("/l/EE_2026-08-20-REQUEST_1OF1.csv.gz.gpg.decrypted") == "EE_2026-08-20-REQUEST_1OF1.csv"
+    assert _decompressed_member_name("/l/x.csv.gz.pgp.decrypted") == "x.csv"
+    assert _decompressed_member_name("/l/CSS_account_1.dat.gz") == "CSS_account_1.dat"
+    assert _decompressed_member_name("/l/y.CSV.GZ") == "y.CSV", "suffix match must be case-insensitive"
+    assert _decompressed_member_name("/l/z.dat") == "z.dat.decompressed", "never collide with the source name"
+
+
+def test_gzip_member_format_rejects_a_zip_only_secret_passphrase(tmp_path):
+    """`secret_passphrase` is an AES password on a ZIP; a gzip stream has no password.
+
+    Accepting it silently would let a spec assert protection that does not exist.
+    """
+    incoming = tmp_path / "incoming"
+    incoming.mkdir()
+    _make_gzip(incoming / "data.dat.gz")
+
+    config = _zip_handling(
+        tmp_path,
+        zip_file_pattern="*.dat.gz",
+        member_format="gzip",
+        pre_extraction_decryption={
+            "secret_passphrase": {"secret_catalog": "c", "secret_schema": "s", "secret_key": "k"}
+        },
+    )
+    # FrameworkConfigError, not ArchiveError: this is a misconfigured spec, not a corrupt
+    # file, and _extract_one_zip_file deliberately re-raises it undisguised.
+    with pytest.raises(FrameworkConfigError, match="gzip"):
+        _apply_source_zip_handling(None, config)
+
+
+def test_unknown_member_format_is_rejected(tmp_path):
+    incoming = tmp_path / "incoming"
+    incoming.mkdir()
+    _make_gzip(incoming / "data.dat.gz")
+
+    config = _zip_handling(tmp_path, zip_file_pattern="*.dat.gz", member_format="tar")
+    with pytest.raises(FrameworkConfigError, match="member_format"):
+        _apply_source_zip_handling(None, config)
+
+
+def test_member_format_defaults_to_zip(tmp_path):
+    """Absent member_format must behave exactly as before v1.7.4 -- no silent change."""
+    incoming = tmp_path / "incoming"
+    incoming.mkdir()
+    _make_zip(incoming / "orders.zip", member_name="orders.csv")
+
+    _apply_source_zip_handling(None, _zip_handling(tmp_path, zip_file_pattern="*.zip"))
+
+    assert (tmp_path / "extracted" / "orders.csv").exists()
+
+
+def test_gzip_member_format_reports_a_corrupt_stream(tmp_path):
+    incoming = tmp_path / "incoming"
+    incoming.mkdir()
+    (incoming / "broken.dat.gz").write_bytes(b"this is not gzip at all")
+
+    config = _zip_handling(tmp_path, zip_file_pattern="*.dat.gz", member_format="gzip")
+    with pytest.raises(ArchiveError, match="broken.dat.gz"):
+        _apply_source_zip_handling(None, config)

@@ -1576,3 +1576,113 @@ def test_source_plane_absent_or_empty_is_valid():
             del spec["source_plane"]
         _, _, _, _, errors = validate_spec(None, spec)
         assert errors == [], (block, errors)
+
+
+# --- v1.7.4: pgp_symmetric + member_format (added for UC6) --------------------------------
+#
+# Both keys are new spec surface, so both must be simultaneously (a) accepted by the Python
+# validator and (b) present in the JSON schema, whose additionalProperties:false is what
+# actually rejects unknown keys since v1.7.2. A test that only exercised validate_spec would
+# pass while real onboarding still rejected the spec.
+
+
+def _uc6_passphrase_secret():
+    return {"secret_catalog": "flowx", "secret_schema": "config", "secret_key": "pgpkey"}
+
+
+def test_pre_extraction_decryption_pgp_symmetric_with_passphrase_has_no_errors():
+    """UC6's Environment Agency feed: gzip inside a symmetric-PGP envelope."""
+    spec = {
+        "dataflow_group_id": "dfg_test",
+        "ingestion_flows": [
+            _base_ingestion_flow(
+                source_config=_zip_handling_source_config(
+                    zip_file_pattern="EE_*-REQUEST_*.csv.gz.gpg",
+                    member_format="gzip",
+                    pre_extraction_decryption={
+                        "type": "pgp_symmetric",
+                        "passphrase_secret": _uc6_passphrase_secret(),
+                    },
+                )
+            )
+        ],
+    }
+    _, _, _, _, errors = validate_spec(None, spec)
+    assert errors == []
+
+
+def test_pgp_symmetric_without_passphrase_secret_reports_error():
+    """The shared passphrase IS the key -- unlike 'pgp', it cannot be optional."""
+    spec = {
+        "dataflow_group_id": "dfg_test",
+        "ingestion_flows": [
+            _base_ingestion_flow(
+                source_config=_zip_handling_source_config(pre_extraction_decryption={"type": "pgp_symmetric"})
+            )
+        ],
+    }
+    _, _, _, _, errors = validate_spec(None, spec)
+    assert any("passphrase_secret" in error for error in errors), errors
+
+
+def test_pgp_symmetric_with_a_private_key_reports_error():
+    """A passphrase-encrypted OpenPGP message has no recipient keypair -- naming one means the
+    author picked the wrong type, and silently ignoring it would decrypt nothing."""
+    spec = {
+        "dataflow_group_id": "dfg_test",
+        "ingestion_flows": [
+            _base_ingestion_flow(
+                source_config=_zip_handling_source_config(
+                    pre_extraction_decryption={
+                        "type": "pgp_symmetric",
+                        "passphrase_secret": _uc6_passphrase_secret(),
+                        "private_key_secret": _uc6_passphrase_secret(),
+                    }
+                )
+            )
+        ],
+    }
+    _, _, _, _, errors = validate_spec(None, spec)
+    assert any("private_key_secret" in error for error in errors), errors
+
+
+def test_gzip_member_format_with_a_zip_password_reports_error():
+    spec = {
+        "dataflow_group_id": "dfg_test",
+        "ingestion_flows": [
+            _base_ingestion_flow(
+                source_config=_zip_handling_source_config(
+                    member_format="gzip",
+                    pre_extraction_decryption={"secret_passphrase": _uc6_passphrase_secret()},
+                )
+            )
+        ],
+    }
+    _, _, _, _, errors = validate_spec(None, spec)
+    assert any("secret_passphrase" in error for error in errors), errors
+
+
+def test_unknown_member_format_reports_error():
+    spec = {
+        "dataflow_group_id": "dfg_test",
+        "ingestion_flows": [_base_ingestion_flow(source_config=_zip_handling_source_config(member_format="tar"))],
+    }
+    _, _, _, _, errors = validate_spec(None, spec)
+    assert any("member_format" in error for error in errors), errors
+
+
+def test_new_v1_7_4_keys_are_present_in_the_json_schema():
+    """Guard the half of the contract validate_spec cannot see: since v1.7.2 the JSON schema's
+    additionalProperties:false is what rejects unknown keys at onboarding, so a key accepted
+    here but missing there is still rejected in production."""
+    import json
+    from pathlib import Path
+
+    schema_path = Path(__file__).resolve().parents[2] / "onboarding_templates" / "onboarding_spec.schema.json"
+    schema = json.loads(schema_path.read_text(encoding="utf-8"))
+
+    decryption_types = schema["$defs"]["preExtractionDecryption"]["properties"]["type"]["enum"]
+    assert "pgp_symmetric" in decryption_types, decryption_types
+
+    member_formats = schema["$defs"]["sourceZipHandling"]["properties"]["member_format"]["enum"]
+    assert set(member_formats) == {"zip", "gzip"}, member_formats
