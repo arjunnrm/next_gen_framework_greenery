@@ -8120,7 +8120,7 @@ without leaving the form.</p>
 <li>Omit this key for an append-only feed. 'per_micro_batch' is the default and the right answer whenever the source genuinely streams.</li>
 <li>Reach for 'per_update' when the flow this sink reads AGGREGATES -- GROUP BY, DISTINCT, a windowed rollup. Those produce a materialized_view, which cannot be streamed from at all.</li>
 <li>'per_update' fires even on an update that ingested nothing, which is the point: a contractual feed must produce its file every cycle, not only when new rows arrived.</li>
-<li>The pulse is a temporary dataset named _<target_table>_export_pulse. It appears in the Lakeflow DAG and carries no business data.</li>
+<li>One temporary dataset, _flowx_export_pulse, is shared by every per_update sink in the pipeline. It appears once in the Lakeflow DAG and carries no business data.</li>
 </ul>
 </div>
 <div class="admonition warning">

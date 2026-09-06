@@ -3882,7 +3882,7 @@ unconditionally required, so symmetric egress was unreachable from a spec.</p>
 <h5 id="how-it-works-separate-the-trigger-from-the-payload">How it works: separate the trigger from the payload<a class="headerlink" href="#how-it-works-separate-the-trigger-from-the-payload" title="Permanent link">&para;</a></h5>
 <p>The default uses one stream for both — the staged view's rows are simultaneously <em>what schedules the write</em> and <em>what gets written</em>. That is why a non-streamable payload takes the trigger down with it. <code>"per_update"</code> splits them:</p>
 <ul>
-<li><strong>Trigger</strong> — a one-row streaming <em>pulse</em> (<code>_&lt;target_table&gt;_export_pulse</code>, a temporary dataset), deliberately independent of every business feed. It carries no data. Its only job is to make the append flow genuinely streaming, satisfying Lakeflow's constraint <strong>honestly</strong> rather than by relabelling metadata.</li>
+<li><strong>Trigger</strong> — a one-row streaming <em>pulse</em> (<code>_flowx_export_pulse</code> — <strong>one</strong> temporary dataset per pipeline, shared by every <code>per_update</code> sink; it carries no data, so N sinks reading it is N edges, not N streams), deliberately independent of every business feed. It carries no data. Its only job is to make the append flow genuinely streaming, satisfying Lakeflow's constraint <strong>honestly</strong> rather than by relabelling metadata.</li>
 <li><strong>Payload</strong> — the staged view, read as a batch <code>dlt.read</code>. An aggregation is legal precisely because nothing streams it.</li>
 </ul>
 <p>The two are joined on a constant literal so the pulse's single row fans out across the payload; the gate column is dropped before any row reaches the sink.</p>
@@ -3900,15 +3900,38 @@ unconditionally required, so symmetric egress was unreachable from a spec.</p>
 <a id="__codelineno-5-12" name="__codelineno-5-12" href="#__codelineno-5-12"></a><span class="w">  </span><span class="p">}</span>
 <a id="__codelineno-5-13" name="__codelineno-5-13" href="#__codelineno-5-13"></a><span class="p">}</span>
 </code></pre></div>
-<h5 id="why-the-pulse-is-a-rate-stream-and-not-an-upstream-business-feed">Why the pulse is a rate stream, and not an upstream business feed<a class="headerlink" href="#why-the-pulse-is-a-rate-stream-and-not-an-upstream-business-feed" title="Permanent link">&para;</a></h5>
+<h5 id="why-the-pulse-is-rate-micro-batch-and-not-a-business-feed-or-a-plain-rate-stream">Why the pulse is <code>rate-micro-batch</code>, and not a business feed or a plain <code>rate</code> stream<a class="headerlink" href="#why-the-pulse-is-rate-micro-batch-and-not-a-business-feed-or-a-plain-rate-stream" title="Permanent link">&para;</a></h5>
 <p>This is the design decision worth understanding, because the obvious alternative is wrong.</p>
 <p>An earlier design pulsed off an upstream business stream. That fires per <strong>micro-batch of that stream</strong>, not per <strong>update</strong> — so an update in which the upstream advanced no offsets would recompute the aggregate and write <strong>no file at all</strong>. Silent missing output on a contractual feed is a worse failure than the error this feature removes.</p>
-<p>A rate-stream pulse is <strong>update-scoped</strong> instead. Verified live across three consecutive updates whose 2nd and 3rd ingested nothing: <strong>one export each, never zero.</strong></p>
+<p>A clock-independent pulse is <strong>update-scoped</strong> instead — but the choice of source matters, and the obvious one is wrong. Spark's plain <code>rate</code> source counts rows as <strong>wall-clock seconds since its checkpoint was created</strong>, so under a triggered update's <code>AvailableNow</code> it is a race. A live side-by-side probe, both variants feeding a counting handler:</p>
+<table>
+<thead>
+<tr>
+<th>Pulse source</th>
+<th>Fresh checkpoint</th>
+<th>Incremental update</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>rate</code></td>
+<td>1 row</td>
+<td><strong>0 rows</strong></td>
+</tr>
+<tr>
+<td><code>rate-micro-batch</code> (<code>rowsPerBatch=1</code>)</td>
+<td>1 row</td>
+<td>1 row</td>
+</tr>
+</tbody>
+</table>
+<p>The <code>rate</code> variant produced <strong>zero rows on an incremental update</strong> — the export would have been silently skipped, the exact failure this trigger exists to prevent (and exactly what happened on UC6's first green pipeline run: gold correct, four empty sinks). <code>rate-micro-batch</code> emits exactly <code>rowsPerBatch</code> rows per micro-batch regardless of the clock, and <code>AvailableNow</code> runs it as a single micro-batch: <strong>one row, every update, deterministically.</strong> No <code>.limit()</code> is applied — <code>rowsPerBatch=1</code> already yields one row, and a streaming <code>LIMIT</code> is a risk of its own.</p>
 <h5 id="notes">Notes<a class="headerlink" href="#notes" title="Permanent link">&para;</a></h5>
 <ul>
 <li>The payload is read with <code>dlt.read</code>, never <code>spark.read.table</code> — lineage stays inside the graph (Single-Read DAG mandate rule 2), so the dependency is visible in the Lakeflow DAG and Lakeflow still orders the payload's computation before the export.</li>
-<li>Quarantined rows are filtered and the <code>__framework_dq_*</code> process columns dropped, identically to the default path. An export never leaks them, whatever triggered it.</li>
+<li>Quarantined rows are filtered and <strong>every <code>__framework_*</code> column is dropped</strong> before rows reach the sink, on all three sink paths (<code>per_micro_batch</code>, <code>per_update</code>, and the <code>external_sink</code> export). A sink is an external interface with a contractual layout; before v1.7.5 <code>__framework_ingestion_timestamp_utc</code>, <code>__framework_pipeline_run_id</code> and <code>__framework_record_id</code> leaked into every <code>pgp_zip</code> file (found live: UC6's first exports had a 5-column header where the spec says <code>targetAreaID|telephone</code>). Lineage stays on the governed tables the sink reads; a consumer that wants a run id in a file projects it in <code>transformation_sql</code> under a business name.</li>
 <li><code>pgp_zip</code> only. <code>delta</code> and <code>kafka</code> are native Lakeflow sinks whose write cadence Lakeflow itself owns, so the attribute is presence-rejected there — the same contract as <code>staged_file_format</code>.</li>
+<li><strong>Changing the pulse source on an existing pipeline needs a one-time full refresh of the pulse tables.</strong> A streaming checkpoint records its source's offset format; swapping the source (as v1.7.5 did, <code>rate</code> → <code>rate-micro-batch</code>) makes the next incremental update fail with <code>STREAM_FAILED ... No usable value for offset</code> (json4s cannot read the old offset as a long) — and DLT auto-retries into the same wall. Changing which table a sink flow streams <em>from</em> (v1.7.5 replaced the per-sink pulses with one shared <code>_flowx_export_pulse</code>) breaks the sink flows' own checkpoints with <code>DIFFERENT_DELTA_TABLE_READ_BY_STREAMING_SOURCE</code>; a sink flow is not a selectable table, so recover with a whole-pipeline <code>start_update(full_refresh=True)</code> (a one-time migration; 264s live). A brand-new pipeline is unaffected.</li>
 <li><strong>Do not</strong> work around the streaming error by relabelling an aggregating flow as a <code>streaming_table</code>. That silences a plan-time error and converts it into a runtime one, which is strictly worse.</li>
 </ul>
 <hr />

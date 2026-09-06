@@ -182,6 +182,18 @@ def apply_all_governance_tags(spark: SparkSession, control_catalog: str, group_i
         governance_tags_json = getattr(flow_row, "governance_tags_json", None)
         if not governance_tags_json:
             continue
+        if getattr(flow_row, "target_type", None) == "sink":
+            # A "sink" flow never materializes target_table -- it is a dlt.create_sink +
+            # append_flow with no persisted dataset (engine/sink_registration.py), so there is
+            # nothing to ALTER. Tagging it raised TABLE_OR_VIEW_NOT_FOUND and failed the whole
+            # governance task for the group, taking every OTHER flow's tags down with it.
+            # "external_sink" is deliberately NOT skipped: it materializes a real main table
+            # first and only additionally exports it, so its tags apply as normal.
+            logger.info(
+                "Skipping governance tags for sink flow '%s' -- a sink has no materialized table to tag",
+                getattr(flow_row, "target_table", "?"),
+            )
+            continue
         governance_tags = json.loads(governance_tags_json)
         if not governance_tags:
             continue

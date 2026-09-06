@@ -107,7 +107,7 @@
       "target_table": "uc6_css_account_address",
       "target_type": "streaming_table",
       "source_config": {
-        "path": "/Volumes/{{catalog}}/staging/uc_6/_extracted/css_account_address/",
+        "path": "/Volumes/{{catalog}}/staging/uc_6/raw/",
         "format": "csv",
         "schema_location": "/Volumes/{{catalog}}/staging/uc_6/_schemas/css_account_address/",
         "file_pattern": "CSS_account_address_*.dat.gz",
@@ -155,7 +155,7 @@
       "target_table": "uc6_css_subscription",
       "target_type": "streaming_table",
       "source_config": {
-        "path": "/Volumes/{{catalog}}/staging/uc_6/_extracted/css_subscription/",
+        "path": "/Volumes/{{catalog}}/staging/uc_6/raw/",
         "format": "csv",
         "schema_location": "/Volumes/{{catalog}}/staging/uc_6/_schemas/css_subscription/",
         "file_pattern": "CSS_subscription_*.dat.gz",
@@ -208,7 +208,7 @@
       "target_table": "uc6_css_account",
       "target_type": "streaming_table",
       "source_config": {
-        "path": "/Volumes/{{catalog}}/staging/uc_6/_extracted/css_account/",
+        "path": "/Volumes/{{catalog}}/staging/uc_6/raw/",
         "format": "csv",
         "schema_location": "/Volumes/{{catalog}}/staging/uc_6/_schemas/css_account/",
         "file_pattern": "CSS_account_[0-9]*.dat.gz",
@@ -256,7 +256,7 @@
       "target_table": "uc6_jt_customer",
       "target_type": "streaming_table",
       "source_config": {
-        "path": "/Volumes/{{catalog}}/staging/uc_6/_extracted/jt_customer/",
+        "path": "/Volumes/{{catalog}}/staging/uc_6/raw/",
         "format": "csv",
         "schema_location": "/Volumes/{{catalog}}/staging/uc_6/_schemas/jt_customer/",
         "file_pattern": "CM_JT_Customer_Details_*.dat.gz",
@@ -304,7 +304,7 @@
       "target_table": "uc6_excalibur_address",
       "target_type": "streaming_table",
       "source_config": {
-        "path": "/Volumes/{{catalog}}/staging/uc_6/_extracted/excalibur_address/",
+        "path": "/Volumes/{{catalog}}/staging/uc_6/raw/",
         "format": "csv",
         "schema_location": "/Volumes/{{catalog}}/staging/uc_6/_schemas/excalibur_address/",
         "file_pattern": "CM_EXCALIBUR_ADDRESS_*.dat.gz",
@@ -354,7 +354,7 @@
         {
           "input_name": "uc6_ea_request_base",
           "table": "{{catalog}}.bronze.uc6_ea_request",
-          "is_streaming": true
+          "is_streaming": false
         }
       ],
       "transformation_sql": "SELECT targetAreaID, osapr, postcode, town FROM (SELECT targetAreaID, trim(osapr) AS osapr, postcode, town, ROW_NUMBER() OVER (PARTITION BY trim(osapr) ORDER BY __framework_ingestion_timestamp_utc DESC) AS rn FROM uc6_ea_request_base WHERE osapr IS NOT NULL AND trim(osapr) <> '') WHERE rn = 1",
@@ -388,7 +388,7 @@
         {
           "input_name": "uc6_ea_request_addr",
           "table": "{{catalog}}.bronze.uc6_ea_request",
-          "is_streaming": true
+          "is_streaming": false
         }
       ],
       "transformation_sql": "SELECT osapr, postcode_norm, address_norm, town_norm, has_po_box, targetAreaID FROM (SELECT trim(osapr) AS osapr, nullif(upper(regexp_replace(coalesce(postcode, ''), '[^A-Za-z0-9]', '')), '') AS postcode_norm, concat_ws(' ', nullif(trim(regexp_replace(regexp_replace(upper(coalesce(sub_bld_name, '')), '[^A-Z0-9 ]', ' '), ' +', ' ')), ''), nullif(trim(regexp_replace(regexp_replace(upper(coalesce(bld_name, '')), '[^A-Z0-9 ]', ' '), ' +', ' ')), ''), nullif(trim(regexp_replace(regexp_replace(upper(coalesce(bld_number, '')), '[^A-Z0-9 ]', ' '), ' +', ' ')), ''), nullif(trim(regexp_replace(regexp_replace(upper(coalesce(thfare2, '')), '[^A-Z0-9 ]', ' '), ' +', ' ')), ''), nullif(trim(regexp_replace(regexp_replace(upper(coalesce(thfare1, '')), '[^A-Z0-9 ]', ' '), ' +', ' ')), ''), nullif(trim(regexp_replace(regexp_replace(upper(coalesce(dbl_dep_loc, '')), '[^A-Z0-9 ]', ' '), ' +', ' ')), ''), nullif(trim(regexp_replace(regexp_replace(upper(coalesce(dep_loc, '')), '[^A-Z0-9 ]', ' '), ' +', ' ')), '')) AS address_norm, nullif(trim(regexp_replace(regexp_replace(upper(coalesce(town, '')), '[^A-Z0-9 ]', ' '), ' +', ' ')), '') AS town_norm, CASE WHEN po_box IS NOT NULL AND trim(po_box) <> '' THEN true ELSE false END AS has_po_box, targetAreaID, ROW_NUMBER() OVER (PARTITION BY nullif(upper(regexp_replace(coalesce(postcode, ''), '[^A-Za-z0-9]', '')), ''), concat_ws(' ', nullif(trim(regexp_replace(regexp_replace(upper(coalesce(sub_bld_name, '')), '[^A-Z0-9 ]', ' '), ' +', ' ')), ''), nullif(trim(regexp_replace(regexp_replace(upper(coalesce(bld_name, '')), '[^A-Z0-9 ]', ' '), ' +', ' ')), ''), nullif(trim(regexp_replace(regexp_replace(upper(coalesce(bld_number, '')), '[^A-Z0-9 ]', ' '), ' +', ' ')), ''), nullif(trim(regexp_replace(regexp_replace(upper(coalesce(thfare2, '')), '[^A-Z0-9 ]', ' '), ' +', ' ')), ''), nullif(trim(regexp_replace(regexp_replace(upper(coalesce(thfare1, '')), '[^A-Z0-9 ]', ' '), ' +', ' ')), ''), nullif(trim(regexp_replace(regexp_replace(upper(coalesce(dbl_dep_loc, '')), '[^A-Z0-9 ]', ' '), ' +', ' ')), ''), nullif(trim(regexp_replace(regexp_replace(upper(coalesce(dep_loc, '')), '[^A-Z0-9 ]', ' '), ' +', ' ')), '')), nullif(trim(regexp_replace(regexp_replace(upper(coalesce(town, '')), '[^A-Z0-9 ]', ' '), ' +', ' ')), '') ORDER BY trim(osapr)) AS rn FROM uc6_ea_request_addr WHERE osapr IS NOT NULL AND trim(osapr) <> '') WHERE rn = 1",
@@ -417,12 +417,12 @@
       "target_catalog": "{{catalog}}",
       "target_schema": "silver",
       "target_table": "uc6_ee_address_paf",
-      "target_type": "streaming_table",
+      "target_type": "materialized_view",
       "source_inputs": [
         {
           "input_name": "uc6_css_sub",
           "table": "{{catalog}}.bronze.uc6_css_subscription",
-          "is_streaming": true
+          "is_streaming": false
         },
         {
           "input_name": "uc6_css_acct",
@@ -447,7 +447,7 @@
       ],
       "transformation_sql": "SELECT 'css' AS source_system, s.msisdn AS msisdn, nullif(upper(regexp_replace(coalesce(a.postcode, ''), '[^A-Za-z0-9]', '')), '') AS postcode_norm, concat_ws(' ', nullif(trim(regexp_replace(regexp_replace(upper(coalesce(a.building_name1, '')), '[^A-Z0-9 ]', ' '), ' +', ' ')), ''), nullif(trim(regexp_replace(regexp_replace(upper(coalesce(a.building_name, '')), '[^A-Z0-9 ]', ' '), ' +', ' ')), ''), nullif(trim(regexp_replace(regexp_replace(upper(coalesce(a.building_number, '')), '[^A-Z0-9 ]', ' '), ' +', ' ')), ''), nullif(trim(regexp_replace(regexp_replace(upper(coalesce(a.street1, '')), '[^A-Z0-9 ]', ' '), ' +', ' ')), ''), nullif(trim(regexp_replace(regexp_replace(upper(coalesce(a.street2, '')), '[^A-Z0-9 ]', ' '), ' +', ' ')), ''), nullif(trim(regexp_replace(regexp_replace(upper(coalesce(a.locality1, '')), '[^A-Z0-9 ]', ' '), ' +', ' ')), ''), nullif(trim(regexp_replace(regexp_replace(upper(coalesce(a.locality2, '')), '[^A-Z0-9 ]', ' '), ' +', ' ')), '')) AS address_norm, nullif(trim(regexp_replace(regexp_replace(upper(coalesce(a.county, '')), '[^A-Z0-9 ]', ' '), ' +', ' ')), '') AS town_norm, CASE WHEN a.po_box IS NOT NULL AND trim(a.po_box) <> '' THEN true ELSE false END AS has_po_box FROM uc6_css_sub s INNER JOIN uc6_css_acct c ON s.customerid = c.customerid INNER JOIN uc6_css_addr a ON c.customerid = a.customerid WHERE c.customerbusinessunitcode <> ${excluded_business_unit_code} AND c.dateofbirth IS NOT NULL AND floor((months_between(current_date(), to_date(c.dateofbirth, 'yyyy-MM-dd'))) / 12) > ${min_age_years} AND s.msisdn IS NOT NULL AND trim(s.msisdn) <> '' UNION ALL SELECT 'jt' AS source_system, msisdn, nullif(upper(regexp_replace(coalesce(postcode, ''), '[^A-Za-z0-9]', '')), '') AS postcode_norm, concat_ws(' ', nullif(trim(regexp_replace(regexp_replace(upper(coalesce(building_number, '')), '[^A-Z0-9 ]', ' '), ' +', ' ')), ''), nullif(trim(regexp_replace(regexp_replace(upper(coalesce(street2, '')), '[^A-Z0-9 ]', ' '), ' +', ' ')), ''), nullif(trim(regexp_replace(regexp_replace(upper(coalesce(locality2, '')), '[^A-Z0-9 ]', ' '), ' +', ' ')), '')) AS address_norm, nullif(trim(regexp_replace(regexp_replace(upper(coalesce(town, '')), '[^A-Z0-9 ]', ' '), ' +', ' ')), '') AS town_norm, false AS has_po_box FROM uc6_jt_cust WHERE dateofbirth IS NOT NULL AND floor((months_between(current_date(), to_date(dateofbirth, 'yyyyMMdd'))) / 12) > ${min_age_years} AND msisdn IS NOT NULL AND trim(msisdn) <> '' UNION ALL SELECT 'excalibur' AS source_system, msisdn, nullif(upper(regexp_replace(coalesce(adr_post_code, ''), '[^A-Za-z0-9]', '')), '') AS postcode_norm, concat_ws(' ', nullif(trim(regexp_replace(regexp_replace(upper(coalesce(adr_house_name, '')), '[^A-Z0-9 ]', ' '), ' +', ' ')), ''), coalesce(nullif(trim(regexp_replace(regexp_replace(upper(coalesce(concat_ws(' ', adr_house_no, adr_primary_ln), '')), '[^A-Z0-9 ]', ' '), ' +', ' ')), ''), nullif(trim(regexp_replace(regexp_replace(upper(coalesce(adr_addr_line1, '')), '[^A-Z0-9 ]', ' '), ' +', ' ')), '')), nullif(trim(regexp_replace(regexp_replace(upper(coalesce(adr_district, '')), '[^A-Z0-9 ]', ' '), ' +', ' ')), '')) AS address_norm, nullif(trim(regexp_replace(regexp_replace(upper(coalesce(adr_district, '')), '[^A-Z0-9 ]', ' '), ' +', ' ')), '') AS town_norm, false AS has_po_box FROM uc6_exc_addr WHERE msisdn IS NOT NULL AND trim(msisdn) <> ''",
       "target_config": {
-        "cdc_load_strategy": "APPEND",
+        "cdc_load_strategy": "TRUNCATE_AND_LOAD",
         "storage_format": "delta"
       },
       "dq_config": {
@@ -482,7 +482,7 @@
       "target_catalog": "{{catalog}}",
       "target_schema": "silver",
       "target_table": "uc6_matched_address",
-      "target_type": "streaming_table",
+      "target_type": "materialized_view",
       "source_inputs": [
         {
           "input_name": "uc6_ea_addr_match",
@@ -492,12 +492,12 @@
         {
           "input_name": "uc6_ee_paf_match",
           "table": "{{catalog}}.silver.uc6_ee_address_paf",
-          "is_streaming": true
+          "is_streaming": false
         }
       ],
       "transformation_sql": "SELECT ea.osapr, ea.targetAreaID, ea.postcode_norm AS postcode, ea.address_norm AS address, ea.town_norm AS town, ee.msisdn AS msisdn, ee.source_system, CASE WHEN ea.address_norm IS NULL OR ee.address_norm IS NULL THEN 0 ELSE cast(round(100.0 * size(array_intersect(split(ea.address_norm, ' '), split(ee.address_norm, ' '))) / greatest(size(split(ea.address_norm, ' ')), 1)) AS INT) END AS match_strength FROM uc6_ee_paf_match ee INNER JOIN uc6_ea_addr_match ea ON ee.postcode_norm = ea.postcode_norm WHERE ea.has_po_box = false AND ee.has_po_box = false",
       "target_config": {
-        "cdc_load_strategy": "APPEND",
+        "cdc_load_strategy": "TRUNCATE_AND_LOAD",
         "storage_format": "delta"
       },
       "dq_config": {
@@ -641,7 +641,7 @@
         {
           "input_name": "uc6_tel_leidos",
           "table": "{{catalog}}.gold.uc6_telephone_output",
-          "is_streaming": true
+          "is_streaming": false
         }
       ],
       "transformation_sql": "SELECT targetAreaID, telephone FROM uc6_tel_leidos",
@@ -652,6 +652,7 @@
           "format": "pgp_zip",
           "path": "/Volumes/{{catalog}}/staging/uc_6/output/_staging/uc6_export_leidos_telephone/",
           "staged_file_format": "csv",
+          "export_trigger": "per_update",
           "staged_file_options": {
             "delimiter": "|",
             "include_header": true,
@@ -691,7 +692,7 @@
         {
           "input_name": "uc6_osapr_leidos",
           "table": "{{catalog}}.gold.uc6_osapr_output",
-          "is_streaming": true
+          "is_streaming": false
         }
       ],
       "transformation_sql": "SELECT targetAreaID, osapr, count, status FROM uc6_osapr_leidos",
@@ -702,6 +703,7 @@
           "format": "pgp_zip",
           "path": "/Volumes/{{catalog}}/staging/uc_6/output/_staging/uc6_export_leidos_osapr/",
           "staged_file_format": "csv",
+          "export_trigger": "per_update",
           "staged_file_options": {
             "delimiter": "|",
             "include_header": true,
@@ -741,7 +743,7 @@
         {
           "input_name": "uc6_tel_fujitsu",
           "table": "{{catalog}}.gold.uc6_telephone_output",
-          "is_streaming": true
+          "is_streaming": false
         }
       ],
       "transformation_sql": "SELECT targetAreaID, telephone FROM uc6_tel_fujitsu",
@@ -752,6 +754,7 @@
           "format": "pgp_zip",
           "path": "/Volumes/{{catalog}}/staging/uc_6/output/_staging/uc6_export_telephone/",
           "staged_file_format": "csv",
+          "export_trigger": "per_update",
           "staged_file_options": {
             "delimiter": "|",
             "include_header": true,
@@ -799,7 +802,7 @@
         {
           "input_name": "uc6_osapr_fujitsu",
           "table": "{{catalog}}.gold.uc6_osapr_output",
-          "is_streaming": true
+          "is_streaming": false
         }
       ],
       "transformation_sql": "SELECT targetAreaID, osapr, count, status FROM uc6_osapr_fujitsu",
@@ -810,6 +813,7 @@
           "format": "pgp_zip",
           "path": "/Volumes/{{catalog}}/staging/uc_6/output/_staging/uc6_export_osapr/",
           "staged_file_format": "csv",
+          "export_trigger": "per_update",
           "staged_file_options": {
             "delimiter": "|",
             "include_header": true,
@@ -867,10 +871,11 @@
         }
       ],
       "match_keys": [
-        "__framework_hash_key"
+        "targetAreaID",
+        "osapr"
       ],
       "compare_columns": [],
-      "execution_mode": "pipeline",
+      "execution_mode": "pipeline_audit_only",
       "dq_config": {
         "rules": [
           {
@@ -908,10 +913,10 @@
         }
       ],
       "match_keys": [
-        "__framework_hash_key"
+        "customerid"
       ],
       "compare_columns": [],
-      "execution_mode": "pipeline",
+      "execution_mode": "pipeline_audit_only",
       "dq_config": {
         "rules": [
           {
@@ -949,10 +954,10 @@
         }
       ],
       "match_keys": [
-        "__framework_hash_key"
+        "address_id"
       ],
       "compare_columns": [],
-      "execution_mode": "pipeline",
+      "execution_mode": "pipeline_audit_only",
       "dq_config": {
         "rules": [
           {
@@ -990,10 +995,10 @@
         }
       ],
       "match_keys": [
-        "__framework_hash_key"
+        "subscription_id"
       ],
       "compare_columns": [],
-      "execution_mode": "pipeline",
+      "execution_mode": "pipeline_audit_only",
       "dq_config": {
         "rules": [
           {
@@ -1031,10 +1036,10 @@
         }
       ],
       "match_keys": [
-        "__framework_hash_key"
+        "jt_customer_id"
       ],
       "compare_columns": [],
-      "execution_mode": "pipeline",
+      "execution_mode": "pipeline_audit_only",
       "dq_config": {
         "rules": [
           {
@@ -1072,10 +1077,10 @@
         }
       ],
       "match_keys": [
-        "__framework_hash_key"
+        "excalibur_id"
       ],
       "compare_columns": [],
-      "execution_mode": "pipeline",
+      "execution_mode": "pipeline_audit_only",
       "dq_config": {
         "rules": [
           {
@@ -1091,6 +1096,19 @@
       "logging_config": {
         "run_log_capture": true,
         "mismatch_log_capture": false
+      }
+    }
+  ],
+  "observability": [
+    {
+      "id": "dest_uc6_triggered_volume",
+      "enabled": true,
+      "mode": "triggered",
+      "type": "DATABRICKS_VOLUME",
+      "destination_config": {
+        "volume_path": "/Volumes/{{catalog}}/observability/app_logs/uc6",
+        "file_format": "JSONL",
+        "compressed": true
       }
     }
   ]

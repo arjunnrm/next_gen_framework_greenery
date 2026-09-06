@@ -32,17 +32,19 @@ update-scoped pulse carrying no data makes the append flow genuinely streaming, 
 are read as a batch. Exactly one archive per pipeline update, including an update that ingested
 nothing.
 
-The pulse is deliberately a rate stream rather than an upstream business feed. Pulsing off
+The pulse is deliberately a `rate-micro-batch` stream (one row per micro-batch, wall-clock independent) rather than an upstream business feed. Pulsing off
 business data fires per *micro-batch*, so an update where the upstream advanced no offsets would
 recompute the aggregate and write **no file at all** -- silent missing output on a contractual
 feed, which is worse than the error being fixed. That design was proposed, adversarially
 reviewed, and rejected before this one was built.
 
-**Proven on the live runtime before being written**, not inferred: three consecutive updates
+The plain `rate` source was tried first and **rejected on evidence**: it counts rows as seconds since checkpoint creation and produced 0 rows on an incremental update in a side-by-side probe — which is precisely why UC6's first green pipeline run had correct gold tables and four empty sinks. **Proven on the live runtime**, not inferred: three consecutive updates
 whose 2nd and 3rd ingested no new rows produced exactly one export each, never zero, and read a
 sibling aggregating MV batch-side successfully. The same probe established that
 `dlt.foreach_batch_sink` **is** present on this runtime, contradicting a code comment whose
 "confirmed absent" refers to the local pip stub.
+
+**Sinks no longer leak framework columns.** Every `pgp_zip` export carried `__framework_ingestion_timestamp_utc`, `__framework_pipeline_run_id` and `__framework_record_id`: the sink dropped only the three DQ process columns, an oversight of the same "never leak internals to an external system" rule. Found live in UC6's first export files (a 5-column header against a 2-column contract). All three sink paths now strip every `__framework_*` column by prefix; lineage stays on the governed tables. Nothing in the repo asserted those columns in an export.
 
 Opt-in and default-off: a sink without the key takes the byte-identical previous path, asserted
 by test rather than assumed. Verification: 24 new unit tests; `tests/unit` diffed by
@@ -129,7 +131,7 @@ one that omits it, because it is trusted.
 visibility predicate. Adding per-attribute special-casing there would work against the design —
 and this repo has twice damaged that file with broad regexes.
 
-**Not deployed.** No pipeline has run, and the app is updated but not redeployed — that is two
+**Deployed and green.** UC6 runs end-to-end on `metaflow_v7`: all five job tasks SUCCESS, and a real-data validator (`scripts/validate_uc6_pipeline_output.py`, 26 checks) confirms the four export files match the specification and the gold tables row-for-row, with governance tags and observability export landed. The app is updated but not redeployed — that is two
 steps (`bundle deploy` then `bundle run`); deploy alone leaves the app on its previous code. See
 `enhancement_logs/v1.7.05_enhancement_log.md` for the full scope, the seven defects found, and
 the known gaps.

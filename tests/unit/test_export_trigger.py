@@ -16,8 +16,9 @@ The registration tests use a fake ``dlt`` module. That is deliberate rather than
 the real one only exists inside a running pipeline update (there is no local Lakeflow), so a
 double is the only way to assert *which datasets get registered and how they are wired*
 offline. What the double cannot prove -- that Lakeflow and Delta actually accept the shape --
-was verified by running it on the live serverless runtime: three consecutive updates whose
-2nd and 3rd ingested no new rows produced exactly one handler invocation each, never zero.
+was verified on the live serverless runtime with a side-by-side probe: a plain `rate` pulse
+gave 1 row on a fresh checkpoint and 0 on the next incremental update (wall-clock dependent);
+`rate-micro-batch` gave exactly 1 row on both. The shipped pulse is rate-micro-batch.
 """
 
 import sys
@@ -172,8 +173,15 @@ class _FakeDlt(types.ModuleType):
 
 
 class _FakeDF:
-    def __init__(self, name):
+    def __init__(self, name, columns=None):
         self.name = name
+        self.columns = list(columns or [
+            "targetAreaID", "telephone", "__framework_dq_quarantine_flag",
+            "__framework_dq_failed_rule_ids", "__framework_dq_failure_reasons",
+            "__framework_ingestion_timestamp_utc", "__framework_pipeline_run_id",
+            "__framework_record_id",
+        ])
+        self.dropped = []
 
     def withColumn(self, *a, **k):
         return self
@@ -182,6 +190,8 @@ class _FakeDF:
         return self
 
     def drop(self, *a, **k):
+        self.dropped.extend(a)
+        self.columns = [c for c in self.columns if c not in a]
         return self
 
     def filter(self, *a, **k):
@@ -208,6 +218,8 @@ def fake_dlt(monkeypatch):
         fake.sinks[sink_name] = {"format": sink_config.get("format")}
 
     monkeypatch.setattr(sr, "_create_sink", _fake_create_sink, raising=True)
+    # The shared pulse is registered once per PROCESS; each test is its own pipeline.
+    monkeypatch.setattr(sr, "_REGISTERED_PULSES", set(), raising=True)
     return fake
 
 
@@ -285,8 +297,9 @@ def test_per_update_registers_a_temporary_pulse_table(fake_dlt):
     from flowx.lakeflow_framework.engine import sink_registration as sr
 
     _register(sr, fake_dlt, export_trigger="per_update")
-    assert "_t_export_pulse" in fake_dlt.tables
-    assert fake_dlt.tables["_t_export_pulse"]["temporary"] is True, (
+    assert sr.EXPORT_PULSE_TABLE == "_flowx_export_pulse"
+    assert sr.EXPORT_PULSE_TABLE in fake_dlt.tables
+    assert fake_dlt.tables[sr.EXPORT_PULSE_TABLE]["temporary"] is True, (
         "the pulse is plumbing, not a published dataset"
     )
 
@@ -299,7 +312,7 @@ def test_per_update_reads_payload_as_batch_and_pulse_as_stream(fake_dlt):
     _register(sr, fake_dlt, export_trigger="per_update")
     fake_dlt.append_flows["t_sink_flow"]["fn"]()
     assert "_t_staged" in fake_dlt.read_calls, "payload must be read with dlt.read (batch)"
-    assert "_t_export_pulse" in fake_dlt.read_stream_calls, "pulse must be read as a stream"
+    assert sr.EXPORT_PULSE_TABLE in fake_dlt.read_stream_calls, "pulse must be read as a stream"
     assert "_t_staged" not in fake_dlt.read_stream_calls, (
         "streaming the aggregating payload is exactly what fails at runtime"
     )
@@ -320,6 +333,28 @@ def test_per_update_payload_uses_dlt_read_not_spark_read_table(fake_dlt):
     code = " ".join(line.split("#", 1)[0] for line in body.splitlines())
     assert "spark.read.table" not in code, "the payload must not bypass the Lakeflow graph"
     assert "dlt.read(staged_view_name)" in code
+
+
+def test_two_per_update_sinks_share_one_pulse(fake_dlt):
+    """Four UC6 sinks used to register four identical rate-micro-batch streams. One pulse per
+    pipeline is enough -- it carries no data -- and dlt would reject a duplicate table name
+    anyway, so the second registration must reuse, not re-register."""
+    from flowx.lakeflow_framework.engine import sink_registration as sr
+
+    for tbl in ("t1", "t2"):
+        sr.register_sink_target(
+            flow_label="ts_" + tbl, staged_view_name=f"_{tbl}_staged", target_table=tbl,
+            target_catalog="c", target_schema="gold",
+            target_config={"cdc_load_strategy": "APPEND",
+                           "sink_config": dict(SINK_CFG, export_trigger="per_update")},
+            dq_rules=[], is_streaming=False,
+        )
+    pulses = [n for n in fake_dlt.tables if "pulse" in n]
+    assert pulses == [sr.EXPORT_PULSE_TABLE], f"expected exactly one shared pulse, got {pulses}"
+    assert set(fake_dlt.sinks) == {"_t1_sink", "_t2_sink"}
+    for flow in ("t1_sink_flow", "t2_sink_flow"):
+        fake_dlt.append_flows[flow]["fn"]()
+    assert fake_dlt.read_stream_calls.count(sr.EXPORT_PULSE_TABLE) == 2, "both sinks read the one pulse"
 
 
 def test_per_update_rejects_non_pgp_zip_formats(fake_dlt):
@@ -343,7 +378,9 @@ def test_per_update_still_filters_quarantined_rows(fake_dlt):
 
     src = inspect.getsource(sr.register_per_update_sink_target)
     assert "__framework_dq_quarantine_flag" in src
-    assert "_QUARANTINE_PROCESS_COLUMNS" in src
+    # Since the framework-column fix the process columns are dropped by prefix, together with
+    # every other __framework_* column, rather than by the fixed _QUARANTINE_PROCESS_COLUMNS list.
+    assert "_strip_framework_columns(" in src
 
 
 def test_pulse_gate_column_is_framework_prefixed():
@@ -359,6 +396,54 @@ def test_pulse_is_independent_of_every_business_feed():
     from flowx.lakeflow_framework.engine import sink_registration as sr
     import inspect
 
-    src = inspect.getsource(sr.register_per_update_sink_target)
-    assert 'format("rate")' in src, "the pulse must be a rate stream, not a business feed"
+    # The pulse body lives in the shared register-once helper, not in the per-sink function.
+    src = inspect.getsource(sr._register_shared_export_pulse)
+    # Assert on CODE, not prose: the docstring and comments discuss `rate` and `.limit()` to
+    # explain why they are NOT used, so matching raw source would fail on the explanation.
+    body = src.split('"""', 2)[-1]
+    src = " ".join(line.split("#", 1)[0] for line in body.splitlines())
+    assert 'format("rate-micro-batch")' in src, (
+        "the pulse must be rate-micro-batch: deterministic rows per batch. The plain rate "
+        "source is wall-clock dependent and produced 0 rows on an incremental update live."
+    )
+    assert 'format("rate")' not in src, "plain rate source is a race -- must not come back"
+    assert ".limit(" not in src, "no streaming LIMIT on the pulse"
     assert "bind(" not in src, "binding a business source would make the pulse data-driven"
+
+# --------------------------------------------------------- no framework columns leak
+
+
+def test_strip_framework_columns_drops_every_prefixed_column():
+    from flowx.lakeflow_framework.engine import sink_registration as sr
+
+    out = sr._strip_framework_columns(_FakeDF("x"))
+    assert out.columns == ["targetAreaID", "telephone"], out.columns
+
+
+def test_strip_framework_columns_is_a_no_op_without_prefixed_columns():
+    from flowx.lakeflow_framework.engine import sink_registration as sr
+
+    df = _FakeDF("x", columns=["a", "b"])
+    assert sr._strip_framework_columns(df) is df and df.dropped == []
+
+
+@pytest.mark.parametrize("trigger", [None, "per_update"])
+def test_sink_export_carries_only_business_columns(fake_dlt, trigger):
+    """Found live: UC6's first four export files had the header
+    targetAreaID|telephone|__framework_ingestion_timestamp_utc|__framework_pipeline_run_id|__framework_record_id.
+    A supplier file with a contractual layout must carry ONLY the projected business columns --
+    on BOTH trigger paths."""
+    from flowx.lakeflow_framework.engine import sink_registration as sr
+
+    cfg = dict(SINK_CFG, **({"export_trigger": trigger} if trigger else {}))
+    sr.register_sink_target(
+        flow_label="ts_export", staged_view_name="_t_staged", target_table="t",
+        target_catalog="c", target_schema="gold",
+        target_config={"cdc_load_strategy": "APPEND", "sink_config": cfg},
+        dq_rules=[], is_streaming=(trigger is None),
+    )
+    out = fake_dlt.append_flows["t_sink_flow"]["fn"]()
+    leaked = [c for c in out.columns if c.startswith("__framework_")]
+    assert leaked == [], f"framework columns leaked into the export: {leaked}"
+    assert out.columns == ["targetAreaID", "telephone"]
+

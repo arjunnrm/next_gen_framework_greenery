@@ -4076,6 +4076,28 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#o9-a-rate-source-pulse-is-a-race-the-per_update-export-trigger-uses-rate-micro-batch" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        O9 🔴 A rate-source pulse is a race — the per_update export trigger uses rate-micro-batch
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#o10-both-validation-gates-pass-and-the-update-still-fails-graph-planning-is-a-third-gate" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        O10 🔴 Both validation gates pass and the update still fails — graph planning is a third gate
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -5593,6 +5615,28 @@
     <span class="md-ellipsis">
       
         O8 🔴 A module loaded from a job task must not transitively import dlt
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#o9-a-rate-source-pulse-is-a-race-the-per_update-export-trigger-uses-rate-micro-batch" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        O9 🔴 A rate-source pulse is a race — the per_update export trigger uses rate-micro-batch
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#o10-both-validation-gates-pass-and-the-update-still-fails-graph-planning-is-a-third-gate" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        O10 🔴 Both validation gates pass and the update still fails — graph planning is a third gate
       
     </span>
   </a>
@@ -7554,6 +7598,41 @@ vacuously.</p>
 </tbody>
 </table>
 <hr />
+<h3 id="o9-a-rate-source-pulse-is-a-race-the-per_update-export-trigger-uses-rate-micro-batch"><a id="o9"></a>O9 🔴 A <code>rate</code>-source pulse is a race — the <code>per_update</code> export trigger uses <code>rate-micro-batch</code><a class="headerlink" href="#o9-a-rate-source-pulse-is-a-race-the-per_update-export-trigger-uses-rate-micro-batch" title="Permanent link">&para;</a></h3>
+<p>Spark's plain <code>rate</code> source counts rows as wall-clock seconds since its checkpoint was created, so
+under a triggered update's <code>AvailableNow</code> a one-row pulse is nondeterministic. Measured live:</p>
+<table>
+<thead>
+<tr>
+<th>Pulse source</th>
+<th>Fresh checkpoint</th>
+<th>Incremental update</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>rate</code> (<code>rowsPerSecond=1</code>, <code>.limit(1)</code>)</td>
+<td>1 row</td>
+<td><strong>0 rows</strong></td>
+</tr>
+<tr>
+<td><code>rate-micro-batch</code> (<code>rowsPerBatch=1</code>)</td>
+<td>1 row</td>
+<td>1 row</td>
+</tr>
+</tbody>
+</table>
+<p>UC6's first green update had correct gold tables and <strong>four empty sinks</strong> because the pulse emitted 0
+rows. The shipped trigger uses <code>rate-micro-batch</code> (<code>rowsPerBatch=1</code>, no <code>.limit()</code>), which is
+wall-clock independent. Related trap: streaming flows never report <code>num_output_rows</code> in
+<code>event_log()</code> — a zero-row streaming flow is invisible there; check the sink's output.</p>
+<h3 id="o10-both-validation-gates-pass-and-the-update-still-fails-graph-planning-is-a-third-gate"><a id="o10"></a>O10 🔴 Both validation gates pass and the update still fails — graph planning is a third gate<a class="headerlink" href="#o10-both-validation-gates-pass-and-the-update-still-fails-graph-planning-is-a-third-gate" title="Permanent link">&para;</a></h3>
+<p>Neither <code>spec_validator.py</code> nor the JSON schema plans the Lakeflow graph. Runtime-only defects
+surface one per ~10-minute update. UC6 hit five: G-STREAM (sink streaming from an aggregating MV);
+<code>path</code> pointing at a directory nothing writes (<code>CF_EMPTY_DIR_FOR_SCHEMA_INFERENCE</code>); unuploaded
+<code>schema_config_path</code> files; <code>match_keys: ["__framework_hash_key"]</code> (circular — the matcher hashes
+real columns into it); a streaming/batch <code>UNION ALL</code> and a <code>ROW_NUMBER()</code> over a stream. Pre-run
+checklist and the governance-on-<code>sink</code> corollary: <code>agent_skills/reference/common_pitfalls.md</code> §43.</p>
 <h2 id="open-discrepancy-verify-before-relying-on-either-statement">Open discrepancy — verify before relying on either statement<a class="headerlink" href="#open-discrepancy-verify-before-relying-on-either-statement" title="Permanent link">&para;</a></h2>
 <p><strong>Normalization vs schema_config ordering.</strong> Two sources in this repo disagree:</p>
 <ul>

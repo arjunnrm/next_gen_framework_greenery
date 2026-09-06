@@ -116,6 +116,7 @@ Because Databricks Lakeflow disallows executing DDL statements (`ALTER TABLE ...
 1. Pipeline compiles and materializes target Delta tables.
 2. The post-deployment task `notebooks/04_governance/04_apply_governance_and_egress.py` runs immediately following the pipeline update.
 3. It queries `governance_tags_json` from the control tables and executes idempotent `ALTER TABLE <catalog>.<schema>.<table> SET TAGS (...)` DDL commands.
+4. **`target_type: "sink"` flows are skipped** (v1.7.5). A pure sink is a `dlt.create_sink` + `@dlt.append_flow` with **no persisted dataset** — its `target_table` names the sink, not a table — so there is nothing to `ALTER`. Before v1.7.5 the loop tagged it anyway, raised `TABLE_OR_VIEW_NOT_FOUND`, and because the group-level loop has no per-flow isolation, **every other flow's tags in the group went unapplied too**. Found live on UC6's first green pipeline update. `external_sink` is *not* skipped: it materializes a real main table first and only additionally exports it, so its tags apply as normal. A `governance_tags` block on a `sink` flow is therefore accepted but inert; put table tags on the flow that produces the data the sink reads.
 
 ---
 

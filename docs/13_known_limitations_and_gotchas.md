@@ -1581,6 +1581,30 @@ Job-context entry points to keep clean:
 
 ---
 
+### <a id="o9"></a>O9 🔴 A `rate`-source pulse is a race — the `per_update` export trigger uses `rate-micro-batch`
+
+Spark's plain `rate` source counts rows as wall-clock seconds since its checkpoint was created, so
+under a triggered update's `AvailableNow` a one-row pulse is nondeterministic. Measured live:
+
+| Pulse source | Fresh checkpoint | Incremental update |
+|---|---|---|
+| `rate` (`rowsPerSecond=1`, `.limit(1)`) | 1 row | **0 rows** |
+| `rate-micro-batch` (`rowsPerBatch=1`) | 1 row | 1 row |
+
+UC6's first green update had correct gold tables and **four empty sinks** because the pulse emitted 0
+rows. The shipped trigger uses `rate-micro-batch` (`rowsPerBatch=1`, no `.limit()`), which is
+wall-clock independent. Related trap: streaming flows never report `num_output_rows` in
+`event_log()` — a zero-row streaming flow is invisible there; check the sink's output.
+
+### <a id="o10"></a>O10 🔴 Both validation gates pass and the update still fails — graph planning is a third gate
+
+Neither `spec_validator.py` nor the JSON schema plans the Lakeflow graph. Runtime-only defects
+surface one per ~10-minute update. UC6 hit five: G-STREAM (sink streaming from an aggregating MV);
+`path` pointing at a directory nothing writes (`CF_EMPTY_DIR_FOR_SCHEMA_INFERENCE`); unuploaded
+`schema_config_path` files; `match_keys: ["__framework_hash_key"]` (circular — the matcher hashes
+real columns into it); a streaming/batch `UNION ALL` and a `ROW_NUMBER()` over a stream. Pre-run
+checklist and the governance-on-`sink` corollary: `agent_skills/reference/common_pitfalls.md` §43.
+
 ## Open discrepancy — verify before relying on either statement
 
 **Normalization vs schema_config ordering.** Two sources in this repo disagree:

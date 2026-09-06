@@ -1094,3 +1094,53 @@ transformation or reconciliation flow raised `AttributeError: 'NoneType' object 
 'sql'` from the `EXPLAIN` check, which surfaced as `unexpected error during validation` and made
 those flows impossible to lint offline. The `EXPLAIN` check is now skipped without a session
 (parameter substitution is still checked) and runs at onboarding time on the cluster.
+
+
+### 42. Spark's plain `rate` source is a race under `AvailableNow` — a one-row pulse must be `rate-micro-batch`
+
+`spark.readStream.format("rate")` counts rows as **wall-clock seconds since its checkpoint was
+created**. In a triggered pipeline update (`Trigger.AvailableNow`) that makes the row count
+nondeterministic. Measured live, both variants feeding counting handlers side by side:
+
+| Pulse source | Fresh checkpoint | Incremental update |
+|---|---|---|
+| `rate` (`rowsPerSecond=1`, `.limit(1)`) | 1 row | **0 rows** |
+| `rate-micro-batch` (`rowsPerBatch=1`) | 1 row | 1 row |
+
+The v1.7.5 `export_trigger: "per_update"` pulse shipped first with `rate`, backed by a 3-run probe
+that happened to get 1 row every time. UC6's first green update then produced correct gold tables
+and **four empty sinks**: the pulse emitted 0 rows, the join emitted 0 rows, the `pgp_zip` writer
+deleted its zero-row parts and wrote no file. Silent missing output — the exact failure the trigger
+exists to prevent. `rate-micro-batch` emits exactly `rowsPerBatch` rows per micro-batch regardless
+of the clock. Do not add `.limit()` (a streaming LIMIT is its own risk).
+
+**Migration trap when swapping sources**: an existing pulse checkpoint holds the `rate` offset format, so the first incremental update after the change fails with `No usable value for offset` and DLT retries into the same wall. And it compounds one hop downstream: RENAMING the pulse (v1.7.5 moved from one pulse per sink to one shared `_flowx_export_pulse`) changed the Delta table id each sink flow streams from, so every sink flow's own checkpoint failed with `DIFFERENT_DELTA_TABLE_READ_BY_STREAMING_SOURCE` -- and a sink flow is not a selectable table, so the remedy is a whole-pipeline `full_refresh=True` (264s live; bronze re-read six small files). Both are one-time migrations; fresh pipelines are unaffected.
+
+Two lessons beyond the fix. "Verified across N runs" is weak evidence for anything time-based —
+vary the condition (fresh vs incremental checkpoint) before trusting it. And **streaming flows never
+populate `flow_progress.metrics.num_output_rows` in `event_log()`** here: even bronze tables with
+known rows report `None`. A zero-row streaming flow is therefore invisible in the event log; count
+rows in a handler or inspect the sink's output instead. Batch flows (MVs) do report the metric.
+
+### 43. Both validation gates pass and the pipeline still fails — the third gate is graph planning
+
+`spec_validator.py` and the JSON schema check *shape*. Neither plans the Lakeflow graph, so a class
+of defect passes both and fails only at pipeline runtime, ~8–10 minutes per cycle, **one at a time**
+(graph definition is all-or-nothing). UC6 hit five in a row:
+
+1. Sinks streaming from an aggregating MV — G-STREAM (`source_plane.py`). Fix: `export_trigger: per_update`.
+2. Five plain-gzip sources with `path` pointing at `_extracted/<name>/`, which nothing writes — Auto
+   Loader's `CF_EMPTY_DIR_FOR_SCHEMA_INFERENCE`. A plain `.gz` reads from `raw/` directly.
+3. `schema_config_path` files never uploaded to the volume.
+4. Reconciliation `match_keys: ["__framework_hash_key"]` — circular. The matcher HASHES `match_keys`
+   into that column itself (`matcher.py:181`); give it real business columns.
+5. A `UNION ALL` of one streaming branch with two batch branches, and a `ROW_NUMBER()` window over a
+   stream — both rejected by Spark at execution, both invisible to the validator.
+
+Before the first run of a new spec: (a) every `source_config.path` is a directory that will contain
+files, and every `schema_config_path` is uploaded; (b) trace each `is_streaming: true` input to its
+producer — if the producer is a `materialized_view` or `TRUNCATE_AND_LOAD`, it will fail; (c) every
+`match_keys` column exists on the table; (d) any flow with `UNION ALL` or a window function has ALL
+inputs batch. And tag governance only where a table exists: `apply_all_governance_tags` now skips
+`target_type: "sink"` (no materialized table) — before v1.7.5 one sink's `TABLE_OR_VIEW_NOT_FOUND`
+failed the whole group's tagging.

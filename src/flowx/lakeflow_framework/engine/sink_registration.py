@@ -98,6 +98,30 @@ def _active_spark_session():
 # columns before publishing anything external-facing.
 _QUARANTINE_PROCESS_COLUMNS = ("__framework_dq_quarantine_flag", "__framework_dq_failed_rule_ids", "__framework_dq_failure_reasons")
 
+#: Every framework-generated column carries this prefix (see storage/column_ordering.py). A sink
+#: is an EXTERNAL interface: a supplier file with a contractual layout ("fields exactly
+#: targetAreaID|telephone") must carry only the flow's projected business columns.
+FRAMEWORK_COLUMN_PREFIX = "__framework_"
+
+
+def _strip_framework_columns(df):
+    """Drop every ``__framework_*`` column before rows reach a sink.
+
+    Why by prefix and not a fixed list: ``_QUARANTINE_PROCESS_COLUMNS`` was already dropped for
+    exactly this reason -- internal process columns "would leak straight out to an external
+    system" -- but ``__framework_pipeline_run_id``, ``__framework_record_id`` (both attached
+    unconditionally by ``dq/quarantine.py::add_quarantine_columns``) and
+    ``__framework_ingestion_timestamp_utc`` escaped the same rule, and were found live in UC6's
+    first four export files: ``targetAreaID|telephone|__framework_ingestion_timestamp_utc|...``.
+    A prefix match closes the whole class, including any framework column added later.
+
+    Lineage columns belong on the governed tables the sink reads from, where they are queryable.
+    A consumer that genuinely wants a run identifier in an export projects it explicitly in
+    ``transformation_sql`` under a business name.
+    """
+    doomed = [c for c in df.columns if c.startswith(FRAMEWORK_COLUMN_PREFIX)]
+    return df.drop(*doomed) if doomed else df
+
 _SINKS_DOC_URL = "https://learn.microsoft.com/en-us/azure/databricks/ldp/concepts/sinks#limitations"
 
 _pgp_zip_datasource_registered = False
@@ -501,7 +525,8 @@ def register_sink_target(
         @dlt.append_flow(name=f"{target_table}_sink_flow", target=sink_name, comment=f"Direct streaming sink export for {target_table} -- no materialized table")
         def _sink_flow():
             upstream = dlt.read_stream(staged_view_name)
-            return upstream.filter(~F.col("__framework_dq_quarantine_flag")).drop(*_QUARANTINE_PROCESS_COLUMNS)
+            clean = upstream.filter(~F.col("__framework_dq_quarantine_flag"))
+            return _strip_framework_columns(clean)
 
         logger.info(
             "Registered flow '%s' -> Lakeflow sink '%s' (format=%s, no materialized table)",
@@ -509,6 +534,61 @@ def register_sink_target(
             sink_name,
             sink_config.get("format"),
         )
+
+
+#: Pipeline-scoped name of the ONE update pulse shared by every per_update sink in the graph.
+#: A pipeline hosts exactly one dataflow group, so one pulse per pipeline is one per group.
+EXPORT_PULSE_TABLE = "_flowx_export_pulse"
+_REGISTERED_PULSES: set = set()
+
+
+def _register_shared_export_pulse() -> str:
+    """Register the update-scoped export pulse ONCE per pipeline and return its name.
+
+    Every ``export_trigger: "per_update"`` sink in the graph reads the same pulse. Before this,
+    each sink registered its own ``_<target>_export_pulse`` -- four sinks meant four identical
+    ``rate-micro-batch`` streams and four extra DAG nodes doing the same one-row job. Sharing is
+    safe because the pulse carries no data: it is a single literal column that ticks once per
+    update, and N append flows may each ``dlt.read_stream`` one streaming table.
+
+    Idempotent within a graph-definition process: the registry set is module-level because the
+    Lakeflow notebook imports this module once per update and registers all flows in that one
+    process. ``dlt`` itself would reject a second table of the same name, so the guard is what
+    turns "second per_update sink" from an error into a shared edge.
+    """
+    if EXPORT_PULSE_TABLE in _REGISTERED_PULSES:
+        return EXPORT_PULSE_TABLE
+
+    @dlt.table(
+        name=EXPORT_PULSE_TABLE,
+        temporary=True,
+        comment=(
+            "v1.7.5 update-scoped export pulse, shared by every export_trigger 'per_update' "
+            "sink in this pipeline. One row per update, no business data. Exists solely to "
+            "make each export append_flow genuinely streaming so a BATCH (aggregating) payload "
+            "can be exported. Independent of every business feed by design: it must tick even "
+            "on an update that ingested nothing, or the export would be silently skipped."
+        ),
+    )
+    def _export_pulse():
+        spark = _active_spark_session()
+        # rate-micro-batch, NOT rate. The plain `rate` source counts rows as WALL-CLOCK seconds
+        # since its checkpoint was created, so under a triggered update's AvailableNow it is a
+        # race: a live probe produced 1 row on a fresh checkpoint and 0 rows on the very next
+        # incremental update -- which would silently skip the export, the exact failure this
+        # trigger exists to prevent. rate-micro-batch emits exactly rowsPerBatch rows per
+        # micro-batch regardless of the clock; the same probe produced 1 row on both runs.
+        # No .limit(): rowsPerBatch=1 already yields one row, and a streaming LIMIT is a risk.
+        return (
+            spark.readStream.format("rate-micro-batch")
+            .option("rowsPerBatch", 1)
+            .option("numPartitions", 1)
+            .load()
+            .select(F.lit(1).alias(_PULSE_GATE_COLUMN))
+        )
+
+    _REGISTERED_PULSES.add(EXPORT_PULSE_TABLE)
+    return EXPORT_PULSE_TABLE
 
 
 def register_per_update_sink_target(
@@ -552,9 +632,11 @@ def register_per_update_sink_target(
     an upstream business stream. That fires per MICRO-BATCH of that stream, not per update --
     so an update in which the upstream advanced no offsets would recompute the aggregate and
     write **no file at all**. Silent missing output on a contractual feed is a worse failure
-    than the error this feature removes. A rate-stream pulse is update-scoped instead, verified
-    live across three consecutive updates whose 2nd and 3rd ingested nothing: one invocation
-    each, never zero.
+    than the error this feature removes. The pulse is a ``rate-micro-batch`` stream
+    (``rowsPerBatch=1``), which emits exactly one row per micro-batch independent of the
+    wall clock -- verified live on both a fresh and an incremental update: one row each.
+    (The plain ``rate`` source was tried first and rejected: it counts rows as seconds since
+    checkpoint creation, and produced 0 rows on an incremental update in the same probe.)
 
     **Why the payload is not read via ``spark.read.table``.** That would bypass the Lakeflow
     graph and violate the Single-Read DAG mandate's rule 2 (downstream lineage goes through
@@ -585,29 +667,8 @@ def register_per_update_sink_target(
         is_streaming, quarantine_table_override,
     )
 
-    pulse_table_name = f"_{target_table}_export_pulse"
+    pulse_table_name = _register_shared_export_pulse()
     sink_name = f"_{target_table}_sink"
-
-    @dlt.table(
-        name=pulse_table_name,
-        temporary=True,
-        comment=(
-            f"v1.7.5 update-scoped export pulse for '{target_table}'. One row, no business "
-            "data. Exists solely to make the export append_flow genuinely streaming so a "
-            "BATCH (aggregating) payload can be exported. Independent of every business feed "
-            "by design: it must tick even on an update that ingested nothing, or the export "
-            "would be silently skipped."
-        ),
-    )
-    def _export_pulse():
-        spark = _active_spark_session()
-        return (
-            spark.readStream.format("rate")
-            .option("rowsPerSecond", 1)
-            .load()
-            .select(F.lit(1).alias(_PULSE_GATE_COLUMN))
-            .limit(1)
-        )
 
     _create_sink(flow_label, sink_name, sink_config)
 
@@ -628,7 +689,8 @@ def register_per_update_sink_target(
         # Equi-join on the constant: a non-equi join raises "Detected implicit cartesian
         # product". The pulse's single row fans out across the payload rather than filtering it.
         joined = payload.join(pulse, on=_PULSE_GATE_COLUMN, how="inner").drop(_PULSE_GATE_COLUMN)
-        return joined.filter(~F.col("__framework_dq_quarantine_flag")).drop(*_QUARANTINE_PROCESS_COLUMNS)
+        clean = joined.filter(~F.col("__framework_dq_quarantine_flag"))
+        return _strip_framework_columns(clean)
 
     logger.info(
         "Registered flow '%s' -> Lakeflow sink '%s' (format=%s, export_trigger=per_update, "
@@ -694,7 +756,8 @@ def register_external_sink_export(
 
         @dlt.append_flow(name=f"{target_table}_export_flow", target=sink_name, comment=f"external_sink export of '{qualified_main_table}'")
         def _export_flow():
-            return dlt.read_stream(qualified_main_table)
+            # The main table is governed and legitimately carries lineage; the EXPORT must not.
+            return _strip_framework_columns(dlt.read_stream(qualified_main_table))
 
         logger.info(
             "Registered external_sink export for flow '%s': '%s' -> Lakeflow sink '%s' (format=%s)",

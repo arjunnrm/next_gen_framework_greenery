@@ -199,8 +199,27 @@ ingestion source outright: every `source_type` is unconditionally a `spark.readS
 batch therefore runs as a **triggered** (`continuous: false`) pipeline update over Auto Loader — the
 same model UC7 and UC3 already use. One update consumes whatever is in `raw/`, then stops.
 
-Consequence for the sink: `require_streaming_source()` means the gold outputs must be fed from a
-streaming query. Gold tables are `streaming_table`, and the export sinks read them as streams.
+Consequence for the sink — and the design decision this contract originally got wrong. The first
+draft here said "gold tables are `streaming_table`, and the export sinks read them as streams". That
+is impossible for UC6: both gold outputs are heavy `GROUP BY` aggregations, so they are genuinely
+`materialized_view` / `TRUNCATE_AND_LOAD`, and Delta refuses to stream from a fully-recomputed table
+(`DELTA_SOURCE_TABLE_IGNORE_CHANGES`; the framework's G-STREAM guard rejects it at plan time). Yet
+`require_streaming_source()` means a Lakeflow sink accepts only a streaming query. Before v1.7.5 those
+two facts made an aggregating result **unexportable** — a structural contradiction, not a config error,
+and the first live pipeline run failed on exactly it.
+
+The shipped design: the whole transformation chain is **batch** (bronze `streaming_table` ingestion →
+silver and gold `materialized_view`, every `source_inputs[].is_streaming: false`), and the four sinks
+set `sink_config.export_trigger: "per_update"` (v1.7.5). That separates the *trigger* (one
+`rate-micro-batch` pulse per pipeline, carrying no data, which makes each append flow genuinely
+streaming) from the *payload* (the gold MV read as a batch `dlt.read`). Exactly one archive per pipeline
+update, including an update that ingested nothing. See `06_egress_and_lakeflow_sinks.md` § "Export
+trigger" for the mechanism and the probe evidence behind the pulse source choice.
+
+Two further runtime-only corrections landed the same way (both pass every offline gate and fail only
+when the graph is planned or executed): the `ee_address_paf` `UNION ALL` cannot mix one streaming branch
+with two batch ones, and `ea_base`/`ea_address` cannot run an unwatermarked `ROW_NUMBER()` over a stream
+— both flows are now batch MVs, which is what a full-snapshot union and a per-osapr dedup actually are.
 
 ## 9. Framework enhancements — the REAL gap list
 
@@ -211,6 +230,7 @@ These are generic, reusable, and land as **separate commits** from UC6 business 
 | **F1** | **Symmetric (passphrase) PGP** | `crypto/pgp.py` is asymmetric-only (armored public/private keys). UC6's EA file and 2 of 4 outputs are GPG **symmetric**, AES256, passphrase from `flowx.config.pgpkey`. | `pgp_decrypt_symmetric(data, passphrase)` / `pgp_encrypt_symmetric(data, passphrase)` via PGPy's `PGPMessage.decrypt(passphrase)` / `PGPMessage.encrypt(passphrase)`. New `pre_extraction_decryption.type: "pgp_symmetric"` handler + `pgp_encryption.passphrase_secret` on the sink. |
 | **F2** | **gzip member handling on ingest** | `source_zip_handling` extracts **ZIP** archives via pyzipper. UC6's inbound files are bare `.gz` (and `.csv.gz.gpg`). Spark decompresses a plain `.gz` transparently, but the **GPG-wrapped** one must be decrypted to a staging file first, and the existing path then tries to unzip it. | Extend the pre-extraction path to accept a `gzip` member format so `decrypt → gunzip → land` works without a ZIP container. |
 | **F3** | **gzip + delimiter on egress** | The `pgp_zip` sink writes a comma-only CSV (`csv.DictWriter` with no dialect args) inside a ZIP. UC6 must emit `.csv.gz` and `.csv.gz.gpg`, pipe-delimited. | New `sink_config.staged_file_options` (delimiter/header/quoting) and an archive format that emits gzip rather than ZIP. |
+| **F4** | **Exporting an aggregating target through a sink** | Discovered on the first live run, not in the brief. A sink is streaming-only and Delta cannot stream a fully-recomputed MV, so UC6's two `GROUP BY` gold outputs had **no export path at all**. | `sink_config.export_trigger: "per_update"` (v1.7.5): one shared `rate-micro-batch` pulse per pipeline drives every such sink; the payload is a batch `dlt.read`. Plus two fixes found the same way: `apply_all_governance_tags` skips `sink` flows (a sink has no table to tag — one sink's `TABLE_OR_VIEW_NOT_FOUND` had failed the whole group's tagging), and every sink path now strips `__framework_*` columns (three lineage columns were leaking into every export file against a 2-column contract). |
 | **F4** | **Emptiness / file-presence gate** | `dq_config` rules are **per-row** predicates. Zero rows means zero evaluations, so "fail if a file is missing or empty" can never fire on an ingestion flow. | **Resolved without a framework change** — see below. |
 
 ### F4 is config, not code
