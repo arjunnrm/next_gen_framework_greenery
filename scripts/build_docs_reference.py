@@ -368,6 +368,45 @@ def build_code_reference() -> List[Path]:
     return written
 
 
+def stage_usecase_docs() -> List[Path]:
+    """Copy the BT_Usecase master documents into docs/ so mkdocs can build them.
+
+    The use-case documents live under ``BT_Usecase/<UC>/docs/`` -- one folder per use
+    case, next to that use case's onboarding specs and source data, so the setup script
+    copies one tree per UC into the matching Volume. mkdocs, though, can only include
+    files under ``docs_dir``. Rather than keep a second hand-maintained copy (which is
+    exactly the drift this script exists to prevent), the pages are staged here at build
+    time. BT_Usecase stays the single source of truth; docs/UC*/ is derived output.
+    """
+    written: List[Path] = []
+    src_root = REPO / "BT_Usecase"
+    if not src_root.is_dir():
+        return written
+    for uc_dir in sorted(src_root.iterdir()):
+        docs_dir = uc_dir / "docs"
+        if not uc_dir.is_dir() or not docs_dir.is_dir():
+            continue
+        dest_dir = DOCS / uc_dir.name
+        dest_dir.mkdir(parents=True, exist_ok=True)
+        for src in sorted(docs_dir.glob("*.md")):
+            dest = dest_dir / src.name
+            text = src.read_text(encoding="utf-8")
+            if not dest.exists() or dest.read_text(encoding="utf-8") != text:
+                dest.write_text(text, encoding="utf-8")
+            written.append(dest)
+        # Assets the master documents link to as siblings (DDL sheets, query packs).
+        # They live in the use case's data/ or docs/ folder; mkdocs needs them beside
+        # the page that links to them or the link 404s in the built site.
+        for pattern in ("*.csv", "*.sql"):
+            for src in sorted(docs_dir.glob(pattern)) + sorted((uc_dir / "data").glob(pattern)):
+                dest = dest_dir / src.name
+                data = src.read_bytes()
+                if not dest.exists() or dest.read_bytes() != data:
+                    dest.write_bytes(data)
+                written.append(dest)
+    return written
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--check", action="store_true")
@@ -377,7 +416,7 @@ def main() -> int:
         before = {p: p.read_text(encoding="utf-8") for p in
                   list(JSON_REF.glob("*.md")) + list(CODE_REF.glob("*.md")) if p.exists()}
 
-    written = build_json_reference() + build_code_reference()
+    written = build_json_reference() + build_code_reference() + stage_usecase_docs()
 
     if args.check:
         stale = [p for p in written if before.get(p) != p.read_text(encoding="utf-8")]

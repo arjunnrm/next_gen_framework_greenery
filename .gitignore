@@ -17,3 +17,8 @@ site/
 # Windows reserved filename - git cannot index this build byproduct
 databricks-app/web/nul.css
 .pytest_cache/
+
+# Derived: staged from BT_Usecase/<UC>/docs by scripts/build_docs_reference.py
+docs/UC3/
+docs/UC6/
+docs/UC7/
