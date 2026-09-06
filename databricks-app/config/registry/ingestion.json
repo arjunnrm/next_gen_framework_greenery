@@ -264,9 +264,9 @@
         "label": "source_config.asn1_pdu_name",
         "widget": "text",
         "type": "string",
-        "required": true,
+        "required": false,
         "placeholder": "CallDetailRecord",
-        "description": "The top-level SEQUENCE type in .asn file to decode each record as."
+        "description": "Optional. The top-level SEQUENCE/CHOICE type in the .asn file to decode each record as. Leave blank to auto-detect the root PDU; supply a name only to override detection."
       }
     ]
   },

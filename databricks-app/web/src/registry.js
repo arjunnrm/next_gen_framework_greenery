@@ -218,7 +218,7 @@ function ING_SECTIONS(){
       T("source_config.path","source_config.path",{req:1,span:2,ph:"/Volumes/{{catalog}}/landing/zone/extracted/",i:"Directory containing extracted binary CDR files."}),
       T("source_config.asn1_schema_path","source_config.asn1_schema_path",{req:1,ph:"/Volumes/{{catalog}}/landing/_asn1_schemas/cdr.asn",i:"ASN.1 module definition file. Must be a real .asn file."}),
       S("source_config.asn1_codec","source_config.asn1_codec",["","ber","der"],{req:1,i:"Which ASN.1 encoding to decode."}),
-      T("source_config.asn1_pdu_name","source_config.asn1_pdu_name",{req:1,ph:"CallDetailRecord",i:"The top-level SEQUENCE type in the .asn file to decode each record as."}),
+      T("source_config.asn1_pdu_name","source_config.asn1_pdu_name",{ph:"CallDetailRecord",i:"Optional. The top-level SEQUENCE/CHOICE type in the .asn file to decode each record as. Leave blank to auto-detect the root PDU; supply a name only to override detection."}),
       T("source_config.schema_location","source_config.schema_location",{ph:"auto-derived",i:"Auto Loader schema checkpoint for binary file discovery."})
     ]},
     {id:"src_common",title:"Source · reader options",doc:"#3-source-config-reference",sub:"Valid for every source type.",fields:[

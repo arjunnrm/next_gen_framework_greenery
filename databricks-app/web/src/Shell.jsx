@@ -203,11 +203,29 @@ export default function Shell({ V }) {
                 <div onClick={V.setYaml} style={sx(`padding:4px 10px;border-radius:5px;cursor:pointer;font:600 10.5px JetBrains Mono,monospace;background:${V.yamlBg};color:${V.yamlFg}`)}>YAML</div>
               </div>
               <div onClick={V.copy} style={sx("padding:5px 10px;border-radius:6px;border:1px solid var(--bd);cursor:pointer;font:600 10.5px Inter;color:var(--ac2)")}>{V.copyLabel}</div>
+              <div onClick={V.openRaw} title="View the complete raw JSON payload" style={sx("padding:5px 10px;border-radius:6px;border:1px solid var(--bd);cursor:pointer;font:600 10.5px Inter;color:var(--dim2)")}>raw</div>
             </div>
             <pre style={sx("flex:1;overflow:auto;margin:0;padding:14px 16px 40px;font:400 11px/1.6 JetBrains Mono,monospace;color:var(--tx4);white-space:pre")}>{V.preview}</pre>
           </aside>
         )}
       </div>
+
+      {/* Raw JSON debug viewer -- the entire unparsed payload, one click to copy. */}
+      {V.rawOpen && (
+        <div style={sx("position:fixed;inset:0;z-index:70;background:var(--ovl);display:flex;align-items:center;justify-content:center;padding:40px")}>
+          <div onClick={V.closeRaw} style={sx("position:absolute;inset:0")}></div>
+          <div style={sx("position:relative;width:min(920px,100%);height:100%;max-height:82vh;background:var(--panel);border:1px solid var(--bd4);border-radius:12px;display:flex;flex-direction:column;overflow:hidden")}>
+            <div style={sx("display:flex;align-items:center;gap:10px;padding:13px 16px;border-bottom:1px solid var(--bd3)")}>
+              <span style={sx("font:600 11.5px Inter;color:var(--tx)")}>Raw JSON</span>
+              <span style={sx("font:500 10.5px JetBrains Mono,monospace;color:var(--dim3)")}>{V.rawBytes}</span>
+              <span style={sx("flex:1")}></span>
+              <div onClick={V.rawCopy} style={sx("padding:5px 10px;border-radius:6px;border:1px solid var(--bd);cursor:pointer;font:600 10.5px Inter;color:var(--ac2)")}>{V.rawCopyLabel}</div>
+              <div onClick={V.closeRaw} style={sx("flex:none;width:26px;height:26px;border-radius:7px;border:1px solid var(--bdi);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--dim2)")}>×</div>
+            </div>
+            <pre style={sx("flex:1;overflow:auto;margin:0;padding:14px 16px 40px;font:400 11px/1.6 JetBrains Mono,monospace;color:var(--tx4);white-space:pre;user-select:text")}>{V.rawJson}</pre>
+          </div>
+        </div>
+      )}
 
       {V.info && (
         <div style={sx("position:fixed;inset:0;z-index:60;background:var(--ovl);display:flex;justify-content:flex-end")}>

@@ -212,7 +212,10 @@
     },
     "source_config.asn1_pdu_name": {
       "page": "reference/json/ingestion/",
-      "anchor": "#source-configasn1-pdu-name"
+      "anchor": "#source-configasn1-pdu-name",
+      "tips": [
+        "Optional. Leave it blank and the decoder auto-detects the module's root PDU; set it only to override that detection (or when the module is ambiguous and detection raises)."
+      ]
     },
     "source_config.asn1_schema_path": {
       "page": "reference/json/ingestion/",

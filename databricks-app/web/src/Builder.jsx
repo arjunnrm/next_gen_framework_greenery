@@ -27,7 +27,7 @@ export default class Builder extends React.Component {
   state = {
     root:{v:{},kvs:{},reps:{}},
     ing:[], trn:[], rec:[],
-    kind:"root", idx:0, showInert:false, fmt:"json", info:null, addOpen:false, indexOpen:false, query:"", copied:false, run:null, runStep:-1, runDone:false,
+    kind:"root", idx:0, showInert:false, fmt:"json", info:null, addOpen:false, indexOpen:false, query:"", copied:false, rawOpen:false, rawCopied:false, run:null, runStep:-1, runDone:false,
     theme:"dark", showPreview:true, phase:0, tplQuery:"",
     openOpen:false, openErr:"", openBusy:false, openSrc:"volume", openFiles:null, openDir:"",
     openPath:"", openDirs:[], openCheck:null, openChecking:false,
@@ -1155,6 +1155,26 @@ export default class Builder extends React.Component {
       },
       copyLabel:s.copied?"copied":"copy",
       info:!!s.info, closeInfo:function(){self.setState({info:null})},
+      // ── Raw JSON debug viewer ─────────────────────────────────────────
+      // The complete spec exactly as it would be written to disk -- always JSON and
+      // always unfiltered, whatever the preview pane's JSON/YAML toggle is set to, so a
+      // debugging copy-paste is never a half-rendered view of the thing being debugged.
+      rawOpen:!!s.rawOpen,
+      openRaw:function(){ self.setState({rawOpen:true}); },
+      closeRaw:function(){ self.setState({rawOpen:false,rawCopied:false}); },
+      rawJson:JSON.stringify(spec,null,2),
+      rawBytes:(function(){
+        var b=JSON.stringify(spec,null,2);
+        var n=(typeof Blob!=="undefined")?new Blob([b]).size:b.length;
+        return n<1024?(n+" B"):((n/1024).toFixed(1)+" KB");
+      })(),
+      rawCopyLabel:s.rawCopied?"copied":"copy all",
+      rawCopy:function(){
+        var body=JSON.stringify(spec,null,2);
+        if(navigator.clipboard) navigator.clipboard.writeText(body);
+        self.setState({rawCopied:true});
+        setTimeout(function(){ self.setState({rawCopied:false}); },1400);
+      },
       // ── Attribute inspector knowledge overlay ────────────────────────────────
       // config/attribute_knowledge.json, keyed by attribute path. Absent entries are
       // normal: the panel then shows the registry's own description and nothing else,
