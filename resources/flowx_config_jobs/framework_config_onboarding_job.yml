@@ -7,7 +7,7 @@
 #   * each flowx_test_*_job.yml       -- pins its own single spec inline, for that one test
 #
 # It is a first-class framework resource, not a test fixture: `spec_dir` defaults to this
-# bundle's `flowx_testing/` corpus purely because that is the directory most often
+# bundle's `archive/old_json/` corpus purely because that is the directory most often
 # onboarded wholesale, but pointing it at any other folder of specs (a customer's own
 # onboarding directory, a UC Volume of specs promoted from a lower environment) needs nothing
 # but a different `--params spec_dir=...`.
@@ -44,7 +44,7 @@ resources:
 
       parameters:
         - name: spec_dir
-          default: ${workspace.file_path}/flowx_testing
+          default: ${workspace.file_path}/archive/old_json
         - name: catalog
           default: flowx
         - name: env

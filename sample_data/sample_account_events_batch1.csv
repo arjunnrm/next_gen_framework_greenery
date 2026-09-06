@@ -1,6 +1,0 @@
-event_id,account_id,account_name,ssn,email,balance,status,contact_channel,op,event_ts
-E001,A001,Acme Corp,111-11-1111,acme@example.com,10000.00,ACTIVE,EMAIL,I,2026-01-01T00:00:00
-E002,A002,Beta LLC,222-22-2222,beta@example.com,5000.00,ACTIVE,EMAIL,I,2026-01-01T00:00:00
-E003,A003,Gamma Inc,333-33-3333,gamma@example.com,7500.00,ACTIVE,SMS,I,2026-01-01T00:00:00
-E004,A004,Delta Co,444-44-4444,delta@example.com,3000.00,SUSPENDED,EMAIL,I,2026-01-01T00:00:00
-E005,A005,Epsilon Ltd,555-55-5555,epsilon@example.com,12000.00,ACTIVE,PHONE,I,2026-01-01T00:00:00

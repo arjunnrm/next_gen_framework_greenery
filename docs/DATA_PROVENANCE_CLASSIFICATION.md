@@ -58,10 +58,18 @@ Classification is by **provenance trace**, not by filename or guesswork:
 | `sample_data/flowx_testing/**` | **[Simulated]** | **Yes — 32 references.** `02_seed_flowx_testing_data.py` reads it and raises `FileNotFoundError` if absent | **RETAIN** — load-bearing |
 | `sample_data/asn1_schema/*.asn` | **[Simulated]** | **Yes.** `03_seed_asn1_gsm_cdr_fixture.py` copies `gsm_cdr.asn` verbatim to the volume | **RETAIN** — load-bearing |
 | `sample_data/sample_raw_orders.csv` | **[Simulated]** | **Yes** (1 reference) | **RETAIN** — load-bearing |
-| `sample_data/bt_group/**` (11 files) | **[Simulated]** | **No — 0 references** | **DELETE** — superseded by BT_Usecase |
-| `sample_data/asn1_cdr_gsm/**`, `asn1_cdr_v2/**` (8 `.ber`) | **[Simulated]** | **No — 0 references** | **DELETE** — regenerable |
-| `sample_data/zip_ingestion/**` | **[Simulated]** | 1 self-reference only | **DELETE** — regenerated on-cluster |
-| Loose `sample_data/sample_*.csv/json` (~22) | **[Simulated]** | Only `sample_raw_orders.csv` referenced | **DELETE** the unreferenced remainder |
+| `sample_data/bt_group/**` (11 files) | **[Simulated]** | **Yes** — `generate_bt_group_fixtures.py` + tests | **RETAIN** |
+| `sample_data/asn1_cdr_gsm/**`, `asn1_cdr_v2/**` | **[Simulated]** | **Yes** — their generator scripts + ASN.1 tests | **RETAIN** |
+| `sample_data/zip_ingestion/**` (7 `.zip`) | **[Simulated]** | **Yes** — ZIP ingestion tests | **RETAIN** |
+| `sample_data/**/pgp_*_private.asc` (2) | **[Simulated]** | Public half referenced; pair must stay intact | **RETAIN** |
+| 10 loose orphan `sample_*.csv/json` | **[Simulated]** | **No — 0 references** | **DELETED** |
+
+> **Correction to the first pass.** An initial estimate put ~45 files up for deletion.
+> Building the reference set programmatically (every basename searched across
+> `notebooks/ scripts/ src/ tests/ resources/` plus the in-tree generator scripts)
+> showed that `bt_group`, `asn1_cdr_*` and `zip_ingestion` **are** referenced — by
+> their generators and by integration tests. The real orphan count is **10**.
+> The narrower earlier grep pattern was wrong; the evidence-based list governs.
 
 > **Why the sample jobs are unaffected.** The six sample-job specs read from
 > `/Volumes/{{catalog}}/flowx_sample/...`, never from repo `sample_data/`. Their
@@ -71,13 +79,16 @@ Classification is by **provenance trace**, not by filename or guesswork:
 
 ---
 
-## 4. Deletion summary
+## 4. Deletion summary (as executed)
 
 | Action | Files | Recoverable |
 |---|---|---|
 | **RETAIN** — customer-provided | 13 | n/a |
-| **RETAIN** — load-bearing simulated | ~60 | n/a |
-| **DELETE** — unreferenced simulated | ~45 | Yes — git history + generator scripts |
-| **COLLAPSE** — byte-identical duplicate | 9 (`docs/uc_6`) | Yes |
+| **RETAIN** — load-bearing simulated | ~145 | n/a |
+| **DELETED** — orphaned simulated | 10 | Yes — git history + generator scripts |
+| **ARCHIVED** — onboarding specs -> `archive/old_json/` | 57 | Yes — in tree |
+| **ARCHIVED** — resource test suites -> `archive/resources/` | 108 | Yes — in tree |
+| **COLLAPSED** — byte-identical duplicate (`docs/uc_6`) | 9 | Yes |
 
-No **[Customer-Provided]** asset is deleted by this plan.
+No **[Customer-Provided]** asset was deleted.
+No file was deleted without first proving it is referenced nowhere.
