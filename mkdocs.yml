@@ -163,6 +163,7 @@ nav:
       - UC3 Excalibur master document: UC3/UC3_MASTER_DOCUMENT.md
       - UC7 CDR ASN.1 master document: UC7/UC7_MASTER_DOCUMENT.md
       - UC7 CDR ASN.1 plain-English guide: UC7/UC7_PLAIN_ENGLISH_GUIDE.md
+      - UC7 CDR ASN.1 analysis and join guide: UC7/UC7_ANALYSIS_AND_JOIN_GUIDE.md
       - Agent skills & prompt library: 15_agent_skills_and_prompts.md
       - Known limitations & gotchas: 13_known_limitations_and_gotchas.md
 
