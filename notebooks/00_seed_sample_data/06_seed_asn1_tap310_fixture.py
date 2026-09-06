@@ -4,7 +4,7 @@
 # MAGIC
 # MAGIC Provisions the two real inputs `flowx_testing/v0_0_2_asn1_tap310.json` needs:
 # MAGIC
-# MAGIC * The real TAP 3.10 ASN.1 module file (`flowx_testing/BT_Testing/TAP.310.asn1`), copied
+# MAGIC * The real TAP 3.10 ASN.1 module file (`BT_Usecase/UC7/data/asn_schema/TAP.310.asn1`), copied
 # MAGIC   verbatim into `/Volumes/{catalog}/tap310/schemas/TAP.310.asn1`. Plain text, so an ordinary
 # MAGIC   Workspace-Files-synced copy survives the trip fine.
 # MAGIC * 10 genuine BER-encoded `DataInterChange` fixtures, generated **directly on-cluster**
@@ -15,7 +15,7 @@
 # MAGIC
 # MAGIC ## ONE RECORD PER FILE -- the thing this notebook gets right
 # MAGIC
-# MAGIC `flowx_testing/BT_Testing/synthetic/tap310_synthetic.ber` holds 10 records
+# MAGIC `BT_Usecase/UC7/data/synthetic/tap310_synthetic.ber` holds 10 records
 # MAGIC **concatenated** as 10 back-to-back TLVs in a single file. The framework decoder
 # MAGIC (`asn1/decoder.py::make_partition_decoder`) calls `compiled.decode(pdu_name, raw_bytes)` on
 # MAGIC the **whole file content** exactly once per Auto Loader file, and `asn1tools.decode` on a
@@ -24,7 +24,7 @@
 # MAGIC reporting complete success. This notebook writes each record as its **own** `.ber` file:
 # MAGIC 10 files in, 10 rows out, so the row count becomes a real assertion.
 # MAGIC
-# MAGIC `flowx_testing/BT_Testing/tap311_sample.ber` is likewise NOT used: it is a malformed
+# MAGIC `BT_Usecase/UC7/data/tap311_sample.ber` is likewise NOT used: it is a malformed
 # MAGIC 16-byte file whose outer tag (high-tag-number form `7f01`) matches no CHOICE arm.
 # MAGIC
 # MAGIC ## Root PDU auto-detection is the point
@@ -72,13 +72,13 @@ if not CATALOG:
 
 _this_dir = os.path.dirname(os.path.abspath(__file__)) if "__file__" in globals() else os.getcwd()
 REPO_ROOT = os.path.abspath(os.path.join(_this_dir, "..", ".."))
-SCHEMA_FIXTURE_PATH = os.path.join(REPO_ROOT, "flowx_testing", "BT_Testing", "TAP.310.asn1")
+SCHEMA_FIXTURE_PATH = os.path.join(REPO_ROOT, "BT_Usecase", "UC7", "data", "asn_schema", "TAP.310.asn1")
 GENERATOR_DIR = os.path.join(REPO_ROOT, "scripts")
 
 if not os.path.isfile(SCHEMA_FIXTURE_PATH):
     raise FileNotFoundError(
         f"Expected TAP 3.10 ASN.1 module file at '{SCHEMA_FIXTURE_PATH}' -- is "
-        "flowx_testing/BT_Testing/ synced alongside this notebook?"
+        "BT_Usecase/UC7/data/asn_schema/ synced alongside this notebook?"
     )
 
 logger.info("Resolved TAP.310.asn1 fixture at: %s", SCHEMA_FIXTURE_PATH)
@@ -145,7 +145,7 @@ dbutils.fs.mkdirs(TAP310_LANDING_INCOMING)
 
 compiled = asn1tools.compile_files([TAP310_SCHEMA_VOLUME_PATH], CODEC)
 
-# build_records() resolves the schema out of flowx_testing/BT_Testing/ by name and returns
+# build_records() resolves the schema out of BT_Usecase/UC7/data/asn_schema/ by name and returns
 # 10 deterministic (arm_name, value) tuples for the root CHOICE.
 records, _index, _chosen = build_records("TAP.310.asn1", ROOT_PDU, CHOICE_ARM)
 logger.info("Built %d deterministic %s/%s records", len(records), ROOT_PDU, CHOICE_ARM)

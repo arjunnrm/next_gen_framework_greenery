@@ -36,7 +36,7 @@ module could not be onboarded at all.
 supplied: when it is absent, ``None``, ``""``, or whitespace-only,
 :func:`detect_root_pdu_name` infers it as the one top-level ``SEQUENCE``/``CHOICE`` that no
 other type in the module references -- the entry point of the module's own type-dependency
-graph. Verified to resolve all five real telecom modules in ``flowx_testing/BT_Testing/``
+graph. Verified to resolve all five real telecom modules in ``BT_Usecase/UC7/data/asn_schema/``
 uniquely and correctly. A supplied ``asn1_pdu_name`` is an unconditional override, never
 second-guessed; an *ambiguous* module raises rather than guessing, because a wrong root does
 not fail loudly -- it silently produces a full table of garbage columns.
@@ -148,7 +148,7 @@ _DECODE_CHUNK_ROWS = 10000
 
 # ASN.1 "extension marker" (``...``) inside a SEQUENCE/SET/CHOICE body. ``asn1tools.parse_files``
 # emits it as a bare ``None`` entry in the node's ``members`` list rather than a member dict --
-# confirmed live against flowx_testing/BT_Testing/TAP.311.asn1, where 79 SEQUENCE/SET types
+# confirmed live against BT_Usecase/UC7/data/asn_schema/TAP.311.asn1, where 79 SEQUENCE/SET types
 # and 8 CHOICE types carry one. It is a versioning marker, not a field: it contributes no column.
 
 
@@ -328,7 +328,7 @@ def detect_root_pdu_name(schema_path: str, module_types: Dict[str, Any] = None) 
     **Why a structural rule rather than a tag-driven one.** Peeking at the first BER TLV's tag
     and matching it against candidate types looks more direct, but it cannot work universally:
     an *untagged* CHOICE arm carries no tag of its own on the wire, it carries its selected
-    arm's tag. Verified against the five real modules in ``flowx_testing/BT_Testing/``:
+    arm's tag. Verified against the five real modules in ``BT_Usecase/UC7/data/asn_schema/``:
     TAP.310/TAP.311's ``DataInterChange`` members (``transferBatch``, ``notification``) declare
     no context tags at all, GGSN/PSGW's ``CallEventRecord`` members do (``[20]`` etc.), and
     EMSC's ``CallDataRecord`` mixes both. A tag-driven strategy would resolve GGSN/PSGW and fail
@@ -777,7 +777,7 @@ def make_partition_decoder(
                         #
                         # asn1tools does NOT raise when a CHOICE matches none of its arms:
                         # it returns a bare ``(None, None)``. Confirmed live against
-                        # flowx_testing/BT_Testing/tap311_sample.ber, whose outer tag is
+                        # BT_Usecase/UC7/data/tap311_sample.ber, whose outer tag is
                         # the high-tag-number form ``7f01`` where TAP.311's TransferBatch is
                         # ``[APPLICATION 1]`` = short-form ``0x61`` -- i.e. the payload is
                         # malformed for this PDU. Passing that through would write a row with

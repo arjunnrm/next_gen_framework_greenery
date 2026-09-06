@@ -1,5 +1,5 @@
 # v0.0.2 ASN.1 TAP.311 pipeline -- decodes real BER-encoded TAP 3.11 transferred-account-procedure data interchange records
-# (source_type: "asn1") against the real flowx_testing/BT_Testing/TAP.311.asn1 module into
+# (source_type: "asn1") against the real BT_Usecase/UC7/data/asn_schema/TAP.311.asn1 module into
 # flowx.bronze_tap311.tap311_raw.
 #
 # The spec OMITS asn1_pdu_name, so asn1/decoder.py::detect_root_pdu_name resolves the root PDU from
@@ -15,7 +15,7 @@
 # valid records.
 #
 # Note this pipeline reads the 10 fixtures the seed notebook generates, NOT
-# flowx_testing/BT_Testing/tap311_sample.ber -- that file is a malformed 16-byte
+# BT_Usecase/UC7/data/tap311_sample.ber -- that file is a malformed 16-byte
 # payload whose high-tag-number outer tag (7f01) matches no CHOICE arm.
 #
 # Isolated from every other protocol pipeline: its own dataflow group (dfg_v0_0_2_asn1_tap311), its

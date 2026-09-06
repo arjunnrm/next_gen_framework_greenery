@@ -388,7 +388,7 @@ def test_reference_to_an_undefined_type_raises_asn1_decode_error(tmp_path):
 # raw TypeError long before CHOICE support was on the table.
 # ---------------------------------------------------------------------------------------
 
-_BT_TESTING_DIR = pathlib.Path(__file__).resolve().parents[2] / "flowx_testing" / "BT_Testing"
+_BT_TESTING_DIR = pathlib.Path(__file__).resolve().parents[2] / "BT_Usecase" / "UC7" / "data" / "asn_schema"
 
 
 def _bt_schema(filename):

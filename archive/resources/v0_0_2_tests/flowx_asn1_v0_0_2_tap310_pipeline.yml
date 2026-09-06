@@ -1,5 +1,5 @@
 # v0.0.2 ASN.1 TAP.310 pipeline -- decodes real BER-encoded TAP 3.10 transferred-account-procedure data interchange records
-# (source_type: "asn1") against the real flowx_testing/BT_Testing/TAP.310.asn1 module into
+# (source_type: "asn1") against the real BT_Usecase/UC7/data/asn_schema/TAP.310.asn1 module into
 # flowx.bronze_tap310.tap310_raw.
 #
 # The spec OMITS asn1_pdu_name, so asn1/decoder.py::detect_root_pdu_name resolves the root PDU from

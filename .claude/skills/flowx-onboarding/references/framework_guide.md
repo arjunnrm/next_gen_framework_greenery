@@ -303,7 +303,7 @@ identifiers are camelCase with no underscores (per X.680), so expect fields like
 **Choosing `asn1_pdu_name` on a real telecom module is the step that actually bites.** The PDU
 must be a **top-level `SEQUENCE`**, and `CHOICE` is rejected *anywhere* in its resolved member
 tree — not merely at the top. Real modules put a `CHOICE` at the root: in
-`flowx_testing/BT_Testing/TAP.310.asn1` (the genuine GSMA TAP 3.10 spec, 375 types) both
+`BT_Usecase/UC7/data/asn_schema/TAP.310.asn1` (the genuine GSMA TAP 3.10 spec, 375 types) both
 `DataInterChange` and, one level down, `CallEventDetail` are `CHOICE`, so neither
 `DataInterChange` nor `TransferBatch` can be the PDU. 70 of that module's 93 top-level
 `SEQUENCE` types *do* resolve; `Notification` is the one Sample 06 uses

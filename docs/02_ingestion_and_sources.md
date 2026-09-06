@@ -191,7 +191,7 @@ whole difficulty of onboarding a genuine module:
 
 Toy schemas hide this. `sample_data/asn1_schema/gsm_cdr.asn` is a single flat 5-field `SEQUENCE`,
 so its PDU "just works". Every real telecom module is the opposite shape: a root `CHOICE` selecting
-between message kinds. In `flowx_testing/BT_Testing/TAP.310.asn1` — the genuine GSMA TAP release
+between message kinds. In `BT_Usecase/UC7/data/asn_schema/TAP.310.asn1` — the genuine GSMA TAP release
 3.10 specification, 375 types — the module's own top-level `DataInterChange` is
 `CHOICE { transferBatch, notification }` and is rejected outright; `TransferBatch` *is* a `SEQUENCE`
 but reaches `CallEventDetail`, also a `CHOICE`, and is rejected one level deeper. `Notification`
@@ -207,7 +207,7 @@ this reports 70 usable types out of 93 top-level `SEQUENCE`s in about a second:
 import asn1tools
 from flowx.lakeflow_framework.asn1.decoder import derive_asn1_field_defs
 
-module = "flowx_testing/BT_Testing/TAP.310.asn1"
+module = "BT_Usecase/UC7/data/asn_schema/TAP.310.asn1"
 types = next(iter(asn1tools.parse_files([module]).values()))["types"]
 for name, node in types.items():
     if node.get("type") != "SEQUENCE":

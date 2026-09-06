@@ -858,7 +858,7 @@ Asn1DecodeError: ASN.1 CHOICE types are not yet supported by schema auto-derivat
 The trap is that toy fixtures never show this. `sample_data/asn1_schema/gsm_cdr.asn` is one flat
 5-field `SEQUENCE`, so `GsmCallDetailRecord` "just works" and nothing warns you that the pattern
 does not carry over. Every genuine telecom module is built the other way round — a root `CHOICE`
-selecting between message kinds. In `flowx_testing/BT_Testing/TAP.310.asn1` (the real GSMA TAP
+selecting between message kinds. In `BT_Usecase/UC7/data/asn_schema/TAP.310.asn1` (the real GSMA TAP
 release 3.10 spec):
 
 * `DataInterChange` — the module's own top-level PDU — is `CHOICE { transferBatch, notification }`.
@@ -876,7 +876,7 @@ authority and takes about a second over 375 types:
 import asn1tools
 from flowx.lakeflow_framework.asn1.decoder import derive_asn1_field_defs
 
-module = "flowx_testing/BT_Testing/TAP.310.asn1"
+module = "BT_Usecase/UC7/data/asn_schema/TAP.310.asn1"
 types = next(iter(asn1tools.parse_files([module]).values()))["types"]
 for name, node in types.items():
     if node.get("type") != "SEQUENCE":

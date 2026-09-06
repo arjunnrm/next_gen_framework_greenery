@@ -284,7 +284,7 @@ resources:
           environment_key: framework_env
 
         # ------------------------------------------- Sample 06: real GSMA TAP3 ASN.1 fixtures
-        # Lands flowx_testing/BT_Testing/TAP.310.asn1 into the sample landing Volume and
+        # Lands BT_Usecase/UC7/data/asn_schema/TAP.310.asn1 into the sample landing Volume and
         # BER-encodes its Notification payloads on-cluster against that landed copy.
         - task_key: seed_sample_06_iteration1
           depends_on:

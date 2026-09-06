@@ -1,6 +1,6 @@
 # Sample 06 -- Real GSMA TAP3 ASN.1 BER Ingestion (reference, not a test): the framework's
 # `source_type: "asn1"` path driven by the genuine GSMA TAP release 3.10 specification shipped
-# in this repo at flowx_testing/BT_Testing/TAP.310.asn1 -- 1597 lines, 375 types -- rather
+# in this repo at BT_Usecase/UC7/data/asn_schema/TAP.310.asn1 -- 1597 lines, 375 types -- rather
 # than a hand-written toy module (contrast flowx_testing/013_ing_004_asn1_decode.json, whose
 # 5-field sample_data/asn1_schema/gsm_cdr.asn exists only for TC-ING-004). Auto Loader reads
 # the .ber payloads as binaryFile and asn1/decoder.py's mapInPandas transform decodes each one

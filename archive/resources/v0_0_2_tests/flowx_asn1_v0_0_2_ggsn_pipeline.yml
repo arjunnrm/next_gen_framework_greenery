@@ -1,5 +1,5 @@
 # v0.0.2 ASN.1 GGSN pipeline -- decodes real BER-encoded GGSN gateway-GPRS-support-node call event records
-# (source_type: "asn1") against the real flowx_testing/BT_Testing/GGSN.asn1 module into
+# (source_type: "asn1") against the real BT_Usecase/UC7/data/asn_schema/GGSN.asn1 module into
 # flowx.bronze_ggsn.ggsn_cdr_raw.
 #
 # The spec OMITS asn1_pdu_name, so asn1/decoder.py::detect_root_pdu_name resolves the root PDU from

@@ -296,7 +296,7 @@ the fix, and refused `skipChangeCommits` as a workaround because it silently dro
 The spec now reads that input as a batch.
 
 **Defect found while authoring TC1 (fixture, not framework).** The pre-existing
-`flowx_testing/BT_Testing/synthetic/psgw_synthetic.ber` holds its 10 records concatenated as
+`BT_Usecase/UC7/data/synthetic/psgw_synthetic.ber` holds its 10 records concatenated as
 back-to-back TLVs in one file, and `asn1tools` returns only the FIRST record from such a buffer with
 no error — ingesting 1 row, silently dropping 9, and reporting success. The seed notebook therefore
 lands one record per `.ber` file and asserts at seed time that each decode consumes the whole file.
@@ -647,7 +647,7 @@ consistently through the seed job's `spec_dir`.
 ### New: Sample 06 — real GSMA TAP release 3.10 ASN.1 ingestion
 
 - **`flowx_sample_06_asn1_tap3_job`** puts `source_type: "asn1"` through the genuine GSMA TAP 3.10
-  module already in this repo (`flowx_testing/BT_Testing/TAP.310.asn1` — 1597 lines, 375 types),
+  module already in this repo (`BT_Usecase/UC7/data/asn_schema/TAP.310.asn1` — 1597 lines, 375 types),
   not a hand-written five-field module. Those BT modules previously had no consumer anywhere.
 - The seed lands the module into the sample Volume and compiles **that landed copy** to BER-encode
   its fixtures, so the encoding schema and the pipeline's `asn1_schema_path` are provably the same

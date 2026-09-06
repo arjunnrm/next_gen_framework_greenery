@@ -557,7 +557,7 @@ schema **`flowx.flowx_sample`**.
 | `flowx_sample_03_multi_table_recon_job` | Two concurrent loads + in-DAG reconciliation (`pipeline_audit_only`) with controlled drift, run/mismatch logging, and a Volume observability export task |
 | `flowx_sample_04_export_encrypt_zip_job` | Two `pgp_zip` sinks staging CSV (`staged_file_format`) into AES-256 password-protected ZIP exports via `post_export_archive.secret` |
 | `flowx_sample_05_encrypted_ingestion_job` | Ingesting AES-256 password-protected ZIPs decrypted on the fly via `pre_extraction_decryption.secret_passphrase` |
-| `flowx_sample_06_asn1_tap3_job` | `source_type: "asn1"` decoding of BER payloads against the **real GSMA TAP release 3.10** module (`flowx_testing/BT_Testing/TAP.310.asn1`), with undecodable payloads quarantined |
+| `flowx_sample_06_asn1_tap3_job` | `source_type: "asn1"` decoding of BER payloads against the **real GSMA TAP release 3.10** module (`BT_Usecase/UC7/data/asn_schema/TAP.310.asn1`), with undecodable payloads quarantined |
 
 ### 6.1 Seeding is one job, and it runs first
 
@@ -636,7 +636,7 @@ Pass `action_type=UPDATE` to the seed job to re-onboard specs that changed after
 ### 6.4 Sample 06: the real GSMA TAP3 module, and why the PDU is `Notification`
 
 Sample 06 is the suite's ASN.1 case, and it deliberately uses the **genuine** GSMA TAP release 3.10
-specification already shipped in this repo at `flowx_testing/BT_Testing/TAP.310.asn1` - 1597
+specification already shipped in this repo at `BT_Usecase/UC7/data/asn_schema/TAP.310.asn1` - 1597
 lines, 375 types - rather than a hand-written toy module.
 (`flowx_testing/013_ing_004_asn1_decode.json` still uses the 5-field
 `sample_data/asn1_schema/gsm_cdr.asn`; that exists only for TC-ING-004.)

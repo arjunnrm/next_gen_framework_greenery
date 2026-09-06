@@ -14,7 +14,7 @@
 # MAGIC
 # MAGIC ## The two things this notebook provisions
 # MAGIC
-# MAGIC 1. **The real ASN.1 module.** `flowx_testing/BT_Testing/TAP.310.asn1` -- the genuine
+# MAGIC 1. **The real ASN.1 module.** `BT_Usecase/UC7/data/asn_schema/TAP.310.asn1` -- the genuine
 # MAGIC    GSMA TAP release 3.10 specification already shipped in this repo, 1597 lines, 375
 # MAGIC    types -- copied verbatim into
 # MAGIC    `/Volumes/{catalog}/flowx_sample/landing/sample06_asn1/schemas/TAP.310.asn1`. Plain
@@ -87,7 +87,7 @@ LANDED_MODULE_PATH = f"{SCHEMA_DIR}/TAP.310.asn1"
 # fallback, exactly as 03_seed_asn1_gsm_cdr_fixture.py does; several candidate roots are tried
 # because a notebook's working directory is not guaranteed to be its own directory.
 _this_dir = os.path.dirname(os.path.abspath(__file__)) if "__file__" in globals() else os.getcwd()
-_MODULE_RELATIVE_PATH = os.path.join("flowx_testing", "BT_Testing", "TAP.310.asn1")
+_MODULE_RELATIVE_PATH = os.path.join("BT_Usecase", "UC7", "data", "asn_schema", "TAP.310.asn1")
 _candidate_roots = [
     os.path.abspath(os.path.join(_this_dir, "..", "..")),
     os.path.abspath(os.path.join(os.getcwd(), "..", "..")),
@@ -104,7 +104,7 @@ for _root in _candidate_roots:
 if SOURCE_MODULE_PATH is None:
     raise FileNotFoundError(
         f"Expected the GSMA TAP release 3.10 module at '{_MODULE_RELATIVE_PATH}' under one of "
-        f"{_candidate_roots} -- is flowx_testing/BT_Testing/ synced alongside this notebook?"
+        f"{_candidate_roots} -- is BT_Usecase/UC7/data/asn_schema/ synced alongside this notebook?"
     )
 
 logger.info("Resolved TAP.310.asn1 at: %s", SOURCE_MODULE_PATH)

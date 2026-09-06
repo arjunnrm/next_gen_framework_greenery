@@ -1,6 +1,6 @@
 # v0.0.2 TEST CASE 1: "Ingestion & Schema Validation for ASN.1 Source" -- decodes real
 # BER-encoded PSGW packet-gateway call-event records (source_type: "asn1") against the real
-# flowx_testing/BT_Testing/PSGW.asn1 module into flowx.bronze_psgw.psgw_cdr_raw.
+# BT_Usecase/UC7/data/asn_schema/PSGW.asn1 module into flowx.bronze_psgw.psgw_cdr_raw.
 #
 # PSGW's root PDU CallEventRecord is a CHOICE (13 arms), so this pipeline exercises the v0.0.2
 # CHOICE-root support: the decoded frame carries one nullable column per arm plus the synthetic
