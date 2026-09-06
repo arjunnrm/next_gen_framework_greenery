@@ -1522,8 +1522,7 @@
                   "path",
                   "schema_location",
                   "asn1_schema_path",
-                  "asn1_codec",
-                  "asn1_pdu_name"
+                  "asn1_codec"
                 ]
               }
             },
