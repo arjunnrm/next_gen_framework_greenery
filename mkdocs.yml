@@ -161,6 +161,7 @@ nav:
       - Multi-role FAQs: 10_multi_role_faqs.md
       - Use case implementation guide: 16_usecase_implementation_guide.md
       - UC3 Excalibur master document: UC3/UC3_MASTER_DOCUMENT.md
+      - UC6 Flood Warning master document: UC6/UC6_MASTER_DOCUMENT.md
       - UC7 CDR ASN.1 master document: UC7/UC7_MASTER_DOCUMENT.md
       - UC7 CDR ASN.1 plain-English guide: UC7/UC7_PLAIN_ENGLISH_GUIDE.md
       - UC7 CDR ASN.1 analysis and join guide: UC7/UC7_ANALYSIS_AND_JOIN_GUIDE.md
