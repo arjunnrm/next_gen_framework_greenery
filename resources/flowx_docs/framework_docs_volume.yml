@@ -1,0 +1,29 @@
+# Output volume for the generated dataflow-group documentation.
+#
+# The documentation job (resources/observability/dataflow_documentation_job.yml) writes one
+# Markdown document per dataflow group here, plus a README index. A Volume rather than a
+# workspace folder because the documents are data-derived output, not source: they are
+# regenerated on every run, they can be read by anything with UC SELECT on the volume, and
+# putting them in the workspace tree would put generated files next to the notebooks that
+# generate them.
+#
+# schema_name is the literal `config`, matching framework_wheels_volume.yml and for the same
+# reason: `config` is where the control plane lives, whereas ${var.spec_schema} means "where
+# authored specs live" and is overridable per target. An override there must not move this
+# volume out from under the job's default output path.
+#
+# The job derives its default output as
+# /Volumes/${var.catalog}/config/framework_docs/dataflow_groups, i.e. a subdirectory of this
+# volume -- the job creates that subdirectory itself, so nothing else needs declaring here.
+resources:
+  volumes:
+    framework_docs_volume:
+      catalog_name: ${var.catalog}
+      schema_name: config
+      name: framework_docs
+      volume_type: MANAGED
+      comment: >-
+        Generated FlowX framework documentation. `dataflow_documentation_job` renders one
+        Markdown design document per dataflow group under dataflow_groups/, from the control
+        metadata and the Databricks system tables. Regenerated on every run -- do not hand-edit
+        anything here.

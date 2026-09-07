@@ -2,7 +2,7 @@
   "$schema": "../../../onboarding_templates/onboarding_spec.schema.json",
   "_about": {
     "use_case": "UC7 - CDR ASN.1 decode to Bronze",
-    "description": "Decodes raw BER-encoded call detail records from four network elements (EMSC, PSGW, SGSN, TAP3.10) against their ASN.1 modules and lands one streaming table per element in flowx.bronze, routing undecodable records to per-table quarantine. Design and evidence: BT_Usecase/UC7/docs/UC7_MASTER_DOCUMENT.md.",
+    "description": "Decodes raw BER-encoded call detail records from four network elements (EMSC, PSGW, SGSN, TAP3.10) against their ASN.1 modules and lands one streaming table per element in br_digital_poc.bronze, routing undecodable records to per-table quarantine. Design and evidence: BT_Usecase/UC7/docs/UC7_MASTER_DOCUMENT.md.",
     "version": "FlowX 0.0.4",
     "date": "2026-09-05",
     "developer": "Madhan Raghu"

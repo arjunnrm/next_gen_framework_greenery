@@ -15,6 +15,156 @@ resolving. Per-version directories fix that structurally.
 
 ---
 
+## Framework observability — the metadata becomes queryable — 2026-09-07
+
+*Unreleased.* `pyproject.toml` stays at `0.0.4` and `databricks.yml`'s `framework_version` with
+it: nothing here changes the wheel's contents in a way a running pipeline resolves, and the two
+are bumped together in one deliberate commit rather than as a side effect of a documentation
+release. Everything below is deployed and live on `metaflow_v7`.
+
+FlowX has measured itself accurately since v1.0. It has never been able to *answer questions*
+about itself.
+
+### The gap
+
+Every runtime number the framework computes -- per-flow `num_output_rows`, per-expectation
+pass/fail counts, DQ quarantine counts, SCD upsert and delete counts -- is computed and then
+**shipped out**: OTel `ResourceLogs` to a collector, JSONL/GZIP files to a Volume, structured JSON
+to the driver log. That is the right architecture for alerting. It is the wrong architecture for a
+question, because almost none of it lands in a queryable Delta table. "Which DQ rule failed most
+often last week" meant reading Volume files with Spark. "What did this dataflow group cost" had no
+answer at any price, because cost was never in the export in the first place.
+
+Meanwhile the platform had been recording the operational half all along -- durations, result
+states, retries, DBUs, observed lineage -- in `system.lakeflow`, `system.billing` and
+`system.access`. Nobody was joining the two. The system tables know a pipeline ran for 94 seconds;
+they do not know it is `dfg_uc6_ea_flood_warning` with 11 flows and 5 DQ rules. The control tables
+know exactly that, and nothing about the 94 seconds.
+
+### The join key was already there
+
+`system.lakeflow.pipelines.configuration` is a MAP, and **every FlowX pipeline resource already
+sets `dataflow.group.id` in its `configuration:` block** -- it has to, because that is how a
+pipeline finds its own control rows. So `configuration['dataflow.group.id']` recovers the FlowX
+identity of any pipeline with **no change to any pipeline, resource file or spec**. Pipeline
+attribution cost nothing.
+
+Jobs were different, and the difference is instructive. The framework passes `dataflow_group_id` as
+a notebook task **`base_parameter`**, and those do **not** surface in
+`system.lakeflow.job_task_run_timeline.task_parameters` -- verified empty on a live workspace, not
+inferred from docs. So a `dataflow_group_id` **job tag** was added to the uc3/uc6/uc7 job resources,
+and `v_job_runs` carries an `attribution` column reporting `'tag'` (exact) versus `'name_match'`
+(the group id appears in the job name). Blending the two into one number is how a dashboard becomes
+untrustworthy; dropping unattributable runs would hide every job predating the tag. So all three
+states are returned and the reader is told which they are looking at. Cost takes the stricter line:
+**job spend is attributed by tag only**, never by name match.
+
+### Eleven views, in their own schema
+
+`control_plane/observability_views.py` builds 11 views in a new `<catalog>.observability` schema --
+pure string functions, no `spark.sql`, exactly like `ddl_definitions.py`. A group catalogue with
+pre-computed feature flags and a quotable `feature_summary` sentence; a flat flow inventory across
+all three flow kinds; the pipeline registry that is the join spine; update and job run performance;
+DBUs and estimated list-price cost; per-flow row counts and per-expectation DQ outcomes from the UC
+event logs; reconciliation health; observed lineage; and a headline scorecard with a
+`health_status` verdict.
+
+**A separate schema, not `config`, is a grant boundary rather than tidiness.** The control tables
+carry `*_json` and `raw_spec_payload` columns holding connection strings and credential-shaped
+config. Views in their own schema mean a BI user or a Genie space can be granted the entire derived
+surface without being granted read on those columns.
+
+**The column `COMMENT`s are the semantic model, not decoration** -- Genie reads them. They are
+written for an LLM, and the most important thing they say is what *not* to conclude:
+`has_run_history` states outright that absence of reconciliation rows is not evidence of health,
+because recon logging is optional and an LLM asked "are the reconciliations clean?" will otherwise
+read zero rows as zero problems.
+
+Provisioning is section 5 of `01_setup_control_tables.py` and is **deliberately non-fatal**:
+`SELECT` on the `system` catalog is a workspace grant the deploying principal may not hold, and
+observability is not a prerequisite for onboarding a pipeline. Failure warns and names the fix.
+
+### Three consumers, one source of truth
+
+A dashboard (13 datasets, 9 pages, 103 widgets, 15 charts), a Genie space (15 data sources, 12
+example question/SQL pairs, 4 benchmarks), and a job that renders one Markdown design document per
+dataflow group into `/Volumes/<catalog>/config/framework_docs/`. All three read the same views, so
+they cannot disagree about the facts -- which is the whole reason the SQL lives in a Python module
+and not in the dashboard JSON. A dashboard whose SQL is copy-pasted into a Genie space drifts from
+it inside one release.
+
+The documenter reads the **control tables, not the spec files**, so its output describes the system
+as onboarded and as running. When the two disagree the document is right and the spec is stale. It
+is the batch counterpart to Genie: Genie answers conversationally, this leaves a committable
+artefact.
+
+### Ten billion DBUs
+
+The AI Forecast page uses `AI_FORECAST` over hourly billing usage. The first implementation used a
+**daily** series -- and on a workspace with 4 days of billing history, fitting to 3 usable daily
+points projected **10,257,538,803 DBUs by day 14**.
+
+It did not error. It did not warn. It returned a well-formed number with a confidence band, in a
+chart that looked exactly like a working forecast. That is the failure mode worth carrying away:
+**an under-fed forecast fails plausibly, not loudly.**
+
+Four rules now hold everywhere -- in the dashboard SQL, in the Genie instruction block, and in the
+docs. (a) **Hourly, never daily** -- the same 14-day window yields 73 points instead of 3.
+(b) **Exclude the current, partly-elapsed bucket**, or 5 minutes of usage in a 60-minute slot
+becomes the most recent point and the model extrapolates a decline that is purely an artefact of
+when you looked. (c) **Always pass the `global_floor: 0` parameter**, or the lower confidence band
+goes negative -- negative DBUs, negative dollars. (d) **Report the band and the hours of history,
+not just the point**, and say it is list price and a projection, not a commitment. Live:
+$23.19 observed, $18.94 next-48h, $290.08 projected 30-day run rate.
+
+### Five bugs that only live data could catch
+
+Every one produced **no error and a plausible wrong answer**. A SQL semantic layer over metadata
+fails quietly.
+
+- **`has_cdc` was always FALSE** on the tile whose only job was to say which groups do CDC. The
+  control tables store strategies UPPERCASE (`SCD1`, `SCD2`, `TRUNCATE_AND_LOAD`); the regex was
+  lowercase-only. These enum values are **not case-normalised** -- fold the case explicitly.
+- **A leading `", "` on every aggregated list.** `SPLIT('', ', ')` returns a one-element array
+  holding the EMPTY STRING, not an empty array -- so it sorts first and renders as a leading
+  separator. `ARRAY_COMPACT` does **not** fix it: it removes NULLs, not empty strings. An explicit
+  `FILTER` does.
+- **`has_dq` was TRUE for every group.** `dq_config_json` is literally an empty JSON object on many
+  flows -- an *empty* config, faithfully serialized -- and "not null and not the empty string" is
+  true of it. For JSON-in-a-string, "present" and "non-empty" are different questions.
+- **`flow_status = RUNNING` with understated row counts on finished updates.** Deduplicating
+  `flow_progress` events by `event_time DESC` alone looked obviously right; it is not. A streaming
+  flow can sit in RUNNING and emit its last progress event mid-batch, so the newest event carries a
+  partial cumulative count. Order terminal statuses first, *then* by time. The last event you
+  received is not the event that concluded the thing.
+- **`FIELD_NOT_FOUND` on `settings.catalog`.** `system.lakeflow.pipelines.settings` exposes only
+  `photon`, `development`, `continuous`, `serverless`, `edition` and `channel` -- no `catalog`, no
+  `target` -- so the event log's location is **not derivable** from the pipeline row. It is
+  discovered from `system.information_schema.tables` instead. The one defect that failed loudly,
+  and therefore the cheapest.
+
+And the repo's own brace trap, for the second time: an empty-JSON-object literal inside an
+f-string DDL body must have its braces doubled, or Python fails to evaluate the f-string and
+**every** statement in the module breaks at import.
+
+### No spec attribute changed
+
+Worth stating plainly, because it is unusual for a release this size. **Nothing here is configured
+through an onboarding spec.** `spec_validator.py`, `onboarding_spec.schema.json`, the templates, the
+full reference spec and the Spec Builder app's registry are all deliberately untouched -- there is
+no attribute to allow, none to reject, none to mirror into the app, and therefore **no
+`npm run build` and no attribute-delta document** for this release. The pipeline join key was
+already being written; the job tag is a resource-YAML concern.
+
+96 new unit tests, all passing. The pre-existing offline baseline is unchanged at 12 failed, 1262
+passed, 2 skipped, 117 errors -- the errors being the known no-local-Spark/Java condition. Two new
+resource groups (`resources/flowx_genie/`, `resources/flowx_docs/`) registered in both
+`databricks.yml`'s `include:` and `test_resource_layout.py`'s `EXPECTED_GROUPS`, which enforces the
+pairing. Full account: `docs/17_framework_observability_and_genie.md` and
+`enhancement_logs/v1.7.06_enhancement_log.md`.
+
+---
+
 ## 0.0.4 — one folder per use case, and three attributes that were lying — 2026-09-07
 
 A reorganisation release. No framework behaviour changes, but three spec-surface defects

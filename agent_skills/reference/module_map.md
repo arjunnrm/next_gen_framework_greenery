@@ -295,7 +295,22 @@ that file discovery/reading and decoding both run entirely on executors.
 
 ## `observability/`
 
-Structured JSON business-event logging, plus the standalone **DLT observability engine**
+**`dataflow_documenter.py` (added 2026-09-07)** renders a per-dataflow-group Markdown design
+document from the `<catalog>.observability` views —
+`render_group_document(group, flows, health, dq, recon, lineage, generated_at)` and
+`render_index(groups, health_by_group, generated_at)`. Deliberately **pure functions over
+plain lists of dicts**: no Spark, no IO, so it is unit-testable in this repo's offline
+environment (`tests/unit/test_dataflow_documenter.py`).
+`notebooks/09_documentation/09_dataflow_documentation.py` is the only place that reads the
+views and writes files, and it treats every run-history read as optional so a document still
+renders without system-table access. It is the batch counterpart to the Genie space: Genie
+answers "explain group X" conversationally, this leaves a committable artefact. Both read the
+same views. The absent-data paths matter — a section must say "nothing was observed" rather
+than implying health, because reconciliation logging is optional and an empty log is not a
+clean comparison.
+
+Also here: structured JSON business-event logging, plus the standalone **DLT observability
+engine**
 (`dlt_observability` — see `docs/25_dlt_observability_module.md` for the full architecture).
 
 `structured_logger.py::log_flow_event(operation, flow_id, status, ...)` emits one JSON line via
@@ -360,7 +375,8 @@ New exception types: `ObservabilityConfigError` (config/context resolution failu
 
 ## `control_plane/`
 
-Control-table DDL, read access, provisioning, and post-deployment steps.
+Control-table DDL, read access, provisioning, post-deployment steps, and the observability
+semantic layer.
 `ddl_definitions.py::get_all_control_table_ddls` (pure string-building, no execution — this is
 the DDL ground truth for every control table's columns; remember that literal braces inside those
 f-strings must be doubled as `{{ }}`). `repository.py::
@@ -375,6 +391,39 @@ field is what lets the engine notebook register reconciliation as a third flow t
 `schema_provisioner.py::ensure_control_schema_exists` idempotently creates the `config` schema
 + all control tables (shared by `01_setup_control_tables.py` and the onboarding engine's own
 self-provisioning).
+
+**`observability_views.py` — the observability semantic layer (added 2026-09-07).** Pure
+string-building like `ddl_definitions.py` (same doubled-brace rule for literal `{{ }}`), but it
+emits **11 `CREATE OR REPLACE VIEW` statements into a separate `<catalog>.observability`
+schema**, joining the control tables to the Databricks **system tables**
+(`system.lakeflow`, `system.billing`, `system.access`).
+`get_all_observability_view_ddls(observability_schema, control_schema, event_log_tables)`
+returns `(description, ddl)` pairs **in dependency order** — `v_pipeline_registry` before
+everything that joins to it, `v_group_health_summary` last because it is a view over five of
+the others. Executed by `01_setup_control_tables.py` section 5, deliberately **non-fatal**:
+system-table `SELECT` is a workspace grant the deploying principal may not hold, and the
+control tables are the job's real contract. Five things to know:
+
+- **The join key is `system.lakeflow.pipelines.configuration['dataflow.group.id']`**, which
+  every FlowX pipeline resource already sets in its `configuration:` block — so pipeline
+  attribution needed no per-pipeline change. **Jobs are the gap**: `dataflow_group_id` is
+  passed as a notebook task `base_parameter` and those do **not** surface in
+  `system.lakeflow.job_task_run_timeline.task_parameters` (verified empty on a live
+  workspace), so `v_job_runs` reads a `dataflow_group_id` **job tag** and reports
+  `attribution = 'tag'` (exact) vs `'name_match'` (heuristic from the job name).
+- **`system.lakeflow.pipelines.settings` exposes no catalog/target field** — only `photon`,
+  `development`, `continuous`, `serverless`, `edition`, `channel`. A pipeline's event-log
+  table location is therefore **not derivable** from its row; it is discovered via
+  `system.information_schema.tables` matching `event_log_<pipeline_id with `-`→`_`>`.
+- **`event_log_tables` must be a concrete list**, because SQL cannot read a table whose name
+  lives in another table's column. Pass `[]` and the two event-log-backed views
+  (`v_flow_metrics`, `v_dq_results`) are still created over a typed empty relation, so
+  dependent dashboard and Genie objects resolve instead of erroring.
+- **Column `COMMENT`s are the semantic model**, not decoration: the Genie space in
+  `resources/flowx_genie/` reads them. Write them for an LLM.
+- Consumed by **both** `databricks-bi/flowx_observability_dashboard.lvdash.json` and that Genie
+  space, so the join is defined once and the two surfaces cannot disagree. See
+  `docs/17_framework_observability_and_genie.md`.
 
 **Additive column migration, added in v1.5.0.** Every statement in `get_all_control_table_ddls` is
 `CREATE TABLE IF NOT EXISTS`, a no-op against an existing table — so a column added to a CREATE

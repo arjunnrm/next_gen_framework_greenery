@@ -123,7 +123,7 @@
 
 # COMMAND ----------
 
-dbutils.widgets.text("target_catalog", "flowx", "1. Target Unity Catalog")
+dbutils.widgets.text("target_catalog", "br_digital_poc", "1. Target Unity Catalog")
 dbutils.widgets.text("workspace_staging_path", "/Workspace/Shared/flowx_upload", "2. Workspace upload folder")
 dbutils.widgets.dropdown("dry_run", "false", ["true", "false"], "3. Dry run (plan only)")
 dbutils.widgets.multiselect("use_cases", "UC3,UC6,UC7", ["UC3", "UC6", "UC7"], "4. Use cases to set up")
@@ -352,10 +352,10 @@ logger.info("Active provisioning groups: %s", ", ".join(ACTIVE_USE_CASES))
 # MAGIC trying these spellings in order:
 # MAGIC
 # MAGIC ```
-# MAGIC <catalog>.<schema>   e.g. flowx.config
-# MAGIC <catalog>_<schema>   e.g. flowx_config
+# MAGIC <catalog>.<schema>   e.g. br_digital_poc.config
+# MAGIC <catalog>_<schema>   e.g. br_digital_poc_config
 # MAGIC <schema>             e.g. config
-# MAGIC <catalog>            e.g. flowx
+# MAGIC <catalog>            e.g. br_digital_poc
 # MAGIC ```
 # MAGIC
 # MAGIC This notebook therefore creates the classic scope under the **most specific** of those
@@ -1104,7 +1104,7 @@ def stage_file(local_path: str, relative_path: str, size_bytes: int) -> None:
 # MAGIC schema plus `READ FILES` / `WRITE FILES` on the external location. Without the external
 # MAGIC location the statement fails; Unity Catalog will not create one implicitly. Managed is the
 # MAGIC recommendation and is what all three use cases were built and tested against -- UC7's
-# MAGIC `flowx.landing.uc_7` in particular is documented as MANAGED, resolving to the workspace's
+# MAGIC `br_digital_poc.landing.uc_7` in particular is documented as MANAGED, resolving to the workspace's
 # MAGIC account-managed storage.
 
 # COMMAND ----------
@@ -1207,9 +1207,9 @@ logger.info(
 # MAGIC
 # MAGIC ```bash
 # MAGIC # Unity Catalog secret
-# MAGIC databricks secrets put-secret --catalog flowx --schema config --key pgpkey
+# MAGIC databricks secrets put-secret --catalog br_digital_poc --schema config --key pgpkey
 # MAGIC # classic workspace scope
-# MAGIC databricks secrets put-secret flowx.config pgpkey
+# MAGIC databricks secrets put-secret br_digital_poc.config pgpkey
 # MAGIC ```
 # MAGIC
 # MAGIC No secret value is ever read into a variable, logged or displayed here. The verification

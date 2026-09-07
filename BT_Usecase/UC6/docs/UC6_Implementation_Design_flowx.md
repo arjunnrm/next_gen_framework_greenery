@@ -71,7 +71,7 @@ whatever schema existing entries use. At minimum it should declare:
 - The 6 source files (logical name, filename pattern/regex, delimiter `|`,
   compression, encryption flag).
 - The target volume (`uc_6`) and its raw/archive/output paths.
-- The secret reference for the GPG passphrase (`flowx.config.pgpkey`) — by
+- The secret reference for the GPG passphrase (`br_digital_poc.config.pgpkey`) — by
   reference only, never the literal value.
 - The job (`007_uc6_lfj_EA`) and pipeline (`008_uc6_ldp_EA`) identifiers.
 - Any schedule/trigger config (cadence: currently weekly).
@@ -108,7 +108,7 @@ in the pipeline.
 3. Unzip/decrypt via framework utilities:
    - All files: gunzip.
    - EA request file only: GPG-decrypt (symmetric, AES256) using the
-     passphrase from Databricks secret `flowx.config.pgpkey`, **then**
+     passphrase from Databricks secret `br_digital_poc.config.pgpkey`, **then**
      gunzip.
 4. Land as bronze tables (see §6 for naming):
    - `uc6_bronze_ea_request`
@@ -202,7 +202,7 @@ Fields: `targetAreaID, osapr, count, status`
 | Telephone Output | `EE_YYYY-MM-DD-TELEPHONE_NOfN.csv.gz.gpg` | gzip + GPG symmetric |
 | OSAPR Output | `EE_YYYY-MM-DD-OSAPR_NOfN.csv.gz.gpg` | gzip + GPG symmetric |
 
-Both GPG outputs use the passphrase from `flowx.config.pgpkey` — the same
+Both GPG outputs use the passphrase from `br_digital_poc.config.pgpkey` — the same
 secret used to decrypt the inbound EA file.
 
 Field-size constraints carried into validation: `targetAreaID` 32 chars,

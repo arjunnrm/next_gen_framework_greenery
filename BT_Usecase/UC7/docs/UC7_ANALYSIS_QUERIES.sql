@@ -41,7 +41,7 @@ USE SCHEMA bronze;
 SELECT table_schema,
        table_name,
        table_type
-FROM   flowx.information_schema.tables
+FROM   br_digital_poc.information_schema.tables
 WHERE  table_schema = 'bronze'
   AND  (table_name LIKE '%cdr_raw%' OR table_name LIKE 'tap310%')
 ORDER  BY table_name;
@@ -134,7 +134,7 @@ SELECT table_name,
        count(*)                                                              AS total_columns,
        count_if(column_name NOT LIKE '\\_\\_framework\\_%' ESCAPE '\\')      AS business_columns,
        count_if(column_name LIKE '\\_\\_framework\\_%' ESCAPE '\\')          AS framework_columns
-FROM   flowx.information_schema.columns
+FROM   br_digital_poc.information_schema.columns
 WHERE  table_schema = 'bronze'
   AND  table_name IN ('emsc_cdr_raw', 'psgw_cdr_raw', 'sgsn_cdr_raw', 'tap310_raw')
 GROUP  BY table_name
@@ -156,7 +156,7 @@ SELECT column_name,
          WHEN '__framework_pipeline_run_id'              THEN 'Which pipeline update produced the row'
          WHEN '__framework_record_id'                    THEN 'Stable identifier for the record'
        END AS what_it_answers
-FROM   flowx.information_schema.columns
+FROM   br_digital_poc.information_schema.columns
 WHERE  table_schema = 'bronze'
   AND  table_name   = 'sgsn_cdr_raw'
   AND  column_name LIKE '\\_\\_framework\\_%' ESCAPE '\\'
@@ -426,7 +426,7 @@ SELECT schema_name,
        table_name,
        tag_name,
        tag_value
-FROM   flowx.information_schema.table_tags
+FROM   br_digital_poc.information_schema.table_tags
 WHERE  table_name IN ('emsc_cdr_raw', 'psgw_cdr_raw', 'sgsn_cdr_raw', 'tap310_raw')
 ORDER  BY table_name, tag_name;
 
@@ -459,7 +459,7 @@ LIMIT  1000;
 --     WHY : Combines the individual checks above into a single go or no-go answer.
 WITH checks AS (
     SELECT 'All four tables published'  AS check_name,
-           (SELECT count(*) FROM flowx.information_schema.tables
+           (SELECT count(*) FROM br_digital_poc.information_schema.tables
              WHERE table_schema = 'bronze'
                AND table_name IN ('emsc_cdr_raw','psgw_cdr_raw','sgsn_cdr_raw','tap310_raw')) AS actual,
            4 AS expected

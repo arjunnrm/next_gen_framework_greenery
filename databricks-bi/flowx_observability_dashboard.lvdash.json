@@ -1,0 +1,6028 @@
+{
+  "datasets": [
+    {
+      "name": "group_scorecard",
+      "displayName": "Dataflow Group Scorecard",
+      "queryLines": [
+        "SELECT\n",
+        "  dataflow_group_id, environment, is_active, health_status, feature_summary,\n",
+        "  pipeline_name, total_flow_count, total_updates, successful_updates, failed_updates,\n",
+        "  retry_updates, success_rate_pct, success_rate_pct / 100.0 AS success_rate_frac,\n",
+        "  avg_duration_minutes, p95_duration_minutes, last_update_at, last_update_state,\n",
+        "  total_rows_written, dq_rules_evaluated, dq_failed_records, dq_pass_rate_pct,\n",
+        "  dq_pass_rate_pct / 100.0 AS dq_pass_rate_frac,\n",
+        "  recon_discrepancies, estimated_cost_usd_30d, dbus_30d\n",
+        "FROM v_group_health_summary\n"
+      ]
+    },
+    {
+      "name": "pipeline_updates",
+      "displayName": "Pipeline Updates (30d)",
+      "queryLines": [
+        "SELECT\n",
+        "  dataflow_group_id, pipeline_name, update_id, update_type, result_state,\n",
+        "  is_success, is_failure, is_retry, is_full_refresh, trigger_type, run_as_user_name,\n",
+        "  started_at, ended_at, duration_seconds, duration_minutes, run_date,\n",
+        "  CASE WHEN is_success THEN 'Succeeded' WHEN is_failure THEN 'Failed'\n",
+        "       WHEN result_state IS NULL THEN 'Running' ELSE result_state END AS outcome\n",
+        "FROM v_pipeline_updates\n",
+        "WHERE started_at >= date_sub(current_date(), 30)\n"
+      ]
+    },
+    {
+      "name": "flow_throughput",
+      "displayName": "Flow Throughput (30d)",
+      "queryLines": [
+        "SELECT\n",
+        "  dataflow_group_id, pipeline_name, update_id, flow_name, dataset_name,\n",
+        "  flow_status, rows_written, rows_upserted, rows_deleted, rows_dropped,\n",
+        "  event_time, run_date\n",
+        "FROM v_flow_metrics\n",
+        "WHERE run_date >= date_sub(current_date(), 30)\n"
+      ]
+    },
+    {
+      "name": "dq_results",
+      "displayName": "Data Quality Results (30d)",
+      "queryLines": [
+        "SELECT\n",
+        "  dataflow_group_id, pipeline_name, update_id, dataset_name, rule_name,\n",
+        "  passed_records, failed_records, total_records, pass_rate_pct,\n",
+        "  pass_rate_pct / 100.0 AS pass_rate_frac, has_failures, event_time, run_date\n",
+        "FROM v_dq_results\n",
+        "WHERE run_date >= date_sub(current_date(), 30)\n"
+      ]
+    },
+    {
+      "name": "cost_daily",
+      "displayName": "Cost & DBUs (30d)",
+      "queryLines": [
+        "SELECT\n",
+        "  dataflow_group_id, usage_date, workload, entity_name, sku_name,\n",
+        "  dbus, estimated_cost_usd\n",
+        "FROM v_dataflow_cost\n",
+        "WHERE usage_date >= date_sub(current_date(), 30)\n"
+      ]
+    },
+    {
+      "name": "recon_health",
+      "displayName": "Reconciliation Health",
+      "queryLines": [
+        "SELECT\n",
+        "  dataflow_group_id, reconciliation_id, target_id, status, execution_mode,\n",
+        "  source_record_count, target_record_count, matched_count,\n",
+        "  missing_in_target_count, missing_in_source_count, value_drift_count,\n",
+        "  total_discrepancies, match_rate_pct, match_rate_pct / 100.0 AS match_rate_frac,\n",
+        "  is_clean, has_run_history, error_message, run_at, run_date\n",
+        "FROM v_reconciliation_health\n"
+      ]
+    },
+    {
+      "name": "flow_inventory",
+      "displayName": "Flow Inventory",
+      "queryLines": [
+        "SELECT\n",
+        "  dataflow_group_id, flow_kind, flow_id, source_description, target_table,\n",
+        "  target_type, cdc_load_strategy, has_dq, has_quarantine, has_governance_tags,\n",
+        "  is_active, created_at, updated_at\n",
+        "FROM v_flow_inventory\n"
+      ]
+    },
+    {
+      "name": "lineage",
+      "displayName": "Observed Lineage",
+      "queryLines": [
+        "SELECT\n",
+        "  dataflow_group_id, source_table, target_table, entity_type, entity_name,\n",
+        "  edge_count, first_seen, last_seen\n",
+        "FROM v_dataflow_lineage\n",
+        "WHERE dataflow_group_id IS NOT NULL AND source_table IS NOT NULL\n"
+      ]
+    },
+    {
+      "name": "job_runs",
+      "displayName": "Job Runs (30d)",
+      "queryLines": [
+        "SELECT\n",
+        "  dataflow_group_id, attribution, job_name, run_id, result_state, is_success,\n",
+        "  is_failure, trigger_type, termination_code, started_at, run_duration_seconds,\n",
+        "  execution_duration_seconds, queue_duration_seconds, setup_duration_seconds,\n",
+        "  duration_minutes, run_date\n",
+        "FROM v_job_runs\n",
+        "WHERE started_at >= date_sub(current_date(), 30)\n"
+      ]
+    },
+    {
+      "name": "group_filter",
+      "displayName": "Dataflow Group Filter",
+      "queryLines": [
+        "SELECT DISTINCT dataflow_group_id FROM v_dataflow_group_catalog ORDER BY 1\n"
+      ]
+    },
+    {
+      "name": "forecast_spend",
+      "displayName": "Spend Forecast (AI_FORECAST)",
+      "queryLines": [
+        "WITH scoped AS (\n",
+        "  SELECT u.usage_start_time, u.usage_quantity, u.sku_name\n",
+        "  FROM system.billing.usage u\n",
+        "  WHERE u.usage_start_time >= current_timestamp() - INTERVAL 14 DAYS\n",
+        "    AND (u.usage_metadata.dlt_pipeline_id IS NOT NULL OR u.usage_metadata.job_id IS NOT NULL)\n",
+        "),\n",
+        "prices AS (\n",
+        "  SELECT sku_name, pricing.effective_list.default AS unit_price\n",
+        "  FROM system.billing.list_prices WHERE price_end_time IS NULL\n",
+        "),\n",
+        "actuals AS (\n",
+        "  SELECT\n",
+        "    date_trunc('HOUR', s.usage_start_time)                       AS usage_hour,\n",
+        "    ROUND(SUM(s.usage_quantity * COALESCE(p.unit_price, 0)), 4)  AS cost_usd\n",
+        "  FROM scoped s LEFT JOIN prices p ON s.sku_name = p.sku_name\n",
+        "  WHERE s.usage_start_time < date_trunc('HOUR', current_timestamp())\n",
+        "  GROUP BY 1\n",
+        "),\n",
+        "bounds AS (SELECT MAX(usage_hour) AS max_h FROM actuals),\n",
+        "forecast AS (\n",
+        "  SELECT usage_hour, cost_usd_forecast, cost_usd_upper, cost_usd_lower,\n",
+        "         CAST(NULL AS DOUBLE) AS cost_usd\n",
+        "  FROM AI_FORECAST(\n",
+        "    TABLE(actuals),\n",
+        "    horizon    => (SELECT max_h + MAKE_DT_INTERVAL(0, 48, 0, 0) FROM bounds),\n",
+        "    time_col   => 'usage_hour',\n",
+        "    value_col  => 'cost_usd',\n",
+        "    parameters => '{\"global_floor\": 0}'\n",
+        "  )\n",
+        "),\n",
+        "bridge AS (\n",
+        "  SELECT a.usage_hour, a.cost_usd AS cost_usd_forecast, a.cost_usd AS cost_usd_upper,\n",
+        "         a.cost_usd AS cost_usd_lower, a.cost_usd\n",
+        "  FROM actuals a JOIN bounds b ON a.usage_hour = b.max_h\n",
+        ")\n",
+        "SELECT usage_hour, CAST(NULL AS DOUBLE) AS cost_usd_forecast,\n",
+        "       CAST(NULL AS DOUBLE) AS cost_usd_upper, CAST(NULL AS DOUBLE) AS cost_usd_lower,\n",
+        "       cost_usd\n",
+        "FROM actuals\n",
+        "UNION ALL SELECT usage_hour, cost_usd_forecast, cost_usd_upper, cost_usd_lower, cost_usd\n",
+        "FROM bridge\n",
+        "UNION ALL SELECT usage_hour, cost_usd_forecast, cost_usd_upper, cost_usd_lower, cost_usd\n",
+        "FROM forecast\n",
+        "ORDER BY usage_hour\n"
+      ]
+    },
+    {
+      "name": "forecast_runs",
+      "displayName": "Run Volume Forecast (AI_FORECAST)",
+      "queryLines": [
+        "WITH actuals AS (\n",
+        "  SELECT date_trunc('HOUR', started_at) AS run_hour, CAST(COUNT(*) AS DOUBLE) AS updates\n",
+        "  FROM v_pipeline_updates\n",
+        "  WHERE started_at >= current_timestamp() - INTERVAL 14 DAYS\n",
+        "    AND started_at < date_trunc('HOUR', current_timestamp())\n",
+        "  GROUP BY 1\n",
+        "),\n",
+        "bounds AS (SELECT MAX(run_hour) AS max_h FROM actuals),\n",
+        "forecast AS (\n",
+        "  SELECT run_hour, updates_forecast, updates_upper, updates_lower,\n",
+        "         CAST(NULL AS DOUBLE) AS updates\n",
+        "  FROM AI_FORECAST(\n",
+        "    TABLE(actuals),\n",
+        "    horizon    => (SELECT max_h + MAKE_DT_INTERVAL(0, 48, 0, 0) FROM bounds),\n",
+        "    time_col   => 'run_hour',\n",
+        "    value_col  => 'updates',\n",
+        "    parameters => '{\"global_floor\": 0}'\n",
+        "  )\n",
+        "),\n",
+        "bridge AS (\n",
+        "  SELECT a.run_hour, a.updates AS updates_forecast, a.updates AS updates_upper,\n",
+        "         a.updates AS updates_lower, a.updates\n",
+        "  FROM actuals a JOIN bounds b ON a.run_hour = b.max_h\n",
+        ")\n",
+        "SELECT run_hour, CAST(NULL AS DOUBLE) AS updates_forecast,\n",
+        "       CAST(NULL AS DOUBLE) AS updates_upper, CAST(NULL AS DOUBLE) AS updates_lower, updates\n",
+        "FROM actuals\n",
+        "UNION ALL SELECT run_hour, updates_forecast, updates_upper, updates_lower, updates FROM bridge\n",
+        "UNION ALL SELECT run_hour, updates_forecast, updates_upper, updates_lower, updates FROM forecast\n",
+        "ORDER BY run_hour\n"
+      ]
+    },
+    {
+      "name": "forecast_summary",
+      "displayName": "Forecast Summary",
+      "queryLines": [
+        "WITH scoped AS (\n",
+        "  SELECT u.usage_start_time, u.usage_quantity, u.sku_name\n",
+        "  FROM system.billing.usage u\n",
+        "  WHERE u.usage_start_time >= current_timestamp() - INTERVAL 14 DAYS\n",
+        "    AND (u.usage_metadata.dlt_pipeline_id IS NOT NULL OR u.usage_metadata.job_id IS NOT NULL)\n",
+        "),\n",
+        "prices AS (\n",
+        "  SELECT sku_name, pricing.effective_list.default AS unit_price\n",
+        "  FROM system.billing.list_prices WHERE price_end_time IS NULL\n",
+        "),\n",
+        "actuals AS (\n",
+        "  SELECT date_trunc('HOUR', s.usage_start_time) AS usage_hour,\n",
+        "         SUM(s.usage_quantity * COALESCE(p.unit_price, 0)) AS cost_usd,\n",
+        "         SUM(s.usage_quantity) AS dbus\n",
+        "  FROM scoped s LEFT JOIN prices p ON s.sku_name = p.sku_name\n",
+        "  WHERE s.usage_start_time < date_trunc('HOUR', current_timestamp())\n",
+        "  GROUP BY 1\n",
+        "),\n",
+        "bounds AS (SELECT MAX(usage_hour) AS max_h, MIN(usage_hour) AS min_h FROM actuals),\n",
+        "fc AS (\n",
+        "  SELECT usage_hour, cost_usd_forecast, cost_usd_upper, cost_usd_lower\n",
+        "  FROM AI_FORECAST(\n",
+        "    TABLE(SELECT usage_hour, cost_usd FROM actuals),\n",
+        "    horizon    => (SELECT max_h + MAKE_DT_INTERVAL(0, 48, 0, 0) FROM bounds),\n",
+        "    time_col   => 'usage_hour',\n",
+        "    value_col  => 'cost_usd',\n",
+        "    parameters => '{\"global_floor\": 0}'\n",
+        "  )\n",
+        ")\n",
+        "SELECT\n",
+        "  (SELECT COUNT(*) FROM actuals)                                   AS observed_hours,\n",
+        "  ROUND((SELECT SUM(cost_usd) FROM actuals), 2)                    AS observed_cost_usd,\n",
+        "  ROUND((SELECT SUM(dbus) FROM actuals), 2)                        AS observed_dbus,\n",
+        "  ROUND((SELECT AVG(cost_usd) FROM actuals), 4)                    AS avg_hourly_cost_usd,\n",
+        "  ROUND((SELECT SUM(cost_usd_forecast) FROM fc), 2)                AS forecast_next_48h_usd,\n",
+        "  ROUND((SELECT SUM(cost_usd_lower) FROM fc), 2)                   AS forecast_next_48h_low_usd,\n",
+        "  ROUND((SELECT SUM(cost_usd_upper) FROM fc), 2)                   AS forecast_next_48h_high_usd,\n",
+        "  ROUND((SELECT AVG(cost_usd_forecast) FROM fc) * 24 * 30, 2)      AS projected_30d_run_rate_usd,\n",
+        "  ROUND(((SELECT AVG(cost_usd_forecast) FROM fc)\n",
+        "         - (SELECT AVG(cost_usd) FROM actuals))\n",
+        "        / NULLIF((SELECT AVG(cost_usd) FROM actuals), 0), 4)       AS forecast_vs_actual_delta_frac\n"
+      ]
+    }
+  ],
+  "pages": [
+    {
+      "name": "overview",
+      "displayName": "Overview",
+      "pageType": "PAGE_TYPE_CANVAS",
+      "layoutVersion": "GRID_V1",
+      "layout": [
+        {
+          "widget": {
+            "name": "ov_title",
+            "multilineTextboxSpec": {
+              "lines": [
+                "# FlowX Framework Observability"
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 12,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "ov_sub",
+            "multilineTextboxSpec": {
+              "lines": [
+                "Metadata-driven Lakeflow pipelines observed end to end: framework control metadata joined to the Databricks system tables. Reliability, throughput, data quality and cost per dataflow group over the last 30 days."
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 1,
+            "width": 12,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "ov_groups",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "group_scorecard",
+                  "fields": [
+                    {
+                      "name": "count(dataflow_group_id)",
+                      "expression": "COUNT(`dataflow_group_id`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "count(dataflow_group_id)",
+                  "displayName": "Dataflow Groups"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Dataflow Groups",
+                "showDescription": true,
+                "description": "Onboarded and under framework management"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 2,
+            "width": 3,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "ov_flows",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "group_scorecard",
+                  "fields": [
+                    {
+                      "name": "sum(total_flow_count)",
+                      "expression": "SUM(`total_flow_count`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "sum(total_flow_count)",
+                  "displayName": "Total Flows",
+                  "format": {
+                    "type": "number",
+                    "abbreviation": "compact",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 0
+                    }
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Total Flows",
+                "showDescription": true,
+                "description": "Ingestion, transformation and reconciliation"
+              }
+            }
+          },
+          "position": {
+            "x": 3,
+            "y": 2,
+            "width": 3,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "ov_rows",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "group_scorecard",
+                  "fields": [
+                    {
+                      "name": "sum(total_rows_written)",
+                      "expression": "SUM(`total_rows_written`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "sum(total_rows_written)",
+                  "displayName": "Rows Processed",
+                  "format": {
+                    "type": "number",
+                    "abbreviation": "compact",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 0
+                    }
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Rows Processed",
+                "showDescription": true,
+                "description": "Across every flow, last 30 days"
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 2,
+            "width": 3,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "ov_cost",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "group_scorecard",
+                  "fields": [
+                    {
+                      "name": "sum(estimated_cost_usd_30d)",
+                      "expression": "SUM(`estimated_cost_usd_30d`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "sum(estimated_cost_usd_30d)",
+                  "displayName": "Est. Cost (30d)",
+                  "format": {
+                    "type": "number-currency",
+                    "currencyCode": "USD",
+                    "abbreviation": "compact",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 2
+                    }
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Est. Cost (30d)",
+                "showDescription": true,
+                "description": "List price, excluding negotiated discounts"
+              }
+            }
+          },
+          "position": {
+            "x": 9,
+            "y": 2,
+            "width": 3,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "ov_updates",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "pipeline_updates",
+                  "fields": [
+                    {
+                      "name": "count(update_id)",
+                      "expression": "COUNT(`update_id`)"
+                    },
+                    {
+                      "name": "daily(started_at)",
+                      "expression": "DATE_TRUNC(\"DAY\", `started_at`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "count(update_id)",
+                  "displayName": "Pipeline Updates",
+                  "format": {
+                    "type": "number",
+                    "abbreviation": "compact",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 0
+                    }
+                  }
+                },
+                "period": {
+                  "fieldName": "daily(started_at)"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Pipeline Updates",
+                "showDescription": true,
+                "description": "Executions in the last 30 days"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 5,
+            "width": 3,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "ov_success",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "pipeline_updates",
+                  "fields": [
+                    {
+                      "name": "avg(is_success)",
+                      "expression": "AVG(`is_success`)"
+                    },
+                    {
+                      "name": "daily(started_at)",
+                      "expression": "DATE_TRUNC(\"DAY\", `started_at`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "avg(is_success)",
+                  "displayName": "Update Success Rate",
+                  "format": {
+                    "type": "number-percent",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 1
+                    }
+                  }
+                },
+                "period": {
+                  "fieldName": "daily(started_at)"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Update Success Rate",
+                "showDescription": true,
+                "description": "Share of updates that completed"
+              }
+            }
+          },
+          "position": {
+            "x": 3,
+            "y": 5,
+            "width": 3,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "ov_dq",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "dq_results",
+                  "fields": [
+                    {
+                      "name": "avg(pass_rate_frac)",
+                      "expression": "AVG(`pass_rate_frac`)"
+                    },
+                    {
+                      "name": "daily(event_time)",
+                      "expression": "DATE_TRUNC(\"DAY\", `event_time`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "avg(pass_rate_frac)",
+                  "displayName": "DQ Pass Rate",
+                  "format": {
+                    "type": "number-percent",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 1
+                    }
+                  }
+                },
+                "period": {
+                  "fieldName": "daily(event_time)"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "DQ Pass Rate",
+                "showDescription": true,
+                "description": "Records passing their expectations"
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 5,
+            "width": 3,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "ov_recon",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "recon_health",
+                  "fields": [
+                    {
+                      "name": "sum(total_discrepancies)",
+                      "expression": "SUM(`total_discrepancies`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "sum(total_discrepancies)",
+                  "displayName": "Recon Discrepancies",
+                  "format": {
+                    "type": "number",
+                    "abbreviation": "compact",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 0
+                    }
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Recon Discrepancies",
+                "showDescription": true,
+                "description": "Missing or drifted records found"
+              }
+            }
+          },
+          "position": {
+            "x": 9,
+            "y": 5,
+            "width": 3,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "ov_h1",
+            "multilineTextboxSpec": {
+              "lines": [
+                "## Reliability and throughput"
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 8,
+            "width": 12,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "ov_outcome_trend",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "pipeline_updates",
+                  "fields": [
+                    {
+                      "name": "daily(started_at)",
+                      "expression": "DATE_TRUNC(\"DAY\", `started_at`)"
+                    },
+                    {
+                      "name": "count(update_id)",
+                      "expression": "COUNT(`update_id`)"
+                    },
+                    {
+                      "name": "outcome",
+                      "expression": "`outcome`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "daily(started_at)",
+                  "scale": {
+                    "type": "temporal"
+                  },
+                  "axis": {
+                    "hideTitle": true
+                  }
+                },
+                "y": {
+                  "fieldName": "count(update_id)",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "displayName": "Updates",
+                  "axis": {
+                    "hideTitle": true
+                  }
+                },
+                "color": {
+                  "fieldName": "outcome",
+                  "scale": {
+                    "type": "categorical",
+                    "mappings": [
+                      {
+                        "value": "Succeeded",
+                        "color": "#2E9E8F"
+                      },
+                      {
+                        "value": "Failed",
+                        "color": "#E4572E"
+                      },
+                      {
+                        "value": "Running",
+                        "color": "#F2A65A"
+                      }
+                    ]
+                  },
+                  "displayName": "Outcome"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Pipeline updates per day by outcome",
+                "showDescription": true,
+                "description": "Stacked by result, so a tall red band reads as a bad day rather than a busy one."
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 9,
+            "width": 6,
+            "height": 5
+          }
+        },
+        {
+          "widget": {
+            "name": "ov_rows_trend",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "flow_throughput",
+                  "fields": [
+                    {
+                      "name": "daily(run_date)",
+                      "expression": "DATE_TRUNC(\"DAY\", `run_date`)"
+                    },
+                    {
+                      "name": "sum(rows_written)",
+                      "expression": "SUM(`rows_written`)"
+                    },
+                    {
+                      "name": "dataflow_group_id",
+                      "expression": "`dataflow_group_id`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "line",
+              "encodings": {
+                "x": {
+                  "fieldName": "daily(run_date)",
+                  "scale": {
+                    "type": "temporal"
+                  },
+                  "axis": {
+                    "hideTitle": true
+                  }
+                },
+                "y": {
+                  "fieldName": "sum(rows_written)",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "displayName": "Rows written",
+                  "format": {
+                    "type": "number",
+                    "abbreviation": "compact",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 0
+                    }
+                  },
+                  "axis": {
+                    "hideTitle": true
+                  }
+                },
+                "color": {
+                  "fieldName": "dataflow_group_id",
+                  "scale": {
+                    "type": "categorical"
+                  },
+                  "displayName": "Dataflow group"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Rows written per day by dataflow group",
+                "showDescription": true,
+                "description": "Throughput actually achieved, taken from the pipeline event logs."
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 9,
+            "width": 6,
+            "height": 5
+          }
+        },
+        {
+          "widget": {
+            "name": "ov_h2",
+            "multilineTextboxSpec": {
+              "lines": [
+                "## Dataflow group scorecard"
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 14,
+            "width": 12,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "ov_scorecard",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "group_scorecard",
+                  "fields": [
+                    {
+                      "name": "dataflow_group_id",
+                      "expression": "`dataflow_group_id`"
+                    },
+                    {
+                      "name": "health_status",
+                      "expression": "`health_status`"
+                    },
+                    {
+                      "name": "environment",
+                      "expression": "`environment`"
+                    },
+                    {
+                      "name": "total_flow_count",
+                      "expression": "`total_flow_count`"
+                    },
+                    {
+                      "name": "total_updates",
+                      "expression": "`total_updates`"
+                    },
+                    {
+                      "name": "success_rate_frac",
+                      "expression": "`success_rate_frac`"
+                    },
+                    {
+                      "name": "avg_duration_minutes",
+                      "expression": "`avg_duration_minutes`"
+                    },
+                    {
+                      "name": "p95_duration_minutes",
+                      "expression": "`p95_duration_minutes`"
+                    },
+                    {
+                      "name": "total_rows_written",
+                      "expression": "`total_rows_written`"
+                    },
+                    {
+                      "name": "dq_failed_records",
+                      "expression": "`dq_failed_records`"
+                    },
+                    {
+                      "name": "recon_discrepancies",
+                      "expression": "`recon_discrepancies`"
+                    },
+                    {
+                      "name": "estimated_cost_usd_30d",
+                      "expression": "`estimated_cost_usd_30d`"
+                    },
+                    {
+                      "name": "last_update_state",
+                      "expression": "`last_update_state`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "dataflow_group_id",
+                    "displayName": "Dataflow Group"
+                  },
+                  {
+                    "fieldName": "health_status",
+                    "displayName": "Health",
+                    "style": {
+                      "type": "basic",
+                      "rules": [
+                        {
+                          "condition": {
+                            "operand": {
+                              "type": "data-value",
+                              "value": "FAILING"
+                            },
+                            "operator": "="
+                          },
+                          "backgroundColor": {
+                            "hex": "#E4572E"
+                          }
+                        },
+                        {
+                          "condition": {
+                            "operand": {
+                              "type": "data-value",
+                              "value": "DEGRADED"
+                            },
+                            "operator": "="
+                          },
+                          "backgroundColor": {
+                            "hex": "#F2A65A"
+                          }
+                        },
+                        {
+                          "condition": {
+                            "operand": {
+                              "type": "data-value",
+                              "value": "HEALTHY"
+                            },
+                            "operator": "="
+                          },
+                          "backgroundColor": {
+                            "hex": "#2E9E8F"
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "fieldName": "environment",
+                    "displayName": "Env"
+                  },
+                  {
+                    "fieldName": "total_flow_count",
+                    "displayName": "Flows"
+                  },
+                  {
+                    "fieldName": "total_updates",
+                    "displayName": "Updates"
+                  },
+                  {
+                    "fieldName": "success_rate_frac",
+                    "displayName": "Success %",
+                    "format": {
+                      "type": "number-percent",
+                      "decimalPlaces": {
+                        "type": "max",
+                        "places": 1
+                      }
+                    }
+                  },
+                  {
+                    "fieldName": "avg_duration_minutes",
+                    "displayName": "Avg min",
+                    "format": {
+                      "type": "number",
+                      "decimalPlaces": {
+                        "type": "max",
+                        "places": 1
+                      }
+                    }
+                  },
+                  {
+                    "fieldName": "p95_duration_minutes",
+                    "displayName": "P95 min",
+                    "format": {
+                      "type": "number",
+                      "decimalPlaces": {
+                        "type": "max",
+                        "places": 1
+                      }
+                    }
+                  },
+                  {
+                    "fieldName": "total_rows_written",
+                    "displayName": "Rows",
+                    "format": {
+                      "type": "number",
+                      "abbreviation": "compact",
+                      "decimalPlaces": {
+                        "type": "max",
+                        "places": 0
+                      }
+                    }
+                  },
+                  {
+                    "fieldName": "dq_failed_records",
+                    "displayName": "DQ fails",
+                    "format": {
+                      "type": "number",
+                      "abbreviation": "compact",
+                      "decimalPlaces": {
+                        "type": "max",
+                        "places": 0
+                      }
+                    }
+                  },
+                  {
+                    "fieldName": "recon_discrepancies",
+                    "displayName": "Recon diffs",
+                    "format": {
+                      "type": "number",
+                      "abbreviation": "compact",
+                      "decimalPlaces": {
+                        "type": "max",
+                        "places": 0
+                      }
+                    }
+                  },
+                  {
+                    "fieldName": "estimated_cost_usd_30d",
+                    "displayName": "Est. cost",
+                    "format": {
+                      "type": "number-currency",
+                      "currencyCode": "USD",
+                      "abbreviation": "compact",
+                      "decimalPlaces": {
+                        "type": "max",
+                        "places": 2
+                      }
+                    }
+                  },
+                  {
+                    "fieldName": "last_update_state",
+                    "displayName": "Last run"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Every dataflow group at a glance",
+                "showDescription": true,
+                "description": "One row per group: reliability, speed, volume, quality and cost side by side."
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 15,
+            "width": 12,
+            "height": 7
+          }
+        },
+        {
+          "widget": {
+            "name": "ov_h3",
+            "multilineTextboxSpec": {
+              "lines": [
+                "## What each group does"
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 22,
+            "width": 12,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "ov_features",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "group_scorecard",
+                  "fields": [
+                    {
+                      "name": "dataflow_group_id",
+                      "expression": "`dataflow_group_id`"
+                    },
+                    {
+                      "name": "feature_summary",
+                      "expression": "`feature_summary`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "dataflow_group_id",
+                    "displayName": "Dataflow Group"
+                  },
+                  {
+                    "fieldName": "feature_summary",
+                    "displayName": "Framework capabilities exercised"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Declared capability footprint",
+                "showDescription": true,
+                "description": "Generated from the control metadata. The Genie agent quotes this same text."
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 23,
+            "width": 12,
+            "height": 5
+          }
+        }
+      ]
+    },
+    {
+      "name": "pipeline_performance",
+      "displayName": "Pipeline Performance",
+      "pageType": "PAGE_TYPE_CANVAS",
+      "layoutVersion": "GRID_V1",
+      "layout": [
+        {
+          "widget": {
+            "name": "pp_title",
+            "multilineTextboxSpec": {
+              "lines": [
+                "# Pipeline Run Performance"
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 12,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "pp_sub",
+            "multilineTextboxSpec": {
+              "lines": [
+                "Update-level execution behaviour from system.lakeflow.pipeline_update_timeline. Full refreshes are excluded from duration averages because they are legitimately slower and would mask a real regression."
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 1,
+            "width": 12,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "pp_total",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "pipeline_updates",
+                  "fields": [
+                    {
+                      "name": "count(update_id)",
+                      "expression": "COUNT(`update_id`)"
+                    },
+                    {
+                      "name": "daily(started_at)",
+                      "expression": "DATE_TRUNC(\"DAY\", `started_at`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "count(update_id)",
+                  "displayName": "Updates",
+                  "format": {
+                    "type": "number",
+                    "abbreviation": "compact",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 0
+                    }
+                  }
+                },
+                "period": {
+                  "fieldName": "daily(started_at)"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Updates"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 2,
+            "width": 3,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "pp_fail",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "pipeline_updates",
+                  "fields": [
+                    {
+                      "name": "sum(is_failure)",
+                      "expression": "SUM(`is_failure`)"
+                    },
+                    {
+                      "name": "daily(started_at)",
+                      "expression": "DATE_TRUNC(\"DAY\", `started_at`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "sum(is_failure)",
+                  "displayName": "Failed Updates",
+                  "format": {
+                    "type": "number",
+                    "abbreviation": "compact",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 0
+                    }
+                  }
+                },
+                "period": {
+                  "fieldName": "daily(started_at)"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Failed Updates"
+              }
+            }
+          },
+          "position": {
+            "x": 3,
+            "y": 2,
+            "width": 3,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "pp_retry",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "pipeline_updates",
+                  "fields": [
+                    {
+                      "name": "sum(is_retry)",
+                      "expression": "SUM(`is_retry`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "sum(is_retry)",
+                  "displayName": "Automatic Retries",
+                  "format": {
+                    "type": "number",
+                    "abbreviation": "compact",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 0
+                    }
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Automatic Retries",
+                "showDescription": true,
+                "description": "RETRY_ON_FAILURE updates: a retry loop, not throughput"
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 2,
+            "width": 3,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "pp_avg",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "pipeline_updates",
+                  "fields": [
+                    {
+                      "name": "avg(duration_minutes)",
+                      "expression": "AVG(`duration_minutes`)"
+                    },
+                    {
+                      "name": "daily(started_at)",
+                      "expression": "DATE_TRUNC(\"DAY\", `started_at`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "avg(duration_minutes)",
+                  "displayName": "Avg Duration (min)",
+                  "format": {
+                    "type": "number",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 1
+                    }
+                  }
+                },
+                "period": {
+                  "fieldName": "daily(started_at)"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Avg Duration (min)"
+              }
+            }
+          },
+          "position": {
+            "x": 9,
+            "y": 2,
+            "width": 3,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "pp_h1",
+            "multilineTextboxSpec": {
+              "lines": [
+                "## Duration and outcome"
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 5,
+            "width": 12,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "pp_combo",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "pipeline_updates",
+                  "fields": [
+                    {
+                      "name": "daily(started_at)",
+                      "expression": "DATE_TRUNC(\"DAY\", `started_at`)"
+                    },
+                    {
+                      "name": "count(update_id)",
+                      "expression": "COUNT(`update_id`)"
+                    },
+                    {
+                      "name": "avg(duration_minutes)",
+                      "expression": "AVG(`duration_minutes`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 1,
+              "widgetType": "combo",
+              "encodings": {
+                "x": {
+                  "fieldName": "daily(started_at)",
+                  "scale": {
+                    "type": "temporal"
+                  },
+                  "axis": {
+                    "hideTitle": true
+                  }
+                },
+                "y": {
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "primary": {
+                    "fields": [
+                      {
+                        "fieldName": "count(update_id)",
+                        "displayName": "Updates"
+                      }
+                    ]
+                  },
+                  "secondary": {
+                    "fields": [
+                      {
+                        "fieldName": "avg(duration_minutes)",
+                        "displayName": "Avg duration (min)"
+                      }
+                    ]
+                  }
+                },
+                "label": {
+                  "show": false
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Update volume vs average duration",
+                "showDescription": true,
+                "description": "Bars are volume, the line is mean duration. Duration climbing while volume stays flat means the pipeline itself slowed down."
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 6,
+            "width": 12,
+            "height": 5
+          }
+        },
+        {
+          "widget": {
+            "name": "pp_by_group",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "pipeline_updates",
+                  "fields": [
+                    {
+                      "name": "dataflow_group_id",
+                      "expression": "`dataflow_group_id`"
+                    },
+                    {
+                      "name": "avg(duration_minutes)",
+                      "expression": "AVG(`duration_minutes`)"
+                    },
+                    {
+                      "name": "update_type",
+                      "expression": "`update_type`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "dataflow_group_id",
+                  "scale": {
+                    "type": "categorical"
+                  },
+                  "axis": {
+                    "hideTitle": true
+                  }
+                },
+                "y": {
+                  "fieldName": "avg(duration_minutes)",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "displayName": "Avg duration (min)",
+                  "format": {
+                    "type": "number",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 1
+                    }
+                  },
+                  "axis": {
+                    "hideTitle": true
+                  }
+                },
+                "color": {
+                  "fieldName": "update_type",
+                  "scale": {
+                    "type": "categorical",
+                    "mappings": [
+                      {
+                        "value": "REFRESH",
+                        "color": "#2D7DD2"
+                      },
+                      {
+                        "value": "FULL_REFRESH",
+                        "color": "#7B5EA7"
+                      }
+                    ]
+                  },
+                  "displayName": "Update type"
+                }
+              },
+              "mark": {
+                "layout": "group"
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Average update duration by dataflow group",
+                "showDescription": true,
+                "description": "Grouped so a full refresh is never mistaken for a slow incremental run."
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 11,
+            "width": 6,
+            "height": 5
+          }
+        },
+        {
+          "widget": {
+            "name": "pp_trigger",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "pipeline_updates",
+                  "fields": [
+                    {
+                      "name": "trigger_type",
+                      "expression": "`trigger_type`"
+                    },
+                    {
+                      "name": "count(update_id)",
+                      "expression": "COUNT(`update_id`)"
+                    },
+                    {
+                      "name": "outcome",
+                      "expression": "`outcome`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "trigger_type",
+                  "scale": {
+                    "type": "categorical"
+                  },
+                  "axis": {
+                    "hideTitle": true
+                  }
+                },
+                "y": {
+                  "fieldName": "count(update_id)",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "displayName": "Updates",
+                  "axis": {
+                    "hideTitle": true
+                  }
+                },
+                "color": {
+                  "fieldName": "outcome",
+                  "scale": {
+                    "type": "categorical",
+                    "mappings": [
+                      {
+                        "value": "Succeeded",
+                        "color": "#2E9E8F"
+                      },
+                      {
+                        "value": "Failed",
+                        "color": "#E4572E"
+                      },
+                      {
+                        "value": "Running",
+                        "color": "#F2A65A"
+                      }
+                    ]
+                  },
+                  "displayName": "Outcome"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "What triggers updates",
+                "showDescription": true,
+                "description": "RETRY_ON_FAILURE volume is the signature of an unstable pipeline."
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 11,
+            "width": 6,
+            "height": 5
+          }
+        },
+        {
+          "widget": {
+            "name": "pp_h2",
+            "multilineTextboxSpec": {
+              "lines": [
+                "## Update detail"
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 16,
+            "width": 12,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "pp_table",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "pipeline_updates",
+                  "fields": [
+                    {
+                      "name": "dataflow_group_id",
+                      "expression": "`dataflow_group_id`"
+                    },
+                    {
+                      "name": "pipeline_name",
+                      "expression": "`pipeline_name`"
+                    },
+                    {
+                      "name": "update_type",
+                      "expression": "`update_type`"
+                    },
+                    {
+                      "name": "outcome",
+                      "expression": "`outcome`"
+                    },
+                    {
+                      "name": "trigger_type",
+                      "expression": "`trigger_type`"
+                    },
+                    {
+                      "name": "duration_minutes",
+                      "expression": "`duration_minutes`"
+                    },
+                    {
+                      "name": "started_at",
+                      "expression": "`started_at`"
+                    },
+                    {
+                      "name": "run_as_user_name",
+                      "expression": "`run_as_user_name`"
+                    },
+                    {
+                      "name": "update_id",
+                      "expression": "`update_id`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "dataflow_group_id",
+                    "displayName": "Dataflow Group"
+                  },
+                  {
+                    "fieldName": "pipeline_name",
+                    "displayName": "Pipeline"
+                  },
+                  {
+                    "fieldName": "update_type",
+                    "displayName": "Type"
+                  },
+                  {
+                    "fieldName": "outcome",
+                    "displayName": "Outcome",
+                    "style": {
+                      "type": "basic",
+                      "rules": [
+                        {
+                          "condition": {
+                            "operand": {
+                              "type": "data-value",
+                              "value": "Failed"
+                            },
+                            "operator": "="
+                          },
+                          "backgroundColor": {
+                            "hex": "#E4572E"
+                          }
+                        },
+                        {
+                          "condition": {
+                            "operand": {
+                              "type": "data-value",
+                              "value": "Succeeded"
+                            },
+                            "operator": "="
+                          },
+                          "backgroundColor": {
+                            "hex": "#2E9E8F"
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "fieldName": "trigger_type",
+                    "displayName": "Trigger"
+                  },
+                  {
+                    "fieldName": "duration_minutes",
+                    "displayName": "Duration (min)",
+                    "format": {
+                      "type": "number",
+                      "decimalPlaces": {
+                        "type": "max",
+                        "places": 1
+                      }
+                    }
+                  },
+                  {
+                    "fieldName": "started_at",
+                    "displayName": "Started"
+                  },
+                  {
+                    "fieldName": "run_as_user_name",
+                    "displayName": "Ran as"
+                  },
+                  {
+                    "fieldName": "update_id",
+                    "displayName": "Update ID"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Every pipeline update",
+                "showDescription": true,
+                "description": "Sort by duration to find the slowest run, or filter Outcome = Failed to triage."
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 17,
+            "width": 12,
+            "height": 7
+          }
+        }
+      ]
+    },
+    {
+      "name": "data_flow",
+      "displayName": "Data Flow & Throughput",
+      "pageType": "PAGE_TYPE_CANVAS",
+      "layoutVersion": "GRID_V1",
+      "layout": [
+        {
+          "widget": {
+            "name": "ft_title",
+            "multilineTextboxSpec": {
+              "lines": [
+                "# Data Flow and Throughput"
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 12,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "ft_sub",
+            "multilineTextboxSpec": {
+              "lines": [
+                "Per-flow row counts read from the Unity Catalog event logs of each pipeline. This is the only place the actual throughput of the framework is queryable."
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 1,
+            "width": 12,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "ft_rows",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "flow_throughput",
+                  "fields": [
+                    {
+                      "name": "sum(rows_written)",
+                      "expression": "SUM(`rows_written`)"
+                    },
+                    {
+                      "name": "daily(run_date)",
+                      "expression": "DATE_TRUNC(\"DAY\", `run_date`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "sum(rows_written)",
+                  "displayName": "Rows Written",
+                  "format": {
+                    "type": "number",
+                    "abbreviation": "compact",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 0
+                    }
+                  }
+                },
+                "period": {
+                  "fieldName": "daily(run_date)"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Rows Written"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 2,
+            "width": 3,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "ft_flows",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "flow_throughput",
+                  "fields": [
+                    {
+                      "name": "countdistinct(flow_name)",
+                      "expression": "COUNT(DISTINCT `flow_name`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "countdistinct(flow_name)",
+                  "displayName": "Active Flows"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Active Flows",
+                "showDescription": true,
+                "description": "Flows that actually wrote data"
+              }
+            }
+          },
+          "position": {
+            "x": 3,
+            "y": 2,
+            "width": 3,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "ft_upsert",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "flow_throughput",
+                  "fields": [
+                    {
+                      "name": "sum(rows_upserted)",
+                      "expression": "SUM(`rows_upserted`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "sum(rows_upserted)",
+                  "displayName": "Rows Upserted",
+                  "format": {
+                    "type": "number",
+                    "abbreviation": "compact",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 0
+                    }
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Rows Upserted",
+                "showDescription": true,
+                "description": "CDC and SCD merge activity"
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 2,
+            "width": 3,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "ft_dropped",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "flow_throughput",
+                  "fields": [
+                    {
+                      "name": "sum(rows_dropped)",
+                      "expression": "SUM(`rows_dropped`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "sum(rows_dropped)",
+                  "displayName": "Rows Dropped by DQ",
+                  "format": {
+                    "type": "number",
+                    "abbreviation": "compact",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 0
+                    }
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Rows Dropped by DQ",
+                "showDescription": true,
+                "description": "Records rejected by an expectation"
+              }
+            }
+          },
+          "position": {
+            "x": 9,
+            "y": 2,
+            "width": 3,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "ft_h1",
+            "multilineTextboxSpec": {
+              "lines": [
+                "## Where the volume goes"
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 5,
+            "width": 12,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "ft_top_flows",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "flow_throughput",
+                  "fields": [
+                    {
+                      "name": "dataset_name",
+                      "expression": "`dataset_name`"
+                    },
+                    {
+                      "name": "sum(rows_written)",
+                      "expression": "SUM(`rows_written`)"
+                    },
+                    {
+                      "name": "dataflow_group_id",
+                      "expression": "`dataflow_group_id`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "dataset_name",
+                  "scale": {
+                    "type": "categorical",
+                    "sort": {
+                      "by": "value",
+                      "reverse": true
+                    }
+                  },
+                  "axis": {
+                    "hideTitle": true
+                  }
+                },
+                "y": {
+                  "fieldName": "sum(rows_written)",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "displayName": "Rows written",
+                  "format": {
+                    "type": "number",
+                    "abbreviation": "compact",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 0
+                    }
+                  },
+                  "axis": {
+                    "hideTitle": true
+                  }
+                },
+                "color": {
+                  "fieldName": "dataflow_group_id",
+                  "scale": {
+                    "type": "categorical"
+                  },
+                  "displayName": "Dataflow group"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Rows written by dataset",
+                "showDescription": true,
+                "description": "Sorted by volume: the tallest bars are the heaviest datasets."
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 6,
+            "width": 12,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "ft_area",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "flow_throughput",
+                  "fields": [
+                    {
+                      "name": "daily(run_date)",
+                      "expression": "DATE_TRUNC(\"DAY\", `run_date`)"
+                    },
+                    {
+                      "name": "sum(rows_written)",
+                      "expression": "SUM(`rows_written`)"
+                    },
+                    {
+                      "name": "dataflow_group_id",
+                      "expression": "`dataflow_group_id`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "area",
+              "encodings": {
+                "x": {
+                  "fieldName": "daily(run_date)",
+                  "scale": {
+                    "type": "temporal"
+                  },
+                  "axis": {
+                    "hideTitle": true
+                  }
+                },
+                "y": {
+                  "fieldName": "sum(rows_written)",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "displayName": "Rows written",
+                  "format": {
+                    "type": "number",
+                    "abbreviation": "compact",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 0
+                    }
+                  },
+                  "axis": {
+                    "hideTitle": true
+                  }
+                },
+                "color": {
+                  "fieldName": "dataflow_group_id",
+                  "scale": {
+                    "type": "categorical"
+                  },
+                  "displayName": "Dataflow group"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Daily throughput by dataflow group",
+                "showDescription": true,
+                "description": "Stacked area: total height is platform throughput, each band a group share."
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 12,
+            "width": 12,
+            "height": 5
+          }
+        },
+        {
+          "widget": {
+            "name": "ft_h2",
+            "multilineTextboxSpec": {
+              "lines": [
+                "## Flow detail"
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 17,
+            "width": 12,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "ft_table",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "flow_throughput",
+                  "fields": [
+                    {
+                      "name": "dataflow_group_id",
+                      "expression": "`dataflow_group_id`"
+                    },
+                    {
+                      "name": "flow_name",
+                      "expression": "`flow_name`"
+                    },
+                    {
+                      "name": "flow_status",
+                      "expression": "`flow_status`"
+                    },
+                    {
+                      "name": "rows_written",
+                      "expression": "`rows_written`"
+                    },
+                    {
+                      "name": "rows_upserted",
+                      "expression": "`rows_upserted`"
+                    },
+                    {
+                      "name": "rows_deleted",
+                      "expression": "`rows_deleted`"
+                    },
+                    {
+                      "name": "rows_dropped",
+                      "expression": "`rows_dropped`"
+                    },
+                    {
+                      "name": "event_time",
+                      "expression": "`event_time`"
+                    },
+                    {
+                      "name": "update_id",
+                      "expression": "`update_id`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "dataflow_group_id",
+                    "displayName": "Dataflow Group"
+                  },
+                  {
+                    "fieldName": "flow_name",
+                    "displayName": "Flow / dataset"
+                  },
+                  {
+                    "fieldName": "flow_status",
+                    "displayName": "Status"
+                  },
+                  {
+                    "fieldName": "rows_written",
+                    "displayName": "Rows written",
+                    "format": {
+                      "type": "number",
+                      "abbreviation": "compact",
+                      "decimalPlaces": {
+                        "type": "max",
+                        "places": 0
+                      }
+                    }
+                  },
+                  {
+                    "fieldName": "rows_upserted",
+                    "displayName": "Upserted",
+                    "format": {
+                      "type": "number",
+                      "abbreviation": "compact",
+                      "decimalPlaces": {
+                        "type": "max",
+                        "places": 0
+                      }
+                    }
+                  },
+                  {
+                    "fieldName": "rows_deleted",
+                    "displayName": "Deleted",
+                    "format": {
+                      "type": "number",
+                      "abbreviation": "compact",
+                      "decimalPlaces": {
+                        "type": "max",
+                        "places": 0
+                      }
+                    }
+                  },
+                  {
+                    "fieldName": "rows_dropped",
+                    "displayName": "Dropped",
+                    "format": {
+                      "type": "number",
+                      "abbreviation": "compact",
+                      "decimalPlaces": {
+                        "type": "max",
+                        "places": 0
+                      }
+                    }
+                  },
+                  {
+                    "fieldName": "event_time",
+                    "displayName": "Observed"
+                  },
+                  {
+                    "fieldName": "update_id",
+                    "displayName": "Update ID"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Per-flow, per-update row counts",
+                "showDescription": true,
+                "description": "One row per flow per update. Names starting with an underscore are pipeline-scoped intermediate nodes, not published tables."
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 18,
+            "width": 12,
+            "height": 7
+          }
+        }
+      ]
+    },
+    {
+      "name": "data_quality",
+      "displayName": "Quality & Reconciliation",
+      "pageType": "PAGE_TYPE_CANVAS",
+      "layoutVersion": "GRID_V1",
+      "layout": [
+        {
+          "widget": {
+            "name": "dq_title",
+            "multilineTextboxSpec": {
+              "lines": [
+                "# Data Quality and Reconciliation"
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 12,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "dq_sub",
+            "multilineTextboxSpec": {
+              "lines": [
+                "Expectation outcomes per rule, exploded from the pipeline event logs, alongside source-to-target reconciliation results from the framework control tables."
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 1,
+            "width": 12,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "dq_rules",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "dq_results",
+                  "fields": [
+                    {
+                      "name": "countdistinct(rule_name)",
+                      "expression": "COUNT(DISTINCT `rule_name`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "countdistinct(rule_name)",
+                  "displayName": "DQ Rules Evaluated"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "DQ Rules Evaluated",
+                "showDescription": true,
+                "description": "Distinct expectations exercised"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 2,
+            "width": 3,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "dq_pass",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "dq_results",
+                  "fields": [
+                    {
+                      "name": "avg(pass_rate_frac)",
+                      "expression": "AVG(`pass_rate_frac`)"
+                    },
+                    {
+                      "name": "daily(event_time)",
+                      "expression": "DATE_TRUNC(\"DAY\", `event_time`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "avg(pass_rate_frac)",
+                  "displayName": "Pass Rate",
+                  "format": {
+                    "type": "number-percent",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 1
+                    }
+                  }
+                },
+                "period": {
+                  "fieldName": "daily(event_time)"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Pass Rate"
+              }
+            }
+          },
+          "position": {
+            "x": 3,
+            "y": 2,
+            "width": 3,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "dq_failed",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "dq_results",
+                  "fields": [
+                    {
+                      "name": "sum(failed_records)",
+                      "expression": "SUM(`failed_records`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "sum(failed_records)",
+                  "displayName": "Failed Records",
+                  "format": {
+                    "type": "number",
+                    "abbreviation": "compact",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 0
+                    }
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Failed Records",
+                "showDescription": true,
+                "description": "Records violating an expectation"
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 2,
+            "width": 3,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "dq_recon",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "recon_health",
+                  "fields": [
+                    {
+                      "name": "sum(total_discrepancies)",
+                      "expression": "SUM(`total_discrepancies`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "sum(total_discrepancies)",
+                  "displayName": "Recon Discrepancies",
+                  "format": {
+                    "type": "number",
+                    "abbreviation": "compact",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 0
+                    }
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Recon Discrepancies",
+                "showDescription": true,
+                "description": "Missing plus drifted records"
+              }
+            }
+          },
+          "position": {
+            "x": 9,
+            "y": 2,
+            "width": 3,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "dq_h1",
+            "multilineTextboxSpec": {
+              "lines": [
+                "## Expectation outcomes"
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 5,
+            "width": 12,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "dq_by_rule",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "dq_results",
+                  "fields": [
+                    {
+                      "name": "rule_name",
+                      "expression": "`rule_name`"
+                    },
+                    {
+                      "name": "sum(passed_records)",
+                      "expression": "SUM(`passed_records`)"
+                    },
+                    {
+                      "name": "sum(failed_records)",
+                      "expression": "SUM(`failed_records`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "rule_name",
+                  "scale": {
+                    "type": "categorical"
+                  },
+                  "axis": {
+                    "hideTitle": true
+                  }
+                },
+                "y": {
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "fields": [
+                    {
+                      "fieldName": "sum(passed_records)",
+                      "displayName": "Passed"
+                    },
+                    {
+                      "fieldName": "sum(failed_records)",
+                      "displayName": "Failed"
+                    }
+                  ]
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Records passed vs failed per rule",
+                "showDescription": true,
+                "description": "Any visible Failed segment is a real data-quality problem worth chasing."
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 6,
+            "width": 6,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "dq_heat",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "dq_results",
+                  "fields": [
+                    {
+                      "name": "dataset_name",
+                      "expression": "`dataset_name`"
+                    },
+                    {
+                      "name": "sum(failed_records)",
+                      "expression": "SUM(`failed_records`)"
+                    },
+                    {
+                      "name": "rule_name",
+                      "expression": "`rule_name`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "heatmap",
+              "encodings": {
+                "x": {
+                  "fieldName": "dataset_name",
+                  "scale": {
+                    "type": "categorical"
+                  },
+                  "axis": {
+                    "hideTitle": true
+                  }
+                },
+                "y": {
+                  "fieldName": "rule_name",
+                  "scale": {
+                    "type": "categorical"
+                  },
+                  "axis": {
+                    "hideTitle": true
+                  }
+                },
+                "color": {
+                  "fieldName": "sum(failed_records)",
+                  "scale": {
+                    "type": "quantitative",
+                    "colorRamp": {
+                      "mode": "custom-sequential",
+                      "start": {
+                        "hex": "#F4F1E8"
+                      },
+                      "end": {
+                        "hex": "#E4572E"
+                      }
+                    }
+                  },
+                  "displayName": "Failed records"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Failed records by dataset and rule",
+                "showDescription": true,
+                "description": "Dark cells locate the exact rule and dataset pair that is failing."
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 6,
+            "width": 6,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "dq_h2",
+            "multilineTextboxSpec": {
+              "lines": [
+                "## Reconciliation"
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 12,
+            "width": 12,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "rc_class",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "recon_health",
+                  "fields": [
+                    {
+                      "name": "reconciliation_id",
+                      "expression": "`reconciliation_id`"
+                    },
+                    {
+                      "name": "sum(matched_count)",
+                      "expression": "SUM(`matched_count`)"
+                    },
+                    {
+                      "name": "sum(missing_in_target_count)",
+                      "expression": "SUM(`missing_in_target_count`)"
+                    },
+                    {
+                      "name": "sum(missing_in_source_count)",
+                      "expression": "SUM(`missing_in_source_count`)"
+                    },
+                    {
+                      "name": "sum(value_drift_count)",
+                      "expression": "SUM(`value_drift_count`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "reconciliation_id",
+                  "scale": {
+                    "type": "categorical"
+                  },
+                  "axis": {
+                    "hideTitle": true
+                  }
+                },
+                "y": {
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "fields": [
+                    {
+                      "fieldName": "sum(matched_count)",
+                      "displayName": "Matched"
+                    },
+                    {
+                      "fieldName": "sum(missing_in_target_count)",
+                      "displayName": "Missing in target"
+                    },
+                    {
+                      "fieldName": "sum(missing_in_source_count)",
+                      "displayName": "Missing in source"
+                    },
+                    {
+                      "fieldName": "sum(value_drift_count)",
+                      "displayName": "Value drift"
+                    }
+                  ]
+                }
+              },
+              "mark": {
+                "layout": "stack-100"
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Reconciliation classification by flow",
+                "showDescription": true,
+                "description": "100% stacked: the non-matched share is what needs investigation, independent of volume."
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 13,
+            "width": 12,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "dq_h3",
+            "multilineTextboxSpec": {
+              "lines": [
+                "## Reconciliation detail"
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 19,
+            "width": 12,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "rc_table",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "recon_health",
+                  "fields": [
+                    {
+                      "name": "dataflow_group_id",
+                      "expression": "`dataflow_group_id`"
+                    },
+                    {
+                      "name": "reconciliation_id",
+                      "expression": "`reconciliation_id`"
+                    },
+                    {
+                      "name": "target_id",
+                      "expression": "`target_id`"
+                    },
+                    {
+                      "name": "status",
+                      "expression": "`status`"
+                    },
+                    {
+                      "name": "source_record_count",
+                      "expression": "`source_record_count`"
+                    },
+                    {
+                      "name": "target_record_count",
+                      "expression": "`target_record_count`"
+                    },
+                    {
+                      "name": "matched_count",
+                      "expression": "`matched_count`"
+                    },
+                    {
+                      "name": "missing_in_target_count",
+                      "expression": "`missing_in_target_count`"
+                    },
+                    {
+                      "name": "missing_in_source_count",
+                      "expression": "`missing_in_source_count`"
+                    },
+                    {
+                      "name": "value_drift_count",
+                      "expression": "`value_drift_count`"
+                    },
+                    {
+                      "name": "match_rate_frac",
+                      "expression": "`match_rate_frac`"
+                    },
+                    {
+                      "name": "has_run_history",
+                      "expression": "`has_run_history`"
+                    },
+                    {
+                      "name": "run_at",
+                      "expression": "`run_at`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "dataflow_group_id",
+                    "displayName": "Dataflow Group"
+                  },
+                  {
+                    "fieldName": "reconciliation_id",
+                    "displayName": "Reconciliation"
+                  },
+                  {
+                    "fieldName": "target_id",
+                    "displayName": "Target"
+                  },
+                  {
+                    "fieldName": "status",
+                    "displayName": "Status"
+                  },
+                  {
+                    "fieldName": "source_record_count",
+                    "displayName": "Source rows",
+                    "format": {
+                      "type": "number",
+                      "abbreviation": "compact",
+                      "decimalPlaces": {
+                        "type": "max",
+                        "places": 0
+                      }
+                    }
+                  },
+                  {
+                    "fieldName": "target_record_count",
+                    "displayName": "Target rows",
+                    "format": {
+                      "type": "number",
+                      "abbreviation": "compact",
+                      "decimalPlaces": {
+                        "type": "max",
+                        "places": 0
+                      }
+                    }
+                  },
+                  {
+                    "fieldName": "matched_count",
+                    "displayName": "Matched",
+                    "format": {
+                      "type": "number",
+                      "abbreviation": "compact",
+                      "decimalPlaces": {
+                        "type": "max",
+                        "places": 0
+                      }
+                    }
+                  },
+                  {
+                    "fieldName": "missing_in_target_count",
+                    "displayName": "Missing in tgt",
+                    "format": {
+                      "type": "number",
+                      "abbreviation": "compact",
+                      "decimalPlaces": {
+                        "type": "max",
+                        "places": 0
+                      }
+                    }
+                  },
+                  {
+                    "fieldName": "missing_in_source_count",
+                    "displayName": "Missing in src",
+                    "format": {
+                      "type": "number",
+                      "abbreviation": "compact",
+                      "decimalPlaces": {
+                        "type": "max",
+                        "places": 0
+                      }
+                    }
+                  },
+                  {
+                    "fieldName": "value_drift_count",
+                    "displayName": "Drift",
+                    "format": {
+                      "type": "number",
+                      "abbreviation": "compact",
+                      "decimalPlaces": {
+                        "type": "max",
+                        "places": 0
+                      }
+                    }
+                  },
+                  {
+                    "fieldName": "match_rate_frac",
+                    "displayName": "Match %",
+                    "format": {
+                      "type": "number-percent",
+                      "decimalPlaces": {
+                        "type": "max",
+                        "places": 1
+                      }
+                    }
+                  },
+                  {
+                    "fieldName": "has_run_history",
+                    "displayName": "Has runs"
+                  },
+                  {
+                    "fieldName": "run_at",
+                    "displayName": "Run at"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Reconciliation runs",
+                "showDescription": true,
+                "description": "Has runs = false means nothing was logged, which may mean it never ran OR that run-log capture is disabled. No rows is not evidence of health."
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 20,
+            "width": 12,
+            "height": 7
+          }
+        }
+      ]
+    },
+    {
+      "name": "cost",
+      "displayName": "Cost & Efficiency",
+      "pageType": "PAGE_TYPE_CANVAS",
+      "layoutVersion": "GRID_V1",
+      "layout": [
+        {
+          "widget": {
+            "name": "ct_title",
+            "multilineTextboxSpec": {
+              "lines": [
+                "# Cost and Efficiency"
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 12,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "ct_sub",
+            "multilineTextboxSpec": {
+              "lines": [
+                "DBU consumption and estimated list-price cost per dataflow group, from system.billing.usage joined to system.billing.list_prices. Estimated means list price: it does not reflect negotiated discounts or commitments."
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 1,
+            "width": 12,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "ct_cost",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "cost_daily",
+                  "fields": [
+                    {
+                      "name": "sum(estimated_cost_usd)",
+                      "expression": "SUM(`estimated_cost_usd`)"
+                    },
+                    {
+                      "name": "daily(usage_date)",
+                      "expression": "DATE_TRUNC(\"DAY\", `usage_date`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "sum(estimated_cost_usd)",
+                  "displayName": "Est. Cost (30d)",
+                  "format": {
+                    "type": "number-currency",
+                    "currencyCode": "USD",
+                    "abbreviation": "compact",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 2
+                    }
+                  }
+                },
+                "period": {
+                  "fieldName": "daily(usage_date)"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Est. Cost (30d)"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 2,
+            "width": 4,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "ct_dbu",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "cost_daily",
+                  "fields": [
+                    {
+                      "name": "sum(dbus)",
+                      "expression": "SUM(`dbus`)"
+                    },
+                    {
+                      "name": "daily(usage_date)",
+                      "expression": "DATE_TRUNC(\"DAY\", `usage_date`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "sum(dbus)",
+                  "displayName": "DBUs Consumed",
+                  "format": {
+                    "type": "number",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 1
+                    }
+                  }
+                },
+                "period": {
+                  "fieldName": "daily(usage_date)"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "DBUs Consumed"
+              }
+            }
+          },
+          "position": {
+            "x": 4,
+            "y": 2,
+            "width": 4,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "ct_entities",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "cost_daily",
+                  "fields": [
+                    {
+                      "name": "countdistinct(entity_name)",
+                      "expression": "COUNT(DISTINCT `entity_name`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "countdistinct(entity_name)",
+                  "displayName": "Billed Entities"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Billed Entities",
+                "showDescription": true,
+                "description": "Pipelines and jobs with attributed spend"
+              }
+            }
+          },
+          "position": {
+            "x": 8,
+            "y": 2,
+            "width": 4,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "ct_h1",
+            "multilineTextboxSpec": {
+              "lines": [
+                "## Spend over time and by group"
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 5,
+            "width": 12,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "ct_trend",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "cost_daily",
+                  "fields": [
+                    {
+                      "name": "daily(usage_date)",
+                      "expression": "DATE_TRUNC(\"DAY\", `usage_date`)"
+                    },
+                    {
+                      "name": "sum(estimated_cost_usd)",
+                      "expression": "SUM(`estimated_cost_usd`)"
+                    },
+                    {
+                      "name": "dataflow_group_id",
+                      "expression": "`dataflow_group_id`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "area",
+              "encodings": {
+                "x": {
+                  "fieldName": "daily(usage_date)",
+                  "scale": {
+                    "type": "temporal"
+                  },
+                  "axis": {
+                    "hideTitle": true
+                  }
+                },
+                "y": {
+                  "fieldName": "sum(estimated_cost_usd)",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "displayName": "Est. cost (USD)",
+                  "format": {
+                    "type": "number-currency",
+                    "currencyCode": "USD",
+                    "abbreviation": "compact",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 2
+                    }
+                  },
+                  "axis": {
+                    "hideTitle": true
+                  }
+                },
+                "color": {
+                  "fieldName": "dataflow_group_id",
+                  "scale": {
+                    "type": "categorical"
+                  },
+                  "displayName": "Dataflow group"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Daily estimated cost by dataflow group",
+                "showDescription": true,
+                "description": "Attributed via the pipeline id, so this is real per-group spend."
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 6,
+            "width": 6,
+            "height": 5
+          }
+        },
+        {
+          "widget": {
+            "name": "ct_share",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "cost_daily",
+                  "fields": [
+                    {
+                      "name": "dataflow_group_id",
+                      "expression": "`dataflow_group_id`"
+                    },
+                    {
+                      "name": "sum(estimated_cost_usd)",
+                      "expression": "SUM(`estimated_cost_usd`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "pie",
+              "encodings": {
+                "color": {
+                  "fieldName": "dataflow_group_id",
+                  "scale": {
+                    "type": "categorical"
+                  },
+                  "displayName": "Dataflow group"
+                },
+                "angle": {
+                  "fieldName": "sum(estimated_cost_usd)",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "displayName": "Est. cost (USD)",
+                  "format": {
+                    "type": "number-currency",
+                    "currencyCode": "USD",
+                    "abbreviation": "compact",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 2
+                    }
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Share of spend by dataflow group",
+                "showDescription": true,
+                "description": "Which group is consuming the platform budget."
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 6,
+            "width": 6,
+            "height": 5
+          }
+        },
+        {
+          "widget": {
+            "name": "ct_h2",
+            "multilineTextboxSpec": {
+              "lines": [
+                "## Cost efficiency"
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 11,
+            "width": 12,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "ct_eff",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "group_scorecard",
+                  "fields": [
+                    {
+                      "name": "dataflow_group_id",
+                      "expression": "`dataflow_group_id`"
+                    },
+                    {
+                      "name": "sum(estimated_cost_usd_30d)",
+                      "expression": "SUM(`estimated_cost_usd_30d`)"
+                    },
+                    {
+                      "name": "sum(total_rows_written)",
+                      "expression": "SUM(`total_rows_written`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 1,
+              "widgetType": "combo",
+              "encodings": {
+                "x": {
+                  "fieldName": "dataflow_group_id",
+                  "scale": {
+                    "type": "categorical"
+                  },
+                  "axis": {
+                    "hideTitle": true
+                  }
+                },
+                "y": {
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "primary": {
+                    "fields": [
+                      {
+                        "fieldName": "sum(estimated_cost_usd_30d)",
+                        "displayName": "Est. cost (USD)"
+                      }
+                    ]
+                  },
+                  "secondary": {
+                    "fields": [
+                      {
+                        "fieldName": "sum(total_rows_written)",
+                        "displayName": "Rows written"
+                      }
+                    ]
+                  }
+                },
+                "label": {
+                  "show": false
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Cost vs rows processed per group",
+                "showDescription": true,
+                "description": "Bars are spend, the line is volume. A tall bar under a low line is an expensive group for the work it does."
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 12,
+            "width": 12,
+            "height": 5
+          }
+        },
+        {
+          "widget": {
+            "name": "ct_h3",
+            "multilineTextboxSpec": {
+              "lines": [
+                "## Spend detail"
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 17,
+            "width": 12,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "ct_table",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "cost_daily",
+                  "fields": [
+                    {
+                      "name": "dataflow_group_id",
+                      "expression": "`dataflow_group_id`"
+                    },
+                    {
+                      "name": "workload",
+                      "expression": "`workload`"
+                    },
+                    {
+                      "name": "entity_name",
+                      "expression": "`entity_name`"
+                    },
+                    {
+                      "name": "sku_name",
+                      "expression": "`sku_name`"
+                    },
+                    {
+                      "name": "dbus",
+                      "expression": "`dbus`"
+                    },
+                    {
+                      "name": "estimated_cost_usd",
+                      "expression": "`estimated_cost_usd`"
+                    },
+                    {
+                      "name": "usage_date",
+                      "expression": "`usage_date`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "dataflow_group_id",
+                    "displayName": "Dataflow Group"
+                  },
+                  {
+                    "fieldName": "workload",
+                    "displayName": "Workload"
+                  },
+                  {
+                    "fieldName": "entity_name",
+                    "displayName": "Pipeline / Job"
+                  },
+                  {
+                    "fieldName": "sku_name",
+                    "displayName": "SKU"
+                  },
+                  {
+                    "fieldName": "dbus",
+                    "displayName": "DBUs",
+                    "format": {
+                      "type": "number",
+                      "decimalPlaces": {
+                        "type": "max",
+                        "places": 1
+                      }
+                    }
+                  },
+                  {
+                    "fieldName": "estimated_cost_usd",
+                    "displayName": "Est. cost",
+                    "format": {
+                      "type": "number-currency",
+                      "currencyCode": "USD",
+                      "abbreviation": "compact",
+                      "decimalPlaces": {
+                        "type": "max",
+                        "places": 2
+                      }
+                    }
+                  },
+                  {
+                    "fieldName": "usage_date",
+                    "displayName": "Usage date"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Daily usage records",
+                "showDescription": true,
+                "description": "Pipeline spend attributes exactly by pipeline id; job spend requires the dataflow_group_id job tag."
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 18,
+            "width": 12,
+            "height": 6
+          }
+        }
+      ]
+    },
+    {
+      "name": "framework",
+      "displayName": "Framework & Lineage",
+      "pageType": "PAGE_TYPE_CANVAS",
+      "layoutVersion": "GRID_V1",
+      "layout": [
+        {
+          "widget": {
+            "name": "fw_title",
+            "multilineTextboxSpec": {
+              "lines": [
+                "# Framework Composition and Lineage"
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 12,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "fw_sub",
+            "multilineTextboxSpec": {
+              "lines": [
+                "What the framework has been asked to build, from the control metadata, and what it actually read and wrote, from system.access.table_lineage."
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 1,
+            "width": 12,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "fw_flows",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "flow_inventory",
+                  "fields": [
+                    {
+                      "name": "count(flow_id)",
+                      "expression": "COUNT(`flow_id`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "count(flow_id)",
+                  "displayName": "Flows Defined",
+                  "format": {
+                    "type": "number",
+                    "abbreviation": "compact",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 0
+                    }
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Flows Defined"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 2,
+            "width": 3,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "fw_dq",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "flow_inventory",
+                  "fields": [
+                    {
+                      "name": "sum(has_dq)",
+                      "expression": "SUM(CASE WHEN `has_dq` THEN 1 ELSE 0 END)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "sum(has_dq)",
+                  "displayName": "Flows with DQ",
+                  "format": {
+                    "type": "number",
+                    "abbreviation": "compact",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 0
+                    }
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Flows with DQ",
+                "showDescription": true,
+                "description": "Flows declaring expectations"
+              }
+            }
+          },
+          "position": {
+            "x": 3,
+            "y": 2,
+            "width": 3,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "fw_quar",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "flow_inventory",
+                  "fields": [
+                    {
+                      "name": "sum(has_quarantine)",
+                      "expression": "SUM(CASE WHEN `has_quarantine` THEN 1 ELSE 0 END)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "sum(has_quarantine)",
+                  "displayName": "Flows with Quarantine",
+                  "format": {
+                    "type": "number",
+                    "abbreviation": "compact",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 0
+                    }
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Flows with Quarantine",
+                "showDescription": true,
+                "description": "Failing records routed, not dropped"
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 2,
+            "width": 3,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "fw_edges",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "lineage",
+                  "fields": [
+                    {
+                      "name": "count(target_table)",
+                      "expression": "COUNT(`target_table`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "count(target_table)",
+                  "displayName": "Lineage Edges",
+                  "format": {
+                    "type": "number",
+                    "abbreviation": "compact",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 0
+                    }
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Lineage Edges",
+                "showDescription": true,
+                "description": "Observed table-to-table reads"
+              }
+            }
+          },
+          "position": {
+            "x": 9,
+            "y": 2,
+            "width": 3,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "fw_h1",
+            "multilineTextboxSpec": {
+              "lines": [
+                "## Composition"
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 5,
+            "width": 12,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "fw_kind",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "flow_inventory",
+                  "fields": [
+                    {
+                      "name": "dataflow_group_id",
+                      "expression": "`dataflow_group_id`"
+                    },
+                    {
+                      "name": "count(flow_id)",
+                      "expression": "COUNT(`flow_id`)"
+                    },
+                    {
+                      "name": "flow_kind",
+                      "expression": "`flow_kind`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "dataflow_group_id",
+                  "scale": {
+                    "type": "categorical"
+                  },
+                  "axis": {
+                    "hideTitle": true
+                  }
+                },
+                "y": {
+                  "fieldName": "count(flow_id)",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "displayName": "Flows",
+                  "axis": {
+                    "hideTitle": true
+                  }
+                },
+                "color": {
+                  "fieldName": "flow_kind",
+                  "scale": {
+                    "type": "categorical",
+                    "mappings": [
+                      {
+                        "value": "INGESTION",
+                        "color": "#2D7DD2"
+                      },
+                      {
+                        "value": "TRANSFORMATION",
+                        "color": "#7B5EA7"
+                      },
+                      {
+                        "value": "RECONCILIATION",
+                        "color": "#2E9E8F"
+                      }
+                    ]
+                  },
+                  "displayName": "Flow kind"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Flows per group by kind",
+                "showDescription": true,
+                "description": "The shape of each group: ingestion, transformation, reconciliation."
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 6,
+            "width": 6,
+            "height": 5
+          }
+        },
+        {
+          "widget": {
+            "name": "fw_strategy",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "flow_inventory",
+                  "fields": [
+                    {
+                      "name": "cdc_load_strategy",
+                      "expression": "`cdc_load_strategy`"
+                    },
+                    {
+                      "name": "count(flow_id)",
+                      "expression": "COUNT(`flow_id`)"
+                    },
+                    {
+                      "name": "flow_kind",
+                      "expression": "`flow_kind`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "cdc_load_strategy",
+                  "scale": {
+                    "type": "categorical"
+                  },
+                  "axis": {
+                    "hideTitle": true
+                  }
+                },
+                "y": {
+                  "fieldName": "count(flow_id)",
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "displayName": "Flows",
+                  "axis": {
+                    "hideTitle": true
+                  }
+                },
+                "color": {
+                  "fieldName": "flow_kind",
+                  "scale": {
+                    "type": "categorical",
+                    "mappings": [
+                      {
+                        "value": "INGESTION",
+                        "color": "#2D7DD2"
+                      },
+                      {
+                        "value": "TRANSFORMATION",
+                        "color": "#7B5EA7"
+                      },
+                      {
+                        "value": "RECONCILIATION",
+                        "color": "#2E9E8F"
+                      }
+                    ]
+                  },
+                  "displayName": "Flow kind"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Load strategies in use",
+                "showDescription": true,
+                "description": "Which framework CDC and load capabilities are actually exercised."
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 6,
+            "width": 6,
+            "height": 5
+          }
+        },
+        {
+          "widget": {
+            "name": "fw_h2",
+            "multilineTextboxSpec": {
+              "lines": [
+                "## Observed data flow"
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 11,
+            "width": 12,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "fw_sankey",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "lineage",
+                  "fields": [
+                    {
+                      "name": "source_table",
+                      "expression": "`source_table`"
+                    },
+                    {
+                      "name": "target_table",
+                      "expression": "`target_table`"
+                    },
+                    {
+                      "name": "sum(edge_count)",
+                      "expression": "SUM(`edge_count`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 1,
+              "widgetType": "sankey",
+              "encodings": {
+                "value": {
+                  "fieldName": "sum(edge_count)",
+                  "displayName": "Activity"
+                },
+                "stages": [
+                  {
+                    "fieldName": "source_table",
+                    "displayName": "Source"
+                  },
+                  {
+                    "fieldName": "target_table",
+                    "displayName": "Target"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Source to target data flow",
+                "showDescription": true,
+                "description": "Actual reads and writes recorded by Unity Catalog lineage, not the declared spec. An edge here that the spec never mentions is worth a look."
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 12,
+            "width": 12,
+            "height": 7
+          }
+        },
+        {
+          "widget": {
+            "name": "fw_h3",
+            "multilineTextboxSpec": {
+              "lines": [
+                "## Flow inventory"
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 19,
+            "width": 12,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "fw_table",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "flow_inventory",
+                  "fields": [
+                    {
+                      "name": "dataflow_group_id",
+                      "expression": "`dataflow_group_id`"
+                    },
+                    {
+                      "name": "flow_kind",
+                      "expression": "`flow_kind`"
+                    },
+                    {
+                      "name": "flow_id",
+                      "expression": "`flow_id`"
+                    },
+                    {
+                      "name": "source_description",
+                      "expression": "`source_description`"
+                    },
+                    {
+                      "name": "target_table",
+                      "expression": "`target_table`"
+                    },
+                    {
+                      "name": "target_type",
+                      "expression": "`target_type`"
+                    },
+                    {
+                      "name": "cdc_load_strategy",
+                      "expression": "`cdc_load_strategy`"
+                    },
+                    {
+                      "name": "has_dq",
+                      "expression": "`has_dq`"
+                    },
+                    {
+                      "name": "has_quarantine",
+                      "expression": "`has_quarantine`"
+                    },
+                    {
+                      "name": "has_governance_tags",
+                      "expression": "`has_governance_tags`"
+                    },
+                    {
+                      "name": "is_active",
+                      "expression": "`is_active`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "dataflow_group_id",
+                    "displayName": "Dataflow Group"
+                  },
+                  {
+                    "fieldName": "flow_kind",
+                    "displayName": "Kind"
+                  },
+                  {
+                    "fieldName": "flow_id",
+                    "displayName": "Flow ID"
+                  },
+                  {
+                    "fieldName": "source_description",
+                    "displayName": "Source"
+                  },
+                  {
+                    "fieldName": "target_table",
+                    "displayName": "Target table"
+                  },
+                  {
+                    "fieldName": "target_type",
+                    "displayName": "Target type"
+                  },
+                  {
+                    "fieldName": "cdc_load_strategy",
+                    "displayName": "Load strategy"
+                  },
+                  {
+                    "fieldName": "has_dq",
+                    "displayName": "DQ"
+                  },
+                  {
+                    "fieldName": "has_quarantine",
+                    "displayName": "Quarantine"
+                  },
+                  {
+                    "fieldName": "has_governance_tags",
+                    "displayName": "UC tags"
+                  },
+                  {
+                    "fieldName": "is_active",
+                    "displayName": "Active"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Every flow the framework manages",
+                "showDescription": true,
+                "description": "Straight from the control tables. Note that removing a flow from a spec does not set Active to false; the control row keeps driving the DAG."
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 20,
+            "width": 12,
+            "height": 8
+          }
+        }
+      ]
+    },
+    {
+      "name": "forecast",
+      "displayName": "AI Forecast",
+      "pageType": "PAGE_TYPE_CANVAS",
+      "layoutVersion": "GRID_V1",
+      "layout": [
+        {
+          "widget": {
+            "name": "fc_title",
+            "multilineTextboxSpec": {
+              "lines": [
+                "# AI Forecast: Spend and Capacity"
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 12,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "fc_sub",
+            "multilineTextboxSpec": {
+              "lines": [
+                "Databricks AI_FORECAST projects framework spend and pipeline activity forward from the observed history in system.billing.usage. Shaded bands are the model confidence interval, not a guarantee: read the band, not just the line."
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 1,
+            "width": 12,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "fc_next48",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "forecast_summary",
+                  "fields": [
+                    {
+                      "name": "forecast_next_48h_usd",
+                      "expression": "`forecast_next_48h_usd`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "forecast_next_48h_usd",
+                  "displayName": "Forecast Next 48h",
+                  "format": {
+                    "type": "number-currency",
+                    "currencyCode": "USD",
+                    "abbreviation": "compact",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 2
+                    }
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Forecast Next 48h",
+                "showDescription": true,
+                "description": "Projected list-price spend, next 48 hours"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 2,
+            "width": 3,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "fc_runrate",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "forecast_summary",
+                  "fields": [
+                    {
+                      "name": "projected_30d_run_rate_usd",
+                      "expression": "`projected_30d_run_rate_usd`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "projected_30d_run_rate_usd",
+                  "displayName": "Projected 30d Run Rate",
+                  "format": {
+                    "type": "number-currency",
+                    "currencyCode": "USD",
+                    "abbreviation": "compact",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 2
+                    }
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Projected 30d Run Rate",
+                "showDescription": true,
+                "description": "Forecast hourly mean extrapolated to 30 days"
+              }
+            }
+          },
+          "position": {
+            "x": 3,
+            "y": 2,
+            "width": 3,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "fc_observed",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "forecast_summary",
+                  "fields": [
+                    {
+                      "name": "observed_cost_usd",
+                      "expression": "`observed_cost_usd`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "observed_cost_usd",
+                  "displayName": "Observed Spend",
+                  "format": {
+                    "type": "number-currency",
+                    "currencyCode": "USD",
+                    "abbreviation": "compact",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 2
+                    }
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Observed Spend",
+                "showDescription": true,
+                "description": "Actual list-price spend over the observed window"
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 2,
+            "width": 3,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "fc_hours",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "forecast_summary",
+                  "fields": [
+                    {
+                      "name": "observed_hours",
+                      "expression": "`observed_hours`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "observed_hours",
+                  "displayName": "Hours of History"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Hours of History",
+                "showDescription": true,
+                "description": "Data points the model was fitted on -- more is more trustworthy"
+              }
+            }
+          },
+          "position": {
+            "x": 9,
+            "y": 2,
+            "width": 3,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "fc_h1",
+            "multilineTextboxSpec": {
+              "lines": [
+                "## Projected spend"
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 5,
+            "width": 12,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "fc_spend",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "forecast_spend",
+                  "fields": [
+                    {
+                      "name": "usage_hour",
+                      "expression": "`usage_hour`"
+                    },
+                    {
+                      "name": "cost_usd",
+                      "expression": "`cost_usd`"
+                    },
+                    {
+                      "name": "cost_usd_forecast",
+                      "expression": "`cost_usd_forecast`"
+                    },
+                    {
+                      "name": "cost_usd_upper",
+                      "expression": "`cost_usd_upper`"
+                    },
+                    {
+                      "name": "cost_usd_lower",
+                      "expression": "`cost_usd_lower`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 1,
+              "widgetType": "forecast-line",
+              "encodings": {
+                "x": {
+                  "fieldName": "usage_hour",
+                  "scale": {
+                    "type": "temporal"
+                  },
+                  "axis": {
+                    "hideTitle": true
+                  }
+                },
+                "y": {
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "original": {
+                    "fieldName": "cost_usd",
+                    "displayName": "Actual",
+                    "format": {
+                      "type": "number-currency",
+                      "currencyCode": "USD",
+                      "abbreviation": "compact",
+                      "decimalPlaces": {
+                        "type": "max",
+                        "places": 2
+                      }
+                    }
+                  },
+                  "prediction": {
+                    "fieldName": "cost_usd_forecast",
+                    "displayName": "Forecast",
+                    "format": {
+                      "type": "number-currency",
+                      "currencyCode": "USD",
+                      "abbreviation": "compact",
+                      "decimalPlaces": {
+                        "type": "max",
+                        "places": 2
+                      }
+                    }
+                  },
+                  "predictionUpper": {
+                    "fieldName": "cost_usd_upper"
+                  },
+                  "predictionLower": {
+                    "fieldName": "cost_usd_lower"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Hourly framework spend, actual and forecast",
+                "showDescription": true,
+                "description": "Hourly grain deliberately: a young workspace has too few daily points to fit a model, and AI_FORECAST on three daily points extrapolates absurdly. The band widens as the model gets less certain further out."
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 6,
+            "width": 12,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "fc_h2",
+            "multilineTextboxSpec": {
+              "lines": [
+                "## Projected pipeline activity"
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 12,
+            "width": 12,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "fc_runs",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "forecast_runs",
+                  "fields": [
+                    {
+                      "name": "run_hour",
+                      "expression": "`run_hour`"
+                    },
+                    {
+                      "name": "updates",
+                      "expression": "`updates`"
+                    },
+                    {
+                      "name": "updates_forecast",
+                      "expression": "`updates_forecast`"
+                    },
+                    {
+                      "name": "updates_upper",
+                      "expression": "`updates_upper`"
+                    },
+                    {
+                      "name": "updates_lower",
+                      "expression": "`updates_lower`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 1,
+              "widgetType": "forecast-line",
+              "encodings": {
+                "x": {
+                  "fieldName": "run_hour",
+                  "scale": {
+                    "type": "temporal"
+                  },
+                  "axis": {
+                    "hideTitle": true
+                  }
+                },
+                "y": {
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "original": {
+                    "fieldName": "updates",
+                    "displayName": "Actual"
+                  },
+                  "prediction": {
+                    "fieldName": "updates_forecast",
+                    "displayName": "Forecast"
+                  },
+                  "predictionUpper": {
+                    "fieldName": "updates_upper"
+                  },
+                  "predictionLower": {
+                    "fieldName": "updates_lower"
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Hourly pipeline updates, actual and forecast",
+                "showDescription": true,
+                "description": "The capacity question that pairs with spend: how much pipeline activity to expect. Compare its shape against the spend forecast above -- spend rising faster than run volume means each run is getting more expensive."
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 13,
+            "width": 12,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "fc_h3",
+            "multilineTextboxSpec": {
+              "lines": [
+                "## Forecast detail"
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 19,
+            "width": 12,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "fc_table",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "forecast_summary",
+                  "fields": [
+                    {
+                      "name": "observed_hours",
+                      "expression": "`observed_hours`"
+                    },
+                    {
+                      "name": "observed_cost_usd",
+                      "expression": "`observed_cost_usd`"
+                    },
+                    {
+                      "name": "observed_dbus",
+                      "expression": "`observed_dbus`"
+                    },
+                    {
+                      "name": "avg_hourly_cost_usd",
+                      "expression": "`avg_hourly_cost_usd`"
+                    },
+                    {
+                      "name": "forecast_next_48h_low_usd",
+                      "expression": "`forecast_next_48h_low_usd`"
+                    },
+                    {
+                      "name": "forecast_next_48h_usd",
+                      "expression": "`forecast_next_48h_usd`"
+                    },
+                    {
+                      "name": "forecast_next_48h_high_usd",
+                      "expression": "`forecast_next_48h_high_usd`"
+                    },
+                    {
+                      "name": "projected_30d_run_rate_usd",
+                      "expression": "`projected_30d_run_rate_usd`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "observed_hours",
+                    "displayName": "Hours observed"
+                  },
+                  {
+                    "fieldName": "observed_cost_usd",
+                    "displayName": "Observed cost",
+                    "format": {
+                      "type": "number-currency",
+                      "currencyCode": "USD",
+                      "abbreviation": "compact",
+                      "decimalPlaces": {
+                        "type": "max",
+                        "places": 2
+                      }
+                    }
+                  },
+                  {
+                    "fieldName": "observed_dbus",
+                    "displayName": "Observed DBUs",
+                    "format": {
+                      "type": "number",
+                      "decimalPlaces": {
+                        "type": "max",
+                        "places": 1
+                      }
+                    }
+                  },
+                  {
+                    "fieldName": "avg_hourly_cost_usd",
+                    "displayName": "Avg $/hour",
+                    "format": {
+                      "type": "number-currency",
+                      "currencyCode": "USD",
+                      "abbreviation": "compact",
+                      "decimalPlaces": {
+                        "type": "max",
+                        "places": 2
+                      }
+                    }
+                  },
+                  {
+                    "fieldName": "forecast_next_48h_low_usd",
+                    "displayName": "Next 48h (low)",
+                    "format": {
+                      "type": "number-currency",
+                      "currencyCode": "USD",
+                      "abbreviation": "compact",
+                      "decimalPlaces": {
+                        "type": "max",
+                        "places": 2
+                      }
+                    }
+                  },
+                  {
+                    "fieldName": "forecast_next_48h_usd",
+                    "displayName": "Next 48h (expected)",
+                    "format": {
+                      "type": "number-currency",
+                      "currencyCode": "USD",
+                      "abbreviation": "compact",
+                      "decimalPlaces": {
+                        "type": "max",
+                        "places": 2
+                      }
+                    }
+                  },
+                  {
+                    "fieldName": "forecast_next_48h_high_usd",
+                    "displayName": "Next 48h (high)",
+                    "format": {
+                      "type": "number-currency",
+                      "currencyCode": "USD",
+                      "abbreviation": "compact",
+                      "decimalPlaces": {
+                        "type": "max",
+                        "places": 2
+                      }
+                    }
+                  },
+                  {
+                    "fieldName": "projected_30d_run_rate_usd",
+                    "displayName": "Projected 30d",
+                    "format": {
+                      "type": "number-currency",
+                      "currencyCode": "USD",
+                      "abbreviation": "compact",
+                      "decimalPlaces": {
+                        "type": "max",
+                        "places": 2
+                      }
+                    }
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Forecast summary",
+                "showDescription": true,
+                "description": "Low and high are the confidence bounds. A wide spread means little history, not volatile spend -- check the Hours of History figure above."
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 20,
+            "width": 12,
+            "height": 4
+          }
+        }
+      ]
+    },
+    {
+      "name": "jobs",
+      "displayName": "Job Orchestration",
+      "pageType": "PAGE_TYPE_CANVAS",
+      "layoutVersion": "GRID_V1",
+      "layout": [
+        {
+          "widget": {
+            "name": "jb_title",
+            "multilineTextboxSpec": {
+              "lines": [
+                "# Job Orchestration"
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 12,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "jb_sub",
+            "multilineTextboxSpec": {
+              "lines": [
+                "Lakeflow job runs from system.lakeflow.job_run_timeline, with the platform duration breakdown. Check the Attribution column: tag is exact, name_match is a heuristic for jobs that predate the dataflow_group_id tag."
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 1,
+            "width": 12,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "jb_runs",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "job_runs",
+                  "fields": [
+                    {
+                      "name": "count(run_id)",
+                      "expression": "COUNT(`run_id`)"
+                    },
+                    {
+                      "name": "daily(started_at)",
+                      "expression": "DATE_TRUNC(\"DAY\", `started_at`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "count(run_id)",
+                  "displayName": "Job Runs",
+                  "format": {
+                    "type": "number",
+                    "abbreviation": "compact",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 0
+                    }
+                  }
+                },
+                "period": {
+                  "fieldName": "daily(started_at)"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Job Runs"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 2,
+            "width": 3,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "jb_success",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "job_runs",
+                  "fields": [
+                    {
+                      "name": "avg(is_success)",
+                      "expression": "AVG(`is_success`)"
+                    },
+                    {
+                      "name": "daily(started_at)",
+                      "expression": "DATE_TRUNC(\"DAY\", `started_at`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "avg(is_success)",
+                  "displayName": "Job Success Rate",
+                  "format": {
+                    "type": "number-percent",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 1
+                    }
+                  }
+                },
+                "period": {
+                  "fieldName": "daily(started_at)"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Job Success Rate"
+              }
+            }
+          },
+          "position": {
+            "x": 3,
+            "y": 2,
+            "width": 3,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "jb_queue",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "job_runs",
+                  "fields": [
+                    {
+                      "name": "avg(queue_duration_seconds)",
+                      "expression": "AVG(`queue_duration_seconds`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "avg(queue_duration_seconds)",
+                  "displayName": "Avg Queue (s)",
+                  "format": {
+                    "type": "number",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 1
+                    }
+                  }
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Avg Queue (s)",
+                "showDescription": true,
+                "description": "Persistently high means contention, not slow code"
+              }
+            }
+          },
+          "position": {
+            "x": 6,
+            "y": 2,
+            "width": 3,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "jb_dur",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "job_runs",
+                  "fields": [
+                    {
+                      "name": "avg(duration_minutes)",
+                      "expression": "AVG(`duration_minutes`)"
+                    },
+                    {
+                      "name": "daily(started_at)",
+                      "expression": "DATE_TRUNC(\"DAY\", `started_at`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "avg(duration_minutes)",
+                  "displayName": "Avg Duration (min)",
+                  "format": {
+                    "type": "number",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 1
+                    }
+                  }
+                },
+                "period": {
+                  "fieldName": "daily(started_at)"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Avg Duration (min)"
+              }
+            }
+          },
+          "position": {
+            "x": 9,
+            "y": 2,
+            "width": 3,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "jb_h1",
+            "multilineTextboxSpec": {
+              "lines": [
+                "## Where run time goes"
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 5,
+            "width": 12,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "jb_breakdown",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "job_runs",
+                  "fields": [
+                    {
+                      "name": "job_name",
+                      "expression": "`job_name`"
+                    },
+                    {
+                      "name": "avg(queue_duration_seconds)",
+                      "expression": "AVG(`queue_duration_seconds`)"
+                    },
+                    {
+                      "name": "avg(setup_duration_seconds)",
+                      "expression": "AVG(`setup_duration_seconds`)"
+                    },
+                    {
+                      "name": "avg(execution_duration_seconds)",
+                      "expression": "AVG(`execution_duration_seconds`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "bar",
+              "encodings": {
+                "x": {
+                  "fieldName": "job_name",
+                  "scale": {
+                    "type": "categorical"
+                  },
+                  "axis": {
+                    "hideTitle": true
+                  }
+                },
+                "y": {
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "fields": [
+                    {
+                      "fieldName": "avg(queue_duration_seconds)",
+                      "displayName": "Queue (s)"
+                    },
+                    {
+                      "fieldName": "avg(setup_duration_seconds)",
+                      "displayName": "Setup (s)"
+                    },
+                    {
+                      "fieldName": "avg(execution_duration_seconds)",
+                      "displayName": "Execution (s)"
+                    }
+                  ]
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Average run time split by phase",
+                "showDescription": true,
+                "description": "Stacked: a job dominated by Queue or Setup is an infrastructure problem, not a code one."
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 6,
+            "width": 12,
+            "height": 6
+          }
+        },
+        {
+          "widget": {
+            "name": "jb_h2",
+            "multilineTextboxSpec": {
+              "lines": [
+                "## Job run detail"
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 12,
+            "width": 12,
+            "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "jb_table",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "job_runs",
+                  "fields": [
+                    {
+                      "name": "dataflow_group_id",
+                      "expression": "`dataflow_group_id`"
+                    },
+                    {
+                      "name": "attribution",
+                      "expression": "`attribution`"
+                    },
+                    {
+                      "name": "job_name",
+                      "expression": "`job_name`"
+                    },
+                    {
+                      "name": "result_state",
+                      "expression": "`result_state`"
+                    },
+                    {
+                      "name": "trigger_type",
+                      "expression": "`trigger_type`"
+                    },
+                    {
+                      "name": "termination_code",
+                      "expression": "`termination_code`"
+                    },
+                    {
+                      "name": "duration_minutes",
+                      "expression": "`duration_minutes`"
+                    },
+                    {
+                      "name": "queue_duration_seconds",
+                      "expression": "`queue_duration_seconds`"
+                    },
+                    {
+                      "name": "execution_duration_seconds",
+                      "expression": "`execution_duration_seconds`"
+                    },
+                    {
+                      "name": "started_at",
+                      "expression": "`started_at`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "dataflow_group_id",
+                    "displayName": "Dataflow Group"
+                  },
+                  {
+                    "fieldName": "attribution",
+                    "displayName": "Attribution"
+                  },
+                  {
+                    "fieldName": "job_name",
+                    "displayName": "Job"
+                  },
+                  {
+                    "fieldName": "result_state",
+                    "displayName": "Result",
+                    "style": {
+                      "type": "basic",
+                      "rules": [
+                        {
+                          "condition": {
+                            "operand": {
+                              "type": "data-value",
+                              "value": "FAILED"
+                            },
+                            "operator": "="
+                          },
+                          "backgroundColor": {
+                            "hex": "#E4572E"
+                          }
+                        },
+                        {
+                          "condition": {
+                            "operand": {
+                              "type": "data-value",
+                              "value": "SUCCEEDED"
+                            },
+                            "operator": "="
+                          },
+                          "backgroundColor": {
+                            "hex": "#2E9E8F"
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "fieldName": "trigger_type",
+                    "displayName": "Trigger"
+                  },
+                  {
+                    "fieldName": "termination_code",
+                    "displayName": "Termination"
+                  },
+                  {
+                    "fieldName": "duration_minutes",
+                    "displayName": "Duration (min)",
+                    "format": {
+                      "type": "number",
+                      "decimalPlaces": {
+                        "type": "max",
+                        "places": 1
+                      }
+                    }
+                  },
+                  {
+                    "fieldName": "queue_duration_seconds",
+                    "displayName": "Queue (s)",
+                    "format": {
+                      "type": "number",
+                      "decimalPlaces": {
+                        "type": "max",
+                        "places": 1
+                      }
+                    }
+                  },
+                  {
+                    "fieldName": "execution_duration_seconds",
+                    "displayName": "Exec (s)",
+                    "format": {
+                      "type": "number",
+                      "decimalPlaces": {
+                        "type": "max",
+                        "places": 1
+                      }
+                    }
+                  },
+                  {
+                    "fieldName": "started_at",
+                    "displayName": "Started"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Every job run",
+                "showDescription": true,
+                "description": "Termination code is the first thing to look at for a failure."
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 13,
+            "width": 12,
+            "height": 8
+          }
+        }
+      ]
+    },
+    {
+      "name": "global_filters",
+      "displayName": "Global Filters",
+      "pageType": "PAGE_TYPE_GLOBAL_FILTERS",
+      "layoutVersion": "GRID_V1",
+      "layout": [
+        {
+          "widget": {
+            "name": "global_group_filter",
+            "queries": [
+              {
+                "name": "filter_q_0",
+                "query": {
+                  "datasetName": "group_filter",
+                  "fields": [
+                    {
+                      "name": "dataflow_group_id",
+                      "expression": "`dataflow_group_id`"
+                    },
+                    {
+                      "name": "dataflow_group_id_associativity",
+                      "expression": "COUNT_IF(`associative_filter_predicate_group`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "filter_q_1",
+                "query": {
+                  "datasetName": "group_scorecard",
+                  "fields": [
+                    {
+                      "name": "dataflow_group_id",
+                      "expression": "`dataflow_group_id`"
+                    },
+                    {
+                      "name": "dataflow_group_id_associativity",
+                      "expression": "COUNT_IF(`associative_filter_predicate_group`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "filter_q_2",
+                "query": {
+                  "datasetName": "pipeline_updates",
+                  "fields": [
+                    {
+                      "name": "dataflow_group_id",
+                      "expression": "`dataflow_group_id`"
+                    },
+                    {
+                      "name": "dataflow_group_id_associativity",
+                      "expression": "COUNT_IF(`associative_filter_predicate_group`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "filter_q_3",
+                "query": {
+                  "datasetName": "flow_throughput",
+                  "fields": [
+                    {
+                      "name": "dataflow_group_id",
+                      "expression": "`dataflow_group_id`"
+                    },
+                    {
+                      "name": "dataflow_group_id_associativity",
+                      "expression": "COUNT_IF(`associative_filter_predicate_group`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "filter_q_4",
+                "query": {
+                  "datasetName": "dq_results",
+                  "fields": [
+                    {
+                      "name": "dataflow_group_id",
+                      "expression": "`dataflow_group_id`"
+                    },
+                    {
+                      "name": "dataflow_group_id_associativity",
+                      "expression": "COUNT_IF(`associative_filter_predicate_group`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "filter_q_5",
+                "query": {
+                  "datasetName": "cost_daily",
+                  "fields": [
+                    {
+                      "name": "dataflow_group_id",
+                      "expression": "`dataflow_group_id`"
+                    },
+                    {
+                      "name": "dataflow_group_id_associativity",
+                      "expression": "COUNT_IF(`associative_filter_predicate_group`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "filter_q_6",
+                "query": {
+                  "datasetName": "recon_health",
+                  "fields": [
+                    {
+                      "name": "dataflow_group_id",
+                      "expression": "`dataflow_group_id`"
+                    },
+                    {
+                      "name": "dataflow_group_id_associativity",
+                      "expression": "COUNT_IF(`associative_filter_predicate_group`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "filter_q_7",
+                "query": {
+                  "datasetName": "flow_inventory",
+                  "fields": [
+                    {
+                      "name": "dataflow_group_id",
+                      "expression": "`dataflow_group_id`"
+                    },
+                    {
+                      "name": "dataflow_group_id_associativity",
+                      "expression": "COUNT_IF(`associative_filter_predicate_group`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "filter_q_8",
+                "query": {
+                  "datasetName": "lineage",
+                  "fields": [
+                    {
+                      "name": "dataflow_group_id",
+                      "expression": "`dataflow_group_id`"
+                    },
+                    {
+                      "name": "dataflow_group_id_associativity",
+                      "expression": "COUNT_IF(`associative_filter_predicate_group`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "filter_q_9",
+                "query": {
+                  "datasetName": "job_runs",
+                  "fields": [
+                    {
+                      "name": "dataflow_group_id",
+                      "expression": "`dataflow_group_id`"
+                    },
+                    {
+                      "name": "dataflow_group_id_associativity",
+                      "expression": "COUNT_IF(`associative_filter_predicate_group`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "filter-multi-select",
+              "encodings": {
+                "fields": [
+                  {
+                    "fieldName": "dataflow_group_id",
+                    "displayName": "Dataflow Group",
+                    "queryName": "filter_q_0"
+                  },
+                  {
+                    "fieldName": "dataflow_group_id",
+                    "displayName": "Dataflow Group",
+                    "queryName": "filter_q_1"
+                  },
+                  {
+                    "fieldName": "dataflow_group_id",
+                    "displayName": "Dataflow Group",
+                    "queryName": "filter_q_2"
+                  },
+                  {
+                    "fieldName": "dataflow_group_id",
+                    "displayName": "Dataflow Group",
+                    "queryName": "filter_q_3"
+                  },
+                  {
+                    "fieldName": "dataflow_group_id",
+                    "displayName": "Dataflow Group",
+                    "queryName": "filter_q_4"
+                  },
+                  {
+                    "fieldName": "dataflow_group_id",
+                    "displayName": "Dataflow Group",
+                    "queryName": "filter_q_5"
+                  },
+                  {
+                    "fieldName": "dataflow_group_id",
+                    "displayName": "Dataflow Group",
+                    "queryName": "filter_q_6"
+                  },
+                  {
+                    "fieldName": "dataflow_group_id",
+                    "displayName": "Dataflow Group",
+                    "queryName": "filter_q_7"
+                  },
+                  {
+                    "fieldName": "dataflow_group_id",
+                    "displayName": "Dataflow Group",
+                    "queryName": "filter_q_8"
+                  },
+                  {
+                    "fieldName": "dataflow_group_id",
+                    "displayName": "Dataflow Group",
+                    "queryName": "filter_q_9"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Dataflow Group"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 4,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "global_date_filter",
+            "queries": [
+              {
+                "name": "date_q_0",
+                "query": {
+                  "datasetName": "pipeline_updates",
+                  "fields": [
+                    {
+                      "name": "started_at",
+                      "expression": "`started_at`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "date_q_1",
+                "query": {
+                  "datasetName": "flow_throughput",
+                  "fields": [
+                    {
+                      "name": "run_date",
+                      "expression": "`run_date`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "date_q_2",
+                "query": {
+                  "datasetName": "dq_results",
+                  "fields": [
+                    {
+                      "name": "run_date",
+                      "expression": "`run_date`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "date_q_3",
+                "query": {
+                  "datasetName": "cost_daily",
+                  "fields": [
+                    {
+                      "name": "usage_date",
+                      "expression": "`usage_date`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "date_q_4",
+                "query": {
+                  "datasetName": "recon_health",
+                  "fields": [
+                    {
+                      "name": "run_date",
+                      "expression": "`run_date`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              },
+              {
+                "name": "date_q_5",
+                "query": {
+                  "datasetName": "job_runs",
+                  "fields": [
+                    {
+                      "name": "started_at",
+                      "expression": "`started_at`"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "filter-date-range-picker",
+              "encodings": {
+                "fields": [
+                  {
+                    "fieldName": "started_at",
+                    "displayName": "Date range",
+                    "queryName": "date_q_0"
+                  },
+                  {
+                    "fieldName": "run_date",
+                    "displayName": "Date range",
+                    "queryName": "date_q_1"
+                  },
+                  {
+                    "fieldName": "run_date",
+                    "displayName": "Date range",
+                    "queryName": "date_q_2"
+                  },
+                  {
+                    "fieldName": "usage_date",
+                    "displayName": "Date range",
+                    "queryName": "date_q_3"
+                  },
+                  {
+                    "fieldName": "run_date",
+                    "displayName": "Date range",
+                    "queryName": "date_q_4"
+                  },
+                  {
+                    "fieldName": "started_at",
+                    "displayName": "Date range",
+                    "queryName": "date_q_5"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Date range"
+              }
+            }
+          },
+          "position": {
+            "x": 4,
+            "y": 0,
+            "width": 4,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "global_env_filter",
+            "queries": [
+              {
+                "name": "env_q_0",
+                "query": {
+                  "datasetName": "group_scorecard",
+                  "fields": [
+                    {
+                      "name": "environment",
+                      "expression": "`environment`"
+                    },
+                    {
+                      "name": "environment_associativity",
+                      "expression": "COUNT_IF(`associative_filter_predicate_group`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "filter-single-select",
+              "encodings": {
+                "fields": [
+                  {
+                    "fieldName": "environment",
+                    "displayName": "Environment",
+                    "queryName": "env_q_0"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Environment"
+              }
+            }
+          },
+          "position": {
+            "x": 8,
+            "y": 0,
+            "width": 4,
+            "height": 2
+          }
+        }
+      ]
+    }
+  ],
+  "uiSettings": {
+    "theme": {
+      "canvasBackgroundColor": {
+        "light": "#F7F8FA",
+        "dark": "#151A21"
+      },
+      "widgetBackgroundColor": {
+        "light": "#FFFFFF",
+        "dark": "#1C232C"
+      },
+      "widgetBorderColor": {
+        "light": "#FFFFFF",
+        "dark": "#1C232C"
+      },
+      "fontColor": {
+        "light": "#141A20",
+        "dark": "#E6EBF1"
+      },
+      "selectionColor": {
+        "light": "#2272B4",
+        "dark": "#8ACAFF"
+      },
+      "visualizationColors": [
+        "#2D7DD2",
+        "#7B5EA7",
+        "#C1547F",
+        "#E4572E",
+        "#F2A65A",
+        "#2E9E8F",
+        "#4C6E8A",
+        "#9BB1C4"
+      ],
+      "widgetHeaderAlignment": "LEFT",
+      "fontFamily": "Inter",
+      "widgetCornerRadius": 10
+    }
+  }
+}

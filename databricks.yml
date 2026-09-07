@@ -46,6 +46,8 @@ include:
   - resources/flowx_app/*.yml
   - resources/flowx_config_jobs/*.yml
   - resources/flowx_bi/*.yml
+  - resources/flowx_genie/*.yml
+  - resources/flowx_docs/*.yml
   - resources/uc7/*.yml
   - resources/uc3/*.yml
   - resources/uc6/*.yml
@@ -236,10 +238,13 @@ variables:
     default: onboarding_specs
   dashboard_warehouse_id:
     description: >-
-      SQL warehouse that backs the AI/BI control-metadata dashboard
-      (resources/flowx_bi/flowx_control_dashboard.yml). A dashboard resource requires a
-      warehouse id and there is no portable default -- warehouse ids are per workspace -- so
-      each target sets its own. Find it with `databricks warehouses list -p <profile>`.
+      SQL warehouse that backs the AI/BI dashboards
+      (resources/flowx_bi/flowx_control_dashboard.yml and
+      resources/flowx_bi/flowx_observability_dashboard.yml) and the observability Genie space
+      (resources/flowx_genie/flowx_observability_genie_space.yml). A dashboard or Genie space
+      resource requires a warehouse id and there is no portable default -- warehouse ids are
+      per workspace -- so each target sets its own. Find it with
+      `databricks warehouses list -p <profile>`.
   dataflow_group_id:
     description: >-
       The metadata-driven dataflow_group_id the sample Lakeflow pipeline resource
@@ -250,68 +255,6 @@ variables:
     default: dfg_iot_telemetry_unified
 
 targets:
-  dev_flowx:
-    # NO `mode: development` -- deliberate, and the reason is the artifact_path below.
-    #
-    # DABs rejects a `mode: development` target whose `artifact_path` does not contain the
-    # deploying user's name: "artifact_path should contain the current username or
-    # ${workspace.current_user.short_name} to ensure uniqueness when using 'mode: development'".
-    # That is exactly the per-user fork the v1.6.0 decision above REVERSED on 2026-08-30 -- the
-    # fixed, shared `/Volumes/<catalog>/config/wheels` path is the property that makes a deploy
-    # reproducible regardless of who runs it, and re-adding a `${...short_name}` component to
-    # satisfy the check would undo it.
-    #
-    # WHY THIS ONLY SURFACED ON THE v3 WORKSPACE. On the previous workspace the deploying user
-    # was `flowx@nrmanalytix.com`, whose short_name is literally `flowx` -- and the path
-    # `/Volumes/flowx/config/wheels` contains it. The check passed by pure coincidence
-    # between the catalog name and that user's name. On this workspace the user is
-    # `flowx_v3@nrmanalytix.com`, the coincidence is gone, and the check fires.
-    #
-    # WHAT DROPPING development MODE COSTS: deployed resources keep their literal names (no
-    # `[dev <user>]` prefix) and job schedules/triggers are no longer auto-paused. Nothing in
-    # this bundle declares a schedule, so the second point is inert today -- but it is the thing
-    # to re-check before adding one.
-    # See also https://docs.databricks.com/dev-tools/bundles/deployment-modes.html.
-    default: true
-    workspace:
-      host: https://dbc-8bb5bedf-1a4b.cloud.databricks.com
-      profile: dev_metaflow
-      # v1.6.0: fixed, shared UC-Volume artifact path -- see the `artifacts` block above for the
-      # decision record and the never-deploy-mid-run rule that still applies.
-      artifact_path: ${var.wheels_root}/${var.framework_version}
-
-    variables:
-      catalog: flowx
-      schema: dev
-      dashboard_warehouse_id: f9e5f492103a22ad
-
-
-  arjun_2:
-    workspace:
-      host: https://dbc-31ca4b8a-2670.cloud.databricks.com/
-      profile: arjun_2
-      # v1.6.0: fixed, shared UC-Volume artifact path -- see the `artifacts` block above for the
-      # decision record and the never-deploy-mid-run rule that still applies.
-      artifact_path: ${var.wheels_root}/${var.framework_version}
-
-    variables:
-      catalog: flowx
-      schema: dev
-      dashboard_warehouse_id: 2f404c0e2017eab7
-
-  arjun_3:
-    workspace:
-      host: https://dbc-54bb898c-098c.cloud.databricks.com/
-      profile: arjun_3
-      # v1.6.0: fixed, shared UC-Volume artifact path -- see the `artifacts` block above for the
-      # decision record and the never-deploy-mid-run rule that still applies.
-      artifact_path: ${var.wheels_root}/${var.framework_version}
-
-    variables:
-      catalog: flowx
-      schema: dev
-      dashboard_warehouse_id: 2f404c0e2017eab7
-
   hoonartek:
     workspace:
       host: https://8259560580035702.2.gcp.databricks.com/

@@ -7,7 +7,7 @@
 Event-log extraction and OpenTelemetry export.
 
 
-10 modules.
+11 modules.
 
 
 ## `lakeflow_framework/observability/agent_tools.py`
@@ -42,6 +42,19 @@ One resolved, enabled telemetry destination for a specific dataflow group.
 | `load_destination_configs(spark: Any, control_catalog: str, dataflow_group_id: str) -> List[DestinationConfig]` | Read ``<control_catalog>.config.observability_config`` and resolve the enabled destinations for ``dataflow_group_id`` (see :func:`parse_config_rows` for resolution rules). |
 | `filter_destinations_by_mode(destinations: List[DestinationConfig], mode: str) -> List[DestinationConfig]` | The subset of ``destinations`` one engine is responsible for. |
 | `resolve_event_log_tables(destinations: List[DestinationConfig]) -> List[str]` | The de-duplicated, order-preserving union of every *continuous* destination's ``destination_config.event_log_tables``. |
+
+
+## `lakeflow_framework/observability/dataflow_documenter.py`
+
+Render a per-dataflow-group design document from the FlowX control metadata.
+
+
+### Functions
+
+| Signature | Purpose |
+|---|---|
+| `render_group_document(group: Dict[str, Any], flows: List[Dict[str, Any]], health: Optional[Dict[str, Any]] = None, dq: Optional[List[Dict[str, Any]]] = None, recon: Optional[List[Dict[str, Any]]] = None, lineage: Optional[List[Dict[str, Any]]] = None, generated_at: Optional[str] = None) -> str` | Render one dataflow group as a Markdown design document. |
+| `render_index(groups: List[Dict[str, Any]], health_by_group: Optional[Dict[str, Dict[str, Any]]] = None, generated_at: Optional[str] = None) -> str` | Render the index page listing every documented dataflow group. |
 
 
 ## `lakeflow_framework/observability/destination_dispatcher.py`

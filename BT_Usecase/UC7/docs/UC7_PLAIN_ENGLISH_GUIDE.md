@@ -43,7 +43,7 @@ In short: **binary CDR files in → queryable Delta tables out.**
 All raw files live in one Databricks Volume, with one folder per piece of network equipment:
 
 ```
-/Volumes/flowx/landing/uc_7/
+/Volumes/br_digital_poc/landing/uc_7/
 ├── raw/            <- the CDR files themselves
 │   ├── EMSC/
 │   ├── PSGW/
@@ -95,15 +95,15 @@ Two useful things to know:
 
 ## 4. Target details — where the data goes
 
-Everything lands in the **`flowx.bronze`** schema. Each source gets one table, plus one
+Everything lands in the **`br_digital_poc.bronze`** schema. Each source gets one table, plus one
 matching "quarantine" table for anything that fails.
 
 | Source | Main table | Quarantine table |
 |---|---|---|
-| EMSC | `flowx.bronze.emsc_cdr_raw` | `flowx.bronze.emsc_cdr_raw_quarantine` |
-| PSGW | `flowx.bronze.psgw_cdr_raw` | `flowx.bronze.psgw_cdr_raw_quarantine` |
-| SGSN | `flowx.bronze.sgsn_cdr_raw` | `flowx.bronze.sgsn_cdr_raw_quarantine` |
-| TAP  | `flowx.bronze.tap310_raw`   | `flowx.bronze.tap310_raw_quarantine` |
+| EMSC | `br_digital_poc.bronze.emsc_cdr_raw` | `br_digital_poc.bronze.emsc_cdr_raw_quarantine` |
+| PSGW | `br_digital_poc.bronze.psgw_cdr_raw` | `br_digital_poc.bronze.psgw_cdr_raw_quarantine` |
+| SGSN | `br_digital_poc.bronze.sgsn_cdr_raw` | `br_digital_poc.bronze.sgsn_cdr_raw_quarantine` |
+| TAP  | `br_digital_poc.bronze.tap310_raw`   | `br_digital_poc.bronze.tap310_raw_quarantine` |
 
 Notes on the naming:
 
@@ -146,7 +146,7 @@ do not run.
 
 | Step | Task name | What it does |
 |---|---|---|
-| 1 | `setup_control_tables` | Makes sure the framework's own bookkeeping tables exist in `flowx.config`. Safe to re-run. |
+| 1 | `setup_control_tables` | Makes sure the framework's own bookkeeping tables exist in `br_digital_poc.config`. Safe to re-run. |
 | 2 | `onboard_uc7` | Reads the configuration file and saves the four source definitions into the control tables. |
 | 3 | `run_pipeline_update` | Runs the pipeline: reads the files, decodes them, writes the bronze tables. |
 | 4 | `observability_export` | Writes a log of how the run went to a Volume, for monitoring. |
@@ -211,7 +211,7 @@ dictionaries, or a decision to load them as CSV instead.
 After each run, a compressed log file is written to:
 
 ```
-/Volumes/flowx/observability/app_logs/dfg_uc7_cdr_asn/<date>/<group>_<run id>.jsonl.gz
+/Volumes/br_digital_poc/observability/app_logs/dfg_uc7_cdr_asn/<date>/<group>_<run id>.jsonl.gz
 ```
 
 It records each flow's status and ties back to the job, pipeline, and run that produced it —
@@ -226,8 +226,8 @@ untouched.
 
 | | Location |
 |---|---|
-| Original (still in use) | `/Volumes/flowx/landing/uc_7/` |
-| Copy | `/Volumes/flowx/staging/uc_7/` |
+| Original (still in use) | `/Volumes/br_digital_poc/landing/uc_7/` |
+| Copy | `/Volumes/br_digital_poc/staging/uc_7/` |
 
 Both hold 28 files totalling ~112 MB. **The pipeline still reads from the original location.**
 The copy is a backup; pointing the pipeline at it would require re-onboarding and would reload
@@ -256,7 +256,7 @@ Re-running is safe — already-loaded files are skipped, so you will not get dup
 | 1 | SMSC and MMSC are not loaded | Their data is CSV, not ASN.1 (section 8) |
 | 2 | Some EMSC records use a variable-length format | Not losing data today, but a file that *starts* with one of these would load as a single row |
 | 3 | Full `bundle deploy` currently fails | Caused by an unrelated app resource, not this use case. Use `--select` to deploy just the UC_7 parts |
-| 4 | Two naming styles now exist for bronze | This use case uses `flowx.bronze`; older ones use `flowx.bronze_<source>`. Worth agreeing on one before adding more sources |
+| 4 | Two naming styles now exist for bronze | This use case uses `br_digital_poc.bronze`; older ones use `br_digital_poc.bronze_<source>`. Worth agreeing on one before adding more sources |
 
 ---
 

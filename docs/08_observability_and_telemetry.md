@@ -471,4 +471,42 @@ Then onboard one or more `observability[]` destinations with `"mode": "continuou
 
 ---
 
-**See also:** [`docs/00_master_reference_index.md`](00_master_reference_index.md) §9 (Observability Config Schema) for the **control-table** column names (`destination_id`, `destination_type`, `auth_config_json`, `retry_config_json`) — note these are the persisted column names, which deliberately differ from the **onboarding-spec** field names used in §2 above (`id`, `type`, `auth`, `retry`, `mode`), and [`docs/11_hashing_and_determinism.md`](11_hashing_and_determinism.md) if you are correlating observability telemetry with `__framework_hash_key`/`__framework_hash_value` drift surfaced by reconciliation.
+## 8. Export-out telemetry vs. store-and-query observability
+
+Everything above this section is **export-out** telemetry: the framework measures itself and then
+ships the measurements *off the platform* — OTel `ResourceLogs` to an OTLP collector, JSONL/GZIP
+files to a Unity Catalog Volume, structured JSON into the driver log. That is the right shape for
+alerting, for paging, and for a customer's existing observability estate.
+
+It is the wrong shape for a **question**, because none of it lands in a queryable Delta table. A
+per-flow `num_output_rows` that left as an OTLP attribute cannot be `SUM`ed; an expectation's
+`failed_records` written into a Volume file has to be read back with Spark before anyone can ask
+which rule fails most often; and **cost is not in the export at all**.
+
+That second half is [`17_framework_observability_and_genie.md`](17_framework_observability_and_genie.md):
+11 views in `<catalog>.observability` joining the FlowX control tables to `system.lakeflow`,
+`system.billing` and `system.access`, consumed by an AI/BI dashboard, a Genie space and a
+documentation job.
+
+| | **Doc 08** — this page | **Doc 17** — observability semantic layer |
+|---|---|---|
+| Direction | **Out** of the platform | **Stays** in the platform |
+| Mechanism | `observability[]` destinations: OTLP HTTP, Volume files, driver logs | Views over the Databricks system tables + UC event logs |
+| Grain | Per event, per pipeline update | Per group, per update, per flow, per rule, per day |
+| Consumers | Dynatrace / Datadog / Splunk / an OTel collector | AI/BI dashboard, Genie space, Markdown design docs, ad-hoc SQL |
+| Configured by | The onboarding spec (§2 above) | Nothing — `01_setup` provisions it; **no spec attribute** |
+| Cost data | Absent | First-class (`v_dataflow_cost`, and an `AI_FORECAST` page) |
+| Typical question | "Page me when a pipeline fails" | "What did this group cost, and is its DQ passing?" |
+
+The two are complementary and neither replaces the other. A customer running Dynatrace still wants
+the OTLP export configured here; they *also* want to answer a question in SQL without opening a
+Volume. The one genuine overlap is the source data — both read the Lakeflow event log — but they
+read it for different reasons: this page to reshape and forward individual events, doc 17 to
+aggregate them into `v_flow_metrics` and `v_dq_results`. Doc 17's views need the event log
+**published to Unity Catalog**; this page's triggered engine reads it through the
+`event_log(:pipeline_id)` table-valued function instead, so a pipeline can serve one and not the
+other.
+
+---
+
+**See also:** [`docs/00_master_reference_index.md`](00_master_reference_index.md) §9 (Observability Config Schema) for the **control-table** column names (`destination_id`, `destination_type`, `auth_config_json`, `retry_config_json`) — note these are the persisted column names, which deliberately differ from the **onboarding-spec** field names used in §2 above (`id`, `type`, `auth`, `retry`, `mode`), [`docs/11_hashing_and_determinism.md`](11_hashing_and_determinism.md) if you are correlating observability telemetry with `__framework_hash_key`/`__framework_hash_value` drift surfaced by reconciliation, and [`docs/17_framework_observability_and_genie.md`](17_framework_observability_and_genie.md) for the queryable semantic layer, the AI/BI dashboard, the Genie space and the documentation generator.

@@ -44,6 +44,17 @@ resources:
     uc3_streaming_cdc_job:
       name: 004_lfj_uc3_excalibur_streaming_cdc
 
+      # Job tags are the ONLY way a Lakeflow job run can be attributed back to its FlowX
+      # dataflow group in the system tables. The framework passes dataflow_group_id as a
+      # notebook task base_parameter, and those do NOT surface in
+      # system.lakeflow.job_task_run_timeline.task_parameters (verified empty on a live
+      # workspace) -- so without this tag, flowx.observability.v_job_runs falls back to matching
+      # the group id against the job name, and system.billing.usage cannot attribute job cost to
+      # the group at all. Keep the tag value identical to the dataflow_group_id in the spec.
+      tags:
+        dataflow_group_id: dfg_uc3_excalibur_streaming_cdc
+        framework: flowx
+
       tasks:
         - task_key: setup_control_tables
           notebook_task:

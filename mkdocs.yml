@@ -115,6 +115,7 @@ nav:
           - Data quality & governance: 04_data_quality_and_governance.md
           - Security & cryptography: 05_security_and_cryptography.md
           - Observability & OpenTelemetry: 08_observability_and_telemetry.md
+          - Framework observability, AI/BI & Genie: 17_framework_observability_and_genie.md
       - Design guarantees:
           - Deterministic hashing standard: 11_hashing_and_determinism.md
           - Module permutation matrix: 12_module_permutation_matrix.md

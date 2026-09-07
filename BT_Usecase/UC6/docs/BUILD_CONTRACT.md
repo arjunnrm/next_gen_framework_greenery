@@ -31,27 +31,27 @@ Companion documents in this folder:
 
 | Thing | Value | Notes |
 |---|---|---|
-| Catalog | **`flowx`** (`${var.catalog}`) | Workspace prerequisite; cannot be declared in YAML. |
-| Bronze schema | **`flowx.bronze`** | EXISTING, reused. Collision check in §1.1. |
-| Silver schema | **`flowx.silver`** | Created if absent by `01_setup_control_tables`-adjacent DDL. |
-| Gold schema | **`flowx.gold`** | As above. |
-| Landing volume | **`flowx.staging.uc_6`** | New volume under the EXISTING `flowx.staging` schema, mirroring UC3's `uc_3`. |
-| Secret (GPG passphrase) | **`flowx.config.pgpkey`** | UC three-level secret. Manual operator prerequisite. |
+| Catalog | **`br_digital_poc`** (`${var.catalog}`) | Workspace prerequisite; cannot be declared in YAML. |
+| Bronze schema | **`br_digital_poc.bronze`** | EXISTING, reused. Collision check in §1.1. |
+| Silver schema | **`br_digital_poc.silver`** | Created if absent by `01_setup_control_tables`-adjacent DDL. |
+| Gold schema | **`br_digital_poc.gold`** | As above. |
+| Landing volume | **`br_digital_poc.staging.uc_6`** | New volume under the EXISTING `br_digital_poc.staging` schema, mirroring UC3's `uc_3`. |
+| Secret (GPG passphrase) | **`br_digital_poc.config.pgpkey`** | UC three-level secret. Manual operator prerequisite. |
 
 **Volume layout** (the brief's `raw`/`archive`/`output`, kept verbatim — the framework imposes no
 competing convention for a use-case landing volume):
 
 ```
-/Volumes/flowx/staging/uc_6/raw/        <- all 6 source files land here per cycle
-/Volumes/flowx/staging/uc_6/archive/    <- originals moved here after successful ingest
-/Volumes/flowx/staging/uc_6/output/     <- the 4 generated output files
-/Volumes/flowx/staging/uc_6/_schemas/   <- Auto Loader schema locations (framework requirement)
-/Volumes/flowx/staging/uc_6/_extracted/ <- decrypted/decompressed staging for the EA file
+/Volumes/br_digital_poc/staging/uc_6/raw/        <- all 6 source files land here per cycle
+/Volumes/br_digital_poc/staging/uc_6/archive/    <- originals moved here after successful ingest
+/Volumes/br_digital_poc/staging/uc_6/output/     <- the 4 generated output files
+/Volumes/br_digital_poc/staging/uc_6/_schemas/   <- Auto Loader schema locations (framework requirement)
+/Volumes/br_digital_poc/staging/uc_6/_extracted/ <- decrypted/decompressed staging for the EA file
 ```
 
 ### 1.1 Collision check — MUST be re-run before onboarding
 
-`flowx.bronze` currently holds UC7 CDR tables (`emsc_cdr_raw`, `psgw_cdr_raw`, `sgsn_cdr_raw`,
+`br_digital_poc.bronze` currently holds UC7 CDR tables (`emsc_cdr_raw`, `psgw_cdr_raw`, `sgsn_cdr_raw`,
 `tap310_raw` + quarantines) and, pending the concurrent UC3 build, `physical_device` / `customer` /
 `subscriber`. Every UC6 table is prefixed `uc6_`, so no name collides. **Re-verify before onboarding**
 — the UC3 session is landing tables into these same schemas concurrently.
@@ -124,9 +124,9 @@ table name (the brief proposed `uc6_bronze_ea_request` in a schema that already 
 
 | Layer | Tables |
 |---|---|
-| `flowx.bronze` | `uc6_ea_request`, `uc6_css_account`, `uc6_css_account_address`, `uc6_css_subscription`, `uc6_jt_customer`, `uc6_excalibur_address` |
-| `flowx.silver` | `uc6_ea_base`, `uc6_ea_address`, `uc6_ee_address_paf`, `uc6_matched_address` |
-| `flowx.gold` | `uc6_telephone_output`, `uc6_osapr_output` |
+| `br_digital_poc.bronze` | `uc6_ea_request`, `uc6_css_account`, `uc6_css_account_address`, `uc6_css_subscription`, `uc6_jt_customer`, `uc6_excalibur_address` |
+| `br_digital_poc.silver` | `uc6_ea_base`, `uc6_ea_address`, `uc6_ee_address_paf`, `uc6_matched_address` |
+| `br_digital_poc.gold` | `uc6_telephone_output`, `uc6_osapr_output` |
 
 **Tags.** No tag taxonomy or allowlist exists in this repo — `table_tags` and `column_tags[].tags` are
 free-form `string→string` maps, validated only for being strings. The brief's proposed tag set is
@@ -227,7 +227,7 @@ These are generic, reusable, and land as **separate commits** from UC6 business 
 
 | # | Gap | Why UC6 needs it | Shape |
 |---|---|---|---|
-| **F1** | **Symmetric (passphrase) PGP** | `crypto/pgp.py` is asymmetric-only (armored public/private keys). UC6's EA file and 2 of 4 outputs are GPG **symmetric**, AES256, passphrase from `flowx.config.pgpkey`. | `pgp_decrypt_symmetric(data, passphrase)` / `pgp_encrypt_symmetric(data, passphrase)` via PGPy's `PGPMessage.decrypt(passphrase)` / `PGPMessage.encrypt(passphrase)`. New `pre_extraction_decryption.type: "pgp_symmetric"` handler + `pgp_encryption.passphrase_secret` on the sink. |
+| **F1** | **Symmetric (passphrase) PGP** | `crypto/pgp.py` is asymmetric-only (armored public/private keys). UC6's EA file and 2 of 4 outputs are GPG **symmetric**, AES256, passphrase from `br_digital_poc.config.pgpkey`. | `pgp_decrypt_symmetric(data, passphrase)` / `pgp_encrypt_symmetric(data, passphrase)` via PGPy's `PGPMessage.decrypt(passphrase)` / `PGPMessage.encrypt(passphrase)`. New `pre_extraction_decryption.type: "pgp_symmetric"` handler + `pgp_encryption.passphrase_secret` on the sink. |
 | **F2** | **gzip member handling on ingest** | `source_zip_handling` extracts **ZIP** archives via pyzipper. UC6's inbound files are bare `.gz` (and `.csv.gz.gpg`). Spark decompresses a plain `.gz` transparently, but the **GPG-wrapped** one must be decrypted to a staging file first, and the existing path then tries to unzip it. | Extend the pre-extraction path to accept a `gzip` member format so `decrypt → gunzip → land` works without a ZIP container. |
 | **F3** | **gzip + delimiter on egress** | The `pgp_zip` sink writes a comma-only CSV (`csv.DictWriter` with no dialect args) inside a ZIP. UC6 must emit `.csv.gz` and `.csv.gz.gpg`, pipe-delimited. | New `sink_config.staged_file_options` (delimiter/header/quoting) and an archive format that emits gzip rather than ZIP. |
 | **F4** | **Exporting an aggregating target through a sink** | Discovered on the first live run, not in the brief. A sink is streaming-only and Delta cannot stream a fully-recomputed MV, so UC6's two `GROUP BY` gold outputs had **no export path at all**. | `sink_config.export_trigger: "per_update"` (v1.7.5): one shared `rate-micro-batch` pulse per pipeline drives every such sink; the payload is a batch `dlt.read`. Plus two fixes found the same way: `apply_all_governance_tags` skips `sink` flows (a sink has no table to tag — one sink's `TABLE_OR_VIEW_NOT_FOUND` had failed the whole group's tagging), and every sink path now strips `__framework_*` columns (three lineage columns were leaking into every export file against a 2-column contract). |
@@ -277,7 +277,7 @@ no framework code. Do not create it — the framework has three real surfaces:
    `DATABRICKS_VOLUME` destination, configured per dataflow group in the `observability_config`
    control table via the spec's `observability` block.
 
-UC6 routes to `/Volumes/flowx/observability/app_logs/uc6/`, matching UC3's existing use of that
+UC6 routes to `/Volumes/br_digital_poc/observability/app_logs/uc6/`, matching UC3's existing use of that
 volume. Queries for the handback go in the test report.
 
 ## 12. Definition of Done

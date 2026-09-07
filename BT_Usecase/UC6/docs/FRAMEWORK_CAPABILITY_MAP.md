@@ -56,7 +56,7 @@ The brief and the supplied design both route logging to `observability.appl_logs
 appears in **no framework code** — only in the UC6 design document itself. The framework's real
 surfaces are the structured JSON logger (driver stdout), Lakeflow's native event log, and a
 configurable `DATABRICKS_VOLUME` / `OTLP_CONSUMER` export destination. **Adopted:** volume export
-to `/Volumes/flowx/observability/app_logs/uc6/`, matching UC3's existing use of that volume. See
+to `/Volumes/br_digital_poc/observability/app_logs/uc6/`, matching UC3's existing use of that volume. See
 §4.
 
 ### 2.3 There is no tagging taxonomy to conform to
@@ -140,8 +140,8 @@ stated assumption, not a recovered requirement.**
 |---|---|---|
 | Structured JSON logs | One JSON line per flow operation: flow id, rows read/written/rejected/quarantined, status, duration, errors | Pipeline update's driver log |
 | Lakeflow event log | Per-dataset flow progress and DQ expectation pass/fail counts, natively | `event_log(:pipeline_id)` TVF |
-| Volume export | The above, exported as `.jsonl.gz` by the job's `observability_export` task | `/Volumes/flowx/observability/app_logs/uc6/` |
-| Reconciliation control tables | The §2.5 emptiness gate's own result rows | `flowx.config.reconciliation_run_log` etc. |
+| Volume export | The above, exported as `.jsonl.gz` by the job's `observability_export` task | `/Volumes/br_digital_poc/observability/app_logs/uc6/` |
+| Reconciliation control tables | The §2.5 emptiness gate's own result rows | `br_digital_poc.config.reconciliation_run_log` etc. |
 
 The structured logger deliberately does **not** write into Lakeflow's event log: that table has a
 fixed, closed set of `event_type` values and no documented API to append an application-defined

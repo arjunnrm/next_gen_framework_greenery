@@ -27,55 +27,28 @@ Follow this document; refer to the others as each step directs.
 | **Use-case pipelines** | Built and exercised. UC7 has a full test report; UC3 and UC6 have onboarding specs and bundle resources in place. |
 | **Environment provisioning** | **Manual today.** The setup notebook in document 02 is new and unrun. Every landing volume is an undeclared manual prerequisite. |
 | **Governance** | **Partial and uneven.** UC3 and UC6 apply tags; UC7 applies none at all. No column masks or row filters exist anywhere in the estate. |
-| **Beta signalling** | **Absent.** The app carries no pre-production notice and reports a stale framework version. |
 | **Catalog migration** | Outstanding. The Metaflow-to-FlowX catalog rename is still a manual, pending operator action. |
 
 The honest summary: **the pipelines are ready; the estate around them is not.** This runbook is the
 difference between three use cases that run and three use cases that can be handed to an operations
 team.
 
-## Decisions required before step 1
-
-Six findings cut across this delivery set, and each either blocks a step below or changes what that
-step should do. Do not begin the rollout until each has an answer.
-
-| # | Finding | Where it is stated | Owner role |
-|---|---|---|---|
-| 1 | UC7 is entirely ungoverned (G-03) | [01, governance findings](01_usecase_asset_inventory_and_governance.md) | Data Governance Lead |
-| 2 | No column masks or row filters exist (G-11) | [01, governance findings](01_usecase_asset_inventory_and_governance.md) | Data Governance Lead with Information Security |
-| 3 | Sink governance tags silently discarded (G-04) | [01, governance findings](01_usecase_asset_inventory_and_governance.md) | Framework Engineering Lead |
-| 4 | The app reports a stale framework version | [03, findings](03_platform_best_practice_and_naming_standards.md) | Application Owner |
-| 5 | Support contact conflict | [03, findings](03_platform_best_practice_and_naming_standards.md) | Application Owner |
-| 6 | Sticky-banner layout collision | [03, findings](03_platform_best_practice_and_naming_standards.md) | Front-End Engineer |
-
-Findings 1, 4, 5 and 6 have small, well-understood fixes and should simply be done. Findings 2 and 3
-are genuine decisions with cost attached, and are the two that warrant discussion rather than action.
-
----
-
 ## A note on the catalog name
 
 Throughout this delivery set the Unity Catalog name is **always a parameter, never a literal**.
-Two names appear, and the distinction matters:
+Every example uses **`br_digital_poc`**.
 
-| Name | What it is |
-|---|---|
-| `flowx` | The **live catalog** on the `metaflow_v7` workspace. Every asset the repository currently owns lives here, and the asset register in document 01 describes this estate as it actually stands. |
-| `bt_digital_poc` | A **worked example** of a different deployment target, used to show how the same artefacts are pointed at another catalog without editing them. |
-
-Wherever a path is written as `/Volumes/<catalog>/...`, substitute whichever applies. In the setup
-notebook this is the `target_catalog` widget; in a bundle it is `${var.catalog}`; in an onboarding
-spec it is the `{{catalog}}` token. So the UC7 landing path resolves as:
+Wherever a path is written as `/Volumes/<catalog>/...`, substitute the catalog for the deployment.
+In the setup notebook this is the `target_catalog` widget; in a bundle it is `${var.catalog}`; in an
+onboarding spec it is the `{{catalog}}` token. So the UC7 landing path resolves as:
 
 ```text
-/Volumes/flowx/landing/uc_7/raw/EMSC/            <- current metaflow_v7 estate
-/Volumes/bt_digital_poc/landing/uc_7/raw/EMSC/   <- e.g. a POC deployment
+/Volumes/br_digital_poc/landing/uc_7/raw/EMSC/
 ```
 
-**One caveat that is not cosmetic.** `resources/uc7/*.yml` currently hardcodes `catalog: flowx`
-rather than using `${var.catalog}`. Until that is parameterised, UC7 cannot be deployed into
-`bt_digital_poc` or any other catalog by changing a variable alone. This is tracked as gap G-05 in
-document 01, and it is a prerequisite for any catalog migration.
+**One caveat that is not cosmetic.** `resources/uc7/*.yml` currently hardcodes its catalog rather
+than using `${var.catalog}`. Until that is parameterised, UC7 cannot be pointed at another catalog
+by changing a variable alone, and it is a prerequisite for any catalog migration.
 
 ---
 
@@ -83,9 +56,9 @@ document 01, and it is a prerequisite for any catalog migration.
 
 | # | Document | Covers |
 |---|---|---|
-| 01 | [Use case asset inventory and governance](01_usecase_asset_inventory_and_governance.md) | Asset register, tagging strategy, data sensitivity, access control, governance gaps |
+| 01 | [Use case asset inventory and governance](01_usecase_asset_inventory_and_governance.md) | Asset register by layer, DAG lineage, dashboards, tagging, sensitivity, access control |
 | 02 | [Environment deployment and setup](02_environment_deployment_and_setup.md) | The setup and staging notebook, its design, and how to run it |
-| 03 | [Platform best practice and naming standards](03_platform_best_practice_and_naming_standards.md) | Naming conventions, Beta release governance, UI components, build and deploy practice |
+| 03 | [Databricks naming and best practice standards](03_platform_best_practice_and_naming_standards.md) | Naming templates for every Databricks object, tag vocabulary, build practice |
 | 04 | [Consolidated rollout runbook](04_consolidated_rollout_runbook.md) | The ordered end-to-end sequence, cross-alignment record, open assumptions |
 
 Each document stands alone. Where one depends on another it links rather than repeats.
@@ -117,8 +90,8 @@ Three things cannot be automated and must exist before anything else runs.
 
 | Prerequisite | Action |
 |---|---|
-| The catalog | Create `flowx` by hand. Unity Catalog Default Storage rejects `CREATE CATALOG` without a `MANAGED LOCATION`, so this cannot be declared in the bundle. |
-| Secret values | Create the `flowx.config.pgpkey` secret and set its value. The setup notebook in [document 02](02_environment_deployment_and_setup.md) registers the *key placeholder*; it never sets, reads or prints a value. |
+| The catalog | Create `br_digital_poc` by hand. Unity Catalog Default Storage rejects `CREATE CATALOG` without a `MANAGED LOCATION`, so this cannot be declared in the bundle. |
+| Secret values | Create the `br_digital_poc.config.pgpkey` secret and set its value. The setup notebook in [document 02](02_environment_deployment_and_setup.md) registers the *key placeholder*; it never sets, reads or prints a value. |
 | Manual upload folders | Confirm `uc_6/_schema_configs/` and UC7's `output_sample/` and `archive/` — none are created by the notebook. `_schema_configs/` is filled from `BT_Usecase/UC6/onboarding/schema_configs/`. |
 | Source files in the upload folder | Fill `workspace_staging_path` from the consolidated per-use-case trees — see the table below. |
 
@@ -219,7 +192,7 @@ and verified by byte size; the validation stage passes with no missing directori
 Run the `ALTER CATALOG`, `ALTER SCHEMA` and `ALTER VOLUME` tag DDL. This closes gap G-01 and is done
 here, once the containers exist and before the tables do.
 
-**Done looks like:** `flowx.information_schema.catalog_tags`, `schema_tags` and `volume_tags` return
+**Done looks like:** `br_digital_poc.information_schema.catalog_tags`, `schema_tags` and `volume_tags` return
 the expected rows.
 
 **Trap:** **qualify every `information_schema` query with the catalog.** An unqualified query
@@ -289,7 +262,7 @@ DDL by hand.
 If critical finding 2 was decided in favour of enforcement, apply the column masks and row filters
 now — **after** the pipeline update, never before, since the tables must exist first.
 
-**Done looks like:** `flowx.information_schema.table_tags` and `column_tags` return the expected rows
+**Done looks like:** `br_digital_poc.information_schema.table_tags` and `column_tags` return the expected rows
 for all three use cases, UC7 included.
 
 **Trap:** governed tag policy violations fail **here**, at the apply task, not at spec validation.
@@ -321,8 +294,8 @@ five sub-steps rather than one.
 |---|---|---|
 | Volumes and directory trees exist | The notebook's validation stage | [document 02](02_environment_deployment_and_setup.md) |
 | Files routed correctly, nothing unrouted | The notebook's summary | [document 02](02_environment_deployment_and_setup.md) |
-| Container tags applied | `flowx.information_schema.{catalog,schema,volume}_tags` | [document 01](01_usecase_asset_inventory_and_governance.md) (tagging SQL) |
-| Table and column tags applied for **all three** use cases | `flowx.information_schema.{table,column}_tags` | [document 01](01_usecase_asset_inventory_and_governance.md) (tagging) |
+| Container tags applied | `br_digital_poc.information_schema.{catalog,schema,volume}_tags` | [document 01](01_usecase_asset_inventory_and_governance.md) (tagging SQL) |
+| Table and column tags applied for **all three** use cases | `br_digital_poc.information_schema.{table,column}_tags` | [document 01](01_usecase_asset_inventory_and_governance.md) (tagging) |
 | UC7 specifically has tags | Same query, filtered to the four UC7 tables | Critical finding 1 |
 | Bronze row counts are non-zero and quarantine is as expected | Query the tables | [document 01](01_usecase_asset_inventory_and_governance.md) (asset register) |
 | Beta pill and banner render, light and dark | Open the app in both themes | [document 03](03_platform_best_practice_and_naming_standards.md) |
@@ -349,7 +322,7 @@ outputs. Where the two disagreed, the repository's build contracts decided it.
 | **(c)** | The notebook creates `silver`, `gold`, `landing`, `config` and `observability`; the register lists some as pre-existing and some as bundle-created. | **Both descriptions are correct, for different workspaces.** On the established `metaflow_v7` workspace `config`, `observability`, `bronze` and `staging` already exist and the notebook finds them; `silver`, `gold` and `landing` may or may not, depending on whether the UC6 and UC7 pipelines have run. On a fresh workspace the notebook creates all of them. | **Resolved by stating the rule rather than the state:** every statement is `CREATE SCHEMA IF NOT EXISTS`, so the notebook **finds** what exists and **creates** what does not, and the outcome is identical either way. The register marks the established-workspace position and cross-references this check. UC6's `silver` and `gold` are consequently created in two places — the notebook and the pipeline-adjacent DDL — which is harmless for the same reason. |
 | **(d)** | The notebook registers a `security` schema for `pii_encryption_key`, absent from the register. | **Confirmed forward-looking and unused.** Notebook lines 360–361. No UC3, UC6 or UC7 spec references `pii_encryption_key`; no column encryption is implemented anywhere in the framework. | **Flagged as optional; recommend dropping it** unless column encryption is planned. It is deliberately excluded from the register in C.1, because listing an asset no use case uses would misrepresent the estate. Listed in the appendix as item 1. |
 | **(e)** | Do the notebook's derived folder names match the documented conventions and the specs? | **Exact match on all of them.** `uc_3`, `uc_6`, `uc_7` match the `uc_<N>` volume convention in C.3.2. `batch_date=` matches the Hive-style partition folder. `_schemas/<source>/` and `_extracted/<source>/` match both the convention and the six UC6 source paths in the spec. `asn_schema/` matches the UC7 spec's `asn1_schema_path` directory. | No change required. |
-| **(f)** | Does the notebook's wheel version match the register and `pyproject.toml`? | **Match.** Notebook line 228 sets `FRAMEWORK_WHEEL_VERSION = "0.0.3"`; `pyproject.toml` line 3 is `version = "0.0.3"`; the UC7 spec's provenance names `/Volumes/flowx/config/wheels/0.0.3/.internal/flowx-0.0.3-py3-none-any.whl`. | No change. **Noted as a maintenance obligation:** the constant is hand-managed and must be bumped per release. Appendix item 2. |
+| **(f)** | Does the notebook's wheel version match the register and `pyproject.toml`? | **Match.** Notebook line 228 sets `FRAMEWORK_WHEEL_VERSION = "0.0.3"`; `pyproject.toml` line 3 is `version = "0.0.3"`; the UC7 spec's provenance names `/Volumes/br_digital_poc/config/wheels/0.0.3/.internal/flowx-0.0.3-py3-none-any.whl`. | No change. **Noted as a maintenance obligation:** the constant is hand-managed and must be bumped per release. Appendix item 2. |
 | **(g)** | Do the `.asn1` filenames the notebook validates match the UC7 spec's `asn1_schema_path` values? | **Exact match on all four.** The notebook checks `{EMSC.asn1, PSGW.asn1, SGSN.asn1, TAP.310.asn1}` at line 1466. The spec's four `asn1_schema_path` values are `/Volumes/{{catalog}}/landing/uc_7/asn_schema/` plus, respectively, `EMSC.asn1`, `PSGW.asn1`, `SGSN.asn1` and `TAP.310.asn1`. | No change. **`TAP.310.asn1` is deliberately version-specific** and is not interchangeable with `TAP.311.asn1`: the TAP version is proven from the payload (specification version 3, release version 10), and 3.11 drops the `valueAddedService` CHOICE arm. Do not "upgrade" this filename. |
 | **(h)** | The UC6 `EE_` pattern matches a `.csv` name, but the notebook stages a `.csv.gz.gpg` file. Is this a mismatch? | **Not a mismatch — the two patterns describe different points in the pipeline.** The flow declares `"file_pattern": "EE_*-REQUEST_*.csv"` **and** `"zip_file_pattern": "EE_*-REQUEST_*[Oo][Ff]*.csv.gz.gpg"`, with `pre_extraction_decryption` configured and a `target_volume_path` of `_extracted/ea_request/`. The notebook stages the still-encrypted `.csv.gz.gpg`; the framework decrypts and decompresses it into `_extracted/`; Auto Loader then reads the resulting `.csv` via `file_pattern`. The source `path` for all six UC6 flows is under `_extracted/`, confirming the framework reads post-decryption names throughout. | **No change — but recorded here because it looks like a defect to a reviewer.** `file_pattern` is the **post**-decryption name; `zip_file_pattern` is the **pre**-decryption name. The other five feeds are `*.dat.gz`, which are decompressed but not decrypted, so their two patterns look more alike and the distinction is less visible. |
 

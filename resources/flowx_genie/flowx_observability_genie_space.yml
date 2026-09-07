@@ -1,0 +1,51 @@
+# AI/BI Genie space over the FlowX observability semantic layer.
+#
+# WHAT THIS ANSWERS. Natural-language questions about the framework itself: "show me the details
+# of every dataflow group and what features they use", "explain what dfg_uc6_ea_flood_warning
+# does flow by flow", "which groups are unhealthy and why", "document dfg_uc7_cdr_asn for a new
+# engineer", "what did each group cost to run". The space is deliberately narrow: it is pointed
+# at the curated `<catalog>.observability` views, not at `system.lakeflow` directly, because a
+# space that can see the raw system tables answers platform-wide questions that have nothing to
+# do with FlowX and loses the dataflow_group_id framing that makes the answers useful.
+#
+# WHY THE VIEWS AND NOT THE CONTROL TABLES. Genie reads column COMMENTs as its semantic model,
+# and the observability views are commented for exactly that purpose (see
+# `control_plane/observability_views.py`). They also pre-compute the things an LLM reliably gets
+# wrong when left to infer them from raw JSON blobs -- has_cdc, has_dq, has_quarantine, and the
+# `feature_summary` sentence the space is instructed to quote verbatim. Two of the control tables
+# are still included as data sources for questions that need raw grain (who onboarded what;
+# per-record reconciliation mismatches).
+#
+# THE SPACE DEFINITION LIVES IN JSON, NOT HERE. `file_path` points at a `.geniespace.json` whose
+# contents are inlined into `serialized_space` at deploy time. That file carries the table list,
+# the instruction text, twelve example question/SQL pairs, twelve sample questions and four
+# benchmark questions. Two hard requirements of the API, learned the hard way and easy to reintroduce by
+# hand-editing:
+#   * `data_sources.tables` MUST be sorted by identifier.
+#   * every repeated block (text_instructions, example_question_sqls, sample_questions,
+#     benchmarks.questions) MUST be sorted by its `id`.
+# An unsorted list is rejected outright with "Invalid export proto: ... must be sorted by ...".
+# Every human-readable string in that file is an ARRAY OF LINES, each ending in "\n" except the
+# last -- not a single string.
+#
+# ROUND-TRIPPING UI EDITS. Genie spaces are usually tuned interactively (adding instructions,
+# fixing an example query) and those edits live only in the workspace until pulled back:
+#   databricks bundle generate genie-space --resource flowx_observability_genie_space --force
+# Commit the regenerated `.geniespace.json`. Without that step the next `bundle deploy`
+# overwrites the tuning.
+#
+# PREREQUISITE. The `<catalog>.observability` views must exist, which
+# `notebooks/01_setup/01_setup_control_tables.py` provisions (section 5). Deploying this space
+# before the first setup run leaves it pointing at missing tables and every question fails.
+resources:
+  genie_spaces:
+    flowx_observability_genie_space:
+      title: "FlowX Framework Observability"
+      description: >-
+        Ask about FlowX dataflow groups: what each one does, which framework features it uses,
+        how its pipelines have been running, its data-quality and reconciliation posture, and
+        what it costs. Backed by the framework control metadata joined to the Databricks system
+        tables.
+      warehouse_id: ${var.dashboard_warehouse_id}
+      parent_path: ${workspace.file_path}/databricks-genie
+      file_path: ../../databricks-genie/flowx_observability.geniespace.json

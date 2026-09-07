@@ -144,7 +144,7 @@ body, .md-typeset, .md-typeset table, .md-typeset h1, .md-typeset h2,
 ### 4.1 The architecture in one picture
 
 ```
-   /Volumes/flowx/staging/uc_6/raw/        6 source files land here
+   /Volumes/br_digital_poc/staging/uc_6/raw/        6 source files land here
                  |
                  v
    [ 1 ] BRONZE  6 streaming tables         faithful copy of each source
@@ -159,7 +159,7 @@ body, .md-typeset, .md-typeset table, .md-typeset h1, .md-typeset h2,
    [ 4 ] SINKS   4 export files              2 plain, 2 GPG-encrypted
                  |
                  v
-   /Volumes/flowx/staging/uc_6/output/
+   /Volumes/br_digital_poc/staging/uc_6/output/
 ```
 
 ### 4.2 What changed against the As-Is
@@ -238,12 +238,12 @@ produces zero matches. See Appendix B.4 for why both are kept.
 
 | Path | Purpose |
 |---|---|
-| `/Volumes/flowx/staging/uc_6/raw/` | Where the six source files land |
-| `/Volumes/flowx/staging/uc_6/_extracted/ea_request/` | Where the decrypted EA file is written |
-| `/Volumes/flowx/staging/uc_6/_schema_configs/` | The five schema-config JSON files |
-| `/Volumes/flowx/staging/uc_6/output/` | **The four export files** |
-| `/Volumes/flowx/staging/uc_6/output/_staging/` | Per-sink staging. Ignore |
-| `/Volumes/flowx/observability/app_logs/uc6/` | Telemetry export |
+| `/Volumes/br_digital_poc/staging/uc_6/raw/` | Where the six source files land |
+| `/Volumes/br_digital_poc/staging/uc_6/_extracted/ea_request/` | Where the decrypted EA file is written |
+| `/Volumes/br_digital_poc/staging/uc_6/_schema_configs/` | The five schema-config JSON files |
+| `/Volumes/br_digital_poc/staging/uc_6/output/` | **The four export files** |
+| `/Volumes/br_digital_poc/staging/uc_6/output/_staging/` | Per-sink staging. Ignore |
+| `/Volumes/br_digital_poc/observability/app_logs/uc6/` | Telemetry export |
 
 ### 6.3 A critical operational note
 
@@ -263,7 +263,7 @@ produces zero matches. See Appendix B.4 for why both are kept.
 | **4** | The decrypted file is **gunzipped** to `_extracted/` | `archive/zip_utils.py` | A `.csv` appears in `_extracted/ea_request/` |
 | **5** | Five plain `.gz` files are read directly | Auto Loader | Spark decompresses gzip natively |
 | **6** | Positional columns are named via schema configs | `ingestion/schema_config.py` | Bronze tables have real column names |
-| **7** | Six bronze tables are published | `flowx.bronze.uc6_*` | Query T1 |
+| **7** | Six bronze tables are published | `br_digital_poc.bronze.uc6_*` | Query T1 |
 | **8** | EA rows are normalised, deduplicated per OSAPR | `silver.uc6_ea_base`, `uc6_ea_address` | Query T2 |
 | **9** | EE customers are unioned across three channels | `silver.uc6_ee_address_paf` | Query T3 |
 | **10** | **The join.** EA addresses meet EE addresses on postcode | `silver.uc6_matched_address` | Query T4 |
@@ -728,7 +728,7 @@ One destination, `dest_uc6_triggered_volume`.
 |---|---|
 | **Reference in the spec** | `secret_catalog`, `secret_schema`, `secret_key` |
 | **Resolved value** | Never in the JSON, the control tables, or any log |
-| **On this workspace** | Unity Catalog secrets are **disabled**, so the framework falls back to a classic scope named `flowx.config` |
+| **On this workspace** | Unity Catalog secrets are **disabled**, so the framework falls back to a classic scope named `br_digital_poc.config` |
 | **Cipher** | AES256 |
 | **Verified** | Round-tripped against the real GnuPG 2.4.9 CLI in both directions |
 
@@ -741,18 +741,18 @@ One destination, `dest_uc6_triggered_volume`.
 ### T1 — Row counts at every layer
 
 ```sql
-SELECT 'bronze.uc6_ea_request'  AS table_name, count(*) AS rows FROM flowx.bronze.uc6_ea_request
-UNION ALL SELECT 'bronze.uc6_css_account',         count(*) FROM flowx.bronze.uc6_css_account
-UNION ALL SELECT 'bronze.uc6_css_account_address', count(*) FROM flowx.bronze.uc6_css_account_address
-UNION ALL SELECT 'bronze.uc6_css_subscription',    count(*) FROM flowx.bronze.uc6_css_subscription
-UNION ALL SELECT 'bronze.uc6_jt_customer',         count(*) FROM flowx.bronze.uc6_jt_customer
-UNION ALL SELECT 'bronze.uc6_excalibur_address',   count(*) FROM flowx.bronze.uc6_excalibur_address
-UNION ALL SELECT 'silver.uc6_ea_base',             count(*) FROM flowx.silver.uc6_ea_base
-UNION ALL SELECT 'silver.uc6_ea_address',          count(*) FROM flowx.silver.uc6_ea_address
-UNION ALL SELECT 'silver.uc6_ee_address_paf',      count(*) FROM flowx.silver.uc6_ee_address_paf
-UNION ALL SELECT 'silver.uc6_matched_address',     count(*) FROM flowx.silver.uc6_matched_address
-UNION ALL SELECT 'gold.uc6_osapr_output',          count(*) FROM flowx.gold.uc6_osapr_output
-UNION ALL SELECT 'gold.uc6_telephone_output',      count(*) FROM flowx.gold.uc6_telephone_output;
+SELECT 'bronze.uc6_ea_request'  AS table_name, count(*) AS rows FROM br_digital_poc.bronze.uc6_ea_request
+UNION ALL SELECT 'bronze.uc6_css_account',         count(*) FROM br_digital_poc.bronze.uc6_css_account
+UNION ALL SELECT 'bronze.uc6_css_account_address', count(*) FROM br_digital_poc.bronze.uc6_css_account_address
+UNION ALL SELECT 'bronze.uc6_css_subscription',    count(*) FROM br_digital_poc.bronze.uc6_css_subscription
+UNION ALL SELECT 'bronze.uc6_jt_customer',         count(*) FROM br_digital_poc.bronze.uc6_jt_customer
+UNION ALL SELECT 'bronze.uc6_excalibur_address',   count(*) FROM br_digital_poc.bronze.uc6_excalibur_address
+UNION ALL SELECT 'silver.uc6_ea_base',             count(*) FROM br_digital_poc.silver.uc6_ea_base
+UNION ALL SELECT 'silver.uc6_ea_address',          count(*) FROM br_digital_poc.silver.uc6_ea_address
+UNION ALL SELECT 'silver.uc6_ee_address_paf',      count(*) FROM br_digital_poc.silver.uc6_ee_address_paf
+UNION ALL SELECT 'silver.uc6_matched_address',     count(*) FROM br_digital_poc.silver.uc6_matched_address
+UNION ALL SELECT 'gold.uc6_osapr_output',          count(*) FROM br_digital_poc.gold.uc6_osapr_output
+UNION ALL SELECT 'gold.uc6_telephone_output',      count(*) FROM br_digital_poc.gold.uc6_telephone_output;
 ```
 
 **Expected:** bronze 7, 5, 5, 5, 1, 1. Silver 7, 7, 6, 11. Gold 7, 2.
@@ -761,7 +761,7 @@ UNION ALL SELECT 'gold.uc6_telephone_output',      count(*) FROM flowx.gold.uc6_
 
 ```sql
 SELECT targetAreaID, osapr, postcode, address_norm
-FROM   flowx.silver.uc6_ea_address
+FROM   br_digital_poc.silver.uc6_ea_address
 ORDER  BY targetAreaID, osapr;
 ```
 
@@ -771,7 +771,7 @@ ORDER  BY targetAreaID, osapr;
 
 ```sql
 SELECT source_system, count(*) AS customers, count(DISTINCT msisdn) AS distinct_msisdn
-FROM   flowx.silver.uc6_ee_address_paf
+FROM   br_digital_poc.silver.uc6_ee_address_paf
 GROUP  BY source_system
 ORDER  BY customers DESC;
 ```
@@ -790,7 +790,7 @@ ORDER  BY customers DESC;
 
 ```sql
 SELECT targetAreaID, osapr, postcode, source_system, msisdn, match_strength
-FROM   flowx.silver.uc6_matched_address
+FROM   br_digital_poc.silver.uc6_matched_address
 ORDER  BY targetAreaID, osapr, match_strength DESC;
 ```
 
@@ -801,7 +801,7 @@ ORDER  BY targetAreaID, osapr, match_strength DESC;
 ```sql
 SELECT targetAreaID, osapr, status, count,
        count_of_msisdn, count_of_osapr, match_strength
-FROM   flowx.gold.uc6_osapr_output
+FROM   br_digital_poc.gold.uc6_osapr_output
 ORDER  BY targetAreaID, osapr;
 ```
 
@@ -811,7 +811,7 @@ ORDER  BY targetAreaID, osapr;
 
 ```sql
 SELECT targetAreaID, telephone
-FROM   flowx.gold.uc6_telephone_output
+FROM   br_digital_poc.gold.uc6_telephone_output
 ORDER  BY targetAreaID, telephone;
 ```
 
@@ -822,7 +822,7 @@ ORDER  BY targetAreaID, telephone;
 ```sql
 SELECT '07700900003 must be ABSENT (privacy rule)' AS check_name,
        CASE WHEN count(*) = 0 THEN 'PASS' ELSE 'FAIL' END AS result
-FROM   flowx.gold.uc6_telephone_output
+FROM   br_digital_poc.gold.uc6_telephone_output
 WHERE  telephone = '07700900003';
 ```
 
@@ -833,14 +833,14 @@ WHERE  telephone = '07700900003';
 ```sql
 SELECT '07700900999 must be ABSENT (under-17)' AS check_name,
        CASE WHEN count(*) = 0 THEN 'PASS' ELSE 'FAIL' END AS result
-FROM   flowx.gold.uc6_telephone_output
+FROM   br_digital_poc.gold.uc6_telephone_output
 WHERE  telephone = '07700900999';
 ```
 
 ### T9 — Prove the four export files exist
 
 ```sql
-LIST '/Volumes/flowx/staging/uc_6/output/';
+LIST '/Volumes/br_digital_poc/staging/uc_6/output/';
 ```
 
 **Expected:** four files, two `.csv.gz` and two `.csv.gz.gpg`, plus a `_staging` folder you can ignore.
@@ -856,8 +856,8 @@ SELECT ea.osapr,
        cast(round(100.0 *
             size(array_intersect(split(ea.address_norm,' '), split(ee.address_norm,' ')))
             / greatest(size(split(ea.address_norm,' ')), 1)) AS INT) AS recomputed_score
-FROM   flowx.silver.uc6_ea_address ea
-JOIN   flowx.silver.uc6_ee_address_paf ee ON ea.postcode_norm = ee.postcode_norm
+FROM   br_digital_poc.silver.uc6_ea_address ea
+JOIN   br_digital_poc.silver.uc6_ee_address_paf ee ON ea.postcode_norm = ee.postcode_norm
 ORDER  BY recomputed_score DESC;
 ```
 
@@ -867,31 +867,31 @@ ORDER  BY recomputed_score DESC;
 
 ```sql
 SELECT schema_name, table_name, tag_name, tag_value
-FROM   flowx.information_schema.table_tags
+FROM   br_digital_poc.information_schema.table_tags
 WHERE  table_name LIKE 'uc6_%'
 ORDER  BY schema_name, table_name, tag_name;
 ```
 
 **Expected:** 72 rows across 12 tables.
 
-**Important:** `information_schema` is catalog-scoped. The three-part name `flowx.information_schema` is mandatory. An unqualified query returns rows for the wrong catalog and looks convincingly like "tags are not supported here".
+**Important:** `information_schema` is catalog-scoped. The three-part name `br_digital_poc.information_schema` is mandatory. An unqualified query returns rows for the wrong catalog and looks convincingly like "tags are not supported here".
 
 ### T12 — Full data-quality scorecard, run this for a demonstration
 
 ```sql
 WITH checks AS (
     SELECT 'OSAPR output has 7 rows' AS check_name,
-           (SELECT count(*) FROM flowx.gold.uc6_osapr_output) AS actual, 7 AS expected
+           (SELECT count(*) FROM br_digital_poc.gold.uc6_osapr_output) AS actual, 7 AS expected
     UNION ALL SELECT 'Telephone output has 2 rows',
-           (SELECT count(*) FROM flowx.gold.uc6_telephone_output), 2
+           (SELECT count(*) FROM br_digital_poc.gold.uc6_telephone_output), 2
     UNION ALL SELECT 'All four statuses are present',
-           (SELECT count(DISTINCT status) FROM flowx.gold.uc6_osapr_output), 4
+           (SELECT count(DISTINCT status) FROM br_digital_poc.gold.uc6_osapr_output), 4
     UNION ALL SELECT 'Privacy rule held (07700900003 absent)',
-           (SELECT count(*) FROM flowx.gold.uc6_telephone_output WHERE telephone='07700900003'), 0
+           (SELECT count(*) FROM br_digital_poc.gold.uc6_telephone_output WHERE telephone='07700900003'), 0
     UNION ALL SELECT 'Age filter held (07700900999 absent)',
-           (SELECT count(*) FROM flowx.gold.uc6_telephone_output WHERE telephone='07700900999'), 0
+           (SELECT count(*) FROM br_digital_poc.gold.uc6_telephone_output WHERE telephone='07700900999'), 0
     UNION ALL SELECT 'Governance tags applied',
-           (SELECT count(*) FROM flowx.information_schema.table_tags WHERE table_name LIKE 'uc6_%'), 72
+           (SELECT count(*) FROM br_digital_poc.information_schema.table_tags WHERE table_name LIKE 'uc6_%'), 72
 )
 SELECT check_name, expected, actual,
        CASE WHEN actual = expected THEN 'PASS' ELSE 'FAIL' END AS result
@@ -960,7 +960,7 @@ FROM   checks ORDER BY result DESC, check_name;
 
 | Aspect | Detail |
 |---|---|
-| **Destination** | `/Volumes/flowx/observability/app_logs/uc6/` |
+| **Destination** | `/Volumes/br_digital_poc/observability/app_logs/uc6/` |
 | **Format** | JSONL, gzip-compressed. Set by `file_format: "JSONL"` and `compression: "GZIP"` — `compression` is a **string**, not a boolean. See 13.6 |
 | **Written by** | The `observability_export` job task |
 | **Verified** | One file, approximately 100 KB, per run |
@@ -1046,7 +1046,7 @@ FROM   checks ORDER BY result DESC, check_name;
 ```bash
 # 1. Re-upload the EA request file. It is CONSUMED on every run.
 databricks fs cp BT_Usecase/UC6/data/test_fixture/EE_2026-08-20-REQUEST_1OF1.csv.gz.gpg \
-  dbfs:/Volumes/flowx/staging/uc_6/raw/EE_2026-08-20-REQUEST_1OF1.csv.gz.gpg \
+  dbfs:/Volumes/br_digital_poc/staging/uc_6/raw/EE_2026-08-20-REQUEST_1OF1.csv.gz.gpg \
   -p metaflow_v7 --overwrite
 
 # 2. Deploy. NEVER do this while a pipeline is running.
@@ -1063,11 +1063,11 @@ python scripts/validate_uc6_pipeline_output.py
 
 | Prerequisite | How to check |
 |---|---|
-| Six files in `raw/` | `databricks fs ls dbfs:/Volumes/flowx/staging/uc_6/raw/` |
+| Six files in `raw/` | `databricks fs ls dbfs:/Volumes/br_digital_poc/staging/uc_6/raw/` |
 | Five schema configs in `_schema_configs/` | Same command, different folder |
-| The passphrase secret | `databricks secrets list-secrets flowx.config` |
+| The passphrase secret | `databricks secrets list-secrets br_digital_poc.config` |
 | Schemas `bronze`, `silver`, `gold`, `staging` | `databricks schemas list flowx` |
-| Volume `flowx.observability.app_logs` | `databricks volumes read flowx.observability.app_logs` |
+| Volume `br_digital_poc.observability.app_logs` | `databricks volumes read br_digital_poc.observability.app_logs` |
 
 ### B.3 Failure playbook
 
@@ -1133,10 +1133,10 @@ we do not regenerate it.** If it needs to change, it changes at the customer.
 | Fact type | How it was obtained |
 |---|---|
 | Row counts at every layer | Executed against `flowx` on `metaflow_v7` |
-| The decision table, all 7 rows | Read from `flowx.gold.uc6_osapr_output` |
-| The join output, all 11 rows | Read from `flowx.silver.uc6_matched_address` |
+| The decision table, all 7 rows | Read from `br_digital_poc.gold.uc6_osapr_output` |
+| The join output, all 11 rows | Read from `br_digital_poc.silver.uc6_matched_address` |
 | Join SQL and business rules | Read from `BT_Usecase/UC6/onboarding/uc6_ea_flood_warning.json` |
-| Governance tag count | Counted in `flowx.information_schema.table_tags` |
+| Governance tag count | Counted in `br_digital_poc.information_schema.table_tags` |
 | Export file names and sizes | Listed from the output volume |
 | Job and pipeline status | Read from the Databricks Jobs and Pipelines APIs |
 

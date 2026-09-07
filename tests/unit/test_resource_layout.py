@@ -44,6 +44,8 @@ EXPECTED_GROUPS = {
     "flowx_bootstrap",
     "flowx_bi",
     "flowx_config_jobs",
+    "flowx_docs",
+    "flowx_genie",
     "observability",
     "sample_jobs",
     "uc3",

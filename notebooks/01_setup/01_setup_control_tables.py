@@ -60,6 +60,10 @@ from flowx.lakeflow_framework.control_plane.ddl_definitions import (  # noqa: E4
     get_preflight_function_ddl,
     get_schema_ddl,
 )
+from flowx.lakeflow_framework.control_plane.observability_views import (  # noqa: E402
+    get_all_observability_view_ddls,
+    get_observability_schema_ddl,
+)
 from flowx.lakeflow_framework.control_plane.schema_provisioner import (  # noqa: E402
     is_already_exists_race,
 )
@@ -195,3 +199,67 @@ execute_ddl(
     get_preflight_function_ddl(CONTROL_SCHEMA, ONBOARDING_SPEC_SCHEMA_JSON),
     f"create function {CONTROL_SCHEMA}.preflight_check_onboarding_spec",
 )
+
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ## 5. Observability Semantic Layer (`<catalog>.observability`)
+# MAGIC
+# MAGIC Creates the views that join FlowX control metadata to the Databricks **system tables**
+# MAGIC (`system.lakeflow`, `system.billing`, `system.access`), giving run performance, cost, data
+# MAGIC quality and lineage per `dataflow_group_id`. These back both
+# MAGIC `databricks-bi/flowx_observability_dashboard.lvdash.json` and the Genie space in
+# MAGIC `resources/flowx_genie/` -- defining them once keeps the dashboard and the agent
+# MAGIC semantically identical. See `control_plane/observability_views.py` for the design notes.
+# MAGIC
+# MAGIC This step is **non-fatal**: the control tables are the job's actual contract, and system
+# MAGIC table access is a workspace-level grant that a deploying principal may legitimately not
+# MAGIC hold. A failure here is logged as a warning rather than failing onboarding.
+
+# COMMAND ----------
+
+OBSERVABILITY_SCHEMA = f"{CATALOG}.observability"
+
+# Per-flow row counts and DQ expectation results come from the pipelines' event logs. SQL cannot
+# read a table whose name lives in another table's column, so the concrete table list is resolved
+# here and baked into the view DDL. Discovery (rather than constructing
+# `<catalog>.<schema>.event_log_<id>`) is deliberate: `system.lakeflow.pipelines.settings` exposes
+# no catalog/target field, so the publish location is not derivable from the pipeline row.
+EVENT_LOG_DISCOVERY_SQL = """
+SELECT DISTINCT concat(t.table_catalog, '.', t.table_schema, '.', t.table_name) AS event_log_table
+FROM system.information_schema.tables t
+JOIN system.lakeflow.pipelines p
+  ON replace(t.table_name, 'event_log_', '') = replace(p.pipeline_id, '-', '_')
+WHERE t.table_name LIKE 'event_log_%'
+  AND p.delete_time IS NULL
+  AND p.configuration['dataflow.group.id'] IS NOT NULL
+"""
+
+try:
+    try:
+        event_log_tables = [row.event_log_table for row in spark.sql(EVENT_LOG_DISCOVERY_SQL).collect()]
+        logger.info("Discovered %d published pipeline event log table(s)", len(event_log_tables))
+    except Exception as exc:  # noqa: BLE001
+        # No system table access, or no pipelines deployed yet. The two event-log-backed views are
+        # still created (over an empty relation) so dependent dashboard and Genie objects resolve.
+        logger.warning("Could not discover pipeline event log tables (%s); creating the "
+                       "event-log-backed views empty but resolvable.", exc)
+        event_log_tables = []
+
+    execute_ddl(get_observability_schema_ddl(OBSERVABILITY_SCHEMA),
+                f"create schema {OBSERVABILITY_SCHEMA}")
+
+    for description, ddl_statement in get_all_observability_view_ddls(
+        OBSERVABILITY_SCHEMA, CONTROL_SCHEMA, event_log_tables
+    ):
+        execute_ddl(ddl_statement, description)
+
+    logger.info("Observability semantic layer provisioned in '%s'", OBSERVABILITY_SCHEMA)
+except Exception as exc:  # noqa: BLE001
+    logger.warning(
+        "Observability semantic layer was NOT fully provisioned in '%s': %s. The control tables "
+        "are unaffected. Most often this means the deploying principal lacks SELECT on the "
+        "system catalog -- grant it, then re-run this notebook.",
+        OBSERVABILITY_SCHEMA, exc,
+    )

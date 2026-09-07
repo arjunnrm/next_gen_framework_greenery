@@ -28,7 +28,7 @@ Per the requested handling rules for this POC:
   which is gzip **+ GPG symmetric encryption** (passphrase-based, cipher AES256).
 - Decrypt passphrase (POC/synthetic only): `EA-POC-Sample-2026!`
   This same passphrase should be stored in Databricks as secret
-  `flowx.config.pgpkey` and referenced by the pipeline — never hardcoded in code.
+  `br_digital_poc.config.pgpkey` and referenced by the pipeline — never hardcoded in code.
 
 ## How to use
 

@@ -47,7 +47,7 @@ Classification is by **provenance trace**, not by filename or guesswork:
 |---|---|---|
 | `BT_Usecase/UC7/data/asn_schema/*.asn1` (EMSC, GGSN, PSGW, TAP.310, TAP.311) | **[Customer-Provided]** | Real ASN.1 protocol module definitions. No generator emits them; `generate_synthetic_ber.py` *reads* them as input. |
 | `BT_Usecase/UC7/data/tap311_sample.ber` | **[Customer-Provided]** | Supplied sample payload; not written by any generator. |
-| `BT_Usecase/UC7/data/EE_...csv.gz.gpg` | **[Customer-Provided]** | Supplied encrypted EA request file. |
+| `BT_Usecase/UC6/data/test_fixture/EE_...customer_supplied.csv.gz.gpg` | **[Customer-Provided]** | Supplied encrypted EA request file. Relocated from `UC7/data/` — an EA artefact, not a UC7 one. Distinct from the `[Simulated]` EE file in the same folder. |
 | `BT_Usecase/UC7/data/synthetic/*.ber` (5 files) | **[Simulated]** | Written by `scripts/generate_synthetic_ber.py` → `OUTPUT_DIR = SCHEMA_DIR / "synthetic"`. Deterministic, 10 records per protocol. |
 
 ---

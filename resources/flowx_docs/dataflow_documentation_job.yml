@@ -1,0 +1,69 @@
+# Documentation generator: renders one Markdown design document per FlowX dataflow group from
+# the control metadata and the Databricks system tables, into a Unity Catalog Volume.
+#
+# WHY A JOB AND NOT JUST THE GENIE SPACE. The Genie space in `resources/flowx_genie/` answers
+# "explain dataflow group X" conversationally, which is the right shape for exploration. It does
+# not leave an artefact: nothing to commit, attach to a change request, or hand to someone
+# without workspace access. This job produces that artefact, from the same
+# `<catalog>.observability` views the Genie space reads, so the two cannot disagree about the
+# facts. Run it after an onboarding change to refresh the documentation.
+#
+# WHY IT READS THE CONTROL TABLES AND NOT THE SPEC FILES. A spec says what a pipeline *should*
+# do. The control tables say what was actually onboarded, and the system tables say how it has
+# actually been running. Generating from the spec would reproduce the same staleness problem
+# hand-written docs have. See `observability/dataflow_documenter.py` for the rendering, which is
+# pure functions over plain Python data and therefore unit-testable without a cluster.
+#
+# PARAMETERS. All four are job parameters so a single deployed job serves every use:
+#   catalog            -- which catalog's control metadata to document.
+#   dataflow_group_id  -- blank documents every group; set it to document just one.
+#   output_volume      -- blank derives /Volumes/<catalog>/config/framework_docs/dataflow_groups;
+#                         override to write a per-release folder.
+#   lookback_days      -- the reporting window for run history, DQ and reconciliation figures.
+#
+# Usage:
+#   databricks bundle run dataflow_documentation_job --target metaflow_v7
+#   databricks bundle run dataflow_documentation_job --target metaflow_v7 \
+#     --params dataflow_group_id=dfg_uc6_ea_flood_warning
+#
+# DEGRADES RATHER THAN FAILS. The run-history sections depend on system table access, which the
+# running principal may legitimately not hold. Each of those reads is individually optional: a
+# failure logs a warning and that document section says nothing was observed, because the
+# control-metadata half of the document is still worth producing. Only a missing
+# `v_dataflow_group_catalog` (i.e. setup has never run) fails the job, and it says so explicitly.
+resources:
+  jobs:
+    dataflow_documentation_job:
+      name: FlowX Dataflow Documentation
+
+      tags:
+        framework: flowx
+        component: documentation
+
+      parameters:
+        - name: catalog
+          default: ${var.catalog}
+        - name: dataflow_group_id
+          default: ""
+        - name: output_volume
+          default: ""
+        - name: lookback_days
+          default: "30"
+
+      tasks:
+        - task_key: generate_documentation
+          notebook_task:
+            notebook_path: ../../notebooks/09_documentation/09_dataflow_documentation.py
+            base_parameters:
+              catalog: "{{job.parameters.catalog}}"
+              dataflow_group_id: "{{job.parameters.dataflow_group_id}}"
+              output_volume: "{{job.parameters.output_volume}}"
+              lookback_days: "{{job.parameters.lookback_days}}"
+          environment_key: framework_env
+
+      environments:
+        - environment_key: framework_env
+          spec:
+            environment_version: "4"
+            dependencies:
+              - ../../dist/*.whl

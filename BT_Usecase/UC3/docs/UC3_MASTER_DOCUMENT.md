@@ -115,13 +115,13 @@ Oracle Excalibur (OLTP)
   |  STREAMING PATH                 BATCH PATH         |
   |  (near real-time)               (daily files)      |
   |                                                    |
-  |  flowx.staging.<t>_stream       /Volumes/.../batch  |
+  |  br_digital_poc.staging.<t>_stream       /Volumes/.../batch  |
   |         |                               |          |
   |    [ Job 2 : 004 ]               [ Job 3 : 005 ]   |
   |    streaming CDC                 autoloader        |
   |         |                               |          |
   |         v                               v          |
-  |   flowx.bronze.<t>           flowx.staging.<t>_batch|
+  |   br_digital_poc.bronze.<t>           br_digital_poc.staging.<t>_batch|
   |    (SCD1 / SCD2)                        |          |
   |         ^                               |          |
   |         |         reconciliation        |          |
@@ -260,14 +260,14 @@ This is the most important design point in the test data. The batch set is **eng
 
 ### 6.2 On the Unity Catalog volume (runtime data)
 
-**Root:** `/Volumes/flowx/staging/uc_3/`
+**Root:** `/Volumes/br_digital_poc/staging/uc_3/`
 
 | Path | Contents |
 |---|---|
-| `/Volumes/flowx/staging/uc_3/streaming/<table>/` | The 100-row streaming CSV that Job 1 drains |
-| `/Volumes/flowx/staging/uc_3/batch/<table>/batch_date=YYYY-MM-DD/` | The 4 x 30-row batch CSVs Job 3 reads |
-| `/Volumes/flowx/staging/uc_3/_schemas/<table>_batch/` | Auto Loader schema-inference checkpoints |
-| `/Volumes/flowx/observability/app_logs/streaming_cdc/` | Exported observability JSON |
+| `/Volumes/br_digital_poc/staging/uc_3/streaming/<table>/` | The 100-row streaming CSV that Job 1 drains |
+| `/Volumes/br_digital_poc/staging/uc_3/batch/<table>/batch_date=YYYY-MM-DD/` | The 4 x 30-row batch CSVs Job 3 reads |
+| `/Volumes/br_digital_poc/staging/uc_3/_schemas/<table>_batch/` | Auto Loader schema-inference checkpoints |
+| `/Volumes/br_digital_poc/observability/app_logs/streaming_cdc/` | Exported observability JSON |
 
 > **Gotcha worth knowing:** `databricks fs cp` does **not** create intermediate directories on a UC Volume. It fails with `no such directory`. Create the directory tree first.
 
@@ -275,9 +275,9 @@ This is the most important design point in the test data. The batch set is **eng
 
 | Layer | Tables |
 |---|---|
-| **Staging (stream)** | `flowx.staging.{physical_device,customer,subscriber}_stream` |
-| **Staging (batch)** | `flowx.staging.{physical_device,customer,subscriber}_batch` |
-| **Bronze (governed)** | `flowx.bronze.{physical_device,customer,subscriber}` |
+| **Staging (stream)** | `br_digital_poc.staging.{physical_device,customer,subscriber}_stream` |
+| **Staging (batch)** | `br_digital_poc.staging.{physical_device,customer,subscriber}_batch` |
+| **Bronze (governed)** | `br_digital_poc.bronze.{physical_device,customer,subscriber}` |
 | **Control tables** | `reconciliation_run_log`, `reconciliation_result`, `ingestion_flow_spec`, and others |
 
 <div class="screenshot"><b>[ SCREENSHOT PLACEHOLDER 2 ]</b><br/>
@@ -378,12 +378,12 @@ Full detail in section 11.
 **Pipeline parameters:**
 
 ```json
-"pipeline_parameters": { "landing_root": "/Volumes/flowx/staging/uc_3/batch" }
+"pipeline_parameters": { "landing_root": "/Volumes/br_digital_poc/staging/uc_3/batch" }
 ```
 
 | Attribute | Type | Why |
 |---|---|---|
-| `pipeline_parameters` | object of string to string | Declares `${landing_root}` = `/Volumes/flowx/staging/uc_3/batch`, referenced by all three source paths. **Resolved fresh on every pipeline update**, so an operator can retarget paths without re-onboarding. |
+| `pipeline_parameters` | object of string to string | Declares `${landing_root}` = `/Volumes/br_digital_poc/staging/uc_3/batch`, referenced by all three source paths. **Resolved fresh on every pipeline update**, so an operator can retarget paths without re-onboarding. |
 
 **Batch ingestion flows (3 flows, one per table):**
 
@@ -392,7 +392,7 @@ Full detail in section 11.
 | `source_type` *(flow-level)* | string | `autoloader` | Reads **files** incrementally with a checkpoint. Only new files are picked up on each run. |
 | `source_config.path` | string | `${landing_root}/<table>/` | Points at the **top-level table folder**, not a pinned `batch_date`. Auto Loader discovers new date folders automatically. |
 | `source_config.format` | string | `csv` | The Auto Loader `cloudFiles.format`. |
-| `source_config.schema_location` | string | `/Volumes/flowx/staging/uc_3/_schemas/<table>_batch/` | Where Auto Loader remembers the inferred schema across runs. |
+| `source_config.schema_location` | string | `/Volumes/br_digital_poc/staging/uc_3/_schemas/<table>_batch/` | Where Auto Loader remembers the inferred schema across runs. |
 | `source_config.reader_options` | object of string to string | `{header, delimiter, cloudFiles.inferColumnTypes}` | Passed straight to the reader. `cloudFiles.inferColumnTypes: "true"` infers real types from CSV rather than making everything a string. |
 | `source_config.capture_technical_metadata` | boolean | `true` | Same lineage columns as the streaming side. |
 | `source_config.column_normalization` | object `{enabled, case}` | `{enabled: true, case: "lower"}` | Lower-cases the CSV headers so batch and Bronze column names align for reconciliation. |
@@ -413,15 +413,15 @@ Full detail in section 11.
 | `publish_schema` | string | `staging` | Where the published `recon__<id>__<tgt>__metrics` table is created. |
 | `match_keys` | array of strings | The table PK — 4 / 1 / 2 columns | How a source row is paired with a target row. |
 | `source_config.type` | string | `table` | The source is a UC table, not a path. |
-| `source_config.table` | string | `flowx.staging.<table>_batch` | The batch side. |
+| `source_config.table` | string | `br_digital_poc.staging.<table>_batch` | The batch side. |
 | `source_config.read_mode` | string | `batch` | Point-in-time snapshot read, not a stream. Reconciliation compares two settled states. |
 | `source_config.hash_precomputed` | boolean | **`false`** | See the critical note below. |
 | `target_configs[].target_id` | string | `bronze_<table>` | Names this target within the flow; appears in the metrics table and the run log. |
 | `target_configs[].type` / `.read_mode` | string | `table` / `batch` | As above, for the Bronze side. |
-| `target_configs[].table` | string | `flowx.bronze.<table>` | The Bronze side produced by Job 2. |
+| `target_configs[].table` | string | `br_digital_poc.bronze.<table>` | The Bronze side produced by Job 2. |
 | `target_configs[].hash_precomputed` | boolean | **`false`** | See the critical note below. |
 | `target_configs[].comparison_direction` | string | `both` | Reports rows missing in target *and* rows missing in source. |
-| `target_configs[].append_target_table` | string | `flowx.staging.<table>_stream` | **The self-healing lane.** Missing/drifted rows are appended here, then re-applied by the Job 2 CDC engine. |
+| `target_configs[].append_target_table` | string | `br_digital_poc.staging.<table>_stream` | **The self-healing lane.** Missing/drifted rows are appended here, then re-applied by the Job 2 CDC engine. |
 | `compare_columns` | array of strings | **25 / 87 / 127** columns | **Which columns must agree** for a row to count as matched. Omitting it degrades matching to key-presence only. |
 | `two_tier_verification` | boolean | `true` | Fast hash comparison first, then column-level detail only for rows that differ. |
 | `error_handling.on_failure` | string | `warn` | A reconciliation failure logs a warning rather than failing the pipeline update — the batch lane is an audit mechanism and must not take the pipeline down. |
@@ -455,7 +455,7 @@ Both specs declare exactly one observability destination. This is what the `obse
 | `enabled` | boolean | `true` | `true` | Active flag. A disabled destination is stored but never dispatched to. |
 | `type` | string | `DATABRICKS_VOLUME` | same | Writes event-log telemetry to a UC Volume. The alternative is `OTLP_CONSUMER`, which posts to an OTLP endpoint. |
 | `mode` | string | `triggered` | same | Bounded post-update export for one pipeline, run by the `observability_export` task. The alternative, `continuous`, is an always-on streaming export and is **not** used here. |
-| `destination_config.volume_path` | string | `/Volumes/{{catalog}}/observability/app_logs/streaming_cdc` | `/Volumes/flowx/observability/app_logs/batch_recon` | Export target. Note Job 2 uses the `{{catalog}}` placeholder and Job 3 hardcodes `flowx` — see 7.3 for why the placeholder form is preferred. |
+| `destination_config.volume_path` | string | `/Volumes/{{catalog}}/observability/app_logs/streaming_cdc` | `/Volumes/br_digital_poc/observability/app_logs/batch_recon` | Export target. Note Job 2 uses the `{{catalog}}` placeholder and Job 3 hardcodes `flowx` — see 7.3 for why the placeholder form is preferred. |
 | `destination_config.file_format` | string | `JSON` | `JSONL` | Output encoding. Allowed values are `JSONL` (default) and `JSON`. |
 | `destination_config.compression` | **string** | *(omitted — defaults to `none`)* | `GZIP` | Compression applied to the exported file. |
 
@@ -504,7 +504,7 @@ stream_producer  : 7 ticks, 220.7s, chunk_size=15 -> 100 rows/table, all three d
 | 2 | `onboard_uc3` | **`run_job_task`** to the generic `onboarding_job` | Reads the JSON, validates it, writes control rows. **Delegated, never inlined.** |
 | 3 | `run_pipeline_update` | Triggers pipeline `004_ldp_...` | Where the actual data work happens. |
 | 4 | `apply_governance_uc3` | Applies tags | **Post-deployment, not in-pipeline** — see below. |
-| 5 | `observability_export` | Exports run telemetry | Feeds `/Volumes/flowx/observability/app_logs/`. |
+| 5 | `observability_export` | Exports run telemetry | Feeds `/Volumes/br_digital_poc/observability/app_logs/`. |
 
 > **Why tagging needs its own task.** `ALTER TABLE ... SET TAGS` runs against an **already-materialised** table. It cannot run inside the pipeline update, because during the update the table does not yet exist in its final form. This build proved it the hard way: Job 2 succeeded end-to-end with **zero tags applied**, because no task ever invoked the tagging step. The dependency `apply_governance` after `run_pipeline_update` is mandatory.
 
@@ -516,7 +516,7 @@ Same five-task shape, driving pipeline **`006_ldp_uc3_excalibur_batch_recon`**.
 
 > **The 005 / 006 numbering mismatch is deliberate.** Job 2 job and pipeline are both `004`. Job 3 are `005` and `006`. This is intentional and preserved from the original specification. Do not "fix" it.
 
-**Runtime dependency:** Job 3 **must** run after Job 2. It compares against `flowx.bronze.<table>`, which does not exist until Job 2 publishes it.
+**Runtime dependency:** Job 3 **must** run after Job 2. It compares against `br_digital_poc.bronze.<table>`, which does not exist until Job 2 publishes it.
 
 **Never run the three jobs in parallel.** They share `setup_control_tables`, and concurrent Unity Catalog `CREATE` calls hit a known race.
 
@@ -532,30 +532,30 @@ Job run detail for <code>004_lfj_uc3_excalibur_streaming_cdc</code> showing all 
 ### 9.1 Job 2 DAG — streaming CDC
 
 ```
-  flowx.staging.physical_device_stream --+
+  br_digital_poc.staging.physical_device_stream --+
                                          |
-                                         +--> [ _src_... ] --> AUTO CDC --> flowx.bronze.physical_device
-  flowx.staging.customer_stream ---------+    (temporary)                   flowx.bronze.customer
-                                         |                                  flowx.bronze.subscriber
-  flowx.staging.subscriber_stream -------+
+                                         +--> [ _src_... ] --> AUTO CDC --> br_digital_poc.bronze.physical_device
+  br_digital_poc.staging.customer_stream ---------+    (temporary)                   br_digital_poc.bronze.customer
+                                         |                                  br_digital_poc.bronze.subscriber
+  br_digital_poc.staging.subscriber_stream -------+
 ```
 
 | Node | Type | Stored? | Why it exists |
 |---|---|---|---|
 | `_src_<fingerprint>__stream` | `@dlt.table(temporary=True)` | **Pipeline-scoped only.** Materialised, but **not published** to Unity Catalog. | The single read boundary. Materialised rather than a view because a view is **inlined into each consumer** — "declared once" is not "read once". Only materialisation guarantees one read. |
-| `flowx.bronze.<table>` | Streaming table | **Yes — this is the real data.** | The CDC target. Written by AUTO CDC (`apply_changes`). |
+| `br_digital_poc.bronze.<table>` | Streaming table | **Yes — this is the real data.** | The CDC target. Written by AUTO CDC (`apply_changes`). |
 | `_<table>_scd2_history` | Hidden backing table | Yes (internal) | **`customer` only.** Lakeflow internal SCD2 history, managed via `stored_as_scd_type="2"`. |
 
-**How to read this:** if a name starts with `_`, it is **internal plumbing** — it holds no business data you should query. Query `flowx.bronze.<table>`.
+**How to read this:** if a name starts with `_`, it is **internal plumbing** — it holds no business data you should query. Query `br_digital_poc.bronze.<table>`.
 
 ### 9.2 Job 3 DAG — batch and reconciliation (five layers)
 
 ```
- /Volumes/.../batch/<table>/  --> [ autoloader ] --> flowx.staging.<table>_batch   (L1: real table)
+ /Volumes/.../batch/<table>/  --> [ autoloader ] --> br_digital_poc.staging.<table>_batch   (L1: real table)
                                                               |
                                                               v
                                     _recon__<id>__src         (L3: temporary)
-                                    _recon__<id>__<tgt>__tgt  (L3: temporary)  <-- flowx.bronze.<table>
+                                    _recon__<id>__<tgt>__tgt  (L3: temporary)  <-- br_digital_poc.bronze.<table>
                                                               |
                                                               v
                                     _recon__<id>__<tgt>__classified  (L4: temporary)
@@ -567,14 +567,14 @@ Job run detail for <code>004_lfj_uc3_excalibur_streaming_cdc</code> showing all 
                                                               |
                                                               v
                                     _recon__<id>__heal_sink  (L5) --> appends into
-                                                                      flowx.staging.<table>_stream
+                                                                      br_digital_poc.staging.<table>_stream
 ```
 
 **Every node, and whether it stores data:**
 
 | Layer | Node | Stored in Unity Catalog? | Purpose |
 |---|---|---|---|
-| L1 | `flowx.staging.<table>_batch` | **YES** | The landed batch data. Query this. |
+| L1 | `br_digital_poc.staging.<table>_batch` | **YES** | The landed batch data. Query this. |
 | L3 | `_recon__<id>__src` | **No** (temporary) | One shared hash-prepared read of the source. Paid **once** regardless of target count. |
 | L3 | `_recon__<id>__<tgt>__tgt` | **No** (temporary) | The Bronze side, read as batch. |
 | L4 | `_recon__<id>__<tgt>__classified` | **No** (temporary) | The full-outer-join classification. Read up to 3 times downstream, so materialised to compute the join once. |
@@ -721,13 +721,13 @@ Each Bronze table contains these groups of columns:
 > | Query | Rows |
 > |---|---|
 > | `SELECT count(*) FROM information_schema.column_tags` *(unqualified)* | **0** — wrong catalog |
-> | `SELECT count(*) FROM flowx.information_schema.column_tags` | **445** — correct |
+> | `SELECT count(*) FROM br_digital_poc.information_schema.column_tags` | **445** — correct |
 > | `SELECT count(*) FROM system.information_schema.column_tags` | **445** — metastore-wide |
 >
 > **Always qualify with the catalog**, or use `system.information_schema` for a metastore-wide answer. Tagging works correctly on Lakeflow streaming tables — an earlier conclusion that it did not was a wrong-catalog reading error, not a platform limitation.
 
 <div class="screenshot"><b>[ SCREENSHOT PLACEHOLDER 5 ]</b><br/>
-Catalog Explorer, <code>flowx.bronze.customer</code>, Columns tab, showing tag chips on <code>customer_id</code>.</div>
+Catalog Explorer, <code>br_digital_poc.bronze.customer</code>, Columns tab, showing tag chips on <code>customer_id</code>.</div>
 
 ---
 
@@ -817,7 +817,7 @@ CDC means **Change Data Capture**. Instead of reloading the whole table, we appl
 | C001 | 100001 | E500 | 1 | iPhone 13 | 2026-08-01 09:00:00 | 0 |
 | C001 | 100001 | E500 | 1 | **iPhone 15** | **2026-08-03 14:22:00** | 0 |
 
-*Result in `flowx.bronze.physical_device`:* **one row only.**
+*Result in `br_digital_poc.bronze.physical_device`:* **one row only.**
 
 | customer_id | subscriber_no | equipment_no | phy_seq_no | model | sys_update_date |
 |---|---|---|---|---|---|
@@ -861,7 +861,7 @@ CDC means **Change Data Capture**. Instead of reloading the whole table, we appl
 | C001 | 10 Old Street | 2026-08-01 09:00:00 |
 | C001 | **25 New Road** | 2026-08-03 14:22:00 |
 
-*Result in `flowx.bronze.customer`:* **two rows**, one closed and one current.
+*Result in `br_digital_poc.bronze.customer`:* **two rows**, one closed and one current.
 
 | customer_id | address | `__START_AT` | `__END_AT` | Meaning |
 |---|---|---|---|---|
@@ -895,7 +895,7 @@ CDC means **Change Data Capture**. Instead of reloading the whole table, we appl
 - Both hashes computed over the same 87 columns, so **hashes differ**.
 - Classification: **`VALUE_DRIFT`**, so `value_drift_count` increments.
 
-**Step 4 — self-healing.** `append_target_table: flowx.staging.customer_stream` appends the batch row **back into the streaming lane**.
+**Step 4 — self-healing.** `append_target_table: br_digital_poc.staging.customer_stream` appends the batch row **back into the streaming lane**.
 
 **Step 5 — Job 2 CDC engine applies it.** On the next update, that row is treated as a normal streaming change: sequenced by `sys_update_date`, and since `2026-08-03 16:45` is later than `2026-08-01 10:00`, it wins. On SCD2 it creates a **new version**; on SCD1 it **overwrites**.
 
@@ -973,15 +973,15 @@ USE CATALOG flowx;
 ### T1 — Row counts across all three layers
 
 ```sql
-SELECT 'staging_stream' AS layer, 'customer' AS tbl, count(*) AS row_count FROM flowx.staging.customer_stream
-UNION ALL SELECT 'staging_batch', 'customer', count(*) FROM flowx.staging.customer_batch
-UNION ALL SELECT 'bronze',        'customer', count(*) FROM flowx.bronze.customer
-UNION ALL SELECT 'staging_stream','physical_device', count(*) FROM flowx.staging.physical_device_stream
-UNION ALL SELECT 'staging_batch', 'physical_device', count(*) FROM flowx.staging.physical_device_batch
-UNION ALL SELECT 'bronze',        'physical_device', count(*) FROM flowx.bronze.physical_device
-UNION ALL SELECT 'staging_stream','subscriber', count(*) FROM flowx.staging.subscriber_stream
-UNION ALL SELECT 'staging_batch', 'subscriber', count(*) FROM flowx.staging.subscriber_batch
-UNION ALL SELECT 'bronze',        'subscriber', count(*) FROM flowx.bronze.subscriber
+SELECT 'staging_stream' AS layer, 'customer' AS tbl, count(*) AS row_count FROM br_digital_poc.staging.customer_stream
+UNION ALL SELECT 'staging_batch', 'customer', count(*) FROM br_digital_poc.staging.customer_batch
+UNION ALL SELECT 'bronze',        'customer', count(*) FROM br_digital_poc.bronze.customer
+UNION ALL SELECT 'staging_stream','physical_device', count(*) FROM br_digital_poc.staging.physical_device_stream
+UNION ALL SELECT 'staging_batch', 'physical_device', count(*) FROM br_digital_poc.staging.physical_device_batch
+UNION ALL SELECT 'bronze',        'physical_device', count(*) FROM br_digital_poc.bronze.physical_device
+UNION ALL SELECT 'staging_stream','subscriber', count(*) FROM br_digital_poc.staging.subscriber_stream
+UNION ALL SELECT 'staging_batch', 'subscriber', count(*) FROM br_digital_poc.staging.subscriber_batch
+UNION ALL SELECT 'bronze',        'subscriber', count(*) FROM br_digital_poc.bronze.subscriber
 ORDER BY tbl, layer;
 ```
 
@@ -991,11 +991,11 @@ ORDER BY tbl, layer;
 
 ```sql
 SELECT
-  (SELECT count(*) FROM flowx.staging.physical_device_stream)                             AS source_rows,
-  (SELECT count(*) FROM flowx.staging.physical_device_stream WHERE src_deleted_flg = '1') AS deletes,
-  (SELECT count(*) FROM flowx.bronze.physical_device)                                     AS bronze_rows,
-  (SELECT count(*) FROM flowx.staging.physical_device_stream)
-    - (SELECT count(*) FROM flowx.staging.physical_device_stream WHERE src_deleted_flg = '1')
+  (SELECT count(*) FROM br_digital_poc.staging.physical_device_stream)                             AS source_rows,
+  (SELECT count(*) FROM br_digital_poc.staging.physical_device_stream WHERE src_deleted_flg = '1') AS deletes,
+  (SELECT count(*) FROM br_digital_poc.bronze.physical_device)                                     AS bronze_rows,
+  (SELECT count(*) FROM br_digital_poc.staging.physical_device_stream)
+    - (SELECT count(*) FROM br_digital_poc.staging.physical_device_stream WHERE src_deleted_flg = '1')
                                                                                           AS expected_bronze;
 ```
 
@@ -1008,7 +1008,7 @@ SELECT count(*) AS total_rows,
        count(DISTINCT __framework_hash_key) AS distinct_keys,
        CASE WHEN count(*) = count(DISTINCT __framework_hash_key)
             THEN 'PASS - one row per key' ELSE 'FAIL - duplicates present' END AS verdict
-FROM flowx.bronze.physical_device;
+FROM br_digital_poc.bronze.physical_device;
 ```
 
 ### T4 — See SCD2 history on a customer
@@ -1016,7 +1016,7 @@ FROM flowx.bronze.physical_device;
 ```sql
 -- Customers with more than one version
 SELECT customer_id, count(*) AS versions
-FROM flowx.bronze.customer
+FROM br_digital_poc.bronze.customer
 GROUP BY customer_id
 HAVING count(*) > 1
 ORDER BY versions DESC
@@ -1028,9 +1028,9 @@ LIMIT 10;
 SELECT customer_id, __START_AT, __END_AT,
        CASE WHEN __END_AT IS NULL THEN 'CURRENT' ELSE 'HISTORIC' END AS version_status,
        sys_update_date
-FROM flowx.bronze.customer
+FROM br_digital_poc.bronze.customer
 WHERE customer_id = (
-        SELECT customer_id FROM flowx.bronze.customer
+        SELECT customer_id FROM br_digital_poc.bronze.customer
         GROUP BY customer_id HAVING count(*) > 1 LIMIT 1)
 ORDER BY __START_AT;
 ```
@@ -1039,7 +1039,7 @@ ORDER BY __START_AT;
 
 ```sql
 -- This is how a business user should normally query customer.
-SELECT * FROM flowx.bronze.customer WHERE __END_AT IS NULL;
+SELECT * FROM br_digital_poc.bronze.customer WHERE __END_AT IS NULL;
 ```
 
 ### T6 — Prove `Null(DF)=Y` columns are always NULL
@@ -1051,7 +1051,7 @@ SELECT count(*) AS total_rows,
        count(gur_cr_card_no)       AS non_null_card_no,
        CASE WHEN count(acc_password) + count(imei_black_list_pass) + count(gur_cr_card_no) = 0
             THEN 'PASS - all governance-nulled' ELSE 'FAIL - data leaked' END AS verdict
-FROM flowx.bronze.customer;
+FROM br_digital_poc.bronze.customer;
 ```
 
 ### T7 — Prove `Drop(DF)=Y` columns do not exist
@@ -1060,7 +1060,7 @@ FROM flowx.bronze.customer;
 SELECT count(*) AS should_be_zero,
        CASE WHEN count(*) = 0 THEN 'PASS - dropped columns absent'
             ELSE 'FAIL - dropped column present' END AS verdict
-FROM flowx.information_schema.columns
+FROM br_digital_poc.information_schema.columns
 WHERE table_schema = 'bronze'
   AND table_name = 'subscriber'
   AND column_name IN ('ctn_password', 'sub_password');
@@ -1071,7 +1071,7 @@ WHERE table_schema = 'bronze'
 ```sql
 -- NOTE the flowx. prefix. Without it this returns 0 rows and tells you nothing.
 SELECT table_name, column_name, tag_name, tag_value
-FROM flowx.information_schema.column_tags
+FROM br_digital_poc.information_schema.column_tags
 WHERE schema_name = 'bronze'
   AND table_name IN ('customer','physical_device','subscriber')
 ORDER BY table_name, column_name, tag_name;
@@ -1082,7 +1082,7 @@ ORDER BY table_name, column_name, tag_name;
 SELECT table_name,
        count(DISTINCT column_name) AS tagged_columns,
        count(*)                    AS tag_pairs
-FROM flowx.information_schema.column_tags
+FROM br_digital_poc.information_schema.column_tags
 WHERE schema_name = 'bronze'
   AND table_name IN ('customer','physical_device','subscriber')
 GROUP BY table_name
@@ -1093,7 +1093,7 @@ ORDER BY table_name;
 
 ```sql
 SELECT table_name, column_name, tag_value AS deid_rule
-FROM flowx.information_schema.column_tags
+FROM br_digital_poc.information_schema.column_tags
 WHERE schema_name = 'bronze'
   AND tag_name  = 'bq_deid_ro'
   AND tag_value = 'Y-Hash'
@@ -1118,10 +1118,10 @@ ORDER BY reconciliation_id;
 
 ```sql
 WITH batch_keys AS (
-  SELECT DISTINCT customer_id FROM flowx.staging.customer_batch
+  SELECT DISTINCT customer_id FROM br_digital_poc.staging.customer_batch
 ),
 bronze_keys AS (
-  SELECT DISTINCT customer_id FROM flowx.bronze.customer
+  SELECT DISTINCT customer_id FROM br_digital_poc.bronze.customer
 )
 SELECT
   (SELECT count(*) FROM batch_keys)  AS distinct_batch_keys,
@@ -1136,7 +1136,7 @@ SELECT
 
 ```sql
 SELECT batch_date, count(*) AS row_count
-FROM flowx.staging.customer_batch
+FROM br_digital_poc.staging.customer_batch
 GROUP BY batch_date
 ORDER BY batch_date;
 ```
@@ -1157,7 +1157,7 @@ SELECT count(*) AS total_rows,
                coalesce(trim(lower(cast(customer_id AS STRING))), '__NULL__')), 256)
            THEN 1 ELSE 0 END)
        THEN 'PASS - hash reproducible' ELSE 'FAIL' END AS verdict
-FROM flowx.bronze.customer;
+FROM br_digital_poc.bronze.customer;
 ```
 
 **Expected:** `PASS`. Verified at 100 of 100 rows.
@@ -1171,7 +1171,7 @@ SELECT
   timestampdiff(SECOND, min(__framework_ingestion_timestamp_utc),
                         max(__framework_ingestion_timestamp_utc)) AS ingestion_span_seconds,
   count(*) AS row_count
-FROM flowx.bronze.customer;
+FROM br_digital_poc.bronze.customer;
 ```
 
 ### T15 — Business time versus processing time
@@ -1182,7 +1182,7 @@ SELECT customer_id,
        __framework_ingestion_timestamp_utc AS processing_time,
        timestampdiff(DAY, sys_update_date,
                      __framework_ingestion_timestamp_utc) AS lag_days
-FROM flowx.bronze.customer
+FROM br_digital_poc.bronze.customer
 WHERE __END_AT IS NULL
 ORDER BY lag_days DESC
 LIMIT 20;
@@ -1196,36 +1196,36 @@ LIMIT 20;
 USE CATALOG flowx;
 
 SELECT 'Bronze row count matches source minus deletes' AS check_name,
-       CASE WHEN (SELECT count(*) FROM flowx.bronze.physical_device) =
-                 (SELECT count(*) FROM flowx.staging.physical_device_stream)
-               - (SELECT count(*) FROM flowx.staging.physical_device_stream WHERE src_deleted_flg='1')
+       CASE WHEN (SELECT count(*) FROM br_digital_poc.bronze.physical_device) =
+                 (SELECT count(*) FROM br_digital_poc.staging.physical_device_stream)
+               - (SELECT count(*) FROM br_digital_poc.staging.physical_device_stream WHERE src_deleted_flg='1')
             THEN 'PASS' ELSE 'FAIL' END AS result
 UNION ALL
 SELECT 'SCD1: one row per key (physical_device)',
-       CASE WHEN (SELECT count(*) FROM flowx.bronze.physical_device) =
-                 (SELECT count(DISTINCT __framework_hash_key) FROM flowx.bronze.physical_device)
+       CASE WHEN (SELECT count(*) FROM br_digital_poc.bronze.physical_device) =
+                 (SELECT count(DISTINCT __framework_hash_key) FROM br_digital_poc.bronze.physical_device)
             THEN 'PASS' ELSE 'FAIL' END
 UNION ALL
 SELECT 'SCD2: customer carries history columns',
-       CASE WHEN (SELECT count(*) FROM flowx.information_schema.columns
+       CASE WHEN (SELECT count(*) FROM br_digital_poc.information_schema.columns
                   WHERE table_schema='bronze' AND table_name='customer'
                     AND column_name IN ('__START_AT','__END_AT')) = 2
             THEN 'PASS' ELSE 'FAIL' END
 UNION ALL
 SELECT 'Governance-nulled columns are 100 percent NULL',
        CASE WHEN (SELECT count(acc_password)+count(imei_black_list_pass)+count(gur_cr_card_no)
-                  FROM flowx.bronze.customer) = 0
+                  FROM br_digital_poc.bronze.customer) = 0
             THEN 'PASS' ELSE 'FAIL' END
 UNION ALL
 SELECT 'Dropped columns absent from schema',
-       CASE WHEN (SELECT count(*) FROM flowx.information_schema.columns
+       CASE WHEN (SELECT count(*) FROM br_digital_poc.information_schema.columns
                   WHERE table_schema='bronze' AND table_name='subscriber'
                     AND column_name IN ('ctn_password','sub_password')) = 0
             THEN 'PASS' ELSE 'FAIL' END
 UNION ALL
 SELECT 'Governance tags applied (expect 59 tagged columns)',
        CASE WHEN (SELECT count(DISTINCT concat(table_name,'.',column_name))
-                  FROM flowx.information_schema.column_tags
+                  FROM br_digital_poc.information_schema.column_tags
                   WHERE schema_name='bronze'
                     AND table_name IN ('customer','physical_device','subscriber')) = 59
             THEN 'PASS' ELSE 'FAIL' END;
@@ -1491,7 +1491,7 @@ Every entry below is a failure this build actually hit.
 | `DELTA_FAILED_TO_MERGE_FIELDS` | Schema conflict held in **pipeline state** | `--full-refresh`. Dropping the table will **not** work. |
 | `value_drift_count` always 0 | `compare_columns` missing | Declare it |
 | `matched_count` is 0 | `hash_precomputed: true` mismatch | Set `false` on both sides, then full refresh |
-| Tag query returns 0 rows | Wrong catalog | Qualify it: `flowx.information_schema....` |
+| Tag query returns 0 rows | Wrong catalog | Qualify it: `br_digital_poc.information_schema....` |
 | `ENVIRONMENT_PIP_INSTALL_ERROR` | Deployed mid-update | Never deploy while a pipeline runs |
 | `NotebookImportException` | Python module placed under `notebooks/` | Move it to `src/` |
 | `PERSIST TABLE is not supported` | `.cache()` on serverless | Remove it |

@@ -25,31 +25,31 @@ per capability, plus the four documented deviations from the prompt's assumed sc
 
 | Thing | Value | Notes |
 |---|---|---|
-| Catalog | **`flowx`** (`${var.catalog}`) | Workspace prerequisite; cannot be declared in YAML. |
-| Staging schema | **`flowx.staging`** | **EXISTING schema, reused.** Holds `<table>_stream`, `<table>_batch`, the simulator cursor and `recon_metrics`. |
-| Governed schema | **`flowx.bronze`** | **EXISTING schema, reused.** Holds the three CDC-applied targets. |
-| Landing volume | **`flowx.staging.uc_3`** | **EXISTING volume, reused.** Streaming + batch CSVs live under it. |
-| App-logs volume | **`flowx.observability.app_logs`** | **EXISTING volume, reused.** §7 observability destination. |
+| Catalog | **`br_digital_poc`** (`${var.catalog}`) | Workspace prerequisite; cannot be declared in YAML. |
+| Staging schema | **`br_digital_poc.staging`** | **EXISTING schema, reused.** Holds `<table>_stream`, `<table>_batch`, the simulator cursor and `recon_metrics`. |
+| Governed schema | **`br_digital_poc.bronze`** | **EXISTING schema, reused.** Holds the three CDC-applied targets. |
+| Landing volume | **`br_digital_poc.staging.uc_3`** | **EXISTING volume, reused.** Streaming + batch CSVs live under it. |
+| App-logs volume | **`br_digital_poc.observability.app_logs`** | **EXISTING volume, reused.** §7 observability destination. |
 
 > **REVISED 2026-09-05 by explicit user instruction — supersedes the earlier `uc3_staging` /
 > `uc3_bronze` plan.** No UC3-specific schemas or volumes are created. Every object above already
 > existed on `metaflow_v7`; UC3 reuses them and distinguishes itself by *table name* and by the
 > `uc_3` volume, not by dedicated schemas.
 >
-> **Collision check performed before rewiring:** `flowx.bronze` held only UC7 CDR tables
-> (`emsc_cdr_raw`, `psgw_cdr_raw`, `sgsn_cdr_raw`, `tap310_raw` + quarantines) and `flowx.staging`
+> **Collision check performed before rewiring:** `br_digital_poc.bronze` held only UC7 CDR tables
+> (`emsc_cdr_raw`, `psgw_cdr_raw`, `sgsn_cdr_raw`, `tap310_raw` + quarantines) and `br_digital_poc.staging`
 > held no tables at all, so `physical_device` / `customer` / `subscriber` and the `_stream` /
 > `_batch` names are free. Re-verify before onboarding any further table into these shared schemas.
 
 **Volume layout (revised):**
 
 ```
-/Volumes/flowx/staging/uc_3/streaming/<table>/<table>_stream.csv
-/Volumes/flowx/staging/uc_3/batch/<table>/batch_date=YYYY-MM-DD/<table>_batch.csv
-/Volumes/flowx/observability/app_logs/<streaming_cdc|batch_recon>/
+/Volumes/br_digital_poc/staging/uc_3/streaming/<table>/<table>_stream.csv
+/Volumes/br_digital_poc/staging/uc_3/batch/<table>/batch_date=YYYY-MM-DD/<table>_batch.csv
+/Volumes/br_digital_poc/observability/app_logs/<streaming_cdc|batch_recon>/
 ```
 
-**Cleanup done:** `flowx.uc3_staging` (4 tables + 2 volumes) dropped entirely. `flowx.uc3_bronze`
+**Cleanup done:** `br_digital_poc.uc3_staging` (4 tables + 2 volumes) dropped entirely. `br_digital_poc.uc3_bronze`
 could not be dropped — it reports 12 tables while both `SHOW TABLES` and the tables API list zero,
 i.e. orphaned pipeline-internal datasets from the failed Iceberg runs. It is **inert**: no spec,
 pipeline or job references it any more. Left in place rather than force-cleaned; a later
@@ -67,10 +67,10 @@ Parameterised everywhere: `catalog` and `schema` are job/pipeline parameters. `f
 | Job 3 — job / pipeline | `005_lfj_uc3_excalibur_batch_recon` / `006_ldp_uc3_excalibur_batch_recon` |
 | Dataflow group (Job 2) | `dfg_uc3_excalibur_streaming_cdc` |
 | Dataflow group (Job 3) | `dfg_uc3_excalibur_batch_recon` |
-| Streaming staging tables | `flowx.uc3_staging.{physical_device,customer,subscriber}_stream` |
-| Batch staging tables | `flowx.uc3_staging.{...}_batch` |
-| Bronze targets | `flowx.uc3_bronze.{physical_device,customer,subscriber}` |
-| Recon metrics | `flowx.uc3_staging.recon_metrics` |
+| Streaming staging tables | `br_digital_poc.uc3_staging.{physical_device,customer,subscriber}_stream` |
+| Batch staging tables | `br_digital_poc.uc3_staging.{...}_batch` |
+| Bronze targets | `br_digital_poc.uc3_bronze.{physical_device,customer,subscriber}` |
+| Recon metrics | `br_digital_poc.uc3_staging.recon_metrics` |
 
 Job-2 `dataflow_id`s: `df_uc3_<table>_stream_cdc`. Job-3 ingestion `dataflow_id`s:
 `df_uc3_<table>_batch_load`. Job-3 `reconciliation_id`s: `rf_uc3_<table>_batch_vs_bronze`.
@@ -232,7 +232,7 @@ Identical in all three sheets:
 | `gcp_update_user` | VARCHAR(20) | superseded |
 
 The four `gcp_*` columns are **legacy CloudSQL/BigQuery audit fields**. They are *not* carried
-into `flowx.uc3_bronze.*`: FlowX supplies the equivalent via
+into `br_digital_poc.uc3_bronze.*`: FlowX supplies the equivalent via
 `target_config.capture_technical_metadata`. They are recorded in UC3_MASTER_DOCUMENT.md section 11.2
 with reason `legacy_gcp_audit_superseded_by_framework_technical_metadata`. **If you
 believe they should be retained, flag it — do not add them unilaterally.**
@@ -293,7 +293,7 @@ Or, out of band, without any new job at all:
 
 ```bash
 databricks bundle run onboarding_job --target <target> \
-  --params spec_file_path=/Workspace/.../onboarding/uc3/<spec>.json,catalog=flowx,env=<env>,action_type=CREATE
+  --params spec_file_path=/Workspace/.../onboarding/uc3/<spec>.json,catalog=br_digital_poc,env=<env>,action_type=CREATE
 ```
 
 ## 8. Governance tags (§2.6)
@@ -338,7 +338,7 @@ Metric name mapping — the framework's names are authoritative; §6.1's names a
 | `batch_only_count` | `missing_in_target_count` |
 | `bronze_only_count` | `missing_in_source_count` |
 
-`flowx.uc3_staging.recon_metrics` is produced by projecting/aliasing the framework's run-log output —
+`br_digital_poc.uc3_staging.recon_metrics` is produced by projecting/aliasing the framework's run-log output —
 **not** by a hand-written reconciliation. Per `batch_date` granularity comes from one
 reconciliation flow per table with `batch_date` in scope; if per-`batch_date` grain proves
 un-expressible in one flow, report it rather than hand-rolling a comparison.
@@ -412,11 +412,11 @@ and during Phase C execution.
 | # | Finding | Status |
 |---|---|---|
 | C3 | **RESOLVED.** The generator emits `src_deleted_flg` as the STRING `"0"`/`"1"` (11 deletes in physical_device, 6 each in customer/subscriber), so `cdc_operation_mapping.delete_values: ["1"]` is correct in both specs. Verified by reading the generated CSVs, not by report. | closed |
-| C8 | **`missing_in_target_count` is NOT `batch_only_count`.** `graph_registration.py:202-209` sums `MISSING_IN_TARGET` **plus `VALUE_DRIFT`** into that one column. So §6.1's `batch_only_count` = `missing_in_target_count − value_drift_count`. Anything projecting `flowx.uc3_staging.recon_metrics` must apply that subtraction or it will over-count batch-only rows by exactly the drift count. | **OPEN — apply in the metrics projection** |
+| C8 | **`missing_in_target_count` is NOT `batch_only_count`.** `graph_registration.py:202-209` sums `MISSING_IN_TARGET` **plus `VALUE_DRIFT`** into that one column. So §6.1's `batch_only_count` = `missing_in_target_count − value_drift_count`. Anything projecting `br_digital_poc.uc3_staging.recon_metrics` must apply that subtraction or it will over-count batch-only rows by exactly the drift count. | **OPEN — apply in the metrics projection** |
 | C9 | **Per-`batch_date` metric grain is a genuine capability gap.** `_counts_query` is a hard-coded ungrouped `.agg()` producing exactly one row per (flow, target, run), and `ALLOWED_RECONCILIATION_FLOW_KEYS` admits no group-by/grain key; `transform_sql` reshapes the miss set before append, never the metrics. The only config-expressible per-date grain is one flow per (table, batch_date) = 12 flows with dates pinned into the spec, which was rejected as spec-time date pinning. **Reported as a gap, deliberately not hand-rolled.** Independently verified against the source. | **OPEN — decision needed** (accept whole-table grain, or accept 12 pinned flows) |
 | C10 | **`execution_mode: "pipeline"` with `read_mode: "batch"` is CORRECT**, despite the golden spec's prose suggesting pipeline mode wants a streaming source. `spec_validator.py:1558-1563` rejects `read_mode: "streaming"` under pipeline modes — batch is the default and the supported choice. No change needed. | closed |
-| C11 | **Heal lane routes through `..._stream`, not directly into bronze.** `append_target_table` points at `flowx.uc3_staging.<table>_stream` so healed/missing rows re-enter through Job 2's SCD1/SCD2 engine with its `sequence_by_column`, rather than bypassing CDC with a raw append into bronze. This is what keeps §6.1's "must not regress SCD2 history" true. | closed |
-| C12 | **Volume path convention confirmed.** The framework's own specs write `/Volumes/{catalog}/{schema}/{volume}/...` with the volume as a real path segment (e.g. `/Volumes/{{catalog}}/EA_usecase/landing_zip/incoming/`). The intended UC3 layout is therefore `/Volumes/flowx/uc3_staging/landing/{streaming\|batch}/...` — the volume IS `landing`, with **no** `landing/landing/` doubling. **RESOLVED** — coordinator fixed `scripts/generate_uc3_test_data.py` line 627 to drop the duplicated segment; paths now resolve to `/Volumes/flowx/uc3_staging/landing/{streaming|batch}/...`. | closed |
+| C11 | **Heal lane routes through `..._stream`, not directly into bronze.** `append_target_table` points at `br_digital_poc.uc3_staging.<table>_stream` so healed/missing rows re-enter through Job 2's SCD1/SCD2 engine with its `sequence_by_column`, rather than bypassing CDC with a raw append into bronze. This is what keeps §6.1's "must not regress SCD2 history" true. | closed |
+| C12 | **Volume path convention confirmed.** The framework's own specs write `/Volumes/{catalog}/{schema}/{volume}/...` with the volume as a real path segment (e.g. `/Volumes/{{catalog}}/EA_usecase/landing_zip/incoming/`). The intended UC3 layout is therefore `/Volumes/br_digital_poc/uc3_staging/landing/{streaming\|batch}/...` — the volume IS `landing`, with **no** `landing/landing/` doubling. **RESOLVED** — coordinator fixed `scripts/generate_uc3_test_data.py` line 627 to drop the duplicated segment; paths now resolve to `/Volumes/br_digital_poc/uc3_staging/landing/{streaming|batch}/...`. | closed |
 | C13 | `SUBSCRIBER.sub_status` has a blank feed `Data type`; the generator falls back to its `Reservoir Data type` (`CHAR(1)` → STRING). Treated as a spreadsheet omission, and the column stays inside the 133. `PHYSICAL_DEVICE` also spells one type lowercase (`char(2)`), so any CSV parser must be case-insensitive on **types** as well as headers. | accepted |
 | C14 | `docs/UC3/column_inventory.csv` (contract §12/§10) was **not** created and is **not needed** — §6 establishes the three `*_DDL.csv` sheets as the authority, and the generator reads them directly. The §10 reference to `column_inventory.csv` is superseded. | closed |
 
@@ -551,9 +551,9 @@ it untagged is correct; a tag block of empty strings carries no governance meani
 ## 17. Phase C execution log
 
 **Target: `metaflow_v7` / profile `metaflow_v7`** (user-directed). The default `dev_flowx` target
-was **not** usable: its workspace has no `flowx` catalog at all (only `metaflow`), because the
+was **not** usable: its workspace has no `br_digital_poc` catalog at all (only `metaflow`), because the
 FlowX rename's UC catalog migration is manual and still pending there. `metaflow_v7` has a real
-`flowx` catalog, so the committed `${var.catalog}` defaults work unchanged — no `--var` override
+`br_digital_poc` catalog, so the committed `${var.catalog}` defaults work unchanged — no `--var` override
 and no edits were needed.
 
 **C4 (quota) CLEARED:** `flowx` on `metaflow_v7` had **10 schemas**, far below the ~50 ceiling
@@ -563,9 +563,9 @@ that bit the `dev` target. Adding `uc3_staging` + `uc3_bronze` is comfortable.
 
 | Object | Why it was needed |
 |---|---|
-| `flowx.uc3_staging`, `flowx.uc3_bronze` | schemas; the framework creates tables, not schemas |
-| `flowx.uc3_staging.landing` (Volume) | must exist *before* the generator uploads |
-| `flowx.uc3_staging.app_logs` (Volume) | §7 observability destination |
+| `br_digital_poc.uc3_staging`, `br_digital_poc.uc3_bronze` | schemas; the framework creates tables, not schemas |
+| `br_digital_poc.uc3_staging.landing` (Volume) | must exist *before* the generator uploads |
+| `br_digital_poc.uc3_staging.app_logs` (Volume) | §7 observability destination |
 | the volume directory tree | `databricks fs cp` does **not** create intermediate dirs in a UC volume — it fails with `no such directory`. Create `streaming/<table>/` and `batch/<table>/batch_date=*/` first. |
 
 ### Four runtime defects found and fixed — none catchable before Phase C
@@ -785,7 +785,7 @@ Verify the *effect* in `information_schema`, never infer it from a green run.
 | **Hash construction** | recomputed `__framework_hash_key` by hand in SQL — **100/100 rows match** `sha2(concat_ws('||', coalesce(trim(lower(cast(pk AS STRING))),'__NULL__')), 256)` ✅ |
 | **`Null(DF)=Y` forced NULL** | `customer`: 100/100 rows NULL for `acc_password`, `imei_black_list_pass`, `gur_cr_card_no` ✅ |
 | **`Drop(DF)=Y` absent** | `information_schema.columns` returns 0 rows for `subscriber.ctn_password`/`sub_password` ✅ |
-| **No collision with UC7** | `flowx.bronze` holds UC3's three tables alongside UC7's CDR tables ✅ |
+| **No collision with UC7** | `br_digital_poc.bronze` holds UC3's three tables alongside UC7's CDR tables ✅ |
 | Governance tags | **0 rows — see R7 above**; fixed and re-running |
 
 ### 17.5 R8 — `__framework_source_file_size` has a NON-DETERMINISTIC TYPE (framework issue)
@@ -795,14 +795,14 @@ touching any data — with:
 
 ```
 [CANNOT_UPDATE_TABLE_SCHEMA] Failed to merge the current and new schemas for table
-  flowx.bronze.subscriber
+  br_digital_poc.bronze.subscriber
 [DELTA_FAILED_TO_MERGE_FIELDS] Failed to merge fields '__framework_source_file_size' and
   '__framework_source_file_size'
 [DELTA_MERGE_INCOMPATIBLE_DATATYPE] Failed to merge incompatible data types StringType and LongType
 ```
 
 The *same spec* produced `StringType` on one run and `LongType` on the next. Confirmed against the
-live table: `flowx.bronze.subscriber.__framework_source_file_size` was `string`.
+live table: `br_digital_poc.bronze.subscriber.__framework_source_file_size` was `string`.
 
 **Root cause — `ingestion/technical_metadata.py::attach_technical_metadata`.** For each metadata
 column it evaluates `F.expr("_metadata.file_size")` inside a `try`, and on *any* exception falls
@@ -967,7 +967,7 @@ Reproduced in one session:
 | Query | Rows |
 |---|---|
 | `SELECT count(*) FROM information_schema.column_tags` (unqualified) | **0** |
-| `SELECT count(*) FROM flowx.information_schema.column_tags` | **445** |
+| `SELECT count(*) FROM br_digital_poc.information_schema.column_tags` | **445** |
 | `SELECT count(*) FROM system.information_schema.column_tags` (metastore-wide) | **445** |
 
 Every one of the four supporting observations was a false negative from the same mistake:
@@ -1001,7 +1001,7 @@ validate anything. **Always qualify `information_schema` with the catalog**, or 
 **§8 checklist impact: MET.** *"No masking functions anywhere; only tags applied"* — no masking
 exists in any artefact (zero `CREATE FUNCTION` / `SET MASK`), tagging is wired the framework way
 via `governance/tags.py`, and read-back is now **verified**, not environment-blocked:
-`flowx.information_schema.column_tags` holds 445 rows across the UC3 tables.
+`br_digital_poc.information_schema.column_tags` holds 445 rows across the UC3 tables.
 
 ### 17.9 Job 3 — VERIFIED, and why `matched_count` reads low
 

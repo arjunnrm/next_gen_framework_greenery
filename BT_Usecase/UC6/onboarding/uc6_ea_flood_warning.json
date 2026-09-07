@@ -22,7 +22,7 @@
       "source_system": "env_agency",
       "source_database": "uc6_flood_warning",
       "source_table_name": "ea_request",
-      "source_description": "UC6: the Environment Agency's weekly flood-risk address request (PAF-shaped, 14 pipe-delimited fields WITH a header row). Delivered gzip-then-GPG-symmetric (AES256); the framework decrypts the envelope using the flowx.config.pgpkey UC secret and decompresses the gzip member before Auto Loader reads it, all inside one pipeline update.",
+      "source_description": "UC6: the Environment Agency's weekly flood-risk address request (PAF-shaped, 14 pipe-delimited fields WITH a header row). Delivered gzip-then-GPG-symmetric (AES256); the framework decrypts the envelope using the br_digital_poc.config.pgpkey UC secret and decompresses the gzip member before Auto Loader reads it, all inside one pipeline update.",
       "source_type": "autoloader",
       "target_catalog": "{{catalog}}",
       "target_schema": "bronze",
@@ -795,7 +795,7 @@
           "environment": "poc"
         }
       },
-      "source_description": "UC6 egress 3 of 4: the Fujitsu-equivalent telephone list, gzip + GPG symmetric (AES256) under the flowx.config.pgpkey secret -- the same passphrase that decrypts the inbound EA request. Identical content to the Leidos file; the two exist so the Fujitsu-to-Leidos cutover can run in parallel with no gap in flood warnings."
+      "source_description": "UC6 egress 3 of 4: the Fujitsu-equivalent telephone list, gzip + GPG symmetric (AES256) under the br_digital_poc.config.pgpkey secret -- the same passphrase that decrypts the inbound EA request. Identical content to the Leidos file; the two exist so the Fujitsu-to-Leidos cutover can run in parallel with no gap in flood warnings."
     },
     {
       "flow_step_id": "ts_uc6_export_osapr",

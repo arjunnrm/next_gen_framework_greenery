@@ -7,7 +7,7 @@
 The eight control tables — DDL, provisioning, repository access, post-deployment steps.
 
 
-4 modules.
+5 modules.
 
 
 ## `lakeflow_framework/control_plane/ddl_definitions.py`
@@ -33,6 +33,30 @@ DDL text for the control metadata schema and its control tables (see ``get_all_c
 | `get_all_control_table_ddls(control_schema: str, table_properties: Dict[str, str]) -> List[Tuple[str, str]]` | Return ``(description, ddl)`` pairs for all control tables, in creation order. |
 | `get_preflight_function_ddl(control_schema: str, onboarding_spec_schema_json: str) -> str` | Build the ``CREATE OR REPLACE FUNCTION`` statement for ``preflight_check_onboarding_spec``, a Unity Catalog Python Function callable directly via SQL -- by Genie, a Mosaic AI Agent, or any MCP tool-calling loop -- with no Python host process required. |
 | `get_add_column_ddl(control_schema: str, table_name: str, column_name: str, sql_type: str, comment: str) -> str` | Build one ``ALTER TABLE ... |
+
+
+## `lakeflow_framework/control_plane/observability_views.py`
+
+DDL text for the FlowX observability semantic layer -- the views that join the framework's own control metadata to the Databricks **system tables**.
+
+
+### Functions
+
+| Signature | Purpose |
+|---|---|
+| `get_observability_schema_ddl(observability_schema: str) -> str` |  |
+| `get_dataflow_group_catalog_view_ddl(observability_schema: str, control_schema: str) -> str` | The dimension view: one row per dataflow group, with its composition and feature footprint. |
+| `get_pipeline_registry_view_ddl(observability_schema: str, control_schema: str) -> str` | Resolve FlowX dataflow group -> Lakeflow pipeline, and derive its UC event-log table name. |
+| `get_pipeline_updates_view_ddl(observability_schema: str) -> str` | Update-level pipeline run performance, attributed to a FlowX dataflow group. |
+| `get_job_runs_view_ddl(observability_schema: str, control_schema: str) -> str` | Job-level run performance, attributed to a dataflow group by tag with a name-match fallback. |
+| `get_cost_view_ddl(observability_schema: str) -> str` | DBU and list-price cost attributed to a FlowX dataflow group. |
+| `get_flow_metrics_view_ddl(observability_schema: str, event_log_tables: List[str]) -> str` | Per-flow row counts and durations, read from the pipelines' Unity Catalog event logs. |
+| `get_dq_results_view_ddl(observability_schema: str, event_log_tables: List[str]) -> str` | Per-expectation data-quality outcomes, exploded from the event logs. |
+| `get_reconciliation_health_view_ddl(observability_schema: str, control_schema: str) -> str` | Reconciliation run outcomes joined to their spec, with a derived match rate. |
+| `get_group_health_summary_view_ddl(observability_schema: str) -> str` | The headline scorecard: one row per dataflow group, everything a KPI strip needs. |
+| `get_flow_inventory_view_ddl(observability_schema: str, control_schema: str) -> str` | Flat, one-row-per-flow inventory across all three flow kinds. |
+| `get_lineage_view_ddl(observability_schema: str) -> str` | Observed table-to-table lineage for FlowX targets, from ``system.access.table_lineage``. |
+| `get_all_observability_view_ddls(observability_schema: str, control_schema: str, event_log_tables: List[str]) -> List[Tuple[str, str]]` | Return ``(description, ddl)`` for every observability view, in dependency order. |
 
 
 ## `lakeflow_framework/control_plane/post_deployment.py`

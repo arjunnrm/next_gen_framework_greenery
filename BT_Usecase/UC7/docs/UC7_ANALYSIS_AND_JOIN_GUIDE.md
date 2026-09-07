@@ -122,15 +122,15 @@ This is the complete journey, from a binary file arriving on a volume to a row y
 
 | Step | What happens | Where it happens | How you verify it |
 |---|---|---|---|
-| **1** | Binary CDR files land on the Unity Catalog volume | `/Volumes/flowx/landing/uc_7/raw/<ELEMENT>/` | List the volume folder |
+| **1** | Binary CDR files land on the Unity Catalog volume | `/Volumes/br_digital_poc/landing/uc_7/raw/<ELEMENT>/` | List the volume folder |
 | **2** | Auto Loader detects new files | Databricks Auto Loader | Query A3 shows distinct file paths |
-| **3** | The matching ASN.1 schema is read | `/Volumes/flowx/landing/uc_7/asn_schema/<ELEMENT>.asn1` | Schema path is in the onboarding JSON |
+| **3** | The matching ASN.1 schema is read | `/Volumes/br_digital_poc/landing/uc_7/asn_schema/<ELEMENT>.asn1` | Schema path is in the onboarding JSON |
 | **4** | Root PDU is auto-detected from the schema | ASN.1 decoder | `_choice` column is populated |
 | **5** | Each record is BER-decoded into a struct | ASN.1 decoder, `asn1_codec: "ber"` | `_asn1_decode_error` stays NULL |
 | **6** | Framework lineage columns are attached | FlowX ingestion engine | Seven `__framework_` columns appear |
 | **7** | Data-quality rules are evaluated per row | FlowX DQ engine | Query F1 scorecard |
-| **8** | Passing rows go to the business table | `flowx.bronze.<table>` | Query A2 good_rows |
-| **9** | Failing rows go to the quarantine twin | `flowx.bronze.<table>_quarantine` | Query A2 quarantined_rows |
+| **8** | Passing rows go to the business table | `br_digital_poc.bronze.<table>` | Query A2 good_rows |
+| **9** | Failing rows go to the quarantine twin | `br_digital_poc.bronze.<table>_quarantine` | Query A2 quarantined_rows |
 
 ### 4.1 What makes step 4 unusual
 
@@ -493,7 +493,7 @@ The third rule per table catches a subtle and dangerous condition:
 ### 12.1 On the governance-tag gap
 
 - UC7's onboarding specification carries `governance_tags: {}`, an empty block.
-- **Verified consequence:** `flowx.information_schema.table_tags` returns **0 rows** for all four UC7 tables.
+- **Verified consequence:** `br_digital_poc.information_schema.table_tags` returns **0 rows** for all four UC7 tables.
 - **Contrast with UC6**, which applies 72 tags across 12 tables.
 - **This is a real gap**, not a documentation oversight, and is the cheapest item on this list to close.
 
@@ -537,7 +537,7 @@ The third rule per table catches a subtle and dangerous condition:
 
 | Fact type | How it was obtained |
 |---|---|
-| Row counts, file counts, overlaps | Executed against `flowx.bronze` on `metaflow_v7` |
+| Row counts, file counts, overlaps | Executed against `br_digital_poc.bronze` on `metaflow_v7` |
 | Column shapes and struct paths | Read from `information_schema.columns` and live struct expansion |
 | DQ rules | Read from `BT_Usecase/UC7/onboarding/UC7_cdr_asn_bronze.json` |
 | Join results | Executed. D4 and D5 confirmed running, D5 returned 20 rows |

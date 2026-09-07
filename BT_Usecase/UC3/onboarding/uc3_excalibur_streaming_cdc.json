@@ -2,7 +2,7 @@
   "$schema": "../../../onboarding_templates/onboarding_spec.schema.json",
   "_about": {
     "use_case": "UC3 - Excalibur streaming CDC (Job 2 of 3)",
-    "description": "Streams the three Excalibur staging tables (physical_device, customer, subscriber) written by the Job 1 simulator and applies SCD1/SCD2 change data capture into governed flowx.bronze tables, with framework hash columns, Null(DF) standardisation and Unity Catalog governance tags. Design and evidence: BT_Usecase/UC3/docs/UC3_MASTER_DOCUMENT.md.",
+    "description": "Streams the three Excalibur staging tables (physical_device, customer, subscriber) written by the Job 1 simulator and applies SCD1/SCD2 change data capture into governed br_digital_poc.bronze tables, with framework hash columns, Null(DF) standardisation and Unity Catalog governance tags. Design and evidence: BT_Usecase/UC3/docs/UC3_MASTER_DOCUMENT.md.",
     "version": "FlowX 0.0.4",
     "date": "2026-09-05",
     "developer": "Madhan Raghu"

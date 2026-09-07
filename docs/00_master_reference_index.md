@@ -24,6 +24,7 @@
 14. [Official Databricks Documentation Index](#14-official-databricks-documentation-index)
 15. [**🔐 Deterministic Hashing & Determinism (v1.3.0)**](11_hashing_and_determinism.md) — the one canonical `__framework_hash_key`/`__framework_hash_value` construction, a reproducible Spark SQL snippet, and the breaking-change migration checklist.
 16. [**🧩 Module Permutation Matrix (v1.3.0)**](12_module_permutation_matrix.md) — which source types, CDC strategies, reconciliation scopes, and observability modes legally combine, plus a consolidated list of unsupported combinations.
+17. [**🔭 Framework Observability, AI/BI & Genie**](17_framework_observability_and_genie.md) — the `<catalog>.observability` semantic layer: 11 views joining FlowX control metadata to the Databricks system tables, the `configuration['dataflow.group.id']` join key and the `dataflow_group_id` job tag, the 9-page AI/BI dashboard, the four `AI_FORECAST` rules, the Genie space, and the per-group documentation generator. **No spec attribute** — nothing here is configured through an onboarding spec.
 
 ---
 
@@ -263,6 +264,8 @@ Objects inside `reconciliation_flows[]`:
 ## 9. Observability Config Schema
 
 > **Field-name correction (drift predating v1.3.0, fixed here):** the onboarding spec uses **short** field names — `id`, `type`, `auth`, `retry` — verified against `onboarding/spec_validator.py::_validate_observability_destinations`. These are renamed on write into the `observability_config` control table's columns (`destination_id`, `destination_type`, `auth_config_json`, `retry_config_json`) — the spec-level names below are what a practitioner writes in the onboarding JSON; do not confuse the two. Full field-by-`type` breakdown and the triggered/continuous engine split: [`08_observability_and_telemetry.md` §2](08_observability_and_telemetry.md#2-observability-configuration-schema).
+
+> **Two different things are called "observability" in this framework, and only one of them is a spec attribute.** This section — and `observability[]` — is **export-out telemetry**: OTLP payloads and Volume archives leaving the platform ([doc 08](08_observability_and_telemetry.md)). The **store-and-query** semantic layer in `<catalog>.observability` — 11 views over the Databricks system tables, the AI/BI dashboard, the Genie space and the documentation generator — has **no spec attribute at all**; it is provisioned by `01_setup` and documented in [doc 17](17_framework_observability_and_genie.md). Do not look for a spec key to turn it on.
 
 Objects inside `observability[]`:
 

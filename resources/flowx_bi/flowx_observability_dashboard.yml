@@ -1,0 +1,51 @@
+# AI/BI (Lakeview) observability dashboard: FlowX control metadata joined to the Databricks
+# system tables.
+#
+# HOW THIS DIFFERS FROM flowx_control_dashboard.yml. That dashboard inventories what was
+# onboarded -- counters and tables over the control specs. This one answers how the framework is
+# *behaving*: pipeline run reliability and duration, per-flow row counts, data-quality rule
+# outcomes, reconciliation match rates, DBU cost per dataflow group, and observed lineage. The
+# two are complementary and both stay deployed.
+#
+# WHY dataset_schema IS `observability`, NOT `config`. Every dataset query here reads the curated
+# views in `<catalog>.observability` (see `control_plane/observability_views.py`), so that is
+# what the bare table names must resolve to. The handful of queries that need a raw control
+# table spell it as a TWO-part name (`config.onboarding_audit_log`): `dataset_catalog` /
+# `dataset_schema` only fill in what a query OMITS, so a two-part name still picks up the
+# catalog while overriding the schema. Verified against a live warehouse.
+#
+# THREE-PART `system.*` NAMES PASS THROUGH UNTOUCHED. The join to `system.lakeflow`,
+# `system.billing` and `system.access` happens inside the views rather than in the dashboard
+# JSON, which is what lets the dashboard stay portable: the views are created per-catalog by the
+# setup notebook, so nothing here is pinned to one workspace.
+#
+# THE JOIN KEY. Pipeline runs attribute to a dataflow group through
+# `system.lakeflow.pipelines.configuration['dataflow.group.id']`, which every FlowX pipeline
+# resource already sets in its `configuration:` block -- no per-pipeline change was needed.
+# JOB runs are different: the framework passes `dataflow_group_id` as a notebook task
+# base_parameter and those do NOT surface in `job_task_run_timeline.task_parameters`, so job
+# attribution reads a `dataflow_group_id` job TAG. `resources/uc*/**_job.yml` now set that tag;
+# an untagged job falls back to a job-name match and is reported as `attribution = 'name_match'`
+# rather than being silently blended with exact figures.
+#
+# PREREQUISITES, in order:
+#   1. `notebooks/01_setup/01_setup_control_tables.py` has run (creates the observability views).
+#   2. The deploying/viewing principal has SELECT on the `system` catalog. Without it the views
+#      exist but every system-table-backed widget errors.
+#   3. For the per-flow row counts and DQ results: each pipeline must publish its event log to
+#      Unity Catalog (Pipeline settings -> Advanced -> Event log). Those two views are built over
+#      the event-log tables discovered at setup time; a pipeline that publishes none simply
+#      contributes no rows.
+#
+# Filename has NO SPACES, for the same reason as flowx_control_dashboard.yml: DABs resolves the
+# deployed workspace path from this relative path, and tests/unit/test_resource_layout.py's path
+# scanner truncates at the first space.
+resources:
+  dashboards:
+    flowx_observability_dashboard:
+      display_name: "FlowX Framework Observability"
+      warehouse_id: ${var.dashboard_warehouse_id}
+      dataset_catalog: ${var.catalog}
+      dataset_schema: observability
+      parent_path: ${workspace.file_path}/databricks-bi
+      file_path: ../../databricks-bi/flowx_observability_dashboard.lvdash.json

@@ -1144,3 +1144,59 @@ producer — if the producer is a `materialized_view` or `TRUNCATE_AND_LOAD`, it
 inputs batch. And tag governance only where a table exists: `apply_all_governance_tags` now skips
 `target_type: "sink"` (no materialized table) — before v1.7.5 one sink's `TABLE_OR_VIEW_NOT_FOUND`
 failed the whole group's tagging.
+
+### 44. SQL over the control tables and system tables: five ways to be confidently wrong
+
+Building `<catalog>.observability` (`control_plane/observability_views.py`) surfaced five defects
+that all **returned a plausible answer rather than an error** — the kind that survives review and
+ships. Every one was found only by running against a live workspace, not by any local test.
+
+1. **Enum-ish control-table values are UPPERCASE.** `cdc_load_strategy` is `APPEND`, `SCD1`,
+   `SCD2`, `TRUNCATE_AND_LOAD`. A lowercase-only `RLIKE '(scd|cdc|merge|truncate)'` reported
+   "no CDC" for every SCD group. Wrap in `LOWER()`.
+2. **`SPLIT('', ', ')` returns `['']`, and `ARRAY_COMPACT` will not remove it.** ARRAY_COMPACT
+   drops NULLs only, so the empty element survives, sorts first, and `CONCAT_WS` renders a
+   leading `", "` on the merged list. Use `FILTER(arr, x -> x IS NOT NULL AND x <> '')`.
+3. **`*_config_json` columns are frequently the literal string `'{}'`.** Testing
+   `IS NOT NULL AND <> ''` counts an empty JSON object as configured, which reported
+   "data quality enabled" for every group. Use `TRIM(col) NOT IN ('', '{}')`.
+4. **The newest `flow_progress` event is not necessarily the terminal one.** A streaming flow
+   can emit its last progress event mid-batch, so `ORDER BY event_time DESC` yields a partial
+   `num_output_rows` and a `RUNNING` status for an update that finished. Rank terminal statuses
+   (`COMPLETED`/`FAILED`/`EXCLUDED`/`SKIPPED`) first, then by time. And event-log counts are
+   **cumulative within an update**, so keep exactly one event per `(update_id, flow_name)` or
+   `SUM(rows_written)` multiplies throughput by the number of progress events.
+5. **`system.lakeflow.pipelines.settings` has no `catalog` or `target` field** — only `photon`,
+   `development`, `continuous`, `serverless`, `edition`, `channel`. Reading `settings.catalog`
+   fails with `FIELD_NOT_FOUND` and takes every dependent view down with it. A pipeline's
+   event-log table location is not derivable from its row; discover it from
+   `system.information_schema.tables` matching `event_log_<pipeline_id with '-'→'_'>`.
+
+Two related attribution facts. **Notebook task `base_parameters` do NOT appear in
+`system.lakeflow.job_task_run_timeline.task_parameters`** (verified empty), so a job run cannot
+be tied back to its `dataflow_group_id` that way — a job **tag** is required, and
+`resources/{uc3,uc6,uc7}/*_job.yml` now set one. Pipelines are fine as-is:
+`system.lakeflow.pipelines.configuration['dataflow.group.id']` is already populated from each
+pipeline resource's `configuration:` block.
+
+### 45. `AI_FORECAST` on a daily series will embarrass you in a demo
+
+On a young workspace `system.billing.usage` holds only a few days. Fitting `AI_FORECAST` to
+**three daily points** projected **10,257,538,803 DBUs** by day 14 — no error, just a chart that
+destroys credibility. Four rules, now encoded in both the dashboard SQL and the Genie space
+instructions:
+
+- **Forecast on an HOURLY series**: `date_trunc('HOUR', usage_start_time)` turned 3 usable points
+  into 73 and produced a credible result (7.95 DBU/hr against a 6.71 observed mean).
+- **Exclude the current, partly-elapsed bucket** (`< date_trunc('HOUR', current_timestamp())`),
+  at the *same grain as the aggregation*, or the last actual point dips and the forecast starts
+  from an artificially low base.
+- **Always pass `parameters => '{"global_floor": 0}'`.** Cost and counts cannot go negative;
+  without the floor the lower confidence band does.
+- **Report the band and the hours of history, never the point forecast alone.** A wide band means
+  little history, not volatile spend — a completely different thing for the reader to act on. And
+  say it is list price and a projection, not a commitment.
+
+The `forecast-line` widget also needs a **bridge row**: one row at the last actual timestamp with
+the actual value copied into all three forecast columns, or the historical line and the forecast
+band render with a visible gap between them.

@@ -16,26 +16,26 @@ observability task, and validate end to end.
 
 | Item | Value | How it was confirmed |
 |---|---|---|
-| Workspace | `dbc-bc553b65-f05f.cloud.databricks.com` (profile `metaflow_v7`) | Only workspace of the four in `.databrickscfg` where `/Volumes/flowx/landing/uc_7/` exists; the other three return `no such directory` |
-| Target catalog | `flowx` | `databricks.yml` sets `catalog: flowx` on every target |
-| Target schema | `flowx.bronze` | `databricks schemas list flowx` — a bare `bronze` schema exists; **no env suffix** |
+| Workspace | `dbc-bc553b65-f05f.cloud.databricks.com` (profile `metaflow_v7`) | Only workspace of the four in `.databrickscfg` where `/Volumes/br_digital_poc/landing/uc_7/` exists; the other three return `no such directory` |
+| Target catalog | `flowx` | `databricks.yml` sets `catalog: br_digital_poc` on every target |
+| Target schema | `br_digital_poc.bronze` | `databricks schemas list flowx` — a bare `bronze` schema exists; **no env suffix** |
 | Env parameter | `metaflow_v7` | Existing "FlowX Config Onboarding" job's `env` parameter default |
-| Framework version | **0.0.3** (pinned) | `pyproject.toml:3`, `databricks.yml` `var.framework_version`, and `/Volumes/flowx/config/wheels/0.0.3/` already present |
-| Wheel path | `/Volumes/flowx/config/wheels/0.0.3/.internal/flowx-0.0.3-py3-none-any.whl` | Read from the deployed onboarding job definition |
+| Framework version | **0.0.3** (pinned) | `pyproject.toml:3`, `databricks.yml` `var.framework_version`, and `/Volumes/br_digital_poc/config/wheels/0.0.3/` already present |
+| Wheel path | `/Volumes/br_digital_poc/config/wheels/0.0.3/.internal/flowx-0.0.3-py3-none-any.whl` | Read from the deployed onboarding job definition |
 | Dataflow group | `dfg_uc7_cdr_asn` | As specified |
 | Job / Pipeline | `001_lfj_uc7_cdr_asn` / `001_ldp_uc7_cdr_asn` | As specified |
 | Compute | Serverless, Photon, `environment_version: "4"` | Matches every other pipeline in the repo |
 
 ### 1.1 Environment prerequisites discovered
 
-`flowx.config` contained **no control tables** and `flowx.bronze` / `flowx.observability` were
+`br_digital_poc.config` contained **no control tables** and `br_digital_poc.bronze` / `br_digital_poc.observability` were
 empty at the start of this exercise — the framework had never been fully bootstrapped on this
 workspace. `bundle deploy` does **not** create control tables; the `setup_control_tables` task
 does. That task is therefore wired as the first task of the job rather than assumed.
 
 ### 1.2 Env-suffix convention (question raised in the brief)
 
-The brief asked whether an env suffix applies to config keys (e.g. `flowx.bronze_<env>`).
+The brief asked whether an env suffix applies to config keys (e.g. `br_digital_poc.bronze_<env>`).
 **It does not.** Environment separation in this framework is by **catalog**, not by schema
 suffix. Every `target_schema` across all 71 specs in `flowx_testing/` is a bare literal, and a
 repo-wide search for `bronze_dev` / `_uat` / `_prod` suffixes returns nothing. `{{env}}` is
@@ -225,7 +225,7 @@ The first pipeline run failed on the SGSN flow. Root cause from the pipeline eve
 ```
 [UDF_PYSPARK_USER_CODE_ERROR.MEMORY_LIMIT_SERVERLESS] Execution failed.
 Function exceeded the limit of 1024 megabytes.
-  flow: flowx.bronze._src___volumes_flowx_landing_uc_7_raw_sgsn__ee25e3cc__stream
+  flow: br_digital_poc.bronze._src___volumes_flowx_landing_uc_7_raw_sgsn__ee25e3cc__stream
 ```
 
 Updates `d4f55a85` and `a9e11cfe` both FAILED this way (the flow retried 3 times, then the
@@ -313,16 +313,16 @@ sources use `<source>_cdr_raw`, interchange formats use `<source>_raw`, quaranti
 
 | Source | Target table | Quarantine table | Dataflow ID |
 |---|---|---|---|
-| EMSC | `flowx.bronze.emsc_cdr_raw` | `emsc_cdr_raw_quarantine` | `df_uc7_emsc_cdr_ingest` |
-| PSGW | `flowx.bronze.psgw_cdr_raw` | `psgw_cdr_raw_quarantine` | `df_uc7_psgw_cdr_ingest` |
-| SGSN | `flowx.bronze.sgsn_cdr_raw` | `sgsn_cdr_raw_quarantine` | `df_uc7_sgsn_cdr_ingest` |
-| TAP | `flowx.bronze.tap310_raw` | `tap310_raw_quarantine` | `df_uc7_tap310_ingest` |
+| EMSC | `br_digital_poc.bronze.emsc_cdr_raw` | `emsc_cdr_raw_quarantine` | `df_uc7_emsc_cdr_ingest` |
+| PSGW | `br_digital_poc.bronze.psgw_cdr_raw` | `psgw_cdr_raw_quarantine` | `df_uc7_psgw_cdr_ingest` |
+| SGSN | `br_digital_poc.bronze.sgsn_cdr_raw` | `sgsn_cdr_raw_quarantine` | `df_uc7_sgsn_cdr_ingest` |
+| TAP | `br_digital_poc.bronze.tap310_raw` | `tap310_raw_quarantine` | `df_uc7_tap310_ingest` |
 
 TAP keeps the version in its name (`tap310_raw`), matching the existing `v0_0_2_asn1_tap310`
 precedent — the version is a real property of the format and is proven from the data (§2.2).
 
 The existing specs put each source in its own `bronze_<source>` schema; this brief requires the
-`bronze` layer, so all four land in `flowx.bronze` with source-prefixed table names. That also
+`bronze` layer, so all four land in `br_digital_poc.bronze` with source-prefixed table names. That also
 avoids colliding with the pre-existing `bronze_emsc.emsc_cdr_raw` / `bronze_psgw.psgw_cdr_raw`
 tables owned by other specs — two specs publishing the same three-part name would fight over one
 physical table, and nothing in `spec_validator.py` catches cross-spec collisions.
@@ -399,7 +399,7 @@ Deployed environment dependency, read back from the live job definition — conf
 pin resolved as intended:
 
 ```
-/Volumes/flowx/config/wheels/0.0.3/.internal/flowx-0.0.3-py3-none-any.whl
+/Volumes/br_digital_poc/config/wheels/0.0.3/.internal/flowx-0.0.3-py3-none-any.whl
 ```
 
 Pipeline is wired to the group via the standard configuration keys (the convention used by 57 of
@@ -408,12 +408,12 @@ Pipeline is wired to the group via the standard configuration keys (the conventi
 ```yaml
 configuration:
   dataflow.group.id: dfg_uc7_cdr_asn
-  dataflow.control.catalog: flowx
+  dataflow.control.catalog: br_digital_poc
 ```
 
 **Version pinning to 0.0.3** is by the `../../dist/*.whl` glob, which DABs rewrites at deploy
 time to `<artifact_path>/.internal/`, where `artifact_path` is
-`${var.wheels_root}/${var.framework_version}` = `/Volumes/flowx/config/wheels/0.0.3`. No version
+`${var.wheels_root}/${var.framework_version}` = `/Volumes/br_digital_poc/config/wheels/0.0.3`. No version
 string is hard-coded in the resource files — that is the repo's established mechanism, and
 `pyproject.toml` and `var.framework_version` are both already at 0.0.3.
 
@@ -450,10 +450,10 @@ Row counts are read back with:
 ```sql
 SELECT 'emsc' src, count(*) rows, count_if(_asn1_decode_error IS NOT NULL) decode_errors,
        count(DISTINCT _choice) arms, max(_asn1_record_index) max_idx
-FROM flowx.bronze.emsc_cdr_raw
-UNION ALL SELECT 'psgw', count(*), count_if(_asn1_decode_error IS NOT NULL), count(DISTINCT _choice), max(_asn1_record_index) FROM flowx.bronze.psgw_cdr_raw
-UNION ALL SELECT 'sgsn', count(*), count_if(_asn1_decode_error IS NOT NULL), count(DISTINCT _choice), max(_asn1_record_index) FROM flowx.bronze.sgsn_cdr_raw
-UNION ALL SELECT 'tap310', count(*), count_if(_asn1_decode_error IS NOT NULL), count(DISTINCT _choice), max(_asn1_record_index) FROM flowx.bronze.tap310_raw;
+FROM br_digital_poc.bronze.emsc_cdr_raw
+UNION ALL SELECT 'psgw', count(*), count_if(_asn1_decode_error IS NOT NULL), count(DISTINCT _choice), max(_asn1_record_index) FROM br_digital_poc.bronze.psgw_cdr_raw
+UNION ALL SELECT 'sgsn', count(*), count_if(_asn1_decode_error IS NOT NULL), count(DISTINCT _choice), max(_asn1_record_index) FROM br_digital_poc.bronze.sgsn_cdr_raw
+UNION ALL SELECT 'tap310', count(*), count_if(_asn1_decode_error IS NOT NULL), count(DISTINCT _choice), max(_asn1_record_index) FROM br_digital_poc.bronze.tap310_raw;
 ```
 
 ### 6.1 Results — pipeline update `f2fb4218-4d88-4990-8257-f957c9055ee8` (COMPLETED)
@@ -486,7 +486,7 @@ CHOICE arm distribution (decoded, not inferred):
 
 ### 6.2 Sample decoded record
 
-`flowx.bronze.sgsn_cdr_raw`, `_asn1_record_index = 0` (truncated):
+`br_digital_poc.bronze.sgsn_cdr_raw`, `_asn1_record_index = 0` (truncated):
 
 ```json
 {"recordType":18,"servedIMSI":"MjRAIQESEvM=","servedIMEI":"U0iTcJOFVhA=",
@@ -506,7 +506,7 @@ decoded CDR content, not an all-NULL row.
 
 ### 6.3 Resulting bronze table schema
 
-`DESCRIBE TABLE flowx.bronze.tap310_raw`:
+`DESCRIBE TABLE br_digital_poc.bronze.tap310_raw`:
 
 | Column | Type |
 |---|---|
@@ -531,7 +531,7 @@ Both CHOICE arms are projected as their own nullable struct columns, exactly as 
 
 The job was run three times in total. After the second and third runs, `sgsn_cdr_raw` still held
 exactly **175,048** rows — not 350,096. Auto Loader's `schema_location` checkpoints
-(`/Volumes/flowx/landing/uc_7/_schemas/<table>/`) correctly record which files have been
+(`/Volumes/br_digital_poc/landing/uc_7/_schemas/<table>/`) correctly record which files have been
 consumed, so a re-run of an `APPEND` bronze flow does not re-ingest already-seen files. This
 matters because the record-per-TLV change multiplies every file's row contribution: a
 double-ingestion bug would have been far more visible, and is demonstrably absent.
@@ -563,7 +563,7 @@ same target destinations.
     notebook_path: ../../notebooks/08_observability/08_dlt_observability_engine.py
     base_parameters:
       dataflow_group_id: dfg_uc7_cdr_asn
-      catalog: flowx
+      catalog: br_digital_poc
       env: ${bundle.target}
       pipeline_task_run_id: "{{tasks.run_pipeline_update.run_id}}"
       service_name: dlt-observability-uc7-cdr-asn
@@ -572,9 +572,9 @@ same target destinations.
 ```
 
 Destinations are **not** configured in YAML — they come from the `observability[]` array of the
-same onboarding spec, upserted into `flowx.config.observability_config`. The spec declares one
+same onboarding spec, upserted into `br_digital_poc.config.observability_config`. The spec declares one
 `DATABRICKS_VOLUME` destination writing GZIP'd JSONL to
-`/Volumes/flowx/observability/app_logs/`.
+`/Volumes/br_digital_poc/observability/app_logs/`.
 
 `pipeline_task_run_id` is a **task base_parameter**, not a pipeline configuration key:
 `{{tasks.<key>.run_id}}` is a Jobs dynamic value resolved per job run, and pipeline parameters
@@ -621,7 +621,7 @@ payload, then failed at dispatch:
 
 ```
 ObservabilityDispatchError: All 1 destination(s) failed for dataflow_group_id='dfg_uc7_cdr_asn':
-  [('dest-uc7-volume', "[Errno 95] Operation not supported: '/Volumes/flowx/observability/app_logs'")]
+  [('dest-uc7-volume', "[Errno 95] Operation not supported: '/Volumes/br_digital_poc/observability/app_logs'")]
 ```
 
 **Diagnosis.** The spec's destination path `/Volumes/{{catalog}}/observability/app_logs/` — the
@@ -639,7 +639,7 @@ payload, and fails only on the write target.
 
 ```
 databricks volumes create flowx observability app_logs MANAGED -p metaflow_v7
-  -> flowx.observability.app_logs  MANAGED  d0f0d550-b6d5-434a-8e2c-9d550e765dbb
+  -> br_digital_poc.observability.app_logs  MANAGED  d0f0d550-b6d5-434a-8e2c-9d550e765dbb
 ```
 
 Created manually rather than as a bundle resource, matching how the other UC_7 Volumes on this
@@ -652,7 +652,7 @@ With both fixes in place, `observability_export` **TERMINATED SUCCESS** in job r
 (`{volume_path}/{dataflow_group_id}/{YYYY-MM-DD}/{dataflow_group_id}_{task_run_id}.jsonl.gz`):
 
 ```
-/Volumes/flowx/observability/app_logs/dfg_uc7_cdr_asn/2026-09-05/
+/Volumes/br_digital_poc/observability/app_logs/dfg_uc7_cdr_asn/2026-09-05/
     dfg_uc7_cdr_asn_387734270983946.jsonl.gz     1,619 bytes   2026-09-05T08:15:50Z
 ```
 
@@ -685,10 +685,10 @@ this was performed as a **COPY with the source preserved** — nothing was moved
 
 | | Path | Type |
 |---|---|---|
-| **Before (source)** | `/Volumes/flowx/landing/uc_7/` | MANAGED, pre-existing, **not** bundle-declared |
-| **After (destination)** | `/Volumes/flowx/staging/uc_7/` | MANAGED, created for this copy (`bda347a8-f6f7-4e72-9afe-655a8cdac8e2`) |
+| **Before (source)** | `/Volumes/br_digital_poc/landing/uc_7/` | MANAGED, pre-existing, **not** bundle-declared |
+| **After (destination)** | `/Volumes/br_digital_poc/staging/uc_7/` | MANAGED, created for this copy (`bda347a8-f6f7-4e72-9afe-655a8cdac8e2`) |
 
-`flowx.staging.uc_7` was created manually (`databricks volumes create flowx staging uc_7 MANAGED`)
+`br_digital_poc.staging.uc_7` was created manually (`databricks volumes create flowx staging uc_7 MANAGED`)
 rather than as a bundle resource, matching how the source volume was created. A bundle-declared
 volume would be deleted along with its MANAGED data by a `bundle destroy` or by removing the YAML
 and redeploying; keeping it unmanaged avoids that failure mode.
@@ -735,7 +735,7 @@ Two notes on the inventory:
 The pipeline continues to read from the **original** `landing` paths — the copy was additive and
 no config was repointed, so the onboarded `source_config.path` values remain correct and
 resolvable. This was verified by reading the persisted specs back after the copy (§4.4/§6) and
-by the pipeline run that followed it. Repointing the group at `/Volumes/flowx/staging/uc_7/`
+by the pipeline run that followed it. Repointing the group at `/Volumes/br_digital_poc/staging/uc_7/`
 would require re-onboarding with `action_type: UPDATE`; that was **not** requested and was not
 done, since it would abandon the existing Auto Loader checkpoints and re-ingest every file.
 
@@ -759,8 +759,8 @@ done, since it would abandon the existing Auto Loader checkpoints and re-ingest 
 | 12 | Job run 2 — `242889856033876` | `setup_control_tables` ✅, `onboard_uc7` ✅, `run_pipeline_update` ✅ (update `f2fb4218` COMPLETED, **175,498 rows, 0 errors**); `observability_export` FAILED — `event_log()` Arrow schema mismatch (§7.1) |
 | 13 | Fix `event_log()` `SELECT *` projection | 166 observability tests pass; deployed |
 | 14 | Re-run observability | Got past the query, failed at dispatch — destination Volume missing (§7.2) |
-| 15 | Create `flowx.observability.app_logs` | Created MANAGED |
-| 16 | Volume copy to `flowx.staging.uc_7` | ✅ 28 files / 112,148,054 bytes, source verified intact (§8) |
+| 15 | Create `br_digital_poc.observability.app_logs` | Created MANAGED |
+| 16 | Volume copy to `br_digital_poc.staging.uc_7` | ✅ 28 files / 112,148,054 bytes, source verified intact (§8) |
 | 17 | Job run 3 — `884721997952817` | **ALL FOUR TASKS SUCCESS.** `setup_control_tables` ✅, `onboard_uc7` ✅, `run_pipeline_update` ✅, `observability_export` ✅ — 16 OTel records emitted (§7.3). Duration 5m 02s |
 
 ---
@@ -773,13 +773,13 @@ done, since it would abandon the existing Auto Loader checkpoints and re-ingest 
 |---|---|---|
 | 1 | Multi-record BER files silently under-ingested to 1 row per file | Fixed in `asn1/decoder.py` (§3) |
 | 2 | Two existing tests asserted the buggy one-row behaviour | Updated to assert all records decode |
-| 3 | `flowx.config` had no control tables | `setup_control_tables` wired as first job task |
+| 3 | `br_digital_poc.config` had no control tables | `setup_control_tables` wired as first job task |
 | 4 | `resources/observability/*.yml` include is commented out | Used a new `resources/uc7/` include instead |
 | 4b | `test_resource_layout` failed on the new `resources/uc7/` folder | The repo keeps an explicit registry of resource group folders; `uc7` added to `EXPECTED_GROUPS` (the folder's `include:` line was already present) |
 | 5 | **`bundle deploy` fails on an unrelated pre-existing resource** | See §10.1 — worked around with `--select` |
 | 6 | Serverless UDF 1 GB memory limit on the 42 MB SGSN file | Chunked yield, `_DECODE_CHUNK_ROWS = 10000` (§3.5) |
 | 7 | `event_log()` `SELECT *` Arrow nullability mismatch | Explicit projection + `named_struct` origin (§7.1) |
-| 8 | Observability destination Volume did not exist | Created `flowx.observability.app_logs` (§7.2) |
+| 8 | Observability destination Volume did not exist | Created `br_digital_poc.observability.app_logs` (§7.2) |
 
 ### 10.1 Deploy failure on `resources.apps.flowx_onboarding_app` (pre-existing, worked around)
 
@@ -821,14 +821,14 @@ work depends on. Raised as open item 5.
 |---|---|---|---|
 | 1 | **SMSC not onboarded** | Payload is a 48-field quoted CSV; no `SMSC.asn1` module exists | Either the real SMSC ASN.1 module, or a decision to onboard as CSV |
 | 2 | **MMSC not onboarded** | Payload is a 70+ column CSV | Same — the CSV column contract, or the real module |
-| 3 | ~~Volume copy destination~~ | **RESOLVED** — confirmed with requester, copied to `flowx.staging.uc_7` (§8) | — |
+| 3 | ~~Volume copy destination~~ | **RESOLVED** — confirmed with requester, copied to `br_digital_poc.staging.uc_7` (§8) | — |
 | 4 | **Indefinite-length files not fully split** | EMSC `.raw` and some TAP files use indefinite length (`0x80`); `iter_ber_tlv_records` yields the remainder whole and stops. Not losing data today (EMSC's 3 files gave 353 rows), but a payload *beginning* with an indefinite-length TLV would yield 1 row | Confirm whether EMSC needs interior walking of indefinite-length records |
 | 5 | **`bundle deploy` blocked by the Apps resource** | CLI v1.13.0 sends `forward_user_access_token` in the Apps update mask; workspace API rejects it (§10.1). Full deploys of this bundle fail until fixed | Upgrade/pin the CLI, or amend `resources/flowx_app/flowx_onboarding_app.yml` |
 
 ### Question raised by this use case (recorded per request)
 
 **Should `bronze` hold one table per source, or one schema per source?** This brief specifies
-the `bronze` layer, so all four tables land in `flowx.bronze`. Every pre-existing ASN.1 spec
+the `bronze` layer, so all four tables land in `br_digital_poc.bronze`. Every pre-existing ASN.1 spec
 instead uses a per-source schema (`bronze_emsc`, `bronze_psgw`, …). Both conventions now exist
 in the repo. Worth settling before more sources are onboarded, since it determines whether
 `bronze_emsc.emsc_cdr_raw` and `bronze.emsc_cdr_raw` are meant to coexist.
