@@ -277,6 +277,88 @@
       ],
       "catalog": "flowx",
       "schema": "config"
+    },
+    {
+      "name": "raw_spec_json",
+      "displayName": "Raw Spec JSON (debug)",
+      "queryLines": [
+        "SELECT\n",
+        "  'ingestion' AS flow_kind,\n",
+        "  i.dataflow_id,\n",
+        "  i.dataflow_group_id,\n",
+        "  dg.environment,\n",
+        "  i.source_type,\n",
+        "  i.target_type,\n",
+        "  CONCAT(i.target_catalog, '.', i.target_schema, '.', i.target_table) AS full_target_path,\n",
+        "  i.is_active,\n",
+        "  i.source_config_json,\n",
+        "  i.target_config_json,\n",
+        "  i.dq_config_json,\n",
+        "  i.governance_tags_json,\n",
+        "  TO_JSON(\n",
+        "    STRUCT(\n",
+        "      i.dataflow_id AS dataflow_id,\n",
+        "      i.dataflow_group_id AS dataflow_group_id,\n",
+        "      i.source_type AS source_type,\n",
+        "      i.target_catalog AS target_catalog,\n",
+        "      i.target_schema AS target_schema,\n",
+        "      i.target_table AS target_table,\n",
+        "      i.target_type AS target_type,\n",
+        "      i.cdc_load_strategy AS cdc_load_strategy,\n",
+        "      i.source_config_json AS source_config_json,\n",
+        "      i.target_config_json AS target_config_json,\n",
+        "      i.dq_config_json AS dq_config_json,\n",
+        "      i.governance_tags_json AS governance_tags_json\n",
+        "    )\n",
+        "  ) AS full_spec_json\n",
+        "FROM\n",
+        "  ingestion_flow_spec i\n",
+        "    INNER JOIN dataflow_group_spec dg\n",
+        "      ON i.dataflow_group_id = dg.dataflow_group_id\n",
+        "\n",
+        "UNION ALL\n",
+        "\n",
+        "SELECT\n",
+        "  'transformation' AS flow_kind,\n",
+        "  t.dataflow_id,\n",
+        "  t.dataflow_group_id,\n",
+        "  dg.environment,\n",
+        "  CAST(NULL AS STRING) AS source_type,\n",
+        "  t.target_type,\n",
+        "  CONCAT(t.target_catalog, '.', t.target_schema, '.', t.target_table) AS full_target_path,\n",
+        "  t.is_active,\n",
+        "  t.source_inputs_json AS source_config_json,\n",
+        "  t.target_config_json,\n",
+        "  t.dq_config_json,\n",
+        "  t.governance_tags_json,\n",
+        "  TO_JSON(\n",
+        "    STRUCT(\n",
+        "      t.dataflow_id AS dataflow_id,\n",
+        "      t.dataflow_group_id AS dataflow_group_id,\n",
+        "      t.flow_step_id AS flow_step_id,\n",
+        "      t.target_catalog AS target_catalog,\n",
+        "      t.target_schema AS target_schema,\n",
+        "      t.target_table AS target_table,\n",
+        "      t.target_type AS target_type,\n",
+        "      t.cdc_load_strategy AS cdc_load_strategy,\n",
+        "      t.source_inputs_json AS source_inputs_json,\n",
+        "      t.transformation_sql AS transformation_sql,\n",
+        "      t.target_config_json AS target_config_json,\n",
+        "      t.dq_config_json AS dq_config_json,\n",
+        "      t.governance_tags_json AS governance_tags_json\n",
+        "    )\n",
+        "  ) AS full_spec_json\n",
+        "FROM\n",
+        "  transformation_flow_spec t\n",
+        "    INNER JOIN dataflow_group_spec dg\n",
+        "      ON t.dataflow_group_id = dg.dataflow_group_id\n",
+        "ORDER BY\n",
+        "  dataflow_group_id,\n",
+        "  flow_kind,\n",
+        "  dataflow_id"
+      ],
+      "catalog": "flowx",
+      "schema": "config"
     }
   ],
   "pages": [
@@ -1873,6 +1955,339 @@
       ],
       "pageType": "PAGE_TYPE_CANVAS",
       "layoutVersion": "GRID_V1"
+    },
+    {
+      "name": "raw_json_debug",
+      "displayName": "🧪 Raw JSON",
+      "layout": [
+        {
+          "widget": {
+            "name": "header",
+            "multilineTextboxSpec": {
+              "lines": [
+                "## 🧪 Raw JSON (debug)\n",
+                "The complete stored payload for every flow, exactly as the control tables hold it. Pick a flow in the picker, then open `full_spec_json` in the panel below and copy it straight out for debugging or for re-onboarding.\n",
+                "\n",
+                "`full_spec_json` is the whole flow reassembled; the four `*_config_json` columns are the individual blobs as stored, for when you want just one of them."
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 12,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "filter_flow_kind",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "raw_spec_json",
+                  "fields": [
+                    {
+                      "name": "flow_kind",
+                      "expression": "`flow_kind`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "filter-single-select",
+              "encodings": {
+                "fields": [
+                  {
+                    "fieldName": "flow_kind",
+                    "displayName": "flow_kind",
+                    "queryName": "main_query"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "flow_kind"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 3,
+            "width": 4,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "filter_dataflow_group_id",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "raw_spec_json",
+                  "fields": [
+                    {
+                      "name": "dataflow_group_id",
+                      "expression": "`dataflow_group_id`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "filter-single-select",
+              "encodings": {
+                "fields": [
+                  {
+                    "fieldName": "dataflow_group_id",
+                    "displayName": "dataflow_group_id",
+                    "queryName": "main_query"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "dataflow_group_id"
+              }
+            }
+          },
+          "position": {
+            "x": 4,
+            "y": 3,
+            "width": 4,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "filter_dataflow_id",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "raw_spec_json",
+                  "fields": [
+                    {
+                      "name": "dataflow_id",
+                      "expression": "`dataflow_id`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "filter-single-select",
+              "encodings": {
+                "fields": [
+                  {
+                    "fieldName": "dataflow_id",
+                    "displayName": "dataflow_id",
+                    "queryName": "main_query"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "dataflow_id"
+              }
+            }
+          },
+          "position": {
+            "x": 8,
+            "y": 3,
+            "width": 4,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "raw_flow_picker",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "raw_spec_json",
+                  "fields": [
+                    {
+                      "name": "flow_kind",
+                      "expression": "`flow_kind`"
+                    },
+                    {
+                      "name": "dataflow_id",
+                      "expression": "`dataflow_id`"
+                    },
+                    {
+                      "name": "dataflow_group_id",
+                      "expression": "`dataflow_group_id`"
+                    },
+                    {
+                      "name": "full_target_path",
+                      "expression": "`full_target_path`"
+                    },
+                    {
+                      "name": "source_type",
+                      "expression": "`source_type`"
+                    },
+                    {
+                      "name": "target_type",
+                      "expression": "`target_type`"
+                    },
+                    {
+                      "name": "is_active",
+                      "expression": "`is_active`"
+                    },
+                    {
+                      "name": "environment",
+                      "expression": "`environment`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": "Flows — pick one to inspect"
+              },
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "flow_kind"
+                  },
+                  {
+                    "fieldName": "dataflow_id"
+                  },
+                  {
+                    "fieldName": "dataflow_group_id"
+                  },
+                  {
+                    "fieldName": "full_target_path"
+                  },
+                  {
+                    "fieldName": "source_type"
+                  },
+                  {
+                    "fieldName": "target_type"
+                  },
+                  {
+                    "fieldName": "is_active"
+                  },
+                  {
+                    "fieldName": "environment"
+                  }
+                ]
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 5,
+            "width": 12,
+            "height": 8
+          }
+        },
+        {
+          "widget": {
+            "name": "raw_json_payload",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "raw_spec_json",
+                  "fields": [
+                    {
+                      "name": "dataflow_id",
+                      "expression": "`dataflow_id`"
+                    },
+                    {
+                      "name": "flow_kind",
+                      "expression": "`flow_kind`"
+                    },
+                    {
+                      "name": "full_spec_json",
+                      "expression": "`full_spec_json`"
+                    },
+                    {
+                      "name": "source_config_json",
+                      "expression": "`source_config_json`"
+                    },
+                    {
+                      "name": "target_config_json",
+                      "expression": "`target_config_json`"
+                    },
+                    {
+                      "name": "dq_config_json",
+                      "expression": "`dq_config_json`"
+                    },
+                    {
+                      "name": "governance_tags_json",
+                      "expression": "`governance_tags_json`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "frame": {
+                "showTitle": true,
+                "title": "Raw JSON payload — click a cell, then Ctrl+C to copy"
+              },
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "dataflow_id"
+                  },
+                  {
+                    "fieldName": "flow_kind"
+                  },
+                  {
+                    "fieldName": "full_spec_json"
+                  },
+                  {
+                    "fieldName": "source_config_json"
+                  },
+                  {
+                    "fieldName": "target_config_json"
+                  },
+                  {
+                    "fieldName": "dq_config_json"
+                  },
+                  {
+                    "fieldName": "governance_tags_json"
+                  }
+                ]
+              },
+              "data": {
+                "queryName": "main_query"
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 13,
+            "width": 12,
+            "height": 12
+          }
+        }
+      ]
     }
   ],
   "uiSettings": {
