@@ -539,7 +539,7 @@ The third rule per table catches a subtle and dangerous condition:
 |---|---|
 | Row counts, file counts, overlaps | Executed against `flowx.bronze` on `metaflow_v7` |
 | Column shapes and struct paths | Read from `information_schema.columns` and live struct expansion |
-| DQ rules | Read from `flowx_testing/UC7_cdr_asn_bronze.json` |
+| DQ rules | Read from `BT_Usecase/UC7/onboarding/UC7_cdr_asn_bronze.json` |
 | Join results | Executed. D4 and D5 confirmed running, D5 returned 20 rows |
 | Governance tag gap | Confirmed by querying `information_schema.table_tags`, which returned 0 |
 

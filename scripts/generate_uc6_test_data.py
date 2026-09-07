@@ -4,7 +4,7 @@ Why this exists
 ---------------
 The supplied `uc_6_poc_bundle.zip` is sanitised synthetic data, and two independent facts make
 it unable to prove UC6's logic (both verified, both recorded in
-docs/UC6/FRAMEWORK_CAPABILITY_MAP.md section 3.4):
+BT_Usecase/UC6/docs/FRAMEWORK_CAPABILITY_MAP.md section 3.4):
 
 1. **No postcode overlap.** The EA request file's postcodes (AB12 3CD, EF45 6GH, IJ78 9KL,
    MN10 2OP) appear in none of the five EE address sources.
@@ -37,8 +37,9 @@ Usage
 -----
     python scripts/generate_uc6_test_data.py [--out <dir>] [--passphrase <pw>]
 
-Writes the six source files (gzip, plus GPG-symmetric for the EA request) into
-<out>/raw/, defaulting to docs/UC6/test_fixture/uc_6/raw/.
+Writes the six source files (gzip, plus GPG-symmetric for the EA request) directly into
+<out>/, defaulting to BT_Usecase/UC6/data/test_fixture/ -- the checked-in fixture, which is
+flat (no uc_6/raw/ sub-tree) since the BT_Usecase consolidation.
 """
 
 import argparse
@@ -49,7 +50,7 @@ import sys
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(REPO_ROOT, "src"))
 
-DEFAULT_OUT = os.path.join(REPO_ROOT, "docs", "UC6", "test_fixture", "uc_6")
+DEFAULT_OUT = os.path.join(REPO_ROOT, "BT_Usecase", "UC6", "data", "test_fixture")
 DEFAULT_PASSPHRASE = "EA-POC-Sample-2026!"
 
 EA_HEADER = ("targetAreaID|osapr|postcode|org_name|department|po_box|sub_bld_name|bld_name|"
@@ -168,7 +169,9 @@ def main():
     parser.add_argument("--passphrase", default=DEFAULT_PASSPHRASE)
     args = parser.parse_args()
 
-    raw_dir = os.path.join(args.out, "raw")
+    # The fixture is flat: files sit directly in <out>/ (matching BT_Usecase/UC6/data/test_fixture/),
+    # not under a uc_6/raw/ sub-tree. The Volume-side raw/ folder is the setup notebook's concern.
+    raw_dir = args.out
     os.makedirs(raw_dir, exist_ok=True)
 
     accounts, subscriptions, addresses = _css_files()

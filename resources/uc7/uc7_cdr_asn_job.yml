@@ -41,7 +41,7 @@ resources:
           run_job_task:
             job_id: ${resources.jobs.onboarding_job.id}
             job_parameters:
-              spec_file_path: "${workspace.file_path}/flowx_testing/UC7_cdr_asn_bronze.json"
+              spec_file_path: "${workspace.file_path}/BT_Usecase/UC7/onboarding/UC7_cdr_asn_bronze.json"
               catalog: flowx
               env: ${bundle.target}
               action_type: CREATE

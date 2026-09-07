@@ -1,112 +1,44 @@
 {
-  "_contract": "docs/UC3/BUILD_CONTRACT.md (Phase A, binding). Companion: docs/UC3/FRAMEWORK_CAPABILITY_MAP.md",
-  "_scenario": "UC3 Job 2 -- Excalibur streaming CDC. Reads the three staging tables the Job 1 simulator writes (flowx.staging.{physical_device,customer,subscriber}_stream) as Delta streams and applies SCD1/SCD2 CDC into the governed flowx.bronze layer, with framework-generated hash columns, null standardization, Unity Catalog governance tags and Iceberg read uniformity. Pure configuration -- no hand-written merge, hashing, nulling or tagging code exists or is needed (capability map section 1).",
-  "_deviations_from_prompt": [
-    "cdc_operation_mapping is {\"delete_values\": [\"1\"]}, NOT the contract's original guess {\"DELETE\": \"1\"}. spec_validator.py:1056-1059 requires delete_values as a list of strings and cdc/scd.py:92-95 evaluates it as F.col(op_column).isin(delete_values). BUILD_CONTRACT.md section 3 says the reference wins; the contract has since been corrected.",
-    "Hash encoding is hex, not base64 -- cdc/hashing.py is the single canonical implementation and exposes no encoding switch (capability map 2.1).",
-    "The hash column set is derived at runtime by resolve_comparison_columns, not enumerated in JSON; the per-flow _hash_specification key is the audit record (capability map 2.2).",
-    "physical_device clusters on __framework_hash_key because its 4-column primary key exceeds MAX_LIQUID_CLUSTERING_COLUMNS = 3 (capability map 2.3). The PK is NOT truncated.",
-    "UniForm emits one property (enable_iceberg_read_uniformity); delta.columnMapping.mode and delta.enableIcebergCompatV2 are set automatically by Databricks and cannot be forced, as table_properties is a closed key set (capability map 2.4).",
-    "FlowX has no columns[] attribute; per-column concerns decompose into governance_tags.column_tags[] (capability map section 5)."
-  ],
-  "_src_deleted_flg_contract": "src_deleted_flg is materialized as STRING '1'/'0' by the Job 1 simulator (notebooks/uc3/simulator/uc3_ddl_schema.py: SRC_DELETED_FLG_TYPE = 'STRING') and by scripts/generate_uc3_test_data.py, even though the DDL sheets nominally type it BOOLEAN. delete_values must be a list of strings (check_list_of_str), and .isin(['1']) against a true BOOLEAN column would rely on implicit coercion. delete_values: ['1'] therefore matches the emitted data exactly. PHASE C VERIFICATION ITEM: confirm on the live staging table that src_deleted_flg is STRING-typed and that deleted rows carry '1'.",
+  "$schema": "../../../onboarding_templates/onboarding_spec.schema.json",
+  "_about": {
+    "use_case": "UC3 - Excalibur streaming CDC (Job 2 of 3)",
+    "description": "Streams the three Excalibur staging tables (physical_device, customer, subscriber) written by the Job 1 simulator and applies SCD1/SCD2 change data capture into governed flowx.bronze tables, with framework hash columns, Null(DF) standardisation and Unity Catalog governance tags. Design and evidence: BT_Usecase/UC3/docs/UC3_MASTER_DOCUMENT.md.",
+    "version": "FlowX 0.0.4",
+    "date": "2026-09-05",
+    "developer": "Madhan Raghu"
+  },
   "dataflow_group_id": "dfg_uc3_excalibur_streaming_cdc",
   "ingestion_flows": [
     {
-      "_source_column_count": 31,
-      "_governance_source": "docs/UC3/PHYSICAL_DEVICE_DDL.csv",
-      "_dropped_source_columns": [
-        {
-          "column": "gcp_insert_date",
-          "oracle_type": "TIMESTAMP",
-          "reason": "legacy_gcp_audit_superseded_by_framework_technical_metadata",
-          "detail": "Target-only legacy CloudSQL/BigQuery audit field (BUILD_CONTRACT.md section 6.3). Not carried into bronze; FlowX supplies the equivalent via source_config.capture_technical_metadata."
-        },
-        {
-          "column": "gcp_insert_user",
-          "oracle_type": "VARCHAR(20)",
-          "reason": "legacy_gcp_audit_superseded_by_framework_technical_metadata",
-          "detail": "Target-only legacy CloudSQL/BigQuery audit field (BUILD_CONTRACT.md section 6.3). Not carried into bronze; FlowX supplies the equivalent via source_config.capture_technical_metadata."
-        },
-        {
-          "column": "gcp_update_date",
-          "oracle_type": "TIMESTAMP",
-          "reason": "legacy_gcp_audit_superseded_by_framework_technical_metadata",
-          "detail": "Target-only legacy CloudSQL/BigQuery audit field (BUILD_CONTRACT.md section 6.3). Not carried into bronze; FlowX supplies the equivalent via source_config.capture_technical_metadata."
-        },
-        {
-          "column": "gcp_update_user",
-          "oracle_type": "VARCHAR(20)",
-          "reason": "legacy_gcp_audit_superseded_by_framework_technical_metadata",
-          "detail": "Target-only legacy CloudSQL/BigQuery audit field (BUILD_CONTRACT.md section 6.3). Not carried into bronze; FlowX supplies the equivalent via source_config.capture_technical_metadata."
-        },
-        {
-          "column": "hash_value",
-          "oracle_type": "VARCHAR(50)",
-          "reason": "superseded_by_framework_hash_value",
-          "detail": "Target-only column in the sheet, described there as 'Generated with combination of columns expect key, timestamp'. FlowX materializes this as __framework_hash_value from generate_hash_columns=true; no hash_value column is created."
-        }
-      ],
-      "_null_standardized_columns": [
-        {
-          "column": "esn_pin",
-          "oracle_type": "VARCHAR2(16)",
-          "spark_type": "STRING",
-          "reason": "Null(Specific to Data Fabric)=Y in docs/UC3/PHYSICAL_DEVICE_DDL.csv"
-        },
-        {
-          "column": "blacklist_password",
-          "oracle_type": "VARCHAR2(28)",
-          "spark_type": "STRING",
-          "reason": "Null(Specific to Data Fabric)=Y in docs/UC3/PHYSICAL_DEVICE_DDL.csv"
-        }
-      ],
-      "_hash_specification": {
-        "algorithm": "SHA-256, hex (framework canonical; NOT base64 - see capability map 2.1)",
-        "expression": "sha2(concat_ws('||', coalesce(trim(lower(cast(c AS STRING))), '__NULL__'), ...), 256)",
-        "hash_key_columns": [
-          "customer_id",
-          "subscriber_no",
-          "equipment_no",
-          "phy_seq_no"
-        ],
-        "excluded_from_hash_value": [
-          "customer_id",
-          "subscriber_no",
-          "equipment_no",
-          "phy_seq_no",
-          "sys_creation_date",
-          "sys_update_date"
-        ],
-        "ordering": "alphabetical, resolved by cdc/comparison_columns.py at runtime",
-        "note": "target_config.generate_hash_columns=true is the entire configuration. The framework materializes __framework_hash_key (SHA-256 over primary_keys in declared order) and __framework_hash_value (SHA-256 over the resolved comparison set, alphabetically sorted, with primary_keys excluded structurally by resolve_comparison_columns). Never rebuild this locally -- cdc/hashing.py is the single canonical implementation."
-      },
       "dataflow_id": "df_uc3_physical_device_stream_cdc",
       "source_system": "excalibur",
       "source_database": "staging",
       "source_table_name": "PHYSICAL_DEVICE",
       "source_description": "Excalibur PHYSICAL_DEVICE CDC stream: SCD1 (latest row per device) applied from the Job 1 simulator's staging table into the governed bronze layer. Clusters on __framework_hash_key because the 4-column primary key exceeds MAX_LIQUID_CLUSTERING_COLUMNS = 3 (BUILD_CONTRACT.md section 3 / capability map 2.3).",
       "source_type": "zerobus",
+      "target_catalog": "{{catalog}}",
+      "target_schema": "bronze",
+      "target_table": "physical_device",
+      "target_type": "streaming_table",
       "source_config": {
         "source_catalog": "{{catalog}}",
         "source_schema": "staging",
         "source_table": "physical_device_stream",
         "capture_technical_metadata": true,
-        "column_normalization": {
-          "enabled": true,
-          "case": "lower"
-        },
         "data_standardization_sql": [
           "CAST(NULL AS STRING) AS esn_pin",
           "CAST(NULL AS STRING) AS blacklist_password"
-        ]
+        ],
+        "column_normalization": {
+          "enabled": true,
+          "case": "lower"
+        }
       },
-      "target_catalog": "{{catalog}}",
-      "target_schema": "bronze",
-      "target_table": "physical_device",
-      "target_type": "streaming_table",
       "target_config": {
         "cdc_load_strategy": "SCD1",
+        "liquid_clustering_columns": [
+          "__framework_hash_key"
+        ],
         "primary_keys": [
           "customer_id",
           "subscriber_no",
@@ -114,27 +46,19 @@
           "phy_seq_no"
         ],
         "sequence_by_column": "sys_update_date",
+        "columns_to_exclude": [
+          "sys_creation_date",
+          "sys_update_date"
+        ],
         "cdc_operation_column": "src_deleted_flg",
         "cdc_operation_mapping": {
           "delete_values": [
             "1"
           ]
         },
-        "generate_hash_columns": true,
-        "columns_to_exclude": [
-          "sys_creation_date",
-          "sys_update_date"
-        ],
-        "liquid_clustering_columns": [
-          "__framework_hash_key"
-        ]
+        "generate_hash_columns": true
       },
       "governance_tags": {
-        "table_tags": {
-          "source_system": "excalibur",
-          "use_case": "uc3",
-          "domain": "crm"
-        },
         "column_tags": [
           {
             "column": "customer_id",
@@ -227,130 +151,62 @@
               "data_fabric_action": "NULL_AT_SOURCE"
             }
           }
-        ]
+        ],
+        "table_tags": {
+          "source_system": "excalibur",
+          "use_case": "uc3",
+          "domain": "crm"
+        }
       }
     },
     {
-      "_source_column_count": 90,
-      "_governance_source": "docs/UC3/CUSTOMER_DDL.csv",
-      "_dropped_source_columns": [
-        {
-          "column": "gcp_insert_date",
-          "oracle_type": "TIMESTAMP",
-          "reason": "legacy_gcp_audit_superseded_by_framework_technical_metadata",
-          "detail": "Target-only legacy CloudSQL/BigQuery audit field (BUILD_CONTRACT.md section 6.3). Not carried into bronze; FlowX supplies the equivalent via source_config.capture_technical_metadata."
-        },
-        {
-          "column": "gcp_insert_user",
-          "oracle_type": "VARCHAR(20)",
-          "reason": "legacy_gcp_audit_superseded_by_framework_technical_metadata",
-          "detail": "Target-only legacy CloudSQL/BigQuery audit field (BUILD_CONTRACT.md section 6.3). Not carried into bronze; FlowX supplies the equivalent via source_config.capture_technical_metadata."
-        },
-        {
-          "column": "gcp_update_date",
-          "oracle_type": "TIMESTAMP",
-          "reason": "legacy_gcp_audit_superseded_by_framework_technical_metadata",
-          "detail": "Target-only legacy CloudSQL/BigQuery audit field (BUILD_CONTRACT.md section 6.3). Not carried into bronze; FlowX supplies the equivalent via source_config.capture_technical_metadata."
-        },
-        {
-          "column": "gcp_update_user",
-          "oracle_type": "VARCHAR(20)",
-          "reason": "legacy_gcp_audit_superseded_by_framework_technical_metadata",
-          "detail": "Target-only legacy CloudSQL/BigQuery audit field (BUILD_CONTRACT.md section 6.3). Not carried into bronze; FlowX supplies the equivalent via source_config.capture_technical_metadata."
-        },
-        {
-          "column": "hash_value",
-          "oracle_type": "VARCHAR(50)",
-          "reason": "superseded_by_framework_hash_value",
-          "detail": "Target-only column in the sheet, described there as 'Generated with combination of columns expect key, timestamp'. FlowX materializes this as __framework_hash_value from generate_hash_columns=true; no hash_value column is created."
-        }
-      ],
-      "_null_standardized_columns": [
-        {
-          "column": "gur_cr_card_no",
-          "oracle_type": "CHAR(21)",
-          "spark_type": "STRING",
-          "reason": "Null(Specific to Data Fabric)=Y in docs/UC3/CUSTOMER_DDL.csv"
-        },
-        {
-          "column": "acc_password",
-          "oracle_type": "VARCHAR2(28)",
-          "spark_type": "STRING",
-          "reason": "Null(Specific to Data Fabric)=Y in docs/UC3/CUSTOMER_DDL.csv"
-        },
-        {
-          "column": "imei_black_list_pass",
-          "oracle_type": "VARCHAR2(6)",
-          "spark_type": "STRING",
-          "reason": "Null(Specific to Data Fabric)=Y in docs/UC3/CUSTOMER_DDL.csv"
-        }
-      ],
-      "_hash_specification": {
-        "algorithm": "SHA-256, hex (framework canonical; NOT base64 - see capability map 2.1)",
-        "expression": "sha2(concat_ws('||', coalesce(trim(lower(cast(c AS STRING))), '__NULL__'), ...), 256)",
-        "hash_key_columns": [
-          "customer_id"
-        ],
-        "excluded_from_hash_value": [
-          "customer_id",
-          "sys_creation_date",
-          "sys_update_date"
-        ],
-        "ordering": "alphabetical, resolved by cdc/comparison_columns.py at runtime",
-        "note": "target_config.generate_hash_columns=true is the entire configuration. The framework materializes __framework_hash_key (SHA-256 over primary_keys in declared order) and __framework_hash_value (SHA-256 over the resolved comparison set, alphabetically sorted, with primary_keys excluded structurally by resolve_comparison_columns). Never rebuild this locally -- cdc/hashing.py is the single canonical implementation."
-      },
       "dataflow_id": "df_uc3_customer_stream_cdc",
       "source_system": "excalibur",
       "source_database": "staging",
       "source_table_name": "CUSTOMER",
       "source_description": "Excalibur CUSTOMER CDC stream: SCD2 history keyed on customer_id, applied from the Job 1 simulator's staging table into the governed bronze layer.",
       "source_type": "zerobus",
+      "target_catalog": "{{catalog}}",
+      "target_schema": "bronze",
+      "target_table": "customer",
+      "target_type": "streaming_table",
       "source_config": {
         "source_catalog": "{{catalog}}",
         "source_schema": "staging",
         "source_table": "customer_stream",
         "capture_technical_metadata": true,
-        "column_normalization": {
-          "enabled": true,
-          "case": "lower"
-        },
         "data_standardization_sql": [
           "CAST(NULL AS STRING) AS gur_cr_card_no",
           "CAST(NULL AS STRING) AS acc_password",
           "CAST(NULL AS STRING) AS imei_black_list_pass"
-        ]
+        ],
+        "column_normalization": {
+          "enabled": true,
+          "case": "lower"
+        }
       },
-      "target_catalog": "{{catalog}}",
-      "target_schema": "bronze",
-      "target_table": "customer",
-      "target_type": "streaming_table",
       "target_config": {
         "cdc_load_strategy": "SCD2",
+        "liquid_clustering_columns": [
+          "customer_id"
+        ],
         "primary_keys": [
           "customer_id"
         ],
         "sequence_by_column": "sys_update_date",
+        "columns_to_exclude": [
+          "sys_creation_date",
+          "sys_update_date"
+        ],
         "cdc_operation_column": "src_deleted_flg",
         "cdc_operation_mapping": {
           "delete_values": [
             "1"
           ]
         },
-        "generate_hash_columns": true,
-        "columns_to_exclude": [
-          "sys_creation_date",
-          "sys_update_date"
-        ],
-        "liquid_clustering_columns": [
-          "customer_id"
-        ]
+        "generate_hash_columns": true
       },
       "governance_tags": {
-        "table_tags": {
-          "source_system": "excalibur",
-          "use_case": "uc3",
-          "domain": "crm"
-        },
         "column_tags": [
           {
             "column": "customer_id",
@@ -748,79 +604,25 @@
               "bq_deid_ro": "Y"
             }
           }
-        ]
+        ],
+        "table_tags": {
+          "source_system": "excalibur",
+          "use_case": "uc3",
+          "domain": "crm"
+        }
       }
     },
     {
-      "_source_column_count": 133,
-      "_governance_source": "docs/UC3/SUBSCRIBER_DDL.csv",
-      "_dropped_source_columns": [
-        {
-          "column": "ctn_password",
-          "oracle_type": "VARCHAR2(28)",
-          "reason": "drop_specific_to_data_fabric",
-          "detail": "Drop(Specific to Data Fabric)=Y in docs/UC3/SUBSCRIBER_DDL.csv. The sheet also sets Null(Specific to Data Fabric)=Y on this column; Drop wins (BUILD_CONTRACT.md section 4) because a column absent from the target cannot also be a nulled column. It is therefore absent from data_standardization_sql and from governance_tags."
-        },
-        {
-          "column": "sub_password",
-          "oracle_type": "VARCHAR2(15)",
-          "reason": "drop_specific_to_data_fabric",
-          "detail": "Drop(Specific to Data Fabric)=Y in docs/UC3/SUBSCRIBER_DDL.csv. The sheet also sets Null(Specific to Data Fabric)=Y on this column; Drop wins (BUILD_CONTRACT.md section 4) because a column absent from the target cannot also be a nulled column. It is therefore absent from data_standardization_sql and from governance_tags."
-        },
-        {
-          "column": "gcp_insert_date",
-          "oracle_type": "TIMESTAMP",
-          "reason": "legacy_gcp_audit_superseded_by_framework_technical_metadata",
-          "detail": "Target-only legacy CloudSQL/BigQuery audit field (BUILD_CONTRACT.md section 6.3). Not carried into bronze; FlowX supplies the equivalent via source_config.capture_technical_metadata."
-        },
-        {
-          "column": "gcp_insert_user",
-          "oracle_type": "VARCHAR(20)",
-          "reason": "legacy_gcp_audit_superseded_by_framework_technical_metadata",
-          "detail": "Target-only legacy CloudSQL/BigQuery audit field (BUILD_CONTRACT.md section 6.3). Not carried into bronze; FlowX supplies the equivalent via source_config.capture_technical_metadata."
-        },
-        {
-          "column": "gcp_update_date",
-          "oracle_type": "TIMESTAMP",
-          "reason": "legacy_gcp_audit_superseded_by_framework_technical_metadata",
-          "detail": "Target-only legacy CloudSQL/BigQuery audit field (BUILD_CONTRACT.md section 6.3). Not carried into bronze; FlowX supplies the equivalent via source_config.capture_technical_metadata."
-        },
-        {
-          "column": "gcp_update_user",
-          "oracle_type": "VARCHAR(20)",
-          "reason": "legacy_gcp_audit_superseded_by_framework_technical_metadata",
-          "detail": "Target-only legacy CloudSQL/BigQuery audit field (BUILD_CONTRACT.md section 6.3). Not carried into bronze; FlowX supplies the equivalent via source_config.capture_technical_metadata."
-        },
-        {
-          "column": "hash_value",
-          "oracle_type": "VARCHAR(50)",
-          "reason": "superseded_by_framework_hash_value",
-          "detail": "Target-only column in the sheet, described there as 'Generated with combination of columns expect key, timestamp'. FlowX materializes this as __framework_hash_value from generate_hash_columns=true; no hash_value column is created."
-        }
-      ],
-      "_null_standardized_columns": [],
-      "_hash_specification": {
-        "algorithm": "SHA-256, hex (framework canonical; NOT base64 - see capability map 2.1)",
-        "expression": "sha2(concat_ws('||', coalesce(trim(lower(cast(c AS STRING))), '__NULL__'), ...), 256)",
-        "hash_key_columns": [
-          "subscriber_no",
-          "customer_id"
-        ],
-        "excluded_from_hash_value": [
-          "subscriber_no",
-          "customer_id",
-          "sys_creation_date",
-          "sys_update_date"
-        ],
-        "ordering": "alphabetical, resolved by cdc/comparison_columns.py at runtime",
-        "note": "target_config.generate_hash_columns=true is the entire configuration. The framework materializes __framework_hash_key (SHA-256 over primary_keys in declared order) and __framework_hash_value (SHA-256 over the resolved comparison set, alphabetically sorted, with primary_keys excluded structurally by resolve_comparison_columns). Never rebuild this locally -- cdc/hashing.py is the single canonical implementation."
-      },
       "dataflow_id": "df_uc3_subscriber_stream_cdc",
       "source_system": "excalibur",
       "source_database": "staging",
       "source_table_name": "SUBSCRIBER",
       "source_description": "Excalibur SUBSCRIBER CDC stream: SCD1 (latest row per subscriber) applied from the Job 1 simulator's staging table into the governed bronze layer.",
       "source_type": "zerobus",
+      "target_catalog": "{{catalog}}",
+      "target_schema": "bronze",
+      "target_table": "subscriber",
+      "target_type": "streaming_table",
       "source_config": {
         "source_catalog": "{{catalog}}",
         "source_schema": "staging",
@@ -831,39 +633,30 @@
           "case": "lower"
         }
       },
-      "target_catalog": "{{catalog}}",
-      "target_schema": "bronze",
-      "target_table": "subscriber",
-      "target_type": "streaming_table",
       "target_config": {
         "cdc_load_strategy": "SCD1",
+        "liquid_clustering_columns": [
+          "subscriber_no",
+          "customer_id"
+        ],
         "primary_keys": [
           "subscriber_no",
           "customer_id"
         ],
         "sequence_by_column": "sys_update_date",
+        "columns_to_exclude": [
+          "sys_creation_date",
+          "sys_update_date"
+        ],
         "cdc_operation_column": "src_deleted_flg",
         "cdc_operation_mapping": {
           "delete_values": [
             "1"
           ]
         },
-        "generate_hash_columns": true,
-        "columns_to_exclude": [
-          "sys_creation_date",
-          "sys_update_date"
-        ],
-        "liquid_clustering_columns": [
-          "subscriber_no",
-          "customer_id"
-        ]
+        "generate_hash_columns": true
       },
       "governance_tags": {
-        "table_tags": {
-          "source_system": "excalibur",
-          "use_case": "uc3",
-          "domain": "crm"
-        },
         "column_tags": [
           {
             "column": "subscriber_no",
@@ -1088,7 +881,12 @@
               "bq_deid_ro": "Y-Hash"
             }
           }
-        ]
+        ],
+        "table_tags": {
+          "source_system": "excalibur",
+          "use_case": "uc3",
+          "domain": "crm"
+        }
       }
     }
   ],
@@ -1096,13 +894,12 @@
     {
       "id": "uc3_streaming_cdc_volume_export",
       "enabled": true,
-      "mode": "triggered",
       "type": "DATABRICKS_VOLUME",
       "destination_config": {
         "volume_path": "/Volumes/{{catalog}}/observability/app_logs/streaming_cdc",
         "file_format": "JSON"
-      }
+      },
+      "mode": "triggered"
     }
-  ],
-  "_iceberg_deferral": "REMOVED 2026-09-05 (Phase C): table_properties.enable_iceberg_read_uniformity. Databricks does not support Iceberg reads on STREAMING TABLES or MATERIALIZED VIEWS via IcebergCompatV2 -- see docs 'Read Delta Lake tables with Iceberg clients': \"Iceberg reads can't be enabled on materialized views or streaming tables using IcebergCompatV2\". Three genuine framework defects were found and FIXED en route (delta.enableIcebergCompatV2, delta.columnMapping.mode=name, and the deletion-vector prerequisite), and those fixes remain correct for batch_table targets. The supported path for pipeline-managed streaming tables is IcebergCompatV3, which additionally requires DBR 17.3+, pipeline setting pipelines.externalMetadata.enabled=true, and delta.enableChangeDataFeed=false -- the last conflicting directly with FlowX setting CDF=true for every CDC-dispatched strategy. Deferred by explicit user decision; tracked as a known gap."
+  ]
 }

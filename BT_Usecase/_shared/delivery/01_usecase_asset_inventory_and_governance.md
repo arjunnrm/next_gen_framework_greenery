@@ -38,9 +38,9 @@ document 03 (interface correctness and layout).
 
 | # | Finding | Evidence | Recommended action | Owner role |
 |---|---|---|---|---|
-| **1** | **UC7 is entirely ungoverned** (gap G-03). All four UC7 ingestion flows declare `"governance_tags": {}`, and `resources/uc7/uc7_cdr_asn_job.yml` is the only one of the three use-case jobs with **no** `apply_governance` task. The most sensitive data in the estate — CDRs carrying MSISDN, IMSI, IMEI and cell-site location — carries no tags at all. | `flowx_testing/UC7_cdr_asn_bronze.json` lines 51, 91, 136, 181; UC7 job task list is `setup_control_tables`, `onboard_uc7`, `run_pipeline_update`, `observability_export`. Both UC3 jobs and the UC6 job carry an `apply_governance_*` task. | Populate `governance_tags` on all four UC7 flows and add an `apply_governance_uc7` task to the job, modelled on `apply_governance_uc3`. Treat as a rollout blocker for UC7. | Data Governance Lead |
+| **1** | **UC7 is entirely ungoverned** (gap G-03). All four UC7 ingestion flows declare `"governance_tags": {}`, and `resources/uc7/uc7_cdr_asn_job.yml` is the only one of the three use-case jobs with **no** `apply_governance` task. The most sensitive data in the estate — CDRs carrying MSISDN, IMSI, IMEI and cell-site location — carries no tags at all. | `BT_Usecase/UC7/onboarding/UC7_cdr_asn_bronze.json` lines 51, 91, 136, 181; UC7 job task list is `setup_control_tables`, `onboard_uc7`, `run_pipeline_update`, `observability_export`. Both UC3 jobs and the UC6 job carry an `apply_governance_*` task. | Populate `governance_tags` on all four UC7 flows and add an `apply_governance_uc7` task to the job, modelled on `apply_governance_uc3`. Treat as a rollout blocker for UC7. | Data Governance Lead |
 | **2** | **No column masks or row filters exist anywhere** (gap G-11). Tags are applied but never *enforced*. Classification is descriptive metadata only; nothing in the estate restricts access to a RESTRICTED column. | No `CREATE FUNCTION` mask or `SET ROW FILTER` statement exists in the repository. | Decide explicitly whether Beta accepts descriptive-only governance. If not, implement the masks in the data sensitivity clause in [document 01](01_usecase_asset_inventory_and_governance.md) below and schedule them as post-pipeline DDL. Record the decision either way. | Data Governance Lead with Information Security |
-| **3** | **Sink governance tags are silently discarded** (gap G-04). Four UC6 sink flows declare a complete `table_tags` block (`data_classification: confidential`, `pii: true`, and four more keys), but `governance/tags.py` iterates only `ingestion_rows` and `transformation_rows` and emits only `ALTER TABLE`. A sink writes files to a volume, so there is no table to alter. The tags are accepted at validation and then do nothing. | `src/flowx/lakeflow_framework/governance/tags.py` line 181; four sink flows in `onboarding/uc6/uc6_ea_flood_warning.json`. | This is a silent no-op of exactly the kind `AGENTS.md` prohibits. Either extend the engine to tag the sink's volume, or **reject** `governance_tags` on sink flows at validation with a message naming the limitation. Do not leave it silent. | Framework Engineering Lead |
+| **3** | **Sink governance tags are silently discarded** (gap G-04). Four UC6 sink flows declare a complete `table_tags` block (`data_classification: confidential`, `pii: true`, and four more keys), but `governance/tags.py` iterates only `ingestion_rows` and `transformation_rows` and emits only `ALTER TABLE`. A sink writes files to a volume, so there is no table to alter. The tags are accepted at validation and then do nothing. | `src/flowx/lakeflow_framework/governance/tags.py` line 181; four sink flows in `BT_Usecase/UC6/onboarding/uc6_ea_flood_warning.json`. | This is a silent no-op of exactly the kind `AGENTS.md` prohibits. Either extend the engine to tag the sink's volume, or **reject** `governance_tags` on sink flows at validation with a message naming the limitation. Do not leave it silent. | Framework Engineering Lead |
 
 Findings 1 and 3 have small, well-understood fixes and should simply be done. Finding 2 is a genuine
 decision with cost attached, and is the one that warrants discussion rather than action.
@@ -161,6 +161,7 @@ missing after a successful deploy" report.
 | `flowx.staging.uc_3` | Volume | **MANUAL** | Created by the setup notebook in [document 02](02_environment_deployment_and_setup.md). |
 | `uc_3/streaming/<table>/` | Path | Notebook | Three tables: `physical_device`, `customer`, `subscriber`. |
 | `uc_3/batch/<table>/batch_date=<date>/` | Path | Notebook | Hive-style partition folder. |
+| `BT_Usecase/UC3/{docs,onboarding,data}/` | Repository tree | — | Docs, the two specs, and the three `*_DDL.csv` sheets. Staged data is generated to `build/uc3_test_data/` — see C.1.6. |
 | `flowx.staging.*_stream` (x3) | Tables | Pipeline | Streaming staging tables. |
 | `flowx.bronze.*` CDC targets (x3) | Tables | Pipeline | SCD1 and SCD2 targets. |
 | `flowx.staging.*_batch` (x3) | Tables | Pipeline | Batch staging tables. |
@@ -178,7 +179,8 @@ missing after a successful deploy" report.
 |---|---|---|---|
 | `flowx.staging.uc_6` | Volume | **MANUAL** | Created by the setup notebook in [document 02](02_environment_deployment_and_setup.md). |
 | `uc_6/raw/`, `archive/`, `output/`, `_schemas/`, `_extracted/` | Paths | Notebook | Five subfolders, plus per-source folders beneath `_schemas/` and `_extracted/`. |
-| `uc_6/_schema_configs/` | Path | **MANUAL** | Schema-configuration JSON uploaded by hand. |
+| `uc_6/_schema_configs/` | Path | **MANUAL** | Schema-configuration JSON uploaded by hand, from `BT_Usecase/UC6/onboarding/schema_configs/`. |
+| `BT_Usecase/UC6/{docs,onboarding,data}/` | Repository tree | — | Docs, the spec and its `schema_configs/`, and both source-data trees — see C.1.6. |
 | `flowx.silver` | Schema | Notebook / pipeline | See the cross-alignment record in [document 04](04_consolidated_rollout_runbook.md), check (c). |
 | `flowx.gold` | Schema | Notebook / pipeline | See the cross-alignment record in [document 04](04_consolidated_rollout_runbook.md), check (c). |
 | `flowx.bronze.uc6_*` (x6) | Tables | Pipeline | One per source feed. |
@@ -203,6 +205,7 @@ The six source feeds are `ea_request`, `css_account`, `css_account_address`, `cs
 | `uc_7/asn_schema/` | Path | Notebook | The four `.asn1` module files. |
 | `uc_7/_schemas/` | Path | Notebook | Auto Loader schema checkpoints. |
 | `uc_7/output_sample/`, `archive/` | Paths | **MANUAL** | Not created by the notebook. |
+| `BT_Usecase/UC7/{docs,onboarding,data}/` | Repository tree | — | Docs including the test report, the spec, and `asn_schema/` + `synthetic/` — see C.1.6 and gap G-14. |
 | `flowx.bronze.emsc_cdr_raw`, `psgw_cdr_raw`, `sgsn_cdr_raw`, `tap310_raw` | Tables | Pipeline | The four Bronze targets. |
 | Quarantine tables (x4) | Tables | Pipeline | One per Bronze table. |
 | UC7 pipeline (001) | Pipeline | Bundle-managed | |
@@ -214,9 +217,61 @@ estate and are intentionally *not* onboarded. Their payloads are CSV text, not A
 single-line 48-field quoted CSV, MMSC a 70-plus column CSV — there is no `SMSC.asn1` module in
 `asn_schema/` at all, and both fail to decode against every available module with a
 `DecodeTagError`. Onboarding them with `source_type: asn1` would quarantine 100 per cent of their
-rows while reporting success. They are tracked as open items in `UC7_CDR_ASN_Test_Report.md`.
+rows while reporting success. They are tracked as open items in
+`BT_Usecase/UC7/docs/UC7_CDR_ASN_Test_Report.md`.
 
-#### C.1.6 Summary counts
+#### C.1.6 Repository source-data assets, and which may be regenerated
+
+The register above covers Unity Catalog securables. This clause covers the other half of the
+estate: the source files in the repository that get staged **into** those securables. It exists
+because the two halves have opposite risk profiles — a Unity Catalog table can be rebuilt from its
+source, but a customer-supplied source file that is regenerated is gone.
+
+Since the v0.0.4 consolidation each use case keeps its documentation, its onboarding specs and its
+source data together in one place:
+
+```text
+BT_Usecase/UC3/{docs,onboarding,data}/
+BT_Usecase/UC6/{docs,onboarding,data}/
+BT_Usecase/UC7/{docs,onboarding,data}/
+BT_Usecase/_shared/delivery/          <- this delivery set and its setup notebook
+```
+
+Every data asset is marked **[Customer-Provided]** or **[Simulated]**. The classification is not a
+judgement about realism — it is a statement about whether a repository script can reproduce the
+file. **A [Customer-Provided] file has no generator and must never be regenerated, overwritten or
+"refreshed".**
+
+| Use case | Asset | Class | Basis |
+|---|---|---|---|
+| **UC3** | `BT_Usecase/UC3/data/CUSTOMER_DDL.csv`, `SUBSCRIBER_DDL.csv`, `PHYSICAL_DEVICE_DDL.csv` | **[Customer-Provided]** | The three Excalibur governance sheets. `scripts/generate_uc3_test_data.py` **reads** them to learn column names, types and governance flags; it never writes them. A generator's input is not its output. |
+| **UC3** | `build/uc3_test_data/**` | **[Simulated]** | Written by `scripts/generate_uc3_test_data.py --out-dir build/uc3_test_data`. `build/` is gitignored scratch space, so the CSVs are generated on demand rather than stored. Fully reproducible. |
+| **UC6** | `BT_Usecase/UC6/data/sample_bundle/**` | **[Customer-Provided]** | The supplied `uc_6_poc_bundle.zip`, sanitised by the customer at source per the Flood Warning System POC interface specification. No repository script generates it. |
+| **UC6** | `BT_Usecase/UC6/data/test_fixture/**` | **[Simulated]** | Written by `scripts/generate_uc6_test_data.py`. It exists because the supplied bundle has no postcode overlap and no CSS join-key overlap, so that bundle can only ever exercise the no-match path. |
+| **UC7** | `BT_Usecase/UC7/data/asn_schema/*.asn1` | **[Customer-Provided]** | Real ASN.1 protocol module definitions. `scripts/generate_synthetic_ber.py` reads them as input. |
+| **UC7** | `BT_Usecase/UC7/data/tap311_sample.ber` | **[Customer-Provided]** | Supplied sample payload; written by no generator. |
+| **UC7** | `BT_Usecase/UC7/data/EE_*.csv.gz.gpg` | **[Customer-Provided]** | Supplied encrypted EA request file. |
+| **UC7** | `BT_Usecase/UC7/data/synthetic/*.ber` | **[Simulated]** | Written by `scripts/generate_synthetic_ber.py`, ten records per protocol, deterministic. |
+
+**Both UC6 trees are retained deliberately.** The supplied bundle proves the real-world no-match
+path; the generated fixture proves every branch of the decision table. Deleting either loses a
+distinct test, so the register lists them as two assets rather than one with a preferred variant.
+
+**One UC7 module is a genuine gap, not a classification question.** The setup notebook validates
+that `EMSC.asn1`, `PSGW.asn1`, `SGSN.asn1` and `TAP.310.asn1` are present in
+`landing/uc_7/asn_schema/`, and the UC7 spec's four `asn1_schema_path` values name those same four
+modules. **`SGSN.asn1` is in no part of this repository** and must be supplied by the customer
+straight into the upload folder. Conversely `GGSN.asn1` and `TAP.311.asn1` *are* in the repository
+but no spec references them; they are generator inputs, not pipeline schemas. This is recorded as
+gap G-14.
+
+The full classification, with per-file evidence, is in
+[`docs/DATA_PROVENANCE_CLASSIFICATION.md`](../../../docs/DATA_PROVENANCE_CLASSIFICATION.md), and
+every script named above is indexed in
+[`docs/SCRIPTS_GUIDE.md`](../../../docs/SCRIPTS_GUIDE.md). This clause summarises those two
+documents for the use-case assets only; where they disagree, they are authoritative.
+
+#### C.1.7 Summary counts
 
 | Category | UC3 | UC6 | UC7 | Shared | Total |
 |---|---|---|---|---|---|
@@ -506,14 +561,14 @@ GRANT READ VOLUME ON VOLUME flowx.landing.uc_7 TO `flowx_engineering`;
 
 ### 5 Governance gaps
 
-Thirteen gaps, with evidence and severity. The two HIGH items are promoted to the critical findings
+Fourteen gaps, with evidence and severity. The two HIGH items are promoted to the critical findings
 at the front of this document.
 
 | ID | Severity | Gap | Evidence | Recommended action |
 |---|---|---|---|---|
 | **G-01** | MEDIUM | No container-level tags. The catalog, schemas and volumes carry no tags; the framework tags tables only. | No `ALTER CATALOG`/`ALTER SCHEMA`/`ALTER VOLUME` tag DDL exists. | Apply the DDL in C.2.5 as a one-off, then add it to the runbook. |
 | **G-02** | LOW | Orphaned `flowx.uc3_bronze` schema, inert and undroppable in place. | Schema exists; no flow targets it. | Confirm it is empty, then drop it in a maintenance window. |
-| **G-03** | **HIGH** | **UC7 entirely ungoverned.** Four flows declare `governance_tags: {}` and the job has no `apply_governance` task. | `UC7_cdr_asn_bronze.json` lines 51, 91, 136, 181; `uc7_cdr_asn_job.yml` task list. | Populate tags; add `apply_governance_uc7`. **Critical finding 1.** |
+| **G-03** | **HIGH** | **UC7 entirely ungoverned.** Four flows declare `governance_tags: {}` and the job has no `apply_governance` task. | `BT_Usecase/UC7/onboarding/UC7_cdr_asn_bronze.json` lines 51, 91, 136, 181; `uc7_cdr_asn_job.yml` task list. | Populate tags; add `apply_governance_uc7`. **Critical finding 1.** |
 | **G-04** | **HIGH** | **Sink tags silently not applied.** Four UC6 sinks declare full `table_tags`; the engine emits only `ALTER TABLE` and iterates only ingestion and transformation rows. | `governance/tags.py` line 181. | Extend the engine, or reject sink tags at validation. **Critical finding 3.** |
 | **G-05** | MEDIUM | Pending catalog migration, plus `resources/uc7/*.yml` hardcoding `catalog: flowx` instead of `${var.catalog}`. | `uc7_cdr_asn_job.yml` lines 35, 45, 62; `uc7_cdr_asn_pipeline.yml` lines 20, 37. | Replace the hardcoded values with the variable before the migration, or UC7 breaks on the renamed catalog. |
 | **G-06** | LOW | The sequence-number registry lives only in prose. | C.3.3 is its only home. | Move it into a checked-in file, or a validation rule. |
@@ -524,6 +579,7 @@ at the front of this document.
 | **G-11** | **HIGH** | **No column masks or row filters exist anywhere.** Tags describe; nothing enforces. | No mask or filter DDL in the repository. | Decide explicitly. **Critical finding 2.** |
 | **G-12** | MEDIUM | Environment separation is by tag, not by boundary. A `poc` tag does not prevent a production query. | `environment` tag is the only separator. | Separate catalogs per environment in the target state. |
 | **G-13** | MEDIUM | One secret scope, no rotation record, and a single passphrase covering both UC6 ingress and egress. | `flowx.config.pgpkey` is used by both directions. | Split ingress and egress passphrases; record a rotation schedule. |
+| **G-14** | MEDIUM | `SGSN.asn1` is referenced by the UC7 spec and validated by the setup notebook, but exists nowhere in the repository. `GGSN.asn1` and `TAP.311.asn1` are present but referenced by no spec. | `BT_Usecase/UC7/data/asn_schema/` holds `EMSC`, `GGSN`, `PSGW`, `TAP.310`, `TAP.311`; the spec names `EMSC`, `PSGW`, `SGSN`, `TAP.310`. | Confirm the customer supplies `SGSN.asn1` directly to the upload folder, and record that `GGSN`/`TAP.311` are generator inputs rather than pipeline schemas. See C.1.6. |
 
 #### C.5.1 Priority sequence
 
@@ -541,13 +597,15 @@ at the front of this document.
 | `src/flowx/lakeflow_framework/governance/tags.py` | Tag application; line 181 is the ingestion-and-transformation-only loop. |
 | `src/flowx/lakeflow_framework/onboarding/spec_validator.py` | Line 297, `ALLOWED_GOVERNANCE_TAGS_KEYS`. |
 | `src/flowx/lakeflow_framework/crypto/secrets.py` | Lines 81–86, the secret-scope fallback order. |
-| `onboarding/uc3/uc3_excalibur_streaming_cdc.json` | UC3 streaming spec and its `NULL_AT_SOURCE` columns. |
-| `onboarding/uc3/uc3_excalibur_batch_recon.json` | UC3 batch spec — the path needing the C.4.2 check. |
-| `onboarding/uc6/uc6_ea_flood_warning.json` | UC6 spec, including the four sink flows of gap G-04. |
-| `flowx_testing/UC7_cdr_asn_bronze.json` | UC7 spec; the four empty `governance_tags` blocks. |
+| `BT_Usecase/UC3/onboarding/uc3_excalibur_streaming_cdc.json` | UC3 streaming spec and its `NULL_AT_SOURCE` columns. |
+| `BT_Usecase/UC3/onboarding/uc3_excalibur_batch_recon.json` | UC3 batch spec — the path needing the C.4.2 check. |
+| `BT_Usecase/UC6/onboarding/uc6_ea_flood_warning.json` | UC6 spec, including the four sink flows of gap G-04. |
+| `BT_Usecase/UC7/onboarding/UC7_cdr_asn_bronze.json` | UC7 spec; the four empty `governance_tags` blocks. |
 | `resources/uc7/uc7_cdr_asn_job.yml` | UC7 job; the missing `apply_governance` task and hardcoded catalog. |
 | `resources/uc3/uc3_streaming_cdc_job.yml` | The `apply_governance_uc3` task to model UC7's on. |
-| `UC7_CDR_ASN_Test_Report.md` | UC7 verification, including the SMSC and MMSC open items. |
+| `BT_Usecase/UC7/docs/UC7_CDR_ASN_Test_Report.md` | UC7 verification, including the SMSC and MMSC open items. |
+| `docs/DATA_PROVENANCE_CLASSIFICATION.md` | Which source files are customer-provided and which are regenerable. |
+| `docs/SCRIPTS_GUIDE.md` | Index of every script, including the three test-data generators. |
 
 ---
 

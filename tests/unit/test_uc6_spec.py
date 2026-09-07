@@ -25,10 +25,10 @@ from pathlib import Path
 import pytest
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-SPEC_PATH = REPO_ROOT / "onboarding" / "uc6" / "uc6_ea_flood_warning.json"
+SPEC_PATH = REPO_ROOT / "BT_Usecase" / "UC6" / "onboarding" / "uc6_ea_flood_warning.json"
 SCHEMA_PATH = REPO_ROOT / "onboarding_templates" / "onboarding_spec.schema.json"
-CONFIG_DIR = REPO_ROOT / "onboarding" / "uc6" / "schema_configs"
-SUPPLIED_RAW = REPO_ROOT / "docs" / "UC6" / "sample_bundle" / "uc_6" / "raw"
+CONFIG_DIR = REPO_ROOT / "BT_Usecase" / "UC6" / "onboarding" / "schema_configs"
+SUPPLIED_RAW = REPO_ROOT / "BT_Usecase" / "UC6" / "data" / "sample_bundle"
 
 #: schema_config file -> (sample filename glob, delimiter)
 SOURCE_FILES = {

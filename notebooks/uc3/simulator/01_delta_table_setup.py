@@ -14,7 +14,7 @@
 # MAGIC plus the producer's own cursor table, `{catalog}.{schema}.uc3_simulator_offsets`.
 # MAGIC
 # MAGIC **The column list is never hand-typed.** It is derived from the three Excalibur
-# MAGIC governance sheets in `docs/UC3/*_DDL.csv` by `uc3_ddl_schema.py`, which applies
+# MAGIC governance sheets in `BT_Usecase/UC3/data/*_DDL.csv` by `uc3_ddl_schema.py`, which applies
 # MAGIC contract 6's parsing rules and 6.5's Oracle->Spark type mapping. Consequences that
 # MAGIC this notebook asserts before it writes anything:
 # MAGIC
@@ -71,8 +71,10 @@ if not CATALOG or not SCHEMA:
 # MAGIC %md
 # MAGIC ## Locate the shared schema helper and the governance sheets
 # MAGIC
-# MAGIC `uc3_ddl_schema.py` sits next to this notebook. `docs/UC3/` sits three levels up in
-# MAGIC the deployed workspace tree (`notebooks/uc3/simulator/` -> repo root). `ddl_dir` can
+# MAGIC `uc3_ddl_schema.py` lives in `src/uc3_simulator/` (the code comment below explains why it
+# MAGIC is not beside this notebook). The governance sheets live in `BT_Usecase/UC3/data/`, reached
+# MAGIC three levels up from this notebook in the deployed workspace tree
+# MAGIC (`notebooks/uc3/simulator/` -> repo root -> `BT_Usecase/UC3/data/`). `ddl_dir` can
 # MAGIC override the latter, which is what makes the notebook runnable from a local checkout
 # MAGIC as well as from `${workspace.file_path}`.
 
@@ -104,7 +106,7 @@ for _p in (os.path.join(_REPO_ROOT, "src", "uc3_simulator"), NOTEBOOK_DIR):
 import uc3_ddl_schema  # noqa: E402
 
 REPO_ROOT = _REPO_ROOT
-DDL_DIR = DDL_DIR_PARAM or os.path.join(REPO_ROOT, "docs", "UC3")
+DDL_DIR = DDL_DIR_PARAM or os.path.join(REPO_ROOT, "BT_Usecase", "UC3", "data")
 
 logger.info("notebook dir : %s", NOTEBOOK_DIR)
 logger.info("DDL dir      : %s", DDL_DIR)
@@ -234,7 +236,7 @@ except Exception as exc:  # noqa: BLE001
 TABLE_COMMENT = (
     "UC3 Excalibur streaming staging -- populated by job "
     "003_lfj_uc3_excalibur_streaming_simulator, which stands in for ZeroBus/Kafka. "
-    "Schema derived from docs/UC3/*_DDL.csv per BUILD_CONTRACT 6."
+    "Schema derived from BT_Usecase/UC3/data/*_DDL.csv per BUILD_CONTRACT 6."
 )
 
 created = []

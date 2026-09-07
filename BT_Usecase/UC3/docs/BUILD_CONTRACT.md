@@ -1071,7 +1071,7 @@ no longer resolved after the 2026-09-06 move).
 
 **Verified after the change:** both specs `PASSED` `spec_validator` and validate against `onboarding_spec.schema.json`
 (Draft 2020-12); no `_` key remains except `_about`; every tag sits under `governance_tags` and nowhere else; the
-same-day fix removing the dead `destination_config.compressed` key (a misspelling of `compression`, read by nothing) stands.
+dead `destination_config.compressed` key (a misspelling of `compression`, read by nothing) is replaced by `compression: "GZIP"`, preserving the evident intent -- the same correction the 0.0.4 release notes record for the reference spec.
 
 **Why it matters for the record.** Statements elsewhere in this contract that a spec "carries" an audit comment key
 (`_hash_specification`, `_dropped_source_columns`, `_iceberg_deferral`) describe the specs as they were during Phase B/C

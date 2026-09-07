@@ -206,6 +206,10 @@ body, .md-typeset, .md-typeset table, .md-typeset h1, .md-typeset h2,
 
 ### 5.3 Verified row counts, current fixture
 
+These counts are from the **[Simulated]** augmented fixture, `BT_Usecase/UC6/data/test_fixture/`. The
+**[Customer-Provided]** supplied bundle, `BT_Usecase/UC6/data/sample_bundle/`, holds different row counts and
+produces zero matches. See Appendix B.4 for why both are kept.
+
 | Table | Rows | Note |
 |---|---|---|
 | `uc6_ea_request` | 7 | Seven EA addresses across four areas |
@@ -223,12 +227,12 @@ body, .md-typeset, .md-typeset table, .md-typeset h1, .md-typeset h2,
 
 | Path | Contents |
 |---|---|
-| `onboarding/uc6/uc6_ea_flood_warning.json` | The onboarding specification |
-| `onboarding/uc6/schema_configs/` | Five positional-to-named column maps |
+| `BT_Usecase/UC6/onboarding/uc6_ea_flood_warning.json` | The onboarding specification |
+| `BT_Usecase/UC6/onboarding/schema_configs/` | Five positional-to-named column maps |
 | `resources/uc6/uc6_ea_flood_warning_job.yml` | The job definition |
 | `resources/uc6/uc6_ea_flood_warning_pipeline.yml` | The pipeline definition |
-| `docs/UC6/test_fixture/uc_6/raw/` | **The augmented fixture.** Exercises all four statuses |
-| `docs/UC6/sample_bundle/uc_6/raw/` | The supplied bundle. Produces zero matches |
+| `BT_Usecase/UC6/data/test_fixture/` | **[Simulated]** The augmented fixture. Exercises all four statuses |
+| `BT_Usecase/UC6/data/sample_bundle/` | **[Customer-Provided]** The supplied bundle. Produces zero matches |
 
 ### 6.2 On the Unity Catalog volume
 
@@ -541,6 +545,12 @@ floor((months_between(current_date(), to_date(dateofbirth,'yyyy-MM-dd'))) / 12) 
 
 ### 13.1 The specification at a glance
 
+**The active spec:** `BT_Usecase/UC6/onboarding/uc6_ea_flood_warning.json`, group id `dfg_uc6_ea_flood_warning`.
+**The five schema configs it references:** `BT_Usecase/UC6/onboarding/schema_configs/` — `uc6_css_account.json`,
+`uc6_css_account_address.json`, `uc6_css_subscription.json`, `uc6_excalibur_address.json`, `uc6_jt_customer.json`.
+These are the repository copies; the spec points at their **deployed** location on the volume,
+`/Volumes/{{catalog}}/staging/uc_6/_schema_configs/`, so they must be uploaded before a run.
+
 | Section | Count | Purpose |
 |---|---|---|
 | `ingestion_flows` | 6 | One per source file |
@@ -551,22 +561,62 @@ floor((months_between(current_date(), to_date(dateofbirth,'yyyy-MM-dd'))) / 12) 
 
 ### 13.2 Key ingestion attributes
 
-| Attribute | Value | Why |
-|---|---|---|
-| `source_type` | `autoloader` | File-based incremental ingestion |
-| `reader_options.delimiter` | `\|` or `,` | Excalibur is comma-delimited |
-| `schema_config_path` | Set on five flows | Maps positional columns to names |
-| `source_zip_handling.member_format` | `gzip` | **EA file only.** It is a gzip inside a GPG envelope |
-| `pre_extraction_decryption.type` | `pgp_symmetric` | Passphrase-based, not key-based |
+All six ingestion flows share `source_type`, `target_type` and `cdc_load_strategy`. The rest differ per flow.
+
+| Attribute | Type | Value in UC6 | Runtime effect |
+|---|---|---|---|
+| `source_type` | string | `autoloader` | File-based incremental ingestion. All six flows |
+| `target_type` | string | `streaming_table` | Each bronze table is a `STREAMING_TABLE`. All six flows |
+| `target_config.cdc_load_strategy` | string | `APPEND` | Bronze appends; no merge, no dedupe. All six flows |
+| `target_config.storage_format` | string | `delta` | The bronze table is Delta |
+| `source_config.format` | string | `csv` | Auto Loader reads CSV, including through plain `.gz` |
+| `source_config.path` | string | `raw/` for five, `_extracted/ea_request/` for EA | Where Auto Loader lists. **The EA flow reads the extracted copy, not `raw/`** |
+| `source_config.file_pattern` | string | e.g. `CSS_account_[0-9]*.dat.gz` | Restricts the listing. The `[0-9]` stops `CSS_account_*` swallowing `CSS_account_address_*` |
+| `source_config.schema_location` | string | `_schemas/<flow>/` | Auto Loader's inferred-schema and rescue state. One per flow |
+| `reader_options.delimiter` | string | `\|` on five, `,` on Excalibur | Field split. Excalibur is comma-delimited |
+| `reader_options.header` | string | `"true"` on EA, `"false"` on five | The EA request carries a header row; the five `.dat.gz` feeds do not |
+| `reader_options.mode` | string | `PERMISSIVE` | A malformed row is nulled, not fatal. All six flows |
+| `source_config.capture_technical_metadata` | boolean | `true` | Adds the `__framework_*` lineage columns. All six flows |
+| `source_config.schema_config_path` | string | Set on **five** flows | Names positional columns. **Not on the EA flow** — that file has a real header |
+| `source_zip_handling.enabled` | boolean | `true` | **EA flow only.** Turns on the pre-read extract stage |
+| `source_zip_handling.source_zip_path` | string | `raw/` | Where the encrypted archive is picked up |
+| `source_zip_handling.zip_file_pattern` | string | `EE_*-REQUEST_*[Oo][Ff]*.csv.gz.gpg` | Which archive to extract. The `[Oo][Ff]` makes the `1OF1` / `1of1` sequence case-insensitive |
+| `source_zip_handling.target_volume_path` | string | `_extracted/ea_request/` | Where the decrypted, decompressed `.csv` lands — and exactly what `source_config.path` then reads |
+| `source_zip_handling.member_format` | string | `gzip` | The envelope holds a **bare gzip stream**, not a ZIP container |
+| `pre_extraction_decryption.type` | string | `pgp_symmetric` | Passphrase-based, not key-based. **Nested inside `source_zip_handling`** |
+| `pre_extraction_decryption.passphrase_secret` | object | `secret_catalog` / `secret_schema` / `secret_key` = `{{catalog}}` / `config` / `pgpkey` | Resolves the passphrase at run time. Never stored in the spec |
+| `delete_source_after_extract.action` | string | `delete_now` | **The EA `.gpg` is consumed on every run.** Re-upload it before the next one. See 6.3 |
+| `dq_config.rules[]` | array | 1–5 rules per flow | Per-row predicates. `action` is `fail`, `drop` or `warn` |
+| `governance_tags.table_tags` | object | Six tags per flow | Applied post-update by the tagging task. See 18.2 |
 
 ### 13.3 Key transformation attributes
 
-| Attribute | Value | Why |
-|---|---|---|
-| `target_type` | `materialized_view` | Every silver and gold flow aggregates |
-| `cdc_load_strategy` | `TRUNCATE_AND_LOAD` | Each run recomputes from scratch |
-| `is_streaming` | `false` everywhere | The whole chain is batch. See 13.4 |
-| `export_trigger` | `per_update` | **The v1.7.5 enhancement.** See Section 19 |
+The ten transformation flows are **not** uniform: six build tables, four are export sinks. The attributes
+differ accordingly.
+
+| Attribute | Type | Value in UC6 | Runtime effect |
+|---|---|---|---|
+| `flow_step_id` | string | `ts_uc6_*` | Identifies the flow in the control tables |
+| `dataflow_id` | string | `df_uc6_ea_request_ingest` on **all ten** | Every transformation hangs off the EA ingestion flow, so the whole chain is one group |
+| `target_type` | string | `materialized_view` on **six**, `sink` on **four** | The six build tables; the four sinks write files and materialise nothing |
+| `target_config.cdc_load_strategy` | string | `TRUNCATE_AND_LOAD` on the six MVs, `APPEND` on the four sinks | The MVs recompute from scratch each run; a sink only ever appends |
+| `source_inputs[].input_name` | string | e.g. `uc6_css_sub` | The alias the `transformation_sql` selects **FROM**. Never the real table name |
+| `source_inputs[].table` | string | `{{catalog}}.<layer>.<table>` | The upstream node. Resolved through the DAG, not re-read from source |
+| `source_inputs[].is_streaming` | boolean | `false` on **every** input | The whole chain is batch. See 13.4 |
+| `transformation_sql` | string | The business logic | Runs against the `input_name` aliases. `${param}` placeholders resolve from `pipeline_parameters` |
+| `sink_config.format` | string | `pgp_zip` | The egress writer. Handles staging, archiving and optional encryption |
+| `sink_config.path` | string | `output/_staging/<flow>/` | Per-sink staging directory. Not the delivered file |
+| `sink_config.staged_file_format` | string | `csv` | The staged payload is CSV before archiving |
+| `sink_config.export_trigger` | string | `per_update` | **The key enhancement.** One export per pipeline update, even an update that ingested nothing. See Section 19 |
+| `staged_file_options.delimiter` | string | `\|` | Pipe-delimited, per the supplier contract |
+| `staged_file_options.include_header` | boolean | `true` | The header row is part of the contract |
+| `staged_file_options.line_terminator` | string | `lf` | **LF, not CRLF.** The contract is Unix-terminated |
+| `post_export_archive.enabled` | boolean | `true` | Turns on the archive-and-deliver stage |
+| `post_export_archive.output_zip_path` | string | `output/` | Where the delivered file lands |
+| `post_export_archive.export_file_name_format` | string | e.g. `EE_${export_file_date}-LEIDOS_TELEPHONE_${export_file_sequence}` | The delivered filename. Both `${...}` resolve from `pipeline_parameters` |
+| `post_export_archive.archive_format` | string | `gzip` | Plain gzip, not ZIP. All four sinks |
+| `post_export_archive.pgp_encryption.enabled` | boolean | `true` on **two** sinks | Adds the GPG envelope. **Absent on the two Leidos sinks** — that is the only difference between the channels |
+| `pgp_encryption.passphrase_secret` | object | `{{catalog}}` / `config` / `pgpkey` | **The same secret that decrypts the inbound EA file** |
 
 ### 13.4 Why the entire chain is batch, not streaming
 
@@ -578,6 +628,42 @@ floor((months_between(current_date(), to_date(dateofbirth,'yyyy-MM-dd'))) / 12) 
 | **Windows need watermarks** | `ROW_NUMBER()` over a stream requires a watermark. Over a batch it does not |
 
 **All four of these were discovered at runtime**, not at validation. See Appendix A.
+
+### 13.5 Key reconciliation attributes
+
+All six reconciliation flows are structurally identical presence gates. Each compares a bronze table
+**against itself**; the comparison is a vehicle for the row-count assertion, not a real reconciliation.
+
+| Attribute | Type | Value in UC6 | Runtime effect |
+|---|---|---|---|
+| `reconciliation_id` | string | `rf_uc6_*_presence` | Identifies the gate in the control tables |
+| `dataflow_group_id` | string | `dfg_uc6_ea_flood_warning` | Binds the gate to the group |
+| `source_config.type` / `.table` | string | `table`, the bronze table | What is counted |
+| `source_config.read_mode` | string | `batch` | Point-in-time count, not a stream |
+| `source_config.hash_precomputed` | boolean | `false` | The framework computes the match hash itself |
+| `target_configs[].table` | string | **The same bronze table** | Self-comparison. See the note below |
+| `target_configs[].comparison_direction` | string | `target_to_source` | Direction of the comparison |
+| `match_keys` | array | A real business key per flow, e.g. `customerid` | **Never `__framework_hash_key`** — the matcher hashes real columns *into* that field, so using it is circular. See Appendix A, defect 8 |
+| `compare_columns` | array | `[]` (empty) on all six | Nothing is value-compared. Only the count matters |
+| `execution_mode` | string | `pipeline_audit_only` | Runs inside the pipeline update, audits only |
+| `dq_config.rules[]` | array | One rule: `source_record_count > 0`, action `fail` | **The gate itself.** It attaches to a one-row metrics dataset where the count is a real column. See 17.3 |
+| `error_handling.on_failure` | string | `fail` | A missing or empty source fails the update loudly |
+| `logging_config.run_log_capture` | boolean | `true` | A control-table row is written for alerting |
+| `logging_config.mismatch_log_capture` | boolean | `false` | No mismatch rows. There is nothing to mismatch in a self-comparison |
+
+### 13.6 Observability attributes
+
+One destination, `dest_uc6_triggered_volume`.
+
+| Attribute | Type | Value in UC6 | Runtime effect |
+|---|---|---|---|
+| `id` | string | `dest_uc6_triggered_volume` | Identifies the destination |
+| `enabled` | boolean | `true` | Telemetry is exported |
+| `mode` | string | `triggered` | Exported by a job task after the update, not continuously |
+| `type` | string | `DATABRICKS_VOLUME` | The destination is a UC volume |
+| `destination_config.volume_path` | string | `/Volumes/{{catalog}}/observability/app_logs/uc6` | Where the telemetry file lands |
+| `destination_config.file_format` | string | `JSONL` | One JSON object per line |
+| `destination_config.compression` | string | `GZIP` | **A string, not a boolean.** Allowed values are `"GZIP"`, `"gzip"`, `"none"` and `""`. There is no `compressed` flag — an earlier `"compressed": true` was a defect and has been corrected |
 
 ---
 
@@ -875,7 +961,7 @@ FROM   checks ORDER BY result DESC, check_name;
 | Aspect | Detail |
 |---|---|
 | **Destination** | `/Volumes/flowx/observability/app_logs/uc6/` |
-| **Format** | JSONL, gzip-compressed |
+| **Format** | JSONL, gzip-compressed. Set by `file_format: "JSONL"` and `compression: "GZIP"` — `compression` is a **string**, not a boolean. See 13.6 |
 | **Written by** | The `observability_export` job task |
 | **Verified** | One file, approximately 100 KB, per run |
 
@@ -959,7 +1045,7 @@ FROM   checks ORDER BY result DESC, check_name;
 
 ```bash
 # 1. Re-upload the EA request file. It is CONSUMED on every run.
-databricks fs cp docs/UC6/test_fixture/uc_6/raw/EE_2026-08-20-REQUEST_1OF1.csv.gz.gpg \
+databricks fs cp BT_Usecase/UC6/data/test_fixture/EE_2026-08-20-REQUEST_1OF1.csv.gz.gpg \
   dbfs:/Volumes/flowx/staging/uc_6/raw/EE_2026-08-20-REQUEST_1OF1.csv.gz.gpg \
   -p metaflow_v7 --overwrite
 
@@ -993,16 +1079,29 @@ python scripts/validate_uc6_pipeline_output.py
 | `DIFFERENT_DELTA_TABLE_READ_BY_STREAMING_SOURCE` | A streaming source was renamed | One-time `full_refresh=True` |
 | `No usable value for offset` | A streaming source type changed | Targeted refresh of that table |
 | `TABLE_OR_VIEW_NOT_FOUND` during tagging | A sink flow carries governance tags | Framework now skips sinks |
-| Zero matches in the output | Using the **supplied bundle**, not the augmented fixture | Use `docs/UC6/test_fixture/` |
+| Zero matches in the output | Using the **supplied bundle**, not the augmented fixture | Use `BT_Usecase/UC6/data/test_fixture/` |
 
 ### B.4 The two fixtures, and which to use
 
-| Fixture | Path | Behaviour |
-|---|---|---|
-| **Augmented** | `docs/UC6/test_fixture/` | **Use this.** Exercises all four statuses |
-| **Supplied** | `docs/UC6/sample_bundle/` | Produces **zero matches**. No postcode overlap, no CSS join-key overlap |
+| Fixture | Provenance | Path | Behaviour |
+|---|---|---|---|
+| **Augmented** | **[Simulated]** | `BT_Usecase/UC6/data/test_fixture/` | **Use this.** Exercises all four statuses |
+| **Supplied** | **[Customer-Provided]** | `BT_Usecase/UC6/data/sample_bundle/` | Produces **zero matches**. No postcode overlap, no CSS join-key overlap |
 
-> The supplied bundle cannot demonstrate the business rules. It is preserved unmodified for reference, and its zero-match behaviour is pinned by a test so nobody mistakes it for a defect.
+**[Customer-Provided] — `BT_Usecase/UC6/data/sample_bundle/` (6 files).** This is the customer's own
+deliverable, the supplied `uc_6_poc_bundle.zip`, unpacked and preserved unmodified. Its own `README.md`
+states the data is synthetic and sanitised **at source** by the customer, per
+`Flood_Warning_System_POC_Interface_Specification.docx`. **No script in this repository generates it, and
+we do not regenerate it.** If it needs to change, it changes at the customer.
+
+**[Simulated] — `BT_Usecase/UC6/data/test_fixture/` (6 files).** Written by
+`scripts/generate_uc6_test_data.py`. It exists because the supplied bundle has **no postcode overlap** and
+**no CSS join-key overlap**, so a run over it yields zero matches and cannot exercise the Found / Not Found
+/ Bad OSAPR / Single Addr decision table at all.
+
+> **Both bundles are retained deliberately.** The supplied bundle proves the real **no-match path**, and its
+> zero-match behaviour is pinned by a test so nobody mistakes it for a defect. The augmented fixture proves
+> the **decision table**. Neither replaces the other.
 
 ---
 
@@ -1036,7 +1135,7 @@ python scripts/validate_uc6_pipeline_output.py
 | Row counts at every layer | Executed against `flowx` on `metaflow_v7` |
 | The decision table, all 7 rows | Read from `flowx.gold.uc6_osapr_output` |
 | The join output, all 11 rows | Read from `flowx.silver.uc6_matched_address` |
-| Join SQL and business rules | Read from `onboarding/uc6/uc6_ea_flood_warning.json` |
+| Join SQL and business rules | Read from `BT_Usecase/UC6/onboarding/uc6_ea_flood_warning.json` |
 | Governance tag count | Counted in `flowx.information_schema.table_tags` |
 | Export file names and sizes | Listed from the output volume |
 | Job and pipeline status | Read from the Databricks Jobs and Pipelines APIs |

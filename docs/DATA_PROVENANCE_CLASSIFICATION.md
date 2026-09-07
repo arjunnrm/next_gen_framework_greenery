@@ -3,8 +3,9 @@
 Every data asset in the repository, classified as **[Customer-Provided]** or **[Simulated]**,
 with the evidence for each call and the retention decision that follows from it.
 
-Nothing in this document has been deleted yet. It is the approval gate for the deletion pass:
-the classification is stated first so the deletions can be checked against it.
+This classification was the approval gate for the deletion pass: it was written before any
+file was removed, so the deletions could be checked against it. Section 4 records what was
+actually executed.
 
 ---
 
@@ -26,16 +27,16 @@ Classification is by **provenance trace**, not by filename or guesswork:
 
 | Asset | Class | Evidence |
 |---|---|---|
-| `docs/UC3/CUSTOMER_DDL.csv`, `SUBSCRIBER_DDL.csv`, `PHYSICAL_DEVICE_DDL.csv` | **[Customer-Provided]** | Excalibur governance sheets. `generate_uc3_test_data.py` *reads* these to learn column names/types — "No column list is hand-typed." A generator's **input** is by definition not its output. |
+| `BT_Usecase/UC3/data/{CUSTOMER,SUBSCRIBER,PHYSICAL_DEVICE}_DDL.csv` | **[Customer-Provided]** | Excalibur governance sheets. `generate_uc3_test_data.py` *reads* these to learn column names/types — "No column list is hand-typed." A generator's **input** is by definition not its output. |
 | `build/uc3_test_data/**` (15 CSVs) | **[Simulated]** | Written by `scripts/generate_uc3_test_data.py --out-dir build/uc3_test_data` (documented invocation, line 36). Fully reproducible. |
 
 ### UC6 — Flood Warning (EA → Leidos)
 
 | Asset | Class | Evidence |
 |---|---|---|
-| `docs/UC6/sample_bundle/uc_6/raw/**` (6 files) | **[Customer-Provided]** — *sanitised* | The supplied `uc_6_poc_bundle.zip`. Its README states the data is synthetic/sanitised **at source**, per `Flood_Warning_System_POC_Interface_Specification.docx`. No repo script generates it. It is the customer's deliverable and the customer's sanitisation — not ours to regenerate. |
-| `docs/UC6/test_fixture/uc_6/raw/**` (6 files) | **[Simulated]** | Written by `scripts/generate_uc6_test_data.py` (`DEFAULT_OUT = docs/UC6/test_fixture/uc_6`). Exists because the supplied bundle has **no postcode overlap and no CSS join-key overlap**, so it yields zero matches and cannot exercise the Found/Not Found/Bad OSAPR/Single Addr branches. |
-| `docs/uc_6/**` (9 files) | **DUPLICATE** | Byte-identical (md5-verified) to `docs/UC6`. Pure duplication — collapse. |
+| `BT_Usecase/UC6/data/sample_bundle/**` (6 files) | **[Customer-Provided]** — *sanitised* | The supplied `uc_6_poc_bundle.zip`. Its README states the data is synthetic/sanitised **at source**, per `Flood_Warning_System_POC_Interface_Specification.docx`. No repo script generates it. It is the customer's deliverable and the customer's sanitisation — not ours to regenerate. |
+| `BT_Usecase/UC6/data/test_fixture/**` (6 files) | **[Simulated]** | Written by `scripts/generate_uc6_test_data.py` (`DEFAULT_OUT = BT_Usecase/UC6/data/test_fixture`). Exists because the supplied bundle has **no postcode overlap and no CSS join-key overlap**, so it yields zero matches and cannot exercise the Found/Not Found/Bad OSAPR/Single Addr branches. |
+| `docs/uc_6/**` (9 files) | **DUPLICATE — now deleted** | Was byte-identical (md5-verified) to `docs/UC6`. Collapsed into `BT_Usecase/UC6/`. |
 
 > **Both UC6 bundles are retained.** The supplied bundle proves the real-world no-match path;
 > the augmented fixture proves the decision table. Deleting either loses a distinct test.

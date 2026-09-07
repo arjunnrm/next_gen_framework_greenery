@@ -63,7 +63,7 @@ competing convention for a use-case landing volume):
 | Job | `007_lfj_uc6_ea_flood_warning` |
 | Pipeline | `008_ldp_uc6_ea_flood_warning` |
 | Dataflow group | `dfg_uc6_ea_flood_warning` |
-| Spec file | `onboarding/uc6/uc6_ea_flood_warning.json` |
+| Spec file | `BT_Usecase/UC6/onboarding/uc6_ea_flood_warning.json` |
 
 > **Deviation from the brief, deliberate.** The brief asks for `007_uc6_lfj_EA` / `008_uc6_ldp_EA`.
 > Every existing asset in this repo puts the number first and the type second, lowercase:
@@ -174,7 +174,7 @@ expression so it can be swapped wholesale when the real algorithm surfaces.
   run_job_task:
     job_id: ${resources.jobs.onboarding_job.id}
     job_parameters:
-      spec_file_path: "${workspace.file_path}/onboarding/uc6/uc6_ea_flood_warning.json"
+      spec_file_path: "${workspace.file_path}/BT_Usecase/UC6/onboarding/uc6_ea_flood_warning.json"
       catalog: ${var.catalog}
       env: ${bundle.target}
       action_type: CREATE

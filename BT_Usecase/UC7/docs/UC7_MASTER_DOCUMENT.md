@@ -381,9 +381,53 @@ LIMIT 1;
 <b>Expected content:</b> Expanded folder tree showing <code>raw/</code> with its six element subfolders, <code>asn_schema/</code> with the eight <code>.asn1</code> modules, <code>_schemas/</code>, <code>output_sample/</code> and <code>archive/</code>, with file sizes visible — notably the 42 MB SGSN <code>.fin</code> file.
 </div>
 
+### 3.5 Repo-side data assets and their provenance
+
+The Volume tree in 3.3.1 is the runtime landing zone. A smaller set of assets is also held **in the
+repository** under `BT_Usecase/UC7/data/`, for schema compilation, local decode tests and reproducible
+fixtures. Every one of them is labelled below as either **[Customer-Provided]** — supplied by the
+customer, never generated — or **[Simulated]** — produced by a generator in this repository.
+
+| Repo path | Provenance | What it is |
+|---|---|---|
+| `BT_Usecase/UC7/data/asn_schema/EMSC.asn1` | **[Customer-Provided]** | Real telecom ASN.1 protocol module (module `MSC12A`), root PDU `CallDataRecord` |
+| `BT_Usecase/UC7/data/asn_schema/GGSN.asn1` | **[Customer-Provided]** | Real ASN.1 module, byte-identical to `SGSN.asn1` (see 7.4.2) |
+| `BT_Usecase/UC7/data/asn_schema/PSGW.asn1` | **[Customer-Provided]** | Real ASN.1 module (module `CDRF-R9`, superset of SGSN), root PDU `CallEventRecord` |
+| `BT_Usecase/UC7/data/asn_schema/TAP.310.asn1` | **[Customer-Provided]** | Real ASN.1 module (module `TAP-0310`), root PDU `DataInterChange` |
+| `BT_Usecase/UC7/data/asn_schema/TAP.311.asn1` | **[Customer-Provided]** | Real ASN.1 module for TAP 3.11; retained as the negative control that proved the 3.10 mapping (see 7.4.1) |
+| `BT_Usecase/UC7/data/tap311_sample.ber` | **[Customer-Provided]** | Supplied sample TAP payload |
+| `BT_Usecase/UC7/data/EE_2026-08-20-REQUEST_1OF1.csv.gz.gpg` | **[Customer-Provided]** | Supplied GPG-encrypted gzipped CSV extract |
+| `BT_Usecase/UC7/data/synthetic/emsc_synthetic.ber` | **[Simulated]** | Generated fixture — 10 concatenated BER records |
+| `BT_Usecase/UC7/data/synthetic/ggsn_synthetic.ber` | **[Simulated]** | Generated fixture — 10 concatenated BER records |
+| `BT_Usecase/UC7/data/synthetic/psgw_synthetic.ber` | **[Simulated]** | Generated fixture — 10 concatenated BER records |
+| `BT_Usecase/UC7/data/synthetic/tap310_synthetic.ber` | **[Simulated]** | Generated fixture — 10 concatenated BER records |
+| `BT_Usecase/UC7/data/synthetic/tap311_synthetic.ber` | **[Simulated]** | Generated fixture — 10 concatenated BER records |
+
+**Why the distinction matters, stated explicitly:**
+
+- The five `.asn1` modules are **[Customer-Provided]** and are **never** generated. No script in this
+  repository emits them; `scripts/generate_synthetic_ber.py` **reads them as input**. They are the
+  authoritative wire-format contract, and the correctness of every decoded column rests on them.
+- The five `.ber` files under `synthetic/` are **[Simulated]**: `scripts/generate_synthetic_ber.py`
+  writes each one as **10 BER-encoded records of the module's root PDU, concatenated back to back**
+  with no length prefix, separator or terminator. Generation is **deterministic** — every value is
+  derived from a seeded RNG plus the field path, so regenerating produces byte-identical files.
+- `tap311_sample.ber` sits at `data/` root, **not** under `synthetic/`, precisely because it is
+  **[Customer-Provided]** and must not be confused with the generated fixtures.
+- **[Simulated]** assets are fixtures for decoder tests. **No production figure in this document —
+  the 175,498 record count, the 0 decode errors, the per-source arm distributions in 7.4 — comes from
+  a [Simulated] file.** Every one of those was read from **[Customer-Provided]** payloads landed on
+  `/Volumes/flowx/landing/uc_7/raw/`.
+
 ---
 
 ## 4.0 Metadata-Driven Framework and Onboarding JSON Configuration
+
+> **Active specification file:** `BT_Usecase/UC7/onboarding/UC7_cdr_asn_bronze.json`
+> — the single file that drives everything in this section. It declares dataflow group
+> **`dfg_uc7_cdr_asn`** with **four** ASN.1 ingestion flows (EMSC, PSGW, SGSN, TAP 3.10), no
+> transformation flows, no reconciliation flows, and one observability destination. Every attribute
+> table in 4.3 is documented **against that file**, not against the framework's general capability.
 
 ### 4.1 The ingestion control mechanism
 
@@ -422,12 +466,12 @@ DLT DAG built dynamically at pipeline start
 
 ### 4.2 Production onboarding JSON configuration
 
-The live specification file is **`flowx_testing/UC7_cdr_asn_bronze.json`**. Below is the production-grade configuration. The `_provenance`, `_test_case_note` and `_expected_result` keys are author-comment fields (any key beginning with an underscore is permitted and ignored by the engine) and are abbreviated here for readability.
+The live specification file is **`BT_Usecase/UC7/onboarding/UC7_cdr_asn_bronze.json`**. Below is the production-grade configuration. The spec carries exactly one author-comment key, the root-level `_about` header (use case, description, framework version, date, developer); any key beginning with an underscore is permitted and ignored by the engine, and `_about` is the only one used. It is abbreviated here for readability.
 
 ```json
 {
-  "_provenance": "UC_7 CDR ASN.1 decoders -> flowx.bronze. Framework wheel 0.0.3.",
-  "_expected_result": "Four streaming tables in flowx.bronze with 0 decode errors.",
+  "$schema": "../../../onboarding_templates/onboarding_spec.schema.json",
+  "_about": { "use_case": "UC7 - CDR ASN.1 decode to Bronze", "description": "...", "version": "FlowX 0.0.4", "date": "2026-09-05", "developer": "Madhan Raghu" },
 
   "dataflow_group_id": "dfg_uc7_cdr_asn",
   "pipeline_parameters": {},
@@ -438,7 +482,7 @@ The live specification file is **`flowx_testing/UC7_cdr_asn_bronze.json`**. Belo
       "source_system": "sgsn_cdr_feed",
       "source_database": "uc_7",
       "source_table_name": "sgsn_call_event_record",
-      "source_description": "UC_7 SGSN BER-encoded call event records, decoded against SGSN.asn1 (module CDRF-R9). Root PDU auto-detected as CallEventRecord. Concatenated-TLV files: one 42MB .fin holds 175,048 records.",
+      "source_description": "UC_7 SGSN (serving GPRS support node) BER-encoded call event records, decoded against SGSN.asn1 (module CDRF-R9). Root PDU auto-detected as CallEventRecord; all observed records select sgsnPDPRecord. Concatenated-TLV and large: one 42MB .fin file holds 175,048 records.",
       "source_type": "asn1",
 
       "target_catalog": "{{catalog}}",
@@ -449,9 +493,9 @@ The live specification file is **`flowx_testing/UC7_cdr_asn_bronze.json`**. Belo
       "source_config": {
         "path": "/Volumes/{{catalog}}/landing/uc_7/raw/SGSN/",
         "schema_location": "/Volumes/{{catalog}}/landing/uc_7/_schemas/sgsn_cdr_raw/",
+        "capture_technical_metadata": true,
         "asn1_schema_path": "/Volumes/{{catalog}}/landing/uc_7/asn_schema/SGSN.asn1",
-        "asn1_codec": "ber",
-        "capture_technical_metadata": true
+        "asn1_codec": "ber"
       },
 
       "target_config": {
@@ -503,67 +547,115 @@ The live specification file is **`flowx_testing/UC7_cdr_asn_bronze.json`**. Belo
 }
 ```
 
-> **Note on scope fidelity:** the live UC7 spec contains **four** such blocks in `ingestion_flows` (EMSC, PSGW, SGSN, TAP). Only the SGSN block is reproduced above; the other three are structurally identical, differing in `path`, `asn1_schema_path`, `target_table`, `quarantine_table` and the arm named in the third DQ rule.
+> **Note on scope fidelity:** the live UC7 spec contains **four** such blocks in `ingestion_flows` (EMSC, PSGW, SGSN, TAP). Only the SGSN block is reproduced above; the other three are structurally identical, differing in `dataflow_id`, `source_system`, `source_table_name`, `source_description`, `path`, `schema_location`, `asn1_schema_path`, `target_table`, `quarantine_table`, the DQ `rule_id` prefix, and the arm named in the third DQ rule. **PSGW is the one structural exception: it carries only two DQ rules**, omitting the arm-populated rule entirely, because it legitimately selects two different arms (see 4.3.5).
+
+**4.2.1 The four flows, as declared in the live spec**
+
+| `dataflow_id` | `source_system` | `source_table_name` | `source_config.path` | `asn1_schema_path` | `target_table` | `quarantine_table` | DQ rules |
+|---|---|---|---|---|---|---|---|
+| `df_uc7_emsc_cdr_ingest` | `emsc_cdr_feed` | `emsc_call_data_record` | `.../raw/EMSC/` | `.../asn_schema/EMSC.asn1` | `emsc_cdr_raw` | `emsc_cdr_raw_quarantine` | 3 — arm `uMTSGSMPLMNCallDataRecord` |
+| `df_uc7_psgw_cdr_ingest` | `psgw_cdr_feed` | `psgw_call_event_record` | `.../raw/PSGW/` | `.../asn_schema/PSGW.asn1` | `psgw_cdr_raw` | `psgw_cdr_raw_quarantine` | **2** — no arm rule |
+| `df_uc7_sgsn_cdr_ingest` | `sgsn_cdr_feed` | `sgsn_call_event_record` | `.../raw/SGSN/` | `.../asn_schema/SGSN.asn1` | `sgsn_cdr_raw` | `sgsn_cdr_raw_quarantine` | 3 — arm `sgsnPDPRecord` |
+| `df_uc7_tap310_ingest` | `tap310_tap_feed` | `tap310_data_interchange` | `.../raw/TAP/` | `.../asn_schema/TAP.310.asn1` | `tap310_raw` | `tap310_raw_quarantine` | 3 — arm `transferBatch` |
+
+- All four share `source_database: uc_7`, `source_type: asn1`, `target_catalog: {{catalog}}`, `target_schema: bronze`, `target_type: streaming_table`, `asn1_codec: ber`, `capture_technical_metadata: true`, `cdc_load_strategy: APPEND`, `storage_format: delta`, `record_id_column: _choice` and `governance_tags: {}`.
+- **All four omit `asn1_pdu_name`** — every one relies on root-PDU auto-detection. See 4.3.3 and 7.3.
 
 ### 4.3 Attribute-by-attribute breakdown
 
 **4.3.1 Root level**
 
-| Attribute | Value in UC7 | Why it is configured this way, and how the engine evaluates it |
-|---|---|---|
-| `dataflow_group_id` | `dfg_uc7_cdr_asn` | The join key between configuration and pipeline. The pipeline reads `dataflow.group.id` from its Spark config and selects exactly the control rows carrying this value. All four sources share one group so that one pipeline owns all four tables. |
-| `pipeline_parameters` | `{}` | Empty because UC7 needs no runtime path parameters. When populated, `${param}` placeholders in paths are resolved **on every pipeline update**, unlike `{{catalog}}` which is resolved once at onboarding. |
-| `ingestion_flows` | 4 entries | Each entry becomes one ingestion lane in the DAG. The engine iterates this array to build nodes. |
-| `transformation_flows` | `[]` | UC7 is a bronze decode product; no in-pipeline transformation is defined. |
-| `reconciliation_flows` | `[]` | No in-pipeline reconciliation. Count reconciliation is done from the event log instead (section 9.0). |
-| `observability` | 1 destination | Upserted into `flowx.config.observability_config` and read at runtime by the observability task. Destinations are **not** configured in YAML. |
+| Attribute | Type | Value in UC7 | Why it is configured this way, and how the engine evaluates it |
+|---|---|---|---|
+| `$schema` | string | `../../../onboarding_templates/onboarding_spec.schema.json` | Editor/CI hook to the JSON schema. Consumed by IDEs and by the schema gate; **ignored by the engine at runtime**. Note that a spec must pass **both** gates — the JSON schema *and* `spec_validator.py` — because only the schema rejects unknown keys. |
+| `_about` | object | `use_case`, `description`, `version`, `date`, `developer` | The spec's one author-comment key. Any key beginning with `_` is permitted and ignored by the engine; `_about` is the only one used. It carries a back-link to this document. |
+| `dataflow_group_id` | string | `dfg_uc7_cdr_asn` | The join key between configuration and pipeline. The pipeline reads `dataflow.group.id` from its Spark config and selects exactly the control rows carrying this value. All four sources share one group so that one pipeline owns all four tables. |
+| `pipeline_parameters` | object | `{}` | Empty because UC7 needs no runtime path parameters. When populated, `${param}` placeholders in paths are resolved **on every pipeline update**, unlike `{{catalog}}` which is resolved once at onboarding. |
+| `ingestion_flows` | array of objects | 4 entries | Each entry becomes one ingestion lane in the DAG. The engine iterates this array to build nodes. |
+| `transformation_flows` | array | `[]` | UC7 is a bronze decode product; no in-pipeline transformation is defined. |
+| `reconciliation_flows` | array | `[]` | No in-pipeline reconciliation. Count reconciliation is done from the event log instead (section 9.0). |
+| `observability` | array of objects | 1 destination | Upserted into `flowx.config.observability_config` and read at runtime by the observability task. Destinations are **not** configured in YAML. |
+
+**4.3.1a `observability[0]` — the telemetry destination**
+
+| Attribute | Type | Value in UC7 | Runtime effect |
+|---|---|---|---|
+| `id` | string | `dest-uc7-volume` | Primary key of the destination row in `flowx.config.observability_config`; re-onboarding upserts on it. |
+| `enabled` | boolean | `true` | Gate. When `false` the row is still written but the `observability_export` task skips this destination. |
+| `type` | string (enum) | `DATABRICKS_VOLUME` | Dispatch key selecting the exporter implementation. |
+| `destination_config.volume_path` | string | `/Volumes/{{catalog}}/observability/app_logs/` | Where extracted event-log telemetry is written. `{{catalog}}` resolves at onboarding. |
+| `destination_config.compression` | string (enum) | `GZIP` | Output files are gzipped. |
+| `destination_config.file_format` | string (enum) | `JSONL` | One JSON object per line, so the export is appendable and streamable. |
 
 **4.3.2 Flow identity and target mapping**
 
-| Attribute | Value | Why, and how the engine uses it |
-|---|---|---|
-| `dataflow_id` | `df_uc7_sgsn_cdr_ingest` | Unique identity of this lane. Appears in the event log and control tables; used to trace a specific lane's metrics. |
-| `source_system` | `sgsn_cdr_feed` | Lineage label naming the originating system. Free text, carried into metadata. |
-| `source_database` | `uc_7` | Logical grouping of the source. Free text. |
-| `source_table_name` | `sgsn_call_event_record` | The logical name of the source entity, distinct from the physical target table. |
-| `source_description` | Long text | Documentation carried into the control tables so the *why* travels with the config, not just the code. |
-| `source_type` | `asn1` | **The dispatch key.** The engine selects its reader from this: `asn1` routes to the ASN.1 reader (Auto Loader `binaryFile` plus decode). Valid values are `autoloader`, `zerobus`, `asn1`. |
-| `target_catalog` | `{{catalog}}` | Resolved to `flowx` at onboarding time from the job's `catalog` parameter. Using a placeholder keeps the spec portable across workspaces. |
-| `target_schema` | `bronze` | The bronze layer. Deliberately **not** `bronze_dev` — environments separate by catalog. |
-| `target_table` | `sgsn_cdr_raw` | Physical Delta table name. |
-| `target_type` | `streaming_table` | Makes this an append-only incremental streaming table, the correct choice for immutable event data. Alternatives are `materialized_view`, `batch_table`, `external_sink`, `sink`. |
+| Attribute | Type | Value (SGSN flow) | Why, and how the engine uses it |
+|---|---|---|---|
+| `dataflow_id` | string | `df_uc7_sgsn_cdr_ingest` | Unique identity of this lane. Appears in the event log and control tables; used to trace a specific lane's metrics. |
+| `source_system` | string | `sgsn_cdr_feed` | Lineage label naming the originating system. Free text, carried into metadata. |
+| `source_database` | string | `uc_7` | Logical grouping of the source. Free text. All four UC7 flows share this value. |
+| `source_table_name` | string | `sgsn_call_event_record` | The logical name of the source entity, distinct from the physical target table. |
+| `source_description` | string | Long text | Documentation carried into the control tables so the *why* travels with the config, not just the code. In UC7 each description records the module, the auto-detected root PDU and the observed arms. |
+| `source_type` | string (enum) | `asn1` | **The dispatch key.** The engine selects its reader from this: `asn1` routes to the ASN.1 reader (Auto Loader `binaryFile` plus decode). Valid values are `autoloader`, `zerobus`, `asn1`. |
+| `target_catalog` | string | `{{catalog}}` | Resolved to `flowx` at onboarding time from the job's `catalog` parameter. Using a placeholder keeps the spec portable across workspaces. |
+| `target_schema` | string | `bronze` | The bronze layer. Deliberately **not** `bronze_dev` — environments separate by catalog. |
+| `target_table` | string | `sgsn_cdr_raw` | Physical Delta table name. |
+| `target_type` | string (enum) | `streaming_table` | Makes this an append-only incremental streaming table, the correct choice for immutable event data. Alternatives are `materialized_view`, `batch_table`, `external_sink`, `sink`. |
 
 **4.3.3 `source_config` — the ASN.1 decode instructions**
 
-| Attribute | Value | Why, and how the engine evaluates it |
-|---|---|---|
-| `path` | `/Volumes/flowx/landing/uc_7/raw/SGSN/` | The directory Auto Loader watches. Each source has its **own** path, which also avoids the framework's shared-path validation rule that requires identical retention settings when two flows read one directory. |
-| `schema_location` | `/Volumes/.../_schemas/sgsn_cdr_raw/` | Auto Loader's checkpoint. **This is what makes re-runs idempotent** — it records which files have been consumed. Set explicitly rather than relying on the framework default, so the checkpoint sits beside the data it belongs to. |
-| `asn1_schema_path` | `.../asn_schema/SGSN.asn1` | The ASN.1 module used to decode. This is the single most important attribute for correctness: the wrong module decodes to wrong data. Each mapping was verified by decoding real bytes (section 7.0). |
-| `asn1_codec` | `ber` | Basic Encoding Rules. Confirmed from the payloads: both definite and indefinite length forms are present, and **DER forbids indefinite length**, so BER is the correct and only valid choice here. Allowed values are strictly `ber` or `der`. |
-| `asn1_pdu_name` | **omitted deliberately** | Optional since framework 0.0.2. When absent, `detect_root_pdu_name()` derives the root PDU from the module's own dependency structure. Verified to resolve `CallEventRecord` for SGSN. Omitting it means the standard is the source of truth, not a hand-typed string that can drift. |
-| `capture_technical_metadata` | `true` | Produces the `__framework_*` audit columns — source file name, size, modification time, ingestion timestamp, pipeline run ID, record ID. **This is what makes billing disputes answerable.** |
-| `file_pattern` | **omitted deliberately** | The raw folders hold `.raw`, `.fin`, and extensionless TAP files. Any glob would silently skip files, which is exactly the failure mode UC7 must avoid. |
+| Attribute | Type | Value (SGSN flow) | Why, and how the engine evaluates it |
+|---|---|---|---|
+| `path` | string (required) | `/Volumes/flowx/landing/uc_7/raw/SGSN/` | The directory Auto Loader watches. Each source has its **own** path, which also avoids the framework's shared-path validation rule that requires identical retention settings when two flows read one directory. |
+| `schema_location` | string (optional) | `/Volumes/.../_schemas/sgsn_cdr_raw/` | Auto Loader's checkpoint. **This is what makes re-runs idempotent** — it records which files have been consumed. Set explicitly on all four flows rather than relying on the framework default, so the checkpoint sits beside the data it belongs to. |
+| `capture_technical_metadata` | boolean (optional) | `true` | Produces the `__framework_*` audit columns — source file name, size, modification time, ingestion timestamp, pipeline run ID, record ID. **This is what makes billing disputes answerable.** |
+| `asn1_schema_path` | string (required for `source_type: asn1`) | `.../asn_schema/SGSN.asn1` | The ASN.1 module used to decode. This is the single most important attribute for correctness: the wrong module decodes to wrong data. The engine compiles this module and **derives the Spark output schema from it by introspection** — there is no second, hand-written schema description to drift. Each mapping was verified by decoding real bytes (section 7.0). |
+| `asn1_codec` | string (enum) | `ber` | Basic Encoding Rules. Confirmed from the payloads: both definite and indefinite length forms are present, and **DER forbids indefinite length**, so BER is the correct and only valid choice here. Allowed values are strictly `ber` or `der`. |
+| `asn1_pdu_name` | string (**OPTIONAL**) | **omitted on all four flows** | **Optional, not required — see the callout below.** When absent, blank or whitespace-only, `detect_root_pdu_name()` derives the root PDU from the module's own type-dependency graph. Verified to resolve `CallEventRecord` for SGSN. Omitting it means the standard is the source of truth, not a hand-typed string that can drift. |
+| `file_pattern` | string (optional) | **omitted deliberately** | The raw folders hold `.raw`, `.fin`, and extensionless TAP files. Any glob would silently skip files, which is exactly the failure mode UC7 must avoid. |
+
+> **Correctness callout — `asn1_pdu_name` is OPTIONAL, never mandatory.**
+> Since framework **0.0.2** the root PDU no longer has to be supplied. The rule, as implemented in
+> `src/flowx/lakeflow_framework/asn1/decoder.py` and enforced by `spec_validator.py`:
+>
+> - **Absent, `null`, `""` or whitespace-only → auto-detect.** `detect_root_pdu_name()` infers the
+>   root as the one top-level `SEQUENCE`/`CHOICE` that no other type in the module references — the
+>   entry point of the module's own type-dependency graph.
+> - **Supplied → unconditional OVERRIDE.** A given name is used as-is and is **never second-guessed**;
+>   it does not "hint" or "assist" detection, it replaces it entirely.
+> - **An ambiguous module raises** rather than guessing, because a wrong root does not fail loudly —
+>   it silently produces a full table of garbage columns.
+> - **All four UC7 flows rely on auto-detection and omit the key**, which is the recommended posture
+>   for a real telecom module. Validation trigger is on **presence**, not truthiness: the validator
+>   only type-checks the value when the key is actually present.
+>
+> The JSON schema previously and **wrongly** marked `asn1_pdu_name` as required; that has been
+> corrected. If you are working from an older copy of the schema or of this document that describes
+> it as mandatory, that description is stale — the spec, the validator and the decoder all treat it
+> as optional.
 
 **4.3.4 `target_config` — write behaviour**
 
-| Attribute | Value | Why, and how the engine evaluates it |
-|---|---|---|
-| `cdc_load_strategy` | `APPEND` | CDRs are **immutable events** — a completed call is never updated. Append is semantically correct and requires no `primary_keys`. The engine dispatches to the append writer. Other strategies (`SCD1`, `SCD2`, `TRUNCATE_AND_LOAD`, `FULL_SNAPSHOT_CDC`) apply to mutable dimensions and belong in downstream layers. |
-| `storage_format` | `delta` | Required for a `streaming_table`. `iceberg` is only permitted with `target_type: batch_table`. |
-| `primary_keys` | **not set** | Correctly absent: only required for SCD1, SCD2, SCD3 and snapshot CDC strategies. |
-| `partition_columns` | **not set** | At current volume (175k rows) partitioning would create small files and hurt performance. Revisit at multi-billion-row scale, likely on a date derived from the CDR event time. |
+| Attribute | Type | Value (all four flows) | Why, and how the engine evaluates it |
+|---|---|---|---|
+| `cdc_load_strategy` | string (enum) | `APPEND` | CDRs are **immutable events** — a completed call is never updated. Append is semantically correct and requires no `primary_keys`. The engine dispatches to the append writer. Other strategies (`SCD1`, `SCD2`, `TRUNCATE_AND_LOAD`, `FULL_SNAPSHOT_CDC`) apply to mutable dimensions and belong in downstream layers. |
+| `storage_format` | string (enum) | `delta` | Required for a `streaming_table`. `iceberg` is only permitted with `target_type: batch_table`. |
+| `primary_keys` | array of strings (optional) | **not set** | Correctly absent: only required for SCD1, SCD2, SCD3 and snapshot CDC strategies. |
+| `partition_columns` | array of strings (optional) | **not set** | At current volume (175k rows) partitioning would create small files and hurt performance. Revisit at multi-billion-row scale, likely on a date derived from the CDR event time. |
 
 **4.3.5 `dq_config` — quality rules and quarantine**
 
-| Attribute | Value | Why, and how the engine evaluates it |
-|---|---|---|
-| `rules[].action` | `quarantine` on every rule | **Never `drop`, never `fail`.** A dropped CDR is unbilled revenue. A failed batch blocks the whole night. Quarantine keeps the record, keeps the reason, and lets siblings load. |
-| `dq_*_asn1_decode_ok` | `_asn1_decode_error IS NULL` | The universal check. Applies to all four sources. |
-| `dq_*_choice_arm_selected` | `_choice IS NOT NULL AND _choice <> ''` | Guards a genuine hazard: `asn1tools` returns `(None, None)` rather than raising when a CHOICE matches no arm, which would otherwise write an all-NULL row indistinguishable from a valid empty record. |
-| `dq_*_arm_populated` | `_choice <> '<arm>' OR <arm> IS NOT NULL` | Confirms the selected arm actually decoded to a non-null struct. Written as an implication so it is vacuously true for other arms rather than false. |
-| `quarantine_table` | `sgsn_cdr_raw_quarantine` | Materialised only because at least one rule uses `quarantine`. |
-| `record_id_column` | `_choice` | Must be a **top-level** column present in `df.columns`. A dotted struct path is silently ignored by the quarantine writer, so a nested field would fail quietly. |
+| Attribute | Type | Value | Why, and how the engine evaluates it |
+|---|---|---|---|
+| `rules` | array of objects | 3 rules (SGSN, EMSC, TAP) / **2 rules (PSGW)** | Each entry becomes one DLT expectation on the `_<table>_staged` node. |
+| `rules[].rule_id` | string | e.g. `dq_sgsn_asn1_decode_ok` | Names the expectation. This is the string that appears in the event log `flow_progress` `data_quality.expectations` array, so it is what Recipe 2 (9.3) filters on. Prefixed per source so the four lanes never collide. |
+| `rules[].expression` | string (SQL) | see rows below | Evaluated as a **SQL boolean** against each staged row. `true` passes, `false` routes to quarantine. |
+| `rules[].action` | string (enum) | `quarantine` on every rule | **Never `drop`, never `fail`.** A dropped CDR is unbilled revenue. A failed batch blocks the whole night. Quarantine keeps the record, keeps the reason, and lets siblings load. |
+| `dq_*_asn1_decode_ok` | rule | `_asn1_decode_error IS NULL` | The universal check. Present on **all four** sources. |
+| `dq_*_choice_arm_selected` | rule | `_choice IS NOT NULL AND _choice <> ''` | Present on **all four** sources. Guards a genuine hazard: `asn1tools` returns `(None, None)` rather than raising when a CHOICE matches no arm, which would otherwise write an all-NULL row indistinguishable from a valid empty record. |
+| `dq_*_arm_populated` | rule | `_choice <> '<arm>' OR <arm> IS NOT NULL` | Present on **EMSC** (`uMTSGSMPLMNCallDataRecord`), **SGSN** (`sgsnPDPRecord`) and **TAP** (`transferBatch`); **absent on PSGW**. Confirms the selected arm actually decoded to a non-null struct. Written as an implication so it is vacuously true for other arms rather than false. |
+| `quarantine_table` | string | `sgsn_cdr_raw_quarantine` | Name of the sibling table that receives failing rows. Materialised only because at least one rule uses `quarantine`. Always `<target_table>_quarantine` in UC7. |
+| `record_id_column` | string | `_choice` | Stamped onto the quarantine row so a rejected record can be identified. Must be a **top-level** column present in `df.columns`. A dotted struct path is silently ignored by the quarantine writer, so a nested field would fail quietly. All four flows use `_choice`. |
 
 > **Why the rules are deliberately thin:** in these ASN.1 modules **almost every member is `OPTIONAL`**. Asserting that any individual business field is non-null would false-quarantine perfectly valid records. The three rules above assert only what was **measured** to hold on 100% of decoded records. PSGW omits the third rule entirely because it legitimately selects two different arms (`sGWRecord` and `pGWRecord`).
 
@@ -1835,7 +1927,7 @@ databricks jobs run-now 843342822766009 -p metaflow_v7
 
 1. Confirm the ASN.1 module exists in `/Volumes/flowx/landing/uc_7/asn_schema/`.
 2. **Verify the mapping by decoding a real sample file** before writing any config. Never map from the file name.
-3. Add a block to `ingestion_flows` in `flowx_testing/UC7_cdr_asn_bronze.json`, following the SGSN pattern in section 4.2.
+3. Add a block to `ingestion_flows` in `BT_Usecase/UC7/onboarding/UC7_cdr_asn_bronze.json`, following the SGSN pattern in section 4.2.
 4. Deploy: `databricks bundle deploy -t metaflow_v7 -p metaflow_v7 --fail-on-active-runs --select pipelines.uc7_cdr_asn_pipeline,jobs.uc7_cdr_asn_job,jobs.onboarding_job`
 5. Run the job. The new lane appears in the DAG automatically.
 
@@ -1864,15 +1956,19 @@ databricks jobs run-now 843342822766009 -p metaflow_v7
 
 | File | Purpose |
 |---|---|
-| `flowx_testing/UC7_cdr_asn_bronze.json` | The onboarding specification |
+| `BT_Usecase/UC7/onboarding/UC7_cdr_asn_bronze.json` | The onboarding specification |
 | `resources/uc7/uc7_cdr_asn_pipeline.yml` | Pipeline definition |
 | `resources/uc7/uc7_cdr_asn_job.yml` | Job definition |
 | `src/flowx/lakeflow_framework/asn1/decoder.py` | ASN.1 decode logic |
 | `src/flowx/lakeflow_framework/ingestion/readers.py` | `read_asn1_source` |
 | `src/flowx/lakeflow_framework/observability/event_log_extractor.py` | Event log extraction |
 | `notebooks/03_engine/03_lakeflow_declarative_pipeline.py` | The generic pipeline engine |
-| `UC7_CDR_ASN_Test_Report.md` | Detailed test report with full verification evidence |
-| `docs/UC7/README.md` | Plain-English summary for business readers |
+| [`UC7_CDR_ASN_Test_Report.md`](UC7_CDR_ASN_Test_Report.md) | Detailed test report with full verification evidence |
+| [`UC7_PLAIN_ENGLISH_GUIDE.md`](UC7_PLAIN_ENGLISH_GUIDE.md) | Plain-English summary for business readers |
+| [`UC7_ANALYSIS_AND_JOIN_GUIDE.md`](UC7_ANALYSIS_AND_JOIN_GUIDE.md) | How to join and analyse the decoded bronze tables |
+| [`UC7_ANALYSIS_QUERIES.sql`](UC7_ANALYSIS_QUERIES.sql) | Ready-to-run analysis SQL |
+| `BT_Usecase/UC7/data/` | Repo-side UC7 data assets — see 3.5 for provenance |
+| `scripts/generate_synthetic_ber.py` | Generator for the **[Simulated]** `.ber` fixtures under `BT_Usecase/UC7/data/synthetic/` |
 
 ---
 

@@ -42,6 +42,12 @@ than a removal. Corrected to `"compression": "GZIP"` -- preserving the evident i
 than dropping the key -- including in `onboarding_spec_full_reference.json`, which is what
 spec authors copy from and would otherwise keep minting new specs with a dead key.
 
+**Why it passed silently.** `destination_config` is the one spec container with no
+unknown-key rejection: `spec_validator.py` has eleven `reject_unknown_keys()` call sites and
+not one covers `observability[].destination_config`. Every other container would have
+rejected the key outright. Closing that gap is a framework change (allowlist + call site +
+schema test) and is **not** in this release -- it is the highest-value follow-up.
+
 **The UC7 onboarding spec was not missing.** It was filed under `flowx_testing/` rather than
 with its use case, which is why it read as absent. It is now
 `BT_Usecase/UC7/onboarding/UC7_cdr_asn_bronze.json`.
@@ -65,6 +71,26 @@ hand-maintained copy, `scripts/build_docs_reference.py` now stages the use-case 
 (and the `.csv`/`.sql` assets they link to as siblings) into `docs/UC*/` at build time,
 alongside the reference trees it already derives. BT_Usecase stays the source of truth;
 `docs/UC*/` is derived output and gitignored.
+
+### Specs: one `_about` header, and the paths the move broke
+
+The four use-case specs carried 39 `_`-prefixed author-comment keys between them. They are
+replaced by a single root `_about` block (use case, description, version, date, developer),
+key order aligned to `pipeline_onboarding_template.json`, and `$schema` repointed -- the old
+relative path stopped resolving once the specs moved.
+
+One of those comments mattered more than the others: `_why_append` sat **inside**
+`target_config`, and `metadata_upsert.py` `json.dumps` that block verbatim, so a prose
+comment was being persisted into `ingestion_flow_spec.target_config_json` on every
+onboarding run.
+
+The move also left runtime paths dangling, which neither validation gate catches:
+`resources/uc3|uc6|uc7/*_job.yml` still pointed `spec_file_path` at `onboarding/uc3/...`,
+`onboarding/uc6/...` and `flowx_testing/UC7_...`, none of which exist any more -- so the
+deployed onboarding tasks could not have found their specs. Repointed to
+`BT_Usecase/<UC>/onboarding/`, along with `tests/unit/test_uc6_spec.py` (which could not even
+import before the fix; 24/24 pass now), `scripts/verify_uc6_business_rules.py`,
+`scripts/generate_uc3_test_data.py`'s DDL directory, and the UC3 simulator.
 
 ### Archived rather than deleted
 

@@ -29,7 +29,7 @@ One entry per `ingestion_flows[]` element — reading from a landing zone into B
 | [`governance_tags.column_tags[].tags`](#governance-tagscolumn-tagstags) | object<string,string> | **yes** | — |
 | [`governance_tags.table_tags`](#governance-tagstable-tags) | object<string,string> | no | — |
 | [`source_config.asn1_codec`](#source-configasn1-codec) | string (enum) | **yes** | — |
-| [`source_config.asn1_pdu_name`](#source-configasn1-pdu-name) | string | **yes** | — |
+| [`source_config.asn1_pdu_name`](#source-configasn1-pdu-name) | string | no | — |
 | [`source_config.asn1_schema_path`](#source-configasn1-schema-path) | string | **yes** | — |
 | [`source_config.auto_flatten_all`](#source-configauto-flatten-all) | boolean | no | — |
 | [`source_config.capture_technical_metadata`](#source-configcapture-technical-metadata) | boolean | no | — |
@@ -472,10 +472,10 @@ Which ASN.1 encoding to decode.
 
 ### `source_config.asn1_pdu_name` { #source-configasn1-pdu-name }
 
-The top-level SEQUENCE type in the .asn file to decode each record as.
+The top-level SEQUENCE/CHOICE type in the .asn file to decode each record as. Optional since 0.0.2.
 
 
-**Type** `string` · **Required** yes · **Section** Source · ASN.1
+**Type** `string` · **Required** no · **Section** Source · ASN.1
 
 
 ```json
@@ -489,7 +489,7 @@ The top-level SEQUENCE type in the .asn file to decode each record as.
 
 !!! tip "Best practice"
 
-    - Required — onboarding rejects the flow if this is missing.
+    - Optional. Leave it blank and the decoder auto-detects the module's root PDU; set it only to override that detection (or when the module is ambiguous and detection raises).
 
 
 ---

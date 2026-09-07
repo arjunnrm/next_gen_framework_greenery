@@ -3,7 +3,7 @@
 # One pipeline per dataflow group, by construction: a Lakeflow dataset has exactly one owning
 # pipeline, so the three CDC-applied tables of dfg_uc3_excalibur_streaming_cdc
 # (physical_device, customer, subscriber) are published by this pipeline and no other. The
-# group is defined in onboarding/uc3/uc3_excalibur_streaming_cdc.json and reaches the engine
+# group is defined in BT_Usecase/UC3/onboarding/uc3_excalibur_streaming_cdc.json and reaches the engine
 # through the control tables, not through this file -- the only wiring here is the group id.
 #
 # Catalog/schema come from BUILD_CONTRACT.md section 1: the shared `flowx` catalog via

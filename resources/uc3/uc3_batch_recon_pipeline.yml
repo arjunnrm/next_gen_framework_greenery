@@ -4,7 +4,7 @@
 # flowx.staging.<table>_batch, and three reconciliation flows (execution_mode "pipeline")
 # compare each batch table against its bronze counterpart INSIDE this pipeline's DAG, then feed
 # healed rows back through Job 2's CDC engine via append_target_table. All of it is declared in
-# onboarding/uc3/uc3_excalibur_batch_recon.json -- this file only declares the pipeline that
+# BT_Usecase/UC3/onboarding/uc3_excalibur_batch_recon.json -- this file only declares the pipeline that
 # executes that group.
 #
 # NAME: 006_ldp_uc3_excalibur_batch_recon, driven by job 005_lfj_uc3_excalibur_batch_recon.

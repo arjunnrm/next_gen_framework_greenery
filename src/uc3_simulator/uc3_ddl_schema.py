@@ -1,6 +1,6 @@
 """# UC3 DDL schema helper (shared by the simulator tasks)
 
-Parses the three Excalibur governance sheets in `docs/UC3/*_DDL.csv` into a Spark
+Parses the three Excalibur governance sheets in `BT_Usecase/UC3/data/*_DDL.csv` into a Spark
 column list, applying **BUILD_CONTRACT.md** §6 verbatim:
 
 | Contract rule | Implementation |

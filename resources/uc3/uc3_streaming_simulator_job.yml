@@ -20,15 +20,18 @@
 # defaults to ${var.catalog}, which is `flowx` per the bundle's own variable.
 #
 # SCHEMA SOURCE (contract 6): the three staging tables' column lists are NOT hand-typed.
-# They are derived at run time from docs/UC3/{PHYSICAL_DEVICE,CUSTOMER,SUBSCRIBER}_DDL.csv
-# by notebooks/uc3/simulator/uc3_ddl_schema.py, which applies contract 6's parsing rules
+# They are derived at run time from BT_Usecase/UC3/data/{PHYSICAL_DEVICE,CUSTOMER,SUBSCRIBER}_DDL.csv
+# by src/uc3_simulator/uc3_ddl_schema.py, which applies contract 6's parsing rules
 # (header-quirk fallbacks, the `Feed column name` ingestibility test) and 6.5's
 # Oracle->Spark type mapping. delta_table_setup asserts the resulting PK order, Drop(DF)
 # and Null(DF) sets against contract 3/4 BEFORE it issues any DDL.
 #
 # The CSVs reach the workspace because databricks.yml declares no `sync:` block, so the
-# whole repo (minus .gitignore) syncs to ${workspace.file_path}. `ddl_dir` is left empty so
-# the notebook resolves docs/UC3 relative to its own deployed location.
+# whole repo (minus .gitignore) syncs to ${workspace.file_path}. BT_Usecase/UC3/data/ is
+# tracked and therefore syncs; docs/UC3/ is a gitignored derived copy and does NOT.
+# `ddl_dir` is left empty so the notebook resolves BT_Usecase/UC3/data relative to its own
+# deployed location (three directory levels up from notebooks/uc3/simulator/, i.e.
+# <repo root>/BT_Usecase/UC3/data).
 #
 # PREREQUISITES, which this job deliberately does NOT create (contract 13 -- author, do not
 # execute; no CREATE SCHEMA in Phase B):
@@ -72,7 +75,7 @@ resources:
             base_parameters:
               catalog: "{{job.parameters.catalog}}"
               schema: "{{job.parameters.schema}}"
-              # Empty => resolve docs/UC3 relative to the notebook's deployed location.
+              # Empty => resolve BT_Usecase/UC3/data relative to the notebook's deployed location.
               ddl_dir: ""
           environment_key: framework_env
 

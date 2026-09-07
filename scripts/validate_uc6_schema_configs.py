@@ -24,8 +24,8 @@ import subprocess
 import sys
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-CONFIG_DIR = os.path.join(REPO_ROOT, "onboarding", "uc6", "schema_configs")
-SAMPLE_DIR = os.path.join(REPO_ROOT, "docs", "UC6", "sample_bundle", "uc_6", "raw")
+CONFIG_DIR = os.path.join(REPO_ROOT, "BT_Usecase", "UC6", "onboarding", "schema_configs")
+SAMPLE_DIR = os.path.join(REPO_ROOT, "BT_Usecase", "UC6", "data", "sample_bundle")
 
 #: source key -> (schema_config file, sample file, delimiter, has_header)
 SOURCES = {

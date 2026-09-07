@@ -5,7 +5,7 @@ This is a plain authoring script for test fixtures -- NOT framework configuratio
 Hand-written Python is correct and expected here.
 
 Column names, types and governance flags are read at runtime from the three
-Excalibur governance sheets in ``docs/UC3``.  No column list is hand-typed.
+Excalibur governance sheets in ``BT_Usecase/UC3/data``.  No column list is hand-typed.
 
 Outputs (default: local only -- ``--upload`` is opt-in):
 
@@ -57,7 +57,7 @@ from typing import Any, Callable, Iterable, Sequence
 # --------------------------------------------------------------------------- #
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-DDL_DIR = REPO_ROOT / "docs" / "UC3"
+DDL_DIR = REPO_ROOT / "BT_Usecase" / "UC3" / "data"
 
 DEFAULT_OUT_DIR = REPO_ROOT / "build" / "uc3_test_data"
 DEFAULT_CATALOG = "flowx"

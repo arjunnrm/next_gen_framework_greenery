@@ -1,5 +1,12 @@
 {
-  "_use_case": "UC6 -- Flood Warning System (Environment Agency -> Leidos). Matches EA flood-risk area postcodes against EE mobile customer addresses to identify the MSISDNs to warn, replacing a ~10-year-old Ab Initio ETL. Binding design: docs/UC6/BUILD_CONTRACT.md. Every deviation from the supplied brief, with evidence: docs/UC6/FRAMEWORK_CAPABILITY_MAP.md.",
+  "$schema": "../../../onboarding_templates/onboarding_spec.schema.json",
+  "_about": {
+    "use_case": "UC6 - Flood Warning System (Environment Agency to Leidos)",
+    "description": "Matches Environment Agency flood-risk-area postcodes against EE mobile customer addresses to identify the MSISDNs to warn, replacing a ten-year-old Ab Initio ETL. Design: BT_Usecase/UC6/docs/BUILD_CONTRACT.md; deviations with evidence: BT_Usecase/UC6/docs/FRAMEWORK_CAPABILITY_MAP.md.",
+    "version": "FlowX 0.0.4",
+    "date": "2026-09-05",
+    "developer": "Madhan Raghu"
+  },
   "dataflow_group_id": "dfg_uc6_ea_flood_warning",
   "pipeline_parameters": {
     "match_strength_threshold": 50,
@@ -345,7 +352,6 @@
     {
       "flow_step_id": "ts_uc6_ea_base",
       "dataflow_id": "df_uc6_ea_request_ingest",
-      "source_description": "UC6 silver: the EA base file -- one row per osapr, carrying its targetAreaID. The legacy design dedupes the request feed on {osapr}; ROW_NUMBER over the ingestion timestamp makes 'which duplicate wins' explicit and deterministic rather than arbitrary.",
       "target_catalog": "{{catalog}}",
       "target_schema": "silver",
       "target_table": "uc6_ea_base",
@@ -374,12 +380,12 @@
           "owner": "business_data_and_ai",
           "environment": "poc"
         }
-      }
+      },
+      "source_description": "UC6 silver: the EA base file -- one row per osapr, carrying its targetAreaID. The legacy design dedupes the request feed on {osapr}; ROW_NUMBER over the ingestion timestamp makes 'which duplicate wins' explicit and deterministic rather than arbitrary."
     },
     {
       "flow_step_id": "ts_uc6_ea_address",
       "dataflow_id": "df_uc6_ea_request_ingest",
-      "source_description": "UC6 silver: the normalised EA address set -- deduped on {postcode, address, town} per the legacy design, carrying osapr for the join back to the base file. PO Box rows are retained here and excluded at match time, so the exclusion is visible in one place rather than implied by absence.",
       "target_catalog": "{{catalog}}",
       "target_schema": "silver",
       "target_table": "uc6_ea_address",
@@ -408,12 +414,12 @@
           "owner": "business_data_and_ai",
           "environment": "poc"
         }
-      }
+      },
+      "source_description": "UC6 silver: the normalised EA address set -- deduped on {postcode, address, town} per the legacy design, carrying osapr for the join back to the base file. PO Box rows are retained here and excluded at match time, so the exclusion is visible in one place rather than implied by absence."
     },
     {
       "flow_step_id": "ts_uc6_ee_address_paf",
       "dataflow_id": "df_uc6_ea_request_ingest",
-      "source_description": "UC6 silver: every EE address normalised into the common PAF shape and unioned -- CSS (PAYM/OUK, the three-way join plus the age>17 and unit-code<>'BS' business filters), JT (PAYG/OUK) and Excalibur (EE/TMUK). One flow with a UNION ALL rather than three staging tables, per the repo's Single-Read DAG mandate rule 3: reshaping before a union belongs inside the consuming table. Excalibur's two record variants are reconciled with a coalesce rather than a separate branch.",
       "target_catalog": "{{catalog}}",
       "target_schema": "silver",
       "target_table": "uc6_ee_address_paf",
@@ -473,12 +479,12 @@
           "owner": "business_data_and_ai",
           "environment": "poc"
         }
-      }
+      },
+      "source_description": "UC6 silver: every EE address normalised into the common PAF shape and unioned -- CSS (PAYM/OUK, the three-way join plus the age>17 and unit-code<>'BS' business filters), JT (PAYG/OUK) and Excalibur (EE/TMUK). One flow with a UNION ALL rather than three staging tables, per the repo's Single-Read DAG mandate rule 3: reshaping before a union belongs inside the consuming table. Excalibur's two record variants are reconciled with a coalesce rather than a separate branch."
     },
     {
       "flow_step_id": "ts_uc6_matched_address",
       "dataflow_id": "df_uc6_ea_request_ingest",
-      "source_description": "UC6 silver: EA addresses matched to EE addresses on normalised postcode, excluding PO Boxes, scored by address-token overlap. IMPORTANT: match_strength is a DOCUMENTED ASSUMPTION -- the legacy Ab Initio scoring algorithm appears in none of the supplied documents. It is deliberately confined to this one expression, and the threshold is a pipeline parameter, so it can be replaced wholesale when the real algorithm surfaces. See docs/UC6/BUILD_CONTRACT.md section 6.",
       "target_catalog": "{{catalog}}",
       "target_schema": "silver",
       "target_table": "uc6_matched_address",
@@ -512,12 +518,12 @@
           "owner": "business_data_and_ai",
           "environment": "poc"
         }
-      }
+      },
+      "source_description": "UC6 silver: EA addresses matched to EE addresses on normalised postcode, excluding PO Boxes, scored by address-token overlap. IMPORTANT: match_strength is a DOCUMENTED ASSUMPTION -- the legacy Ab Initio scoring algorithm appears in none of the supplied documents. It is deliberately confined to this one expression, and the threshold is a pipeline parameter, so it can be replaced wholesale when the real algorithm surfaces. See docs/UC6/BUILD_CONTRACT.md section 6."
     },
     {
       "flow_step_id": "ts_uc6_osapr_output",
       "dataflow_id": "df_uc6_ea_request_ingest",
-      "source_description": "UC6 gold: one row per (targetAreaID, osapr) with its match COUNT and STATUS. Implements the four documented branches: Found (above threshold and the area has >1 matched address), Not Found (above threshold but only one), Bad OSAPR (at or below threshold), Single Addr (the area only ever had one address candidate at all). Both thresholds are pipeline parameters, never literals.",
       "target_catalog": "{{catalog}}",
       "target_schema": "gold",
       "target_table": "uc6_osapr_output",
@@ -577,12 +583,12 @@
           "owner": "business_data_and_ai",
           "environment": "poc"
         }
-      }
+      },
+      "source_description": "UC6 gold: one row per (targetAreaID, osapr) with its match COUNT and STATUS. Implements the four documented branches: Found (above threshold and the area has >1 matched address), Not Found (above threshold but only one), Bad OSAPR (at or below threshold), Single Addr (the area only ever had one address candidate at all). Both thresholds are pipeline parameters, never literals."
     },
     {
       "flow_step_id": "ts_uc6_telephone_output",
       "dataflow_id": "df_uc6_ea_request_ingest",
-      "source_description": "UC6 gold: the telephone list. Case 1 of the design (above threshold, MSISDN populated, and the area has more than one matched address) is included; Case 2 (only one matched address in the area) is EXCLUDED -- an anti-singling-out privacy safeguard, not an optimisation, so it is expressed as an explicit join against the areas that qualify rather than as a filter that could be lost in a rewrite.",
       "target_catalog": "{{catalog}}",
       "target_schema": "gold",
       "target_table": "uc6_telephone_output",
@@ -627,12 +633,12 @@
           "owner": "business_data_and_ai",
           "environment": "poc"
         }
-      }
+      },
+      "source_description": "UC6 gold: the telephone list. Case 1 of the design (above threshold, MSISDN populated, and the area has more than one matched address) is included; Case 2 (only one matched address in the area) is EXCLUDED -- an anti-singling-out privacy safeguard, not an optimisation, so it is expressed as an explicit join against the areas that qualify rather than as a filter that could be lost in a rewrite."
     },
     {
       "flow_step_id": "ts_uc6_export_leidos_telephone",
       "dataflow_id": "df_uc6_ea_request_ingest",
-      "source_description": "UC6 egress 1 of 4: the Leidos telephone list, plain gzip (no GPG). Fields exactly targetAreaID|telephone, per the interface specification.",
       "target_catalog": "{{catalog}}",
       "target_schema": "gold",
       "target_table": "uc6_export_leidos_telephone",
@@ -678,12 +684,12 @@
           "owner": "business_data_and_ai",
           "environment": "poc"
         }
-      }
+      },
+      "source_description": "UC6 egress 1 of 4: the Leidos telephone list, plain gzip (no GPG). Fields exactly targetAreaID|telephone, per the interface specification."
     },
     {
       "flow_step_id": "ts_uc6_export_leidos_osapr",
       "dataflow_id": "df_uc6_ea_request_ingest",
-      "source_description": "UC6 egress 2 of 4: the Leidos OSAPR match-status list, plain gzip (no GPG). Fields exactly targetAreaID|osapr|count|status.",
       "target_catalog": "{{catalog}}",
       "target_schema": "gold",
       "target_table": "uc6_export_leidos_osapr",
@@ -729,12 +735,12 @@
           "owner": "business_data_and_ai",
           "environment": "poc"
         }
-      }
+      },
+      "source_description": "UC6 egress 2 of 4: the Leidos OSAPR match-status list, plain gzip (no GPG). Fields exactly targetAreaID|osapr|count|status."
     },
     {
       "flow_step_id": "ts_uc6_export_telephone",
       "dataflow_id": "df_uc6_ea_request_ingest",
-      "source_description": "UC6 egress 3 of 4: the Fujitsu-equivalent telephone list, gzip + GPG symmetric (AES256) under the flowx.config.pgpkey secret -- the same passphrase that decrypts the inbound EA request. Identical content to the Leidos file; the two exist so the Fujitsu-to-Leidos cutover can run in parallel with no gap in flood warnings.",
       "target_catalog": "{{catalog}}",
       "target_schema": "gold",
       "target_table": "uc6_export_telephone",
@@ -788,12 +794,12 @@
           "owner": "business_data_and_ai",
           "environment": "poc"
         }
-      }
+      },
+      "source_description": "UC6 egress 3 of 4: the Fujitsu-equivalent telephone list, gzip + GPG symmetric (AES256) under the flowx.config.pgpkey secret -- the same passphrase that decrypts the inbound EA request. Identical content to the Leidos file; the two exist so the Fujitsu-to-Leidos cutover can run in parallel with no gap in flood warnings."
     },
     {
       "flow_step_id": "ts_uc6_export_osapr",
       "dataflow_id": "df_uc6_ea_request_ingest",
-      "source_description": "UC6 egress 4 of 4: the Fujitsu-equivalent OSAPR match-status list, gzip + GPG symmetric.",
       "target_catalog": "{{catalog}}",
       "target_schema": "gold",
       "target_table": "uc6_export_osapr",
@@ -847,12 +853,14 @@
           "owner": "business_data_and_ai",
           "environment": "poc"
         }
-      }
+      },
+      "source_description": "UC6 egress 4 of 4: the Fujitsu-equivalent OSAPR match-status list, gzip + GPG symmetric."
     }
   ],
   "reconciliation_flows": [
     {
       "reconciliation_id": "rf_uc6_ea_request_presence",
+      "execution_mode": "pipeline_audit_only",
       "dataflow_group_id": "dfg_uc6_ea_flood_warning",
       "source_config": {
         "type": "table",
@@ -875,7 +883,9 @@
         "osapr"
       ],
       "compare_columns": [],
-      "execution_mode": "pipeline_audit_only",
+      "error_handling": {
+        "on_failure": "fail"
+      },
       "dq_config": {
         "rules": [
           {
@@ -885,9 +895,6 @@
           }
         ]
       },
-      "error_handling": {
-        "on_failure": "fail"
-      },
       "logging_config": {
         "run_log_capture": true,
         "mismatch_log_capture": false
@@ -895,6 +902,7 @@
     },
     {
       "reconciliation_id": "rf_uc6_css_account_presence",
+      "execution_mode": "pipeline_audit_only",
       "dataflow_group_id": "dfg_uc6_ea_flood_warning",
       "source_config": {
         "type": "table",
@@ -916,7 +924,9 @@
         "customerid"
       ],
       "compare_columns": [],
-      "execution_mode": "pipeline_audit_only",
+      "error_handling": {
+        "on_failure": "fail"
+      },
       "dq_config": {
         "rules": [
           {
@@ -926,9 +936,6 @@
           }
         ]
       },
-      "error_handling": {
-        "on_failure": "fail"
-      },
       "logging_config": {
         "run_log_capture": true,
         "mismatch_log_capture": false
@@ -936,6 +943,7 @@
     },
     {
       "reconciliation_id": "rf_uc6_css_account_address_presence",
+      "execution_mode": "pipeline_audit_only",
       "dataflow_group_id": "dfg_uc6_ea_flood_warning",
       "source_config": {
         "type": "table",
@@ -957,7 +965,9 @@
         "address_id"
       ],
       "compare_columns": [],
-      "execution_mode": "pipeline_audit_only",
+      "error_handling": {
+        "on_failure": "fail"
+      },
       "dq_config": {
         "rules": [
           {
@@ -967,9 +977,6 @@
           }
         ]
       },
-      "error_handling": {
-        "on_failure": "fail"
-      },
       "logging_config": {
         "run_log_capture": true,
         "mismatch_log_capture": false
@@ -977,6 +984,7 @@
     },
     {
       "reconciliation_id": "rf_uc6_css_subscription_presence",
+      "execution_mode": "pipeline_audit_only",
       "dataflow_group_id": "dfg_uc6_ea_flood_warning",
       "source_config": {
         "type": "table",
@@ -998,7 +1006,9 @@
         "subscription_id"
       ],
       "compare_columns": [],
-      "execution_mode": "pipeline_audit_only",
+      "error_handling": {
+        "on_failure": "fail"
+      },
       "dq_config": {
         "rules": [
           {
@@ -1008,9 +1018,6 @@
           }
         ]
       },
-      "error_handling": {
-        "on_failure": "fail"
-      },
       "logging_config": {
         "run_log_capture": true,
         "mismatch_log_capture": false
@@ -1018,6 +1025,7 @@
     },
     {
       "reconciliation_id": "rf_uc6_jt_customer_presence",
+      "execution_mode": "pipeline_audit_only",
       "dataflow_group_id": "dfg_uc6_ea_flood_warning",
       "source_config": {
         "type": "table",
@@ -1039,7 +1047,9 @@
         "jt_customer_id"
       ],
       "compare_columns": [],
-      "execution_mode": "pipeline_audit_only",
+      "error_handling": {
+        "on_failure": "fail"
+      },
       "dq_config": {
         "rules": [
           {
@@ -1049,9 +1059,6 @@
           }
         ]
       },
-      "error_handling": {
-        "on_failure": "fail"
-      },
       "logging_config": {
         "run_log_capture": true,
         "mismatch_log_capture": false
@@ -1059,6 +1066,7 @@
     },
     {
       "reconciliation_id": "rf_uc6_excalibur_address_presence",
+      "execution_mode": "pipeline_audit_only",
       "dataflow_group_id": "dfg_uc6_ea_flood_warning",
       "source_config": {
         "type": "table",
@@ -1080,7 +1088,9 @@
         "excalibur_id"
       ],
       "compare_columns": [],
-      "execution_mode": "pipeline_audit_only",
+      "error_handling": {
+        "on_failure": "fail"
+      },
       "dq_config": {
         "rules": [
           {
@@ -1089,9 +1099,6 @@
             "action": "fail"
           }
         ]
-      },
-      "error_handling": {
-        "on_failure": "fail"
       },
       "logging_config": {
         "run_log_capture": true,
@@ -1103,13 +1110,13 @@
     {
       "id": "dest_uc6_triggered_volume",
       "enabled": true,
-      "mode": "triggered",
       "type": "DATABRICKS_VOLUME",
       "destination_config": {
         "volume_path": "/Volumes/{{catalog}}/observability/app_logs/uc6",
-        "file_format": "JSONL",
-        "compression": "GZIP"
-      }
+        "compression": "GZIP",
+        "file_format": "JSONL"
+      },
+      "mode": "triggered"
     }
   ]
 }

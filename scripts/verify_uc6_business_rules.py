@@ -39,9 +39,9 @@ import sqlglot
 from sqlglot import exp
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-SPEC = os.path.join(REPO, "onboarding/uc6/uc6_ea_flood_warning.json")
-FIXTURE = os.path.join(REPO, "docs/UC6/test_fixture/uc_6/raw")
-SUPPLIED = os.path.join(REPO, "docs/UC6/sample_bundle/uc_6/raw")
+SPEC = os.path.join(REPO, "BT_Usecase/UC6/onboarding/uc6_ea_flood_warning.json")
+FIXTURE = os.path.join(REPO, "BT_Usecase/UC6/data/test_fixture")
+SUPPLIED = os.path.join(REPO, "BT_Usecase/UC6/data/sample_bundle")
 PW = "EA-POC-Sample-2026!"
 
 SOURCES = {
@@ -77,7 +77,7 @@ def load_rows(raw_dir, prefix, delimiter, has_header, schema_config):
         cols = lines[0].split(delimiter)
         rows = [line.split(delimiter) for line in lines[1:]]
     else:
-        cfg = json.load(open(os.path.join(REPO, "onboarding/uc6/schema_configs", schema_config), encoding="utf-8"))
+        cfg = json.load(open(os.path.join(REPO, "BT_Usecase/UC6/onboarding/schema_configs", schema_config), encoding="utf-8"))
         cols = [c["target_name"] for c in cfg["columns"]]
         rows = [line.split(delimiter) for line in lines]
     width = len(cols)

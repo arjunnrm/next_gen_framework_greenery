@@ -37,17 +37,15 @@ BUNDLE_FILE = REPO_ROOT / "databricks.yml"
 
 #: The groups ``resources/`` is partitioned into. Add a folder here *and* to ``databricks.yml``'s
 #: ``include:`` list -- ``test_every_group_folder_is_included`` asserts the two agree.
+#: bt_tests / feature_tests / stability_tests / v0_0_2_tests moved to archive/resources/ in 0.0.4
+#: (commit 2513698) and are no longer resource groups.
 EXPECTED_GROUPS = {
     "flowx_app",
     "flowx_bootstrap",
     "flowx_bi",
     "flowx_config_jobs",
     "observability",
-    "bt_tests",
-    "feature_tests",
-    "stability_tests",
     "sample_jobs",
-    "v0_0_2_tests",
     "uc3",
     "uc6",
     "uc7",

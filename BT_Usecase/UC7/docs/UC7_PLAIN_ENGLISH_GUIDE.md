@@ -161,7 +161,7 @@ project.
 
 | File | What it is |
 |---|---|
-| `flowx_testing/UC7_cdr_asn_bronze.json` | The source and target definitions — the main config |
+| `BT_Usecase/UC7/onboarding/UC7_cdr_asn_bronze.json` | The source and target definitions — the main config |
 | `resources/uc7/uc7_cdr_asn_pipeline.yml` | Defines the pipeline |
 | `resources/uc7/uc7_cdr_asn_job.yml` | Defines the job and its four steps |
 

@@ -48,7 +48,7 @@
 # the next free pair (001 = UC7, 003-006 = UC3). The supplied brief asked for
 # "007_uc6_lfj_EA"/"008_uc6_ldp_EA"; every existing asset in this repo puts the number first
 # and the type second, lowercase, so the repo convention wins per the brief's own instruction.
-# See docs/UC6/FRAMEWORK_CAPABILITY_MAP.md section 2.1.
+# See BT_Usecase/UC6/docs/FRAMEWORK_CAPABILITY_MAP.md section 2.1.
 
 resources:
   jobs:
@@ -69,7 +69,7 @@ resources:
           run_job_task:
             job_id: ${resources.jobs.onboarding_job.id}
             job_parameters:
-              spec_file_path: "${workspace.file_path}/onboarding/uc6/uc6_ea_flood_warning.json"
+              spec_file_path: "${workspace.file_path}/BT_Usecase/UC6/onboarding/uc6_ea_flood_warning.json"
               catalog: ${var.catalog}
               env: ${bundle.target}
               action_type: CREATE

@@ -65,6 +65,32 @@
 # MAGIC The source files must **already be uploaded** to `workspace_staging_path` before this runs.
 # MAGIC Subfolders are fine and are used as a routing hint. Nothing is downloaded from anywhere.
 # MAGIC
+# MAGIC Since the v0.0.4 consolidation each use case keeps its docs, onboarding specs and source
+# MAGIC data together under one folder, so there is **one tree to upload per use case**:
+# MAGIC
+# MAGIC | Use case | Upload this repository tree | Into `workspace_staging_path` as |
+# MAGIC |---|---|---|
+# MAGIC | UC3 | `build/uc3_test_data/` (generated -- see below) | `UC3/` |
+# MAGIC | UC6 | `BT_Usecase/UC6/data/sample_bundle/` **or** `BT_Usecase/UC6/data/test_fixture/` | `UC6/` |
+# MAGIC | UC7 | `BT_Usecase/UC7/data/` (`asn_schema/`, `synthetic/`, `tap311_sample.ber`) | `UC7/` |
+# MAGIC
+# MAGIC UC3 is the one exception to "upload a repository tree": `BT_Usecase/UC3/data/` holds the
+# MAGIC three Excalibur `*_DDL.csv` governance sheets, which are column definitions, not data. The
+# MAGIC UC3 CSVs are generated on demand into gitignored scratch space:
+# MAGIC
+# MAGIC ```
+# MAGIC python scripts/generate_uc3_test_data.py --out-dir build/uc3_test_data
+# MAGIC ```
+# MAGIC
+# MAGIC That emits the `streaming/<table>/` and `batch/<table>/batch_date=YYYY-MM-DD/` layout the
+# MAGIC routing rules below expect, so uploading it verbatim preserves the partitioning.
+# MAGIC
+# MAGIC The per-use-case subfolder name is a convenience for the reviewer, not a requirement --
+# MAGIC routing is driven by the rule table in section 4, which matches on filename and on any
+# MAGIC parent folder. See `docs/SCRIPTS_GUIDE.md` for every generator and
+# MAGIC `docs/DATA_PROVENANCE_CLASSIFICATION.md` for which of these files are customer-provided
+# MAGIC and must never be regenerated.
+# MAGIC
 # MAGIC ### Compute
 # MAGIC
 # MAGIC Serverless or a Unity Catalog-enabled cluster on DBR 14.3 LTS or later. The workspace-files
@@ -78,9 +104,10 @@
 # MAGIC
 # MAGIC **Two required inputs only.** Schema and volume names are *not* widgets: they are derived
 # MAGIC from a single hardcoded topology dictionary in the next cell, because they are contractual
-# MAGIC (`docs/UC3/BUILD_CONTRACT.md` section 1, `docs/UC6/BUILD_CONTRACT.md` section 1,
-# MAGIC `docs/UC7/UC7_MASTER_DOCUMENT.md` section 3.3). Making them typeable would let a typo
-# MAGIC silently create a parallel, empty estate that no onboarding spec points at.
+# MAGIC (`BT_Usecase/UC3/docs/BUILD_CONTRACT.md` section 1,
+# MAGIC `BT_Usecase/UC6/docs/BUILD_CONTRACT.md` section 1,
+# MAGIC `BT_Usecase/UC7/docs/UC7_MASTER_DOCUMENT.md` section 3.3). Making them typeable would let
+# MAGIC a typo silently create a parallel, empty estate that no onboarding spec points at.
 # MAGIC
 # MAGIC Four convenience widgets are added, and each earns its place:
 # MAGIC
@@ -208,8 +235,8 @@ logger.info(
 # MAGIC ```
 # MAGIC
 # MAGIC The `_schemas/` and `_extracted/` per-source subfolders match the `schema_location` and
-# MAGIC `path` values in `onboarding/uc6/uc6_ea_flood_warning.json` exactly. They are created here
-# MAGIC so the first pipeline update does not race to create them.
+# MAGIC `path` values in `BT_Usecase/UC6/onboarding/uc6_ea_flood_warning.json` exactly. They are
+# MAGIC created here so the first pipeline update does not race to create them.
 # MAGIC
 # MAGIC ### UC7 volume layout
 # MAGIC

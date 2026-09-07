@@ -119,10 +119,44 @@ Three things cannot be automated and must exist before anything else runs.
 |---|---|
 | The catalog | Create `flowx` by hand. Unity Catalog Default Storage rejects `CREATE CATALOG` without a `MANAGED LOCATION`, so this cannot be declared in the bundle. |
 | Secret values | Create the `flowx.config.pgpkey` secret and set its value. The setup notebook in [document 02](02_environment_deployment_and_setup.md) registers the *key placeholder*; it never sets, reads or prints a value. |
-| Manual upload folders | Confirm `uc_6/_schema_configs/` and UC7's `output_sample/` and `archive/` — none are created by the notebook. |
+| Manual upload folders | Confirm `uc_6/_schema_configs/` and UC7's `output_sample/` and `archive/` — none are created by the notebook. `_schema_configs/` is filled from `BT_Usecase/UC6/onboarding/schema_configs/`. |
+| Source files in the upload folder | Fill `workspace_staging_path` from the consolidated per-use-case trees — see the table below. |
 
-**Done looks like:** the catalog exists; `pgpkey` resolves; the operator knows which workspace folder
-holds the uploaded source files.
+#### Filling the upload folder — one tree per use case
+
+Since the v0.0.4 consolidation each use case keeps its docs, onboarding specs and source data
+together under `BT_Usecase/<UC>/{docs,onboarding,data}/`. Staging is therefore one tree copy per
+use case rather than a hunt across `docs/`, `onboarding/` and `flowx_testing/`.
+
+| Use case | Copy this repository tree | Into | Which the notebook stages into |
+|---|---|---|---|
+| **UC3** | `build/uc3_test_data/` — generated, see below | `<workspace_staging_path>/UC3/` | `/Volumes/<catalog>/staging/uc_3/{streaming,batch}/` |
+| **UC6** | `BT_Usecase/UC6/data/sample_bundle/` **or** `BT_Usecase/UC6/data/test_fixture/` | `<workspace_staging_path>/UC6/` | `/Volumes/<catalog>/staging/uc_6/raw/` |
+| **UC7** | `BT_Usecase/UC7/data/` — `asn_schema/`, `synthetic/`, `tap311_sample.ber` | `<workspace_staging_path>/UC7/` | `/Volumes/<catalog>/landing/uc_7/{asn_schema,raw/<ELEMENT>}/` |
+
+UC3 is the exception: `BT_Usecase/UC3/data/` holds the three Excalibur `*_DDL.csv` governance
+sheets, which are column definitions rather than data. Generate the CSVs first —
+`python scripts/generate_uc3_test_data.py --out-dir build/uc3_test_data` — which writes the
+`batch_date=YYYY-MM-DD` layout the routing rules expect, so uploading it verbatim keeps the
+partitioning instead of falling back to today's date.
+
+For UC6, upload **one** of the two trees, not both: they share the same six filenames, so the
+second would overwrite the first in `staging/uc_6/raw/`. `sample_bundle/` is the customer's
+supplied bundle and proves the real-world no-match path; `test_fixture/` is generated and hits
+every branch of the decision table.
+
+**One UC7 module is not in the repository.** The notebook validates `EMSC.asn1`, `PSGW.asn1`,
+`SGSN.asn1` and `TAP.310.asn1`, but only three of those ship in
+`BT_Usecase/UC7/data/asn_schema/`. `SGSN.asn1` must be supplied by the customer straight into the
+upload folder or step 4 fails its validation stage. This is gap G-14 in
+[document 01](01_usecase_asset_inventory_and_governance.md).
+
+Which of these files may be regenerated and which are customer deliverables is set out in
+[`docs/DATA_PROVENANCE_CLASSIFICATION.md`](../../../docs/DATA_PROVENANCE_CLASSIFICATION.md); the
+generators are indexed in [`docs/SCRIPTS_GUIDE.md`](../../../docs/SCRIPTS_GUIDE.md).
+
+**Done looks like:** the catalog exists; `pgpkey` resolves; the upload folder holds one tree per
+use case in scope, including a customer-supplied `SGSN.asn1` if UC7 is in scope.
 
 **Trap:** the secret scope fallback order is `<catalog>.<schema>`, `<catalog>_<schema>`, `<schema>`,
 `<catalog>`. If the secret is created in the wrong spelling it will still resolve, but from a scope
@@ -132,8 +166,8 @@ nobody expects — making later rotation miss it.
 
 **Artefact used:** [document 02](02_environment_deployment_and_setup.md), the notebook, with `dry_run = true` (its default).
 
-Import `00_setup_uc3_uc6_uc7_environment.py` into the workspace, set `target_catalog`,
-`workspace_staging_path` and `use_cases`, and run it.
+Import `BT_Usecase/_shared/delivery/notebooks/00_setup_uc3_uc6_uc7_environment.py` into the
+workspace, set `target_catalog`, `workspace_staging_path` and `use_cases`, and run it.
 
 **Done looks like:** the notebook completes and prints its summary, having written nothing.
 
@@ -153,6 +187,10 @@ particular:
   correct for your load.
 - **UC7 files** must land under the right element folder. A misrouted CDR decodes against the wrong
   ASN.1 module and quarantines every record.
+- **All four UC7 `.asn1` modules must be present**, including the customer-supplied `SGSN.asn1`
+  that is not in the repository. `GGSN.asn1` and `TAP.311.asn1` may appear if the whole
+  `BT_Usecase/UC7/data/asn_schema/` tree was uploaded; they are harmless but are referenced by no
+  spec. Gap G-14.
 
 **Done looks like:** every file is routed to a destination you can justify, and you have decided
 what to do about any unrouted ones.
@@ -191,6 +229,14 @@ failure. See clause C.2.6.
 ### Step 6 — Onboard the specs
 
 **Artefact used:** the existing onboarding specs, plus the tag decisions from [document 01](01_usecase_asset_inventory_and_governance.md).
+
+Each use case's specs sit alongside its docs and data:
+
+| Use case | Specs |
+|---|---|
+| UC3 | `BT_Usecase/UC3/onboarding/uc3_excalibur_streaming_cdc.json`, `uc3_excalibur_batch_recon.json` |
+| UC6 | `BT_Usecase/UC6/onboarding/uc6_ea_flood_warning.json`, plus `schema_configs/` (five files) |
+| UC7 | `BT_Usecase/UC7/onboarding/UC7_cdr_asn_bronze.json` |
 
 Before onboarding, resolve the governance decisions that change the spec content — otherwise you
 will onboard twice:
@@ -323,8 +369,8 @@ twice:
 
 ## Appendix — open assumptions requiring confirmation
 
-Ten items requiring a human decision before or during rollout. The first six come from the notebook,
-the remainder from the governance inventory. Each names who should decide.
+Eleven items requiring a human decision before or during rollout. The first six come from the
+notebook, the remainder from the governance inventory. Each names who should decide.
 
 | # | Item | Detail | Decision needed | Owner |
 |---|---|---|---|---|
@@ -338,6 +384,7 @@ the remainder from the governance inventory. Each names who should decide.
 | 8 | Enforcement decision | No column masks or row filters exist. | Decide whether Beta accepts descriptive-only governance, and **record the decision either way**. Gap G-11, critical finding 2. | Data Governance Lead with Information Security |
 | 9 | Sink tagging | Four UC6 sinks declare tags the engine cannot apply. | Extend the engine, or reject the tags at validation. Silence is not an option under `AGENTS.md`. Gap G-04, critical finding 3. | Framework Engineering Lead |
 | 10 | Secret rotation | One passphrase covers UC6 ingress and egress; no rotation record exists. | Decide whether to split the passphrases, and set a rotation schedule. Gap G-13. | Information Security |
+| 11 | Missing `SGSN.asn1` | The UC7 spec and the notebook's validation both name `SGSN.asn1`, which is in no part of the repository. `GGSN.asn1` and `TAP.311.asn1` are present but referenced by no spec. | **Confirm the customer supplies `SGSN.asn1`** into the upload folder before step 4, or UC7 fails validation. Gap G-14. | Data Engineering Lead |
 
 ### Adding a UC3 table — a note for whoever comes next
 

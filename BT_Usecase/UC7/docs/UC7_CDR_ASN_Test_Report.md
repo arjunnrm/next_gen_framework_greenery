@@ -302,7 +302,7 @@ live Spark session — not code defects. The 9 pre-existing failures are unrelat
 
 ## 4. Onboarding JSON
 
-**File:** `flowx_testing/UC7_cdr_asn_bronze.json` — four ingestion flows, all sharing
+**File:** `BT_Usecase/UC7/onboarding/UC7_cdr_asn_bronze.json` — four ingestion flows, all sharing
 `dataflow_group_id: dfg_uc7_cdr_asn`.
 
 ### 4.1 Table naming convention

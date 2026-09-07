@@ -58,7 +58,7 @@ resources:
           run_job_task:
             job_id: ${resources.jobs.onboarding_job.id}
             job_parameters:
-              spec_file_path: "${workspace.file_path}/onboarding/uc3/uc3_excalibur_streaming_cdc.json"
+              spec_file_path: "${workspace.file_path}/BT_Usecase/UC3/onboarding/uc3_excalibur_streaming_cdc.json"
               catalog: ${var.catalog}
               env: ${bundle.target}
               action_type: CREATE
