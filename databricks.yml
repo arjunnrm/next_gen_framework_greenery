@@ -264,8 +264,8 @@ targets:
       artifact_path: ${var.wheels_root}/${var.framework_version}
 
     variables:
-      catalog: flowx
-      schema: dev
+      catalog: bt_digital_poc
+      schema: config
       dashboard_warehouse_id: fe7871113e044faa
 
   metaflow_v7:
