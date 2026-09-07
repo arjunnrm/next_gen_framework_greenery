@@ -19,18 +19,14 @@ bundle:
 #   resources/flowx_config_jobs/ onboarding_job (one spec per run) and
 #                                   framework_config_onboarding_job (bulk, a whole dir per run)
 #   resources/observability/        DLT observability export job + the OTEL streaming pipeline
-#   resources/bt_tests/             tests driven by real BT fixtures/pipelines: geneva tariff
-#                                   reconciliation replay, ASN.1 decode, PGP decrypt
-#   resources/feature_tests/        the TC-* feature/regression corpus (one job + one pipeline
-#                                   per test case) -- see flowx_testing/TESTING_PLAN.md
-#   resources/stability_tests/      reserved for flowx_testing/STABILITY_TEST_PLAN.md's
-#                                   A1-G4 cases; no resource built yet (see its README.md)
 #   resources/sample_jobs/          five flowx_sample reference jobs, one schema-isolated
 #                                   sample suite
-#   resources/v0_0_2_tests/         the v0.0.2 release test suite (TC1-TC5): one job + one
-#                                   pipeline per case, each onboarding its
-#                                   flowx_testing/v0_0_2_*.json spec via run_job_task
-#                                   against the generic onboarding_job
+#   resources/uc3|uc6|uc7/          the three BT use cases; each onboards its spec from
+#                                   BT_Usecase/<UC>/onboarding/ via run_job_task
+#
+#   Archived at 0.0.4 -- bt_tests, feature_tests, stability_tests and v0_0_2_tests moved to
+#   archive/resources/ (108 job/pipeline YAMLs). They were never in the `include:` list below,
+#   so nothing deployed changed. Restore a group by moving it back and adding an include.
 #
 # THE USUAL DEPLOY -- app + both config jobs + wheel, nothing else. `--select` (CLI >= v1.13.0)
 # limits the deploy to the named resources; the wheel is still built and uploaded by the
@@ -54,11 +50,8 @@ include:
   - resources/uc3/*.yml
   - resources/uc6/*.yml
 #  - resources/observability/*.yml
-#  - resources/bt_tests/*.yml
-#  - resources/feature_tests/*.yml
-#  - resources/stability_tests/*.yml
+#  - archive/resources/<group>/*.yml   # archived at 0.0.4, see note above
 # - resources/sample_jobs/*.yml
-#  - resources/v0_0_2_tests/*.yml
 
 # The framework wheel (a `.whl` -- a ZIP distribution) is built AND published by
 # `bundle deploy` itself. There is no separate upload step, and no pinned-path variable to keep

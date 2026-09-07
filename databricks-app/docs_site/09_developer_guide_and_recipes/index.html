@@ -4789,7 +4789,7 @@ schema <strong><code>flowx.flowx_sample</code></strong>.</p>
 </tr>
 <tr>
 <td><code>flowx_sample_06_asn1_tap3_job</code></td>
-<td><code>source_type: "asn1"</code> decoding of BER payloads against the <strong>real GSMA TAP release 3.10</strong> module (<code>flowx_testing/BT_Testing/TAP.310.asn1</code>), with undecodable payloads quarantined</td>
+<td><code>source_type: "asn1"</code> decoding of BER payloads against the <strong>real GSMA TAP release 3.10</strong> module (<code>BT_Usecase/UC7/data/asn_schema/TAP.310.asn1</code>), with undecodable payloads quarantined</td>
 </tr>
 </tbody>
 </table>
@@ -4853,7 +4853,7 @@ Onboarding is provisioning, so it happens once in the seed job rather than on ev
 <p>Pass <code>action_type=UPDATE</code> to the seed job to re-onboard specs that changed after first onboarding.</p>
 <h3 id="64-sample-06-the-real-gsma-tap3-module-and-why-the-pdu-is-notification">6.4 Sample 06: the real GSMA TAP3 module, and why the PDU is <code>Notification</code><a class="headerlink" href="#64-sample-06-the-real-gsma-tap3-module-and-why-the-pdu-is-notification" title="Permanent link">&para;</a></h3>
 <p>Sample 06 is the suite's ASN.1 case, and it deliberately uses the <strong>genuine</strong> GSMA TAP release 3.10
-specification already shipped in this repo at <code>flowx_testing/BT_Testing/TAP.310.asn1</code> - 1597
+specification already shipped in this repo at <code>BT_Usecase/UC7/data/asn_schema/TAP.310.asn1</code> - 1597
 lines, 375 types - rather than a hand-written toy module.
 (<code>flowx_testing/013_ing_004_asn1_decode.json</code> still uses the 5-field
 <code>sample_data/asn1_schema/gsm_cdr.asn</code>; that exists only for TC-ING-004.)</p>

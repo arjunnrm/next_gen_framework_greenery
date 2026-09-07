@@ -3222,6 +3222,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#35-repo-side-data-assets-and-their-provenance" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.5 Repo-side data assets and their provenance
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -4796,6 +4807,17 @@
     <span class="md-ellipsis">
       
         3.4 Ingestion flow and timestamp traceability
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#35-repo-side-data-assets-and-their-provenance" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.5 Repo-side data assets and their provenance
       
     </span>
   </a>
@@ -6526,8 +6548,107 @@ body, .md-typeset, .md-typeset table, .md-typeset h1, .md-typeset h2,
 <b>Expected content:</b> Expanded folder tree showing <code>raw/</code> with its six element subfolders, <code>asn_schema/</code> with the eight <code>.asn1</code> modules, <code>_schemas/</code>, <code>output_sample/</code> and <code>archive/</code>, with file sizes visible — notably the 42 MB SGSN <code>.fin</code> file.
 </div>
 
+<h3 id="35-repo-side-data-assets-and-their-provenance">3.5 Repo-side data assets and their provenance<a class="headerlink" href="#35-repo-side-data-assets-and-their-provenance" title="Permanent link">&para;</a></h3>
+<p>The Volume tree in 3.3.1 is the runtime landing zone. A smaller set of assets is also held <strong>in the
+repository</strong> under <code>BT_Usecase/UC7/data/</code>, for schema compilation, local decode tests and reproducible
+fixtures. Every one of them is labelled below as either <strong>[Customer-Provided]</strong> — supplied by the
+customer, never generated — or <strong>[Simulated]</strong> — produced by a generator in this repository.</p>
+<table>
+<thead>
+<tr>
+<th>Repo path</th>
+<th>Provenance</th>
+<th>What it is</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>BT_Usecase/UC7/data/asn_schema/EMSC.asn1</code></td>
+<td><strong>[Customer-Provided]</strong></td>
+<td>Real telecom ASN.1 protocol module (module <code>MSC12A</code>), root PDU <code>CallDataRecord</code></td>
+</tr>
+<tr>
+<td><code>BT_Usecase/UC7/data/asn_schema/GGSN.asn1</code></td>
+<td><strong>[Customer-Provided]</strong></td>
+<td>Real ASN.1 module, byte-identical to <code>SGSN.asn1</code> (see 7.4.2)</td>
+</tr>
+<tr>
+<td><code>BT_Usecase/UC7/data/asn_schema/PSGW.asn1</code></td>
+<td><strong>[Customer-Provided]</strong></td>
+<td>Real ASN.1 module (module <code>CDRF-R9</code>, superset of SGSN), root PDU <code>CallEventRecord</code></td>
+</tr>
+<tr>
+<td><code>BT_Usecase/UC7/data/asn_schema/TAP.310.asn1</code></td>
+<td><strong>[Customer-Provided]</strong></td>
+<td>Real ASN.1 module (module <code>TAP-0310</code>), root PDU <code>DataInterChange</code></td>
+</tr>
+<tr>
+<td><code>BT_Usecase/UC7/data/asn_schema/TAP.311.asn1</code></td>
+<td><strong>[Customer-Provided]</strong></td>
+<td>Real ASN.1 module for TAP 3.11; retained as the negative control that proved the 3.10 mapping (see 7.4.1)</td>
+</tr>
+<tr>
+<td><code>BT_Usecase/UC7/data/tap311_sample.ber</code></td>
+<td><strong>[Customer-Provided]</strong></td>
+<td>Supplied sample TAP payload</td>
+</tr>
+<tr>
+<td><code>BT_Usecase/UC7/data/EE_2026-08-20-REQUEST_1OF1.csv.gz.gpg</code></td>
+<td><strong>[Customer-Provided]</strong></td>
+<td>Supplied GPG-encrypted gzipped CSV extract</td>
+</tr>
+<tr>
+<td><code>BT_Usecase/UC7/data/synthetic/emsc_synthetic.ber</code></td>
+<td><strong>[Simulated]</strong></td>
+<td>Generated fixture — 10 concatenated BER records</td>
+</tr>
+<tr>
+<td><code>BT_Usecase/UC7/data/synthetic/ggsn_synthetic.ber</code></td>
+<td><strong>[Simulated]</strong></td>
+<td>Generated fixture — 10 concatenated BER records</td>
+</tr>
+<tr>
+<td><code>BT_Usecase/UC7/data/synthetic/psgw_synthetic.ber</code></td>
+<td><strong>[Simulated]</strong></td>
+<td>Generated fixture — 10 concatenated BER records</td>
+</tr>
+<tr>
+<td><code>BT_Usecase/UC7/data/synthetic/tap310_synthetic.ber</code></td>
+<td><strong>[Simulated]</strong></td>
+<td>Generated fixture — 10 concatenated BER records</td>
+</tr>
+<tr>
+<td><code>BT_Usecase/UC7/data/synthetic/tap311_synthetic.ber</code></td>
+<td><strong>[Simulated]</strong></td>
+<td>Generated fixture — 10 concatenated BER records</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Why the distinction matters, stated explicitly:</strong></p>
+<ul>
+<li>The five <code>.asn1</code> modules are <strong>[Customer-Provided]</strong> and are <strong>never</strong> generated. No script in this
+  repository emits them; <code>scripts/generate_synthetic_ber.py</code> <strong>reads them as input</strong>. They are the
+  authoritative wire-format contract, and the correctness of every decoded column rests on them.</li>
+<li>The five <code>.ber</code> files under <code>synthetic/</code> are <strong>[Simulated]</strong>: <code>scripts/generate_synthetic_ber.py</code>
+  writes each one as <strong>10 BER-encoded records of the module's root PDU, concatenated back to back</strong>
+  with no length prefix, separator or terminator. Generation is <strong>deterministic</strong> — every value is
+  derived from a seeded RNG plus the field path, so regenerating produces byte-identical files.</li>
+<li><code>tap311_sample.ber</code> sits at <code>data/</code> root, <strong>not</strong> under <code>synthetic/</code>, precisely because it is
+  <strong>[Customer-Provided]</strong> and must not be confused with the generated fixtures.</li>
+<li><strong>[Simulated]</strong> assets are fixtures for decoder tests. <strong>No production figure in this document —
+  the 175,498 record count, the 0 decode errors, the per-source arm distributions in 7.4 — comes from
+  a [Simulated] file.</strong> Every one of those was read from <strong>[Customer-Provided]</strong> payloads landed on
+  <code>/Volumes/flowx/landing/uc_7/raw/</code>.</li>
+</ul>
 <hr />
 <h2 id="40-metadata-driven-framework-and-onboarding-json-configuration">4.0 Metadata-Driven Framework and Onboarding JSON Configuration<a class="headerlink" href="#40-metadata-driven-framework-and-onboarding-json-configuration" title="Permanent link">&para;</a></h2>
+<blockquote>
+<p><strong>Active specification file:</strong> <code>BT_Usecase/UC7/onboarding/UC7_cdr_asn_bronze.json</code>
+— the single file that drives everything in this section. It declares dataflow group
+<strong><code>dfg_uc7_cdr_asn</code></strong> with <strong>four</strong> ASN.1 ingestion flows (EMSC, PSGW, SGSN, TAP 3.10), no
+transformation flows, no reconciliation flows, and one observability destination. Every attribute
+table in 4.3 is documented <strong>against that file</strong>, not against the framework's general capability.</p>
+</blockquote>
 <h3 id="41-the-ingestion-control-mechanism">4.1 The ingestion control mechanism<a class="headerlink" href="#41-the-ingestion-control-mechanism" title="Permanent link">&para;</a></h3>
 <p><strong>Principle:</strong> the pipeline contains <strong>no source-specific code</strong>. All source-specific behaviour is data, held in control tables, and read at runtime.</p>
 <p><strong>Step-by-step control flow:</strong></p>
@@ -6579,10 +6700,10 @@ body, .md-typeset, .md-typeset table, .md-typeset h1, .md-typeset h2,
 </tbody>
 </table>
 <h3 id="42-production-onboarding-json-configuration">4.2 Production onboarding JSON configuration<a class="headerlink" href="#42-production-onboarding-json-configuration" title="Permanent link">&para;</a></h3>
-<p>The live specification file is <strong><code>flowx_testing/UC7_cdr_asn_bronze.json</code></strong>. Below is the production-grade configuration. The <code>_provenance</code>, <code>_test_case_note</code> and <code>_expected_result</code> keys are author-comment fields (any key beginning with an underscore is permitted and ignored by the engine) and are abbreviated here for readability.</p>
+<p>The live specification file is <strong><code>BT_Usecase/UC7/onboarding/UC7_cdr_asn_bronze.json</code></strong>. Below is the production-grade configuration. The spec carries exactly one author-comment key, the root-level <code>_about</code> header (use case, description, framework version, date, developer); any key beginning with an underscore is permitted and ignored by the engine, and <code>_about</code> is the only one used. It is abbreviated here for readability.</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="p">{</span>
-<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="w">  </span><span class="nt">"_provenance"</span><span class="p">:</span><span class="w"> </span><span class="s2">"UC_7 CDR ASN.1 decoders -&gt; flowx.bronze. Framework wheel 0.0.3."</span><span class="p">,</span>
-<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="w">  </span><span class="nt">"_expected_result"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Four streaming tables in flowx.bronze with 0 decode errors."</span><span class="p">,</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="w">  </span><span class="nt">"$schema"</span><span class="p">:</span><span class="w"> </span><span class="s2">"../../../onboarding_templates/onboarding_spec.schema.json"</span><span class="p">,</span>
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="w">  </span><span class="nt">"_about"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nt">"use_case"</span><span class="p">:</span><span class="w"> </span><span class="s2">"UC7 - CDR ASN.1 decode to Bronze"</span><span class="p">,</span><span class="w"> </span><span class="nt">"description"</span><span class="p">:</span><span class="w"> </span><span class="s2">"..."</span><span class="p">,</span><span class="w"> </span><span class="nt">"version"</span><span class="p">:</span><span class="w"> </span><span class="s2">"FlowX 0.0.4"</span><span class="p">,</span><span class="w"> </span><span class="nt">"date"</span><span class="p">:</span><span class="w"> </span><span class="s2">"2026-09-05"</span><span class="p">,</span><span class="w"> </span><span class="nt">"developer"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Madhan Raghu"</span><span class="w"> </span><span class="p">},</span>
 <a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>
 <a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="w">  </span><span class="nt">"dataflow_group_id"</span><span class="p">:</span><span class="w"> </span><span class="s2">"dfg_uc7_cdr_asn"</span><span class="p">,</span>
 <a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="w">  </span><span class="nt">"pipeline_parameters"</span><span class="p">:</span><span class="w"> </span><span class="p">{},</span>
@@ -6593,7 +6714,7 @@ body, .md-typeset, .md-typeset table, .md-typeset h1, .md-typeset h2,
 <a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a><span class="w">      </span><span class="nt">"source_system"</span><span class="p">:</span><span class="w"> </span><span class="s2">"sgsn_cdr_feed"</span><span class="p">,</span>
 <a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a><span class="w">      </span><span class="nt">"source_database"</span><span class="p">:</span><span class="w"> </span><span class="s2">"uc_7"</span><span class="p">,</span>
 <a id="__codelineno-4-13" name="__codelineno-4-13" href="#__codelineno-4-13"></a><span class="w">      </span><span class="nt">"source_table_name"</span><span class="p">:</span><span class="w"> </span><span class="s2">"sgsn_call_event_record"</span><span class="p">,</span>
-<a id="__codelineno-4-14" name="__codelineno-4-14" href="#__codelineno-4-14"></a><span class="w">      </span><span class="nt">"source_description"</span><span class="p">:</span><span class="w"> </span><span class="s2">"UC_7 SGSN BER-encoded call event records, decoded against SGSN.asn1 (module CDRF-R9). Root PDU auto-detected as CallEventRecord. Concatenated-TLV files: one 42MB .fin holds 175,048 records."</span><span class="p">,</span>
+<a id="__codelineno-4-14" name="__codelineno-4-14" href="#__codelineno-4-14"></a><span class="w">      </span><span class="nt">"source_description"</span><span class="p">:</span><span class="w"> </span><span class="s2">"UC_7 SGSN (serving GPRS support node) BER-encoded call event records, decoded against SGSN.asn1 (module CDRF-R9). Root PDU auto-detected as CallEventRecord; all observed records select sgsnPDPRecord. Concatenated-TLV and large: one 42MB .fin file holds 175,048 records."</span><span class="p">,</span>
 <a id="__codelineno-4-15" name="__codelineno-4-15" href="#__codelineno-4-15"></a><span class="w">      </span><span class="nt">"source_type"</span><span class="p">:</span><span class="w"> </span><span class="s2">"asn1"</span><span class="p">,</span>
 <a id="__codelineno-4-16" name="__codelineno-4-16" href="#__codelineno-4-16"></a>
 <a id="__codelineno-4-17" name="__codelineno-4-17" href="#__codelineno-4-17"></a><span class="w">      </span><span class="nt">"target_catalog"</span><span class="p">:</span><span class="w"> </span><span class="s2">"{{catalog}}"</span><span class="p">,</span>
@@ -6604,9 +6725,9 @@ body, .md-typeset, .md-typeset table, .md-typeset h1, .md-typeset h2,
 <a id="__codelineno-4-22" name="__codelineno-4-22" href="#__codelineno-4-22"></a><span class="w">      </span><span class="nt">"source_config"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
 <a id="__codelineno-4-23" name="__codelineno-4-23" href="#__codelineno-4-23"></a><span class="w">        </span><span class="nt">"path"</span><span class="p">:</span><span class="w"> </span><span class="s2">"/Volumes/{{catalog}}/landing/uc_7/raw/SGSN/"</span><span class="p">,</span>
 <a id="__codelineno-4-24" name="__codelineno-4-24" href="#__codelineno-4-24"></a><span class="w">        </span><span class="nt">"schema_location"</span><span class="p">:</span><span class="w"> </span><span class="s2">"/Volumes/{{catalog}}/landing/uc_7/_schemas/sgsn_cdr_raw/"</span><span class="p">,</span>
-<a id="__codelineno-4-25" name="__codelineno-4-25" href="#__codelineno-4-25"></a><span class="w">        </span><span class="nt">"asn1_schema_path"</span><span class="p">:</span><span class="w"> </span><span class="s2">"/Volumes/{{catalog}}/landing/uc_7/asn_schema/SGSN.asn1"</span><span class="p">,</span>
-<a id="__codelineno-4-26" name="__codelineno-4-26" href="#__codelineno-4-26"></a><span class="w">        </span><span class="nt">"asn1_codec"</span><span class="p">:</span><span class="w"> </span><span class="s2">"ber"</span><span class="p">,</span>
-<a id="__codelineno-4-27" name="__codelineno-4-27" href="#__codelineno-4-27"></a><span class="w">        </span><span class="nt">"capture_technical_metadata"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span>
+<a id="__codelineno-4-25" name="__codelineno-4-25" href="#__codelineno-4-25"></a><span class="w">        </span><span class="nt">"capture_technical_metadata"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+<a id="__codelineno-4-26" name="__codelineno-4-26" href="#__codelineno-4-26"></a><span class="w">        </span><span class="nt">"asn1_schema_path"</span><span class="p">:</span><span class="w"> </span><span class="s2">"/Volumes/{{catalog}}/landing/uc_7/asn_schema/SGSN.asn1"</span><span class="p">,</span>
+<a id="__codelineno-4-27" name="__codelineno-4-27" href="#__codelineno-4-27"></a><span class="w">        </span><span class="nt">"asn1_codec"</span><span class="p">:</span><span class="w"> </span><span class="s2">"ber"</span>
 <a id="__codelineno-4-28" name="__codelineno-4-28" href="#__codelineno-4-28"></a><span class="w">      </span><span class="p">},</span>
 <a id="__codelineno-4-29" name="__codelineno-4-29" href="#__codelineno-4-29"></a>
 <a id="__codelineno-4-30" name="__codelineno-4-30" href="#__codelineno-4-30"></a><span class="w">      </span><span class="nt">"target_config"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
@@ -6658,48 +6779,177 @@ body, .md-typeset, .md-typeset table, .md-typeset h1, .md-typeset h2,
 <a id="__codelineno-4-76" name="__codelineno-4-76" href="#__codelineno-4-76"></a><span class="p">}</span>
 </code></pre></div>
 <blockquote>
-<p><strong>Note on scope fidelity:</strong> the live UC7 spec contains <strong>four</strong> such blocks in <code>ingestion_flows</code> (EMSC, PSGW, SGSN, TAP). Only the SGSN block is reproduced above; the other three are structurally identical, differing in <code>path</code>, <code>asn1_schema_path</code>, <code>target_table</code>, <code>quarantine_table</code> and the arm named in the third DQ rule.</p>
+<p><strong>Note on scope fidelity:</strong> the live UC7 spec contains <strong>four</strong> such blocks in <code>ingestion_flows</code> (EMSC, PSGW, SGSN, TAP). Only the SGSN block is reproduced above; the other three are structurally identical, differing in <code>dataflow_id</code>, <code>source_system</code>, <code>source_table_name</code>, <code>source_description</code>, <code>path</code>, <code>schema_location</code>, <code>asn1_schema_path</code>, <code>target_table</code>, <code>quarantine_table</code>, the DQ <code>rule_id</code> prefix, and the arm named in the third DQ rule. <strong>PSGW is the one structural exception: it carries only two DQ rules</strong>, omitting the arm-populated rule entirely, because it legitimately selects two different arms (see 4.3.5).</p>
 </blockquote>
+<p><strong>4.2.1 The four flows, as declared in the live spec</strong></p>
+<table>
+<thead>
+<tr>
+<th><code>dataflow_id</code></th>
+<th><code>source_system</code></th>
+<th><code>source_table_name</code></th>
+<th><code>source_config.path</code></th>
+<th><code>asn1_schema_path</code></th>
+<th><code>target_table</code></th>
+<th><code>quarantine_table</code></th>
+<th>DQ rules</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>df_uc7_emsc_cdr_ingest</code></td>
+<td><code>emsc_cdr_feed</code></td>
+<td><code>emsc_call_data_record</code></td>
+<td><code>.../raw/EMSC/</code></td>
+<td><code>.../asn_schema/EMSC.asn1</code></td>
+<td><code>emsc_cdr_raw</code></td>
+<td><code>emsc_cdr_raw_quarantine</code></td>
+<td>3 — arm <code>uMTSGSMPLMNCallDataRecord</code></td>
+</tr>
+<tr>
+<td><code>df_uc7_psgw_cdr_ingest</code></td>
+<td><code>psgw_cdr_feed</code></td>
+<td><code>psgw_call_event_record</code></td>
+<td><code>.../raw/PSGW/</code></td>
+<td><code>.../asn_schema/PSGW.asn1</code></td>
+<td><code>psgw_cdr_raw</code></td>
+<td><code>psgw_cdr_raw_quarantine</code></td>
+<td><strong>2</strong> — no arm rule</td>
+</tr>
+<tr>
+<td><code>df_uc7_sgsn_cdr_ingest</code></td>
+<td><code>sgsn_cdr_feed</code></td>
+<td><code>sgsn_call_event_record</code></td>
+<td><code>.../raw/SGSN/</code></td>
+<td><code>.../asn_schema/SGSN.asn1</code></td>
+<td><code>sgsn_cdr_raw</code></td>
+<td><code>sgsn_cdr_raw_quarantine</code></td>
+<td>3 — arm <code>sgsnPDPRecord</code></td>
+</tr>
+<tr>
+<td><code>df_uc7_tap310_ingest</code></td>
+<td><code>tap310_tap_feed</code></td>
+<td><code>tap310_data_interchange</code></td>
+<td><code>.../raw/TAP/</code></td>
+<td><code>.../asn_schema/TAP.310.asn1</code></td>
+<td><code>tap310_raw</code></td>
+<td><code>tap310_raw_quarantine</code></td>
+<td>3 — arm <code>transferBatch</code></td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li>All four share <code>source_database: uc_7</code>, <code>source_type: asn1</code>, <code>target_catalog: {{catalog}}</code>, <code>target_schema: bronze</code>, <code>target_type: streaming_table</code>, <code>asn1_codec: ber</code>, <code>capture_technical_metadata: true</code>, <code>cdc_load_strategy: APPEND</code>, <code>storage_format: delta</code>, <code>record_id_column: _choice</code> and <code>governance_tags: {}</code>.</li>
+<li><strong>All four omit <code>asn1_pdu_name</code></strong> — every one relies on root-PDU auto-detection. See 4.3.3 and 7.3.</li>
+</ul>
 <h3 id="43-attribute-by-attribute-breakdown">4.3 Attribute-by-attribute breakdown<a class="headerlink" href="#43-attribute-by-attribute-breakdown" title="Permanent link">&para;</a></h3>
 <p><strong>4.3.1 Root level</strong></p>
 <table>
 <thead>
 <tr>
 <th>Attribute</th>
+<th>Type</th>
 <th>Value in UC7</th>
 <th>Why it is configured this way, and how the engine evaluates it</th>
 </tr>
 </thead>
 <tbody>
 <tr>
+<td><code>$schema</code></td>
+<td>string</td>
+<td><code>../../../onboarding_templates/onboarding_spec.schema.json</code></td>
+<td>Editor/CI hook to the JSON schema. Consumed by IDEs and by the schema gate; <strong>ignored by the engine at runtime</strong>. Note that a spec must pass <strong>both</strong> gates — the JSON schema <em>and</em> <code>spec_validator.py</code> — because only the schema rejects unknown keys.</td>
+</tr>
+<tr>
+<td><code>_about</code></td>
+<td>object</td>
+<td><code>use_case</code>, <code>description</code>, <code>version</code>, <code>date</code>, <code>developer</code></td>
+<td>The spec's one author-comment key. Any key beginning with <code>_</code> is permitted and ignored by the engine; <code>_about</code> is the only one used. It carries a back-link to this document.</td>
+</tr>
+<tr>
 <td><code>dataflow_group_id</code></td>
+<td>string</td>
 <td><code>dfg_uc7_cdr_asn</code></td>
 <td>The join key between configuration and pipeline. The pipeline reads <code>dataflow.group.id</code> from its Spark config and selects exactly the control rows carrying this value. All four sources share one group so that one pipeline owns all four tables.</td>
 </tr>
 <tr>
 <td><code>pipeline_parameters</code></td>
+<td>object</td>
 <td><code>{}</code></td>
 <td>Empty because UC7 needs no runtime path parameters. When populated, <code>${param}</code> placeholders in paths are resolved <strong>on every pipeline update</strong>, unlike <code>{{catalog}}</code> which is resolved once at onboarding.</td>
 </tr>
 <tr>
 <td><code>ingestion_flows</code></td>
+<td>array of objects</td>
 <td>4 entries</td>
 <td>Each entry becomes one ingestion lane in the DAG. The engine iterates this array to build nodes.</td>
 </tr>
 <tr>
 <td><code>transformation_flows</code></td>
+<td>array</td>
 <td><code>[]</code></td>
 <td>UC7 is a bronze decode product; no in-pipeline transformation is defined.</td>
 </tr>
 <tr>
 <td><code>reconciliation_flows</code></td>
+<td>array</td>
 <td><code>[]</code></td>
 <td>No in-pipeline reconciliation. Count reconciliation is done from the event log instead (section 9.0).</td>
 </tr>
 <tr>
 <td><code>observability</code></td>
+<td>array of objects</td>
 <td>1 destination</td>
 <td>Upserted into <code>flowx.config.observability_config</code> and read at runtime by the observability task. Destinations are <strong>not</strong> configured in YAML.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>4.3.1a <code>observability[0]</code> — the telemetry destination</strong></p>
+<table>
+<thead>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Value in UC7</th>
+<th>Runtime effect</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>id</code></td>
+<td>string</td>
+<td><code>dest-uc7-volume</code></td>
+<td>Primary key of the destination row in <code>flowx.config.observability_config</code>; re-onboarding upserts on it.</td>
+</tr>
+<tr>
+<td><code>enabled</code></td>
+<td>boolean</td>
+<td><code>true</code></td>
+<td>Gate. When <code>false</code> the row is still written but the <code>observability_export</code> task skips this destination.</td>
+</tr>
+<tr>
+<td><code>type</code></td>
+<td>string (enum)</td>
+<td><code>DATABRICKS_VOLUME</code></td>
+<td>Dispatch key selecting the exporter implementation.</td>
+</tr>
+<tr>
+<td><code>destination_config.volume_path</code></td>
+<td>string</td>
+<td><code>/Volumes/{{catalog}}/observability/app_logs/</code></td>
+<td>Where extracted event-log telemetry is written. <code>{{catalog}}</code> resolves at onboarding.</td>
+</tr>
+<tr>
+<td><code>destination_config.compression</code></td>
+<td>string (enum)</td>
+<td><code>GZIP</code></td>
+<td>Output files are gzipped.</td>
+</tr>
+<tr>
+<td><code>destination_config.file_format</code></td>
+<td>string (enum)</td>
+<td><code>JSONL</code></td>
+<td>One JSON object per line, so the export is appendable and streamable.</td>
 </tr>
 </tbody>
 </table>
@@ -6708,58 +6958,69 @@ body, .md-typeset, .md-typeset table, .md-typeset h1, .md-typeset h2,
 <thead>
 <tr>
 <th>Attribute</th>
-<th>Value</th>
+<th>Type</th>
+<th>Value (SGSN flow)</th>
 <th>Why, and how the engine uses it</th>
 </tr>
 </thead>
 <tbody>
 <tr>
 <td><code>dataflow_id</code></td>
+<td>string</td>
 <td><code>df_uc7_sgsn_cdr_ingest</code></td>
 <td>Unique identity of this lane. Appears in the event log and control tables; used to trace a specific lane's metrics.</td>
 </tr>
 <tr>
 <td><code>source_system</code></td>
+<td>string</td>
 <td><code>sgsn_cdr_feed</code></td>
 <td>Lineage label naming the originating system. Free text, carried into metadata.</td>
 </tr>
 <tr>
 <td><code>source_database</code></td>
+<td>string</td>
 <td><code>uc_7</code></td>
-<td>Logical grouping of the source. Free text.</td>
+<td>Logical grouping of the source. Free text. All four UC7 flows share this value.</td>
 </tr>
 <tr>
 <td><code>source_table_name</code></td>
+<td>string</td>
 <td><code>sgsn_call_event_record</code></td>
 <td>The logical name of the source entity, distinct from the physical target table.</td>
 </tr>
 <tr>
 <td><code>source_description</code></td>
+<td>string</td>
 <td>Long text</td>
-<td>Documentation carried into the control tables so the <em>why</em> travels with the config, not just the code.</td>
+<td>Documentation carried into the control tables so the <em>why</em> travels with the config, not just the code. In UC7 each description records the module, the auto-detected root PDU and the observed arms.</td>
 </tr>
 <tr>
 <td><code>source_type</code></td>
+<td>string (enum)</td>
 <td><code>asn1</code></td>
 <td><strong>The dispatch key.</strong> The engine selects its reader from this: <code>asn1</code> routes to the ASN.1 reader (Auto Loader <code>binaryFile</code> plus decode). Valid values are <code>autoloader</code>, <code>zerobus</code>, <code>asn1</code>.</td>
 </tr>
 <tr>
 <td><code>target_catalog</code></td>
+<td>string</td>
 <td><code>{{catalog}}</code></td>
 <td>Resolved to <code>flowx</code> at onboarding time from the job's <code>catalog</code> parameter. Using a placeholder keeps the spec portable across workspaces.</td>
 </tr>
 <tr>
 <td><code>target_schema</code></td>
+<td>string</td>
 <td><code>bronze</code></td>
 <td>The bronze layer. Deliberately <strong>not</strong> <code>bronze_dev</code> — environments separate by catalog.</td>
 </tr>
 <tr>
 <td><code>target_table</code></td>
+<td>string</td>
 <td><code>sgsn_cdr_raw</code></td>
 <td>Physical Delta table name.</td>
 </tr>
 <tr>
 <td><code>target_type</code></td>
+<td>string (enum)</td>
 <td><code>streaming_table</code></td>
 <td>Makes this an append-only incremental streaming table, the correct choice for immutable event data. Alternatives are <code>materialized_view</code>, <code>batch_table</code>, <code>external_sink</code>, <code>sink</code>.</td>
 </tr>
@@ -6770,75 +7031,109 @@ body, .md-typeset, .md-typeset table, .md-typeset h1, .md-typeset h2,
 <thead>
 <tr>
 <th>Attribute</th>
-<th>Value</th>
+<th>Type</th>
+<th>Value (SGSN flow)</th>
 <th>Why, and how the engine evaluates it</th>
 </tr>
 </thead>
 <tbody>
 <tr>
 <td><code>path</code></td>
+<td>string (required)</td>
 <td><code>/Volumes/flowx/landing/uc_7/raw/SGSN/</code></td>
 <td>The directory Auto Loader watches. Each source has its <strong>own</strong> path, which also avoids the framework's shared-path validation rule that requires identical retention settings when two flows read one directory.</td>
 </tr>
 <tr>
 <td><code>schema_location</code></td>
+<td>string (optional)</td>
 <td><code>/Volumes/.../_schemas/sgsn_cdr_raw/</code></td>
-<td>Auto Loader's checkpoint. <strong>This is what makes re-runs idempotent</strong> — it records which files have been consumed. Set explicitly rather than relying on the framework default, so the checkpoint sits beside the data it belongs to.</td>
+<td>Auto Loader's checkpoint. <strong>This is what makes re-runs idempotent</strong> — it records which files have been consumed. Set explicitly on all four flows rather than relying on the framework default, so the checkpoint sits beside the data it belongs to.</td>
+</tr>
+<tr>
+<td><code>capture_technical_metadata</code></td>
+<td>boolean (optional)</td>
+<td><code>true</code></td>
+<td>Produces the <code>__framework_*</code> audit columns — source file name, size, modification time, ingestion timestamp, pipeline run ID, record ID. <strong>This is what makes billing disputes answerable.</strong></td>
 </tr>
 <tr>
 <td><code>asn1_schema_path</code></td>
+<td>string (required for <code>source_type: asn1</code>)</td>
 <td><code>.../asn_schema/SGSN.asn1</code></td>
-<td>The ASN.1 module used to decode. This is the single most important attribute for correctness: the wrong module decodes to wrong data. Each mapping was verified by decoding real bytes (section 7.0).</td>
+<td>The ASN.1 module used to decode. This is the single most important attribute for correctness: the wrong module decodes to wrong data. The engine compiles this module and <strong>derives the Spark output schema from it by introspection</strong> — there is no second, hand-written schema description to drift. Each mapping was verified by decoding real bytes (section 7.0).</td>
 </tr>
 <tr>
 <td><code>asn1_codec</code></td>
+<td>string (enum)</td>
 <td><code>ber</code></td>
 <td>Basic Encoding Rules. Confirmed from the payloads: both definite and indefinite length forms are present, and <strong>DER forbids indefinite length</strong>, so BER is the correct and only valid choice here. Allowed values are strictly <code>ber</code> or <code>der</code>.</td>
 </tr>
 <tr>
 <td><code>asn1_pdu_name</code></td>
-<td><strong>omitted deliberately</strong></td>
-<td>Optional since framework 0.0.2. When absent, <code>detect_root_pdu_name()</code> derives the root PDU from the module's own dependency structure. Verified to resolve <code>CallEventRecord</code> for SGSN. Omitting it means the standard is the source of truth, not a hand-typed string that can drift.</td>
-</tr>
-<tr>
-<td><code>capture_technical_metadata</code></td>
-<td><code>true</code></td>
-<td>Produces the <code>__framework_*</code> audit columns — source file name, size, modification time, ingestion timestamp, pipeline run ID, record ID. <strong>This is what makes billing disputes answerable.</strong></td>
+<td>string (<strong>OPTIONAL</strong>)</td>
+<td><strong>omitted on all four flows</strong></td>
+<td><strong>Optional, not required — see the callout below.</strong> When absent, blank or whitespace-only, <code>detect_root_pdu_name()</code> derives the root PDU from the module's own type-dependency graph. Verified to resolve <code>CallEventRecord</code> for SGSN. Omitting it means the standard is the source of truth, not a hand-typed string that can drift.</td>
 </tr>
 <tr>
 <td><code>file_pattern</code></td>
+<td>string (optional)</td>
 <td><strong>omitted deliberately</strong></td>
 <td>The raw folders hold <code>.raw</code>, <code>.fin</code>, and extensionless TAP files. Any glob would silently skip files, which is exactly the failure mode UC7 must avoid.</td>
 </tr>
 </tbody>
 </table>
+<blockquote>
+<p><strong>Correctness callout — <code>asn1_pdu_name</code> is OPTIONAL, never mandatory.</strong>
+Since framework <strong>0.0.2</strong> the root PDU no longer has to be supplied. The rule, as implemented in
+<code>src/flowx/lakeflow_framework/asn1/decoder.py</code> and enforced by <code>spec_validator.py</code>:</p>
+<ul>
+<li><strong>Absent, <code>null</code>, <code>""</code> or whitespace-only → auto-detect.</strong> <code>detect_root_pdu_name()</code> infers the
+  root as the one top-level <code>SEQUENCE</code>/<code>CHOICE</code> that no other type in the module references — the
+  entry point of the module's own type-dependency graph.</li>
+<li><strong>Supplied → unconditional OVERRIDE.</strong> A given name is used as-is and is <strong>never second-guessed</strong>;
+  it does not "hint" or "assist" detection, it replaces it entirely.</li>
+<li><strong>An ambiguous module raises</strong> rather than guessing, because a wrong root does not fail loudly —
+  it silently produces a full table of garbage columns.</li>
+<li><strong>All four UC7 flows rely on auto-detection and omit the key</strong>, which is the recommended posture
+  for a real telecom module. Validation trigger is on <strong>presence</strong>, not truthiness: the validator
+  only type-checks the value when the key is actually present.</li>
+</ul>
+<p>The JSON schema previously and <strong>wrongly</strong> marked <code>asn1_pdu_name</code> as required; that has been
+corrected. If you are working from an older copy of the schema or of this document that describes
+it as mandatory, that description is stale — the spec, the validator and the decoder all treat it
+as optional.</p>
+</blockquote>
 <p><strong>4.3.4 <code>target_config</code> — write behaviour</strong></p>
 <table>
 <thead>
 <tr>
 <th>Attribute</th>
-<th>Value</th>
+<th>Type</th>
+<th>Value (all four flows)</th>
 <th>Why, and how the engine evaluates it</th>
 </tr>
 </thead>
 <tbody>
 <tr>
 <td><code>cdc_load_strategy</code></td>
+<td>string (enum)</td>
 <td><code>APPEND</code></td>
 <td>CDRs are <strong>immutable events</strong> — a completed call is never updated. Append is semantically correct and requires no <code>primary_keys</code>. The engine dispatches to the append writer. Other strategies (<code>SCD1</code>, <code>SCD2</code>, <code>TRUNCATE_AND_LOAD</code>, <code>FULL_SNAPSHOT_CDC</code>) apply to mutable dimensions and belong in downstream layers.</td>
 </tr>
 <tr>
 <td><code>storage_format</code></td>
+<td>string (enum)</td>
 <td><code>delta</code></td>
 <td>Required for a <code>streaming_table</code>. <code>iceberg</code> is only permitted with <code>target_type: batch_table</code>.</td>
 </tr>
 <tr>
 <td><code>primary_keys</code></td>
+<td>array of strings (optional)</td>
 <td><strong>not set</strong></td>
 <td>Correctly absent: only required for SCD1, SCD2, SCD3 and snapshot CDC strategies.</td>
 </tr>
 <tr>
 <td><code>partition_columns</code></td>
+<td>array of strings (optional)</td>
 <td><strong>not set</strong></td>
 <td>At current volume (175k rows) partitioning would create small files and hurt performance. Revisit at multi-billion-row scale, likely on a date derived from the CDR event time.</td>
 </tr>
@@ -6849,40 +7144,65 @@ body, .md-typeset, .md-typeset table, .md-typeset h1, .md-typeset h2,
 <thead>
 <tr>
 <th>Attribute</th>
+<th>Type</th>
 <th>Value</th>
 <th>Why, and how the engine evaluates it</th>
 </tr>
 </thead>
 <tbody>
 <tr>
+<td><code>rules</code></td>
+<td>array of objects</td>
+<td>3 rules (SGSN, EMSC, TAP) / <strong>2 rules (PSGW)</strong></td>
+<td>Each entry becomes one DLT expectation on the <code>_&lt;table&gt;_staged</code> node.</td>
+</tr>
+<tr>
+<td><code>rules[].rule_id</code></td>
+<td>string</td>
+<td>e.g. <code>dq_sgsn_asn1_decode_ok</code></td>
+<td>Names the expectation. This is the string that appears in the event log <code>flow_progress</code> <code>data_quality.expectations</code> array, so it is what Recipe 2 (9.3) filters on. Prefixed per source so the four lanes never collide.</td>
+</tr>
+<tr>
+<td><code>rules[].expression</code></td>
+<td>string (SQL)</td>
+<td>see rows below</td>
+<td>Evaluated as a <strong>SQL boolean</strong> against each staged row. <code>true</code> passes, <code>false</code> routes to quarantine.</td>
+</tr>
+<tr>
 <td><code>rules[].action</code></td>
+<td>string (enum)</td>
 <td><code>quarantine</code> on every rule</td>
 <td><strong>Never <code>drop</code>, never <code>fail</code>.</strong> A dropped CDR is unbilled revenue. A failed batch blocks the whole night. Quarantine keeps the record, keeps the reason, and lets siblings load.</td>
 </tr>
 <tr>
 <td><code>dq_*_asn1_decode_ok</code></td>
+<td>rule</td>
 <td><code>_asn1_decode_error IS NULL</code></td>
-<td>The universal check. Applies to all four sources.</td>
+<td>The universal check. Present on <strong>all four</strong> sources.</td>
 </tr>
 <tr>
 <td><code>dq_*_choice_arm_selected</code></td>
+<td>rule</td>
 <td><code>_choice IS NOT NULL AND _choice &lt;&gt; ''</code></td>
-<td>Guards a genuine hazard: <code>asn1tools</code> returns <code>(None, None)</code> rather than raising when a CHOICE matches no arm, which would otherwise write an all-NULL row indistinguishable from a valid empty record.</td>
+<td>Present on <strong>all four</strong> sources. Guards a genuine hazard: <code>asn1tools</code> returns <code>(None, None)</code> rather than raising when a CHOICE matches no arm, which would otherwise write an all-NULL row indistinguishable from a valid empty record.</td>
 </tr>
 <tr>
 <td><code>dq_*_arm_populated</code></td>
+<td>rule</td>
 <td><code>_choice &lt;&gt; '&lt;arm&gt;' OR &lt;arm&gt; IS NOT NULL</code></td>
-<td>Confirms the selected arm actually decoded to a non-null struct. Written as an implication so it is vacuously true for other arms rather than false.</td>
+<td>Present on <strong>EMSC</strong> (<code>uMTSGSMPLMNCallDataRecord</code>), <strong>SGSN</strong> (<code>sgsnPDPRecord</code>) and <strong>TAP</strong> (<code>transferBatch</code>); <strong>absent on PSGW</strong>. Confirms the selected arm actually decoded to a non-null struct. Written as an implication so it is vacuously true for other arms rather than false.</td>
 </tr>
 <tr>
 <td><code>quarantine_table</code></td>
+<td>string</td>
 <td><code>sgsn_cdr_raw_quarantine</code></td>
-<td>Materialised only because at least one rule uses <code>quarantine</code>.</td>
+<td>Name of the sibling table that receives failing rows. Materialised only because at least one rule uses <code>quarantine</code>. Always <code>&lt;target_table&gt;_quarantine</code> in UC7.</td>
 </tr>
 <tr>
 <td><code>record_id_column</code></td>
+<td>string</td>
 <td><code>_choice</code></td>
-<td>Must be a <strong>top-level</strong> column present in <code>df.columns</code>. A dotted struct path is silently ignored by the quarantine writer, so a nested field would fail quietly.</td>
+<td>Stamped onto the quarantine row so a rejected record can be identified. Must be a <strong>top-level</strong> column present in <code>df.columns</code>. A dotted struct path is silently ignored by the quarantine writer, so a nested field would fail quietly. All four flows use <code>_choice</code>.</td>
 </tr>
 </tbody>
 </table>
@@ -9444,7 +9764,7 @@ body, .md-typeset, .md-typeset table, .md-typeset h1, .md-typeset h2,
 <ol>
 <li>Confirm the ASN.1 module exists in <code>/Volumes/flowx/landing/uc_7/asn_schema/</code>.</li>
 <li><strong>Verify the mapping by decoding a real sample file</strong> before writing any config. Never map from the file name.</li>
-<li>Add a block to <code>ingestion_flows</code> in <code>flowx_testing/UC7_cdr_asn_bronze.json</code>, following the SGSN pattern in section 4.2.</li>
+<li>Add a block to <code>ingestion_flows</code> in <code>BT_Usecase/UC7/onboarding/UC7_cdr_asn_bronze.json</code>, following the SGSN pattern in section 4.2.</li>
 <li>Deploy: <code>databricks bundle deploy -t metaflow_v7 -p metaflow_v7 --fail-on-active-runs --select pipelines.uc7_cdr_asn_pipeline,jobs.uc7_cdr_asn_job,jobs.onboarding_job</code></li>
 <li>Run the job. The new lane appears in the DAG automatically.</li>
 </ol>
@@ -9518,7 +9838,7 @@ body, .md-typeset, .md-typeset table, .md-typeset h1, .md-typeset h2,
 </thead>
 <tbody>
 <tr>
-<td><code>flowx_testing/UC7_cdr_asn_bronze.json</code></td>
+<td><code>BT_Usecase/UC7/onboarding/UC7_cdr_asn_bronze.json</code></td>
 <td>The onboarding specification</td>
 </tr>
 <tr>
@@ -9546,12 +9866,28 @@ body, .md-typeset, .md-typeset table, .md-typeset h1, .md-typeset h2,
 <td>The generic pipeline engine</td>
 </tr>
 <tr>
-<td><code>UC7_CDR_ASN_Test_Report.md</code></td>
+<td><a href="../UC7_CDR_ASN_Test_Report/"><code>UC7_CDR_ASN_Test_Report.md</code></a></td>
 <td>Detailed test report with full verification evidence</td>
 </tr>
 <tr>
-<td><code>docs/UC7/README.md</code></td>
+<td><a href="../UC7_PLAIN_ENGLISH_GUIDE/"><code>UC7_PLAIN_ENGLISH_GUIDE.md</code></a></td>
 <td>Plain-English summary for business readers</td>
+</tr>
+<tr>
+<td><a href="../UC7_ANALYSIS_AND_JOIN_GUIDE/"><code>UC7_ANALYSIS_AND_JOIN_GUIDE.md</code></a></td>
+<td>How to join and analyse the decoded bronze tables</td>
+</tr>
+<tr>
+<td><a href="../UC7_ANALYSIS_QUERIES.sql"><code>UC7_ANALYSIS_QUERIES.sql</code></a></td>
+<td>Ready-to-run analysis SQL</td>
+</tr>
+<tr>
+<td><code>BT_Usecase/UC7/data/</code></td>
+<td>Repo-side UC7 data assets — see 3.5 for provenance</td>
+</tr>
+<tr>
+<td><code>scripts/generate_synthetic_ber.py</code></td>
+<td>Generator for the <strong>[Simulated]</strong> <code>.ber</code> fixtures under <code>BT_Usecase/UC7/data/synthetic/</code></td>
 </tr>
 </tbody>
 </table>

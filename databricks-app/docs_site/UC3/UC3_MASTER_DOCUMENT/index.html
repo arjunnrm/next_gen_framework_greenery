@@ -2990,10 +2990,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#42-column-counts-verified-against-the-governance-sheets" class="md-nav__link">
+  <a href="#42-column-counts-verified-against-the-governance-sheets-customer-provided" class="md-nav__link">
     <span class="md-ellipsis">
       
-        4.2 Column counts (verified against the governance sheets)
+        4.2 Column counts (verified against the governance sheets — [Customer-Provided])
       
     </span>
   </a>
@@ -3029,10 +3029,10 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#51-what-it-generates" class="md-nav__link">
+  <a href="#51-what-it-generates-all-simulated" class="md-nav__link">
     <span class="md-ellipsis">
       
-        5.1 What it generates
+        5.1 What it generates — all [Simulated]
       
     </span>
   </a>
@@ -3051,10 +3051,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#53-verified-generated-volumes" class="md-nav__link">
+  <a href="#53-verified-generated-volumes-simulated" class="md-nav__link">
     <span class="md-ellipsis">
       
-        5.3 Verified generated volumes
+        5.3 Verified generated volumes — [Simulated]
       
     </span>
   </a>
@@ -3166,6 +3166,17 @@
     <span class="md-ellipsis">
       
         7.3 ${param} vs {{catalog}} — two different lifecycles
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#74-observability-the-telemetry-export-block" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7.4 observability — the telemetry export block
       
     </span>
   </a>
@@ -4749,10 +4760,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#42-column-counts-verified-against-the-governance-sheets" class="md-nav__link">
+  <a href="#42-column-counts-verified-against-the-governance-sheets-customer-provided" class="md-nav__link">
     <span class="md-ellipsis">
       
-        4.2 Column counts (verified against the governance sheets)
+        4.2 Column counts (verified against the governance sheets — [Customer-Provided])
       
     </span>
   </a>
@@ -4788,10 +4799,10 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#51-what-it-generates" class="md-nav__link">
+  <a href="#51-what-it-generates-all-simulated" class="md-nav__link">
     <span class="md-ellipsis">
       
-        5.1 What it generates
+        5.1 What it generates — all [Simulated]
       
     </span>
   </a>
@@ -4810,10 +4821,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#53-verified-generated-volumes" class="md-nav__link">
+  <a href="#53-verified-generated-volumes-simulated" class="md-nav__link">
     <span class="md-ellipsis">
       
-        5.3 Verified generated volumes
+        5.3 Verified generated volumes — [Simulated]
       
     </span>
   </a>
@@ -4925,6 +4936,17 @@
     <span class="md-ellipsis">
       
         7.3 ${param} vs {{catalog}} — two different lifecycles
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#74-observability-the-telemetry-export-block" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7.4 observability — the telemetry export block
       
     </span>
   </a>
@@ -6117,7 +6139,7 @@ Databricks Workflows list showing the three UC3 jobs:<br/>
 <li><strong>SCD2 = keep history.</strong> Customer attributes (address, name, contact preference) have legal and analytical value over time. GDPR requests and disputes need "what did we hold, and when".</li>
 <li><strong>SCD1 = keep latest only.</strong> A device current state is what matters operationally. Nobody asks "what was the IMEI three months ago" — the device either is or is not on the line.</li>
 </ul>
-<h3 id="42-column-counts-verified-against-the-governance-sheets">4.2 Column counts (verified against the governance sheets)<a class="headerlink" href="#42-column-counts-verified-against-the-governance-sheets" title="Permanent link">&para;</a></h3>
+<h3 id="42-column-counts-verified-against-the-governance-sheets-customer-provided">4.2 Column counts (verified against the governance sheets — <strong>[Customer-Provided]</strong>)<a class="headerlink" href="#42-column-counts-verified-against-the-governance-sheets-customer-provided" title="Permanent link">&para;</a></h3>
 <table>
 <thead>
 <tr>
@@ -6153,11 +6175,11 @@ Databricks Workflows list showing the three UC3 jobs:<br/>
 </tbody>
 </table>
 <h3 id="43-where-the-column-definitions-come-from">4.3 Where the column definitions come from<a class="headerlink" href="#43-where-the-column-definitions-come-from" title="Permanent link">&para;</a></h3>
-<p>The column lists are <strong>not hand-typed anywhere</strong>. They are read at runtime from three governance sheets:</p>
+<p>The column lists are <strong>not hand-typed anywhere</strong>. They are read at runtime from three governance sheets. All three are <strong>[Customer-Provided]</strong> — they are the Excalibur governance sheets BT supplies, and they are the only UC3 data asset not generated by this repo. <code>scripts/generate_uc3_test_data.py</code> <strong>reads</strong> them to learn column names, types and flags; nothing in the build ever writes them.</p>
 <ul>
-<li><a href="../PHYSICAL_DEVICE_DDL.csv">docs/UC3/PHYSICAL_DEVICE_DDL.csv</a></li>
-<li><a href="../CUSTOMER_DDL.csv">docs/UC3/CUSTOMER_DDL.csv</a></li>
-<li><a href="../SUBSCRIBER_DDL.csv">docs/UC3/SUBSCRIBER_DDL.csv</a></li>
+<li><a href="../PHYSICAL_DEVICE_DDL.csv">PHYSICAL_DEVICE_DDL.csv</a> — <strong>[Customer-Provided]</strong> (<code>BT_Usecase/UC3/data/PHYSICAL_DEVICE_DDL.csv</code>)</li>
+<li><a href="../CUSTOMER_DDL.csv">CUSTOMER_DDL.csv</a> — <strong>[Customer-Provided]</strong> (<code>BT_Usecase/UC3/data/CUSTOMER_DDL.csv</code>)</li>
+<li><a href="../SUBSCRIBER_DDL.csv">SUBSCRIBER_DDL.csv</a> — <strong>[Customer-Provided]</strong> (<code>BT_Usecase/UC3/data/SUBSCRIBER_DDL.csv</code>)</li>
 </ul>
 <p><strong>Sheet columns that drive behaviour:</strong></p>
 <table>
@@ -6203,13 +6225,37 @@ Databricks Workflows list showing the three UC3 jobs:<br/>
 </blockquote>
 <hr />
 <h2 id="5-generated-test-data-what-exactly-is-produced">5. Generated Test Data — What Exactly Is Produced<a class="headerlink" href="#5-generated-test-data-what-exactly-is-produced" title="Permanent link">&para;</a></h2>
-<p>Real Excalibur data cannot be used for development. <code>scripts/generate_uc3_test_data.py</code> produces a realistic stand-in.</p>
-<h3 id="51-what-it-generates">5.1 What it generates<a class="headerlink" href="#51-what-it-generates" title="Permanent link">&para;</a></h3>
+<p>Real Excalibur data cannot be used for development. <code>scripts/generate_uc3_test_data.py</code> produces a realistic stand-in. <strong>Everything in this section is [Simulated]</strong> — every row is synthesised by that one script. It is written to <code>build/uc3_test_data/</code> (<code>--out-dir build/uc3_test_data</code>, the default), which is <strong>generated output, not source</strong>.</p>
+<p><strong>The two provenance classes, side by side:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Asset</th>
+<th>Provenance</th>
+<th>Who produces it</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>BT_Usecase/UC3/data/{CUSTOMER,SUBSCRIBER,PHYSICAL_DEVICE}_DDL.csv</code></td>
+<td><strong>[Customer-Provided]</strong></td>
+<td>BT's Excalibur governance sheets. Read by the generator, never written by it.</td>
+</tr>
+<tr>
+<td>Everything under <code>build/uc3_test_data/</code></td>
+<td><strong>[Simulated]</strong></td>
+<td><code>scripts/generate_uc3_test_data.py</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="51-what-it-generates-all-simulated">5.1 What it generates — all <strong>[Simulated]</strong><a class="headerlink" href="#51-what-it-generates-all-simulated" title="Permanent link">&para;</a></h3>
+<p>Paths below are relative to the <code>--out-dir</code> (default <code>build/uc3_test_data/</code>).</p>
 <table>
 <thead>
 <tr>
 <th>Output</th>
 <th>Rows</th>
+<th>Provenance</th>
 <th>Purpose</th>
 </tr>
 </thead>
@@ -6217,11 +6263,13 @@ Databricks Workflows list showing the three UC3 jobs:<br/>
 <tr>
 <td><code>streaming/&lt;table&gt;/&lt;table&gt;_stream.csv</code></td>
 <td><strong>100 rows</strong></td>
+<td><strong>[Simulated]</strong></td>
 <td>Fed by Job 1 into the streaming lane</td>
 </tr>
 <tr>
 <td><code>batch/&lt;table&gt;/batch_date=YYYY-MM-DD/&lt;table&gt;_batch.csv</code></td>
 <td><strong>30 rows x 4 dates = 120</strong></td>
+<td><strong>[Simulated]</strong></td>
 <td>Fed by Job 3 into the batch lane</td>
 </tr>
 </tbody>
@@ -6266,7 +6314,7 @@ Databricks Workflows list showing the three UC3 jobs:<br/>
 </tbody>
 </table>
 <p><strong>In plain terms:</strong> we deliberately made the batch file disagree with the stream, so we can prove the reconciliation <em>notices</em>.</p>
-<h3 id="53-verified-generated-volumes">5.3 Verified generated volumes<a class="headerlink" href="#53-verified-generated-volumes" title="Permanent link">&para;</a></h3>
+<h3 id="53-verified-generated-volumes-simulated">5.3 Verified generated volumes — <strong>[Simulated]</strong><a class="headerlink" href="#53-verified-generated-volumes-simulated" title="Permanent link">&para;</a></h3>
 <table>
 <thead>
 <tr>
@@ -6305,40 +6353,59 @@ Databricks Workflows list showing the three UC3 jobs:<br/>
 <tr>
 <th>What</th>
 <th>Path</th>
+<th>Provenance</th>
 </tr>
 </thead>
 <tbody>
 <tr>
 <td>Governance sheets</td>
-<td><code>docs/UC3/*_DDL.csv</code></td>
+<td><code>BT_Usecase/UC3/data/*_DDL.csv</code></td>
+<td><strong>[Customer-Provided]</strong></td>
 </tr>
 <tr>
 <td>Test data generator</td>
 <td><code>scripts/generate_uc3_test_data.py</code></td>
+<td>—</td>
+</tr>
+<tr>
+<td>Generated test data</td>
+<td><code>build/uc3_test_data/</code> <em>(generated output, not source)</em></td>
+<td><strong>[Simulated]</strong></td>
 </tr>
 <tr>
 <td>Streaming CDC spec</td>
-<td><code>onboarding/uc3/uc3_excalibur_streaming_cdc.json</code></td>
+<td><code>BT_Usecase/UC3/onboarding/uc3_excalibur_streaming_cdc.json</code></td>
+<td>—</td>
 </tr>
 <tr>
 <td>Batch and recon spec</td>
-<td><code>onboarding/uc3/uc3_excalibur_batch_recon.json</code></td>
+<td><code>BT_Usecase/UC3/onboarding/uc3_excalibur_batch_recon.json</code></td>
+<td>—</td>
+</tr>
+<tr>
+<td>This document and its companions</td>
+<td><code>BT_Usecase/UC3/docs/{UC3_MASTER_DOCUMENT,BUILD_CONTRACT,FRAMEWORK_CAPABILITY_MAP}.md</code></td>
+<td>—</td>
 </tr>
 <tr>
 <td>Job / pipeline YAMLs</td>
 <td><code>resources/uc3/*.yml</code></td>
+<td>—</td>
 </tr>
 <tr>
 <td>Simulator notebooks</td>
 <td><code>notebooks/uc3/simulator/*.py</code></td>
+<td>—</td>
 </tr>
 <tr>
 <td>Shared DDL parser</td>
 <td><code>src/uc3_simulator/uc3_ddl_schema.py</code></td>
+<td>—</td>
 </tr>
 </tbody>
 </table>
 <blockquote>
+<p><strong>Why the sibling links in section 4.3 look relative and the table above does not.</strong> <code>scripts/build_docs_reference.py::stage_usecase_docs</code> copies <code>BT_Usecase/UC3/docs/*.md</code> <strong>and</strong> the <code>BT_Usecase/UC3/data/*.csv</code> sheets into <code>docs/UC3/</code> at mkdocs build time, so a link written as <code>CUSTOMER_DDL.csv</code> resolves in the built site. <code>docs/UC3/</code> is <strong>derived output</strong> — it is gitignored, and <code>BT_Usecase/UC3/</code> is the single source of truth.</p>
 <p><strong>Why the DDL parser lives in <code>src/</code> and not <code>notebooks/</code>:</strong> anything Databricks must <code>import</code> as a Python module cannot live under <code>notebooks/</code>. DABs deploys files there as <em>notebooks</em>, and Databricks refuses <code>import</code> on a notebook (<code>NotebookImportException</code>). Files under <code>src/</code> deploy as plain files and import normally.</p>
 </blockquote>
 <h3 id="62-on-the-unity-catalog-volume-runtime-data">6.2 On the Unity Catalog volume (runtime data)<a class="headerlink" href="#62-on-the-unity-catalog-volume-runtime-data" title="Permanent link">&para;</a></h3>
@@ -6405,6 +6472,31 @@ Catalog Explorer showing <code>flowx</code> with the <code>staging</code> and <c
 <hr />
 <h2 id="7-onboarding-json-attribute-by-attribute">7. Onboarding JSON — Attribute by Attribute<a class="headerlink" href="#7-onboarding-json-attribute-by-attribute" title="Permanent link">&para;</a></h2>
 <p>This is the heart of the build. <strong>No CDC code, no hashing code, no tagging code and no MERGE statement was written by hand.</strong> All behaviour below comes from JSON attributes.</p>
+<p><strong>The two spec files this section documents.</strong> Every attribute below was read from these two files; nothing here is invented.</p>
+<table>
+<thead>
+<tr>
+<th>Job</th>
+<th>Spec file</th>
+<th><code>dataflow_group_id</code></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Job 2 — streaming CDC</td>
+<td><code>BT_Usecase/UC3/onboarding/uc3_excalibur_streaming_cdc.json</code></td>
+<td><code>dfg_uc3_excalibur_streaming_cdc</code></td>
+</tr>
+<tr>
+<td>Job 3 — batch and reconciliation</td>
+<td><code>BT_Usecase/UC3/onboarding/uc3_excalibur_batch_recon.json</code></td>
+<td><code>dfg_uc3_excalibur_batch_recon</code></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Reading the JSON.</strong> Each spec starts with <code>$schema</code> (editor validation against <code>onboarding_templates/onboarding_spec.schema.json</code>) and one <code>_about</code> header — use case, description, framework version, date, developer. <code>_about</code> is the <strong>only</strong> key the framework does not read: JSON has no comment syntax, so the framework reserves the <code>_</code> prefix for author notes and ignores them (<code>spec_validator.py</code>). Every other key is a real framework attribute, present in the standard template <code>onboarding_templates/pipeline_onboarding_template.json</code> in the same order — including <code>data_standardization_sql</code>, which is how <code>Null(DF)=Y</code> is enforced (section 11.3). All tags live under <code>governance_tags</code> and nowhere else.</p>
+</blockquote>
 <h3 id="71-job-2-spec-uc3_excalibur_streaming_cdcjson">7.1 Job 2 spec — <code>uc3_excalibur_streaming_cdc.json</code><a class="headerlink" href="#71-job-2-spec-uc3_excalibur_streaming_cdcjson" title="Permanent link">&para;</a></h3>
 <p><strong>Group level:</strong></p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="p">{</span>
@@ -6417,6 +6509,7 @@ Catalog Explorer showing <code>flowx</code> with the <code>staging</code> and <c
 <thead>
 <tr>
 <th>Attribute</th>
+<th>Type</th>
 <th>Value</th>
 <th>Why configured this way</th>
 </tr>
@@ -6424,67 +6517,153 @@ Catalog Explorer showing <code>flowx</code> with the <code>staging</code> and <c
 <tbody>
 <tr>
 <td><code>dataflow_group_id</code></td>
+<td>string</td>
 <td><code>dfg_uc3_excalibur_streaming_cdc</code></td>
 <td>The group is the unit of deployment. One group equals one pipeline. The pipeline YAML references only this id.</td>
 </tr>
+<tr>
+<td><code>ingestion_flows</code></td>
+<td>array of objects</td>
+<td>3 flows</td>
+<td>One flow per Excalibur table. Each becomes one CDC target in the DAG.</td>
+</tr>
+<tr>
+<td><code>observability</code></td>
+<td>array of objects</td>
+<td>1 destination</td>
+<td>Post-update telemetry export. Detailed in 7.4.</td>
+</tr>
 </tbody>
 </table>
-<p><strong>Source configuration (per flow):</strong></p>
+<p><strong>Flow identity (per flow, at the top level of each <code>ingestion_flows[]</code> entry):</strong></p>
 <table>
 <thead>
 <tr>
 <th>Attribute</th>
+<th>Type</th>
+<th>Value</th>
+<th>What it does at runtime</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>dataflow_id</code></td>
+<td>string</td>
+<td><code>df_uc3_&lt;table&gt;_stream_cdc</code></td>
+<td>Unique flow id. Becomes the <code>ingestion_flow_spec</code> control-table key and names the generated DAG nodes.</td>
+</tr>
+<tr>
+<td><code>source_system</code></td>
+<td>string</td>
+<td><code>excalibur</code></td>
+<td>Lineage label written to the control table. Does not affect reads.</td>
+</tr>
+<tr>
+<td><code>source_database</code></td>
+<td>string</td>
+<td><code>staging</code></td>
+<td>Lineage label for the originating database. Does not affect reads — the actual read is driven by <code>source_config</code>.</td>
+</tr>
+<tr>
+<td><code>source_table_name</code></td>
+<td>string</td>
+<td><code>PHYSICAL_DEVICE</code> / <code>CUSTOMER</code> / <code>SUBSCRIBER</code></td>
+<td>Lineage label recording the original Excalibur table name, in its source uppercase form.</td>
+</tr>
+<tr>
+<td><code>source_description</code></td>
+<td>string</td>
+<td>free text</td>
+<td>Human-readable note persisted to the control table.</td>
+</tr>
+<tr>
+<td><code>target_catalog</code></td>
+<td>string</td>
+<td><code>{{catalog}}</code></td>
+<td>Catalog for the Bronze target. Resolved once at onboarding time.</td>
+</tr>
+<tr>
+<td><code>target_schema</code></td>
+<td>string</td>
+<td><code>bronze</code></td>
+<td>Schema for the Bronze target.</td>
+</tr>
+<tr>
+<td><code>target_table</code></td>
+<td>string</td>
+<td><code>physical_device</code> / <code>customer</code> / <code>subscriber</code></td>
+<td>The published Bronze table name.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Source configuration (<code>source_config</code>, per flow):</strong></p>
+<table>
+<thead>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
 <th>Value</th>
 <th>Why</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><code>source_type</code></td>
+<td><code>source_type</code> <em>(flow-level, not inside <code>source_config</code>)</em></td>
+<td>string</td>
 <td><code>zerobus</code></td>
 <td>Reads an <strong>existing Delta table</strong> as a stream. The simulator writes Delta, so this is the correct reader — not <code>autoloader</code>, which reads files.</td>
 </tr>
 <tr>
 <td><code>source_catalog</code></td>
+<td>string</td>
 <td><code>{{catalog}}</code></td>
 <td><strong>Never hardcode the catalog.</strong> Substituted at onboarding time so the same spec works in dev, test and prod.</td>
 </tr>
 <tr>
 <td><code>source_schema</code> / <code>source_table</code></td>
+<td>string</td>
 <td><code>staging</code> / <code>&lt;table&gt;_stream</code></td>
 <td>The simulator output tables.</td>
 </tr>
 <tr>
 <td><code>capture_technical_metadata</code></td>
+<td>boolean</td>
 <td><code>true</code></td>
 <td>Adds <code>__framework_ingestion_timestamp_utc</code> and source-file lineage columns. This is what makes section 15 traceability possible.</td>
 </tr>
 <tr>
 <td><code>column_normalization</code></td>
+<td>object <code>{enabled, case}</code></td>
 <td><code>{enabled: true, case: "lower"}</code></td>
 <td>Oracle sheets are UPPERCASE; Databricks convention is lowercase. Normalising once at the boundary means no downstream query ever has to guess the case.</td>
 </tr>
 <tr>
 <td><code>data_standardization_sql</code></td>
-<td><code>["CAST(NULL AS STRING) AS esn_pin", "..."]</code></td>
+<td>array of strings</td>
+<td><code>["CAST(NULL AS STRING) AS esn_pin", ...]</code></td>
 <td><strong>This is how <code>Null(DF)=Y</code> is enforced.</strong> The column still exists (schema stability) but is forced to NULL at ingestion.</td>
 </tr>
 </tbody>
 </table>
-<p><strong>Target configuration (per flow):</strong></p>
+<blockquote>
+<p><strong><code>data_standardization_sql</code> is not present on all three flows.</strong> <code>physical_device</code> declares 2 expressions (<code>esn_pin</code>, <code>blacklist_password</code>) and <code>customer</code> declares 3 (<code>gur_cr_card_no</code>, <code>acc_password</code>, <code>imei_black_list_pass</code>). <strong><code>subscriber</code> omits the key entirely</strong> — its two sensitive columns are <code>Drop(DF)=Y</code>, and a dropped column cannot also be a nulled one, so there is nothing left to null. This matches 11.2 and 11.3 exactly.</p>
+</blockquote>
+<p><strong>Target configuration (<code>target_config</code>, per flow — except <code>target_type</code>, which is flow-level):</strong></p>
 <table>
 <thead>
 <tr>
 <th>Attribute</th>
+<th>Type</th>
 <th><code>physical_device</code></th>
 <th><code>customer</code></th>
 <th><code>subscriber</code></th>
-<th>Why</th>
+<th>What it does at runtime</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><code>target_type</code></td>
+<td><code>target_type</code> <em>(flow-level)</em></td>
+<td>string</td>
 <td><code>streaming_table</code></td>
 <td>same</td>
 <td>same</td>
@@ -6492,13 +6671,15 @@ Catalog Explorer showing <code>flowx</code> with the <code>staging</code> and <c
 </tr>
 <tr>
 <td><code>cdc_load_strategy</code></td>
+<td>string</td>
 <td><code>SCD1</code></td>
 <td><strong><code>SCD2</code></strong></td>
 <td><code>SCD1</code></td>
-<td>The business rule from 4.1. <strong>One word switches the whole history model.</strong></td>
+<td>The business rule from 4.1. Selects the <code>dlt.apply_changes</code> mode — <code>SCD2</code> sets <code>stored_as_scd_type="2"</code>. <strong>One word switches the whole history model.</strong></td>
 </tr>
 <tr>
 <td><code>primary_keys</code></td>
+<td>array of strings</td>
 <td>4 cols</td>
 <td>1 col</td>
 <td>2 cols</td>
@@ -6506,6 +6687,7 @@ Catalog Explorer showing <code>flowx</code> with the <code>staging</code> and <c
 </tr>
 <tr>
 <td><code>sequence_by_column</code></td>
+<td>string</td>
 <td><code>sys_update_date</code></td>
 <td>same</td>
 <td>same</td>
@@ -6513,6 +6695,7 @@ Catalog Explorer showing <code>flowx</code> with the <code>staging</code> and <c
 </tr>
 <tr>
 <td><code>cdc_operation_column</code></td>
+<td>string</td>
 <td><code>src_deleted_flg</code></td>
 <td>same</td>
 <td>same</td>
@@ -6520,13 +6703,15 @@ Catalog Explorer showing <code>flowx</code> with the <code>staging</code> and <c
 </tr>
 <tr>
 <td><code>cdc_operation_mapping</code></td>
+<td>object <code>{delete_values: [string]}</code></td>
 <td><code>{"delete_values": ["1"]}</code></td>
 <td>same</td>
 <td>same</td>
-<td>Value <code>'1'</code> means "delete this row".</td>
+<td>Evaluated as <code>col(cdc_operation_column).isin(delete_values)</code>. Value <code>'1'</code> means "delete this row".</td>
 </tr>
 <tr>
 <td><code>generate_hash_columns</code></td>
+<td>boolean</td>
 <td><code>true</code></td>
 <td>same</td>
 <td>same</td>
@@ -6534,13 +6719,15 @@ Catalog Explorer showing <code>flowx</code> with the <code>staging</code> and <c
 </tr>
 <tr>
 <td><code>columns_to_exclude</code></td>
+<td>array of strings</td>
 <td><code>["sys_creation_date","sys_update_date"]</code></td>
 <td>same</td>
 <td>same</td>
-<td>Excluded from the <strong>value hash</strong> — audit timestamps change on every touch and would make every row look drifted.</td>
+<td><strong>Comparison-only, never dropped from storage.</strong> Excluded from the <strong>value hash</strong> and from change detection — audit timestamps change on every touch and would make every row look drifted. The columns are still written to Bronze.</td>
 </tr>
 <tr>
 <td><code>liquid_clustering_columns</code></td>
+<td>array of strings</td>
 <td><code>["__framework_hash_key"]</code></td>
 <td><code>["customer_id"]</code></td>
 <td><code>["subscriber_no","customer_id"]</code></td>
@@ -6557,6 +6744,27 @@ Catalog Explorer showing <code>flowx</code> with the <code>staging</code> and <c
 <a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="w">  </span><span class="nt">"column_tags"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nt">"column"</span><span class="p">:</span><span class="w"> </span><span class="s2">"customer_id"</span><span class="p">,</span><span class="w"> </span><span class="nt">"tags"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="s2">"...8 tags..."</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">]</span>
 <a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="p">}</span>
 </code></pre></div>
+<table>
+<thead>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>What it does at runtime</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>governance_tags.table_tags</code></td>
+<td>object of string to string</td>
+<td>Applied by the <code>apply_governance</code> task as <code>ALTER TABLE ... SET TAGS</code>. Identical on all three flows: <code>source_system</code>, <code>use_case</code>, <code>domain</code>.</td>
+</tr>
+<tr>
+<td><code>governance_tags.column_tags</code></td>
+<td>array of <code>{column, tags}</code></td>
+<td>Applied as <code>ALTER TABLE ... ALTER COLUMN ... SET TAGS</code>. <strong>8 entries</strong> on <code>physical_device</code>, <strong>33</strong> on <code>customer</code>, <strong>18</strong> on <code>subscriber</code> — matching the applied counts verified in 11.4.</td>
+</tr>
+</tbody>
+</table>
 <p>Full detail in section 11.</p>
 <h3 id="72-job-3-spec-uc3_excalibur_batch_reconjson">7.2 Job 3 spec — <code>uc3_excalibur_batch_recon.json</code><a class="headerlink" href="#72-job-3-spec-uc3_excalibur_batch_reconjson" title="Permanent link">&para;</a></h3>
 <p><strong>Pipeline parameters:</strong></p>
@@ -6566,125 +6774,230 @@ Catalog Explorer showing <code>flowx</code> with the <code>staging</code> and <c
 <thead>
 <tr>
 <th>Attribute</th>
+<th>Type</th>
 <th>Why</th>
 </tr>
 </thead>
 <tbody>
 <tr>
 <td><code>pipeline_parameters</code></td>
-<td>Declares <code>${landing_root}</code>, referenced by all three source paths. <strong>Resolved fresh on every pipeline update</strong>, so an operator can retarget paths without re-onboarding.</td>
+<td>object of string to string</td>
+<td>Declares <code>${landing_root}</code> = <code>/Volumes/flowx/staging/uc_3/batch</code>, referenced by all three source paths. <strong>Resolved fresh on every pipeline update</strong>, so an operator can retarget paths without re-onboarding.</td>
 </tr>
 </tbody>
 </table>
-<p><strong>Batch ingestion flows:</strong></p>
+<p><strong>Batch ingestion flows (3 flows, one per table):</strong></p>
 <table>
 <thead>
 <tr>
 <th>Attribute</th>
+<th>Type</th>
 <th>Value</th>
-<th>Why</th>
+<th>What it does at runtime</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><code>source_type</code></td>
+<td><code>source_type</code> <em>(flow-level)</em></td>
+<td>string</td>
 <td><code>autoloader</code></td>
 <td>Reads <strong>files</strong> incrementally with a checkpoint. Only new files are picked up on each run.</td>
 </tr>
 <tr>
-<td><code>path</code></td>
+<td><code>source_config.path</code></td>
+<td>string</td>
 <td><code>${landing_root}/&lt;table&gt;/</code></td>
 <td>Points at the <strong>top-level table folder</strong>, not a pinned <code>batch_date</code>. Auto Loader discovers new date folders automatically.</td>
 </tr>
 <tr>
-<td><code>schema_location</code></td>
-<td><code>/Volumes/.../_schemas/&lt;table&gt;_batch/</code></td>
-<td>Where Auto Loader remembers the inferred schema.</td>
+<td><code>source_config.format</code></td>
+<td>string</td>
+<td><code>csv</code></td>
+<td>The Auto Loader <code>cloudFiles.format</code>.</td>
 </tr>
 <tr>
-<td><code>reader_options.cloudFiles.inferColumnTypes</code></td>
+<td><code>source_config.schema_location</code></td>
+<td>string</td>
+<td><code>/Volumes/flowx/staging/uc_3/_schemas/&lt;table&gt;_batch/</code></td>
+<td>Where Auto Loader remembers the inferred schema across runs.</td>
+</tr>
+<tr>
+<td><code>source_config.reader_options</code></td>
+<td>object of string to string</td>
+<td><code>{header, delimiter, cloudFiles.inferColumnTypes}</code></td>
+<td>Passed straight to the reader. <code>cloudFiles.inferColumnTypes: "true"</code> infers real types from CSV rather than making everything a string.</td>
+</tr>
+<tr>
+<td><code>source_config.capture_technical_metadata</code></td>
+<td>boolean</td>
 <td><code>true</code></td>
-<td>Infers real types from CSV rather than making everything a string.</td>
+<td>Same lineage columns as the streaming side.</td>
 </tr>
 <tr>
-<td><code>cdc_load_strategy</code></td>
+<td><code>source_config.column_normalization</code></td>
+<td>object <code>{enabled, case}</code></td>
+<td><code>{enabled: true, case: "lower"}</code></td>
+<td>Lower-cases the CSV headers so batch and Bronze column names align for reconciliation.</td>
+</tr>
+<tr>
+<td><code>source_config.data_standardization_sql</code></td>
+<td>array of strings</td>
+<td>2 on <code>physical_device</code>, 3 on <code>customer</code>, <strong>absent on <code>subscriber</code></strong></td>
+<td>Re-applies the same <code>Null(DF)=Y</code> forced NULLs as Job 2, so a batch row can never re-introduce a value the streaming lane nulled out.</td>
+</tr>
+<tr>
+<td><code>target_config.cdc_load_strategy</code></td>
+<td>string</td>
 <td><strong><code>APPEND</code></strong></td>
 <td><strong>Deliberately not a CDC strategy.</strong> Staging keeps all four dated sets side by side as an audit record.</td>
 </tr>
 <tr>
-<td><code>partition_columns</code></td>
+<td><code>target_config.partition_columns</code></td>
+<td>array of strings</td>
 <td><code>["batch_date"]</code></td>
 <td>Enables efficient per-day filtering.</td>
+</tr>
+<tr>
+<td><code>governance_tags.table_tags</code></td>
+<td>object of string to string</td>
+<td><code>source_system</code>, <code>use_case</code>, <code>domain</code>, <strong><code>layer: staging</code></strong>, <strong><code>load_pattern: batch</code></strong></td>
+<td>Two tags more than the Bronze tables carry — they mark these as the staging/batch lane so a query can tell the two apart.</td>
 </tr>
 </tbody>
 </table>
 <blockquote>
 <p><strong>Why no <code>generate_hash_columns</code> on the batch side:</strong> the hashes for comparison are computed by the <strong>reconciliation engine itself</strong> (<code>hash_precomputed: false</code>). Adding them here would compute a hash over a <em>different</em> column set and cause exactly the mismatch described below.</p>
 </blockquote>
-<p><strong>Reconciliation flows:</strong></p>
+<p><strong>Reconciliation flows (3 flows, one per table):</strong></p>
 <table>
 <thead>
 <tr>
 <th>Attribute</th>
+<th>Type</th>
 <th>Value</th>
-<th>Why</th>
+<th>What it does at runtime</th>
 </tr>
 </thead>
 <tbody>
 <tr>
+<td><code>reconciliation_id</code></td>
+<td>string</td>
+<td><code>rf_uc3_&lt;table&gt;_batch_vs_bronze</code></td>
+<td>Unique flow id. Names the generated DAG nodes and is the key written to <code>reconciliation_run_log</code>.</td>
+</tr>
+<tr>
+<td><code>dataflow_group_id</code></td>
+<td>string</td>
+<td><code>dfg_uc3_excalibur_batch_recon</code></td>
+<td>Binds the flow to the same group as the batch ingestion flows, so both land in one pipeline.</td>
+</tr>
+<tr>
 <td><code>execution_mode</code></td>
+<td>string</td>
 <td><code>pipeline</code></td>
 <td>Runs <strong>inside the DAG</strong>, not as a separate job task. Lakeflow tracks lineage natively.</td>
 </tr>
 <tr>
+<td><code>publish_schema</code></td>
+<td>string</td>
+<td><code>staging</code></td>
+<td>Where the published <code>recon__&lt;id&gt;__&lt;tgt&gt;__metrics</code> table is created.</td>
+</tr>
+<tr>
 <td><code>match_keys</code></td>
-<td>The table PK</td>
+<td>array of strings</td>
+<td>The table PK — 4 / 1 / 2 columns</td>
 <td>How a source row is paired with a target row.</td>
 </tr>
 <tr>
+<td><code>source_config.type</code></td>
+<td>string</td>
+<td><code>table</code></td>
+<td>The source is a UC table, not a path.</td>
+</tr>
+<tr>
 <td><code>source_config.table</code></td>
+<td>string</td>
 <td><code>flowx.staging.&lt;table&gt;_batch</code></td>
 <td>The batch side.</td>
 </tr>
 <tr>
+<td><code>source_config.read_mode</code></td>
+<td>string</td>
+<td><code>batch</code></td>
+<td>Point-in-time snapshot read, not a stream. Reconciliation compares two settled states.</td>
+</tr>
+<tr>
+<td><code>source_config.hash_precomputed</code></td>
+<td>boolean</td>
+<td><strong><code>false</code></strong></td>
+<td>See the critical note below.</td>
+</tr>
+<tr>
+<td><code>target_configs[].target_id</code></td>
+<td>string</td>
+<td><code>bronze_&lt;table&gt;</code></td>
+<td>Names this target within the flow; appears in the metrics table and the run log.</td>
+</tr>
+<tr>
+<td><code>target_configs[].type</code> / <code>.read_mode</code></td>
+<td>string</td>
+<td><code>table</code> / <code>batch</code></td>
+<td>As above, for the Bronze side.</td>
+</tr>
+<tr>
 <td><code>target_configs[].table</code></td>
+<td>string</td>
 <td><code>flowx.bronze.&lt;table&gt;</code></td>
 <td>The Bronze side produced by Job 2.</td>
 </tr>
 <tr>
-<td><code>compare_columns</code></td>
-<td>25 / 87 / 127 columns</td>
-<td><strong>Which columns must agree</strong> for a row to count as matched.</td>
-</tr>
-<tr>
-<td><code>hash_precomputed</code></td>
-<td><strong><code>false</code></strong> on both sides</td>
+<td><code>target_configs[].hash_precomputed</code></td>
+<td>boolean</td>
+<td><strong><code>false</code></strong></td>
 <td>See the critical note below.</td>
 </tr>
 <tr>
-<td><code>comparison_direction</code></td>
+<td><code>target_configs[].comparison_direction</code></td>
+<td>string</td>
 <td><code>both</code></td>
 <td>Reports rows missing in target <em>and</em> rows missing in source.</td>
 </tr>
 <tr>
-<td><code>append_target_table</code></td>
+<td><code>target_configs[].append_target_table</code></td>
+<td>string</td>
 <td><code>flowx.staging.&lt;table&gt;_stream</code></td>
-<td><strong>The self-healing lane.</strong></td>
+<td><strong>The self-healing lane.</strong> Missing/drifted rows are appended here, then re-applied by the Job 2 CDC engine.</td>
+</tr>
+<tr>
+<td><code>compare_columns</code></td>
+<td>array of strings</td>
+<td><strong>25 / 87 / 127</strong> columns</td>
+<td><strong>Which columns must agree</strong> for a row to count as matched. Omitting it degrades matching to key-presence only.</td>
 </tr>
 <tr>
 <td><code>two_tier_verification</code></td>
+<td>boolean</td>
 <td><code>true</code></td>
 <td>Fast hash comparison first, then column-level detail only for rows that differ.</td>
 </tr>
 <tr>
+<td><code>error_handling.on_failure</code></td>
+<td>string</td>
+<td><code>warn</code></td>
+<td>A reconciliation failure logs a warning rather than failing the pipeline update — the batch lane is an audit mechanism and must not take the pipeline down.</td>
+</tr>
+<tr>
 <td><code>logging_config.run_log_capture</code></td>
+<td>boolean</td>
 <td><code>true</code></td>
 <td>Writes metrics to <code>reconciliation_run_log</code>. <strong>This is what section 16 queries read.</strong></td>
 </tr>
 <tr>
 <td><code>logging_config.mismatch_log_capture</code></td>
+<td>boolean</td>
 <td><code>false</code></td>
-<td>Per-record detail suppressed — would be very large and is not needed for the metrics.</td>
+<td>Per-record detail suppressed — would be very large and is not needed for the metrics. Also why the <code>..__mismatch</code> node is absent from the DAG in 9.2.</td>
 </tr>
 </tbody>
 </table>
@@ -6720,6 +7033,73 @@ Catalog Explorer showing <code>flowx</code> with the <code>staging</code> and <c
 </tbody>
 </table>
 <p><strong>Why the difference is deliberate:</strong> the catalog is fixed for a deployment, so resolving it once is right. A path may need retargeting without re-onboarding, so it stays a placeholder in the control table and resolves fresh each run.</p>
+<h3 id="74-observability-the-telemetry-export-block">7.4 <code>observability</code> — the telemetry export block<a class="headerlink" href="#74-observability-the-telemetry-export-block" title="Permanent link">&para;</a></h3>
+<p>Both specs declare exactly one observability destination. This is what the <code>observability_export</code> task in section 8.2 drains.</p>
+<table>
+<thead>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Job 2 value</th>
+<th>Job 3 value</th>
+<th>What it does at runtime</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>id</code></td>
+<td>string</td>
+<td><code>uc3_streaming_cdc_volume_export</code></td>
+<td><code>uc3_batch_recon_volume_export</code></td>
+<td>Unique destination id in the observability control table.</td>
+</tr>
+<tr>
+<td><code>enabled</code></td>
+<td>boolean</td>
+<td><code>true</code></td>
+<td><code>true</code></td>
+<td>Active flag. A disabled destination is stored but never dispatched to.</td>
+</tr>
+<tr>
+<td><code>type</code></td>
+<td>string</td>
+<td><code>DATABRICKS_VOLUME</code></td>
+<td>same</td>
+<td>Writes event-log telemetry to a UC Volume. The alternative is <code>OTLP_CONSUMER</code>, which posts to an OTLP endpoint.</td>
+</tr>
+<tr>
+<td><code>mode</code></td>
+<td>string</td>
+<td><code>triggered</code></td>
+<td>same</td>
+<td>Bounded post-update export for one pipeline, run by the <code>observability_export</code> task. The alternative, <code>continuous</code>, is an always-on streaming export and is <strong>not</strong> used here.</td>
+</tr>
+<tr>
+<td><code>destination_config.volume_path</code></td>
+<td>string</td>
+<td><code>/Volumes/{{catalog}}/observability/app_logs/streaming_cdc</code></td>
+<td><code>/Volumes/flowx/observability/app_logs/batch_recon</code></td>
+<td>Export target. Note Job 2 uses the <code>{{catalog}}</code> placeholder and Job 3 hardcodes <code>flowx</code> — see 7.3 for why the placeholder form is preferred.</td>
+</tr>
+<tr>
+<td><code>destination_config.file_format</code></td>
+<td>string</td>
+<td><code>JSON</code></td>
+<td><code>JSONL</code></td>
+<td>Output encoding. Allowed values are <code>JSONL</code> (default) and <code>JSON</code>.</td>
+</tr>
+<tr>
+<td><code>destination_config.compression</code></td>
+<td><strong>string</strong></td>
+<td><em>(omitted — defaults to <code>none</code>)</em></td>
+<td><code>GZIP</code></td>
+<td>Compression applied to the exported file.</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong><code>compression</code> is a STRING, not a boolean.</strong> The key is <code>compression</code> and its allowed values are <code>"GZIP"</code>, <code>"gzip"</code>, <code>"none"</code> and <code>""</code>, defaulting to <code>"none"</code> when omitted. There is <strong>no</strong> boolean <code>compressed</code> attribute anywhere in the framework — writing one is an unknown attribute and is <strong>hard-rejected</strong> at onboarding.</p>
+</blockquote>
 <hr />
 <h2 id="8-the-three-jobs">8. The Three Jobs<a class="headerlink" href="#8-the-three-jobs" title="Permanent link">&para;</a></h2>
 <h3 id="81-job-1-003_lfj_uc3_excalibur_streaming_simulator">8.1 Job 1 — <code>003_lfj_uc3_excalibur_streaming_simulator</code><a class="headerlink" href="#81-job-1-003_lfj_uc3_excalibur_streaming_simulator" title="Permanent link">&para;</a></h3>
@@ -8359,7 +8739,7 @@ Event log query results showing per-dataset <code>num_output_rows</code> reconci
 <div class="highlight"><pre><span></span><code><a id="__codelineno-38-1" name="__codelineno-38-1" href="#__codelineno-38-1"></a>python<span class="w"> </span>-c<span class="w"> </span><span class="s2">"</span>
 <a id="__codelineno-38-2" name="__codelineno-38-2" href="#__codelineno-38-2"></a><span class="s2">import json,sys; sys.path.insert(0,'src')</span>
 <a id="__codelineno-38-3" name="__codelineno-38-3" href="#__codelineno-38-3"></a><span class="s2">from flowx.lakeflow_framework.onboarding.agent_tools import validate_json</span>
-<a id="__codelineno-38-4" name="__codelineno-38-4" href="#__codelineno-38-4"></a><span class="s2">r = validate_json(open('onboarding/uc3/uc3_excalibur_streaming_cdc.json', encoding='utf-8').read())</span>
+<a id="__codelineno-38-4" name="__codelineno-38-4" href="#__codelineno-38-4"></a><span class="s2">r = validate_json(open('BT_Usecase/UC3/onboarding/uc3_excalibur_streaming_cdc.json', encoding='utf-8').read())</span>
 <a id="__codelineno-38-5" name="__codelineno-38-5" href="#__codelineno-38-5"></a><span class="s2">print(r['summary'])</span>
 <a id="__codelineno-38-6" name="__codelineno-38-6" href="#__codelineno-38-6"></a><span class="s2">[print(' ERROR:', e) for e in r['errors']]</span>
 <a id="__codelineno-38-7" name="__codelineno-38-7" href="#__codelineno-38-7"></a><span class="s2">"</span>

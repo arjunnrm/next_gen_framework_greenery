@@ -3736,8 +3736,8 @@ columns_to_check, columns_to_exclude)</code>, which:</p>
 <p>So the prompt's requirement is satisfied <em>more</em> strongly than asked — the legacy Ab Initio bug
 (PKs leaking into the hash) is structurally impossible here. The two timestamps are excluded via
 config: <code>columns_to_exclude: ["sys_creation_date", "sys_update_date"]</code>.</p>
-<p>To keep the audit trail the prompt wants, each spec carries a <code>_hash_specification</code> comment key
-(underscore-prefixed keys are explicitly allowed as author comments) documenting the intended set.</p>
+<p>To keep the audit trail the prompt wants, the intended set is documented in UC3_MASTER_DOCUMENT.md section 10.2.
+(The specs carry no comment keys beyond a single <code>_about</code> header, by the user's decision of 2026-09-07 -- BUILD_CONTRACT.md section 17.10.)</p>
 <h3 id="23-liquid-clustering-is-capped-at-3-columns-two-pks-exceed-it-23">2.3 Liquid clustering is <strong>capped at 3 columns</strong>; two PKs exceed it (§2.3)<a class="headerlink" href="#23-liquid-clustering-is-capped-at-3-columns-two-pks-exceed-it-23" title="Permanent link">&para;</a></h3>
 <p><code>MAX_LIQUID_CLUSTERING_COLUMNS = 3</code>. But:</p>
 <table>
@@ -3883,7 +3883,7 @@ admits no <code>columns</code> key, and schema is inferred from the source (or p
 </tr>
 <tr>
 <td>the <code>Drop(DF)=Y</code> changelog</td>
-<td><code>_</code>-prefixed comment key (e.g. <code>_dropped_source_columns</code>)</td>
+<td>UC3_MASTER_DOCUMENT.md section 11.2 (not carried in the spec)</td>
 </tr>
 </tbody>
 </table>

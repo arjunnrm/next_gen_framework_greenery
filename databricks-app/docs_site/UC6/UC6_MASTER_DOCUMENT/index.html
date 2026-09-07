@@ -3694,6 +3694,28 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#135-key-reconciliation-attributes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        13.5 Key reconciliation attributes
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#136-observability-attributes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        13.6 Observability attributes
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -5615,6 +5637,28 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#135-key-reconciliation-attributes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        13.5 Key reconciliation attributes
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#136-observability-attributes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        13.6 Observability attributes
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -6747,6 +6791,9 @@ body, .md-typeset, .md-typeset table, .md-typeset h1, .md-typeset h2,
 </tbody>
 </table>
 <h3 id="53-verified-row-counts-current-fixture">5.3 Verified row counts, current fixture<a class="headerlink" href="#53-verified-row-counts-current-fixture" title="Permanent link">&para;</a></h3>
+<p>These counts are from the <strong>[Simulated]</strong> augmented fixture, <code>BT_Usecase/UC6/data/test_fixture/</code>. The
+<strong>[Customer-Provided]</strong> supplied bundle, <code>BT_Usecase/UC6/data/sample_bundle/</code>, holds different row counts and
+produces zero matches. See Appendix B.4 for why both are kept.</p>
 <table>
 <thead>
 <tr>
@@ -6800,11 +6847,11 @@ body, .md-typeset, .md-typeset table, .md-typeset h1, .md-typeset h2,
 </thead>
 <tbody>
 <tr>
-<td><code>onboarding/uc6/uc6_ea_flood_warning.json</code></td>
+<td><code>BT_Usecase/UC6/onboarding/uc6_ea_flood_warning.json</code></td>
 <td>The onboarding specification</td>
 </tr>
 <tr>
-<td><code>onboarding/uc6/schema_configs/</code></td>
+<td><code>BT_Usecase/UC6/onboarding/schema_configs/</code></td>
 <td>Five positional-to-named column maps</td>
 </tr>
 <tr>
@@ -6816,12 +6863,12 @@ body, .md-typeset, .md-typeset table, .md-typeset h1, .md-typeset h2,
 <td>The pipeline definition</td>
 </tr>
 <tr>
-<td><code>docs/UC6/test_fixture/uc_6/raw/</code></td>
-<td><strong>The augmented fixture.</strong> Exercises all four statuses</td>
+<td><code>BT_Usecase/UC6/data/test_fixture/</code></td>
+<td><strong>[Simulated]</strong> The augmented fixture. Exercises all four statuses</td>
 </tr>
 <tr>
-<td><code>docs/UC6/sample_bundle/uc_6/raw/</code></td>
-<td>The supplied bundle. Produces zero matches</td>
+<td><code>BT_Usecase/UC6/data/sample_bundle/</code></td>
+<td><strong>[Customer-Provided]</strong> The supplied bundle. Produces zero matches</td>
 </tr>
 </tbody>
 </table>
@@ -7713,6 +7760,11 @@ body, .md-typeset, .md-typeset table, .md-typeset h1, .md-typeset h2,
 <hr />
 <h2 id="13-onboarding-json-attribute-by-attribute">13. Onboarding JSON, Attribute by Attribute<a class="headerlink" href="#13-onboarding-json-attribute-by-attribute" title="Permanent link">&para;</a></h2>
 <h3 id="131-the-specification-at-a-glance">13.1 The specification at a glance<a class="headerlink" href="#131-the-specification-at-a-glance" title="Permanent link">&para;</a></h3>
+<p><strong>The active spec:</strong> <code>BT_Usecase/UC6/onboarding/uc6_ea_flood_warning.json</code>, group id <code>dfg_uc6_ea_flood_warning</code>.
+<strong>The five schema configs it references:</strong> <code>BT_Usecase/UC6/onboarding/schema_configs/</code> — <code>uc6_css_account.json</code>,
+<code>uc6_css_account_address.json</code>, <code>uc6_css_subscription.json</code>, <code>uc6_excalibur_address.json</code>, <code>uc6_jt_customer.json</code>.
+These are the repository copies; the spec points at their <strong>deployed</strong> location on the volume,
+<code>/Volumes/{{catalog}}/staging/uc_6/_schema_configs/</code>, so they must be uploaded before a run.</p>
 <table>
 <thead>
 <tr>
@@ -7750,71 +7802,295 @@ body, .md-typeset, .md-typeset table, .md-typeset h1, .md-typeset h2,
 </tbody>
 </table>
 <h3 id="132-key-ingestion-attributes">13.2 Key ingestion attributes<a class="headerlink" href="#132-key-ingestion-attributes" title="Permanent link">&para;</a></h3>
+<p>All six ingestion flows share <code>source_type</code>, <code>target_type</code> and <code>cdc_load_strategy</code>. The rest differ per flow.</p>
 <table>
 <thead>
 <tr>
 <th>Attribute</th>
-<th>Value</th>
-<th>Why</th>
+<th>Type</th>
+<th>Value in UC6</th>
+<th>Runtime effect</th>
 </tr>
 </thead>
 <tbody>
 <tr>
 <td><code>source_type</code></td>
+<td>string</td>
 <td><code>autoloader</code></td>
-<td>File-based incremental ingestion</td>
+<td>File-based incremental ingestion. All six flows</td>
+</tr>
+<tr>
+<td><code>target_type</code></td>
+<td>string</td>
+<td><code>streaming_table</code></td>
+<td>Each bronze table is a <code>STREAMING_TABLE</code>. All six flows</td>
+</tr>
+<tr>
+<td><code>target_config.cdc_load_strategy</code></td>
+<td>string</td>
+<td><code>APPEND</code></td>
+<td>Bronze appends; no merge, no dedupe. All six flows</td>
+</tr>
+<tr>
+<td><code>target_config.storage_format</code></td>
+<td>string</td>
+<td><code>delta</code></td>
+<td>The bronze table is Delta</td>
+</tr>
+<tr>
+<td><code>source_config.format</code></td>
+<td>string</td>
+<td><code>csv</code></td>
+<td>Auto Loader reads CSV, including through plain <code>.gz</code></td>
+</tr>
+<tr>
+<td><code>source_config.path</code></td>
+<td>string</td>
+<td><code>raw/</code> for five, <code>_extracted/ea_request/</code> for EA</td>
+<td>Where Auto Loader lists. <strong>The EA flow reads the extracted copy, not <code>raw/</code></strong></td>
+</tr>
+<tr>
+<td><code>source_config.file_pattern</code></td>
+<td>string</td>
+<td>e.g. <code>CSS_account_[0-9]*.dat.gz</code></td>
+<td>Restricts the listing. The <code>[0-9]</code> stops <code>CSS_account_*</code> swallowing <code>CSS_account_address_*</code></td>
+</tr>
+<tr>
+<td><code>source_config.schema_location</code></td>
+<td>string</td>
+<td><code>_schemas/&lt;flow&gt;/</code></td>
+<td>Auto Loader's inferred-schema and rescue state. One per flow</td>
 </tr>
 <tr>
 <td><code>reader_options.delimiter</code></td>
-<td><code>\|</code> or <code>,</code></td>
-<td>Excalibur is comma-delimited</td>
+<td>string</td>
+<td><code>\|</code> on five, <code>,</code> on Excalibur</td>
+<td>Field split. Excalibur is comma-delimited</td>
 </tr>
 <tr>
-<td><code>schema_config_path</code></td>
-<td>Set on five flows</td>
-<td>Maps positional columns to names</td>
+<td><code>reader_options.header</code></td>
+<td>string</td>
+<td><code>"true"</code> on EA, <code>"false"</code> on five</td>
+<td>The EA request carries a header row; the five <code>.dat.gz</code> feeds do not</td>
+</tr>
+<tr>
+<td><code>reader_options.mode</code></td>
+<td>string</td>
+<td><code>PERMISSIVE</code></td>
+<td>A malformed row is nulled, not fatal. All six flows</td>
+</tr>
+<tr>
+<td><code>source_config.capture_technical_metadata</code></td>
+<td>boolean</td>
+<td><code>true</code></td>
+<td>Adds the <code>__framework_*</code> lineage columns. All six flows</td>
+</tr>
+<tr>
+<td><code>source_config.schema_config_path</code></td>
+<td>string</td>
+<td>Set on <strong>five</strong> flows</td>
+<td>Names positional columns. <strong>Not on the EA flow</strong> — that file has a real header</td>
+</tr>
+<tr>
+<td><code>source_zip_handling.enabled</code></td>
+<td>boolean</td>
+<td><code>true</code></td>
+<td><strong>EA flow only.</strong> Turns on the pre-read extract stage</td>
+</tr>
+<tr>
+<td><code>source_zip_handling.source_zip_path</code></td>
+<td>string</td>
+<td><code>raw/</code></td>
+<td>Where the encrypted archive is picked up</td>
+</tr>
+<tr>
+<td><code>source_zip_handling.zip_file_pattern</code></td>
+<td>string</td>
+<td><code>EE_*-REQUEST_*[Oo][Ff]*.csv.gz.gpg</code></td>
+<td>Which archive to extract. The <code>[Oo][Ff]</code> makes the <code>1OF1</code> / <code>1of1</code> sequence case-insensitive</td>
+</tr>
+<tr>
+<td><code>source_zip_handling.target_volume_path</code></td>
+<td>string</td>
+<td><code>_extracted/ea_request/</code></td>
+<td>Where the decrypted, decompressed <code>.csv</code> lands — and exactly what <code>source_config.path</code> then reads</td>
 </tr>
 <tr>
 <td><code>source_zip_handling.member_format</code></td>
+<td>string</td>
 <td><code>gzip</code></td>
-<td><strong>EA file only.</strong> It is a gzip inside a GPG envelope</td>
+<td>The envelope holds a <strong>bare gzip stream</strong>, not a ZIP container</td>
 </tr>
 <tr>
 <td><code>pre_extraction_decryption.type</code></td>
+<td>string</td>
 <td><code>pgp_symmetric</code></td>
-<td>Passphrase-based, not key-based</td>
+<td>Passphrase-based, not key-based. <strong>Nested inside <code>source_zip_handling</code></strong></td>
+</tr>
+<tr>
+<td><code>pre_extraction_decryption.passphrase_secret</code></td>
+<td>object</td>
+<td><code>secret_catalog</code> / <code>secret_schema</code> / <code>secret_key</code> = <code>{{catalog}}</code> / <code>config</code> / <code>pgpkey</code></td>
+<td>Resolves the passphrase at run time. Never stored in the spec</td>
+</tr>
+<tr>
+<td><code>delete_source_after_extract.action</code></td>
+<td>string</td>
+<td><code>delete_now</code></td>
+<td><strong>The EA <code>.gpg</code> is consumed on every run.</strong> Re-upload it before the next one. See 6.3</td>
+</tr>
+<tr>
+<td><code>dq_config.rules[]</code></td>
+<td>array</td>
+<td>1–5 rules per flow</td>
+<td>Per-row predicates. <code>action</code> is <code>fail</code>, <code>drop</code> or <code>warn</code></td>
+</tr>
+<tr>
+<td><code>governance_tags.table_tags</code></td>
+<td>object</td>
+<td>Six tags per flow</td>
+<td>Applied post-update by the tagging task. See 18.2</td>
 </tr>
 </tbody>
 </table>
 <h3 id="133-key-transformation-attributes">13.3 Key transformation attributes<a class="headerlink" href="#133-key-transformation-attributes" title="Permanent link">&para;</a></h3>
+<p>The ten transformation flows are <strong>not</strong> uniform: six build tables, four are export sinks. The attributes
+differ accordingly.</p>
 <table>
 <thead>
 <tr>
 <th>Attribute</th>
-<th>Value</th>
-<th>Why</th>
+<th>Type</th>
+<th>Value in UC6</th>
+<th>Runtime effect</th>
 </tr>
 </thead>
 <tbody>
 <tr>
+<td><code>flow_step_id</code></td>
+<td>string</td>
+<td><code>ts_uc6_*</code></td>
+<td>Identifies the flow in the control tables</td>
+</tr>
+<tr>
+<td><code>dataflow_id</code></td>
+<td>string</td>
+<td><code>df_uc6_ea_request_ingest</code> on <strong>all ten</strong></td>
+<td>Every transformation hangs off the EA ingestion flow, so the whole chain is one group</td>
+</tr>
+<tr>
 <td><code>target_type</code></td>
-<td><code>materialized_view</code></td>
-<td>Every silver and gold flow aggregates</td>
+<td>string</td>
+<td><code>materialized_view</code> on <strong>six</strong>, <code>sink</code> on <strong>four</strong></td>
+<td>The six build tables; the four sinks write files and materialise nothing</td>
 </tr>
 <tr>
-<td><code>cdc_load_strategy</code></td>
-<td><code>TRUNCATE_AND_LOAD</code></td>
-<td>Each run recomputes from scratch</td>
+<td><code>target_config.cdc_load_strategy</code></td>
+<td>string</td>
+<td><code>TRUNCATE_AND_LOAD</code> on the six MVs, <code>APPEND</code> on the four sinks</td>
+<td>The MVs recompute from scratch each run; a sink only ever appends</td>
 </tr>
 <tr>
-<td><code>is_streaming</code></td>
-<td><code>false</code> everywhere</td>
+<td><code>source_inputs[].input_name</code></td>
+<td>string</td>
+<td>e.g. <code>uc6_css_sub</code></td>
+<td>The alias the <code>transformation_sql</code> selects <strong>FROM</strong>. Never the real table name</td>
+</tr>
+<tr>
+<td><code>source_inputs[].table</code></td>
+<td>string</td>
+<td><code>{{catalog}}.&lt;layer&gt;.&lt;table&gt;</code></td>
+<td>The upstream node. Resolved through the DAG, not re-read from source</td>
+</tr>
+<tr>
+<td><code>source_inputs[].is_streaming</code></td>
+<td>boolean</td>
+<td><code>false</code> on <strong>every</strong> input</td>
 <td>The whole chain is batch. See 13.4</td>
 </tr>
 <tr>
-<td><code>export_trigger</code></td>
+<td><code>transformation_sql</code></td>
+<td>string</td>
+<td>The business logic</td>
+<td>Runs against the <code>input_name</code> aliases. <code>${param}</code> placeholders resolve from <code>pipeline_parameters</code></td>
+</tr>
+<tr>
+<td><code>sink_config.format</code></td>
+<td>string</td>
+<td><code>pgp_zip</code></td>
+<td>The egress writer. Handles staging, archiving and optional encryption</td>
+</tr>
+<tr>
+<td><code>sink_config.path</code></td>
+<td>string</td>
+<td><code>output/_staging/&lt;flow&gt;/</code></td>
+<td>Per-sink staging directory. Not the delivered file</td>
+</tr>
+<tr>
+<td><code>sink_config.staged_file_format</code></td>
+<td>string</td>
+<td><code>csv</code></td>
+<td>The staged payload is CSV before archiving</td>
+</tr>
+<tr>
+<td><code>sink_config.export_trigger</code></td>
+<td>string</td>
 <td><code>per_update</code></td>
-<td><strong>The v1.7.5 enhancement.</strong> See Section 19</td>
+<td><strong>The key enhancement.</strong> One export per pipeline update, even an update that ingested nothing. See Section 19</td>
+</tr>
+<tr>
+<td><code>staged_file_options.delimiter</code></td>
+<td>string</td>
+<td><code>\|</code></td>
+<td>Pipe-delimited, per the supplier contract</td>
+</tr>
+<tr>
+<td><code>staged_file_options.include_header</code></td>
+<td>boolean</td>
+<td><code>true</code></td>
+<td>The header row is part of the contract</td>
+</tr>
+<tr>
+<td><code>staged_file_options.line_terminator</code></td>
+<td>string</td>
+<td><code>lf</code></td>
+<td><strong>LF, not CRLF.</strong> The contract is Unix-terminated</td>
+</tr>
+<tr>
+<td><code>post_export_archive.enabled</code></td>
+<td>boolean</td>
+<td><code>true</code></td>
+<td>Turns on the archive-and-deliver stage</td>
+</tr>
+<tr>
+<td><code>post_export_archive.output_zip_path</code></td>
+<td>string</td>
+<td><code>output/</code></td>
+<td>Where the delivered file lands</td>
+</tr>
+<tr>
+<td><code>post_export_archive.export_file_name_format</code></td>
+<td>string</td>
+<td>e.g. <code>EE_${export_file_date}-LEIDOS_TELEPHONE_${export_file_sequence}</code></td>
+<td>The delivered filename. Both <code>${...}</code> resolve from <code>pipeline_parameters</code></td>
+</tr>
+<tr>
+<td><code>post_export_archive.archive_format</code></td>
+<td>string</td>
+<td><code>gzip</code></td>
+<td>Plain gzip, not ZIP. All four sinks</td>
+</tr>
+<tr>
+<td><code>post_export_archive.pgp_encryption.enabled</code></td>
+<td>boolean</td>
+<td><code>true</code> on <strong>two</strong> sinks</td>
+<td>Adds the GPG envelope. <strong>Absent on the two Leidos sinks</strong> — that is the only difference between the channels</td>
+</tr>
+<tr>
+<td><code>pgp_encryption.passphrase_secret</code></td>
+<td>object</td>
+<td><code>{{catalog}}</code> / <code>config</code> / <code>pgpkey</code></td>
+<td><strong>The same secret that decrypts the inbound EA file</strong></td>
 </tr>
 </tbody>
 </table>
@@ -7846,6 +8122,161 @@ body, .md-typeset, .md-typeset table, .md-typeset h1, .md-typeset h2,
 </tbody>
 </table>
 <p><strong>All four of these were discovered at runtime</strong>, not at validation. See Appendix A.</p>
+<h3 id="135-key-reconciliation-attributes">13.5 Key reconciliation attributes<a class="headerlink" href="#135-key-reconciliation-attributes" title="Permanent link">&para;</a></h3>
+<p>All six reconciliation flows are structurally identical presence gates. Each compares a bronze table
+<strong>against itself</strong>; the comparison is a vehicle for the row-count assertion, not a real reconciliation.</p>
+<table>
+<thead>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Value in UC6</th>
+<th>Runtime effect</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>reconciliation_id</code></td>
+<td>string</td>
+<td><code>rf_uc6_*_presence</code></td>
+<td>Identifies the gate in the control tables</td>
+</tr>
+<tr>
+<td><code>dataflow_group_id</code></td>
+<td>string</td>
+<td><code>dfg_uc6_ea_flood_warning</code></td>
+<td>Binds the gate to the group</td>
+</tr>
+<tr>
+<td><code>source_config.type</code> / <code>.table</code></td>
+<td>string</td>
+<td><code>table</code>, the bronze table</td>
+<td>What is counted</td>
+</tr>
+<tr>
+<td><code>source_config.read_mode</code></td>
+<td>string</td>
+<td><code>batch</code></td>
+<td>Point-in-time count, not a stream</td>
+</tr>
+<tr>
+<td><code>source_config.hash_precomputed</code></td>
+<td>boolean</td>
+<td><code>false</code></td>
+<td>The framework computes the match hash itself</td>
+</tr>
+<tr>
+<td><code>target_configs[].table</code></td>
+<td>string</td>
+<td><strong>The same bronze table</strong></td>
+<td>Self-comparison. See the note below</td>
+</tr>
+<tr>
+<td><code>target_configs[].comparison_direction</code></td>
+<td>string</td>
+<td><code>target_to_source</code></td>
+<td>Direction of the comparison</td>
+</tr>
+<tr>
+<td><code>match_keys</code></td>
+<td>array</td>
+<td>A real business key per flow, e.g. <code>customerid</code></td>
+<td><strong>Never <code>__framework_hash_key</code></strong> — the matcher hashes real columns <em>into</em> that field, so using it is circular. See Appendix A, defect 8</td>
+</tr>
+<tr>
+<td><code>compare_columns</code></td>
+<td>array</td>
+<td><code>[]</code> (empty) on all six</td>
+<td>Nothing is value-compared. Only the count matters</td>
+</tr>
+<tr>
+<td><code>execution_mode</code></td>
+<td>string</td>
+<td><code>pipeline_audit_only</code></td>
+<td>Runs inside the pipeline update, audits only</td>
+</tr>
+<tr>
+<td><code>dq_config.rules[]</code></td>
+<td>array</td>
+<td>One rule: <code>source_record_count &gt; 0</code>, action <code>fail</code></td>
+<td><strong>The gate itself.</strong> It attaches to a one-row metrics dataset where the count is a real column. See 17.3</td>
+</tr>
+<tr>
+<td><code>error_handling.on_failure</code></td>
+<td>string</td>
+<td><code>fail</code></td>
+<td>A missing or empty source fails the update loudly</td>
+</tr>
+<tr>
+<td><code>logging_config.run_log_capture</code></td>
+<td>boolean</td>
+<td><code>true</code></td>
+<td>A control-table row is written for alerting</td>
+</tr>
+<tr>
+<td><code>logging_config.mismatch_log_capture</code></td>
+<td>boolean</td>
+<td><code>false</code></td>
+<td>No mismatch rows. There is nothing to mismatch in a self-comparison</td>
+</tr>
+</tbody>
+</table>
+<h3 id="136-observability-attributes">13.6 Observability attributes<a class="headerlink" href="#136-observability-attributes" title="Permanent link">&para;</a></h3>
+<p>One destination, <code>dest_uc6_triggered_volume</code>.</p>
+<table>
+<thead>
+<tr>
+<th>Attribute</th>
+<th>Type</th>
+<th>Value in UC6</th>
+<th>Runtime effect</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>id</code></td>
+<td>string</td>
+<td><code>dest_uc6_triggered_volume</code></td>
+<td>Identifies the destination</td>
+</tr>
+<tr>
+<td><code>enabled</code></td>
+<td>boolean</td>
+<td><code>true</code></td>
+<td>Telemetry is exported</td>
+</tr>
+<tr>
+<td><code>mode</code></td>
+<td>string</td>
+<td><code>triggered</code></td>
+<td>Exported by a job task after the update, not continuously</td>
+</tr>
+<tr>
+<td><code>type</code></td>
+<td>string</td>
+<td><code>DATABRICKS_VOLUME</code></td>
+<td>The destination is a UC volume</td>
+</tr>
+<tr>
+<td><code>destination_config.volume_path</code></td>
+<td>string</td>
+<td><code>/Volumes/{{catalog}}/observability/app_logs/uc6</code></td>
+<td>Where the telemetry file lands</td>
+</tr>
+<tr>
+<td><code>destination_config.file_format</code></td>
+<td>string</td>
+<td><code>JSONL</code></td>
+<td>One JSON object per line</td>
+</tr>
+<tr>
+<td><code>destination_config.compression</code></td>
+<td>string</td>
+<td><code>GZIP</code></td>
+<td><strong>A string, not a boolean.</strong> Allowed values are <code>"GZIP"</code>, <code>"gzip"</code>, <code>"none"</code> and <code>""</code>. There is no <code>compressed</code> flag — an earlier <code>"compressed": true</code> was a defect and has been corrected</td>
+</tr>
+</tbody>
+</table>
 <hr />
 <h2 id="14-the-export-files">14. The Export Files<a class="headerlink" href="#14-the-export-files" title="Permanent link">&para;</a></h2>
 <h3 id="141-the-four-files">14.1 The four files<a class="headerlink" href="#141-the-four-files" title="Permanent link">&para;</a></h3>
@@ -8303,7 +8734,7 @@ body, .md-typeset, .md-typeset table, .md-typeset h1, .md-typeset h2,
 </tr>
 <tr>
 <td><strong>Format</strong></td>
-<td>JSONL, gzip-compressed</td>
+<td>JSONL, gzip-compressed. Set by <code>file_format: "JSONL"</code> and <code>compression: "GZIP"</code> — <code>compression</code> is a <strong>string</strong>, not a boolean. See 13.6</td>
 </tr>
 <tr>
 <td><strong>Written by</strong></td>
@@ -8513,7 +8944,7 @@ body, .md-typeset, .md-typeset table, .md-typeset h1, .md-typeset h2,
 <h2 id="appendix-b-operational-runbook">Appendix B — Operational Runbook<a class="headerlink" href="#appendix-b-operational-runbook" title="Permanent link">&para;</a></h2>
 <h3 id="b1-running-uc6-from-scratch">B.1 Running UC6 from scratch<a class="headerlink" href="#b1-running-uc6-from-scratch" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a><span class="c1"># 1. Re-upload the EA request file. It is CONSUMED on every run.</span>
-<a id="__codelineno-19-2" name="__codelineno-19-2" href="#__codelineno-19-2"></a>databricks<span class="w"> </span>fs<span class="w"> </span>cp<span class="w"> </span>docs/UC6/test_fixture/uc_6/raw/EE_2026-08-20-REQUEST_1OF1.csv.gz.gpg<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-19-2" name="__codelineno-19-2" href="#__codelineno-19-2"></a>databricks<span class="w"> </span>fs<span class="w"> </span>cp<span class="w"> </span>BT_Usecase/UC6/data/test_fixture/EE_2026-08-20-REQUEST_1OF1.csv.gz.gpg<span class="w"> </span><span class="se">\</span>
 <a id="__codelineno-19-3" name="__codelineno-19-3" href="#__codelineno-19-3"></a><span class="w">  </span>dbfs:/Volumes/flowx/staging/uc_6/raw/EE_2026-08-20-REQUEST_1OF1.csv.gz.gpg<span class="w"> </span><span class="se">\</span>
 <a id="__codelineno-19-4" name="__codelineno-19-4" href="#__codelineno-19-4"></a><span class="w">  </span>-p<span class="w"> </span>metaflow_v7<span class="w"> </span>--overwrite
 <a id="__codelineno-19-5" name="__codelineno-19-5" href="#__codelineno-19-5"></a>
@@ -8600,7 +9031,7 @@ body, .md-typeset, .md-typeset table, .md-typeset h1, .md-typeset h2,
 <tr>
 <td>Zero matches in the output</td>
 <td>Using the <strong>supplied bundle</strong>, not the augmented fixture</td>
-<td>Use <code>docs/UC6/test_fixture/</code></td>
+<td>Use <code>BT_Usecase/UC6/data/test_fixture/</code></td>
 </tr>
 </tbody>
 </table>
@@ -8609,6 +9040,7 @@ body, .md-typeset, .md-typeset table, .md-typeset h1, .md-typeset h2,
 <thead>
 <tr>
 <th>Fixture</th>
+<th>Provenance</th>
 <th>Path</th>
 <th>Behaviour</th>
 </tr>
@@ -8616,18 +9048,31 @@ body, .md-typeset, .md-typeset table, .md-typeset h1, .md-typeset h2,
 <tbody>
 <tr>
 <td><strong>Augmented</strong></td>
-<td><code>docs/UC6/test_fixture/</code></td>
+<td><strong>[Simulated]</strong></td>
+<td><code>BT_Usecase/UC6/data/test_fixture/</code></td>
 <td><strong>Use this.</strong> Exercises all four statuses</td>
 </tr>
 <tr>
 <td><strong>Supplied</strong></td>
-<td><code>docs/UC6/sample_bundle/</code></td>
+<td><strong>[Customer-Provided]</strong></td>
+<td><code>BT_Usecase/UC6/data/sample_bundle/</code></td>
 <td>Produces <strong>zero matches</strong>. No postcode overlap, no CSS join-key overlap</td>
 </tr>
 </tbody>
 </table>
+<p><strong>[Customer-Provided] — <code>BT_Usecase/UC6/data/sample_bundle/</code> (6 files).</strong> This is the customer's own
+deliverable, the supplied <code>uc_6_poc_bundle.zip</code>, unpacked and preserved unmodified. Its own <code>README.md</code>
+states the data is synthetic and sanitised <strong>at source</strong> by the customer, per
+<code>Flood_Warning_System_POC_Interface_Specification.docx</code>. <strong>No script in this repository generates it, and
+we do not regenerate it.</strong> If it needs to change, it changes at the customer.</p>
+<p><strong>[Simulated] — <code>BT_Usecase/UC6/data/test_fixture/</code> (6 files).</strong> Written by
+<code>scripts/generate_uc6_test_data.py</code>. It exists because the supplied bundle has <strong>no postcode overlap</strong> and
+<strong>no CSS join-key overlap</strong>, so a run over it yields zero matches and cannot exercise the Found / Not Found
+/ Bad OSAPR / Single Addr decision table at all.</p>
 <blockquote>
-<p>The supplied bundle cannot demonstrate the business rules. It is preserved unmodified for reference, and its zero-match behaviour is pinned by a test so nobody mistakes it for a defect.</p>
+<p><strong>Both bundles are retained deliberately.</strong> The supplied bundle proves the real <strong>no-match path</strong>, and its
+zero-match behaviour is pinned by a test so nobody mistakes it for a defect. The augmented fixture proves
+the <strong>decision table</strong>. Neither replaces the other.</p>
 </blockquote>
 <hr />
 <h2 id="appendix-c-comparison-with-uc3-and-uc7">Appendix C — Comparison With UC3 and UC7<a class="headerlink" href="#appendix-c-comparison-with-uc3-and-uc7" title="Permanent link">&para;</a></h2>
@@ -8733,7 +9178,7 @@ body, .md-typeset, .md-typeset table, .md-typeset h1, .md-typeset h2,
 </tr>
 <tr>
 <td>Join SQL and business rules</td>
-<td>Read from <code>onboarding/uc6/uc6_ea_flood_warning.json</code></td>
+<td>Read from <code>BT_Usecase/UC6/onboarding/uc6_ea_flood_warning.json</code></td>
 </tr>
 <tr>
 <td>Governance tag count</td>

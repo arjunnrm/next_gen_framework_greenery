@@ -6138,7 +6138,7 @@ without leaving the form.</p>
 <tr>
 <td><a href="#source-configasn1-pdu-name"><code>source_config.asn1_pdu_name</code></a></td>
 <td>string</td>
-<td><strong>yes</strong></td>
+<td>no</td>
 <td>—</td>
 </tr>
 <tr>
@@ -6934,8 +6934,8 @@ without leaving the form.</p>
 </div>
 <hr />
 <h3 id="source-configasn1-pdu-name"><code>source_config.asn1_pdu_name</code><a class="headerlink" href="#source-configasn1-pdu-name" title="Permanent link">&para;</a></h3>
-<p>The top-level SEQUENCE type in the .asn file to decode each record as.</p>
-<p><strong>Type</strong> <code>string</code> · <strong>Required</strong> yes · <strong>Section</strong> Source · ASN.1</p>
+<p>The top-level SEQUENCE/CHOICE type in the .asn file to decode each record as. Optional since 0.0.2.</p>
+<p><strong>Type</strong> <code>string</code> · <strong>Required</strong> no · <strong>Section</strong> Source · ASN.1</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="p">{</span>
 <a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a><span class="w">  </span><span class="nt">"source_config"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
 <a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a><span class="w">    </span><span class="nt">"asn1_pdu_name"</span><span class="p">:</span><span class="w"> </span><span class="s2">"CallDetailRecord"</span>
@@ -6945,7 +6945,7 @@ without leaving the form.</p>
 <div class="admonition tip">
 <p class="admonition-title">Best practice</p>
 <ul>
-<li>Required — onboarding rejects the flow if this is missing.</li>
+<li>Optional. Leave it blank and the decoder auto-detects the module's root PDU; set it only to override that detection (or when the module is ambiguous and detection raises).</li>
 </ul>
 </div>
 <hr />

@@ -114,6 +114,9 @@ Generates the **augmented** UC6 fixture. The supplied bundle has no postcode ove
 no CSS join-key overlap, so it can only ever exercise the no-match path; this fixture hits
 every branch of the decision table. The supplied bundle is never modified.
 
+Writes the six files **flat** into `<out>/` — default
+`BT_Usecase/UC6/data/test_fixture/`, matching the checked-in layout.
+
 ```bash
 python scripts/generate_uc6_test_data.py [--out <dir>] [--passphrase <pw>]
 ```

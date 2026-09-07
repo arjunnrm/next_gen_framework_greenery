@@ -3930,6 +3930,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#1710-comment-keys-removed-from-both-specs-2026-09-07-user-decision" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        17.10 Comment keys removed from both specs (2026-09-07, user decision)
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -4161,7 +4172,7 @@ accordingly (<code>["1"]</code> vs <code>["true"]</code>); flag it in Phase C ra
 <p><strong><code>subscriber</code> resolution: Drop wins.</strong> Both columns carry both flags; a dropped column cannot
 also be a nulled column, since it does not exist in the target. So for <code>subscriber</code>,
 <code>ctn_password</code> / <code>sub_password</code> are <strong>absent from the schema</strong> and appear <strong>only</strong> in the
-<code>_dropped_source_columns</code> changelog. They must <strong>not</strong> appear in <code>data_standardization_sql</code>.</p>
+dropped-column record (UC3_MASTER_DOCUMENT.md section 11.2). They must <strong>not</strong> appear in <code>data_standardization_sql</code>.</p>
 <p>Null-out is configured as, e.g. for <code>customer</code>:</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="nt">"data_standardization_sql"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
 <a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="w">  </span><span class="s2">"CAST(NULL AS STRING) AS acc_password"</span><span class="p">,</span>
@@ -4208,11 +4219,11 @@ whole configuration. The framework then materializes:</p>
 </tr>
 <tr>
 <td>explicit ordered list in JSON</td>
-<td>⚠ derived at runtime; documented in <code>_hash_specification</code></td>
+<td>⚠ derived at runtime; documented in UC3_MASTER_DOCUMENT.md section 10.2</td>
 </tr>
 </tbody>
 </table>
-<p>Every spec carries an auditable <code>_hash_specification</code> comment key:</p>
+<p>The auditable hash specification is recorded in UC3_MASTER_DOCUMENT.md section 10.2 (until 2026-09-07 each spec also carried it as a <code>_hash_specification</code> comment key -- removed with every other comment key, see section 17.10):</p>
 <div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="nt">"_hash_specification"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
 <a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="w">  </span><span class="nt">"algorithm"</span><span class="p">:</span><span class="w"> </span><span class="s2">"SHA-256, hex (framework canonical; NOT base64 - see capability map 2.1)"</span><span class="p">,</span>
 <a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="w">  </span><span class="nt">"expression"</span><span class="p">:</span><span class="w"> </span><span class="s2">"sha2(concat_ws('||', coalesce(trim(lower(cast(c AS STRING))), '__NULL__'), ...), 256)"</span><span class="p">,</span>
@@ -4319,8 +4330,8 @@ either framework-generated or out of scope.</p>
 </table>
 <p>The four <code>gcp_*</code> columns are <strong>legacy CloudSQL/BigQuery audit fields</strong>. They are <em>not</em> carried
 into <code>flowx.uc3_bronze.*</code>: FlowX supplies the equivalent via
-<code>target_config.capture_technical_metadata</code>. Record them in the spec's <code>_dropped_source_columns</code>
-changelog with reason <code>legacy_gcp_audit_superseded_by_framework_technical_metadata</code>. <strong>If you
+<code>target_config.capture_technical_metadata</code>. They are recorded in UC3_MASTER_DOCUMENT.md section 11.2
+with reason <code>legacy_gcp_audit_superseded_by_framework_technical_metadata</code>. <strong>If you
 believe they should be retained, flag it — do not add them unilaterally.</strong></p>
 <p><code>hash_value</code>'s own description in the sheet — <em>"Generated with combination of columns expect key,
 timestamp"</em> — is the source-of-truth confirmation of §5.1's hash rule, and is exactly what
@@ -5086,7 +5097,7 @@ required for <code>batch_table</code> targets (where <code>storage_format: "iceb
 The regression test stays too, with its guard proven by deliberate breakage.</p>
 <p><strong>Spec changes:</strong> <code>table_properties</code> removed from all six flows across the two specs (it held only
 that one key, so the block is now absent entirely). Both specs <strong>re-validated: <code>valid = True</code></strong>.
-An <code>_iceberg_deferral</code> comment key records the full reasoning in each spec. Verified that the only
+The full reasoning is recorded in this section and in UC3_MASTER_DOCUMENT.md section 10.3 (the <code>_iceberg_deferral</code> comment key that once carried it in each spec was removed on 2026-09-07 with all other comment keys, section 17.10). Verified that the only
 remaining occurrences of the attribute name are inside underscore-prefixed documentation keys —
 no executable config references it.</p>
 <p><strong>KNOWN GAP for §8:</strong> <em>"Liquid Clustering + Iceberg-read table properties set on all 3 bronze
@@ -5576,6 +5587,22 @@ the 127 columns is identical across all of them.</strong> The recon is reporting
 <em>generator</em>, not the framework: mutate a small random subset of columns per mutated row instead
 of redrawing all of them. That is a fixture change, out of scope for this build.</p>
 </blockquote>
+<h3 id="1710-comment-keys-removed-from-both-specs-2026-09-07-user-decision">17.10 Comment keys removed from both specs (2026-09-07, user decision)<a class="headerlink" href="#1710-comment-keys-removed-from-both-specs-2026-09-07-user-decision" title="Permanent link">&para;</a></h3>
+<p><strong>What changed.</strong> Every <code>_</code>-prefixed author-comment key (20 in the streaming spec, 15 in the batch/recon spec) was removed
+from <code>uc3_excalibur_streaming_cdc.json</code> and <code>uc3_excalibur_batch_recon.json</code>. Each spec now carries exactly <strong>one</strong> comment
+key, a root-level <code>_about</code> header (use case, one-paragraph description, framework version, date, developer). The framework
+has no non-underscore root attribute for a description (<code>ALLOWED_ROOT_KEYS</code> is exactly eight keys), so a single <code>_</code> key is
+the minimum that still validates. Every rationale those keys held lives in UC3_MASTER_DOCUMENT.md (hash spec: section 10.2; dropped and
+nulled columns: sections 11.2-11.3; Iceberg: section 10.3; reconciliation settings: section 7.2). Both specs were also
+re-ordered to the key order of <code>onboarding_templates/pipeline_onboarding_template.json</code>, and <code>$schema</code> now points at the
+schema relative to the specs' post-consolidation location under <code>BT_Usecase/UC3/onboarding/</code> (the previous relative path
+no longer resolved after the 2026-09-06 move).</p>
+<p><strong>Verified after the change:</strong> both specs <code>PASSED</code> <code>spec_validator</code> and validate against <code>onboarding_spec.schema.json</code>
+(Draft 2020-12); no <code>_</code> key remains except <code>_about</code>; every tag sits under <code>governance_tags</code> and nowhere else; the
+dead <code>destination_config.compressed</code> key (a misspelling of <code>compression</code>, read by nothing) is replaced by <code>compression: "GZIP"</code>, preserving the evident intent -- the same correction the 0.0.4 release notes record for the reference spec.</p>
+<p><strong>Why it matters for the record.</strong> Statements elsewhere in this contract that a spec "carries" an audit comment key
+(<code>_hash_specification</code>, <code>_dropped_source_columns</code>, <code>_iceberg_deferral</code>) describe the specs as they were during Phase B/C
+and have been pointed at the master document above; they are not to be re-introduced.</p>
 
 
 
