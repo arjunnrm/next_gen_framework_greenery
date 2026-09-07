@@ -201,7 +201,7 @@ variables:
       impossible rather than merely unlikely -- unique wheel FILENAMES never prevented it, because
       pruning removes by directory scan, not by name collision. Bump this and pyproject.toml
       together, in the same commit.
-    default: 0.0.3
+    default: 0.0.4
   wheels_root:
     description: >-
       Parent directory of the version-scoped wheel artifact path; every target composes

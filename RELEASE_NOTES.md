@@ -15,6 +15,109 @@ resolving. Per-version directories fix that structurally.
 
 ---
 
+## 0.0.4 — one folder per use case, and three attributes that were lying — 2026-09-07
+
+A reorganisation release. No framework behaviour changes, but three spec-surface defects
+surfaced while checking the documentation against the code, and those are real fixes.
+
+### Three attributes that did not mean what they said
+
+**`source_config.asn1_pdu_name` was marked required and is not.** The decoder has
+auto-detected a module's root PDU since 0.0.2 -- an absent or blank value *is* the documented
+request to auto-detect, and supplying a name is an unconditional override. `spec_validator.py`
+implemented exactly that. The JSON schema still listed the attribute in its `required` array,
+so the two gates disagreed: every valid auto-detect ASN.1 spec passed the validator and was
+rejected by the schema. `UC7_cdr_asn_bronze.json` -- four flows, all relying on detection --
+failed on all four. The Spec Builder enforced the same phantom requirement in three more
+places, and `attribute_knowledge.json` asserted "Required -- onboarding rejects the flow if
+this is missing", which is the opposite of what the framework does.
+
+**`destination_config.compressed` is not an attribute.** Five specs set `"compressed": true`
+on a `DATABRICKS_VOLUME` observability destination. The runtime reads
+`destination_config.compression` -- a *string*, validated against
+`{"GZIP", "gzip", "none", ""}`. The boolean was inert: it read as "gzip is on" while the
+exporter quietly applied its own default. This is precisely the failure mode the
+"removals are rejected, never ignored" rule exists to prevent, arriving through a typo rather
+than a removal. Corrected to `"compression": "GZIP"` -- preserving the evident intent rather
+than dropping the key -- including in `onboarding_spec_full_reference.json`, which is what
+spec authors copy from and would otherwise keep minting new specs with a dead key.
+
+**The UC7 onboarding spec was not missing.** It was filed under `flowx_testing/` rather than
+with its use case, which is why it read as absent. It is now
+`BT_Usecase/UC7/onboarding/UC7_cdr_asn_bronze.json`.
+
+### BT_Usecase/ — one folder per use case
+
+Each use case's documents, onboarding specs and source data now sit together:
+
+    BT_Usecase/<UC>/
+      docs/         master document + supporting guides
+      onboarding/   the active onboarding spec(s)
+      data/         that use case's source data
+
+so a setup script copies one tree per use case into that use case's Volume, instead of
+gathering assets from `docs/`, `onboarding/`, `flowx_testing/` and the repo root. UC6's
+duplicate tree (`docs/uc_6`, byte-identical to `docs/UC6`, md5-verified) collapsed into one.
+`docs/delivery` moved to `BT_Usecase/_shared/delivery` -- it is BT use-case material.
+
+mkdocs can only include files beneath `docs_dir`, so rather than keep a second
+hand-maintained copy, `scripts/build_docs_reference.py` now stages the use-case documents
+(and the `.csv`/`.sql` assets they link to as siblings) into `docs/UC*/` at build time,
+alongside the reference trees it already derives. BT_Usecase stays the source of truth;
+`docs/UC*/` is derived output and gitignored.
+
+### Archived rather than deleted
+
+- `resources/{bt_tests,feature_tests,stability_tests,v0_0_2_tests}` -> `archive/resources/`
+  (108 job/pipeline YAMLs). None were referenced by `databricks.yml`.
+- 57 onboarding specs from `flowx_testing/` -> `archive/old_json/`.
+  `100_zipcsv_onbaording.json` stayed put: `dlt_observability_job.yml` loads it by exact
+  path. `framework_config_onboarding_job.yml`'s `spec_dir` default followed the corpus so
+  bulk onboarding still works.
+
+### Data: 10 files deleted, and why not more
+
+Every data asset was classified by provenance trace -- which generator writes it, which
+loader reads it -- and the result is recorded in `docs/DATA_PROVENANCE_CLASSIFICATION.md`.
+An initial estimate put ~45 files up for deletion. Building the reference set
+programmatically instead showed `bt_group`, `asn1_cdr_*` and `zip_ingestion` **are**
+referenced, by their own generators and by integration tests. The real orphan count was 10.
+
+Two near-misses worth recording, both of which would have degraded silently:
+
+- The `BT_Testing` synthetic `.ber` payloads look like disposable generated data. They are
+  load-bearing: `test_asn1_root_pdu_detection.py` `pytest.skip()`s without them, so deleting
+  them would have turned 43 passing assertions into skips -- a green run proving nothing.
+  They moved to `BT_Usecase/UC7/data/synthetic/` instead.
+- Both `pgp_*_private.asc` keys are unreferenced by name while their public halves are
+  referenced. Splitting a test keypair breaks decryption tests, so both were kept.
+
+No customer-provided asset was deleted, and nothing was deleted without first proving it is
+referenced nowhere.
+
+### App
+
+A **raw JSON debug viewer**: a `raw` button beside the preview pane's copy control opens the
+complete unparsed spec with one-click copy. Always JSON and always unfiltered regardless of
+the preview pane's JSON/YAML toggle -- a debugging copy-paste should never be a half-rendered
+view of the thing being debugged. Payload size is shown so a truncated paste is obvious.
+
+### New documents
+
+- `docs/SCRIPTS_GUIDE.md` -- every active script: purpose, prerequisites, command line.
+- `docs/DATA_PROVENANCE_CLASSIFICATION.md` -- every data asset as
+  **[Customer-Provided]** or **[Simulated]**, with the evidence for each call.
+
+### Verified
+
+`databricks bundle validate -t metaflow_v7` OK; 68/68 onboarding specs schema-valid;
+`test_asn1_root_pdu_detection.py` 43 passed / 0 skipped; `test_agent_skill_layout.py`
+10 passed; `databricks-app/tests` 217 passed / 19 skipped; `npm run build` OK (`dist/`
+rebuilt -- Databricks Apps does not build at deploy time); mkdocs build OK with 12 use-case
+pages rendered.
+
+---
+
 ## 0.0.3c — an aggregating table can finally be exported — 2026-09-06
 
 **`sink_config.export_trigger`.** One optional attribute that closes a structural gap rather
