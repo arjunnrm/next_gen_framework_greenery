@@ -234,8 +234,14 @@ def test_locked_containers_still_permit_underscore_comments():
 
 def test_every_shipped_spec_still_validates_clean_of_unknown_keys():
     """No spec in the repo may regress -- these are the framework worked examples."""
+    # 0.0.4 moved the corpus: the live use-case specs now live under BT_Usecase/<UC>/onboarding/
+    # (schema_configs/ below them are column maps, not specs, hence the non-recursive glob) and
+    # the former flowx_testing/ worked examples under archive/old_json/. Both are still shipped,
+    # so both stay under this guard -- the BT_Usecase ones are the specs that actually deploy.
     paths = sorted(
         set(glob.glob("flowx_testing/*.json"))
+        | set(glob.glob("BT_Usecase/*/onboarding/*.json"))
+        | set(glob.glob("archive/old_json/*.json"))
         | set(glob.glob("resources/**/*.json", recursive=True))
         | {
             "onboarding_templates/pipeline_onboarding_template.json",
