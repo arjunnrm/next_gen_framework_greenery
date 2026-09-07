@@ -71,8 +71,8 @@ So the prompt's requirement is satisfied *more* strongly than asked — the lega
 (PKs leaking into the hash) is structurally impossible here. The two timestamps are excluded via
 config: `columns_to_exclude: ["sys_creation_date", "sys_update_date"]`.
 
-To keep the audit trail the prompt wants, each spec carries a `_hash_specification` comment key
-(underscore-prefixed keys are explicitly allowed as author comments) documenting the intended set.
+To keep the audit trail the prompt wants, the intended set is documented in UC3_MASTER_DOCUMENT.md section 10.2.
+(The specs carry no comment keys beyond a single `_about` header, by the user's decision of 2026-09-07 -- BUILD_CONTRACT.md section 17.10.)
 
 ### 2.3 Liquid clustering is **capped at 3 columns**; two PKs exceed it (§2.3)
 
@@ -154,7 +154,7 @@ admits no `columns` key, and schema is inferred from the source (or pinned via
 | `columns[].tags` | `governance_tags.column_tags[]` |
 | `columns[].comment` | `source_config.schema_config_path` → a schema-config document |
 | `columns[].name/type/nullable` | `source_config.schema_config_path`, or inferred |
-| the `Drop(DF)=Y` changelog | `_`-prefixed comment key (e.g. `_dropped_source_columns`) |
+| the `Drop(DF)=Y` changelog | UC3_MASTER_DOCUMENT.md section 11.2 (not carried in the spec) |
 
 `onboarding_templates/schema_config_example.json` is the shape for the schema-config document.
 This is a genuine structural difference from the prompt's assumed schema, not a naming quibble.

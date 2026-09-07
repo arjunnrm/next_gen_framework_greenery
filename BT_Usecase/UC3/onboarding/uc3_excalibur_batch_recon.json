@@ -76,8 +76,8 @@
       "target_schema": "staging",
       "target_table": "physical_device_batch",
       "target_type": "streaming_table",
+      "_why_append": "Staging keeps all four dated sets side by side (BUILD_CONTRACT.md section 10), so this is a pure APPEND landing table -- NOT a CDC target. cdc_operation_column/columns_to_exclude/generate_hash_columns are deliberately absent: the validator scopes them to SCD strategies, and the batch side's hashes are computed by the reconciliation engine itself (hash_precomputed:false below).",
       "target_config": {
-        "_why_append": "Staging keeps all four dated sets side by side (BUILD_CONTRACT.md section 10), so this is a pure APPEND landing table -- NOT a CDC target. cdc_operation_column/columns_to_exclude/generate_hash_columns are deliberately absent: the validator scopes them to SCD strategies, and the batch side's hashes are computed by the reconciliation engine itself (hash_precomputed:false below).",
         "cdc_load_strategy": "APPEND",
         "partition_columns": [
           "batch_date"
@@ -609,7 +609,7 @@
       "destination_config": {
         "volume_path": "/Volumes/flowx/observability/app_logs/batch_recon",
         "file_format": "JSONL",
-        "compressed": true
+        "compression": "GZIP"
       }
     }
   ],

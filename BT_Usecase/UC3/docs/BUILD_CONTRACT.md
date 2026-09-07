@@ -121,7 +121,7 @@ Shared by all three:
 **`subscriber` resolution: Drop wins.** Both columns carry both flags; a dropped column cannot
 also be a nulled column, since it does not exist in the target. So for `subscriber`,
 `ctn_password` / `sub_password` are **absent from the schema** and appear **only** in the
-`_dropped_source_columns` changelog. They must **not** appear in `data_standardization_sql`.
+dropped-column record (UC3_MASTER_DOCUMENT.md section 11.2). They must **not** appear in `data_standardization_sql`.
 
 Null-out is configured as, e.g. for `customer`:
 
@@ -158,9 +158,9 @@ Satisfies §5.1 as follows:
 | excludes PK columns | ✅ **structurally** — `resolve_comparison_columns` always excludes `primary_keys` |
 | excludes both timestamps | ✅ via `columns_to_exclude` (§3) |
 | base64-encoded | ❌ **hex** — deviation, capability map §2.1 |
-| explicit ordered list in JSON | ⚠ derived at runtime; documented in `_hash_specification` |
+| explicit ordered list in JSON | ⚠ derived at runtime; documented in UC3_MASTER_DOCUMENT.md section 10.2 |
 
-Every spec carries an auditable `_hash_specification` comment key:
+The auditable hash specification is recorded in UC3_MASTER_DOCUMENT.md section 10.2 (until 2026-09-07 each spec also carried it as a `_hash_specification` comment key -- removed with every other comment key, see section 17.10):
 
 ```json
 "_hash_specification": {
@@ -233,8 +233,8 @@ Identical in all three sheets:
 
 The four `gcp_*` columns are **legacy CloudSQL/BigQuery audit fields**. They are *not* carried
 into `flowx.uc3_bronze.*`: FlowX supplies the equivalent via
-`target_config.capture_technical_metadata`. Record them in the spec's `_dropped_source_columns`
-changelog with reason `legacy_gcp_audit_superseded_by_framework_technical_metadata`. **If you
+`target_config.capture_technical_metadata`. They are recorded in UC3_MASTER_DOCUMENT.md section 11.2
+with reason `legacy_gcp_audit_superseded_by_framework_technical_metadata`. **If you
 believe they should be retained, flag it — do not add them unilaterally.**
 
 `hash_value`'s own description in the sheet — *"Generated with combination of columns expect key,
@@ -723,7 +723,7 @@ The regression test stays too, with its guard proven by deliberate breakage.
 
 **Spec changes:** `table_properties` removed from all six flows across the two specs (it held only
 that one key, so the block is now absent entirely). Both specs **re-validated: `valid = True`**.
-An `_iceberg_deferral` comment key records the full reasoning in each spec. Verified that the only
+The full reasoning is recorded in this section and in UC3_MASTER_DOCUMENT.md section 10.3 (the `_iceberg_deferral` comment key that once carried it in each spec was removed on 2026-09-07 with all other comment keys, section 17.10). Verified that the only
 remaining occurrences of the attribute name are inside underscore-prefixed documentation keys —
 no executable config references it.
 
@@ -1056,3 +1056,23 @@ the 127 columns is identical across all of them.** The recon is reporting the da
 > **If a future demo needs a visibly non-zero `matched_count` on every table**, change the
 > *generator*, not the framework: mutate a small random subset of columns per mutated row instead
 > of redrawing all of them. That is a fixture change, out of scope for this build.
+
+### 17.10 Comment keys removed from both specs (2026-09-07, user decision)
+
+**What changed.** Every `_`-prefixed author-comment key (20 in the streaming spec, 15 in the batch/recon spec) was removed
+from `uc3_excalibur_streaming_cdc.json` and `uc3_excalibur_batch_recon.json`. Each spec now carries exactly **one** comment
+key, a root-level `_about` header (use case, one-paragraph description, framework version, date, developer). The framework
+has no non-underscore root attribute for a description (`ALLOWED_ROOT_KEYS` is exactly eight keys), so a single `_` key is
+the minimum that still validates. Every rationale those keys held lives in UC3_MASTER_DOCUMENT.md (hash spec: section 10.2; dropped and
+nulled columns: sections 11.2-11.3; Iceberg: section 10.3; reconciliation settings: section 7.2). Both specs were also
+re-ordered to the key order of `onboarding_templates/pipeline_onboarding_template.json`, and `$schema` now points at the
+schema relative to the specs' post-consolidation location under `BT_Usecase/UC3/onboarding/` (the previous relative path
+no longer resolved after the 2026-09-06 move).
+
+**Verified after the change:** both specs `PASSED` `spec_validator` and validate against `onboarding_spec.schema.json`
+(Draft 2020-12); no `_` key remains except `_about`; every tag sits under `governance_tags` and nowhere else; the
+same-day fix removing the dead `destination_config.compressed` key (a misspelling of `compression`, read by nothing) stands.
+
+**Why it matters for the record.** Statements elsewhere in this contract that a spec "carries" an audit comment key
+(`_hash_specification`, `_dropped_source_columns`, `_iceberg_deferral`) describe the specs as they were during Phase B/C
+and have been pointed at the master document above; they are not to be re-introduced.

@@ -1108,7 +1108,7 @@
       "destination_config": {
         "volume_path": "/Volumes/{{catalog}}/observability/app_logs/uc6",
         "file_format": "JSONL",
-        "compressed": true
+        "compression": "GZIP"
       }
     }
   ]

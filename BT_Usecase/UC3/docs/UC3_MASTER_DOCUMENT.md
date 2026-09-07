@@ -275,6 +275,8 @@ Catalog Explorer showing <code>flowx</code> with the <code>staging</code> and <c
 
 This is the heart of the build. **No CDC code, no hashing code, no tagging code and no MERGE statement was written by hand.** All behaviour below comes from JSON attributes.
 
+> **Reading the JSON.** Each spec starts with `$schema` (editor validation against `onboarding_templates/onboarding_spec.schema.json`) and one `_about` header — use case, description, framework version, date, developer. `_about` is the **only** key the framework does not read: JSON has no comment syntax, so the framework reserves the `_` prefix for author notes and ignores them (`spec_validator.py`). Every other key is a real framework attribute, present in the standard template `onboarding_templates/pipeline_onboarding_template.json` in the same order — including `data_standardization_sql`, which is how `Null(DF)=Y` is enforced (section 11.3). All tags live under `governance_tags` and nowhere else.
+
 ### 7.1 Job 2 spec — `uc3_excalibur_streaming_cdc.json`
 
 **Group level:**

@@ -1032,7 +1032,7 @@
       "destination_config": {
         "volume_path": "/Volumes/{{catalog}}/observability/otel_exports",
         "file_format": "JSONL",
-        "compressed": true
+        "compression": "GZIP"
       }
     },
     {
