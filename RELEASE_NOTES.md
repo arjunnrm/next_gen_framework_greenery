@@ -15,6 +15,78 @@ resolving. Per-version directories fix that structurally.
 
 ---
 
+## Three BT use cases live on a second workspace — and four things that only break there — 2026-09-08
+
+*Deployed and run green* on the `hoonartek` target (catalog `bt_digital_poc`). `pyproject.toml`
+stays at `0.0.4` and `databricks.yml`'s `framework_version` with it: **no framework source
+changed**, so no wheel behaviour changed. Every fix here is use-case configuration, job topology,
+or a workspace resource. Full detail in `enhancement_logs/v1.7.08_enhancement_log.md`.
+
+Deploying UC3, UC6 and UC7 to a *second* workspace exposed a class of defect the first one could
+not: configuration that was correct only because of where it ran. None of these are logic bugs,
+none fail a unit test, and each fails at pipeline runtime on the first host that does not happen
+to match.
+
+**UC2 was requested and does not exist in this repo** — `BT_Usecase/` holds UC3, UC6 and UC7 only,
+and there is no `resources/uc2/` or any `*uc2*` file. Recorded rather than silently dropped.
+
+- **UC7 read from a `landing` schema that exists on no current target.** All 12 source paths
+  (`path`, `schema_location`, `asn1_schema_path` × 4 elements) now use `staging`, matching UC3 and
+  UC6. The pipeline had failed `INTERNAL_ERROR` six times with `Failed to resolve flow:
+  '..._volumes_bt_digital_poc_landing_uc_7_raw_sgsn...'`. `UC7_CDR_ASN_Test_Report.md` §8.2 records
+  why: on `metaflow_v7` the tree was copied `landing`→`staging` and the group deliberately *not*
+  repointed, to preserve Auto Loader checkpoints — leaving a `landing` assumption that held in
+  exactly one place. After re-onboarding: **175,498 CDRs decoded, 0 quarantined.**
+- **UC3's simulator had lost the fixtures it derives its schema from.** `BT_Usecase/UC3/data/{CUSTOMER,PHYSICAL_DEVICE,SUBSCRIBER}_DDL.csv`
+  were deleted in `cb40c22`; restored from `cb40c22~1` with line counts matching the deletion diff.
+  BUILD_CONTRACT 6 forbids hand-typing those column lists, so without the CSVs `delta_table_setup`
+  fails, the three `*_stream` zerobus tables are never created, and **both** UC3 groups are
+  unrunnable — `staging` held zero tables. After the fix: a full drain, exactly 100 rows per table.
+- **UC6 and UC7 jobs cut to `run_pipeline_update -> observability_export`** at the owner's request
+  (UC3's `004`/`005` were already two-task since v1.7.07). Three behaviours become external steps,
+  each now stated in the job file's own header: onboarding, control-table provisioning, and — the
+  sharpest edge — **UC6's governance tagging, which is now inert until run by hand.** Tag DDL runs
+  against an already-materialized table and is illegal in graph-definition code, so the step cannot
+  move into the pipeline; removing the task removes the behaviour. UC3's Phase C already proved the
+  cost: a green pipeline with zero tags in `information_schema`.
+- **UC3 reconciliation output moved out of `staging`** into a dedicated `reconciliation` schema.
+  The request was to *blank* `publish_schema`, which the validator rejects: since v1.7.07 it is the
+  only thing that publishes, and blanking it forces `run_log_capture: false`, silently costing the
+  whole recon audit trail. Moving the schema gets the same visible result at no cost — audit rows
+  confirmed still flowing. Note Lakeflow **creates** rather than moves published objects, so the
+  nine originals survived in `staging` and had to be dropped separately.
+- **`<catalog>.observability.app_logs` is declared by no bundle target** though all four specs write
+  to it — the bundle declares an `observability` Volume only in the `flowx_sample` schema. Created
+  by hand, deliberately unmanaged so `bundle destroy` cannot take the logs with it. It surfaced only
+  once the jobs were trimmed, because every earlier run was scoped `--only run_pipeline_update` and
+  never reached the export. `run_pipeline_update` SUCCESS + `observability_export` FAILED on all
+  three groups, loudly, because `fail_task_on_dispatch_error: "true"`. **The root cause is still
+  open** — a new workspace will hit it again.
+
+Repo hygiene: a `git stash pop` of the pre-FlowX-rename `stash@{0}` had left **31 files with 73
+conflict hunks**, including a `spec_validator.py` that would not parse. Resolved to the committed
+side after a dry run proved which side was live (13 of 31 files matched HEAD exactly; the other 18
+carried prose about already-committed behaviour plus three duplicate declarations). Two merge
+artifacts removed: a duplicated `_validate_source_plane` call that made every `source_plane` error
+appear twice, and an orphaned `_LOG_CAPTURE_DEFAULT`. **The deployed wheel was never affected** —
+built at 15:27, corruption at 15:35, and the `.whl` was unzipped and verified clean.
+
+Two target-portability defects remain **open**: `genie_spaces.flowx_observability_genie_space`
+hardcodes the `flowx` catalog in its `.geniespace.json` (13 table names), so a *full*
+`bundle deploy` cannot succeed on any target whose catalog is not `flowx` — every deploy here was
+`--select`-scoped, each reporting `0 deleted`; and `databricks.yml`'s `hoonartek` target says
+`profile: hoonartek` while `.databrickscfg` has `[Hoonartek]`, which is case-sensitive, so a bare
+`-t hoonartek` fails.
+
+Verification: `pytest tests/unit` **1373 passed / 20 failed / 127 errors**. All 20 failures are
+missing relocated fixtures (`test_specs/` and the `flowx_testing/*.json` corpus have moved, several
+into `archive/old_json/`; the UC6 `.dat.gz` fixtures are deleted), proven pre-existing by running
+the same tests against clean HEAD files. The 127 errors are the known no-Java Spark-sandbox
+baseline. Compare failing **IDs**, not counts — this repo's unit failure count swings on identical
+code. JSON-schema gate: 0 errors on all four UC specs. `bundle validate -t hoonartek`: OK.
+
+---
+
 ## UC3 / UC6 review remediation — two tighter gates and five drift fixes — 2026-09-08
 
 *Unreleased.* `pyproject.toml` stays at `0.0.4` and `databricks.yml`'s `framework_version` with

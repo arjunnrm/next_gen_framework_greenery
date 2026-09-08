@@ -56,6 +56,8 @@ DDL text for the FlowX observability semantic layer -- the views that join the f
 | `get_group_health_summary_view_ddl(observability_schema: str) -> str` | The headline scorecard: one row per dataflow group, everything a KPI strip needs. |
 | `get_flow_inventory_view_ddl(observability_schema: str, control_schema: str) -> str` | Flat, one-row-per-flow inventory across all three flow kinds. |
 | `get_lineage_view_ddl(observability_schema: str) -> str` | Observed table-to-table lineage for FlowX targets, from ``system.access.table_lineage``. |
+| `get_installed_framework_version() -> Optional[str]` | The framework wheel version whose code is currently executing, or None if undeterminable. |
+| `get_deployment_versions_view_ddl(observability_schema: str, control_schema: str, event_log_tables: List[str], installed_version: Optional[str] = None) -> str` | Which framework wheel each dataflow group last RAN with, and whether that is the newest. |
 | `get_all_observability_view_ddls(observability_schema: str, control_schema: str, event_log_tables: List[str]) -> List[Tuple[str, str]]` | Return ``(description, ddl)`` for every observability view, in dependency order. |
 
 

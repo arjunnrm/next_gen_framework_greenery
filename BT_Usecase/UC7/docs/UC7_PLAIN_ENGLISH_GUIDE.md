@@ -3,7 +3,7 @@
 A plain-English guide to what this use case does, what it reads, and what it writes.
 
 **Last updated:** 2026-09-05
-**Status:** Live and working on the `metaflow_v7` workspace
+**Status:** Live and working on the `hoonartek` workspace (catalog `bt_digital_poc`)
 
 ---
 
@@ -23,15 +23,15 @@ In short: **binary CDR files in → queryable Delta tables out.**
 
 | What | Name |
 |---|---|
-| **Job name** | `001_lfj_uc7_cdr_asn` (job ID `843342822766009`) |
-| **Pipeline name** | `001_ldp_uc7_cdr_asn` (pipeline ID `927a6e24-757f-495c-8a94-d807b74c4128`) |
+| **Job name** | `001_lfj_uc7_cdr_asn` (job ID `333146904292014`) |
+| **Pipeline name** | `001_ldp_uc7_cdr_asn` (pipeline ID `527d1e89-1be2-43f7-baaa-2ca6331e7b3b`) |
 | **Dataflow group ID** | `dfg_uc7_cdr_asn` |
-| **Framework version** | `0.0.3` |
-| **Catalog** | `flowx` |
+| **Framework version** | `0.0.4` |
+| **Catalog** | `bt_digital_poc` |
 | **Target layer** | `bronze` |
-| **Workspace** | `metaflow_v7` |
+| **Workspace** | `hoonartek` (profile `Hoonartek`) |
 
-- The **job** is the thing you click "Run" on. It does everything start to finish.
+- The **job** is the thing you click "Run" on. It runs the pipeline, then writes the run log.
 - The **pipeline** is the part inside the job that actually reads files and writes tables.
 - The **dataflow group ID** is the label that ties the configuration to the pipeline. The
   pipeline looks up its instructions using this ID.
@@ -40,10 +40,11 @@ In short: **binary CDR files in → queryable Delta tables out.**
 
 ## 3. Source details — where the data comes from
 
-All raw files live in one Databricks Volume, with one folder per piece of network equipment:
+All raw files live in one Databricks Volume, with one folder per piece of network equipment.
+There is no `landing` schema on this workspace — everything sits under `staging`:
 
 ```
-/Volumes/br_digital_poc/landing/uc_7/
+/Volumes/bt_digital_poc/staging/uc_7/
 ├── raw/            <- the CDR files themselves
 │   ├── EMSC/
 │   ├── PSGW/
@@ -95,15 +96,15 @@ Two useful things to know:
 
 ## 4. Target details — where the data goes
 
-Everything lands in the **`br_digital_poc.bronze`** schema. Each source gets one table, plus one
+Everything lands in the **`bt_digital_poc.bronze`** schema. Each source gets one table, plus one
 matching "quarantine" table for anything that fails.
 
 | Source | Main table | Quarantine table |
 |---|---|---|
-| EMSC | `br_digital_poc.bronze.emsc_cdr_raw` | `br_digital_poc.bronze.emsc_cdr_raw_quarantine` |
-| PSGW | `br_digital_poc.bronze.psgw_cdr_raw` | `br_digital_poc.bronze.psgw_cdr_raw_quarantine` |
-| SGSN | `br_digital_poc.bronze.sgsn_cdr_raw` | `br_digital_poc.bronze.sgsn_cdr_raw_quarantine` |
-| TAP  | `br_digital_poc.bronze.tap310_raw`   | `br_digital_poc.bronze.tap310_raw_quarantine` |
+| EMSC | `bt_digital_poc.bronze.emsc_cdr_raw` | `bt_digital_poc.bronze.emsc_cdr_raw_quarantine` |
+| PSGW | `bt_digital_poc.bronze.psgw_cdr_raw` | `bt_digital_poc.bronze.psgw_cdr_raw_quarantine` |
+| SGSN | `bt_digital_poc.bronze.sgsn_cdr_raw` | `bt_digital_poc.bronze.sgsn_cdr_raw_quarantine` |
+| TAP  | `bt_digital_poc.bronze.tap310_raw`   | `bt_digital_poc.bronze.tap310_raw_quarantine` |
 
 Notes on the naming:
 
@@ -141,19 +142,27 @@ record inside the file each row came from.
 
 ## 5. What the job does, step by step
 
-The job `001_lfj_uc7_cdr_asn` runs four steps in order. If a step fails, the ones after it
-do not run.
+The job `001_lfj_uc7_cdr_asn` runs two steps in order. If the first one fails, the second
+does not run.
 
 | Step | Task name | What it does |
 |---|---|---|
-| 1 | `setup_control_tables` | Makes sure the framework's own bookkeeping tables exist in `br_digital_poc.config`. Safe to re-run. |
-| 2 | `onboard_uc7` | Reads the configuration file and saves the four source definitions into the control tables. |
-| 3 | `run_pipeline_update` | Runs the pipeline: reads the files, decodes them, writes the bronze tables. |
-| 4 | `observability_export` | Writes a log of how the run went to a Volume, for monitoring. |
+| 1 | `run_pipeline_update` | Runs the pipeline: reads the files, decodes them, writes the bronze tables. |
+| 2 | `observability_export` | Writes a log of how the run went to a Volume, for monitoring. |
 
-Step 2 does not do the onboarding itself — it hands the work to the shared
+**Setting up is a separate job.** This job deliberately does *not* create the framework's
+bookkeeping tables and does *not* register the four sources — it assumes that has already been
+done. Registering the sources is called **onboarding**, and it runs through the shared
 **FlowX Config Onboarding** job, so there is only one onboarding entry point for the whole
-project.
+project:
+
+```bash
+databricks bundle run onboarding_job -t hoonartek -p Hoonartek --params \
+  spec_file_path=<workspace path>/BT_Usecase/UC7/onboarding/UC7_cdr_asn_bronze.json,\
+  catalog=bt_digital_poc,env=hoonartek,action_type=UPDATE
+```
+
+Run that once before the first pipeline run, and again any time you edit the configuration file.
 
 ---
 
@@ -163,7 +172,7 @@ project.
 |---|---|
 | `BT_Usecase/UC7/onboarding/UC7_cdr_asn_bronze.json` | The source and target definitions — the main config |
 | `resources/uc7/uc7_cdr_asn_pipeline.yml` | Defines the pipeline |
-| `resources/uc7/uc7_cdr_asn_job.yml` | Defines the job and its four steps |
+| `resources/uc7/uc7_cdr_asn_job.yml` | Defines the job and its two steps |
 
 To change what gets loaded, edit the **JSON** file and re-run the job. You do not need to
 edit any Python code.
@@ -211,7 +220,7 @@ dictionaries, or a decision to load them as CSV instead.
 After each run, a compressed log file is written to:
 
 ```
-/Volumes/br_digital_poc/observability/app_logs/dfg_uc7_cdr_asn/<date>/<group>_<run id>.jsonl.gz
+/Volumes/bt_digital_poc/observability/app_logs/dfg_uc7_cdr_asn/<date>/<group>_<run id>.jsonl.gz
 ```
 
 It records each flow's status and ties back to the job, pipeline, and run that produced it —
@@ -219,19 +228,17 @@ useful for confirming a run really happened and what it did.
 
 ---
 
-## 10. A copy of the data
+## 10. Where the source data lives
 
-A full copy of the UC_7 Volume was taken. **Nothing was moved or deleted** — the original is
-untouched.
+All UC_7 source data sits in one place on this workspace:
 
 | | Location |
 |---|---|
-| Original (still in use) | `/Volumes/br_digital_poc/landing/uc_7/` |
-| Copy | `/Volumes/br_digital_poc/staging/uc_7/` |
+| Source data (read by the pipeline) | `/Volumes/bt_digital_poc/staging/uc_7/` |
 
-Both hold 28 files totalling ~112 MB. **The pipeline still reads from the original location.**
-The copy is a backup; pointing the pipeline at it would require re-onboarding and would reload
-everything from scratch.
+That single tree holds the raw CDR files, the ASN.1 dictionaries, the reader's bookkeeping
+folder (`_schemas/`) and the reference output samples. **There is no `landing` schema on this
+workspace** — where an older document shows a `landing/uc_7` path, read it as `staging/uc_7`.
 
 ---
 
@@ -242,7 +249,7 @@ From the Databricks UI: open **Workflows**, find **`001_lfj_uc7_cdr_asn`**, clic
 From the command line:
 
 ```bash
-databricks jobs run-now 843342822766009 -p metaflow_v7
+databricks jobs run-now 333146904292014 -p Hoonartek
 ```
 
 Re-running is safe — already-loaded files are skipped, so you will not get duplicate rows.
@@ -256,7 +263,7 @@ Re-running is safe — already-loaded files are skipped, so you will not get dup
 | 1 | SMSC and MMSC are not loaded | Their data is CSV, not ASN.1 (section 8) |
 | 2 | Some EMSC records use a variable-length format | Not losing data today, but a file that *starts* with one of these would load as a single row |
 | 3 | Full `bundle deploy` currently fails | Caused by an unrelated app resource, not this use case. Use `--select` to deploy just the UC_7 parts |
-| 4 | Two naming styles now exist for bronze | This use case uses `br_digital_poc.bronze`; older ones use `br_digital_poc.bronze_<source>`. Worth agreeing on one before adding more sources |
+| 4 | Two naming styles now exist for bronze | This use case uses `bt_digital_poc.bronze`; older ones use `bt_digital_poc.bronze_<source>`. Worth agreeing on one before adding more sources |
 
 ---
 

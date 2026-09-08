@@ -11,10 +11,10 @@ body, .md-typeset, .md-typeset table, .md-typeset h1, .md-typeset h2,
 # UC7 CDR ASN.1 Decoders : Master Technical Walkthrough and Architecture Specification
 
 **Use case:** UC7 — Telecom Call Detail Record (CDR) ASN.1 binary decoding into the Databricks Lakehouse
-**Catalog:** `flowx`  **Target / profile:** `metaflow_v7`  **Framework:** FlowX metadata-driven ingestion, version `0.0.3`
-**Job:** `001_lfj_uc7_cdr_asn` (ID `843342822766009`)  **Pipeline:** `001_ldp_uc7_cdr_asn` (ID `927a6e24-757f-495c-8a94-d807b74c4128`)
+**Catalog:** `bt_digital_poc`  **Target:** `hoonartek`  **Profile:** `Hoonartek`  **Framework:** FlowX metadata-driven ingestion, version `0.0.4`
+**Job:** `001_lfj_uc7_cdr_asn` (ID `333146904292014`)  **Pipeline:** `001_ldp_uc7_cdr_asn` (ID `527d1e89-1be2-43f7-baaa-2ca6331e7b3b`)
 **Document owner:** Lead Databricks Solution Architect
-**Prepared:** 2026-09-05
+**Prepared:** 2026-09-08
 **Status:** Deployed and executed green end-to-end. Every figure in this document has been read back from the live workspace.
 
 ---
@@ -180,7 +180,7 @@ Network Elements (EMSC, PSGW, SGSN, TAP)
         |
         |  file drop into a Unity Catalog managed Volume
         v
-/Volumes/br_digital_poc/landing/uc_7/raw/<ELEMENT>/
+/Volumes/bt_digital_poc/staging/uc_7/raw/<ELEMENT>/
         |
         |  Auto Loader (cloudFiles, binaryFile format) - incremental, checkpointed
         v
@@ -193,7 +193,7 @@ _<table>_staged  (pipeline-scoped streaming table)
         |  DLT expectations evaluated
         +-------------------------------+
         v                               v
-br_digital_poc.bronze.<table>          br_digital_poc.bronze.<table>_quarantine
+bt_digital_poc.bronze.<table>          bt_digital_poc.bronze.<table>_quarantine
    (records that passed)          (records that failed, with reason)
         |
         |  [DESIGNED, NOT YET BUILT] conformance and business logic
@@ -286,41 +286,41 @@ br_digital_poc.bronze.<table>          br_digital_poc.bronze.<table>_quarantine
 
 ### 3.3 Storage paths and locations
 
-**3.3.1 External landing storage (Unity Catalog Volume)**
+**3.3.1 External source storage (Unity Catalog Volume)**
 
 | Purpose | Path |
 |---|---|
-| **Landing root** | `/Volumes/br_digital_poc/landing/uc_7/` |
-| Raw CDR files | `/Volumes/br_digital_poc/landing/uc_7/raw/<ELEMENT>/` |
-| ASN.1 schema modules | `/Volumes/br_digital_poc/landing/uc_7/asn_schema/` |
-| Auto Loader schema checkpoints | `/Volumes/br_digital_poc/landing/uc_7/_schemas/<table>/` |
-| Reference output samples | `/Volumes/br_digital_poc/landing/uc_7/output_sample/` |
-| Archive (currently empty) | `/Volumes/br_digital_poc/landing/uc_7/archive/` |
-| **Backup copy of the whole tree** | `/Volumes/br_digital_poc/staging/uc_7/` |
+| **Source root** | `/Volumes/bt_digital_poc/staging/uc_7/` |
+| Raw CDR files | `/Volumes/bt_digital_poc/staging/uc_7/raw/<ELEMENT>/` |
+| ASN.1 schema modules | `/Volumes/bt_digital_poc/staging/uc_7/asn_schema/` |
+| Auto Loader schema checkpoints | `/Volumes/bt_digital_poc/staging/uc_7/_schemas/<table>/` |
+| Reference output samples | `/Volumes/bt_digital_poc/staging/uc_7/output_sample/` |
+| Archive (currently empty) | `/Volumes/bt_digital_poc/staging/uc_7/archive/` |
 
-- The Volume `br_digital_poc.landing.uc_7` is **MANAGED**, and its physical storage resolves to the workspace's account-managed S3 location.
+- The Volume `bt_digital_poc.staging.uc_7` is **MANAGED**, and its physical storage resolves to the workspace's account-managed cloud storage location.
+- **There is no `landing` schema on this workspace.** All UC7 source assets — the raw CDR files, the ASN.1 modules, the Auto Loader schema checkpoints and the reference output samples — live under `staging/uc_7/`, and the onboarding spec's `path`, `schema_location` and `asn1_schema_path` all resolve there.
 - The Volume is **not declared as a bundle resource**, which means `bundle deploy` and `bundle destroy` cannot touch it. This is deliberate protection for source data.
 
 **3.3.2 Unity Catalog object locations**
 
 | Layer | Namespace | Status | Objects |
 |---|---|---|---|
-| **Landing** | `br_digital_poc.landing.uc_7` (Volume) | **Built** | Raw binary files, ASN.1 modules |
-| **Bronze — published** | `br_digital_poc.bronze.*` | **Built** | 4 decoded tables + 4 quarantine tables |
-| **Bronze — internal** | `br_digital_poc.bronze.__927a6e24_*` | **Built** | 8 pipeline-scoped nodes (see 6.0) |
-| **Silver** | `br_digital_poc.silver.*` | **Not built** | Designed in 6.6; no UC7 objects exist |
-| **Gold** | `br_digital_poc.gold.*` | **Not built** | Designed in 6.7; schema exists but is empty |
-| **Control metadata** | `br_digital_poc.config.*` | **Built** | 9 framework control tables |
-| **Observability** | `br_digital_poc.observability.app_logs` (Volume) | **Built** | Run telemetry as gzipped JSONL |
+| **Source (staging)** | `bt_digital_poc.staging.uc_7` (Volume) | **Built** | Raw binary files, ASN.1 modules |
+| **Bronze — published** | `bt_digital_poc.bronze.*` | **Built** | 4 decoded tables + 4 quarantine tables |
+| **Bronze — internal** | `bt_digital_poc.bronze.__527d1e89_*` | **Built** | 8 pipeline-scoped nodes (see 6.0) |
+| **Silver** | `bt_digital_poc.silver.*` | **Not built** | Designed in 6.6; no UC7 objects exist |
+| **Gold** | `bt_digital_poc.gold.*` | **Not built** | Designed in 6.7; schema exists but is empty |
+| **Control metadata** | `bt_digital_poc.config.*` | **Built** | 9 framework control tables |
+| **Observability** | `bt_digital_poc.observability.app_logs` (Volume) | **Built** | Run telemetry as gzipped JSONL |
 
 **3.3.3 Bronze table inventory — fully qualified**
 
 | Source | Published table (`catalog.schema.table`) | Quarantine table |
 |---|---|---|
-| EMSC | `br_digital_poc.bronze.emsc_cdr_raw` | `br_digital_poc.bronze.emsc_cdr_raw_quarantine` |
-| PSGW | `br_digital_poc.bronze.psgw_cdr_raw` | `br_digital_poc.bronze.psgw_cdr_raw_quarantine` |
-| SGSN | `br_digital_poc.bronze.sgsn_cdr_raw` | `br_digital_poc.bronze.sgsn_cdr_raw_quarantine` |
-| TAP | `br_digital_poc.bronze.tap310_raw` | `br_digital_poc.bronze.tap310_raw_quarantine` |
+| EMSC | `bt_digital_poc.bronze.emsc_cdr_raw` | `bt_digital_poc.bronze.emsc_cdr_raw_quarantine` |
+| PSGW | `bt_digital_poc.bronze.psgw_cdr_raw` | `bt_digital_poc.bronze.psgw_cdr_raw_quarantine` |
+| SGSN | `bt_digital_poc.bronze.sgsn_cdr_raw` | `bt_digital_poc.bronze.sgsn_cdr_raw_quarantine` |
+| TAP | `bt_digital_poc.bronze.tap310_raw` | `bt_digital_poc.bronze.tap310_raw_quarantine` |
 
 **Naming convention explained:**
 
@@ -370,20 +370,20 @@ SELECT
     __framework_ingestion_timestamp_utc         AS bronze_ingested_timestamp,
     __framework_pipeline_run_id                 AS pipeline_run_id,
     _asn1_decode_error                          AS decode_error
-FROM br_digital_poc.bronze.sgsn_cdr_raw
+FROM bt_digital_poc.bronze.sgsn_cdr_raw
 WHERE _asn1_record_index = 0
 LIMIT 1;
 ```
 
 <div class="screenshot">
-<b>[SCREENSHOT PLACEHOLDER:</b> Unity Catalog Volume browser showing the UC7 landing tree.
-<b>UI location:</b> Databricks → Catalog → <code>flowx</code> → <code>landing</code> → Volumes → <code>uc_7</code>.
+<b>[SCREENSHOT PLACEHOLDER:</b> Unity Catalog Volume browser showing the UC7 source tree.
+<b>UI location:</b> Databricks → Catalog → <code>bt_digital_poc</code> → <code>staging</code> → Volumes → <code>uc_7</code>.
 <b>Expected content:</b> Expanded folder tree showing <code>raw/</code> with its six element subfolders, <code>asn_schema/</code> with the eight <code>.asn1</code> modules, <code>_schemas/</code>, <code>output_sample/</code> and <code>archive/</code>, with file sizes visible — notably the 42 MB SGSN <code>.fin</code> file.
 </div>
 
 ### 3.5 Repo-side data assets and their provenance
 
-The Volume tree in 3.3.1 is the runtime landing zone. A smaller set of assets is also held **in the
+The Volume tree in 3.3.1 is the runtime source zone. A smaller set of assets is also held **in the
 repository** under `BT_Usecase/UC7/data/`, for schema compilation, local decode tests and reproducible
 fixtures. Every one of them is labelled below as either **[Customer-Provided]** — supplied by the
 customer, never generated — or **[Simulated]** — produced by a generator in this repository.
@@ -417,7 +417,7 @@ customer, never generated — or **[Simulated]** — produced by a generator in 
 - **[Simulated]** assets are fixtures for decoder tests. **No production figure in this document —
   the 175,498 record count, the 0 decode errors, the per-source arm distributions in 7.4 — comes from
   a [Simulated] file.** Every one of those was read from **[Customer-Provided]** payloads landed on
-  `/Volumes/br_digital_poc/landing/uc_7/raw/`.
+  `/Volumes/bt_digital_poc/staging/uc_7/raw/`.
 
 ---
 
@@ -436,7 +436,7 @@ customer, never generated — or **[Simulated]** — produced by a generator in 
 **Step-by-step control flow:**
 
 1. An engineer authors an **onboarding JSON spec** describing each source and its target.
-2. The **Config Onboarding job** validates the spec and writes it into control tables under `br_digital_poc.config`.
+2. The **Config Onboarding job** validates the spec and writes it into control tables under `bt_digital_poc.config`.
 3. The **DLT pipeline** starts, reads its `dataflow.group.id` from its Spark configuration, and looks up its instructions.
 4. The pipeline **builds its DAG dynamically** from those control rows — one ingestion lane per registered flow.
 5. To add a network element, add a JSON block and re-run. **No Python change, no redeployment of pipeline logic.**
@@ -446,10 +446,10 @@ UC7_cdr_asn_bronze.json
         |
         |  Config Onboarding job (shared, parameterised)
         v
-br_digital_poc.config.dataflow_group_spec        <- one row: the group
-br_digital_poc.config.ingestion_flow_spec        <- four rows: one per source
-br_digital_poc.config.observability_config       <- one row: the telemetry destination
-br_digital_poc.config.onboarding_audit_log       <- audit trail of the onboarding itself
+bt_digital_poc.config.dataflow_group_spec        <- one row: the group
+bt_digital_poc.config.ingestion_flow_spec        <- four rows: one per source
+bt_digital_poc.config.observability_config       <- one row: the telemetry destination
+bt_digital_poc.config.onboarding_audit_log       <- audit trail of the onboarding itself
         |
         |  pipeline reads dataflow.group.id = dfg_uc7_cdr_asn
         v
@@ -460,9 +460,9 @@ DLT DAG built dynamically at pipeline start
 
 | Control table | Rows for `dfg_uc7_cdr_asn` | Content |
 |---|---|---|
-| `br_digital_poc.config.dataflow_group_spec` | 1 | `environment=metaflow_v7`, `catalog_name=flowx`, `is_active=true` |
-| `br_digital_poc.config.ingestion_flow_spec` | 4 | One per source, each with `source_type=asn1` |
-| `br_digital_poc.config.observability_config` | 1 | `dest-uc7-volume`, `DATABRICKS_VOLUME`, enabled |
+| `bt_digital_poc.config.dataflow_group_spec` | 1 | `environment=hoonartek`, `catalog_name=bt_digital_poc`, `is_active=true` |
+| `bt_digital_poc.config.ingestion_flow_spec` | 4 | One per source, each with `source_type=asn1` |
+| `bt_digital_poc.config.observability_config` | 1 | `dest-uc7-volume`, `DATABRICKS_VOLUME`, enabled |
 
 ### 4.2 Production onboarding JSON configuration
 
@@ -491,10 +491,10 @@ The live specification file is **`BT_Usecase/UC7/onboarding/UC7_cdr_asn_bronze.j
       "target_type": "streaming_table",
 
       "source_config": {
-        "path": "/Volumes/{{catalog}}/landing/uc_7/raw/SGSN/",
-        "schema_location": "/Volumes/{{catalog}}/landing/uc_7/_schemas/sgsn_cdr_raw/",
+        "path": "/Volumes/{{catalog}}/staging/uc_7/raw/SGSN/",
+        "schema_location": "/Volumes/{{catalog}}/staging/uc_7/_schemas/sgsn_cdr_raw/",
         "capture_technical_metadata": true,
-        "asn1_schema_path": "/Volumes/{{catalog}}/landing/uc_7/asn_schema/SGSN.asn1",
+        "asn1_schema_path": "/Volumes/{{catalog}}/staging/uc_7/asn_schema/SGSN.asn1",
         "asn1_codec": "ber"
       },
 
@@ -574,13 +574,13 @@ The live specification file is **`BT_Usecase/UC7/onboarding/UC7_cdr_asn_bronze.j
 | `ingestion_flows` | array of objects | 4 entries | Each entry becomes one ingestion lane in the DAG. The engine iterates this array to build nodes. |
 | `transformation_flows` | array | `[]` | UC7 is a bronze decode product; no in-pipeline transformation is defined. |
 | `reconciliation_flows` | array | `[]` | No in-pipeline reconciliation. Count reconciliation is done from the event log instead (section 9.0). |
-| `observability` | array of objects | 1 destination | Upserted into `br_digital_poc.config.observability_config` and read at runtime by the observability task. Destinations are **not** configured in YAML. |
+| `observability` | array of objects | 1 destination | Upserted into `bt_digital_poc.config.observability_config` and read at runtime by the observability task. Destinations are **not** configured in YAML. |
 
 **4.3.1a `observability[0]` — the telemetry destination**
 
 | Attribute | Type | Value in UC7 | Runtime effect |
 |---|---|---|---|
-| `id` | string | `dest-uc7-volume` | Primary key of the destination row in `br_digital_poc.config.observability_config`; re-onboarding upserts on it. |
+| `id` | string | `dest-uc7-volume` | Primary key of the destination row in `bt_digital_poc.config.observability_config`; re-onboarding upserts on it. |
 | `enabled` | boolean | `true` | Gate. When `false` the row is still written but the `observability_export` task skips this destination. |
 | `type` | string (enum) | `DATABRICKS_VOLUME` | Dispatch key selecting the exporter implementation. |
 | `destination_config.volume_path` | string | `/Volumes/{{catalog}}/observability/app_logs/` | Where extracted event-log telemetry is written. `{{catalog}}` resolves at onboarding. |
@@ -597,7 +597,7 @@ The live specification file is **`BT_Usecase/UC7/onboarding/UC7_cdr_asn_bronze.j
 | `source_table_name` | string | `sgsn_call_event_record` | The logical name of the source entity, distinct from the physical target table. |
 | `source_description` | string | Long text | Documentation carried into the control tables so the *why* travels with the config, not just the code. In UC7 each description records the module, the auto-detected root PDU and the observed arms. |
 | `source_type` | string (enum) | `asn1` | **The dispatch key.** The engine selects its reader from this: `asn1` routes to the ASN.1 reader (Auto Loader `binaryFile` plus decode). Valid values are `autoloader`, `zerobus`, `asn1`. |
-| `target_catalog` | string | `{{catalog}}` | Resolved to `flowx` at onboarding time from the job's `catalog` parameter. Using a placeholder keeps the spec portable across workspaces. |
+| `target_catalog` | string | `{{catalog}}` | Resolved to `bt_digital_poc` at onboarding time from the job's `catalog` parameter. Using a placeholder keeps the spec portable across workspaces. |
 | `target_schema` | string | `bronze` | The bronze layer. Deliberately **not** `bronze_dev` — environments separate by catalog. |
 | `target_table` | string | `sgsn_cdr_raw` | Physical Delta table name. |
 | `target_type` | string (enum) | `streaming_table` | Makes this an append-only incremental streaming table, the correct choice for immutable event data. Alternatives are `materialized_view`, `batch_table`, `external_sink`, `sink`. |
@@ -606,7 +606,7 @@ The live specification file is **`BT_Usecase/UC7/onboarding/UC7_cdr_asn_bronze.j
 
 | Attribute | Type | Value (SGSN flow) | Why, and how the engine evaluates it |
 |---|---|---|---|
-| `path` | string (required) | `/Volumes/br_digital_poc/landing/uc_7/raw/SGSN/` | The directory Auto Loader watches. Each source has its **own** path, which also avoids the framework's shared-path validation rule that requires identical retention settings when two flows read one directory. |
+| `path` | string (required) | `/Volumes/bt_digital_poc/staging/uc_7/raw/SGSN/` | The directory Auto Loader watches. Each source has its **own** path, which also avoids the framework's shared-path validation rule that requires identical retention settings when two flows read one directory. |
 | `schema_location` | string (optional) | `/Volumes/.../_schemas/sgsn_cdr_raw/` | Auto Loader's checkpoint. **This is what makes re-runs idempotent** — it records which files have been consumed. Set explicitly on all four flows rather than relying on the framework default, so the checkpoint sits beside the data it belongs to. |
 | `capture_technical_metadata` | boolean (optional) | `true` | Produces the `__framework_*` audit columns — source file name, size, modification time, ingestion timestamp, pipeline run ID, record ID. **This is what makes billing disputes answerable.** |
 | `asn1_schema_path` | string (required for `source_type: asn1`) | `.../asn_schema/SGSN.asn1` | The ASN.1 module used to decode. This is the single most important attribute for correctness: the wrong module decodes to wrong data. The engine compiles this module and **derives the Spark output schema from it by introspection** — there is no second, hand-written schema description to drift. Each mapping was verified by decoding real bytes (section 7.0). |
@@ -676,7 +676,7 @@ The live specification file is **`BT_Usecase/UC7/onboarding/UC7_cdr_asn_bronze.j
 
 <div class="screenshot">
 <b>[SCREENSHOT PLACEHOLDER:</b> Control tables after onboarding.
-<b>UI location:</b> Databricks SQL editor, querying <code>br_digital_poc.config.ingestion_flow_spec</code>.
+<b>UI location:</b> Databricks SQL editor, querying <code>bt_digital_poc.config.ingestion_flow_spec</code>.
 <b>Expected content:</b> Result grid with four rows filtered on <code>dataflow_group_id = 'dfg_uc7_cdr_asn'</code>, showing <code>dataflow_id</code>, <code>source_type=asn1</code>, <code>target_schema=bronze</code>, and the four distinct <code>target_table</code> values.
 </div>
 
@@ -685,9 +685,9 @@ The live specification file is **`BT_Usecase/UC7/onboarding/UC7_cdr_asn_bronze.j
 ## 5.0 Databricks Orchestration and DLT Pipeline Execution
 
 <div class="screenshot">
-<b>[SCREENSHOT PLACEHOLDER:</b> Databricks Workflows UI showing the UC7 job and its four tasks.
+<b>[SCREENSHOT PLACEHOLDER:</b> Databricks Workflows UI showing the UC7 job and its two tasks.
 <b>UI location:</b> Databricks → Workflows → Jobs → <code>001_lfj_uc7_cdr_asn</code> → Tasks tab.
-<b>Expected content:</b> Task DAG showing the linear chain <code>setup_control_tables</code> → <code>onboard_uc7</code> → <code>run_pipeline_update</code> → <code>observability_export</code>, all four green, with the run duration of 302s and run ID 884721997952817 visible in the run list below.
+<b>Expected content:</b> Task DAG showing the linear chain <code>run_pipeline_update</code> → <code>observability_export</code>, both green, with the run duration and run ID visible in the run list below.
 </div>
 
 ### 5.1 Job identity
@@ -695,10 +695,10 @@ The live specification file is **`BT_Usecase/UC7/onboarding/UC7_cdr_asn_bronze.j
 | Property | Value |
 |---|---|
 | **Job name** | `001_lfj_uc7_cdr_asn` |
-| **Job ID** | `843342822766009` |
+| **Job ID** | `333146904292014` |
 | **Deployment kind** | `BUNDLE` (Databricks Asset Bundles) |
 | **Defining file** | `resources/uc7/uc7_cdr_asn_job.yml` |
-| **Framework wheel pinned** | `/Volumes/br_digital_poc/config/wheels/0.0.3/.internal/flowx-0.0.3-py3-none-any.whl` |
+| **Framework wheel pinned** | `/Volumes/bt_digital_poc/config/wheels/0.0.4/.internal/flowx-0.0.4-py3-none-any.whl` |
 | **Environment version** | `4` |
 | **Max concurrent runs** | 1 |
 
@@ -706,22 +706,22 @@ The live specification file is **`BT_Usecase/UC7/onboarding/UC7_cdr_asn_bronze.j
 
 | # | Task key | Type | Depends on | Purpose |
 |---|---|---|---|---|
-| 1 | `setup_control_tables` | Notebook | — | Creates or migrates the nine framework control tables in `br_digital_poc.config`. Idempotent. |
-| 2 | `onboard_uc7` | **Run Job** | `setup_control_tables` | Delegates to the shared Config Onboarding job, passing the spec path, catalog, env and `CREATE`. |
-| 3 | `run_pipeline_update` | Pipeline | `onboard_uc7` | Triggers an update of pipeline `001_ldp_uc7_cdr_asn`. |
-| 4 | `observability_export` | Notebook | `run_pipeline_update` | Extracts the pipeline event log and dispatches OTel telemetry to the configured destination. |
+| 1 | `run_pipeline_update` | Pipeline | — | Triggers an update of pipeline `001_ldp_uc7_cdr_asn`. |
+| 2 | `observability_export` | Notebook | `run_pipeline_update` | Extracts the pipeline event log and dispatches OTel telemetry to the configured destination. |
 
 **Design points worth stating:**
 
-- **`setup_control_tables` is not boilerplate.** `bundle deploy` does **not** create or migrate control tables. Before this build, `br_digital_poc.config` was completely empty on this workspace. Wiring this as task 1 makes the job self-sufficient.
-- **Onboarding is delegated, never inlined.** Task 2 is a `run_job_task` against the shared, parameterised onboarding job. Older jobs in this repository each pinned their own copy of the onboarding notebook; that pattern is legacy drift and is deliberately not copied here. One onboarding entry point for the whole bundle.
+- **The job carries the pipeline update and the export, nothing else.** It was trimmed to these two tasks at the project owner's request; it no longer contains `setup_control_tables` or `onboard_uc7`. Provisioning and onboarding are deliberate operator actions rather than side effects of every run.
+- **The pipeline reads control-table rows, so those rows must already exist.** Run onboarding separately before the first run of this job, and again after any spec edit: `databricks bundle run onboarding_job -t hoonartek -p Hoonartek --params spec_file_path=<workspace file_path>/BT_Usecase/UC7/onboarding/UC7_cdr_asn_bronze.json,catalog=bt_digital_poc,env=hoonartek,action_type=UPDATE`.
+- **Onboarding is delegated, never inlined.** It goes through the generic `onboarding_job` — the single parameterised entry point for the whole bundle. Older jobs in this repository each pinned their own copy of the onboarding notebook; that pattern is legacy drift and is deliberately not copied here.
+- **Control-table provisioning is likewise external.** `bundle deploy` does **not** create or migrate control tables. The onboarding engine's own `ensure_control_schema_exists` covers the `CREATE ... IF NOT EXISTS` path; `01_setup_control_tables.py` is what installs the `preflight_check_onboarding_spec` UC function and the `bt_digital_poc.observability` semantic layer.
 - **`pipeline_task_run_id` must be a task parameter.** The observability task receives `{{tasks.run_pipeline_update.run_id}}` as a task `base_parameter`, **not** a pipeline configuration key. Jobs dynamic values resolve per **job run**; pipeline configuration resolves per **pipeline update**, where no job run is in scope. A mistyped task key is passed through as literal text rather than failing at the platform layer, so the framework detects and names that case explicitly.
 
 ### 5.3 Upstream triggers and dependencies
 
 | Aspect | Current state | Production recommendation |
 |---|---|---|
-| **Trigger** | Manual / on-demand (`Run now`) | File-arrival trigger on `/Volumes/br_digital_poc/landing/uc_7/raw/`, or a 15-minute schedule aligned to network element file close |
+| **Trigger** | Manual / on-demand (`Run now`) | File-arrival trigger on `/Volumes/bt_digital_poc/staging/uc_7/raw/`, or a 15-minute schedule aligned to network element file close |
 | **Upstream dependency** | None — the job is self-contained | Optionally gate on a network element push-completion signal |
 | **Downstream dependency** | None yet | Once silver and gold are built, chain them as further tasks or a separate job |
 | **Concurrency** | `max_concurrent_runs: 1` | Keep at 1. Auto Loader checkpoints are per-table; concurrent updates on one pipeline are not supported |
@@ -743,12 +743,12 @@ The live specification file is **`BT_Usecase/UC7/onboarding/UC7_cdr_asn_bronze.j
 | Property | Value | Rationale |
 |---|---|---|
 | **Pipeline name** | `001_ldp_uc7_cdr_asn` | — |
-| **Pipeline ID** | `927a6e24-757f-495c-8a94-d807b74c4128` | — |
+| **Pipeline ID** | `527d1e89-1be2-43f7-baaa-2ca6331e7b3b` | — |
 | **Defining file** | `resources/uc7/uc7_cdr_asn_pipeline.yml` | — |
-| **Target catalog** | `flowx` | — |
+| **Target catalog** | `bt_digital_poc` | — |
 | **Target schema** | `bronze` | — |
 | **`dataflow.group.id`** | `dfg_uc7_cdr_asn` | The lookup key into the control tables |
-| **`dataflow.control.catalog`** | `flowx` | Which catalog's `.config` schema to read control rows from |
+| **`dataflow.control.catalog`** | `bt_digital_poc` | Which catalog's `.config` schema to read control rows from |
 | **Serverless** | `true` | — |
 | **Photon** | `true` | — |
 | **Development mode** | `true` | Faster iteration; **set to `false` for production** |
@@ -768,20 +768,20 @@ The live specification file is **`BT_Usecase/UC7/onboarding/UC7_cdr_asn_bronze.j
 
 - Switching to continuous later requires **only** flipping `continuous: true` in the pipeline YAML. No change to the spec, the decode logic, or the tables.
 
-### 5.7 Version pinning to framework 0.0.3
+### 5.7 Version pinning to framework 0.0.4
 
 - Resource YAML references the relative glob **`../../dist/*.whl`**. No version string is hard-coded in any resource file.
 - Databricks Asset Bundles rewrites that glob at deploy time to the uploaded artifact path under `<artifact_path>/.internal/`.
-- `artifact_path` is version-scoped: `${var.wheels_root}/${var.framework_version}` resolves to `/Volumes/br_digital_poc/config/wheels/0.0.3`.
+- `artifact_path` is version-scoped: `${var.wheels_root}/${var.framework_version}` resolves to `/Volumes/bt_digital_poc/config/wheels/0.0.4`.
 - The version is pinned in exactly **two** places, which must be bumped together: `pyproject.toml` and the `framework_version` variable in `databricks.yml`.
-- **Verified on the deployed job:** the environment dependency reads `/Volumes/br_digital_poc/config/wheels/0.0.3/.internal/flowx-0.0.3-py3-none-any.whl`.
+- **Verified on the deployed job:** the environment dependency reads `/Volumes/bt_digital_poc/config/wheels/0.0.4/.internal/flowx-0.0.4-py3-none-any.whl`.
 
 > **Operational hard rule:** never run `bundle deploy` while a pipeline or test wave is running. A deploy prunes superseded artifacts from `<artifact_path>/.internal/`, which kills an in-flight update with `ENVIRONMENT_PIP_INSTALL_ERROR`. Always use `--fail-on-active-runs`.
 
 <div class="screenshot">
 <b>[SCREENSHOT PLACEHOLDER:</b> Pipeline settings showing serverless, Photon and the group configuration.
 <b>UI location:</b> Databricks → Pipelines → <code>001_ldp_uc7_cdr_asn</code> → Settings.
-<b>Expected content:</b> Settings panel showing catalog <code>flowx</code>, target schema <code>bronze</code>, Serverless enabled, Photon enabled, Triggered mode, and the Configuration section listing <code>dataflow.group.id = dfg_uc7_cdr_asn</code> and <code>dataflow.control.catalog = flowx</code>.
+<b>Expected content:</b> Settings panel showing catalog <code>bt_digital_poc</code>, target schema <code>bronze</code>, Serverless enabled, Photon enabled, Triggered mode, and the Configuration section listing <code>dataflow.group.id = dfg_uc7_cdr_asn</code> and <code>dataflow.control.catalog = bt_digital_poc</code>.
 </div>
 
 ---
@@ -800,10 +800,10 @@ The pipeline builds **16 nodes**, four identical lanes of four. Every node type 
 
 | # | Node name | UC object type | Published? | Role |
 |---|---|---|---|---|
-| 1 | `_src___volumes_flowx_landing_uc_7_raw_emsc__5e807b99__stream` | `STREAMING_TABLE` | Pipeline-scoped | EMSC file reader |
-| 2 | `_src___volumes_flowx_landing_uc_7_raw_psgw__c67361f1__stream` | `STREAMING_TABLE` | Pipeline-scoped | PSGW file reader |
-| 3 | `_src___volumes_flowx_landing_uc_7_raw_sgsn__ee25e3cc__stream` | `STREAMING_TABLE` | Pipeline-scoped | SGSN file reader |
-| 4 | `_src___volumes_flowx_landing_uc_7_raw_tap__e759a809__stream` | `STREAMING_TABLE` | Pipeline-scoped | TAP file reader |
+| 1 | `_src___volumes_bt_digital_poc_staging_uc_7_raw_emsc__fd3959e6__stream` | `STREAMING_TABLE` | Pipeline-scoped | EMSC file reader |
+| 2 | `_src___volumes_bt_digital_poc_staging_uc_7_raw_psgw__fd140c87__stream` | `STREAMING_TABLE` | Pipeline-scoped | PSGW file reader |
+| 3 | `_src___volumes_bt_digital_poc_staging_uc_7_raw_sgsn__25bb6f8b__stream` | `STREAMING_TABLE` | Pipeline-scoped | SGSN file reader |
+| 4 | `_src___volumes_bt_digital_poc_staging_uc_7_raw_tap__904e63f4__stream` | `STREAMING_TABLE` | Pipeline-scoped | TAP file reader |
 | 5 | `_emsc_cdr_raw_staged` | `STREAMING_TABLE` | Pipeline-scoped | EMSC decoded, pre-DQ |
 | 6 | `_psgw_cdr_raw_staged` | `STREAMING_TABLE` | Pipeline-scoped | PSGW decoded, pre-DQ |
 | 7 | `_sgsn_cdr_raw_staged` | `STREAMING_TABLE` | Pipeline-scoped | SGSN decoded, pre-DQ |
@@ -830,9 +830,9 @@ The pipeline builds **16 nodes**, four identical lanes of four. Every node type 
 
 **How to tell a pipeline-scoped node from a published one:**
 
-- Pipeline-scoped nodes are physically named with the pipeline ID as a prefix, for example `__927a6e24_757f_495c_8a94_d807b74c4128__sgsn_cdr_raw_staged`.
+- Pipeline-scoped nodes are physically named with the pipeline ID as a prefix, for example `__527d1e89_1be2_43f7_baaa_2ca6331e7b3b__sgsn_cdr_raw_staged`.
 - They are internal implementation detail. **Do not query them and do not grant on them** — they are not part of the contract and their names change if the pipeline is recreated.
-- Published nodes carry their plain names: `br_digital_poc.bronze.sgsn_cdr_raw`.
+- Published nodes carry their plain names: `bt_digital_poc.bronze.sgsn_cdr_raw`.
 
 **Where a `LIVE VIEW` would be correct instead:** in the silver layer (6.6), a lightweight column rename or filter that needs no independent analytical exposure should be a `@dlt.view`, precisely to avoid creating a throwaway persistent table.
 
@@ -841,7 +841,7 @@ The pipeline builds **16 nodes**, four identical lanes of four. Every node type 
 **Step-by-step:**
 
 1. Auto Loader is configured with `cloudFiles.format = binaryFile` — the **entire file** becomes a single row with a `content` column of bytes.
-2. `cloudFiles.schemaLocation` points at `/Volumes/br_digital_poc/landing/uc_7/_schemas/<table>/`, which records consumed files and makes re-runs idempotent.
+2. `cloudFiles.schemaLocation` points at `/Volumes/bt_digital_poc/staging/uc_7/_schemas/<table>/`, which records consumed files and makes re-runs idempotent.
 3. No `pathGlobFilter` is applied, so every file in the directory is picked up regardless of extension.
 4. Auto Loader's `_metadata` pseudo-column is materialised into a real column so that file name, size and modification time survive the `mapInPandas` boundary.
 5. The ASN.1 decode transform runs (section 7.0), expanding one file row into **one row per CDR record**.
@@ -878,10 +878,10 @@ The pipeline builds **16 nodes**, four identical lanes of four. Every node type 
 
 | Table | Type | Business key | Partition strategy | Business description |
 |---|---|---|---|---|
-| `br_digital_poc.bronze.emsc_cdr_raw` | Streaming Table | `(__framework_source_file_name, _asn1_record_index)` | None | Voice and in-switch SMS CDRs from the Enhanced MSC, decoded from `EMSC.asn1` |
-| `br_digital_poc.bronze.psgw_cdr_raw` | Streaming Table | `(__framework_source_file_name, _asn1_record_index)` | None | Data-session charging records from the Packet Switched Gateway (PGW and SGW arms) |
-| `br_digital_poc.bronze.sgsn_cdr_raw` | Streaming Table | `(__framework_source_file_name, _asn1_record_index)` | None | GPRS/data session charging records from the Serving GPRS Support Node |
-| `br_digital_poc.bronze.tap310_raw` | Streaming Table | `(__framework_source_file_name, _asn1_record_index)` | None | TAP 3.10 roaming settlement batches exchanged with partner operators |
+| `bt_digital_poc.bronze.emsc_cdr_raw` | Streaming Table | `(__framework_source_file_name, _asn1_record_index)` | None | Voice and in-switch SMS CDRs from the Enhanced MSC, decoded from `EMSC.asn1` |
+| `bt_digital_poc.bronze.psgw_cdr_raw` | Streaming Table | `(__framework_source_file_name, _asn1_record_index)` | None | Data-session charging records from the Packet Switched Gateway (PGW and SGW arms) |
+| `bt_digital_poc.bronze.sgsn_cdr_raw` | Streaming Table | `(__framework_source_file_name, _asn1_record_index)` | None | GPRS/data session charging records from the Serving GPRS Support Node |
+| `bt_digital_poc.bronze.tap310_raw` | Streaming Table | `(__framework_source_file_name, _asn1_record_index)` | None | TAP 3.10 roaming settlement batches exchanged with partner operators |
 | `*_quarantine` (×4) | Streaming Table | Same | None | Records that failed one or more DQ rules, with the reason retained |
 
 > **On "business key":** bronze has **no declared primary key** — `APPEND` does not require one, and the framework does not enforce one. The composite shown above is the **de facto** unique identifier and is what you should use to deduplicate or trace. `_asn1_record_index` alone is not unique; it is only unique **within** a source file.
@@ -921,16 +921,16 @@ The pipeline builds **16 nodes**, four identical lanes of four. Every node type 
 
 ### 6.6 Layer 3 — Silver Cleaning and Conformance (DESIGNED, NOT YET BUILT)
 
-> **Status: not implemented.** `br_digital_poc.silver` holds no UC7 objects. This subsection is the design specification for the next phase, and is clearly marked as such so it is not mistaken for delivered scope.
+> **Status: not implemented.** `bt_digital_poc.silver` holds no UC7 objects. This subsection is the design specification for the next phase, and is clearly marked as such so it is not mistaken for delivered scope.
 
 **Recommended silver design:**
 
 | Proposed object | Type | Purpose |
 |---|---|---|
-| `br_digital_poc.silver.cdr_unified` | Streaming Table | Flatten the nested CHOICE arms into one conformed CDR row shape across all four sources |
-| `br_digital_poc.silver.v_cdr_voice` | **Live View** | Voice-only projection — a view, not a table, because it needs no independent storage |
-| `br_digital_poc.silver.v_cdr_data` | **Live View** | Data-session-only projection |
-| `br_digital_poc.silver.cdr_roaming` | Streaming Table | TAP batches exploded to one row per `CallEventDetail` |
+| `bt_digital_poc.silver.cdr_unified` | Streaming Table | Flatten the nested CHOICE arms into one conformed CDR row shape across all four sources |
+| `bt_digital_poc.silver.v_cdr_voice` | **Live View** | Voice-only projection — a view, not a table, because it needs no independent storage |
+| `bt_digital_poc.silver.v_cdr_data` | **Live View** | Data-session-only projection |
+| `bt_digital_poc.silver.cdr_roaming` | Streaming Table | TAP batches exploded to one row per `CallEventDetail` |
 
 **Conformance work that belongs in silver:**
 
@@ -952,14 +952,14 @@ The pipeline builds **16 nodes**, four identical lanes of four. Every node type 
 
 ### 6.7 Layer 4 — Gold Aggregation and Consumption (DESIGNED, NOT YET BUILT)
 
-> **Status: not implemented.** The `br_digital_poc.gold` schema exists and is **empty**.
+> **Status: not implemented.** The `bt_digital_poc.gold` schema exists and is **empty**.
 
 | Proposed object | Type | Business metric |
 |---|---|---|
-| `br_digital_poc.gold.daily_usage_by_subscriber` | Materialized View | Calls, SMS, data volume per subscriber per day |
-| `br_digital_poc.gold.daily_network_element_volume` | Materialized View | Record counts per element per day — the Revenue Assurance reconciliation feed |
-| `br_digital_poc.gold.roaming_settlement_summary` | Materialized View | Roaming charges by partner operator and settlement period |
-| `br_digital_poc.gold.apn_usage_summary` | Materialized View | Data volume by APN and cell |
+| `bt_digital_poc.gold.daily_usage_by_subscriber` | Materialized View | Calls, SMS, data volume per subscriber per day |
+| `bt_digital_poc.gold.daily_network_element_volume` | Materialized View | Record counts per element per day — the Revenue Assurance reconciliation feed |
+| `bt_digital_poc.gold.roaming_settlement_summary` | Materialized View | Roaming charges by partner operator and settlement period |
+| `bt_digital_poc.gold.apn_usage_summary` | Materialized View | Data volume by APN and cell |
 
 - Gold objects should be **Materialized Views**, not streaming tables: they are aggregates, they are recomputed, and they must serve BI concurrency.
 - Gold is the correct grant boundary for Business Analysts. It contains aggregates, not raw IMSI.
@@ -967,7 +967,7 @@ The pipeline builds **16 nodes**, four identical lanes of four. Every node type 
 <div class="screenshot">
 <b>[SCREENSHOT PLACEHOLDER:</b> Unity Catalog lineage graph for a bronze table.
 <b>UI location:</b> Databricks → Catalog → <code>flowx</code> → <code>bronze</code> → <code>sgsn_cdr_raw</code> → Lineage tab.
-<b>Expected content:</b> Upstream lineage showing the Volume path <code>/Volumes/br_digital_poc/landing/uc_7/raw/SGSN/</code> and the pipeline-scoped staged node; downstream currently empty, ready to show silver once built.
+<b>Expected content:</b> Upstream lineage showing the Volume path <code>/Volumes/bt_digital_poc/staging/uc_7/raw/SGSN/</code> and the pipeline-scoped staged node; downstream currently empty, ready to show silver once built.
 </div>
 
 ---
@@ -1160,43 +1160,43 @@ Bronze is `APPEND`-only, so a given row is never mutated. Delta time travel is t
 
 ```sql
 -- 1. Inspect the full version history of a bronze table
-DESCRIBE HISTORY br_digital_poc.bronze.sgsn_cdr_raw;
+DESCRIBE HISTORY bt_digital_poc.bronze.sgsn_cdr_raw;
 
 -- 2. Read the table exactly as it stood at a specific version
 SELECT count(*) AS rows_at_version
-FROM   br_digital_poc.bronze.sgsn_cdr_raw VERSION AS OF 1;
+FROM   bt_digital_poc.bronze.sgsn_cdr_raw VERSION AS OF 1;
 
 -- 3. Read the table as at a point in time (regulatory restatement)
 SELECT count(*) AS rows_at_timestamp
-FROM   br_digital_poc.bronze.sgsn_cdr_raw TIMESTAMP AS OF '2026-09-05T08:00:00';
+FROM   bt_digital_poc.bronze.sgsn_cdr_raw TIMESTAMP AS OF '2026-09-05T08:00:00';
 
 -- 4. Show exactly which rows arrived between two versions
 SELECT __framework_source_file_name,
        count(*) AS rows_added
-FROM   br_digital_poc.bronze.sgsn_cdr_raw VERSION AS OF 2
+FROM   bt_digital_poc.bronze.sgsn_cdr_raw VERSION AS OF 2
 EXCEPT ALL
 SELECT __framework_source_file_name,
        count(*)
-FROM   br_digital_poc.bronze.sgsn_cdr_raw VERSION AS OF 1;
+FROM   bt_digital_poc.bronze.sgsn_cdr_raw VERSION AS OF 1;
 
 -- 5. Confirm re-runs did not duplicate: one row per (file, record index)
 SELECT __framework_source_file_name,
        count(*)                              AS total_rows,
        count(DISTINCT _asn1_record_index)     AS distinct_positions
-FROM   br_digital_poc.bronze.sgsn_cdr_raw
+FROM   bt_digital_poc.bronze.sgsn_cdr_raw
 GROUP  BY __framework_source_file_name;
 -- EXPECTED: total_rows = distinct_positions for every file
 ```
 
 <div class="screenshot">
 <b>[SCREENSHOT PLACEHOLDER:</b> Decoded SGSN record expanded in the SQL result viewer.
-<b>UI location:</b> Databricks SQL editor, after running <code>SELECT * FROM br_digital_poc.bronze.sgsn_cdr_raw WHERE _asn1_record_index = 0</code>.
+<b>UI location:</b> Databricks SQL editor, after running <code>SELECT * FROM bt_digital_poc.bronze.sgsn_cdr_raw WHERE _asn1_record_index = 0</code>.
 <b>Expected content:</b> The <code>sgsnPDPRecord</code> struct expanded in the JSON viewer showing <code>recordType</code>, <code>servedIMSI</code>, <code>accessPointNameNI: "everywhere"</code> and the <code>listOfTrafficVolumes</code> array, with <code>_choice</code> and <code>_asn1_record_index</code> visible.
 </div>
 
 <div class="screenshot">
 <b>[SCREENSHOT PLACEHOLDER:</b> <code>DESCRIBE HISTORY</code> output for a bronze table.
-<b>UI location:</b> Databricks SQL editor, running <code>DESCRIBE HISTORY br_digital_poc.bronze.sgsn_cdr_raw</code>.
+<b>UI location:</b> Databricks SQL editor, running <code>DESCRIBE HISTORY bt_digital_poc.bronze.sgsn_cdr_raw</code>.
 <b>Expected content:</b> Version history grid showing version numbers, timestamps, <code>STREAMING UPDATE</code> operations, and operation metrics with <code>numOutputRows</code> per version.
 </div>
 
@@ -1210,20 +1210,19 @@ GROUP  BY __framework_source_file_name;
 
 | Level | UC7 value | Purpose |
 |---|---|---|
-| **Catalog** | `flowx` | Environment boundary. Separate environments use separate catalogs, **not** schema suffixes |
-| **Schema** | `landing`, `bronze`, `silver`, `gold`, `config`, `observability`, `staging` | Layer boundary |
+| **Catalog** | `bt_digital_poc` | Environment boundary. Separate environments use separate catalogs, **not** schema suffixes |
+| **Schema** | `staging`, `bronze`, `silver`, `gold`, `config`, `observability` | Layer boundary |
 | **Object** | `sgsn_cdr_raw`, `sgsn_cdr_raw_quarantine`, … | The data product |
 
 **Full inventory of UC7 objects:**
 
 | Object | Type | Purpose |
 |---|---|---|
-| `br_digital_poc.landing.uc_7` | Volume (MANAGED) | Raw binary CDRs and ASN.1 modules |
-| `br_digital_poc.staging.uc_7` | Volume (MANAGED) | Backup copy of the landing tree |
-| `br_digital_poc.bronze.{emsc_cdr_raw, psgw_cdr_raw, sgsn_cdr_raw, tap310_raw}` | Streaming Tables | Decoded CDRs |
-| `br_digital_poc.bronze.*_quarantine` (×4) | Streaming Tables | Failed records with reasons |
-| `br_digital_poc.config.*` (9 tables) | Delta Tables | Framework control metadata |
-| `br_digital_poc.observability.app_logs` | Volume (MANAGED) | Run telemetry |
+| `bt_digital_poc.staging.uc_7` | Volume (MANAGED) | Raw binary CDRs and ASN.1 modules |
+| `bt_digital_poc.bronze.{emsc_cdr_raw, psgw_cdr_raw, sgsn_cdr_raw, tap310_raw}` | Streaming Tables | Decoded CDRs |
+| `bt_digital_poc.bronze.*_quarantine` (×4) | Streaming Tables | Failed records with reasons |
+| `bt_digital_poc.config.*` (9 tables) | Delta Tables | Framework control metadata |
+| `bt_digital_poc.observability.app_logs` | Volume (MANAGED) | Run telemetry |
 
 ### 8.2 Current security posture — stated honestly
 
@@ -1239,7 +1238,7 @@ GROUP  BY __framework_source_file_name;
 | **Row-level filters** | **NOT APPLIED** | None defined |
 | **Explicit RBAC grants** | **NOT APPLIED** | Tables inherit creator ownership only |
 
-> **Architect's recommendation, stated as a gate:** `br_digital_poc.bronze` currently contains **unmasked IMSI and IMEI values**. These are personal data. **No non-privileged user should be granted `SELECT` on these bronze tables until the controls in 8.3 to 8.5 are applied.** The recommended access model is that analysts consume **silver and gold**, never bronze.
+> **Architect's recommendation, stated as a gate:** `bt_digital_poc.bronze` currently contains **unmasked IMSI and IMEI values**. These are personal data. **No non-privileged user should be granted `SELECT` on these bronze tables until the controls in 8.3 to 8.5 are applied.** The recommended access model is that analysts consume **silver and gold**, never bronze.
 
 ### 8.3 PII handling — recommended implementation
 
@@ -1260,10 +1259,10 @@ Tags are preferred over direct grants because a policy written once applies to *
 
 ```sql
 -- Tag the sensitive columns. Extend to each table and arm as appropriate.
-ALTER TABLE br_digital_poc.bronze.sgsn_cdr_raw
+ALTER TABLE bt_digital_poc.bronze.sgsn_cdr_raw
   ALTER COLUMN sgsnPDPRecord SET TAGS ('contains_pii' = 'true', 'sensitivity' = 'high');
 
-ALTER TABLE br_digital_poc.bronze.sgsn_cdr_raw
+ALTER TABLE bt_digital_poc.bronze.sgsn_cdr_raw
   SET TAGS ('data_domain' = 'telecom_cdr', 'retention_class' = 'regulatory_7_year');
 ```
 
@@ -1271,7 +1270,7 @@ ALTER TABLE br_digital_poc.bronze.sgsn_cdr_raw
 
 ```sql
 -- Masking function: full value for privileged groups, last 4 digits otherwise.
-CREATE OR REPLACE FUNCTION flowx.security.mask_imsi(imsi STRING)
+CREATE OR REPLACE FUNCTION bt_digital_poc.security.mask_imsi(imsi STRING)
 RETURN CASE
          WHEN is_account_group_member('uc7_revenue_assurance') THEN imsi
          WHEN is_account_group_member('uc7_data_engineers')     THEN imsi
@@ -1280,18 +1279,18 @@ RETURN CASE
        END;
 
 -- Fully redact device identifiers for everyone except engineers.
-CREATE OR REPLACE FUNCTION flowx.security.mask_imei(imei STRING)
+CREATE OR REPLACE FUNCTION bt_digital_poc.security.mask_imei(imei STRING)
 RETURN CASE
          WHEN is_account_group_member('uc7_data_engineers') THEN imei
          ELSE '[REDACTED]'
        END;
 
 -- Bind the mask to a conformed silver column.
-ALTER TABLE br_digital_poc.silver.cdr_unified
-  ALTER COLUMN imsi SET MASK flowx.security.mask_imsi;
+ALTER TABLE bt_digital_poc.silver.cdr_unified
+  ALTER COLUMN imsi SET MASK bt_digital_poc.security.mask_imsi;
 
-ALTER TABLE br_digital_poc.silver.cdr_unified
-  ALTER COLUMN imei SET MASK flowx.security.mask_imei;
+ALTER TABLE bt_digital_poc.silver.cdr_unified
+  ALTER COLUMN imei SET MASK bt_digital_poc.security.mask_imei;
 ```
 
 > **Implementation note:** column masks apply to **scalar** columns. Bronze's PII is buried inside nested struct arms, which cannot be masked in place. This is a further reason the analyst-facing layer must be **silver**, where the fields have been flattened to scalars and can carry masks.
@@ -1300,12 +1299,12 @@ ALTER TABLE br_digital_poc.silver.cdr_unified
 
 ```sql
 -- Restrict roaming settlement rows to the team owning that partner relationship.
-CREATE OR REPLACE FUNCTION flowx.security.roaming_partner_filter(partner_plmn STRING)
+CREATE OR REPLACE FUNCTION bt_digital_poc.security.roaming_partner_filter(partner_plmn STRING)
 RETURN is_account_group_member('uc7_roaming_settlement')
        OR is_account_group_member('uc7_data_engineers');
 
-ALTER TABLE br_digital_poc.silver.cdr_roaming
-  SET ROW FILTER flowx.security.roaming_partner_filter ON (sender_plmn);
+ALTER TABLE bt_digital_poc.silver.cdr_roaming
+  SET ROW FILTER bt_digital_poc.security.roaming_partner_filter ON (sender_plmn);
 ```
 
 ### 8.4 Data quality and NULL handling
@@ -1350,38 +1349,38 @@ GRANT USE CATALOG ON CATALOG flowx TO `uc7_revenue_assurance`;
 GRANT USE CATALOG ON CATALOG flowx TO `uc7_auditors`;
 
 -- ---------- Platform Developer: full control of the pipeline ----------
-GRANT ALL PRIVILEGES ON SCHEMA br_digital_poc.bronze TO `uc7_developers`;
-GRANT ALL PRIVILEGES ON SCHEMA br_digital_poc.config TO `uc7_developers`;
-GRANT READ VOLUME, WRITE VOLUME ON VOLUME br_digital_poc.landing.uc_7 TO `uc7_developers`;
+GRANT ALL PRIVILEGES ON SCHEMA bt_digital_poc.bronze TO `uc7_developers`;
+GRANT ALL PRIVILEGES ON SCHEMA bt_digital_poc.config TO `uc7_developers`;
+GRANT READ VOLUME, WRITE VOLUME ON VOLUME bt_digital_poc.staging.uc_7 TO `uc7_developers`;
 
 -- ---------- Data Engineer: read bronze, build silver and gold ----------
-GRANT USE SCHEMA ON SCHEMA br_digital_poc.bronze TO `uc7_data_engineers`;
-GRANT SELECT ON SCHEMA br_digital_poc.bronze TO `uc7_data_engineers`;
-GRANT ALL PRIVILEGES ON SCHEMA br_digital_poc.silver TO `uc7_data_engineers`;
-GRANT ALL PRIVILEGES ON SCHEMA br_digital_poc.gold TO `uc7_data_engineers`;
-GRANT READ VOLUME ON VOLUME br_digital_poc.landing.uc_7 TO `uc7_data_engineers`;
-GRANT SELECT ON SCHEMA br_digital_poc.config TO `uc7_data_engineers`;
+GRANT USE SCHEMA ON SCHEMA bt_digital_poc.bronze TO `uc7_data_engineers`;
+GRANT SELECT ON SCHEMA bt_digital_poc.bronze TO `uc7_data_engineers`;
+GRANT ALL PRIVILEGES ON SCHEMA bt_digital_poc.silver TO `uc7_data_engineers`;
+GRANT ALL PRIVILEGES ON SCHEMA bt_digital_poc.gold TO `uc7_data_engineers`;
+GRANT READ VOLUME ON VOLUME bt_digital_poc.staging.uc_7 TO `uc7_data_engineers`;
+GRANT SELECT ON SCHEMA bt_digital_poc.config TO `uc7_data_engineers`;
 
 -- ---------- Business Analyst: gold and masked silver only. NOT bronze ----------
-GRANT USE SCHEMA ON SCHEMA br_digital_poc.gold TO `uc7_business_analysts`;
-GRANT SELECT ON SCHEMA br_digital_poc.gold TO `uc7_business_analysts`;
-GRANT USE SCHEMA ON SCHEMA br_digital_poc.silver TO `uc7_business_analysts`;
-GRANT SELECT ON TABLE br_digital_poc.silver.cdr_unified TO `uc7_business_analysts`;
+GRANT USE SCHEMA ON SCHEMA bt_digital_poc.gold TO `uc7_business_analysts`;
+GRANT SELECT ON SCHEMA bt_digital_poc.gold TO `uc7_business_analysts`;
+GRANT USE SCHEMA ON SCHEMA bt_digital_poc.silver TO `uc7_business_analysts`;
+GRANT SELECT ON TABLE bt_digital_poc.silver.cdr_unified TO `uc7_business_analysts`;
 
 -- ---------- Revenue Assurance: needs unmasked IMSI, granted via the mask UDF ----------
-GRANT USE SCHEMA ON SCHEMA br_digital_poc.silver TO `uc7_revenue_assurance`;
-GRANT SELECT ON TABLE br_digital_poc.silver.cdr_unified TO `uc7_revenue_assurance`;
-GRANT SELECT ON SCHEMA br_digital_poc.gold TO `uc7_revenue_assurance`;
+GRANT USE SCHEMA ON SCHEMA bt_digital_poc.silver TO `uc7_revenue_assurance`;
+GRANT SELECT ON TABLE bt_digital_poc.silver.cdr_unified TO `uc7_revenue_assurance`;
+GRANT SELECT ON SCHEMA bt_digital_poc.gold TO `uc7_revenue_assurance`;
 
 -- ---------- Auditor: read-only breadth, including quarantine and control tables ----------
-GRANT USE SCHEMA ON SCHEMA br_digital_poc.bronze TO `uc7_auditors`;
-GRANT SELECT ON SCHEMA br_digital_poc.bronze TO `uc7_auditors`;
-GRANT SELECT ON SCHEMA br_digital_poc.config TO `uc7_auditors`;
-GRANT SELECT ON SCHEMA br_digital_poc.gold TO `uc7_auditors`;
+GRANT USE SCHEMA ON SCHEMA bt_digital_poc.bronze TO `uc7_auditors`;
+GRANT SELECT ON SCHEMA bt_digital_poc.bronze TO `uc7_auditors`;
+GRANT SELECT ON SCHEMA bt_digital_poc.config TO `uc7_auditors`;
+GRANT SELECT ON SCHEMA bt_digital_poc.gold TO `uc7_auditors`;
 
 -- ---------- Verify what has actually been granted ----------
-SHOW GRANTS ON TABLE br_digital_poc.bronze.sgsn_cdr_raw;
-SHOW GRANTS ON SCHEMA br_digital_poc.gold;
+SHOW GRANTS ON TABLE bt_digital_poc.bronze.sgsn_cdr_raw;
+SHOW GRANTS ON SCHEMA bt_digital_poc.gold;
 ```
 
 **8.5.3 Layers of control, weakest to strongest**
@@ -1432,7 +1431,7 @@ SELECT
     origin.flow_name                                                              AS flow,
     sum(cast(get_json_object(details, '$.flow_progress.metrics.num_output_rows')
              AS BIGINT))                                                          AS rows_written
-FROM   event_log(TABLE(br_digital_poc.bronze.sgsn_cdr_raw))
+FROM   event_log(TABLE(bt_digital_poc.bronze.sgsn_cdr_raw))
 WHERE  event_type = 'flow_progress'
   AND  get_json_object(details, '$.flow_progress.metrics.num_output_rows') IS NOT NULL
 GROUP  BY origin.flow_name
@@ -1443,22 +1442,22 @@ ORDER  BY origin.flow_name;
 
 | flow | rows_written |
 |---|---|
-| `br_digital_poc.bronze._src___volumes_flowx_landing_uc_7_raw_emsc__5e807b99__stream` | 353 |
-| `br_digital_poc.bronze._emsc_cdr_raw_staged` | 353 |
-| `br_digital_poc.bronze.emsc_cdr_raw` | **353** |
-| `br_digital_poc.bronze.emsc_cdr_raw_quarantine` | **0** |
-| `br_digital_poc.bronze._src___volumes_flowx_landing_uc_7_raw_psgw__c67361f1__stream` | 93 |
-| `br_digital_poc.bronze._psgw_cdr_raw_staged` | 93 |
-| `br_digital_poc.bronze.psgw_cdr_raw` | **93** |
-| `br_digital_poc.bronze.psgw_cdr_raw_quarantine` | **0** |
-| `br_digital_poc.bronze._src___volumes_flowx_landing_uc_7_raw_sgsn__ee25e3cc__stream` | 175,048 |
-| `br_digital_poc.bronze._sgsn_cdr_raw_staged` | 175,048 |
-| `br_digital_poc.bronze.sgsn_cdr_raw` | **175,048** |
-| `br_digital_poc.bronze.sgsn_cdr_raw_quarantine` | **0** |
-| `br_digital_poc.bronze._src___volumes_flowx_landing_uc_7_raw_tap__e759a809__stream` | 4 |
-| `br_digital_poc.bronze._tap310_raw_staged` | 4 |
-| `br_digital_poc.bronze.tap310_raw` | **4** |
-| `br_digital_poc.bronze.tap310_raw_quarantine` | **0** |
+| `bt_digital_poc.bronze._src___volumes_bt_digital_poc_staging_uc_7_raw_emsc__fd3959e6__stream` | 353 |
+| `bt_digital_poc.bronze._emsc_cdr_raw_staged` | 353 |
+| `bt_digital_poc.bronze.emsc_cdr_raw` | **353** |
+| `bt_digital_poc.bronze.emsc_cdr_raw_quarantine` | **0** |
+| `bt_digital_poc.bronze._src___volumes_bt_digital_poc_staging_uc_7_raw_psgw__fd140c87__stream` | 93 |
+| `bt_digital_poc.bronze._psgw_cdr_raw_staged` | 93 |
+| `bt_digital_poc.bronze.psgw_cdr_raw` | **93** |
+| `bt_digital_poc.bronze.psgw_cdr_raw_quarantine` | **0** |
+| `bt_digital_poc.bronze._src___volumes_bt_digital_poc_staging_uc_7_raw_sgsn__25bb6f8b__stream` | 175,048 |
+| `bt_digital_poc.bronze._sgsn_cdr_raw_staged` | 175,048 |
+| `bt_digital_poc.bronze.sgsn_cdr_raw` | **175,048** |
+| `bt_digital_poc.bronze.sgsn_cdr_raw_quarantine` | **0** |
+| `bt_digital_poc.bronze._src___volumes_bt_digital_poc_staging_uc_7_raw_tap__904e63f4__stream` | 4 |
+| `bt_digital_poc.bronze._tap310_raw_staged` | 4 |
+| `bt_digital_poc.bronze.tap310_raw` | **4** |
+| `bt_digital_poc.bronze.tap310_raw_quarantine` | **0** |
 
 **How to read this:** for each of the four lanes, the source reader, the staged node and the published table all report the **identical** count, with **zero** quarantined. Source equals staged equals published, at every hop, for every source. That is a clean end-to-end reconciliation.
 
@@ -1471,7 +1470,7 @@ SELECT
     exp.value:name::string                               AS rule_name,
     sum(exp.value:passed_records::bigint)                AS passed,
     sum(exp.value:failed_records::bigint)                AS failed
-FROM   event_log(TABLE(br_digital_poc.bronze.sgsn_cdr_raw)) AS ev
+FROM   event_log(TABLE(bt_digital_poc.bronze.sgsn_cdr_raw)) AS ev
        LATERAL VARIANT_EXPLODE(
          parse_json(get_json_object(ev.details,
                     '$.flow_progress.data_quality.expectations'))) AS exp
@@ -1484,16 +1483,16 @@ ORDER  BY failed DESC, 1, 2;
 ```sql
 -- Direct inspection of the quarantine tables, with the reason
 SELECT 'sgsn'  AS source, _asn1_decode_error, count(*) AS records
-FROM   br_digital_poc.bronze.sgsn_cdr_raw_quarantine   GROUP BY 1, 2
+FROM   bt_digital_poc.bronze.sgsn_cdr_raw_quarantine   GROUP BY 1, 2
 UNION ALL
 SELECT 'emsc',  _asn1_decode_error, count(*)
-FROM   br_digital_poc.bronze.emsc_cdr_raw_quarantine   GROUP BY 1, 2
+FROM   bt_digital_poc.bronze.emsc_cdr_raw_quarantine   GROUP BY 1, 2
 UNION ALL
 SELECT 'psgw',  _asn1_decode_error, count(*)
-FROM   br_digital_poc.bronze.psgw_cdr_raw_quarantine   GROUP BY 1, 2
+FROM   bt_digital_poc.bronze.psgw_cdr_raw_quarantine   GROUP BY 1, 2
 UNION ALL
 SELECT 'tap310', _asn1_decode_error, count(*)
-FROM   br_digital_poc.bronze.tap310_raw_quarantine     GROUP BY 1, 2
+FROM   bt_digital_poc.bronze.tap310_raw_quarantine     GROUP BY 1, 2
 ORDER  BY source;
 ```
 
@@ -1510,7 +1509,7 @@ SELECT
     timestampdiff(SECOND, min(timestamp), max(timestamp))    AS duration_seconds,
     max(CASE WHEN event_type = 'update_progress'
              THEN get_json_object(details, '$.update_progress.state') END) AS final_state
-FROM   event_log(TABLE(br_digital_poc.bronze.sgsn_cdr_raw))
+FROM   event_log(TABLE(bt_digital_poc.bronze.sgsn_cdr_raw))
 GROUP  BY origin.update_id
 ORDER  BY started_at DESC;
 ```
@@ -1521,7 +1520,7 @@ SELECT timestamp,
        origin.flow_name              AS flow,
        level,
        substr(message, 1, 300)       AS message
-FROM   event_log(TABLE(br_digital_poc.bronze.sgsn_cdr_raw))
+FROM   event_log(TABLE(bt_digital_poc.bronze.sgsn_cdr_raw))
 WHERE  level IN ('ERROR', 'WARN')
 ORDER  BY timestamp DESC
 LIMIT  50;
@@ -1534,7 +1533,7 @@ SELECT timestamp,
        get_json_object(details, '$.flow_progress.metrics.num_output_rows')        AS rows_out,
        get_json_object(details, '$.flow_progress.metrics.backlog_bytes')          AS backlog_bytes,
        get_json_object(details, '$.flow_progress.status')                         AS status
-FROM   event_log(TABLE(br_digital_poc.bronze.sgsn_cdr_raw))
+FROM   event_log(TABLE(bt_digital_poc.bronze.sgsn_cdr_raw))
 WHERE  event_type = 'flow_progress'
 ORDER  BY timestamp DESC
 LIMIT  100;
@@ -1554,7 +1553,7 @@ SELECT __framework_source_file_name              AS source_file,
        CASE WHEN count(*) = max(_asn1_record_index) + 1
             THEN 'CONTIGUOUS - no records lost'
             ELSE 'GAP DETECTED - investigate' END AS completeness_check
-FROM   br_digital_poc.bronze.sgsn_cdr_raw
+FROM   bt_digital_poc.bronze.sgsn_cdr_raw
 GROUP  BY __framework_source_file_name
 ORDER  BY source_file;
 ```
@@ -1572,7 +1571,7 @@ ORDER  BY source_file;
 ```sql
 -- Confirm the observability destination is registered and enabled
 SELECT dataflow_group_id, destination_id, enabled, destination_type, mode
-FROM   br_digital_poc.config.observability_config
+FROM   bt_digital_poc.config.observability_config
 WHERE  dataflow_group_id IN ('dfg_uc7_cdr_asn', '*');
 ```
 
@@ -1581,13 +1580,14 @@ WHERE  dataflow_group_id IN ('dfg_uc7_cdr_asn', '*');
 **Verified emitted artifact:**
 
 ```
-/Volumes/br_digital_poc/observability/app_logs/dfg_uc7_cdr_asn/2026-09-05/
+/Volumes/bt_digital_poc/observability/app_logs/dfg_uc7_cdr_asn/2026-09-05/
     dfg_uc7_cdr_asn_387734270983946.jsonl.gz     1,619 bytes
 ```
 
 - Path pattern: `{volume_path}/{dataflow_group_id}/{YYYY-MM-DD}/{group}_{task_run_id}.jsonl.gz`.
+- The destination Volume was created by hand (`databricks volumes create bt_digital_poc observability app_logs MANAGED`) and is **deliberately not a bundle resource**, so a `bundle destroy` cannot delete it together with its accumulated telemetry.
 - Content: **16 OpenTelemetry log records**, each a well-formed `resourceLogs` envelope.
-- Resource attributes tie the telemetry to this specific run: `service.name = dlt-observability-uc7-cdr-asn`, `databricks.job_id = 843342822766009`, `databricks.pipeline_id = 927a6e24-...`, `deployment.environment = metaflow_v7`, `pipeline.update_id = 469ff760-...`.
+- Resource attributes tie the telemetry to this specific run: `service.name = dlt-observability-uc7-cdr-asn`, `databricks.job_id = 333146904292014`, `databricks.pipeline_id = 527d1e89-...`, `deployment.environment = hoonartek`, `pipeline.update_id = 469ff760-...`.
 
 <div class="screenshot">
 <b>[SCREENSHOT PLACEHOLDER:</b> Event log reconciliation query result.
@@ -1633,19 +1633,19 @@ SELECT 'EMSC'   AS source_system,
        count(*)                                          AS records_loaded,
        count_if(_asn1_decode_error IS NOT NULL)          AS decode_failures,
        count(DISTINCT __framework_source_file_name)      AS files_processed
-FROM   br_digital_poc.bronze.emsc_cdr_raw
+FROM   bt_digital_poc.bronze.emsc_cdr_raw
 UNION ALL
 SELECT 'PSGW', count(*), count_if(_asn1_decode_error IS NOT NULL),
        count(DISTINCT __framework_source_file_name)
-FROM   br_digital_poc.bronze.psgw_cdr_raw
+FROM   bt_digital_poc.bronze.psgw_cdr_raw
 UNION ALL
 SELECT 'SGSN', count(*), count_if(_asn1_decode_error IS NOT NULL),
        count(DISTINCT __framework_source_file_name)
-FROM   br_digital_poc.bronze.sgsn_cdr_raw
+FROM   bt_digital_poc.bronze.sgsn_cdr_raw
 UNION ALL
 SELECT 'TAP 3.10', count(*), count_if(_asn1_decode_error IS NOT NULL),
        count(DISTINCT __framework_source_file_name)
-FROM   br_digital_poc.bronze.tap310_raw
+FROM   bt_digital_poc.bronze.tap310_raw
 ORDER  BY source_system;
 ```
 
@@ -1670,10 +1670,10 @@ ORDER  BY source_system;
 
 ```sql
 SELECT 'EMSC' AS source_system, count(*) AS quarantined_records
-FROM   br_digital_poc.bronze.emsc_cdr_raw_quarantine
-UNION ALL SELECT 'PSGW',     count(*) FROM br_digital_poc.bronze.psgw_cdr_raw_quarantine
-UNION ALL SELECT 'SGSN',     count(*) FROM br_digital_poc.bronze.sgsn_cdr_raw_quarantine
-UNION ALL SELECT 'TAP 3.10', count(*) FROM br_digital_poc.bronze.tap310_raw_quarantine
+FROM   bt_digital_poc.bronze.emsc_cdr_raw_quarantine
+UNION ALL SELECT 'PSGW',     count(*) FROM bt_digital_poc.bronze.psgw_cdr_raw_quarantine
+UNION ALL SELECT 'SGSN',     count(*) FROM bt_digital_poc.bronze.sgsn_cdr_raw_quarantine
+UNION ALL SELECT 'TAP 3.10', count(*) FROM bt_digital_poc.bronze.tap310_raw_quarantine
 ORDER  BY source_system;
 ```
 
@@ -1700,7 +1700,7 @@ SELECT _asn1_decode_error                     AS rejection_reason,
        count(*)                                AS affected_records,
        min(__framework_source_file_name)       AS example_file,
        min(_asn1_record_index)                 AS example_record_position
-FROM   br_digital_poc.bronze.sgsn_cdr_raw_quarantine
+FROM   bt_digital_poc.bronze.sgsn_cdr_raw_quarantine
 GROUP  BY _asn1_decode_error
 ORDER  BY affected_records DESC;
 ```
@@ -1720,7 +1720,7 @@ SELECT __framework_source_file_name                AS source_file,
        CASE WHEN count(*) = max(_asn1_record_index) + 1
             THEN 'PASS - all records loaded'
             ELSE 'FAIL - records missing' END       AS completeness_result
-FROM   br_digital_poc.bronze.sgsn_cdr_raw
+FROM   bt_digital_poc.bronze.sgsn_cdr_raw
 GROUP  BY __framework_source_file_name
 ORDER  BY source_file;
 ```
@@ -1745,17 +1745,17 @@ SELECT 'SGSN' AS source_system,
        _choice                                                   AS cdr_type,
        count(*)                                                  AS record_count,
        round(100.0 * count(*) / sum(count(*)) OVER (), 2)        AS percentage
-FROM   br_digital_poc.bronze.sgsn_cdr_raw
+FROM   bt_digital_poc.bronze.sgsn_cdr_raw
 GROUP  BY _choice
 UNION ALL
 SELECT 'PSGW', _choice, count(*),
        round(100.0 * count(*) / sum(count(*)) OVER (), 2)
-FROM   br_digital_poc.bronze.psgw_cdr_raw
+FROM   bt_digital_poc.bronze.psgw_cdr_raw
 GROUP  BY _choice
 UNION ALL
 SELECT 'EMSC', _choice, count(*),
        round(100.0 * count(*) / sum(count(*)) OVER (), 2)
-FROM   br_digital_poc.bronze.emsc_cdr_raw
+FROM   bt_digital_poc.bronze.emsc_cdr_raw
 GROUP  BY _choice
 ORDER  BY source_system, record_count DESC;
 ```
@@ -1791,7 +1791,7 @@ SELECT 'SGSN'                                            AS source_system,
              AND count_if(__framework_source_file_name IS NULL) = 0
             THEN 'PASS - all mandatory fields populated'
             ELSE 'FAIL - mandatory field missing' END     AS validation_result
-FROM   br_digital_poc.bronze.sgsn_cdr_raw;
+FROM   bt_digital_poc.bronze.sgsn_cdr_raw;
 ```
 
 **Expected output:**
@@ -1813,7 +1813,7 @@ SELECT _choice                                       AS cdr_type,
        __framework_source_file_modification_time     AS file_landed_at,
        __framework_ingestion_timestamp_utc           AS loaded_to_bronze_at,
        __framework_pipeline_run_id                   AS loaded_by_run
-FROM   br_digital_poc.bronze.sgsn_cdr_raw
+FROM   bt_digital_poc.bronze.sgsn_cdr_raw
 ORDER  BY _asn1_record_index
 LIMIT  5;
 ```
@@ -1880,9 +1880,9 @@ This build surfaced five genuine defects. All five are fixed and re-verified. Th
 
 | Aspect | Detail |
 |---|---|
-| **Symptom** | `ObservabilityDispatchError: [Errno 95] Operation not supported: '/Volumes/br_digital_poc/observability/app_logs'`. |
+| **Symptom** | `ObservabilityDispatchError: [Errno 95] Operation not supported: '/Volumes/bt_digital_poc/observability/app_logs'`. |
 | **Root cause** | The destination path used by the framework's own example points at a Volume that did not exist on this workspace, and is not declared in the bootstrap resources, so no deploy would create it. |
-| **Fix** | Created `br_digital_poc.observability.app_logs` as a MANAGED Volume. |
+| **Fix** | Created `bt_digital_poc.observability.app_logs` as a MANAGED Volume. |
 | **Note** | That the failure mode *changed* between attempts is itself the evidence that defect 3 was a separate, real fix. |
 
 ### A.5 Defect 5 — Resource layout registry not updated
@@ -1905,7 +1905,7 @@ This build surfaced five genuine defects. All five are fixed and re-verified. Th
 | 5 | **Indefinite-length BER records not split** | Open | EMSC and some TAP files use indefinite length; the reader yields the remainder whole and stops. Not losing data today, but a file **beginning** with an indefinite-length TLV would yield one row |
 | 6 | **`bundle deploy` blocked by an unrelated Apps resource** | Open | The CLI sends `forward_user_access_token` in the Apps update mask and the workspace API rejects it. Unrelated to UC7. Workaround: deploy with `--select`. Fix: pin or upgrade the CLI |
 | 7 | **Pipeline in development mode** | Open | Set `development: false` for production |
-| 8 | **Two bronze naming conventions now coexist** | Open | UC7 uses `br_digital_poc.bronze`; older use cases use `br_digital_poc.bronze_<source>`. Agree one before onboarding more sources |
+| 8 | **Two bronze naming conventions now coexist** | Open | UC7 uses `bt_digital_poc.bronze`; older use cases use `bt_digital_poc.bronze_<source>`. Agree one before onboarding more sources |
 
 ---
 
@@ -1918,30 +1918,30 @@ This build surfaced five genuine defects. All five are fixed and re-verified. Th
 **From the CLI:**
 
 ```bash
-databricks jobs run-now 843342822766009 -p metaflow_v7
+databricks jobs run-now 333146904292014 -p Hoonartek
 ```
 
 - Re-running is **safe**. Auto Loader checkpoints mean already-consumed files are skipped, so no duplicate rows. Verified stable at 175,048 SGSN rows across three runs.
 
 ### B.2 How to add a new network element
 
-1. Confirm the ASN.1 module exists in `/Volumes/br_digital_poc/landing/uc_7/asn_schema/`.
+1. Confirm the ASN.1 module exists in `/Volumes/bt_digital_poc/staging/uc_7/asn_schema/`.
 2. **Verify the mapping by decoding a real sample file** before writing any config. Never map from the file name.
 3. Add a block to `ingestion_flows` in `BT_Usecase/UC7/onboarding/UC7_cdr_asn_bronze.json`, following the SGSN pattern in section 4.2.
-4. Deploy: `databricks bundle deploy -t metaflow_v7 -p metaflow_v7 --fail-on-active-runs --select pipelines.uc7_cdr_asn_pipeline,jobs.uc7_cdr_asn_job,jobs.onboarding_job`
+4. Deploy: `databricks bundle deploy -t hoonartek -p Hoonartek --fail-on-active-runs --select pipelines.uc7_cdr_asn_pipeline,jobs.uc7_cdr_asn_job,jobs.onboarding_job`
 5. Run the job. The new lane appears in the DAG automatically.
 
 ### B.3 Troubleshooting guide
 
 | Symptom | Likely cause | Action |
 |---|---|---|
-| Job fails at `setup_control_tables` | Missing permission on `br_digital_poc.config` | Confirm the run-as principal can create tables in that schema |
-| Job fails at `onboard_uc7` | Spec validation error | Read the child job's output; the validator names every problem at once |
+| Pipeline update finds no control rows for the group | Onboarding has not been run, or was run against another catalog | Run `onboarding_job` for this spec with `catalog=bt_digital_poc`, `env=hoonartek` (see 5.2) |
+| Onboarding job fails | Spec validation error | Read the job's output; the validator names every problem at once |
 | Pipeline fails with `MEMORY_LIMIT_SERVERLESS` | A single file far larger than any seen so far | Reduce `_DECODE_CHUNK_ROWS`, or move to classic compute |
 | Pipeline fails with `ENVIRONMENT_PIP_INSTALL_ERROR` | A `bundle deploy` was run mid-update | Wait for the pipeline to reach IDLE, then re-run. Always use `--fail-on-active-runs` |
 | Quarantine table suddenly non-empty | A network element upgrade changed the encoding | Run Test 3; compare the module version against the element's firmware |
 | Row count did not increase after a run | No new files, or the checkpoint already consumed them | Confirm new files exist; check `_schemas/` checkpoint state |
-| `observability_export` fails | Destination Volume missing or unreachable | Confirm `br_digital_poc.observability.app_logs` exists |
+| `observability_export` fails | Destination Volume missing or unreachable | Confirm `bt_digital_poc.observability.app_logs` exists |
 | `SELECT *` on `event_log()` fails | The Arrow nullability defect (A.3) | Project explicit columns; never `SELECT *` |
 
 ### B.4 Operational hard rules
@@ -2002,4 +2002,4 @@ databricks jobs run-now 843342822766009 -p metaflow_v7
 
 **End of document.**
 
-*All figures, table names, job identifiers, row counts and event log outputs in this document were read back from the live `metaflow_v7` workspace on 2026-09-05. Items not yet built are explicitly marked as designed-not-implemented, and open gaps are listed in Appendix A.6.*
+*All figures, table names, job identifiers, row counts and event log outputs in this document were read back from the live `hoonartek` workspace (catalog `bt_digital_poc`) on 2026-09-08. Items not yet built are explicitly marked as designed-not-implemented, and open gaps are listed in Appendix A.6.*
