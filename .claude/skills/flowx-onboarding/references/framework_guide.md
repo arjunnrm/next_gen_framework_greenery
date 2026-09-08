@@ -113,7 +113,9 @@ Concretely, in file terms:
    anywhere in the file are substituted before parsing.
 2. **Onboard it** — run `notebooks/02_onboarding/02_onboarding_engine.py` (a Databricks Job
    task, widgets: `spec_file_path`, `catalog`, `env`, `action_type` =
-   `CREATE`/`UPDATE`/`VALIDATE_ONLY`). It:
+   `CREATE`/`UPDATE`/`VALIDATE_ONLY`, and since v1.7.07 `prune_missing_flows` = `false`/`true`
+   — opt-in: soft-disable this group's control rows for flows the spec no longer declares,
+   because the upsert alone never deactivates a removed flow's row). It:
    - self-provisions the `config` schema/tables if they don't exist yet
      (`control_plane/schema_provisioner.py::ensure_control_schema_exists`);
    - loads + templates the spec (`onboarding/spec_loader.py`);
@@ -279,7 +281,8 @@ Shared across all three: `capture_technical_metadata`, `landing_retention_policy
 (`clean_source`: `archive`/`delete`/`off`), `schema_evolution_mode`, `file_pattern`,
 `reader_options`, `data_standardization_sql`
 (`ingestion/standardization_sql.py` — a restricted, single-column-expression grammar, never a
-full statement), `column_normalization` (`{enabled, case}` — opt-in trim/case-fold/
+full statement; every entry must end `AS <column_name>`, and it is applied as a `withColumn`
+loop that replaces or adds that column and never drops one), `column_normalization` (`{enabled, case}` — opt-in trim/case-fold/
 replace-special-characters column-name cleanup, `ingestion/column_normalization.py`; the legacy
 `normalize_column_names` boolean was REMOVED in v1.4.0 and is now rejected by onboarding), and
 `schema_config_path` (an
@@ -446,8 +449,10 @@ surface**: the L3/L4 plumbing (`_recon__*__src`/`__tgt`/`__classified`/`__missin
 pipeline-scoped `@dlt.table(temporary=True)` — materialized, never published (a healing flow's
 `_src`/healing `_tgt` stay published because the L5 handler reads them via `spark.read.table`) —
 and the two published audit datasets, `recon__<reconciliation_id>__<target_id>__metrics` /
-`__mismatch`, land in `publish_schema` (defaults to the pipeline's own schema) **only when their
-`logging_config` capture flag resolves true**. `run_log_capture` also gates `reconciliation_result`
+`__mismatch`, land in `publish_schema` **only when their `logging_config` capture flag resolves
+true** — and since v1.7.07 only when `publish_schema` is set: without it they are pipeline-scoped
+temporary tables (a `dq_config` gate still fires, nothing is exported), a capture flag without
+`publish_schema` is rejected, and so is a `"pipeline"`-mode healing flow without one. `run_log_capture` also gates `reconciliation_result`
 (previously unconditional); both flags false == the flow persists only to its business targets.
 **v1.7.3 BREAKING: both flags now default to `false` (was `true`)** — reconciliation is SILENT BY
 DEFAULT, so a flow that omits `logging_config` registers neither audit dataset and writes no

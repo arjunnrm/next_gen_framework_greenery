@@ -1,4 +1,4 @@
-# UC_7 CDR ASN.1 decoders -> flowx.bronze.
+# UC_7 CDR ASN.1 decoders -> ${var.catalog}.bronze.
 #
 # Four ASN.1 ingestion flows (EMSC, PSGW, SGSN, TAP 3.10) share one dataflow group,
 # dfg_uc7_cdr_asn, defined in BT_Usecase/UC7/onboarding/UC7_cdr_asn_bronze.json. SMSC and MMSC are
@@ -10,14 +10,14 @@
 #
 # The framework wheel is pinned by the `../../dist/*.whl` glob below, which DABs rewrites at
 # deploy time to <artifact_path>/.internal/, and artifact_path is
-# ${var.wheels_root}/${var.framework_version} = /Volumes/flowx/config/wheels/0.0.3. No version
+# ${var.wheels_root}/${var.framework_version}, e.g. /Volumes/<catalog>/config/wheels/0.0.4. No version
 # string belongs in this file -- bump var.framework_version and pyproject.toml together instead.
 
 resources:
   pipelines:
     uc7_cdr_asn_pipeline:
       name: 001_ldp_uc7_cdr_asn
-      catalog: flowx
+      catalog: ${var.catalog}
       schema: bronze
       serverless: true
       photon: true
@@ -34,4 +34,4 @@ resources:
 
       configuration:
         dataflow.group.id: dfg_uc7_cdr_asn
-        dataflow.control.catalog: flowx
+        dataflow.control.catalog: ${var.catalog}

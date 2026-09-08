@@ -2,7 +2,7 @@
   "$schema": "../../../onboarding_templates/onboarding_spec.schema.json",
   "_about": {
     "use_case": "UC3 - Excalibur streaming CDC (Job 2 of 3)",
-    "description": "Streams the three Excalibur staging tables (physical_device, customer, subscriber) written by the Job 1 simulator and applies SCD1/SCD2 change data capture into governed br_digital_poc.bronze tables, with framework hash columns, Null(DF) standardisation and Unity Catalog governance tags. Design and evidence: BT_Usecase/UC3/docs/UC3_MASTER_DOCUMENT.md.",
+    "description": "Streams the three Excalibur staging tables (physical_device, customer, subscriber) written by the Job 1 simulator and applies SCD1/SCD2 change data capture into governed <catalog>.bronze tables, with framework hash columns, Null(DF) standardisation and Unity Catalog governance tags. Design and evidence: BT_Usecase/UC3/docs/UC3_MASTER_DOCUMENT.md.",
     "version": "FlowX 0.0.4",
     "date": "2026-09-05",
     "developer": "Madhan Raghu"
@@ -24,7 +24,6 @@
         "source_catalog": "{{catalog}}",
         "source_schema": "staging",
         "source_table": "physical_device_stream",
-        "capture_technical_metadata": true,
         "data_standardization_sql": [
           "CAST(NULL AS STRING) AS esn_pin",
           "CAST(NULL AS STRING) AS blacklist_password"
@@ -93,14 +92,14 @@
               "sensitive": "N",
               "csql_ro": "Y",
               "csql_secured_ro": "Y",
-              "bq_deid_ro": "?"
+              "bq_deid_ro": "N"
             }
           },
           {
             "column": "operator_id",
             "tags": {
               "tokenise_pii": "Y",
-              "info_type": "EIN number",
+              "info_type": "EIN Number",
               "data_class": "EIN_NUMBER",
               "pdbt": "Employee ID (EIN)",
               "sensitive": "N",
@@ -116,7 +115,7 @@
               "sensitive": "N",
               "csql_ro": "Y",
               "csql_secured_ro": "Y",
-              "bq_deid_ro": "?"
+              "bq_deid_ro": "N"
             }
           },
           {
@@ -126,7 +125,7 @@
               "sensitive": "N",
               "csql_ro": "Y",
               "csql_secured_ro": "Y",
-              "bq_deid_ro": "?"
+              "bq_deid_ro": "N"
             }
           },
           {
@@ -136,7 +135,7 @@
               "sensitive": "N",
               "csql_ro": "Y",
               "csql_secured_ro": "Y",
-              "bq_deid_ro": "?",
+              "bq_deid_ro": "N",
               "data_fabric_action": "NULL_AT_SOURCE"
             }
           },
@@ -155,7 +154,7 @@
         "table_tags": {
           "source_system": "excalibur",
           "use_case": "uc3",
-          "domain": "crm"
+          "domain": "Customer 360"
         }
       }
     },
@@ -174,7 +173,6 @@
         "source_catalog": "{{catalog}}",
         "source_schema": "staging",
         "source_table": "customer_stream",
-        "capture_technical_metadata": true,
         "data_standardization_sql": [
           "CAST(NULL AS STRING) AS gur_cr_card_no",
           "CAST(NULL AS STRING) AS acc_password",
@@ -608,7 +606,7 @@
         "table_tags": {
           "source_system": "excalibur",
           "use_case": "uc3",
-          "domain": "crm"
+          "domain": "Customer 360"
         }
       }
     },
@@ -627,7 +625,6 @@
         "source_catalog": "{{catalog}}",
         "source_schema": "staging",
         "source_table": "subscriber_stream",
-        "capture_technical_metadata": true,
         "column_normalization": {
           "enabled": true,
           "case": "lower"
@@ -688,7 +685,7 @@
             "column": "operator_id",
             "tags": {
               "tokenise_pii": "Y",
-              "info_type": "EIN number",
+              "info_type": "EIN Number",
               "data_class": "EIN_NUMBER",
               "pdbt": "Employee ID (EIN)",
               "sensitive": "N",
@@ -885,7 +882,7 @@
         "table_tags": {
           "source_system": "excalibur",
           "use_case": "uc3",
-          "domain": "crm"
+          "domain": "Customer 360"
         }
       }
     }

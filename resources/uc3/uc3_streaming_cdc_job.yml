@@ -1,32 +1,31 @@
-# Drives the UC3 Excalibur streaming-CDC group end to end:
+# Runs the UC3 Excalibur streaming-CDC group:
 #
-#   setup_control_tables -> onboard_uc3 -> run_pipeline_update -> observability_export
+#   run_pipeline_update -> observability_export
 #
-# Self-contained and idempotent (control-table upsert + CREATE ... IF NOT EXISTS schema
-# provisioning), so it can be re-run at any time. Modelled directly on
-# resources/uc7/uc7_cdr_asn_job.yml, the current house style and most recent working precedent.
+# This is a RUN job, not a provisioning job. Since 2026-09-08 the one-time steps live in their
+# own jobs so this one carries only what every run needs:
 #
-# ONBOARDING IS DELEGATED, NEVER INLINED. onboard_uc3 is a run_job_task against the generic
+#   resources/uc3/uc3_seed_job.yml        setup_control_tables -> onboard both UC3 specs
+#   resources/uc3/uc3_governance_job.yml  ALTER TABLE ... SET TAGS for both UC3 groups
+#
+# Order for a fresh workspace: uc3_seed_job once, then 003 (simulator), 004 (this job), 005
+# (batch recon), then uc3_governance_job once the tables exist -- and again after any change
+# to a spec's governance_tags, because tags are applied from the control-table rows, not the
+# file. The same two-task shape as resources/sample_jobs/*_job.yml, whose layout test pins it.
+#
+# What the pipeline needs at runtime is exactly two spark.conf keys (set in
+# uc3_streaming_cdc_pipeline.yml) plus active control-table rows for the group; it never runs
+# setup, onboarding or governance itself. The additive control-table migration
+# (ensure_control_table_columns) runs inside the onboarding engine, not in 01_setup, so a run
+# job gains nothing from re-running setup on every trigger.
+#
+# ONBOARDING IS DELEGATED, NEVER INLINED. The seed job is a run_job_task against the generic
 # resources/flowx_config_jobs/onboarding_job.yml -- the single parameterised onboarding
 # entrypoint for the whole bundle (BUILD_CONTRACT.md section 7, and the repo's standing rule).
-# The older resources/feature_tests/flowx_test_*_job.yml files that each pin their own
-# 02_onboarding_engine.py notebook_task are legacy drift; this file deliberately does not copy
-# them. The spec itself is owned by a different author -- this job depends on its PATH only.
 #
-# setup_control_tables is NOT boilerplate: it applies the additive control-table migration, and
-# `bundle deploy` does not apply it. It is kept here so this job stands alone even if Job 1 or
-# Job 3 has not run in this workspace yet; the notebook is idempotent, so running it three times
-# across the three UC3 jobs is harmless.
-#
-# GOVERNANCE TAGGING IS A POST-DEPLOYMENT STEP, and needs its own task. The framework applies
-# `governance_tags` via control_plane/post_deployment.py::apply_all_governance_tags, which issues
-# ALTER TABLE ... SET TAGS / ALTER COLUMN ... SET TAGS against an ALREADY-MATERIALIZED table --
-# it is NOT part of the pipeline update. Phase C proved this the hard way: Job 2 succeeded end to
-# end with zero tags in information_schema.column_tags, because no task ever invoked it. The task
-# below calls notebooks/04_governance/04_apply_governance_and_egress.py after run_pipeline_update
-# (the table must exist first), mirroring resources/feature_tests/flowx_test_gov_001_tagging_job.yml.
-# This is still CONFIGURATION, not hand-written tagging: the tag values come from the spec's
-# governance_tags block and the DDL is the framework's own.
+# JOB TAGS STAY. `dataflow_group_id` is the ONLY way a Lakeflow job run is attributed back to
+# its FlowX dataflow group in the system tables (flowx.observability.v_job_runs,
+# system.billing.usage). No pipeline in this bundle sets tags; the job tag is the join key.
 #
 # PARAMETER CONTRACT for observability_export: pipeline_task_run_id must be a TASK
 # base_parameter, never a pipeline configuration: key. `{{tasks.<key>.run_id}}` is a Jobs
@@ -43,58 +42,16 @@ resources:
   jobs:
     uc3_streaming_cdc_job:
       name: 004_lfj_uc3_excalibur_streaming_cdc
-
-      # Job tags are the ONLY way a Lakeflow job run can be attributed back to its FlowX
-      # dataflow group in the system tables. The framework passes dataflow_group_id as a
-      # notebook task base_parameter, and those do NOT surface in
-      # system.lakeflow.job_task_run_timeline.task_parameters (verified empty on a live
-      # workspace) -- so without this tag, flowx.observability.v_job_runs falls back to matching
-      # the group id against the job name, and system.billing.usage cannot attribute job cost to
-      # the group at all. Keep the tag value identical to the dataflow_group_id in the spec.
       tags:
         dataflow_group_id: dfg_uc3_excalibur_streaming_cdc
         framework: flowx
-
       tasks:
-        - task_key: setup_control_tables
-          notebook_task:
-            notebook_path: ../../notebooks/01_setup/01_setup_control_tables.py
-            base_parameters:
-              catalog: ${var.catalog}
-          environment_key: framework_env
-
-        - task_key: onboard_uc3
-          depends_on:
-            - task_key: setup_control_tables
-          run_job_task:
-            job_id: ${resources.jobs.onboarding_job.id}
-            job_parameters:
-              spec_file_path: "${workspace.file_path}/BT_Usecase/UC3/onboarding/uc3_excalibur_streaming_cdc.json"
-              catalog: ${var.catalog}
-              env: ${bundle.target}
-              action_type: CREATE
-
         - task_key: run_pipeline_update
-          depends_on:
-            - task_key: onboard_uc3
           pipeline_task:
             pipeline_id: ${resources.pipelines.uc3_streaming_cdc_pipeline.id}
-
-        - task_key: apply_governance_uc3
-          depends_on:
-            - task_key: run_pipeline_update
-          notebook_task:
-            notebook_path: ../../notebooks/04_governance/04_apply_governance_and_egress.py
-            base_parameters:
-              catalog: ${var.catalog}
-              dataflow_group_id: dfg_uc3_excalibur_streaming_cdc
-              apply_abac: "true"
-              capture_cdc_change_counts: "false"
-          environment_key: framework_env
-
         - task_key: observability_export
           depends_on:
-            - task_key: apply_governance_uc3
+            - task_key: run_pipeline_update
           notebook_task:
             notebook_path: ../../notebooks/08_observability/08_dlt_observability_engine.py
             base_parameters:
@@ -105,7 +62,6 @@ resources:
               service_name: dlt-observability-uc3-excalibur-streaming-cdc
               fail_task_on_dispatch_error: "true"
           environment_key: framework_env
-
       environments:
         - environment_key: framework_env
           spec:

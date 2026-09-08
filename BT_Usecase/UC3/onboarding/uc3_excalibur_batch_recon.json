@@ -2,14 +2,14 @@
   "$schema": "../../../onboarding_templates/onboarding_spec.schema.json",
   "_about": {
     "use_case": "UC3 - Excalibur batch load and reconciliation (Job 3 of 3)",
-    "description": "Lands the four dated Excalibur batch CSV sets into br_digital_poc.staging.<table>_batch with Auto Loader, reconciles each against its br_digital_poc.bronze CDC target on primary key and compare columns, and heals missing rows back through the streaming lane. Design and evidence: BT_Usecase/UC3/docs/UC3_MASTER_DOCUMENT.md.",
+    "description": "Lands the four dated Excalibur batch CSV sets into {{catalog}}.staging.<table>_batch with Auto Loader, reconciles each against its {{catalog}}.bronze CDC target on primary key and compare columns, and heals missing rows back through the streaming lane. Design and evidence: BT_Usecase/UC3/docs/UC3_MASTER_DOCUMENT.md.",
     "version": "FlowX 0.0.4",
     "date": "2026-09-05",
     "developer": "Madhan Raghu"
   },
   "dataflow_group_id": "dfg_uc3_excalibur_batch_recon",
   "pipeline_parameters": {
-    "landing_root": "/Volumes/br_digital_poc/staging/uc_3/batch"
+    "landing_root": "/Volumes/{{catalog}}/staging/uc_3/batch"
   },
   "ingestion_flows": [
     {
@@ -19,14 +19,14 @@
       "source_table_name": "PHYSICAL_DEVICE",
       "source_description": "Dated Excalibur PHYSICAL_DEVICE batch extracts, one batch_date=YYYY-MM-DD partition folder per set (2026-08-01..04).",
       "source_type": "autoloader",
-      "target_catalog": "br_digital_poc",
+      "target_catalog": "{{catalog}}",
       "target_schema": "staging",
       "target_table": "physical_device_batch",
       "target_type": "streaming_table",
       "source_config": {
         "path": "${landing_root}/physical_device/",
         "format": "csv",
-        "schema_location": "/Volumes/br_digital_poc/staging/uc_3/_schemas/physical_device_batch/",
+        "schema_location": "/Volumes/{{catalog}}/staging/uc_3/_schemas/physical_device_batch/",
         "reader_options": {
           "header": "true",
           "delimiter": ",",
@@ -57,7 +57,7 @@
               "tokenise_pii": "Y",
               "csql_ro": "Y",
               "csql_secured_ro": "Y",
-              "bq_deid_ro": "?",
+              "bq_deid_ro": "N",
               "data_fabric_action": "NULL_AT_SOURCE"
             }
           },
@@ -76,7 +76,7 @@
         "table_tags": {
           "source_system": "excalibur",
           "use_case": "uc3",
-          "domain": "crm",
+          "domain": "Customer 360",
           "layer": "staging",
           "load_pattern": "batch"
         }
@@ -89,14 +89,14 @@
       "source_table_name": "CUSTOMER",
       "source_description": "Dated Excalibur CUSTOMER batch extracts, one batch_date=YYYY-MM-DD partition folder per set (2026-08-01..04).",
       "source_type": "autoloader",
-      "target_catalog": "br_digital_poc",
+      "target_catalog": "{{catalog}}",
       "target_schema": "staging",
       "target_table": "customer_batch",
       "target_type": "streaming_table",
       "source_config": {
         "path": "${landing_root}/customer/",
         "format": "csv",
-        "schema_location": "/Volumes/br_digital_poc/staging/uc_3/_schemas/customer_batch/",
+        "schema_location": "/Volumes/{{catalog}}/staging/uc_3/_schemas/customer_batch/",
         "reader_options": {
           "header": "true",
           "delimiter": ",",
@@ -158,7 +158,7 @@
         "table_tags": {
           "source_system": "excalibur",
           "use_case": "uc3",
-          "domain": "crm",
+          "domain": "Customer 360",
           "layer": "staging",
           "load_pattern": "batch"
         }
@@ -171,14 +171,14 @@
       "source_table_name": "SUBSCRIBER",
       "source_description": "Dated Excalibur SUBSCRIBER batch extracts, one batch_date=YYYY-MM-DD partition folder per set (2026-08-01..04).",
       "source_type": "autoloader",
-      "target_catalog": "br_digital_poc",
+      "target_catalog": "{{catalog}}",
       "target_schema": "staging",
       "target_table": "subscriber_batch",
       "target_type": "streaming_table",
       "source_config": {
         "path": "${landing_root}/subscriber/",
         "format": "csv",
-        "schema_location": "/Volumes/br_digital_poc/staging/uc_3/_schemas/subscriber_batch/",
+        "schema_location": "/Volumes/{{catalog}}/staging/uc_3/_schemas/subscriber_batch/",
         "reader_options": {
           "header": "true",
           "delimiter": ",",
@@ -200,7 +200,7 @@
         "table_tags": {
           "source_system": "excalibur",
           "use_case": "uc3",
-          "domain": "crm",
+          "domain": "Customer 360",
           "layer": "staging",
           "load_pattern": "batch"
         }
@@ -215,7 +215,7 @@
       "publish_schema": "staging",
       "source_config": {
         "type": "table",
-        "table": "br_digital_poc.staging.physical_device_batch",
+        "table": "{{catalog}}.staging.physical_device_batch",
         "read_mode": "batch",
         "hash_precomputed": false
       },
@@ -223,11 +223,11 @@
         {
           "target_id": "bronze_physical_device",
           "type": "table",
-          "table": "br_digital_poc.bronze.physical_device",
+          "table": "{{catalog}}.bronze.physical_device",
           "read_mode": "batch",
           "hash_precomputed": false,
           "comparison_direction": "both",
-          "append_target_table": "br_digital_poc.staging.physical_device_stream"
+          "append_target_table": "{{catalog}}.staging.physical_device_stream"
         }
       ],
       "match_keys": [
@@ -279,7 +279,7 @@
       "publish_schema": "staging",
       "source_config": {
         "type": "table",
-        "table": "br_digital_poc.staging.customer_batch",
+        "table": "{{catalog}}.staging.customer_batch",
         "read_mode": "batch",
         "hash_precomputed": false
       },
@@ -287,11 +287,11 @@
         {
           "target_id": "bronze_customer",
           "type": "table",
-          "table": "br_digital_poc.bronze.customer",
+          "table": "{{catalog}}.bronze.customer",
           "read_mode": "batch",
           "hash_precomputed": false,
           "comparison_direction": "both",
-          "append_target_table": "br_digital_poc.staging.customer_stream"
+          "append_target_table": "{{catalog}}.staging.customer_stream"
         }
       ],
       "match_keys": [
@@ -402,7 +402,7 @@
       "publish_schema": "staging",
       "source_config": {
         "type": "table",
-        "table": "br_digital_poc.staging.subscriber_batch",
+        "table": "{{catalog}}.staging.subscriber_batch",
         "read_mode": "batch",
         "hash_precomputed": false
       },
@@ -410,11 +410,11 @@
         {
           "target_id": "bronze_subscriber",
           "type": "table",
-          "table": "br_digital_poc.bronze.subscriber",
+          "table": "{{catalog}}.bronze.subscriber",
           "read_mode": "batch",
           "hash_precomputed": false,
           "comparison_direction": "both",
-          "append_target_table": "br_digital_poc.staging.subscriber_stream"
+          "append_target_table": "{{catalog}}.staging.subscriber_stream"
         }
       ],
       "match_keys": [
@@ -566,7 +566,7 @@
       "enabled": true,
       "type": "DATABRICKS_VOLUME",
       "destination_config": {
-        "volume_path": "/Volumes/br_digital_poc/observability/app_logs/batch_recon",
+        "volume_path": "/Volumes/{{catalog}}/observability/app_logs/batch_recon",
         "compression": "GZIP",
         "file_format": "JSONL"
       },

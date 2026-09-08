@@ -498,27 +498,33 @@ stream_producer  : 7 ticks, 220.7s, chunk_size=15 -> 100 rows/table, all three d
 
 ### 8.2 Job 2 — `004_lfj_uc3_excalibur_streaming_cdc`
 
-| # | Task | What it does | Why it must be here |
-|---|---|---|---|
-| 1 | `setup_control_tables` | Applies control-table migrations | `bundle deploy` does **not** do this. |
-| 2 | `onboard_uc3` | **`run_job_task`** to the generic `onboarding_job` | Reads the JSON, validates it, writes control rows. **Delegated, never inlined.** |
-| 3 | `run_pipeline_update` | Triggers pipeline `004_ldp_...` | Where the actual data work happens. |
-| 4 | `apply_governance_uc3` | Applies tags | **Post-deployment, not in-pipeline** — see below. |
-| 5 | `observability_export` | Exports run telemetry | Feeds `/Volumes/br_digital_poc/observability/app_logs/`. |
+Since 2026-09-08 the run job carries only what every run needs; provisioning and tagging live
+in two one-time jobs (same split as `resources/sample_jobs/flowx_sample_seed_job.yml`):
 
-> **Why tagging needs its own task.** `ALTER TABLE ... SET TAGS` runs against an **already-materialised** table. It cannot run inside the pipeline update, because during the update the table does not yet exist in its final form. This build proved it the hard way: Job 2 succeeded end-to-end with **zero tags applied**, because no task ever invoked the tagging step. The dependency `apply_governance` after `run_pipeline_update` is mandatory.
+| Job | Tasks | When to run |
+|---|---|---|
+| `003b_lfj_uc3_excalibur_seed` (`uc3_seed_job.yml`) | `setup_control_tables` → `onboard_streaming_cdc` → `onboard_batch_recon` | Once per workspace, and after any change to either spec. `setup_control_tables` is optional for the pipelines (onboarding already provisions and migrates the control tables); it adds the preflight UC function and observability views. |
+| `004_lfj_uc3_excalibur_streaming_cdc` | `run_pipeline_update` → `observability_export` | Every run. |
+| `009_lfj_uc3_excalibur_governance` (`uc3_governance_job.yml`) | `tag_streaming_cdc` → `tag_batch_recon` | Once the tables exist, and after any `governance_tags` change (re-seed first: tags are read from control rows). |
+
+| # | Task (run job) | What it does | Why it must be here |
+|---|---|---|---|
+| 1 | `run_pipeline_update` | Triggers pipeline `004_ldp_...` | Where the actual data work happens. The pipeline needs only two `spark.conf` keys and active control rows. |
+| 2 | `observability_export` | Exports run telemetry | Feeds `/Volumes/<catalog>/observability/app_logs/`. |
+
+> **Why tagging needs its own job.** `ALTER TABLE ... SET TAGS` runs against an **already-materialised** table. It cannot run inside the pipeline update, because during the update the table does not yet exist in its final form. This build proved it the hard way: Job 2 succeeded end-to-end with **zero tags applied**, because no task ever invoked the tagging step. Removing the task from the run job (2026-09-08) must not recreate that gap, which is why `009_lfj_uc3_excalibur_governance` exists and is part of the run order.
 
 > **Why onboarding is a `run_job_task`.** There is exactly **one** onboarding entrypoint in the bundle. Inlining `02_onboarding_engine.py` into a new job creates a second copy that drifts. The job depends only on the spec **path**.
 
 ### 8.3 Job 3 — `005_lfj_uc3_excalibur_batch_recon`
 
-Same five-task shape, driving pipeline **`006_ldp_uc3_excalibur_batch_recon`**.
+Same two-task shape, driving pipeline **`006_ldp_uc3_excalibur_batch_recon`**; its spec is onboarded by the seed job's second task and tagged by the governance job's second task.
 
 > **The 005 / 006 numbering mismatch is deliberate.** Job 2 job and pipeline are both `004`. Job 3 are `005` and `006`. This is intentional and preserved from the original specification. Do not "fix" it.
 
 **Runtime dependency:** Job 3 **must** run after Job 2. It compares against `br_digital_poc.bronze.<table>`, which does not exist until Job 2 publishes it.
 
-**Never run the three jobs in parallel.** They share `setup_control_tables`, and concurrent Unity Catalog `CREATE` calls hit a known race.
+**Never run the three jobs in parallel.** Job 3 reads Job 2's bronze tables, and (in the seed job) concurrent onboarding into one catalog hits a known Unity Catalog `CREATE` race — which is why its two onboarding tasks are serial.
 
 <div class="screenshot"><b>[ SCREENSHOT PLACEHOLDER 3 ]</b><br/>
 Job run detail for <code>004_lfj_uc3_excalibur_streaming_cdc</code> showing all five tasks green.</div>

@@ -84,6 +84,11 @@ resources:
               catalog: ${var.catalog}
               env: ${bundle.target}
               action_type: CREATE
+              # This spec is the only owner of dfg_uc6_ea_flood_warning, so rows for flows it no
+              # longer declares are stale by definition. 2026-09-08: the six reconciliation_flows
+              # became one COUNT(*) gate MV; without this their control rows would keep registering
+              # the old gates on every update (onboarding/spec_pruning.py).
+              prune_missing_flows: "true"
 
         - task_key: run_pipeline_update
           depends_on:

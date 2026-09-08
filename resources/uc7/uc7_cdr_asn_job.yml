@@ -43,7 +43,7 @@ resources:
           notebook_task:
             notebook_path: ../../notebooks/01_setup/01_setup_control_tables.py
             base_parameters:
-              catalog: flowx
+              catalog: ${var.catalog}
           environment_key: framework_env
 
         - task_key: onboard_uc7
@@ -53,7 +53,7 @@ resources:
             job_id: ${resources.jobs.onboarding_job.id}
             job_parameters:
               spec_file_path: "${workspace.file_path}/BT_Usecase/UC7/onboarding/UC7_cdr_asn_bronze.json"
-              catalog: flowx
+              catalog: ${var.catalog}
               env: ${bundle.target}
               action_type: CREATE
 
@@ -70,7 +70,7 @@ resources:
             notebook_path: ../../notebooks/08_observability/08_dlt_observability_engine.py
             base_parameters:
               dataflow_group_id: dfg_uc7_cdr_asn
-              catalog: flowx
+              catalog: ${var.catalog}
               env: ${bundle.target}
               pipeline_task_run_id: "{{tasks.run_pipeline_update.run_id}}"
               service_name: dlt-observability-uc7-cdr-asn

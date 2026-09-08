@@ -1197,6 +1197,30 @@
       "message": "sink_config.export_trigger is only meaningful for format 'pgp_zip' (this framework's staging-then-archive sink); 'delta' and 'kafka' are native Lakeflow sinks whose write cadence Lakeflow itself owns. Remove the attribute.",
       "field_path": "target_config.sink_config.export_trigger",
       "doc": "#6-egress-and-lakeflow-sinks"
+    },
+    {
+      "id": "truncate_and_load_needs_recomputed_target",
+      "severity": "error",
+      "scope": "flow",
+      "when": {
+        "and": [
+          {
+            "eq": [
+              "target_config.cdc_load_strategy",
+              "TRUNCATE_AND_LOAD"
+            ]
+          },
+          {
+            "eq": [
+              "target_type",
+              "streaming_table"
+            ]
+          }
+        ]
+      },
+      "message": "TRUNCATE_AND_LOAD on a streaming_table is realised as a plain streaming append -- identical to APPEND at runtime, so the table is never truncated. Use target_type materialized_view (or batch_table), which is fully recomputed on every update, or declare APPEND.",
+      "field_path": "target_config.cdc_load_strategy",
+      "doc": "#4-cdc-load-strategies"
     }
   ]
 }

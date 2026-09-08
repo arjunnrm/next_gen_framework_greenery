@@ -193,7 +193,7 @@ Three questions, in order. Answer them about the **source**, not the target.
   ```
   Flow '<flow_id>': FULL_SNAPSHOT_CDC requires target_config.primary_keys -- apply_changes_from_snapshot diffs successive snapshots on a key, and as of v1.4.0 the framework no longer manufactures one. Declare the source's natural key, or switch this flow to TRUNCATE_AND_LOAD if it genuinely has none.
   ```
-- **Key-presence guard at graph-execution time.** A `primary_keys` entry that never reaches the clean upstream — renamed by `column_normalization`, projected away by `data_standardization_sql` — is caught inside the snapshot-input dataset, where `source_view` first has a schema, and reported with the available columns and the two usual causes. Without it the failure surfaces as a generic missing-key error from `apply_changes_from_snapshot` that names neither the column nor the spec field it came from.
+- **Key-presence guard at graph-execution time.** A `primary_keys` entry that never reaches the clean upstream — renamed by `column_normalization`, or never present in the source (`data_standardization_sql` cannot remove a column: it is a `withColumn` loop that only adds or replaces) — is caught inside the snapshot-input dataset, where `source_view` first has a schema, and reported with the available columns and the two usual causes. Without it the failure surfaces as a generic missing-key error from `apply_changes_from_snapshot` that names neither the column nor the spec field it came from.
 
 ### 2.7 `FULL_SNAPSHOT_CDC_NO_PK` — **REMOVED in v1.4.0**
 

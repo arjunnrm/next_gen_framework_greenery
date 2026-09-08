@@ -1,0 +1,104 @@
+{
+  "version": "1.7.07",
+  "date": "2026-09-08",
+  "summary": "No spec attribute added or removed. Three validation rules changed so the onboarding gate agrees with the runtime (data_standardization_sql alias; streaming_table x TRUNCATE_AND_LOAD; publish_schema now governs publishing), one rule removed (dq_config no longer needs run_log_capture), and the App's Builder import path fixed. Consumers updating the Databricks App: apply the rule changes, update the publish_schema description, and rebuild web/dist; no registry field, template or settings change.",
+  "added": [],
+  "removed": [],
+  "modified": [
+    {
+      "path": "ingestion_flows[].source_config.data_standardization_sql[]",
+      "also_at": [
+        "reconciliation_flows[].source_config.data_standardization_sql[]",
+        "reconciliation_flows[].target_configs[].data_standardization_sql[]"
+      ],
+      "type": "string",
+      "default": null,
+      "change": "validation_tightened",
+      "rule": "Every entry must end with `AS <column_name>` (regex \\bAS\\s+`?[A-Za-z_][A-Za-z0-9_]*`?\\s*$, case-insensitive), in addition to the existing forbidden-keyword and ';' bans.",
+      "rejection_message_verbatim": "<path>[<i>]: '<expr>' must end with 'AS <column_name>' naming the output column (e.g. 'trim(customer_name) AS customer_name', 'CAST(NULL AS STRING) AS acc_password') -- the runtime writes the expression to exactly that column and rejects an entry without it",
+      "json_schema_change": "$defs.dataStandardizationSql.items.pattern now also requires the trailing alias.",
+      "migration": "Append `AS <column>` to any entry lacking it. Behaviour is unchanged for entries that already carry an alias (every shipped spec does).",
+      "ui_action": "No new field. The JSON-schema pattern already surfaces the error through the App's schema validation; no rules.json entry was added because the rules DSL has no array-element regex operator."
+    },
+    {
+      "path": "ingestion_flows[].target_config.cdc_load_strategy",
+      "also_at": [
+        "transformation_flows[].target_config.cdc_load_strategy"
+      ],
+      "type": "string",
+      "default": null,
+      "change": "validation_tightened",
+      "rule": "The pair target_type = 'streaming_table' with cdc_load_strategy = 'TRUNCATE_AND_LOAD' is rejected. Both strategies are no-ops in engine/flow_registration.py::_NO_OP_CDC_STRATEGIES, so on a streaming target TRUNCATE_AND_LOAD was realised as a plain append.",
+      "rejection_message_verbatim": "<flow>.target_config.cdc_load_strategy: 'TRUNCATE_AND_LOAD' on a 'streaming_table' is realised as a plain streaming append -- identical to APPEND at runtime, so the table is never truncated. Use target_type 'materialized_view' (or 'batch_table'), which is fully recomputed on every update, or declare cdc_load_strategy 'APPEND' if append is what you want.",
+      "json_schema_change": "none (cross-field; expressed in spec_validator.py and the App rules DSL).",
+      "migration": "Change target_type to materialized_view or batch_table if a full reload is intended; otherwise declare APPEND.",
+      "ui_action": "rules.json gained `truncate_and_load_needs_recomputed_target` (scope flow, severity error, field_path target_config.cdc_load_strategy). No registry change."
+    },
+    {
+      "path": "reconciliation_flows[].publish_schema",
+      "type": "string",
+      "default": "none -- absent means publish nothing (was: the hosting pipeline's own schema)",
+      "change": "semantics_changed",
+      "rule": "publish_schema is the only thing that publishes. Absent => the flow's recon__*__metrics / __mismatch datasets are registered as pipeline-scoped temporary tables (bare `_recon__<rid>__<tid>__metrics`); a dq_config gate still fires; nothing is exported to the reconciliation control tables. Required when logging_config.run_log_capture or mismatch_log_capture is true (pipeline modes), and when execution_mode is 'pipeline' with any target_configs[].append_target_table.",
+      "rejection_message_verbatim": [
+        "<flow>.logging_config: run_log_capture/mismatch_log_capture is true but the flow has no publish_schema. Since v1.7.07 nothing is published without publish_schema -- the flow's recon__*__metrics/__mismatch datasets are pipeline-scoped temporary tables, and the reconciliation_run_log / reconciliation_mismatch_log rows are exported from the PUBLISHED copies. Set publish_schema to a dedicated reconciliation schema, or set both capture flags false (a dq_config gate still works on the pipeline-scoped __metrics dataset).",
+        "<flow>.logging_config: execution_mode 'pipeline' with a healing target (append_target_table) requires publish_schema. The L5 heal handler reads the flow's prepared source and healing target back through the metastore (spark.read.table), so those two nodes must be published -- and since v1.7.07 nothing is published without publish_schema. Set publish_schema, or use execution_mode 'pipeline_audit_only' and heal from the job task."
+      ],
+      "json_schema_change": "description only (cross-field rules live in spec_validator.py).",
+      "migration": "Flows that capture or heal: add publish_schema (a dedicated reconciliation schema). Pure gates: leave publish_schema unset and set both capture flags false or omit logging_config.",
+      "ui_action": "Update the publish_schema field description/hint in registry.js and config/registry/reconciliation.json (done); no new field. Consider a rules.json entry: flow scope, when execution_mode in pipeline modes AND (logging_config.run_log_capture eq true OR logging_config.mismatch_log_capture eq true) AND empty publish_schema -> error."
+    },
+    {
+      "path": "reconciliation_flows[].logging_config.run_log_capture",
+      "also_at": [
+        "reconciliation_flows[].dq_config"
+      ],
+      "type": "boolean",
+      "default": false,
+      "change": "validation_relaxed",
+      "rule": "dq_config.rules no longer require run_log_capture: true. The __metrics dataset is registered whenever rules exist (temporary unless publish_schema is set). The audit-only 'both flags false' rejection now also requires 'and no dq_config rules'.",
+      "rejection_message_verbatim": "<flow>.logging_config: execution_mode 'pipeline_audit_only' with both run_log_capture and mismatch_log_capture resolving to false and no dq_config rules registers compute with no output at all -- the audit-only mode exists to produce the metrics/mismatch datasets, their control-table exports, or a dq_config gate. NOTE: since v1.7.3 both flags default to FALSE (reconciliation is silent by default), so this fires even when the spec never wrote 'false' -- omitting logging_config is enough. Set logging_config.run_log_capture: true (and/or mismatch_log_capture: true) explicitly together with publish_schema, declare dq_config rules, or use execution_mode 'job'/'pipeline'.",
+      "json_schema_change": "none",
+      "migration": "None required; previously-rejected gate-only specs now validate.",
+      "ui_action": "If rules.json carries a 'dq rules need run_log_capture' rule, remove it (none exists today)."
+    }
+  ],
+  "app_bug_fixes": [
+    {
+      "component": "databricks-app/web/src/Builder.jsx",
+      "functions": [
+        "absorbItem",
+        "itemObj"
+      ],
+      "symptom": "Importing a spec left every transformation_flows[].source_inputs[].table text box empty when the value had three dot-separated parts (e.g. {{catalog}}.bronze.ea_request).",
+      "root_cause": "The three-part table decomposition written for reconciliation target_configs (which render target_catalog/target_schema/target_table) ran for every repeat row and deleted `table`; source_inputs renders only `table`.",
+      "fix": "Decompose (import) and recompose with `type: table` (save) only when the repeat's child definitions include target_catalog, target_schema and target_table.",
+      "rebuild_required": true,
+      "dist_artifact": "databricks-app/web/dist/assets/index-CG1V1kHH.js"
+    }
+  ],
+  "knowledge_text_changes": [
+    {
+      "files": [
+        "databricks-app/config/attribute_knowledge.json",
+        "databricks-app/config/attribute_knowledge.curated.json"
+      ],
+      "change": "The FULL_SNAPSHOT_CDC key-presence note no longer says a key can be 'projected away by data_standardization_sql'; that field is a withColumn loop and cannot remove a column."
+    }
+  ],
+  "onboarding_job_parameters": [
+    {
+      "name": "prune_missing_flows",
+      "surface": "resources/flowx_config_jobs/onboarding_job.yml job parameter -> 02_onboarding_engine.py widget",
+      "type": "string enum",
+      "values": [
+        "false",
+        "true"
+      ],
+      "default": "false",
+      "change": "added",
+      "rule": "When 'true', after the upsert every active row in ingestion_flow_spec / transformation_flow_spec / reconciliation_flow_spec whose dataflow_group_id is the spec's group and whose id the spec no longer declares is set is_active = false (onboarding/spec_pruning.py). Opt-in because a reconciliation_flows[] entry may belong to another spec's group.",
+      "ui_action": "Not a spec attribute; no Builder change. If the App ever triggers onboarding runs, expose it as a run option defaulting to false."
+    }
+  ]
+}

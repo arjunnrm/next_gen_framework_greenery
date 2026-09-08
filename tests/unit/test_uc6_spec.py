@@ -201,9 +201,95 @@ def test_every_table_carries_the_required_tags(spec):
         assert tags["pii"] in {"true", "false"}
 
 
-def test_every_table_is_uc6_prefixed(spec):
+def test_no_table_carries_the_technical_uc6_prefix(spec):
+    """2026-09-08 user decision: table names carry BUSINESS context -- the source table's own name
+    in bronze (``css_account``, ``ea_request``), the flood-warning subject in silver/gold
+    (``flood_warning_osapr``) -- never the technical ``uc6_`` use-case prefix. Flow ids, rule ids
+    and input aliases may still carry it; those are identifiers, not table names."""
     for flow in spec["ingestion_flows"] + spec["transformation_flows"]:
-        assert flow["target_table"].startswith("uc6_"), flow["target_table"]
+        assert not flow["target_table"].startswith("uc6_"), flow["target_table"]
+        assert "uc6" not in flow["target_table"], flow["target_table"]
+
+
+def test_bronze_tables_are_named_after_their_source_tables(spec):
+    for flow in spec["ingestion_flows"]:
+        assert flow["target_table"] == flow["source_table_name"], (flow["dataflow_id"], flow["target_table"])
+
+
+# ---------------------------------------------------------------------------------------
+# 2026-09-08: the six self-reconciliation presence gates were replaced by ONE COUNT(*) gate MV.
+# A per-row dq rule cannot fire on zero rows; a groupBy-less count always yields a row, so the
+# gate's `row_count > 0` expectation evaluates even over an empty bronze table. The three flows
+# that read bronze directly CROSS JOIN the gate, giving the failure an upstream edge.
+# ---------------------------------------------------------------------------------------
+
+
+def test_no_reconciliation_flows_remain(spec):
+    assert not spec.get("reconciliation_flows"), "the recon-based presence gates were removed on 2026-09-08"
+
+
+def test_presence_gate_counts_every_bronze_source_and_fails_on_zero(spec):
+    gate = next(f for f in spec["transformation_flows"] if f["flow_step_id"] == "ts_uc6_source_presence_gate")
+    assert gate["target_table"] == "flood_warning_source_presence"
+    assert gate["target_type"] == "materialized_view"
+    assert gate["target_config"]["cdc_load_strategy"] == "TRUNCATE_AND_LOAD"
+    bronze_tables = {f"{{{{catalog}}}}.bronze.{f['target_table']}" for f in spec["ingestion_flows"]}
+    assert {si["table"] for si in gate["source_inputs"]} == bronze_tables
+    assert all(si["is_streaming"] is False for si in gate["source_inputs"])
+    rules = gate["dq_config"]["rules"]
+    assert rules == [{"rule_id": "uc6_every_source_present", "expression": "row_count > 0", "action": "fail"}]
+    # every source appears in the UNION ALL exactly once, each as a groupBy-less count
+    for f in spec["ingestion_flows"]:
+        assert gate["transformation_sql"].count(f"'{f['target_table']}'") == 1
+    assert gate["transformation_sql"].count("count(*)") == len(spec["ingestion_flows"])
+    assert "GROUP BY" not in gate["transformation_sql"].upper()
+
+
+def test_no_flow_restates_a_framework_default(spec):
+    """2026-09-08 simplification: the spec says only what differs from the defaults, so a reader
+    sees the decisions, not the boilerplate."""
+    for flow in spec["ingestion_flows"] + spec["transformation_flows"]:
+        assert "storage_format" not in flow.get("target_config", {}), flow.get("flow_step_id") or flow["dataflow_id"]
+        assert flow.get("dq_config") != {"rules": []}, flow.get("flow_step_id") or flow["dataflow_id"]
+    for flow in spec["ingestion_flows"]:
+        assert "capture_technical_metadata" not in flow["source_config"], flow["dataflow_id"]
+        assert "mode" not in flow["source_config"].get("reader_options", {}), flow["dataflow_id"]
+
+
+def test_input_aliases_describe_their_role_and_never_shadow_a_table(spec):
+    tables = {f["target_table"] for f in spec["ingestion_flows"] + spec["transformation_flows"]}
+    for flow in spec["transformation_flows"]:
+        for si in flow["source_inputs"]:
+            alias = si["input_name"]
+            assert not alias.startswith("uc6_"), alias
+            assert alias not in tables, f"{alias} would collide with a table in the pipeline namespace"
+            assert alias.startswith("gate_") or alias.endswith("_in") or "_for_" in alias, alias
+
+
+def test_age_predicates_keep_months_between_parenthesised_for_the_offline_verifier(spec):
+    """`floor((months_between(a, b)) / 12)` and `floor(months_between(a, b) / 12)` are the same
+    in Spark, but sqlglot's DuckDB rendering of MONTHS_BETWEEN expands to `a + CASE ... END`
+    without parentheses, so the second form binds `/ 12` to the CASE alone and every age comes
+    out near 140 -- the offline business-rules check then passes an under-17 customer. Keep the
+    explicit parentheses so scripts/verify_uc6_business_rules.py stays faithful."""
+    paf = next(f for f in spec["transformation_flows"] if f["flow_step_id"] == "ts_uc6_ee_address_paf")
+    sql = paf["transformation_sql"]
+    assert sql.count("months_between(") == 2
+    assert sql.count("floor((months_between(") == 2, "every age predicate must be floor((months_between(...)) / 12)"
+
+
+def test_every_flow_that_reads_bronze_directly_depends_on_the_gate(spec):
+    gate_table = "{{catalog}}.silver.flood_warning_source_presence"
+    for flow in spec["transformation_flows"]:
+        if flow["flow_step_id"] == "ts_uc6_source_presence_gate":
+            continue
+        reads_bronze = any(".bronze." in si["table"] for si in flow["source_inputs"])
+        depends_on_gate = any(si["table"] == gate_table for si in flow["source_inputs"])
+        assert reads_bronze == depends_on_gate, flow["flow_step_id"]
+        if reads_bronze:
+            gate_alias = next(si["input_name"] for si in flow["source_inputs"] if si["table"] == gate_table)
+            assert f"CROSS JOIN (SELECT count(*) AS present_sources FROM {gate_alias}" in flow["transformation_sql"]
+            assert "row_count > 0 HAVING count(*) =" in flow["transformation_sql"]
 
 
 def test_source_input_view_names_are_globally_unique(spec):

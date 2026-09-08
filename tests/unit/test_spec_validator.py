@@ -1153,6 +1153,9 @@ def test_v_cyc_reconciliation_pipeline_mode_fully_valid_flow_has_no_errors():
             _base_reconciliation_flow(
                 execution_mode="pipeline",
                 dataflow_group_id="dfg_test",
+                # v1.7.07: a healing pipeline-mode flow must say where its prepared source/target
+                # are published -- nothing is published without publish_schema any more.
+                publish_schema="recon",
                 source_config={"type": "table", "table": "poc.bronze_x.product"},
                 target_configs=[
                     {
@@ -1797,3 +1800,64 @@ def test_v1_7_4_sink_keys_are_present_in_the_json_schema():
     assert "recipient_public_key_secret" not in schema["$defs"]["pgpEncryption"].get("required", []), (
         "must not be schema-required once symmetric encryption is an alternative"
     )
+
+
+# ---------------------------------------------------------------------------------------
+# v1.7.07 -- two onboarding-time rejections for shapes that used to onboard cleanly and
+# fail (or silently misbehave) only once the Lakeflow graph was defined.
+# ---------------------------------------------------------------------------------------
+
+
+def test_data_standardization_sql_without_as_alias_is_rejected():
+    """The runtime writes each expression to the column named by its trailing ``AS <col>`` and
+    raises without it; until v1.7.07 only the runtime checked, so this onboarded and died at
+    graph definition."""
+    flow = _base_ingestion_flow()
+    flow["source_config"]["data_standardization_sql"] = ["trim(customer_name)"]
+    spec = {"dataflow_group_id": "dfg_test", "ingestion_flows": [flow]}
+    _, _, _, _, errors = validate_spec(None, spec)
+    assert any(
+        "data_standardization_sql[0]" in e and "must end with 'AS <column_name>'" in e for e in errors
+    ), errors
+
+
+def test_data_standardization_sql_null_at_source_pattern_is_accepted():
+    """The UC3 'Null = Y' shape: an expression that references no source column at all and
+    ends in an alias -- the documented idiom from docs/16 -- must keep validating."""
+    flow = _base_ingestion_flow()
+    flow["source_config"]["data_standardization_sql"] = [
+        "CAST(NULL AS STRING) AS esn_pin",
+        "trim(customer_name) AS customer_name",
+        "upper(country_code) as `country_code`",
+    ]
+    spec = {"dataflow_group_id": "dfg_test", "ingestion_flows": [flow]}
+    _, _, _, _, errors = validate_spec(None, spec)
+    assert not any("data_standardization_sql" in e for e in errors), errors
+
+
+def test_truncate_and_load_on_a_streaming_table_is_rejected():
+    """Both strategies are no-ops in flow_registration, so on a streaming target
+    TRUNCATE_AND_LOAD is a plain append that never truncates -- APPEND with a misleading name."""
+    flow = _base_ingestion_flow(target_type="streaming_table", target_config={"cdc_load_strategy": "TRUNCATE_AND_LOAD"})
+    spec = {"dataflow_group_id": "dfg_test", "ingestion_flows": [flow]}
+    _, _, _, _, errors = validate_spec(None, spec)
+    assert any(
+        "target_config.cdc_load_strategy" in e and "realised as a plain streaming append" in e for e in errors
+    ), errors
+
+
+def test_truncate_and_load_on_a_recomputed_target_is_accepted():
+    """A materialized_view (or batch_table) is fully recomputed each update -- the only thing
+    'truncate and load' can mean in this framework -- so the pair stays legal."""
+    for target_type in ("materialized_view", "batch_table"):
+        flow = _base_ingestion_flow(target_type=target_type, target_config={"cdc_load_strategy": "TRUNCATE_AND_LOAD"})
+        spec = {"dataflow_group_id": "dfg_test", "ingestion_flows": [flow]}
+        _, _, _, _, errors = validate_spec(None, spec)
+        assert not any("realised as a plain streaming append" in e for e in errors), (target_type, errors)
+
+
+def test_truncate_and_load_on_a_streaming_transformation_target_is_rejected():
+    flow = _base_transformation_flow(target_type="streaming_table", target_config={"cdc_load_strategy": "TRUNCATE_AND_LOAD"})
+    spec = {"dataflow_group_id": "dfg_test", "transformation_flows": [flow]}
+    _, _, _, _, errors = validate_spec(None, spec)
+    assert any("realised as a plain streaming append" in e for e in errors), errors

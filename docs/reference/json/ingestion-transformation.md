@@ -324,7 +324,7 @@ Without it, CDC cannot tell an update from an insert.
     - Use the natural business key, not a surrogate generated downstream.
     - FULL_SNAPSHOT_CDC requires one too, as of v1.4.0 -- the keyless variant was withdrawn along with the surrogate-key engine that stood in for the missing key.
     - On FULL_SNAPSHOT_CDC this is the diff key: a key present in the target but absent from the incoming snapshot is deleted.
-    - A key that never reaches the clean upstream -- renamed by column_normalization, projected away by data_standardization_sql -- is only caught once the graph executes.
+    - A key that never reaches the clean upstream -- renamed by column_normalization, or never present in the source (data_standardization_sql cannot remove a column: it is a withColumn loop that only adds or replaces) -- is only caught once the graph executes.
 
 
 !!! warning "Known errors and limitations"

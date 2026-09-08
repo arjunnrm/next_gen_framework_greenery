@@ -400,3 +400,93 @@ def test_wheels_root_defaults_into_the_declared_wheels_volume():
         "(/Volumes/${var.catalog}/config/wheels) -- an override belongs on the command line for "
         "the one-time bootstrap, never in the file."
     )
+
+
+# --- Publishing onboarding specs into the specs Volume ----------------------------------------
+#
+# `bundle deploy` cannot put a file in a UC Volume: DABs moves files only via the `artifacts`
+# block (the wheel, to artifact_path) and `sync` (the repo, to the *workspace* file tree). A
+# volumes.* resource declares an empty container. So the specs reach the Volume the App reads
+# only because resources/flowx_config_jobs/onboarding_specs_publish_job.yml runs a task that
+# copies them, and these tests keep that job honest -- a spec path that no longer resolves, or a
+# destination that drifts from the App's configured root, would publish nothing (or publish it
+# somewhere nobody reads) while the job still reported SUCCESS.
+
+PUBLISH_JOB_KEY = "onboarding_specs_publish_job"
+PUBLISH_NOTEBOOK = REPO_ROOT / "notebooks" / "02_onboarding" / "02a_store_onboarding_specs.py"
+
+
+def _publish_job_body():
+    declared = _declared("jobs")
+    assert PUBLISH_JOB_KEY in declared, (
+        f"jobs.{PUBLISH_JOB_KEY} is no longer declared. Without it nothing copies the onboarding "
+        "specs into the Volume the Onboarding App reads -- `bundle deploy` cannot write to a "
+        "Volume, so removing this job silently leaves that Volume empty or stale."
+    )
+    return declared[PUBLISH_JOB_KEY][0]
+
+
+def test_publish_job_spec_paths_all_exist():
+    """Every spec the publish job names must be a real file in the repo.
+
+    The paths are `${workspace.file_path}`-rooted strings, so a renamed or moved spec is not a
+    config error anywhere -- the deploy succeeds, and only the job run fails (or, worse, a task
+    that names several specs publishes the survivors and the Volume ends up partially stale)."""
+    missing = []
+    for task in _publish_job_body()["tasks"]:
+        raw = task["notebook_task"]["base_parameters"]["spec_paths"]
+        for entry in (p.strip() for p in raw.split(",") if p.strip()):
+            relative = entry.replace("${workspace.file_path}/", "")
+            if not (REPO_ROOT / relative).is_file():
+                missing.append((task["task_key"], relative))
+    assert not missing, (
+        "the publish job names onboarding specs that do not exist in the repo: "
+        f"{missing}. Update resources/flowx_config_jobs/onboarding_specs_publish_job.yml "
+        "whenever a spec is renamed or moved."
+    )
+
+
+def test_publish_job_targets_the_apps_spec_volume():
+    """The job must publish into the same Volume the Onboarding App reads.
+
+    The App's root is `/Volumes/${var.catalog}/${var.spec_schema}/${var.spec_volume}/` (set as
+    FLOWX_SPEC_VOLUME_ROOT in resources/flowx_app/flowx_onboarding_app.yml). If this job's
+    destination is spelled any other way, both sides still deploy and the specs land where the
+    App will never list them."""
+    expected = {
+        "catalog": "${var.catalog}",
+        "schema": "${var.spec_schema}",
+        "volume": "${var.spec_volume}",
+    }
+    defaults = {p["name"]: p.get("default") for p in _publish_job_body()["parameters"]}
+    assert {k: defaults.get(k) for k in expected} == expected, (
+        f"the publish job's destination defaults are {defaults}. They must be the same bundle "
+        f"variables the App composes its spec root from ({expected}), or the specs are published "
+        "where the App does not look."
+    )
+    for task in _publish_job_body()["tasks"]:
+        params = task["notebook_task"]["base_parameters"]
+        for name in expected:
+            assert params.get(name) == "{{job.parameters.%s}}" % name, (
+                f"task {task['task_key']} pins {name}={params.get(name)!r} instead of passing "
+                f"the job parameter through, so overriding it at run time would not reach the task."
+            )
+
+
+def test_publish_notebook_keeps_its_destination_parameterised():
+    """The publishing notebook must take its destination from widgets, not hardcode one.
+
+    Its sample-suite sibling (notebooks/09_sample_reference/09a_store_sample_config.py) is pinned
+    by test_sample_suite_layout.py to exactly one Volume, which is why this framework-side copy
+    exists at all. If this one grew a hardcoded destination too, there would be no way to publish
+    a target's specs anywhere but that one place."""
+    source = PUBLISH_NOTEBOOK.read_text(encoding="utf-8")
+    for widget in ("spec_paths", "catalog", "schema", "volume", "subdirectory"):
+        assert f'dbutils.widgets.text("{widget}"' in source, (
+            f"{PUBLISH_NOTEBOOK.name} no longer declares the '{widget}' widget, which "
+            "resources/flowx_config_jobs/onboarding_specs_publish_job.yml passes to it."
+        )
+    assert 'VOLUME_ROOT = f"/Volumes/{CATALOG}/{SCHEMA}/{VOLUME}"' in source, (
+        f"{PUBLISH_NOTEBOOK.name} must compose its destination from the catalog/schema/volume "
+        "widgets. A hardcoded path would publish every target's specs to one workspace's Volume."
+    )

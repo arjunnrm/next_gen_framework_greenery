@@ -124,9 +124,9 @@ table name (the brief proposed `uc6_bronze_ea_request` in a schema that already 
 
 | Layer | Tables |
 |---|---|
-| `br_digital_poc.bronze` | `uc6_ea_request`, `uc6_css_account`, `uc6_css_account_address`, `uc6_css_subscription`, `uc6_jt_customer`, `uc6_excalibur_address` |
-| `br_digital_poc.silver` | `uc6_ea_base`, `uc6_ea_address`, `uc6_ee_address_paf`, `uc6_matched_address` |
-| `br_digital_poc.gold` | `uc6_telephone_output`, `uc6_osapr_output` |
+| `br_digital_poc.bronze` | `ea_request`, `css_account`, `css_account_address`, `css_subscription`, `jt_customer`, `excalibur_address` |
+| `br_digital_poc.silver` | `ea_request_base`, `ea_request_address`, `ee_customer_address_paf`, `flood_area_matched_address` |
+| `br_digital_poc.gold` | `flood_warning_telephone`, `flood_warning_osapr` |
 
 **Tags.** No tag taxonomy or allowlist exists in this repo — `table_tags` and `column_tags[].tags` are
 free-form `string→string` maps, validated only for being strings. The brief's proposed tag set is
@@ -231,20 +231,37 @@ These are generic, reusable, and land as **separate commits** from UC6 business 
 | **F2** | **gzip member handling on ingest** | `source_zip_handling` extracts **ZIP** archives via pyzipper. UC6's inbound files are bare `.gz` (and `.csv.gz.gpg`). Spark decompresses a plain `.gz` transparently, but the **GPG-wrapped** one must be decrypted to a staging file first, and the existing path then tries to unzip it. | Extend the pre-extraction path to accept a `gzip` member format so `decrypt → gunzip → land` works without a ZIP container. |
 | **F3** | **gzip + delimiter on egress** | The `pgp_zip` sink writes a comma-only CSV (`csv.DictWriter` with no dialect args) inside a ZIP. UC6 must emit `.csv.gz` and `.csv.gz.gpg`, pipe-delimited. | New `sink_config.staged_file_options` (delimiter/header/quoting) and an archive format that emits gzip rather than ZIP. |
 | **F4** | **Exporting an aggregating target through a sink** | Discovered on the first live run, not in the brief. A sink is streaming-only and Delta cannot stream a fully-recomputed MV, so UC6's two `GROUP BY` gold outputs had **no export path at all**. | `sink_config.export_trigger: "per_update"` (v1.7.5): one shared `rate-micro-batch` pulse per pipeline drives every such sink; the payload is a batch `dlt.read`. Plus two fixes found the same way: `apply_all_governance_tags` skips `sink` flows (a sink has no table to tag — one sink's `TABLE_OR_VIEW_NOT_FOUND` had failed the whole group's tagging), and every sink path now strips `__framework_*` columns (three lineage columns were leaking into every export file against a 2-column contract). |
-| **F4** | **Emptiness / file-presence gate** | `dq_config` rules are **per-row** predicates. Zero rows means zero evaluations, so "fail if a file is missing or empty" can never fire on an ingestion flow. | **Resolved without a framework change** — see below. |
+| **F4** | **Emptiness / file-presence gate** | `dq_config` rules are **per-row** predicates. Zero rows means zero evaluations, so "fail if a file is missing or empty" can never fire on an ingestion flow. | **Resolved without a framework change** — since 2026-09-08 as one `COUNT(*)` gate MV with a `row_count > 0` expectation, cross-joined by the bronze readers; before that as six self-reconciliation flows. See below. |
 
 ### F4 is config, not code
 
-A **reconciliation flow's** `dq_config` attaches expectations to the one-row `__metrics` dataset,
-where `source_record_count` is a real column. So:
+A **groupBy-less aggregate is one row even over an empty table**, and a `dq_config` expectation
+attached to that one-row dataset therefore always evaluates. UC6 uses one transformation flow for
+the whole group:
 
 ```json
-{"rule_id": "uc6_ea_request_not_empty", "expression": "source_record_count > 0", "action": "fail"}
+{
+  "flow_step_id": "ts_uc6_source_presence_gate",
+  "target_table": "flood_warning_source_presence",
+  "target_type": "materialized_view",
+  "transformation_sql": "SELECT 'ea_request' AS source_name, count(*) AS row_count FROM gate_ea_request UNION ALL SELECT 'css_account', count(*) FROM gate_css_account UNION ALL ...",
+  "dq_config": {"rules": [{"rule_id": "uc6_every_source_present", "expression": "row_count > 0", "action": "fail"}]}
+}
 ```
 
-is a genuine, working emptiness assertion that fails the pipeline update and is recorded in the
-reconciliation control tables. UC6 uses one such recon flow per required source. **No enhancement
+and the three flows that read bronze directly add the gate as a `source_inputs[]` entry and
+`CROSS JOIN (SELECT count(*) AS present_sources FROM <gate> WHERE source_name IN (...) AND row_count > 0 HAVING count(*) = N) g`
+onto their existing SQL. That gives the gate a real upstream edge: a missing or empty file fails the
+update **before** any silver/gold materialized view is recomputed to nothing. **No enhancement
 needed** — the brief's §5.1 "file count > 0 AND row count > 0" gate is met by existing configuration.
+
+**History (until 2026-09-08).** The first shape used the reconciliation engine: six
+`pipeline_audit_only` flows, each comparing a bronze table against itself so that
+`source_record_count > 0` could be asserted on the engine's one-row `__metrics` dataset. It worked,
+at the cost of 24 graph nodes, a full-outer self-join per source, six `recon__*__metrics` views
+published into `bronze` (no `publish_schema`), and no dependency edge to the flows it protected. The
+replacement above is the same algebraic trick one layer down, expressed in ordinary transformation
+vocabulary.
 
 *File* count specifically is not separately assertable, but it is not independently meaningful: a
 missing file and an empty file both produce zero rows, and both must fail. The row-count gate covers

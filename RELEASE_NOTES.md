@@ -15,6 +15,45 @@ resolving. Per-version directories fix that structurally.
 
 ---
 
+## UC3 / UC6 review remediation — two tighter gates and five drift fixes — 2026-09-08
+
+*Unreleased.* `pyproject.toml` stays at `0.0.4` and `databricks.yml`'s `framework_version` with
+it; the one wheel change is two extra onboarding-time rejections in `spec_validator.py`, which
+no running pipeline resolves. Nothing here is deployed yet: the UC3 and UC6 specs must be
+re-onboarded (UC3 via the new seed job) and the App redeployed with `bundle run` for the changes
+to take effect. Full detail: `enhancement_logs/v1.7.07_enhancement_log.md`;
+machine-readable delta: `docs/v1.7.07_json_attribute_delta.json`.
+
+A thirteen-point architecture review of UC3 (Excalibur) and UC6 (Flood Warning) found seven
+things to fix. Most of the review's answers were rationale, not defects — the design was right
+and the question was "why" — and those are recorded in the review, not here.
+
+| # | Change | Why |
+|---|---|---|
+| 1 | **`data_standardization_sql` entries must end `AS <column_name>`** — validator and JSON schema now enforce what the runtime always required. | An entry without the alias onboarded cleanly and killed the pipeline at graph definition. Every shipped spec already complies. |
+| 2 | **`streaming_table` + `TRUNCATE_AND_LOAD` is rejected** (validator + App rule). | Both strategies are runtime no-ops, so on a streaming target TRUNCATE_AND_LOAD was a plain append wearing the wrong name. Use `materialized_view` / `batch_table`, which are fully recomputed. |
+| 3 | **UC3 batch-recon spec un-hardcoded** — 19 `br_digital_poc` literals → `{{catalog}}`. | Neither bundle target uses that catalog (`bt_digital_poc`, `flowx`), so flows and reconciliations were writing to a different catalog than the pipeline they were onboarded with. `{{catalog}}` is a raw-text replace before parsing and is legal in every position. |
+| 4 | **UC3 governed tags**: `domain` → `Customer 360`, two `info_type` spellings fixed, redundant `capture_technical_metadata: true` dropped from the zerobus flows, `uc3_governed_tags.sql` aligned. | Governed-tag values are exact-match; `EIN number` would have failed the whole group's tagging. |
+| 5 | **UC3 jobs split**: `004`/`005` are now `run_pipeline_update -> observability_export`; new `uc3_seed_job` (setup + both onboardings) and `uc3_governance_job` (tags for both groups). | Run jobs re-provisioned and re-onboarded on every trigger. The claim that setup applied the control-table migration was wrong — the onboarding engine does. Tagging kept its own job because a pipeline can succeed with zero tags landed. |
+| 6 | **UC6**: `delete_source_after_extract: false` (EA archive retained, marker-based skip); `publish_schema: "staging"` on the six presence recons. | The EA `.gpg` was consumed every run; recon metrics views were landing in `bronze` beside business tables. |
+| 7 | **App**: `Builder.jsx` no longer blanks `source_inputs[].table` on import; `web/dist` rebuilt. | A reconciliation-only three-part split ran for every repeat row and deleted the value. |
+| 8 | **`publish_schema` is the only thing that publishes.** An absent `publish_schema` no longer falls back to the pipeline's schema: `__metrics`/`__mismatch` become pipeline-scoped temporary tables, a `dq_config` gate no longer needs a capture flag, and a capture flag or a healing `pipeline` flow without `publish_schema` is rejected. | Six UC6 presence gates that never asked for a schema had published six materialized views into `bronze` beside the business tables. A gate should leave nothing behind. |
+| 9 | **UC6 tables renamed to business names**: bronze = source table (`css_account`, `ea_request`), silver/gold = subject (`flood_warning_osapr`, `flood_warning_telephone`), sinks = export (`leidos_telephone_export`). Naming standard §3.3 updated. | The technical `uc6_` prefix said which project built the table, not what it holds. Consumers of the two gold tables must move to the new names; the next update re-ingests bronze and drops the old datasets. |
+| 10 | **UC6 presence gate is one COUNT(*) materialized view.** `reconciliation_flows` removed; `ts_uc6_source_presence_gate` → `silver.flood_warning_source_presence` with `row_count > 0` / `fail`; the three bronze readers `CROSS JOIN` it. | Six self-reconciliations cost 24 nodes and six published views and sat *beside* the flows they protected, so an empty delivery could blank silver/gold before the failure landed. The gate now sits upstream. |
+| 11 | **`prune_missing_flows` onboarding parameter (opt-in).** Soft-disables a group's control rows for flows the spec no longer declares; UC6's onboarding task passes `"true"`. | Removing a flow from a spec never deactivated its row, so the flow kept running from stale metadata. Opt-in because a reconciliation flow may belong to another spec's group. |
+| 12 | **UC6 spec simplified, output unchanged.** 36 default-restating keys removed, aliases renamed to their role (`css_account_in`, `matched_for_telephone`), four SQL statements rewritten as named CTEs with the address normalisation applied once. All 22 outputs on both fixtures diffed identical before and after. | The spec is what a reviewer reads; a normalisation expression repeated thirty times hides the two lines of logic that matter. |
+
+Verification: targeted unit set 459 passed / 6 failed (all six are UC6 sample-bundle checks
+whose `.dat.gz` fixtures are deleted, uncommitted, in the working tree); the legacy recon-corpus
+test fails independently because its specs moved to `archive/`; App tests 217 passed / 19
+skipped; `scripts/verify_uc6_business_rules.py` passes every check on the renamed tables;
+`bundle validate -t metaflow_v7` OK; `npm run build` OK; `mkdocs build` OK.
+
+Still open, by decision rather than omission: the review's proposed single COUNT(*) presence
+gate replacing UC6's six reconciliation flows, a latest-delivery filter for the accumulating
+bronze feeds, and collapsing the gold MVs into their sinks. Each is designed in the review; none
+is shipped.
+
 ## Framework observability — the metadata becomes queryable — 2026-09-07
 
 *Unreleased.* `pyproject.toml` stays at `0.0.4` and `databricks.yml`'s `framework_version` with

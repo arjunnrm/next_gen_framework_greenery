@@ -355,9 +355,12 @@ export default class Builder extends React.Component {
       // hardcoded here, so match_keys, compare_columns and
       // destination_config.event_log_tables were emitted as strings, producing a
       // spec the framework rejects.
-      var listKeys={};
-      (childDefs||[]).forEach(function(g){ if(g&&g.k==="list"&&g.p) listKeys[g.p]=1; });
-      if(it.target_catalog||it.target_schema||it.target_table){
+      var listKeys={}, partDefs={};
+      (childDefs||[]).forEach(function(g){ if(g&&g.k==="list"&&g.p) listKeys[g.p]=1; if(g&&g.p) partDefs[g.p]=1; });
+      // Recompose catalog/schema/table into {type:"table", table:"..."} only for a repeat that
+      // declares those three fields (reconciliation target_configs). source_inputs[] carries a
+      // single `table` and must never gain a `type` key -- the framework rejects it.
+      if(partDefs.target_catalog&&partDefs.target_schema&&partDefs.target_table&&(it.target_catalog||it.target_schema||it.target_table)){
         it=Object.assign({},it);
         io.type="table";
         io.table=[it.target_catalog,it.target_schema,it.target_table].filter(function(x){return x}).join(".");
@@ -460,8 +463,13 @@ export default class Builder extends React.Component {
       });
     };
     walk(it,"");
-    // reconciliation datasets serialise as {type:"table", table:"cat.sch.tbl"}
-    if(out.table&&String(out.table).indexOf(".")>-1){
+    // reconciliation target_configs serialise as {type:"table", table:"cat.sch.tbl"} and render
+    // three boxes (target_catalog/target_schema/target_table), so the three-part name is split
+    // for them. Only for them: source_inputs[] renders ONE `table` box, and splitting there
+    // deleted the value it was about to render -- every "{{catalog}}.schema.table" input came
+    // up as an empty text box (UC6, 17 inputs). Gate on the repeat actually declaring the three
+    // fields, exactly as server/core/deserializer.py gates on flow_kind == "reconciliation".
+    if(defs.target_catalog&&defs.target_schema&&defs.target_table&&out.table&&String(out.table).indexOf(".")>-1){
       var parts=String(out.table).split(".");
       if(parts.length===3){ out.target_catalog=parts[0]; out.target_schema=parts[1]; out.target_table=parts[2]; delete out.table; }
     }

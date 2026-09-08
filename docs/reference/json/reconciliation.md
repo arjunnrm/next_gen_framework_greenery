@@ -374,10 +374,10 @@ Columns identifying the same logical record across datasets.
 
 ### `publish_schema` { #publish-schema }
 
-The schema, inside the hosting pipeline's own catalog, where a pipeline-mode reconciliation flow publishes its recon__<reconciliation_id>__<target_id>__classified, __metrics and __mismatch datasets.
+The schema, inside the hosting pipeline's own catalog, where a pipeline-mode reconciliation flow publishes its recon__<reconciliation_id>__<target_id>__metrics and __mismatch datasets (and a healing flow's prepared _src/_tgt).
 
 
-Those three datasets are real, externally visible Unity Catalog tables. Without this the pipeline's own schema is used, which drops reconciliation results into whatever bronze or silver schema the group happens to publish to -- rarely where an operator wants them.
+Since v1.7.07 publish_schema is the only thing that publishes. Leave it unset and the flow publishes nothing: its audit datasets are pipeline-scoped temporary tables, a dq_config gate still fails the update, but no reconciliation_run_log / reconciliation_mismatch_log row can be exported. Before v1.7.07 an unset value fell back to the pipeline's own schema and dropped recon__*__metrics materialized views beside the business tables.
 
 
 **Type** `string` · **Required** no · **Section** Reconciliation identity
@@ -391,7 +391,9 @@ Those three datasets are real, externally visible Unity Catalog tables. Without 
 !!! tip "Best practice"
 
     - The catalog is always the hosting pipeline's own; only the schema is configurable.
-    - It is rejected on presence when execution_mode is 'job' -- a job-mode flow publishes none of those datasets, so setting it would be a statement about tables that never exist.
+    - Required when run_log_capture or mismatch_log_capture is true (the control-table rows are exported from the published datasets), and when execution_mode is 'pipeline' with an append_target_table (the heal handler reads the prepared source/target back through the metastore).
+    - Leave it unset for a pure presence/threshold gate (dq_config only, both capture flags false): the gate runs, nothing lands in any schema.
+    - It is rejected on presence when execution_mode is 'job' -- a job-mode flow publishes none of those datasets.
     - The schema must already exist and be writable by the pipeline's run-as identity; the framework does not create it.
 
 
@@ -401,9 +403,13 @@ Those three datasets are real, externally visible Unity Catalog tables. Without 
     *Cause:* execution_mode is 'job' (or left unset, which defaults to 'job').  
     *Fix:* Set execution_mode to 'pipeline' or 'pipeline_audit_only', or clear publish_schema.
 
-    **Reconciliation results appear in the group's bronze schema**  
-    *Cause:* publish_schema was left unset, so the datasets defaulted to the pipeline's own schema.  
-    *Fix:* Set publish_schema to a dedicated reconciliation schema.
+    **Onboarding rejects run_log_capture / mismatch_log_capture: 'true but the flow has no publish_schema'**  
+    *Cause:* A capture flag is on but nothing is published, so the audit row could never be written.  
+    *Fix:* Set publish_schema to a dedicated reconciliation schema, or set both capture flags false and rely on dq_config.
+
+    **Onboarding rejects a pipeline-mode healing flow: 'requires publish_schema'**  
+    *Cause:* The heal handler needs the prepared source/target as published tables.  
+    *Fix:* Set publish_schema, or use execution_mode 'pipeline_audit_only' and heal from the job task.
 
 
 ---

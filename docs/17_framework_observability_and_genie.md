@@ -272,10 +272,12 @@ Two design decisions worth knowing:
 
 > [!NOTE]
 > `is_active = FALSE` means the group is soft-disabled and the engine skips it. **Deleting a flow
-> from a spec does not set this to `FALSE`** — the removed flow's control row stays active and keeps
-> driving the DAG. Both `v_dataflow_group_catalog.is_active` and `v_flow_inventory.is_active` carry
-> that warning in their column comments, because it is the single most surprising fact about the
-> control plane.
+> from a spec does not set this to `FALSE` by default** — the removed flow's control row stays active
+> and keeps driving the DAG. Both `v_dataflow_group_catalog.is_active` and `v_flow_inventory.is_active`
+> carry that warning in their column comments, because it is the single most surprising fact about
+> the control plane. Since v1.7.07 the onboarding job's opt-in `prune_missing_flows=true` parameter
+> sets it for you (`onboarding/spec_pruning.py`); rows it deactivates show here with
+> `is_active = FALSE` and a fresh `updated_at`.
 
 ### 4.2 `v_flow_inventory` — flat, across all three flow kinds
 

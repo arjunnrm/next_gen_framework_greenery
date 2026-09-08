@@ -7,7 +7,7 @@
 Turning a spec document into control-table rows.
 
 
-8 modules.
+9 modules.
 
 
 ## `lakeflow_framework/onboarding/agent_tools.py`
@@ -92,6 +92,19 @@ Onboarding spec loading and ``{{catalog}}`` / ``{{env}}`` environment templating
 | `substitute_environment_placeholders(raw_text: str, catalog: str, environment: str) -> str` | Substitute ``{{catalog}}`` / ``{{env}}`` placeholders throughout the raw spec text. |
 | `parse_spec_text(templated_text: str, file_extension: str, source_label: str) -> Dict[str, Any]` | Parse already-templated spec text as JSON or YAML, chosen by ``file_extension``. |
 | `load_and_template_spec(dbutils: Any, path: str, catalog: str, environment: str) -> Tuple[Dict[str, Any], str, str]` | Read, template, and parse an onboarding spec (JSON or YAML) in one step. |
+
+
+## `lakeflow_framework/onboarding/spec_pruning.py`
+
+Deactivate control rows for flows a re-onboarded spec no longer declares (opt-in).
+
+
+### Functions
+
+| Signature | Purpose |
+|---|---|
+| `build_flow_deactivation_statements(control_schema: str, dataflow_group_id: str, ingestion_ids: Iterable[str], transformation_ids: Iterable[str], reconciliation_ids: Iterable[str]) -> List[Tuple[str, str, str]]` | Return ``(table, count_sql, update_sql)`` per flow table. |
+| `deactivate_flows_absent_from_spec(spark: Any, control_schema: str, dataflow_group_id: str, ingestion_flows: Sequence[Dict[str, Any]], transformation_flows: Sequence[Dict[str, Any]], reconciliation_flows: Sequence[Dict[str, Any]]) -> Dict[str, int]` | Soft-disable this group's control rows for flows the spec no longer declares. |
 
 
 ## `lakeflow_framework/onboarding/spec_validator.py`

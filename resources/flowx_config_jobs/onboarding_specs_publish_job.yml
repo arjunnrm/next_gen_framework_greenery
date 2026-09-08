@@ -1,0 +1,96 @@
+# Publishes the BT use-case onboarding specs into the onboarding-specs Volume.
+#
+# WHY A JOB AND NOT THE DEPLOY. `bundle deploy` cannot write a file into a UC Volume. DABs moves
+# files in exactly two ways: the `artifacts` block, which uploads the built wheel to
+# `artifact_path`, and `sync`, which mirrors the repo into the *workspace* file tree
+# (`${workspace.file_path}`) -- never into a Volume. The Volume is a bundle resource
+# (resources/flowx_app/flowx_onboarding_specs_volume.yml) but a volume resource declares an empty
+# container and says nothing about its contents. So "ship these specs to the Volume" is a task
+# that runs, and this job is it. Before this existed the Volume was filled by hand with
+# `databricks fs cp`, which no redeploy ever refreshed -- the specs silently drifted behind
+# BT_Usecase/ the moment one was edited.
+#
+# WHAT IT PUBLISHES. The four UC onboarding specs, each into its own folder under the Volume, so
+# the Onboarding App's file browser (which lists one level at a time -- see `list_files` in
+# databricks-app/server/clients/files.py) shows them grouped by use case:
+#
+#   UC3/uc3_excalibur_batch_recon.json
+#   UC3/uc3_excalibur_streaming_cdc.json
+#   UC6/uc6_ea_flood_warning.json
+#   UC7/UC7_cdr_asn_bronze.json
+#
+# The five BT_Usecase/UC6/onboarding/schema_configs/*.json are deliberately NOT here. They are
+# not onboarding specs -- they are runtime column/schema definitions, and uc6_ea_flood_warning.json
+# reads them from `/Volumes/{{catalog}}/staging/uc_6/_schema_configs/`, a different location owned
+# by that use case's own staging tree. Publishing them as onboarding specs would misfile them.
+#
+# IDEMPOTENT. Every task copies with overwrite, so re-running refreshes the published specs in
+# place. Run it after any deploy that changed a spec:
+#
+#   databricks bundle run onboarding_specs_publish_job -t <target> -p <profile>
+#
+# One task per use case rather than one task passing all four paths: a failure then names the use
+# case that failed, and a single malformed spec cannot stop the other three from publishing.
+resources:
+  jobs:
+    onboarding_specs_publish_job:
+      name: FlowX Config - Publish Onboarding Specs
+
+      description: >-
+        Copies the BT use-case onboarding spec JSONs from the bundle's synced workspace files
+        into the onboarding-specs Volume the Onboarding App reads. Idempotent -- re-run after
+        any deploy that changed a spec.
+
+      tags:
+        framework: flowx
+        component: onboarding
+
+      parameters:
+        - name: catalog
+          default: ${var.catalog}
+        - name: schema
+          default: ${var.spec_schema}
+        - name: volume
+          default: ${var.spec_volume}
+
+      tasks:
+        - task_key: publish_uc3_specs
+          notebook_task:
+            notebook_path: ../../notebooks/02_onboarding/02a_store_onboarding_specs.py
+            base_parameters:
+              spec_paths: >-
+                ${workspace.file_path}/BT_Usecase/UC3/onboarding/uc3_excalibur_batch_recon.json,${workspace.file_path}/BT_Usecase/UC3/onboarding/uc3_excalibur_streaming_cdc.json
+              catalog: "{{job.parameters.catalog}}"
+              schema: "{{job.parameters.schema}}"
+              volume: "{{job.parameters.volume}}"
+              subdirectory: UC3
+          environment_key: framework_env
+
+        - task_key: publish_uc6_specs
+          notebook_task:
+            notebook_path: ../../notebooks/02_onboarding/02a_store_onboarding_specs.py
+            base_parameters:
+              spec_paths: ${workspace.file_path}/BT_Usecase/UC6/onboarding/uc6_ea_flood_warning.json
+              catalog: "{{job.parameters.catalog}}"
+              schema: "{{job.parameters.schema}}"
+              volume: "{{job.parameters.volume}}"
+              subdirectory: UC6
+          environment_key: framework_env
+
+        - task_key: publish_uc7_specs
+          notebook_task:
+            notebook_path: ../../notebooks/02_onboarding/02a_store_onboarding_specs.py
+            base_parameters:
+              spec_paths: ${workspace.file_path}/BT_Usecase/UC7/onboarding/UC7_cdr_asn_bronze.json
+              catalog: "{{job.parameters.catalog}}"
+              schema: "{{job.parameters.schema}}"
+              volume: "{{job.parameters.volume}}"
+              subdirectory: UC7
+          environment_key: framework_env
+
+      environments:
+        - environment_key: framework_env
+          spec:
+            environment_version: "4"
+            dependencies:
+              - ../../dist/*.whl

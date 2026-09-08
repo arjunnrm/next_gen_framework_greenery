@@ -51,12 +51,12 @@ transformation step and before dispatch), no observability notebook enters any p
 observability *hosts* the backstop, and audit is never coupled to observability running -- the
 handler already wrote the rows on every update where it fired.
 
-**Where the published datasets live.** ``reconciliation_flow_spec.publish_schema`` is documented as
-"defaults to the hosting pipeline's own schema when NULL", and the hosting pipeline's schema is not
-recorded in ``dataflow_group_spec``. So the location is *resolved by probing*: the flow's own
-``publish_schema`` (against the group's ``catalog_name`` and every catalog its flows publish into)
-when set, otherwise every ``(target_catalog, target_schema)`` pair this group's ingestion and
-transformation flows use, in control-table order. The first candidate whose probe dataset
+**Where the published datasets live.** Since v1.7.07 ``reconciliation_flow_spec.publish_schema`` is
+the only thing that publishes: a flow without it registers its audit datasets as pipeline-scoped
+temporary tables and is skipped here outright (onboarding already rejects a capture flag on such a
+flow). For a flow WITH a publish_schema the catalog is still *resolved by probing* -- the group's
+``catalog_name`` and every catalog its flows publish into, in control-table order -- because the
+hosting pipeline's catalog is not recorded in ``dataflow_group_spec``. The first candidate whose probe dataset
 (``__metrics`` when ``run_log_capture`` is on, else ``__mismatch``) is readable wins; a flow whose
 datasets cannot be located anywhere is logged at WARNING and skipped, never guessed at.
 """
@@ -169,13 +169,14 @@ def _publish_location_candidates(group_row: Any, flow_row: Any, flow_rows: Seque
             flow_pairs.append((catalog, schema))
 
     publish_schema = _row_get(flow_row, "publish_schema", None)
-    if publish_schema:
-        catalogs = [group_catalog] + [catalog for catalog, _ in flow_pairs]
-        candidates = [(catalog, publish_schema) for catalog in catalogs if catalog]
-    else:
-        candidates = list(flow_pairs)
-        if group_catalog:
-            candidates += [(group_catalog, schema) for _, schema in flow_pairs]
+    if not publish_schema:
+        # v1.7.07: a flow without publish_schema publishes NOTHING -- its audit datasets are
+        # pipeline-scoped temporary tables -- so there is no location to probe. (Before v1.7.07
+        # the datasets fell back to the pipeline's own schema and this branch probed every
+        # (target_catalog, target_schema) pair the group's flows use.)
+        return []
+    catalogs = [group_catalog] + [catalog for catalog, _ in flow_pairs]
+    candidates = [(catalog, publish_schema) for catalog in catalogs if catalog]
 
     ordered: List[Tuple[str, str]] = []
     for candidate in candidates:
@@ -393,6 +394,19 @@ def export_reconciliation_control_rows(
 
             target_ids = [tc["target_id"] for tc in target_configs]
             first_sanitized_target_id = sanitize_identifier(target_ids[0])
+
+            if not _row_get(flow_row, "publish_schema", None):
+                # v1.7.07: no publish_schema means the flow published nothing -- its __metrics /
+                # __mismatch are pipeline-scoped temporary tables. Onboarding rejects a capture
+                # flag on such a flow, so reaching here means a pipeline-conf override turned one
+                # on; there is still nothing readable to export from.
+                logger.info(
+                    "Reconciliation flow '%s' has no publish_schema: its audit datasets are pipeline-scoped and "
+                    "nothing is exported to the reconciliation control tables for pipeline_update_id='%s'.",
+                    reconciliation_id,
+                    pipeline_update_id,
+                )
+                continue
 
             # v1.6.0: __metrics exists only when run_log_capture is true, __mismatch only when
             # mismatch_log_capture is -- probe whichever dataset this flow actually registers.

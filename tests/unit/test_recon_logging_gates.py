@@ -157,6 +157,11 @@ def recorder(monkeypatch):
     # Registration-shape tests never execute dataset bodies, but keep reads harmless anyway.
     monkeypatch.setattr(dlt, "read", lambda name: SimpleNamespace(name=name), raising=False)
     monkeypatch.setattr(dlt, "read_stream", lambda name: SimpleNamespace(name=name), raising=False)
+    # v1.7.07: a flow with dq_config rules registers `__metrics` (temporary when nothing publishes),
+    # and apply_dq_expectations wraps it in dlt.expect_* -- the pip stub raises on those locally,
+    # so make them identity decorators. Registration shape is what these tests assert.
+    for expectation in ("expect_all", "expect_all_or_drop", "expect_all_or_fail"):
+        monkeypatch.setattr(dlt, expectation, lambda rules: (lambda fn: fn), raising=False)
     # The flow bodies (never executed here) would call bind(); the heal lane's registration-time
     # helpers ARE executed, so stub them to pure recorders.
     monkeypatch.setattr(graph_registration, "bind", lambda plan, consumer_id, want_stream: SimpleNamespace())
@@ -167,7 +172,10 @@ def recorder(monkeypatch):
     return rec
 
 
-def _recon_row(execution_mode="pipeline_audit_only", logging_config=None, dq_config=None, heal=False):
+def _recon_row(execution_mode="pipeline_audit_only", logging_config=None, dq_config=None, heal=False, publish_schema=None):
+    """``publish_schema=None`` is the v1.7.07 "publish nothing" shape; tests that assert on a
+    PUBLISHED three-part name pass ``publish_schema="recon"`` explicitly -- the function argument
+    of the same name is no longer a fallback."""
     target = {"target_id": "t_ref", "table": "flowx.ext.orders_ref"}
     if heal:
         target["comparison_direction"] = "both"
@@ -183,7 +191,7 @@ def _recon_row(execution_mode="pipeline_audit_only", logging_config=None, dq_con
         logging_config_json=json.dumps(logging_config or {}),
         dq_config_json=json.dumps(dq_config or {}),
         transform_sql=None,
-        publish_schema=None,
+        publish_schema=publish_schema,
         two_tier_verification=None,
     )
 
@@ -214,7 +222,10 @@ def test_both_flags_true_register_metrics_and_mismatch_published_and_intermediat
     inputs instead of inheriting them. The v1.7.3 default is pinned separately by
     ``test_absent_logging_config_registers_neither_audit_dataset``.
     """
-    _register(_recon_row(logging_config={"run_log_capture": True, "mismatch_log_capture": True}), recorder)
+    _register(
+        _recon_row(logging_config={"run_log_capture": True, "mismatch_log_capture": True}, publish_schema="recon"),
+        recorder,
+    )
 
     metrics = recorder.by_name("flowx.recon.recon__rec_gate__t_ref__metrics")
     mismatch = recorder.by_name("flowx.recon.recon__rec_gate__t_ref__mismatch")
@@ -234,7 +245,7 @@ def test_run_log_capture_false_skips_metrics_registration(recorder):
     flag is stated explicitly because under v1.7.3 omitting it would suppress ``__mismatch``
     too, and the assertion below would then pass for the wrong reason."""
     _register(
-        _recon_row(logging_config={"run_log_capture": False, "mismatch_log_capture": True}),
+        _recon_row(logging_config={"run_log_capture": False, "mismatch_log_capture": True}, publish_schema="recon"),
         recorder,
     )
 
@@ -245,7 +256,7 @@ def test_run_log_capture_false_skips_metrics_registration(recorder):
 def test_mismatch_log_capture_false_skips_mismatch_registration(recorder):
     """The mirror image of the above, and explicit for the same reason."""
     _register(
-        _recon_row(logging_config={"run_log_capture": True, "mismatch_log_capture": False}),
+        _recon_row(logging_config={"run_log_capture": True, "mismatch_log_capture": False}, publish_schema="recon"),
         recorder,
     )
 
@@ -271,7 +282,7 @@ def test_absent_logging_config_registers_neither_audit_dataset(recorder):
 
 def test_pipeline_conf_override_wins_over_onboarded_logging_config(recorder):
     _register(
-        _recon_row(logging_config={"run_log_capture": False, "mismatch_log_capture": True}),
+        _recon_row(logging_config={"run_log_capture": False, "mismatch_log_capture": True}, publish_schema="recon"),
         recorder,
         log_capture_overrides={"recon_run_log_capture": True, "recon_mismatch_log": False},
     )
@@ -303,31 +314,63 @@ def test_audit_only_with_an_absent_logging_config_is_rejected_at_graph_definitio
     assert recorder.registrations == [], "nothing may be registered when the flow is rejected"
 
 
-def test_dq_rules_with_an_absent_logging_config_is_rejected_at_graph_definition(recorder):
-    """The other newly-implicit rejection: expectations attach to ``__metrics``, which an
-    absent ``logging_config`` no longer registers."""
+_GATE_RULE = {"rules": [{"rule_id": "r1", "expression": "source_record_count > 0", "action": "fail"}]}
+
+
+def test_dq_rules_without_capture_register_a_temporary_metrics_dataset(recorder):
+    """v1.7.07: a flow that declares a dq gate but captures nothing and publishes nothing gets a
+    pipeline-scoped ``_recon__…__metrics`` -- bare name, temporary -- so the expectation fires
+    without a materialized view ever landing in a business schema. Before v1.7.07 this shape was
+    rejected ("dq_config needs run_log_capture") and, once the flag was on, the metrics view was
+    published into the pipeline's own schema (UC6: six of them in bronze)."""
+    _register(_recon_row(execution_mode="pipeline", dq_config=_GATE_RULE), recorder)
+
+    metrics = recorder.by_name("_recon__rec_gate__t_ref__metrics")
+    assert metrics.temporary is True
+    assert not any("." in name for name in recorder.names), recorder.names
+    assert not any(name.endswith("__mismatch") for name in recorder.names)
+
+
+def test_audit_only_dq_gate_with_run_log_capture_false_is_accepted_and_temporary(recorder):
+    """Audit-only with both flags false is still rejected when the flow would register nothing
+    -- but a dq gate IS an output, so with rules present the flow is accepted and its metrics
+    dataset stays pipeline-scoped."""
+    _register(
+        _recon_row(logging_config={"run_log_capture": False, "mismatch_log_capture": False}, dq_config=_GATE_RULE),
+        recorder,
+    )
+    metrics = recorder.by_name("_recon__rec_gate__t_ref__metrics")
+    assert metrics.temporary is True
+
+
+def test_run_log_capture_without_publish_schema_is_rejected_at_graph_definition(recorder):
+    """The export backstop reads the PUBLISHED metrics view; without publish_schema there is
+    none, so a capture flag promises an audit row that can never be written."""
+    with pytest.raises(FrameworkConfigError) as excinfo:
+        _register(_recon_row(logging_config={"run_log_capture": True}), recorder)
+    assert "publish_schema" in str(excinfo.value)
+    assert recorder.registrations == []
+
+
+def test_pipeline_conf_override_turning_capture_on_without_publish_schema_is_rejected(recorder):
+    """The same guard must hold when the flag arrives from the dataflow.recon.* pipeline-conf
+    override rather than the spec -- onboarding never saw that value."""
     with pytest.raises(FrameworkConfigError) as excinfo:
         _register(
-            _recon_row(
-                execution_mode="pipeline",
-                dq_config={"rules": [{"rule_id": "r1", "expression": "value_drift_count = 0", "action": "warn"}]},
-            ),
+            _recon_row(dq_config=_GATE_RULE),
             recorder,
+            log_capture_overrides={"recon_run_log_capture": True, "recon_mismatch_log": None},
         )
+    assert "publish_schema" in str(excinfo.value)
 
-    assert "dq_config" in str(excinfo.value)
 
-
-def test_dq_rules_with_run_log_capture_false_is_rejected_at_graph_definition(recorder):
+def test_healing_flow_without_publish_schema_is_rejected_at_graph_definition(recorder):
+    """A healing flow's prepared source/target are read back through the metastore, so they must
+    be published -- and since v1.7.07 nothing is published without publish_schema."""
     with pytest.raises(FrameworkConfigError) as excinfo:
-        _register(
-            _recon_row(
-                logging_config={"run_log_capture": False},
-                dq_config={"rules": [{"rule_id": "r1", "expression": "value_drift_count = 0", "action": "warn"}]},
-            ),
-            recorder,
-        )
-    assert "dq_config" in str(excinfo.value)
+        _register(_recon_row(execution_mode="pipeline", heal=True), recorder)
+    assert "publish_schema" in str(excinfo.value)
+    assert recorder.registrations == []
 
 
 def test_healing_flow_keeps_src_and_healing_tgt_published_for_the_handler(recorder):
@@ -342,6 +385,7 @@ def test_healing_flow_keeps_src_and_healing_tgt_published_for_the_handler(record
             execution_mode="pipeline",
             logging_config={"run_log_capture": True, "mismatch_log_capture": True},
             heal=True,
+            publish_schema="recon",
         ),
         recorder,
     )
@@ -372,6 +416,7 @@ def test_audit_only_does_not_register_the_missing_table_even_when_a_target_heals
             execution_mode="pipeline_audit_only",
             logging_config={"run_log_capture": True, "mismatch_log_capture": False},
             heal=True,
+            publish_schema="recon",
         ),
         recorder,
     )
@@ -396,6 +441,7 @@ def test_healing_flow_with_both_flags_false_still_registers_the_heal_lane(record
             execution_mode="pipeline",
             logging_config={"run_log_capture": False, "mismatch_log_capture": False},
             heal=True,
+            publish_schema="recon",
         ),
         recorder,
     )
@@ -458,7 +504,11 @@ def test_phase_1_writes_neither_when_logging_config_is_absent(monkeypatch, loggi
 # ---------------------------------------------------------------------------------------------
 
 
-def _validator_errors(logging_config, execution_mode="pipeline_audit_only", dq_config=None):
+def _validator_errors(
+    logging_config, execution_mode="pipeline_audit_only", dq_config=None, publish_schema="recon", heals=False
+):
+    """``publish_schema="recon"`` by default so the pre-v1.7.07 assertions keep testing what they
+    always tested (the capture-flag algebra); the v1.7.07 publish rules pass ``None`` explicitly."""
     errors = []
     _validate_logging_config(
         logging_config,
@@ -466,6 +516,8 @@ def _validator_errors(logging_config, execution_mode="pipeline_audit_only", dq_c
         errors,
         execution_mode=execution_mode,
         dq_config=dq_config,
+        publish_schema=publish_schema,
+        heals=heals,
     )
     return errors
 
@@ -475,13 +527,56 @@ def test_validator_rejects_audit_only_with_both_flags_false():
     assert any("pipeline_audit_only" in error for error in errors)
 
 
-def test_validator_rejects_dq_rules_with_run_log_capture_false():
+def test_validator_accepts_dq_rules_with_run_log_capture_false():
+    """v1.7.07: the metrics dataset is registered (temporary) for the expectations alone, so a
+    dq gate no longer needs a capture flag -- the pre-v1.7.07 rejection is gone."""
     errors = _validator_errors(
         {"run_log_capture": False},
         execution_mode="pipeline",
         dq_config={"rules": [{"rule_id": "r1", "expression": "value_drift_count = 0", "action": "warn"}]},
+        publish_schema=None,
     )
-    assert any("dq_config" in error for error in errors)
+    assert errors == []
+
+
+def test_validator_rejects_capture_without_publish_schema():
+    for logging_config in ({"run_log_capture": True}, {"mismatch_log_capture": True}):
+        errors = _validator_errors(logging_config, publish_schema=None)
+        assert any("publish_schema" in error for error in errors), (logging_config, errors)
+    # ...and the same pair is fine once the flow says where to publish.
+    assert _validator_errors({"run_log_capture": True}, publish_schema="recon") == []
+
+
+def test_validator_rejects_healing_flow_without_publish_schema():
+    errors = _validator_errors(
+        {"run_log_capture": False, "mismatch_log_capture": False},
+        execution_mode="pipeline",
+        publish_schema=None,
+        heals=True,
+    )
+    assert any("append_target_table" in error and "publish_schema" in error for error in errors), errors
+    # Audit-only never heals, so a healing target there needs no publish_schema for that reason.
+    assert not any(
+        "append_target_table" in error
+        for error in _validator_errors(
+            {"run_log_capture": False, "mismatch_log_capture": False},
+            execution_mode="pipeline_audit_only",
+            dq_config={"rules": [{"rule_id": "r1", "expression": "source_record_count > 0", "action": "fail"}]},
+            publish_schema=None,
+            heals=True,
+        )
+    )
+
+
+def test_validator_accepts_audit_only_dq_gate_with_no_capture_and_no_publish_schema():
+    """The UC6-shaped presence gate after v1.7.07: six count>0 gates that publish nothing."""
+    errors = _validator_errors(
+        None,
+        execution_mode="pipeline_audit_only",
+        dq_config={"rules": [{"rule_id": "r1", "expression": "source_record_count > 0", "action": "fail"}]},
+        publish_schema=None,
+    )
+    assert errors == []
 
 
 def test_validator_audit_only_needs_exactly_one_flag_resolving_true():
@@ -519,16 +614,17 @@ def test_validator_mirrors_the_new_false_default_for_an_absent_config(logging_co
     assert any("pipeline_audit_only" in error for error in errors)
 
 
-def test_validator_mirrors_the_new_false_default_for_dq_rules():
-    """Same contract on the other cross-field rule: ``dq_config.rules`` need ``__metrics``, which
-    an absent ``logging_config`` no longer registers, so onboarding rejects the pair rather than
-    deferring the failure to graph definition."""
+def test_validator_and_graph_agree_that_dq_rules_need_no_capture_flag():
+    """Both layers accept a dq gate with an absent ``logging_config`` since v1.7.07 -- the graph
+    registers a temporary ``__metrics`` for it (see the graph-layer test above), so onboarding
+    must not reject the pair."""
     errors = _validator_errors(
         None,
         execution_mode="pipeline",
         dq_config={"rules": [{"rule_id": "r1", "expression": "value_drift_count = 0", "action": "warn"}]},
+        publish_schema=None,
     )
-    assert any("dq_config" in error for error in errors)
+    assert errors == []
 
 
 def test_validator_default_constant_equals_the_runtime_resolver_fallback():

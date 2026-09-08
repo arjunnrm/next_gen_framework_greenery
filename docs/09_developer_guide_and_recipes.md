@@ -631,6 +631,12 @@ databricks bundle run flowx_sample_01_multi_scd_job -t <target> -p <profile>
 ```
 
 Pass `action_type=UPDATE` to the seed job to re-onboard specs that changed after first onboarding.
+If a re-onboarded spec **dropped** a flow, also pass `prune_missing_flows=true` (v1.7.07): the upsert
+alone never deactivates a control row, so the removed flow would otherwise keep registering its
+datasets on every update. The parameter soft-disables (`is_active = false`) every row of the spec's
+own `dataflow_group_id` whose id the spec no longer declares, in all three flow tables. It is opt-in
+because a `reconciliation_flows[]` entry may belong to another spec's group; turn it on only for a
+group owned by one spec (every `BT_Usecase` group is — UC6's job passes it).
 
 
 ### 6.4 Sample 06: the real GSMA TAP3 module, and why the PDU is `Notification`

@@ -1,0 +1,63 @@
+# One-time provisioning for UC3 Excalibur: run ONCE per workspace, and again whenever either
+# UC3 spec changes (a spec edit only takes effect after it is onboarded again -- the pipeline
+# reads control-table rows, not the file).
+#
+#   setup_control_tables -> onboard_streaming_cdc -> onboard_batch_recon
+#
+# Split out of the two run jobs (004/005) on 2026-09-08 so that a scheduled pipeline run no
+# longer re-provisions and re-onboards on every trigger. Same pattern as
+# resources/sample_jobs/flowx_sample_seed_job.yml.
+#
+# setup_control_tables is OPTIONAL for the pipelines: the onboarding engine already calls
+# ensure_control_schema_exists (CREATE ... IF NOT EXISTS plus the additive ADD COLUMNS
+# migration). It is kept here for what only 01_setup does -- the preflight_check_onboarding_spec
+# UC function and the <catalog>.observability semantic layer.
+#
+# ONBOARDING IS DELEGATED, NEVER INLINED: both onboarding tasks are run_job_task calls into the
+# generic resources/flowx_config_jobs/onboarding_job.yml. There is deliberately NO notebook_task
+# pointing at 02_onboarding_engine.py here. The two onboardings run in SERIES: concurrent
+# onboarding into one catalog hits the known Unity Catalog create race.
+#
+# action_type CREATE and UPDATE take the identical upsert path in 02_onboarding_engine.py (only
+# VALIDATE_ONLY is special-cased), so re-running this job IS the update.
+
+resources:
+  jobs:
+    uc3_seed_job:
+      name: 003b_lfj_uc3_excalibur_seed
+      tags:
+        framework: flowx
+        use_case: uc3
+      tasks:
+        - task_key: setup_control_tables
+          notebook_task:
+            notebook_path: ../../notebooks/01_setup/01_setup_control_tables.py
+            base_parameters:
+              catalog: ${var.catalog}
+          environment_key: framework_env
+        - task_key: onboard_streaming_cdc
+          depends_on:
+            - task_key: setup_control_tables
+          run_job_task:
+            job_id: ${resources.jobs.onboarding_job.id}
+            job_parameters:
+              spec_file_path: "${workspace.file_path}/BT_Usecase/UC3/onboarding/uc3_excalibur_streaming_cdc.json"
+              catalog: ${var.catalog}
+              env: ${bundle.target}
+              action_type: CREATE
+        - task_key: onboard_batch_recon
+          depends_on:
+            - task_key: onboard_streaming_cdc
+          run_job_task:
+            job_id: ${resources.jobs.onboarding_job.id}
+            job_parameters:
+              spec_file_path: "${workspace.file_path}/BT_Usecase/UC3/onboarding/uc3_excalibur_batch_recon.json"
+              catalog: ${var.catalog}
+              env: ${bundle.target}
+              action_type: CREATE
+      environments:
+        - environment_key: framework_env
+          spec:
+            environment_version: "4"
+            dependencies:
+              - ../../dist/*.whl

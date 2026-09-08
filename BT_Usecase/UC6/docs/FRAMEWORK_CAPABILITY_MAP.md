@@ -21,7 +21,7 @@ framework's own source, not by recall. The authority for allowed attributes is
 | 5 | Table & column tagging | **Config — already existed** | `governance_tags.table_tags` / `.column_tags[]` |
 | 6 | Multi-way joins, unions, rollups, CASE rules | **Config — already existed** | `transformation_flows[].transformation_sql` + `source_inputs[]` |
 | 7 | Configurable thresholds | **Config — already existed** | `pipeline_parameters` + `${param}` in SQL |
-| 8 | Fail on missing/empty source file | **Config — already existed** | reconciliation `dq_config` on `source_record_count > 0` (see §3) |
+| 8 | Fail on missing/empty source file | **Config — already existed** | a `COUNT(*)` gate `materialized_view` with `dq_config` `row_count > 0`, cross-joined by the bronze readers (see §2.5; six self-reconciliation flows until 2026-09-08) |
 | 9 | **Symmetric (passphrase) PGP** | **CODE — F1, new** | `crypto/pgp.py::pgp_{encrypt,decrypt}_symmetric` |
 | 10 | **gzip landing members + symmetric pre-decrypt** | **CODE — F2, new** | `source_zip_handling.member_format: "gzip"`, `pre_extraction_decryption.type: "pgp_symmetric"` |
 | 11 | **gzip egress, CSV dialect, symmetric PGP on sink** | **CODE — F3, new** | `sink_config.staged_file_options`, `post_export_archive.archive_format: "gzip"`, `pgp_encryption.passphrase_secret` |
@@ -79,11 +79,17 @@ An ingestion `dq_config` rule is a **per-row** boolean predicate evaluated insid
 Zero rows means zero evaluations, so an emptiness rule attached there can never fire — a missing
 file would pass silently, which is the exact failure the requirement exists to prevent.
 
-**Adopted:** one reconciliation flow per required source, asserting `source_record_count > 0` with
-action `fail` on the one-row `__metrics` dataset, where that count is a real column. This fails the
-update and writes a row to the reconciliation control tables. *File* count is not separately
-assertable and is not independently meaningful: a missing file and an empty file both yield zero
-rows, and both must fail.
+**Adopted (since 2026-09-08):** one transformation flow, `ts_uc6_source_presence_gate`, whose SQL is a
+`UNION ALL` of `count(*)` over the six bronze tables — a groupBy-less aggregate is one row even over
+an empty table — with a `row_count > 0` / `fail` expectation. The three flows that read bronze
+directly `CROSS JOIN` the gate, so the failure lands before any silver/gold materialized view is
+recomputed. *File* count is not separately assertable and is not independently meaningful: a
+missing file and an empty file both yield zero rows, and both must fail.
+
+**Superseded:** the first shape was one `pipeline_audit_only` reconciliation flow per source
+asserting `source_record_count > 0` on the recon engine's one-row `__metrics` dataset. Same trick,
+but 24 graph nodes, a self-join per source, six published `recon__*__metrics` views and no upstream
+edge to the consumers.
 
 ---
 

@@ -165,6 +165,7 @@
         "  i.dq_config_json,\n",
         "  i.governance_tags_json,\n",
         "  i.is_active,\n",
+        "  CAST(i.is_active AS INT) AS active_flag,\n",
         "  dg.environment,\n",
         "  dg.is_active AS group_is_active,\n",
         "  dg.created_at AS group_created_at,\n",
@@ -191,9 +192,11 @@
         "  r.target_configs_json,\n",
         "  r.match_keys_json,\n",
         "  r.compare_columns_json,\n",
-        "  r.generate_surrogate_key,\n",
+        "  r.execution_mode,\n",
+        "  r.two_tier_verification,\n",
         "  r.transform_sql,\n",
         "  r.is_active,\n",
+        "  CAST(r.is_active AS INT) AS active_flag,\n",
         "  dg.environment,\n",
         "  dg.is_active AS group_is_active,\n",
         "  COUNT(DISTINCT rl.run_id) AS total_runs,\n",
@@ -212,7 +215,7 @@
         "  ALL\n",
         "ORDER BY\n",
         "  r.dataflow_group_id,\n",
-        "  r.reconciliation_id"
+        "  r.reconciliation_id\n"
       ],
       "catalog": "flowx",
       "schema": "config"
@@ -237,6 +240,7 @@
         "  t.dq_config_json,\n",
         "  t.governance_tags_json,\n",
         "  t.is_active,\n",
+        "  CAST(t.is_active AS INT) AS active_flag,\n",
         "  dg.environment,\n",
         "  dg.is_active AS group_is_active,\n",
         "  dg.created_at AS group_created_at,\n",
@@ -734,18 +738,6 @@
             ],
             "spec": {
               "version": 2,
-              "selection": {
-                "defaultSelection": {
-                  "values": {
-                    "dataType": "STRING",
-                    "values": [
-                      {
-                        "value": "dfg_bt_001_pgp_gzip_ingest"
-                      }
-                    ]
-                  }
-                }
-              },
               "frame": {
                 "showTitle": true,
                 "title": {
@@ -849,8 +841,8 @@
                   "datasetName": "ingestion_flows_detail",
                   "fields": [
                     {
-                      "name": "sum(is_active)",
-                      "expression": "SUM(`is_active`)"
+                      "name": "sum(active_flag)",
+                      "expression": "SUM(`active_flag`)"
                     }
                   ],
                   "disaggregated": false
@@ -866,7 +858,7 @@
               "widgetType": "counter",
               "encodings": {
                 "value": {
-                  "fieldName": "sum(is_active)",
+                  "fieldName": "sum(active_flag)",
                   "rowNumber": 0
                 }
               },
@@ -1139,8 +1131,8 @@
                   "datasetName": "transformation_flows_detail",
                   "fields": [
                     {
-                      "name": "sum(is_active)",
-                      "expression": "SUM(`is_active`)"
+                      "name": "sum(active_flag)",
+                      "expression": "SUM(`active_flag`)"
                     }
                   ],
                   "disaggregated": false
@@ -1156,7 +1148,7 @@
               "widgetType": "counter",
               "encodings": {
                 "value": {
-                  "fieldName": "sum(is_active)",
+                  "fieldName": "sum(active_flag)",
                   "rowNumber": 0
                 }
               },
@@ -1447,7 +1439,15 @@
               "encodings": {
                 "value": {
                   "fieldName": "sum(total_runs)",
-                  "rowNumber": 0
+                  "rowNumber": 0,
+                  "format": {
+                    "type": "number",
+                    "abbreviation": "compact",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 0
+                    }
+                  }
                 }
               },
               "data": {
@@ -1490,7 +1490,15 @@
               "encodings": {
                 "value": {
                   "fieldName": "sum(total_matched)",
-                  "rowNumber": 0
+                  "rowNumber": 0,
+                  "format": {
+                    "type": "number",
+                    "abbreviation": "compact",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 1
+                    }
+                  }
                 }
               },
               "data": {
@@ -1533,7 +1541,15 @@
               "encodings": {
                 "value": {
                   "fieldName": "sum(total_value_drift)",
-                  "rowNumber": 0
+                  "rowNumber": 0,
+                  "format": {
+                    "type": "number",
+                    "abbreviation": "compact",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 1
+                    }
+                  }
                 }
               },
               "data": {
@@ -1627,16 +1643,48 @@
                     "fieldName": "last_run_at"
                   },
                   {
-                    "fieldName": "total_matched"
+                    "fieldName": "total_matched",
+                    "format": {
+                      "type": "number",
+                      "abbreviation": "compact",
+                      "decimalPlaces": {
+                        "type": "max",
+                        "places": 1
+                      }
+                    }
                   },
                   {
-                    "fieldName": "total_missing_in_target"
+                    "fieldName": "total_missing_in_target",
+                    "format": {
+                      "type": "number",
+                      "abbreviation": "compact",
+                      "decimalPlaces": {
+                        "type": "max",
+                        "places": 1
+                      }
+                    }
                   },
                   {
-                    "fieldName": "total_missing_in_source"
+                    "fieldName": "total_missing_in_source",
+                    "format": {
+                      "type": "number",
+                      "abbreviation": "compact",
+                      "decimalPlaces": {
+                        "type": "max",
+                        "places": 1
+                      }
+                    }
                   },
                   {
-                    "fieldName": "total_value_drift"
+                    "fieldName": "total_value_drift",
+                    "format": {
+                      "type": "number",
+                      "abbreviation": "compact",
+                      "decimalPlaces": {
+                        "type": "max",
+                        "places": 1
+                      }
+                    }
                   },
                   {
                     "fieldName": "environment"

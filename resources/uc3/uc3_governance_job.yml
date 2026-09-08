@@ -1,0 +1,56 @@
+# Governance tagging for both UC3 Excalibur groups:
+#
+#   tag_streaming_cdc -> tag_batch_recon
+#
+# GOVERNANCE TAGGING IS A POST-MATERIALIZATION STEP and cannot live in the pipeline graph. The
+# framework applies `governance_tags` via governance/tags.py::apply_all_governance_tags, which
+# issues ALTER TABLE ... SET TAGS / ALTER COLUMN ... SET TAGS against tables that ALREADY exist.
+# Run this job:
+#
+#   * once after the first successful 004 and 005 pipeline updates (the tables must exist), and
+#   * again after any change to a spec's governance_tags -- AFTER re-running uc3_seed_job,
+#     because tags are read from the control-table rows the onboarding wrote, not from the file.
+#
+# Phase C proved why a dedicated job is needed: Job 2 once succeeded end to end with zero tags
+# in information_schema.column_tags, because no task ever invoked this notebook. Moving the
+# step out of the run jobs (2026-09-08) must not recreate that gap -- hence this job.
+#
+# The tag VALUES come from the spec's governance_tags block and must match the governed tag
+# policies in BT_Usecase/UC3/onboarding/uc3_governed_tags.sql (created once per metastore by a
+# metastore admin). Neither the validator nor tags.py checks values against a policy, so a
+# spelling that is not an ALLOWED_VALUE fails here, at SET TAGS time.
+
+resources:
+  jobs:
+    uc3_governance_job:
+      name: 009_lfj_uc3_excalibur_governance
+      tags:
+        framework: flowx
+        use_case: uc3
+      tasks:
+        - task_key: tag_streaming_cdc
+          notebook_task:
+            notebook_path: ../../notebooks/04_governance/04_apply_governance_and_egress.py
+            base_parameters:
+              catalog: ${var.catalog}
+              dataflow_group_id: dfg_uc3_excalibur_streaming_cdc
+              apply_abac: "true"
+              capture_cdc_change_counts: "false"
+          environment_key: framework_env
+        - task_key: tag_batch_recon
+          depends_on:
+            - task_key: tag_streaming_cdc
+          notebook_task:
+            notebook_path: ../../notebooks/04_governance/04_apply_governance_and_egress.py
+            base_parameters:
+              catalog: ${var.catalog}
+              dataflow_group_id: dfg_uc3_excalibur_batch_recon
+              apply_abac: "true"
+              capture_cdc_change_counts: "false"
+          environment_key: framework_env
+      environments:
+        - environment_key: framework_env
+          spec:
+            environment_version: "4"
+            dependencies:
+              - ../../dist/*.whl

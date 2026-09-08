@@ -23,6 +23,10 @@
         "  dataflow_group_id, pipeline_name, update_id, update_type, result_state,\n",
         "  is_success, is_failure, is_retry, is_full_refresh, trigger_type, run_as_user_name,\n",
         "  started_at, ended_at, duration_seconds, duration_minutes, run_date,\n",
+        "  CAST(is_success AS INT)      AS success_flag,\n",
+        "  CAST(is_failure AS INT)      AS failure_flag,\n",
+        "  CAST(is_retry AS INT)        AS retry_flag,\n",
+        "  CAST(is_full_refresh AS INT) AS full_refresh_flag,\n",
         "  CASE WHEN is_success THEN 'Succeeded' WHEN is_failure THEN 'Failed'\n",
         "       WHEN result_state IS NULL THEN 'Running' ELSE result_state END AS outcome\n",
         "FROM v_pipeline_updates\n",
@@ -48,7 +52,8 @@
         "SELECT\n",
         "  dataflow_group_id, pipeline_name, update_id, dataset_name, rule_name,\n",
         "  passed_records, failed_records, total_records, pass_rate_pct,\n",
-        "  pass_rate_pct / 100.0 AS pass_rate_frac, has_failures, event_time, run_date\n",
+        "  CASE WHEN total_records > 0 THEN pass_rate_pct / 100.0 END AS pass_rate_frac,\n",
+        "  has_failures, CAST(has_failures AS INT) AS failure_flag, event_time, run_date\n",
         "FROM v_dq_results\n",
         "WHERE run_date >= date_sub(current_date(), 30)\n"
       ]
@@ -72,8 +77,10 @@
         "  dataflow_group_id, reconciliation_id, target_id, status, execution_mode,\n",
         "  source_record_count, target_record_count, matched_count,\n",
         "  missing_in_target_count, missing_in_source_count, value_drift_count,\n",
-        "  total_discrepancies, match_rate_pct, match_rate_pct / 100.0 AS match_rate_frac,\n",
-        "  is_clean, has_run_history, error_message, run_at, run_date\n",
+        "  total_discrepancies, match_rate_pct,\n",
+        "  CASE WHEN source_record_count > 0 THEN match_rate_pct / 100.0 END AS match_rate_frac,\n",
+        "  is_clean, has_run_history,\n",
+        "  CAST(is_clean AS INT) AS clean_flag, error_message, run_at, run_date\n",
         "FROM v_reconciliation_health\n"
       ]
     },
@@ -94,7 +101,9 @@
       "queryLines": [
         "SELECT\n",
         "  dataflow_group_id, source_table, target_table, entity_type, entity_name,\n",
-        "  edge_count, first_seen, last_seen\n",
+        "  edge_count, first_seen, last_seen,\n",
+        "  replace(source_table, '.', '/') AS source_lineage_path,\n",
+        "  replace(target_table, '.', '/') AS target_lineage_path\n",
         "FROM v_dataflow_lineage\n",
         "WHERE dataflow_group_id IS NOT NULL AND source_table IS NOT NULL\n"
       ]
@@ -107,7 +116,9 @@
         "  dataflow_group_id, attribution, job_name, run_id, result_state, is_success,\n",
         "  is_failure, trigger_type, termination_code, started_at, run_duration_seconds,\n",
         "  execution_duration_seconds, queue_duration_seconds, setup_duration_seconds,\n",
-        "  duration_minutes, run_date\n",
+        "  duration_minutes, run_date,\n",
+        "  CAST(is_success AS INT) AS success_flag,\n",
+        "  CAST(is_failure AS INT) AS failure_flag\n",
         "FROM v_job_runs\n",
         "WHERE started_at >= date_sub(current_date(), 30)\n"
       ]
@@ -552,8 +563,8 @@
                   "datasetName": "pipeline_updates",
                   "fields": [
                     {
-                      "name": "avg(is_success)",
-                      "expression": "AVG(`is_success`)"
+                      "name": "avg(success_flag)",
+                      "expression": "AVG(`success_flag`)"
                     },
                     {
                       "name": "daily(started_at)",
@@ -569,7 +580,7 @@
               "widgetType": "counter",
               "encodings": {
                 "value": {
-                  "fieldName": "avg(is_success)",
+                  "fieldName": "avg(success_flag)",
                   "displayName": "Update Success Rate",
                   "format": {
                     "type": "number-percent",
@@ -1075,7 +1086,7 @@
                       "abbreviation": "compact",
                       "decimalPlaces": {
                         "type": "max",
-                        "places": 0
+                        "places": 1
                       }
                     }
                   },
@@ -1310,8 +1321,8 @@
                   "datasetName": "pipeline_updates",
                   "fields": [
                     {
-                      "name": "sum(is_failure)",
-                      "expression": "SUM(`is_failure`)"
+                      "name": "sum(failure_flag)",
+                      "expression": "SUM(`failure_flag`)"
                     },
                     {
                       "name": "daily(started_at)",
@@ -1327,7 +1338,7 @@
               "widgetType": "counter",
               "encodings": {
                 "value": {
-                  "fieldName": "sum(is_failure)",
+                  "fieldName": "sum(failure_flag)",
                   "displayName": "Failed Updates",
                   "format": {
                     "type": "number",
@@ -1365,8 +1376,8 @@
                   "datasetName": "pipeline_updates",
                   "fields": [
                     {
-                      "name": "sum(is_retry)",
-                      "expression": "SUM(`is_retry`)"
+                      "name": "sum(retry_flag)",
+                      "expression": "SUM(`retry_flag`)"
                     }
                   ],
                   "disaggregated": false
@@ -1378,7 +1389,7 @@
               "widgetType": "counter",
               "encodings": {
                 "value": {
-                  "fieldName": "sum(is_retry)",
+                  "fieldName": "sum(retry_flag)",
                   "displayName": "Automatic Retries",
                   "format": {
                     "type": "number",
@@ -2131,6 +2142,55 @@
         },
         {
           "widget": {
+            "name": "ft_dataset_filter",
+            "queries": [
+              {
+                "name": "ft_filter_q",
+                "query": {
+                  "datasetName": "flow_throughput",
+                  "fields": [
+                    {
+                      "name": "dataset_name",
+                      "expression": "`dataset_name`"
+                    },
+                    {
+                      "name": "dataset_name_associativity",
+                      "expression": "COUNT_IF(`associative_filter_predicate_group`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "filter-multi-select",
+              "encodings": {
+                "fields": [
+                  {
+                    "fieldName": "dataset_name",
+                    "displayName": "Table",
+                    "queryName": "ft_filter_q"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Table",
+                "showDescription": true,
+                "description": "Filter every widget on this page to one or more target tables."
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 5,
+            "width": 4,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
             "name": "ft_h1",
             "multilineTextboxSpec": {
               "lines": [
@@ -2139,10 +2199,10 @@
             }
           },
           "position": {
-            "x": 0,
+            "x": 4,
             "y": 5,
-            "width": 12,
-            "height": 1
+            "width": 8,
+            "height": 2
           }
         },
         {
@@ -2224,7 +2284,7 @@
           },
           "position": {
             "x": 0,
-            "y": 6,
+            "y": 7,
             "width": 12,
             "height": 6
           }
@@ -2304,7 +2364,7 @@
           },
           "position": {
             "x": 0,
-            "y": 12,
+            "y": 13,
             "width": 12,
             "height": 5
           }
@@ -2320,7 +2380,7 @@
           },
           "position": {
             "x": 0,
-            "y": 17,
+            "y": 18,
             "width": 12,
             "height": 1
           }
@@ -2460,7 +2520,7 @@
           },
           "position": {
             "x": 0,
-            "y": 18,
+            "y": 19,
             "width": 12,
             "height": 7
           }
@@ -4263,7 +4323,7 @@
             "name": "fw_h3",
             "multilineTextboxSpec": {
               "lines": [
-                "## Flow inventory"
+                "## Lineage detail and full flow inventory"
               ]
             }
           },
@@ -4272,6 +4332,118 @@
             "y": 19,
             "width": 12,
             "height": 1
+          }
+        },
+        {
+          "widget": {
+            "name": "fw_lineage_links",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "lineage",
+                  "fields": [
+                    {
+                      "name": "dataflow_group_id",
+                      "expression": "`dataflow_group_id`"
+                    },
+                    {
+                      "name": "source_table",
+                      "expression": "`source_table`"
+                    },
+                    {
+                      "name": "target_table",
+                      "expression": "`target_table`"
+                    },
+                    {
+                      "name": "entity_name",
+                      "expression": "`entity_name`"
+                    },
+                    {
+                      "name": "edge_count",
+                      "expression": "`edge_count`"
+                    },
+                    {
+                      "name": "last_seen",
+                      "expression": "`last_seen`"
+                    },
+                    {
+                      "name": "source_lineage_path",
+                      "expression": "`source_lineage_path`"
+                    },
+                    {
+                      "name": "target_lineage_path",
+                      "expression": "`target_lineage_path`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "dataflow_group_id",
+                    "displayName": "Dataflow Group"
+                  },
+                  {
+                    "fieldName": "source_table",
+                    "displayName": "Source table (click for lineage)",
+                    "actions": {
+                      "click": {
+                        "type": "link",
+                        "urlTemplate": "/explore/data/{{ source_lineage_path }}?activeTab=lineage"
+                      }
+                    }
+                  },
+                  {
+                    "fieldName": "target_table",
+                    "displayName": "Target table (click for lineage)",
+                    "actions": {
+                      "click": {
+                        "type": "link",
+                        "urlTemplate": "/explore/data/{{ target_lineage_path }}?activeTab=lineage"
+                      }
+                    }
+                  },
+                  {
+                    "fieldName": "entity_name",
+                    "displayName": "Observed via"
+                  },
+                  {
+                    "fieldName": "edge_count",
+                    "displayName": "Edges",
+                    "format": {
+                      "type": "number",
+                      "abbreviation": "compact",
+                      "decimalPlaces": {
+                        "type": "max",
+                        "places": 0
+                      }
+                    }
+                  },
+                  {
+                    "fieldName": "last_seen",
+                    "displayName": "Last seen"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Lineage explorer -- click through to Unity Catalog",
+                "showDescription": true,
+                "description": "Every observed source-to-target edge. The two lineage columns open that table's Lineage tab in Unity Catalog, where column-level lineage and downstream consumers are available."
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 20,
+            "width": 12,
+            "height": 8
           }
         },
         {
@@ -4393,7 +4565,7 @@
           },
           "position": {
             "x": 0,
-            "y": 20,
+            "y": 28,
             "width": 12,
             "height": 8
           }
@@ -5129,8 +5301,8 @@
                   "datasetName": "job_runs",
                   "fields": [
                     {
-                      "name": "avg(is_success)",
-                      "expression": "AVG(`is_success`)"
+                      "name": "avg(success_flag)",
+                      "expression": "AVG(`success_flag`)"
                     },
                     {
                       "name": "daily(started_at)",
@@ -5146,7 +5318,7 @@
               "widgetType": "counter",
               "encodings": {
                 "value": {
-                  "fieldName": "avg(is_success)",
+                  "fieldName": "avg(success_flag)",
                   "displayName": "Job Success Rate",
                   "format": {
                     "type": "number-percent",

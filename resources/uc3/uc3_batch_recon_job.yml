@@ -1,104 +1,41 @@
-# Drives the UC3 Excalibur batch-load + reconciliation group end to end:
+# Runs the UC3 Excalibur batch-load + reconciliation group:
 #
-#   setup_control_tables -> onboard_uc3_recon -> run_pipeline_update -> observability_export
+#   run_pipeline_update -> observability_export
 #
-# Self-contained and idempotent (control-table upsert + CREATE ... IF NOT EXISTS provisioning),
-# so it can be re-run at any time. Modelled directly on resources/uc7/uc7_cdr_asn_job.yml and
-# kept consistent with resources/uc3/uc3_streaming_cdc_job.yml.
+# This is a RUN job, not a provisioning job. Since 2026-09-08 the one-time steps live in their
+# own jobs so this one carries only what every run needs (see the header of
+# uc3_streaming_cdc_job.yml for the full rationale):
+#
+#   resources/uc3/uc3_seed_job.yml        setup_control_tables -> onboard both UC3 specs
+#   resources/uc3/uc3_governance_job.yml  ALTER TABLE ... SET TAGS for both UC3 groups
 #
 # RUNTIME DEPENDENCY: this job must run AFTER 004_lfj_uc3_excalibur_streaming_cdc. The
-# reconciliation compares each batch table against flowx.bronze.<table>, which does not
+# reconciliation compares each batch table against <catalog>.bronze.<table>, which does not
 # exist until Job 2's pipeline has published it. Phase C order is Job 1 -> Job 2 -> Job 3, and
-# the three UC3 jobs must NOT be parallelised (see the setup_control_tables note below).
+# the three UC3 jobs must NOT be parallelised.
 #
-# ONBOARDING IS DELEGATED, NEVER INLINED. onboard_uc3_recon is a run_job_task against the generic
-# resources/flowx_config_jobs/onboarding_job.yml -- the single parameterised onboarding
-# entrypoint for the whole bundle (BUILD_CONTRACT.md section 7, and the repo's standing rule).
-# There is deliberately NO onboarding task or job defined here, and no notebook_task pointing at
-# 02_onboarding_engine.py. The older resources/feature_tests/flowx_test_*_job.yml files that pin
-# their own onboarding notebook_task are legacy drift; this file does not copy them.
+# The observability_export task is ALSO the only writer of this group's reconciliation_run_log
+# rows on an update where the healing lane produced no pulse -- keep it, it is not optional
+# telemetry (observability/reconciliation_export.py).
 #
-# setup_control_tables is NOT boilerplate: it applies the additive control-table migration, and
-# `bundle deploy` does not apply it. It is kept here so this job stands alone even if Jobs 1/2
-# have not run in this workspace yet. The notebook is idempotent, so running it across all three
-# UC3 jobs is harmless PROVIDED they run sequentially -- concurrent runs risk the known Unity
-# Catalog create race, which is why Phase C never parallelises them.
+# JOB TAGS STAY: `dataflow_group_id` is the join key from system tables back to this group.
 #
-# GOVERNANCE TAGGING IS A POST-DEPLOYMENT STEP, and needs its own task. The framework applies
-# `governance_tags` via control_plane/post_deployment.py::apply_all_governance_tags, which issues
-# ALTER TABLE ... SET TAGS / ALTER COLUMN ... SET TAGS against an ALREADY-MATERIALIZED table --
-# it is NOT part of the pipeline update. Phase C proved this the hard way: Job 2 succeeded end to
-# end with zero tags in information_schema.column_tags, because no task ever invoked it. The task
-# below calls notebooks/04_governance/04_apply_governance_and_egress.py after run_pipeline_update
-# (the table must exist first), mirroring resources/feature_tests/flowx_test_gov_001_tagging_job.yml.
-# This is still CONFIGURATION, not hand-written tagging: the tag values come from the spec's
-# governance_tags block and the DDL is the framework's own.
-#
-# PARAMETER CONTRACT for observability_export: pipeline_task_run_id must be a TASK
-# base_parameter, never a pipeline configuration: key. `{{tasks.<key>.run_id}}` is a Jobs dynamic
-# value resolved per job run, and a mistyped task_key is passed through as literal text rather
-# than failing at the platform layer -- runtime_params.py detects exactly that and names it. The
-# key below is `run_pipeline_update`, the task_key declared in this same file.
-#
-# NAME: 005_lfj_uc3_excalibur_batch_recon, driving pipeline 006_ldp_uc3_excalibur_batch_recon
-# -- 005/006, deliberately (BUILD_CONTRACT.md section 2).
+# NAME: 005_lfj_uc3_excalibur_batch_recon, driving pipeline 006_ldp_uc3_excalibur_batch_recon.
 
 resources:
   jobs:
     uc3_batch_recon_job:
       name: 005_lfj_uc3_excalibur_batch_recon
-
-      # Job tags are the ONLY way a Lakeflow job run can be attributed back to its FlowX
-      # dataflow group in the system tables. The framework passes dataflow_group_id as a
-      # notebook task base_parameter, and those do NOT surface in
-      # system.lakeflow.job_task_run_timeline.task_parameters (verified empty on a live
-      # workspace) -- so without this tag, flowx.observability.v_job_runs falls back to matching
-      # the group id against the job name, and system.billing.usage cannot attribute job cost to
-      # the group at all. Keep the tag value identical to the dataflow_group_id in the spec.
       tags:
         dataflow_group_id: dfg_uc3_excalibur_batch_recon
         framework: flowx
-
       tasks:
-        - task_key: setup_control_tables
-          notebook_task:
-            notebook_path: ../../notebooks/01_setup/01_setup_control_tables.py
-            base_parameters:
-              catalog: ${var.catalog}
-          environment_key: framework_env
-
-        - task_key: onboard_uc3_recon
-          depends_on:
-            - task_key: setup_control_tables
-          run_job_task:
-            job_id: ${resources.jobs.onboarding_job.id}
-            job_parameters:
-              spec_file_path: "${workspace.file_path}/BT_Usecase/UC3/onboarding/uc3_excalibur_batch_recon.json"
-              catalog: ${var.catalog}
-              env: ${bundle.target}
-              action_type: CREATE
-
         - task_key: run_pipeline_update
-          depends_on:
-            - task_key: onboard_uc3_recon
           pipeline_task:
             pipeline_id: ${resources.pipelines.uc3_batch_recon_pipeline.id}
-
-        - task_key: apply_governance_uc3_recon
-          depends_on:
-            - task_key: run_pipeline_update
-          notebook_task:
-            notebook_path: ../../notebooks/04_governance/04_apply_governance_and_egress.py
-            base_parameters:
-              catalog: ${var.catalog}
-              dataflow_group_id: dfg_uc3_excalibur_batch_recon
-              apply_abac: "true"
-              capture_cdc_change_counts: "false"
-          environment_key: framework_env
-
         - task_key: observability_export
           depends_on:
-            - task_key: apply_governance_uc3_recon
+            - task_key: run_pipeline_update
           notebook_task:
             notebook_path: ../../notebooks/08_observability/08_dlt_observability_engine.py
             base_parameters:
@@ -109,7 +46,6 @@ resources:
               service_name: dlt-observability-uc3-excalibur-batch-recon
               fail_task_on_dispatch_error: "true"
           environment_key: framework_env
-
       environments:
         - environment_key: framework_env
           spec:

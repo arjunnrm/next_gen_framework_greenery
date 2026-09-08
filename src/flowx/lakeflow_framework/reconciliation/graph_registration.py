@@ -128,7 +128,7 @@ import json
 import logging
 import time
 import uuid
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 import dlt
 from pyspark.sql import DataFrame, SparkSession
@@ -284,10 +284,12 @@ def register_reconciliation_flow(
         (for a real pipeline run) already registered via
         :func:`~engine.source_plane.register_source_plane` by the caller.
     publish_catalog, publish_schema:
-        Where this flow's L3/L4/L5 datasets are published -- ``publish_schema`` is overridden by
-        ``flow_row.publish_schema`` when the row sets one (see
-        ``control_plane/ddl_definitions.py``'s column comment: "Defaults to the hosting
-        pipeline's own schema when NULL").
+        ``publish_catalog`` is the catalog every published recon dataset lands in (the hosting
+        pipeline's own). ``publish_schema`` is RETAINED FOR CALL-SITE COMPATIBILITY ONLY: since
+        v1.7.07 it is not consulted -- ``flow_row.publish_schema`` is the sole publish decision,
+        and a row without one publishes nothing (its audit datasets are registered as
+        pipeline-scoped temporary tables). Before v1.7.07 it was the fallback schema for a NULL
+        ``flow_row.publish_schema``, which put ``recon__*__metrics`` beside the business tables.
     control_schema:
         ``<catalog>.config`` -- where ``reconciliation_run_log``/``reconciliation_mismatch_log``/
         ``reconciliation_result`` live; forwarded unchanged to
@@ -360,32 +362,22 @@ def register_reconciliation_flow(
         logging_config, recon_run_log_capture, recon_mismatch_log
     )
 
-    if dq_rules and not run_log_capture:
-        raise FrameworkConfigError(
-            f"Reconciliation flow '{reconciliation_id}': dq_config.rules are declared but "
-            "run_log_capture resolves to false. The flow's expectations attach to its "
-            "`__metrics` dataset, which is only registered when run_log_capture is true -- "
-            "suppressing it would silently drop declared data-quality expectations. Either "
-            "remove logging_config.run_log_capture: false (or the "
-            "dataflow.recon.run_log_capture pipeline-conf override), or remove dq_config "
-            "from this reconciliation flow."
-        )
-
-    if execution_mode == _PIPELINE_AUDIT_ONLY_EXECUTION_MODE and not run_log_capture and not mismatch_log_capture:
-        raise FrameworkConfigError(
-            f"Reconciliation flow '{reconciliation_id}': execution_mode='pipeline_audit_only' "
-            "with both run_log_capture and mismatch_log_capture resolved false registers "
-            "compute with no output at all -- the audit-only mode exists solely to produce "
-            "the `__metrics`/`__mismatch` datasets and their control-table exports. Enable "
-            "at least one capture flag, or switch the flow to execution_mode='job'/'pipeline'."
-        )
-
     # two_tier_verification defaults to True when the column is absent/NULL -- same
     # column-may-not-exist-yet caveat as source_plane.py / 05_reconciliation_engine.py.
     _two_tier_raw = _row_get(flow_row, "two_tier_verification", None)
     two_tier_verification = True if _two_tier_raw is None else bool(_two_tier_raw)
 
-    effective_publish_schema = _row_get(flow_row, "publish_schema", None) or publish_schema
+    # v1.7.07: `publish_schema` is the ONLY thing that publishes. Until v1.7.07 an absent
+    # publish_schema fell back to the hosting pipeline's own schema (the `publish_schema`
+    # argument), so every audit-only flow that never asked for anything to be published still
+    # landed real `recon__*__metrics` materialized views beside the business tables (UC6: six of
+    # them in `bronze`). Now an absent publish_schema means "publish nothing": the audit datasets
+    # this flow still needs are registered as pipeline-scoped TEMPORARY tables with bare names,
+    # exactly like the L3/L4 intermediates, and anything that genuinely requires a published
+    # table is rejected below with the fix named. The `publish_schema` argument is retained for
+    # call-site compatibility and is deliberately not consulted here.
+    effective_publish_schema = _row_get(flow_row, "publish_schema", None)
+    publishes = bool(effective_publish_schema)
     source_hash_precomputed = bool(source_config.get("hash_precomputed", False))
     sanitized_reconciliation_id = sanitize_identifier(reconciliation_id)
 
@@ -393,8 +385,66 @@ def register_reconciliation_flow(
     heal_targets = [tc for tc in target_configs if _wants_heal(tc)]
     needs_heal = execution_mode == _PIPELINE_EXECUTION_MODE and bool(heal_targets)
 
+    if needs_heal and not publishes:
+        raise FrameworkConfigError(
+            f"Reconciliation flow '{reconciliation_id}': execution_mode='pipeline' with a healing "
+            "target (append_target_table) requires publish_schema. The L5 heal handler reads the "
+            "flow's prepared source and healing target back through the metastore "
+            "(spark.read.table), so those two nodes must be published tables -- and since v1.7.07 "
+            "nothing is published without an explicit publish_schema. Set publish_schema to a "
+            "dedicated reconciliation schema in the pipeline's catalog."
+        )
+
+    if not publishes and (run_log_capture or mismatch_log_capture):
+        raise FrameworkConfigError(
+            f"Reconciliation flow '{reconciliation_id}': run_log_capture/mismatch_log_capture "
+            f"resolve to ({run_log_capture}, {mismatch_log_capture}) but publish_schema is absent. "
+            "The reconciliation_run_log / reconciliation_mismatch_log rows are exported from the "
+            "PUBLISHED `recon__*__metrics` / `__mismatch` datasets; without publish_schema those "
+            "datasets are pipeline-scoped temporary tables and nothing can be captured. Either set "
+            "publish_schema, or set both capture flags false (a dq_config gate still works on the "
+            "pipeline-scoped `__metrics` dataset). Check the dataflow.recon.* pipeline-conf "
+            "overrides too -- they can turn a flag on that the spec left off."
+        )
+
+    # `__metrics` exists whenever anything needs it: a run-log capture (published) or a
+    # dq_config gate (published or temporary). An audit-only flow with neither, and no
+    # mismatch capture, would register a full self-comparison that nothing ever reads.
+    registers_metrics = bool(run_log_capture or dq_rules)
+    if (
+        execution_mode == _PIPELINE_AUDIT_ONLY_EXECUTION_MODE
+        and not registers_metrics
+        and not mismatch_log_capture
+    ):
+        raise FrameworkConfigError(
+            f"Reconciliation flow '{reconciliation_id}': execution_mode='pipeline_audit_only' "
+            "with both run_log_capture and mismatch_log_capture resolved false and no dq_config "
+            "rules registers compute with no output at all -- the audit-only mode exists to "
+            "produce the `__metrics`/`__mismatch` datasets, their control-table exports, or a "
+            "dq_config gate. Enable a capture flag (with publish_schema), declare dq_config "
+            "rules, or switch the flow to execution_mode='job'/'pipeline'."
+        )
+
     def _node_name(bare: str) -> str:
+        if not effective_publish_schema:
+            raise FrameworkConfigError(
+                f"Reconciliation flow '{reconciliation_id}': internal error -- asked to publish "
+                f"'{bare}' with no publish_schema. Nothing may be published without one."
+            )
         return qualified_table_name(publish_catalog, effective_publish_schema, bare)
+
+    def _audit_node(bare_suffix: str) -> Tuple[str, bool]:
+        """Name and temporariness of an L4 audit dataset (`__metrics` / `__mismatch`).
+
+        Published (three-part name, permanent) only when the flow sets publish_schema;
+        otherwise a bare, pipeline-scoped temporary table -- the Intermediate Object Rule
+        applied to the audit lane. The bare spelling carries the leading `_` every
+        temporary recon node carries, so `_recon__<rid>__<tid>__metrics` cannot be mistaken
+        for a published `recon__...__metrics`.
+        """
+        if publishes:
+            return _node_name(f"recon__{bare_suffix}"), False
+        return f"_recon__{bare_suffix}", True
 
     # -----------------------------------------------------------------------------------------
     # L3 RECON PREPARE -- one shared source, one target per target_configs[] entry.
@@ -513,7 +563,9 @@ def register_reconciliation_flow(
 
         _make_classified_table()
 
-        metrics_table_name = _node_name(f"recon__{sanitized_reconciliation_id}__{sanitized_target_id}__metrics")
+        metrics_table_name, metrics_temporary = _audit_node(
+            f"{sanitized_reconciliation_id}__{sanitized_target_id}__metrics"
+        )
         metrics_table_names[target_id] = metrics_table_name
 
         def _make_metrics_table(
@@ -521,14 +573,18 @@ def register_reconciliation_flow(
             _tgt_table_name=tgt_table_name,
             _classified_table_name=classified_table_name,
             _metrics_table_name=metrics_table_name,
+            _metrics_temporary=metrics_temporary,
         ):
             @dlt.table(
                 name=_metrics_table_name,
+                temporary=_metrics_temporary,
                 comment=(
                     f"L4 RECON COMPARE -- one-row metrics summary for reconciliation '{reconciliation_id}' "
                     f"target '{_target_id}'. Carries this flow's dq_config expectations, if any -- "
                     f"reconciliation's first declarative way to fail a pipeline update. Registered "
-                    f"only when run_log_capture resolves true (it feeds reconciliation_run_log)."
+                    f"when run_log_capture resolves true (it feeds reconciliation_run_log) or when "
+                    f"dq_config rules exist; published only when the flow sets publish_schema, "
+                    f"otherwise pipeline-scoped."
                 ),
             )
             @apply_dq_expectations(dq_rules)
@@ -538,16 +594,23 @@ def register_reconciliation_flow(
                 target_df = dlt.read(_tgt_table_name)
                 return _counts_query(classified_df, source_df, target_df)
 
-        if run_log_capture:
+        if registers_metrics:
             _make_metrics_table()
+
+        _mismatch_table_name, _mismatch_temporary = _audit_node(
+            f"{sanitized_reconciliation_id}__{sanitized_target_id}__mismatch"
+        )
 
         def _make_mismatch_table(
             _target_id=target_id,
             _classified_table_name=classified_table_name,
             _comparison_direction=comparison_direction,
+            _name=_mismatch_table_name,
+            _temporary=_mismatch_temporary,
         ):
             @dlt.table(
-                name=_node_name(f"recon__{sanitized_reconciliation_id}__{sanitized_target_id}__mismatch"),
+                name=_name,
+                temporary=_temporary,
                 comment=(
                     f"L4 RECON COMPARE -- per-record mismatch detail for reconciliation "
                     f"'{reconciliation_id}' target '{_target_id}', gated by comparison_direction={_comparison_direction!r}. "

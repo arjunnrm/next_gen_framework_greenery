@@ -201,7 +201,9 @@ _SOURCE_PLANE_CONFIG = json.loads(getattr(GROUP_ROW, "source_plane_config_json",
 # MAGIC * **Where "the hosting pipeline's own catalog/schema" is.** `resources/*.yml` sets
 # MAGIC   `catalog:`/`schema:` on the pipeline, and Lakeflow makes those the update's current
 # MAGIC   catalog/database. That is the documented default for a null `source_plane.catalog` /
-# MAGIC   `source_plane.schema` and for a null `reconciliation_flow_spec.publish_schema`.
+# MAGIC   `source_plane.schema`. Since v1.7.07 it is NOT a default for a null
+# MAGIC   `reconciliation_flow_spec.publish_schema` -- a null publish_schema publishes nothing;
+# MAGIC   `PIPELINE_SCHEMA` is still resolved and passed for call-site compatibility only.
 # MAGIC * **The per-run reconciliation log-silencing override.** `05_reconciliation_engine.py`
 # MAGIC   exposes `recon_run_log_capture` / `recon_mismatch_log` as tri-state *job widgets*; a
 # MAGIC   pipeline update has no widgets and `pipelines start-update` accepts only
@@ -255,10 +257,12 @@ PIPELINE_CATALOG = _CURRENT_CATALOG or getattr(GROUP_ROW, "catalog_name", None) 
 # this notebook keeps only bare registration fan-outs (tests/unit/test_pipeline_notebook_is_thin.py).
 PIPELINE_SCHEMA = resolve_pipeline_schema(spark, GROUP_ROW)
 if not PIPELINE_SCHEMA:
-    logger.warning(
+    # v1.7.07: no longer fatal for reconciliation -- a flow without publish_schema publishes
+    # nothing, so PIPELINE_SCHEMA is informational here.
+    logger.info(
         "Could not resolve this pipeline's target schema from pipelines.schema/pipelines.target, "
-        "the session's current database, or the group row. Any reconciliation flow that does not "
-        "set an explicit publish_schema will fail when its datasets are named."
+        "the session's current database, or the group row. Reconciliation naming no longer depends "
+        "on it (a flow without publish_schema publishes nothing)."
     )
 
 # The onboarding spec (and therefore source_plane_config_json) names these keys `catalog`/

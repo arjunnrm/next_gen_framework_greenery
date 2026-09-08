@@ -6,7 +6,7 @@ scripts/verify_uc6_business_rules.py transpiles the spec's Spark SQL to DuckDB a
 against fixtures -- and it has already been wrong once, via a sqlglot bug that mis-parenthesised
 months_between(...)/12 and silently let an under-17 customer through. DuckDB is corroboration,
 not authority. The authority is what the Lakeflow pipeline actually wrote: the rows in
-flowx.gold.uc6_osapr_output / uc6_telephone_output, and the bytes of the four files the pgp_zip
+flowx.gold.flood_warning_osapr / flood_warning_telephone, and the bytes of the four files the pgp_zip
 sink placed under /Volumes/flowx/staging/uc_6/output/. This script reads those and nothing else.
 
 Run it AFTER a successful pipeline update (never mid-update -- see flowx_testing/TESTING_PLAN.md
@@ -22,9 +22,9 @@ UC6_PGP_PASSPHRASE and defaults to the documented synthetic POC passphrase.
 
 Checks (each prints PASS/FAIL with actual vs expected; exit 0 only if every one passes):
 
-  C1  gold uc6_osapr_output: exactly 7 rows, and every (targetAreaID, osapr) -> (status, count)
+  C1  gold flood_warning_osapr: exactly 7 rows, and every (targetAreaID, osapr) -> (status, count)
       matches the decision table -- all four status branches exercised.
-  C2  gold uc6_telephone_output: targetAreaID set == {AREA_FOUND}, exactly 2 telephones, and
+  C2  gold flood_warning_telephone: targetAreaID set == {AREA_FOUND}, exactly 2 telephones, and
       the two must-be-absent numbers (privacy rule, under-17 age filter) are absent.
   C3  exactly four files in the output volume, one per role, names matching the interface
       shape EE_<yyyy-mm-dd>-[LEIDOS_]{TELEPHONE|OSAPR}_<NofM>.csv.gz[.gpg].
@@ -99,25 +99,25 @@ FILE_ROLES = {
     "LEIDOS_TELEPHONE": {
         "regex": re.compile(r"^EE_%s-LEIDOS_TELEPHONE_%s\.csv\.gz$" % (_DATE, _SEQ)),
         "encrypted": False,
-        "table": "uc6_telephone_output",
+        "table": "flood_warning_telephone",
         "columns": TELEPHONE_COLUMNS,
     },
     "LEIDOS_OSAPR": {
         "regex": re.compile(r"^EE_%s-LEIDOS_OSAPR_%s\.csv\.gz$" % (_DATE, _SEQ)),
         "encrypted": False,
-        "table": "uc6_osapr_output",
+        "table": "flood_warning_osapr",
         "columns": OSAPR_COLUMNS,
     },
     "TELEPHONE": {
         "regex": re.compile(r"^EE_%s-TELEPHONE_%s\.csv\.gz\.gpg$" % (_DATE, _SEQ)),
         "encrypted": True,
-        "table": "uc6_telephone_output",
+        "table": "flood_warning_telephone",
         "columns": TELEPHONE_COLUMNS,
     },
     "OSAPR": {
         "regex": re.compile(r"^EE_%s-OSAPR_%s\.csv\.gz\.gpg$" % (_DATE, _SEQ)),
         "encrypted": True,
-        "table": "uc6_osapr_output",
+        "table": "flood_warning_osapr",
         "columns": OSAPR_COLUMNS,
     },
 }
@@ -258,7 +258,7 @@ def check_gold_osapr(report, columns, rows, expect_empty):
     if expect_empty:
         statuses = {status for status, _ in actual.values()}
         report.check(
-            "C1", "gold uc6_osapr_output statuses (supplied zero-match bundle) are a subset of the no-match statuses",
+            "C1", "gold flood_warning_osapr statuses (supplied zero-match bundle) are a subset of the no-match statuses",
             statuses <= EMPTY_MODE_ALLOWED_STATUSES and not duplicates,
             {"rows": len(rows), "statuses": statuses, "duplicate_keys": duplicates},
             {"statuses_subset_of": EMPTY_MODE_ALLOWED_STATUSES, "duplicate_keys": []},
@@ -266,7 +266,7 @@ def check_gold_osapr(report, columns, rows, expect_empty):
         return
 
     report.check(
-        "C1", "gold uc6_osapr_output row count == %d" % len(EXPECTED_OSAPR),
+        "C1", "gold flood_warning_osapr row count == %d" % len(EXPECTED_OSAPR),
         len(rows) == len(EXPECTED_OSAPR), len(rows), len(EXPECTED_OSAPR),
     )
     diff = {}
@@ -275,7 +275,7 @@ def check_gold_osapr(report, columns, rows, expect_empty):
             diff["%s/%s" % key] = {"expected": EXPECTED_OSAPR.get(key), "actual": actual.get(key)}
     ok = not diff and not duplicates
     report.check(
-        "C1", "gold uc6_osapr_output every (targetAreaID, osapr) -> (status, count) matches the decision table",
+        "C1", "gold flood_warning_osapr every (targetAreaID, osapr) -> (status, count) matches the decision table",
         ok,
         {"mismatches": diff, "duplicates": duplicates, "keys_compared": len(actual)},
         {"mismatches": {}, "duplicates": [], "keys_compared": len(EXPECTED_OSAPR)},
@@ -288,16 +288,16 @@ def check_gold_telephone(report, columns, rows, expect_empty):
     numbers = {row[idx["telephone"]] for row in rows}
 
     if expect_empty:
-        report.check("C2", "gold uc6_telephone_output has zero rows (supplied zero-match bundle)", len(rows) == 0,
+        report.check("C2", "gold flood_warning_telephone has zero rows (supplied zero-match bundle)", len(rows) == 0,
                      {"rows": len(rows), "areas": areas}, {"rows": 0, "areas": set()})
     else:
-        report.check("C2", "gold uc6_telephone_output targetAreaID set", areas == EXPECTED_TELEPHONE_AREAS,
+        report.check("C2", "gold flood_warning_telephone targetAreaID set", areas == EXPECTED_TELEPHONE_AREAS,
                      areas, EXPECTED_TELEPHONE_AREAS)
-        report.check("C2", "gold uc6_telephone_output row count == %d" % EXPECTED_TELEPHONE_COUNT,
+        report.check("C2", "gold flood_warning_telephone row count == %d" % EXPECTED_TELEPHONE_COUNT,
                      len(rows) == EXPECTED_TELEPHONE_COUNT, len(rows), EXPECTED_TELEPHONE_COUNT)
 
     for number, reason in TELEPHONE_MUST_BE_ABSENT.items():
-        report.check("C2", "gold uc6_telephone_output must NOT contain %s: %s" % (number, reason),
+        report.check("C2", "gold flood_warning_telephone must NOT contain %s: %s" % (number, reason),
                      number not in numbers, "present" if number in numbers else "absent", "absent")
 
 
@@ -465,7 +465,7 @@ def main(argv=None):
         w = connect(args.profile)
         print("\n===== gold tables =====")
         gold = {}
-        for table, columns in (("uc6_osapr_output", OSAPR_COLUMNS), ("uc6_telephone_output", TELEPHONE_COLUMNS)):
+        for table, columns in (("flood_warning_osapr", OSAPR_COLUMNS), ("flood_warning_telephone", TELEPHONE_COLUMNS)):
             sql = "SELECT %s FROM %s.gold.%s" % (", ".join("`%s`" % c for c in columns), args.catalog, table)
             gold[table] = query(w, args.warehouse_id, args.catalog, sql)
             print("  %-22s %d row(s)" % (table, len(gold[table][1])))
@@ -482,9 +482,9 @@ def main(argv=None):
         return 2
 
     print("\n===== C1 gold osapr =====")
-    check_gold_osapr(report, *gold["uc6_osapr_output"], expect_empty=args.expect_empty)
+    check_gold_osapr(report, *gold["flood_warning_osapr"], expect_empty=args.expect_empty)
     print("\n===== C2 gold telephone =====")
-    check_gold_telephone(report, *gold["uc6_telephone_output"], expect_empty=args.expect_empty)
+    check_gold_telephone(report, *gold["flood_warning_telephone"], expect_empty=args.expect_empty)
     print("\n===== C3 file inventory =====")
     by_role, unmatched = classify_files(entries)
     check_file_inventory(report, entries, by_role, unmatched, args.expect_empty)

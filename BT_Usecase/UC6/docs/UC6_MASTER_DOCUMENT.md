@@ -190,12 +190,12 @@ body, .md-typeset, .md-typeset table, .md-typeset h1, .md-typeset h2,
 
 | File pattern | Bronze table | What it contributes | Delimiter |
 |---|---|---|---|
-| `EE_*-REQUEST_*.csv.gz.gpg` | `uc6_ea_request` | **The trigger.** EA target areas and addresses | Pipe |
-| `CSS_account_[0-9]*.dat.gz` | `uc6_css_account` | Date of birth, business-unit code | Pipe |
-| `CSS_account_address_*.dat.gz` | `uc6_css_account_address` | The customer address | Pipe |
-| `CSS_subscription_*.dat.gz` | `uc6_css_subscription` | The MSISDN, the phone number | Pipe |
-| `CM_JT_Customer_Details_*.dat.gz` | `uc6_jt_customer` | PAYG customers, a separate channel | Pipe |
-| `CM_EXCALIBUR_ADDRESS_*.dat.gz` | `uc6_excalibur_address` | EE and TMUK legacy addresses | **Comma** |
+| `EE_*-REQUEST_*.csv.gz.gpg` | `ea_request` | **The trigger.** EA target areas and addresses | Pipe |
+| `CSS_account_[0-9]*.dat.gz` | `css_account` | Date of birth, business-unit code | Pipe |
+| `CSS_account_address_*.dat.gz` | `css_account_address` | The customer address | Pipe |
+| `CSS_subscription_*.dat.gz` | `css_subscription` | The MSISDN, the phone number | Pipe |
+| `CM_JT_Customer_Details_*.dat.gz` | `jt_customer` | PAYG customers, a separate channel | Pipe |
+| `CM_EXCALIBUR_ADDRESS_*.dat.gz` | `excalibur_address` | EE and TMUK legacy addresses | **Comma** |
 
 ### 5.2 Two traps in the source data
 
@@ -212,12 +212,12 @@ produces zero matches. See Appendix B.4 for why both are kept.
 
 | Table | Rows | Note |
 |---|---|---|
-| `uc6_ea_request` | 7 | Seven EA addresses across four areas |
-| `uc6_css_account` | 5 | Five CSS customers |
-| `uc6_css_account_address` | 5 | One address each |
-| `uc6_css_subscription` | 5 | One MSISDN each |
-| `uc6_jt_customer` | 1 | The deliberate under-17 record |
-| `uc6_excalibur_address` | 1 | The deliberate postcode-match-only record |
+| `ea_request` | 7 | Seven EA addresses across four areas |
+| `css_account` | 5 | Five CSS customers |
+| `css_account_address` | 5 | One address each |
+| `css_subscription` | 5 | One MSISDN each |
+| `jt_customer` | 1 | The deliberate under-17 record |
+| `excalibur_address` | 1 | The deliberate postcode-match-only record |
 
 ---
 
@@ -247,7 +247,7 @@ produces zero matches. See Appendix B.4 for why both are kept.
 
 ### 6.3 A critical operational note
 
-> **The EA request file is consumed on every run.** Its `delete_source_after_extract` action is `delete_now`. You must re-upload it from the fixture before each run. The other five files remain in place.
+> **The EA request file is retained after extraction** (`delete_source_after_extract: false` since 2026-09-08; it was `delete_now` before, which consumed the `.gpg` on every run). The extractor drops a sidecar marker `.EE_...csv.gz.gpg.__framework_extracted__` beside it and skips the archive on later updates unless the archive's modification time is newer than the marker, so a re-delivered file with the same name is still re-extracted. No re-upload is needed between runs; all six files stay in `raw/`.
 
 ---
 
@@ -264,10 +264,10 @@ produces zero matches. See Appendix B.4 for why both are kept.
 | **5** | Five plain `.gz` files are read directly | Auto Loader | Spark decompresses gzip natively |
 | **6** | Positional columns are named via schema configs | `ingestion/schema_config.py` | Bronze tables have real column names |
 | **7** | Six bronze tables are published | `br_digital_poc.bronze.uc6_*` | Query T1 |
-| **8** | EA rows are normalised, deduplicated per OSAPR | `silver.uc6_ea_base`, `uc6_ea_address` | Query T2 |
-| **9** | EE customers are unioned across three channels | `silver.uc6_ee_address_paf` | Query T3 |
-| **10** | **The join.** EA addresses meet EE addresses on postcode | `silver.uc6_matched_address` | Query T4 |
-| **11** | Statuses are decided, telephone list is filtered | `gold.uc6_osapr_output`, `uc6_telephone_output` | Query T5, T6 |
+| **8** | EA rows are normalised, deduplicated per OSAPR | `silver.ea_request_base`, `ea_request_address` | Query T2 |
+| **9** | EE customers are unioned across three channels | `silver.ee_customer_address_paf` | Query T3 |
+| **10** | **The join.** EA addresses meet EE addresses on postcode | `silver.flood_area_matched_address` | Query T4 |
+| **11** | Statuses are decided, telephone list is filtered | `gold.flood_warning_osapr`, `flood_warning_telephone` | Query T5, T6 |
 | **12** | Four files are written, two of them encrypted | `output/` | Query T9 |
 
 ### 7.2 Why the EA file needs steps 3 and 4, but the others do not
@@ -287,12 +287,12 @@ produces zero matches. See Appendix B.4 for why both are kept.
 
 | Table | Purpose | Who uses it |
 |---|---|---|
-| `uc6_ea_request` | Faithful copy of the EA flood-warning request | Silver normalisation |
-| `uc6_css_account` | CSS customer master. **Supplies date of birth and business-unit code** | The age filter and BS exclusion |
-| `uc6_css_account_address` | CSS postal addresses | Address matching |
-| `uc6_css_subscription` | CSS MSISDNs, the phone numbers | The final output |
-| `uc6_jt_customer` | PAYG customers, a self-contained channel | Union branch 2 |
-| `uc6_excalibur_address` | Legacy EE and TMUK addresses | Union branch 3 |
+| `ea_request` | Faithful copy of the EA flood-warning request | Silver normalisation |
+| `css_account` | CSS customer master. **Supplies date of birth and business-unit code** | The age filter and BS exclusion |
+| `css_account_address` | CSS postal addresses | Address matching |
+| `css_subscription` | CSS MSISDNs, the phone numbers | The final output |
+| `jt_customer` | PAYG customers, a self-contained channel | Union branch 2 |
+| `excalibur_address` | Legacy EE and TMUK addresses | Union branch 3 |
 
 **Bronze rule:** these are faithful copies. No business logic is applied here. That is deliberate, so you can always prove what the source actually sent.
 
@@ -300,25 +300,25 @@ produces zero matches. See Appendix B.4 for why both are kept.
 
 | Table | Purpose | Rows today |
 |---|---|---|
-| `uc6_ea_base` | One row per OSAPR, deduplicated. **The audit spine** | 7 |
-| `uc6_ea_address` | EA addresses normalised for matching | 7 |
-| `uc6_ee_address_paf` | **The union.** All EE customers from three channels, PAF-normalised, age-filtered | 6 |
-| `uc6_matched_address` | **The join result.** Every EA-to-EE candidate pair with a score | 11 |
+| `ea_request_base` | One row per OSAPR, deduplicated. **The audit spine** | 7 |
+| `ea_request_address` | EA addresses normalised for matching | 7 |
+| `ee_customer_address_paf` | **The union.** All EE customers from three channels, PAF-normalised, age-filtered | 6 |
+| `flood_area_matched_address` | **The join result.** Every EA-to-EE candidate pair with a score | 11 |
 
 ### 8.3 Gold layer, two tables
 
 | Table | Purpose | Rows today |
 |---|---|---|
-| `uc6_osapr_output` | **The audit answer.** One row per EA address, with its status | 7 |
-| `uc6_telephone_output` | **The action list.** Only numbers safe to warn | 2 |
+| `flood_warning_osapr` | **The audit answer.** One row per EA address, with its status | 7 |
+| `flood_warning_telephone` | **The action list.** Only numbers safe to warn | 2 |
 
 ### 8.4 Why 11 matched rows become 7 audit rows and 2 phone numbers
 
 | Stage | Rows | What happened |
 |---|---|---|
-| `uc6_matched_address` | 11 | Every candidate pair. One EA address can match several customers |
-| `uc6_osapr_output` | 7 | Aggregated back to one row per EA address |
-| `uc6_telephone_output` | 2 | Only areas that passed **both** the strength and privacy rules |
+| `flood_area_matched_address` | 11 | Every candidate pair. One EA address can match several customers |
+| `flood_warning_osapr` | 7 | Aggregated back to one row per EA address |
+| `flood_warning_telephone` | 2 | Only areas that passed **both** the strength and privacy rules |
 
 ---
 
@@ -328,18 +328,18 @@ produces zero matches. See Appendix B.4 for why both are kept.
 
 | # | Join | Left | Right | Keys | Type |
 |---|---|---|---|---|---|
-| **J1** | Customer assembly | `uc6_css_sub` | `uc6_css_acct` | `customerid` | INNER |
-| **J2** | Address attachment | (J1 result) | `uc6_css_addr` | `customerid` | INNER |
-| **J3** | **The matching join** | `uc6_ee_paf_match` | `uc6_ea_addr_match` | `postcode_norm` | INNER |
-| **J4** | Score aggregation | `uc6_ea_base_osapr` | `uc6_matched_osapr` | `osapr` | LEFT |
+| **J1** | Customer assembly | `css_subscription_in` | `css_account_in` | `customerid` | INNER |
+| **J2** | Address attachment | (J1 result) | `css_account_address_in` | `customerid` | INNER |
+| **J3** | **The matching join** | `ee_paf_in` | `ea_address_in` | `postcode_norm` | INNER |
+| **J4** | Score aggregation | `ea_base_in` | `matched_for_osapr` | `osapr` | LEFT |
 | **J5** | Area rollup | `scored` | `area` | `targetAreaID` | INNER |
-| **J6** | Telephone filter | `uc6_matched_tel` | `uc6_osapr_tel` | `targetAreaID` + `osapr` | INNER |
+| **J6** | Telephone filter | `matched_for_telephone` | `osapr_for_telephone` | `targetAreaID` + `osapr` | INNER |
 
 ### 9.2 J3, the matching join, explained line by line
 
 ```sql
-FROM   uc6_ee_paf_match ee
-INNER  JOIN uc6_ea_addr_match ea
+FROM   ee_paf_in ee
+INNER  JOIN ea_address_in ea
        ON ee.postcode_norm = ea.postcode_norm
 WHERE  ea.has_po_box = false
   AND  ee.has_po_box = false
@@ -361,8 +361,8 @@ WHERE  ea.has_po_box = false
 ### 9.4 J4, and why it must be a LEFT JOIN
 
 ```sql
-FROM   uc6_ea_base_osapr b
-LEFT   JOIN uc6_matched_osapr m ON b.osapr = m.osapr
+FROM   ea_base_in b
+LEFT   JOIN matched_for_osapr m ON b.osapr = m.osapr
 ```
 
 | If it were INNER | Consequence |
@@ -375,12 +375,12 @@ LEFT   JOIN uc6_matched_osapr m ON b.osapr = m.osapr
 ### 9.5 J6, the privacy join
 
 ```sql
-FROM   uc6_matched_tel m
-INNER  JOIN uc6_osapr_tel o
+FROM   matched_for_telephone m
+INNER  JOIN osapr_for_telephone o
        ON  m.targetAreaID = o.targetAreaID
        AND m.osapr        = o.osapr
-WHERE  m.match_strength > 50
-  AND  o.count_of_osapr > 1
+WHERE  o.count = 1
+  AND  m.match_strength > 50
 ```
 
 | Condition | Rule enforced |
@@ -554,8 +554,8 @@ These are the repository copies; the spec points at their **deployed** location 
 | Section | Count | Purpose |
 |---|---|---|
 | `ingestion_flows` | 6 | One per source file |
-| `transformation_flows` | 10 | 6 business logic, 4 export sinks |
-| `reconciliation_flows` | 6 | Presence gates |
+| `transformation_flows` | 11 | 1 presence gate, 6 business logic, 4 export sinks. Since 2026-09-08 every SQL is written as named CTEs and the PAF normalisation is applied once to the assembled address, not once per component |
+| `reconciliation_flows` | 0 | **Removed 2026-09-08.** The six self-reconciliation presence gates became the single `ts_uc6_source_presence_gate` transformation flow (see 13.5 and 17.3) |
 | `observability` | 1 | Telemetry destination |
 | `pipeline_parameters` | 6 | The tunable rules |
 
@@ -568,15 +568,14 @@ All six ingestion flows share `source_type`, `target_type` and `cdc_load_strateg
 | `source_type` | string | `autoloader` | File-based incremental ingestion. All six flows |
 | `target_type` | string | `streaming_table` | Each bronze table is a `STREAMING_TABLE`. All six flows |
 | `target_config.cdc_load_strategy` | string | `APPEND` | Bronze appends; no merge, no dedupe. All six flows |
-| `target_config.storage_format` | string | `delta` | The bronze table is Delta |
 | `source_config.format` | string | `csv` | Auto Loader reads CSV, including through plain `.gz` |
 | `source_config.path` | string | `raw/` for five, `_extracted/ea_request/` for EA | Where Auto Loader lists. **The EA flow reads the extracted copy, not `raw/`** |
 | `source_config.file_pattern` | string | e.g. `CSS_account_[0-9]*.dat.gz` | Restricts the listing. The `[0-9]` stops `CSS_account_*` swallowing `CSS_account_address_*` |
 | `source_config.schema_location` | string | `_schemas/<flow>/` | Auto Loader's inferred-schema and rescue state. One per flow |
 | `reader_options.delimiter` | string | `\|` on five, `,` on Excalibur | Field split. Excalibur is comma-delimited |
 | `reader_options.header` | string | `"true"` on EA, `"false"` on five | The EA request carries a header row; the five `.dat.gz` feeds do not |
-| `reader_options.mode` | string | `PERMISSIVE` | A malformed row is nulled, not fatal. All six flows |
-| `source_config.capture_technical_metadata` | boolean | `true` | Adds the `__framework_*` lineage columns. All six flows |
+| `reader_options.mode` | — | *(omitted since 2026-09-08)* | Spark's CSV default is already `PERMISSIVE` (a malformed row is nulled, not fatal); restating a default was noise |
+| `source_config.capture_technical_metadata` | — | *(omitted since 2026-09-08; default `true`)* | Adds the `__framework_*` lineage columns, including `__framework_ingestion_timestamp_utc` that `ea_request_base` orders by. All six flows |
 | `source_config.schema_config_path` | string | Set on **five** flows | Names positional columns. **Not on the EA flow** — that file has a real header |
 | `source_zip_handling.enabled` | boolean | `true` | **EA flow only.** Turns on the pre-read extract stage |
 | `source_zip_handling.source_zip_path` | string | `raw/` | Where the encrypted archive is picked up |
@@ -585,22 +584,22 @@ All six ingestion flows share `source_type`, `target_type` and `cdc_load_strateg
 | `source_zip_handling.member_format` | string | `gzip` | The envelope holds a **bare gzip stream**, not a ZIP container |
 | `pre_extraction_decryption.type` | string | `pgp_symmetric` | Passphrase-based, not key-based. **Nested inside `source_zip_handling`** |
 | `pre_extraction_decryption.passphrase_secret` | object | `secret_catalog` / `secret_schema` / `secret_key` = `{{catalog}}` / `config` / `pgpkey` | Resolves the passphrase at run time. Never stored in the spec |
-| `delete_source_after_extract.action` | string | `delete_now` | **The EA `.gpg` is consumed on every run.** Re-upload it before the next one. See 6.3 |
+| `delete_source_after_extract` | boolean | `false` | The EA `.gpg` is **retained**; a `.__framework_extracted__` sidecar marker makes later updates skip it until a newer copy lands. Was `{"action": "delete_now"}` (consumed on every run) before 2026-09-08. See 6.3 |
 | `dq_config.rules[]` | array | 1–5 rules per flow | Per-row predicates. `action` is `fail`, `drop` or `warn` |
 | `governance_tags.table_tags` | object | Six tags per flow | Applied post-update by the tagging task. See 18.2 |
 
 ### 13.3 Key transformation attributes
 
-The ten transformation flows are **not** uniform: six build tables, four are export sinks. The attributes
-differ accordingly.
+The eleven transformation flows are **not** uniform: one is the presence gate, six build business tables,
+four are export sinks. The attributes differ accordingly.
 
 | Attribute | Type | Value in UC6 | Runtime effect |
 |---|---|---|---|
 | `flow_step_id` | string | `ts_uc6_*` | Identifies the flow in the control tables |
-| `dataflow_id` | string | `df_uc6_ea_request_ingest` on **all ten** | Every transformation hangs off the EA ingestion flow, so the whole chain is one group |
-| `target_type` | string | `materialized_view` on **six**, `sink` on **four** | The six build tables; the four sinks write files and materialise nothing |
-| `target_config.cdc_load_strategy` | string | `TRUNCATE_AND_LOAD` on the six MVs, `APPEND` on the four sinks | The MVs recompute from scratch each run; a sink only ever appends |
-| `source_inputs[].input_name` | string | e.g. `uc6_css_sub` | The alias the `transformation_sql` selects **FROM**. Never the real table name |
+| `dataflow_id` | string | `df_uc6_ea_request_ingest` on **all eleven** | Every transformation hangs off the EA ingestion flow, so the whole chain is one group |
+| `target_type` | string | `materialized_view` on **seven**, `sink` on **four** | The gate and six business tables; the four sinks write files and materialise nothing |
+| `target_config.cdc_load_strategy` | string | `TRUNCATE_AND_LOAD` on the seven MVs, `APPEND` on the four sinks | The MVs recompute from scratch each run; a sink only ever appends (the value is required but inert on a sink) |
+| `source_inputs[].input_name` | string | `<table>_in` for a plain read, `<table>_for_<consumer>` where the same table feeds several flows, `gate_*` for the presence gate | The alias the `transformation_sql` selects **FROM**. Unique across the spec and never equal to a table name — aliases share the pipeline namespace with tables |
 | `source_inputs[].table` | string | `{{catalog}}.<layer>.<table>` | The upstream node. Resolved through the DAG, not re-read from source |
 | `source_inputs[].is_streaming` | boolean | `false` on **every** input | The whole chain is batch. See 13.4 |
 | `transformation_sql` | string | The business logic | Runs against the `input_name` aliases. `${param}` placeholders resolve from `pipeline_parameters` |
@@ -624,32 +623,39 @@ differ accordingly.
 |---|---|
 | **The SQL aggregates** | `GROUP BY`, `DISTINCT` and window functions are batch operations |
 | **Delta cannot stream a recomputed table** | A `TRUNCATE_AND_LOAD` target is fully replaced each run |
-| **A streaming union is illegal** | `uc6_ee_address_paf` unions three branches. Spark rejects mixing streaming and batch |
+| **A streaming union is illegal** | `ee_customer_address_paf` unions three branches. Spark rejects mixing streaming and batch |
 | **Windows need watermarks** | `ROW_NUMBER()` over a stream requires a watermark. Over a batch it does not |
 
 **All four of these were discovered at runtime**, not at validation. See Appendix A.
 
-### 13.5 Key reconciliation attributes
+### 13.5 The presence gate (a transformation flow, since 2026-09-08)
 
-All six reconciliation flows are structurally identical presence gates. Each compares a bronze table
-**against itself**; the comparison is a vehicle for the row-count assertion, not a real reconciliation.
+Until 2026-09-08 UC6 carried six `reconciliation_flows`, each comparing a bronze table **against
+itself** so that a `source_record_count > 0` expectation could fire on the recon engine's one-row
+metrics dataset. That bought a working gate at the price of 24 graph nodes, a full-outer self-join
+per source, six `recon__*__metrics` materialized views published beside the business tables, and no
+upstream edge to the flows it was meant to protect. It was replaced by one ordinary transformation
+flow.
 
-| Attribute | Type | Value in UC6 | Runtime effect |
-|---|---|---|---|
-| `reconciliation_id` | string | `rf_uc6_*_presence` | Identifies the gate in the control tables |
-| `dataflow_group_id` | string | `dfg_uc6_ea_flood_warning` | Binds the gate to the group |
-| `source_config.type` / `.table` | string | `table`, the bronze table | What is counted |
-| `source_config.read_mode` | string | `batch` | Point-in-time count, not a stream |
-| `source_config.hash_precomputed` | boolean | `false` | The framework computes the match hash itself |
-| `target_configs[].table` | string | **The same bronze table** | Self-comparison. See the note below |
-| `target_configs[].comparison_direction` | string | `target_to_source` | Direction of the comparison |
-| `match_keys` | array | A real business key per flow, e.g. `customerid` | **Never `__framework_hash_key`** — the matcher hashes real columns *into* that field, so using it is circular. See Appendix A, defect 8 |
-| `compare_columns` | array | `[]` (empty) on all six | Nothing is value-compared. Only the count matters |
-| `execution_mode` | string | `pipeline_audit_only` | Runs inside the pipeline update, audits only |
-| `dq_config.rules[]` | array | One rule: `source_record_count > 0`, action `fail` | **The gate itself.** It attaches to a one-row metrics dataset where the count is a real column. See 17.3 |
-| `error_handling.on_failure` | string | `fail` | A missing or empty source fails the update loudly |
-| `logging_config.run_log_capture` | boolean | `true` | A control-table row is written for alerting |
-| `logging_config.mismatch_log_capture` | boolean | `false` | No mismatch rows. There is nothing to mismatch in a self-comparison |
+| Attribute | Value in UC6 | Runtime effect |
+|---|---|---|
+| `flow_step_id` | `ts_uc6_source_presence_gate` | Identifies the gate in the control tables |
+| `target_table` | `silver.flood_warning_source_presence` | One row per required source: `source_name`, `row_count` |
+| `target_type` / `cdc_load_strategy` | `materialized_view` / `TRUNCATE_AND_LOAD` | Fully recomputed every update |
+| `source_inputs[]` | the six bronze tables, `is_streaming: false` | Batch counts; the source plane shares the base reads with the business flows |
+| `transformation_sql` | `SELECT 'ea_request' AS source_name, count(*) AS row_count FROM gate_ea_request UNION ALL …` | A groupBy-less `count(*)` is **one row even over an empty table**, so every source always has a row to evaluate |
+| `dq_config.rules[]` | `row_count > 0`, action `fail` | **The gate itself.** A missing or empty file fails the update |
+| consumers | `ts_uc6_ea_base`, `ts_uc6_ea_address`, `ts_uc6_ee_address_paf` | Each adds the gate as a `source_inputs[]` entry and `CROSS JOIN`s its matching row(s), so the gate is evaluated **before** any silver/gold MV recomputes — an empty delivery can no longer blank the outputs first |
+
+What was lost and accepted: the `reconciliation_run_log` row per source per update. It was
+written only by the post-pipeline export task, only on a passing update, and never on the failing
+one an operator would actually want — the expectation's pass/fail counts in the pipeline event log,
+already exported by `observability_export`, are the audit trail now.
+
+**Control tables.** Removing a flow from a spec does not deactivate its row. The six
+`reconciliation_flow_spec` rows for `dfg_uc6_ea_flood_warning` must be soft-disabled or they keep
+registering the old gates; the UC6 job's `onboard_uc6` task passes `prune_missing_flows: "true"` to
+the onboarding job, which does exactly that after the upsert (`onboarding/spec_pruning.py`).
 
 ### 13.6 Observability attributes
 
@@ -741,18 +747,18 @@ One destination, `dest_uc6_triggered_volume`.
 ### T1 — Row counts at every layer
 
 ```sql
-SELECT 'bronze.uc6_ea_request'  AS table_name, count(*) AS rows FROM br_digital_poc.bronze.uc6_ea_request
-UNION ALL SELECT 'bronze.uc6_css_account',         count(*) FROM br_digital_poc.bronze.uc6_css_account
-UNION ALL SELECT 'bronze.uc6_css_account_address', count(*) FROM br_digital_poc.bronze.uc6_css_account_address
-UNION ALL SELECT 'bronze.uc6_css_subscription',    count(*) FROM br_digital_poc.bronze.uc6_css_subscription
-UNION ALL SELECT 'bronze.uc6_jt_customer',         count(*) FROM br_digital_poc.bronze.uc6_jt_customer
-UNION ALL SELECT 'bronze.uc6_excalibur_address',   count(*) FROM br_digital_poc.bronze.uc6_excalibur_address
-UNION ALL SELECT 'silver.uc6_ea_base',             count(*) FROM br_digital_poc.silver.uc6_ea_base
-UNION ALL SELECT 'silver.uc6_ea_address',          count(*) FROM br_digital_poc.silver.uc6_ea_address
-UNION ALL SELECT 'silver.uc6_ee_address_paf',      count(*) FROM br_digital_poc.silver.uc6_ee_address_paf
-UNION ALL SELECT 'silver.uc6_matched_address',     count(*) FROM br_digital_poc.silver.uc6_matched_address
-UNION ALL SELECT 'gold.uc6_osapr_output',          count(*) FROM br_digital_poc.gold.uc6_osapr_output
-UNION ALL SELECT 'gold.uc6_telephone_output',      count(*) FROM br_digital_poc.gold.uc6_telephone_output;
+SELECT 'bronze.ea_request'  AS table_name, count(*) AS rows FROM br_digital_poc.bronze.ea_request
+UNION ALL SELECT 'bronze.css_account',         count(*) FROM br_digital_poc.bronze.css_account
+UNION ALL SELECT 'bronze.css_account_address', count(*) FROM br_digital_poc.bronze.css_account_address
+UNION ALL SELECT 'bronze.css_subscription',    count(*) FROM br_digital_poc.bronze.css_subscription
+UNION ALL SELECT 'bronze.jt_customer',         count(*) FROM br_digital_poc.bronze.jt_customer
+UNION ALL SELECT 'bronze.excalibur_address',   count(*) FROM br_digital_poc.bronze.excalibur_address
+UNION ALL SELECT 'silver.ea_request_base',             count(*) FROM br_digital_poc.silver.ea_request_base
+UNION ALL SELECT 'silver.ea_request_address',          count(*) FROM br_digital_poc.silver.ea_request_address
+UNION ALL SELECT 'silver.ee_customer_address_paf',      count(*) FROM br_digital_poc.silver.ee_customer_address_paf
+UNION ALL SELECT 'silver.flood_area_matched_address',     count(*) FROM br_digital_poc.silver.flood_area_matched_address
+UNION ALL SELECT 'gold.flood_warning_osapr',          count(*) FROM br_digital_poc.gold.flood_warning_osapr
+UNION ALL SELECT 'gold.flood_warning_telephone',      count(*) FROM br_digital_poc.gold.flood_warning_telephone;
 ```
 
 **Expected:** bronze 7, 5, 5, 5, 1, 1. Silver 7, 7, 6, 11. Gold 7, 2.
@@ -761,7 +767,7 @@ UNION ALL SELECT 'gold.uc6_telephone_output',      count(*) FROM br_digital_poc.
 
 ```sql
 SELECT targetAreaID, osapr, postcode, address_norm
-FROM   br_digital_poc.silver.uc6_ea_address
+FROM   br_digital_poc.silver.ea_request_address
 ORDER  BY targetAreaID, osapr;
 ```
 
@@ -771,14 +777,14 @@ ORDER  BY targetAreaID, osapr;
 
 ```sql
 SELECT source_system, count(*) AS customers, count(DISTINCT msisdn) AS distinct_msisdn
-FROM   br_digital_poc.silver.uc6_ee_address_paf
+FROM   br_digital_poc.silver.ee_customer_address_paf
 GROUP  BY source_system
 ORDER  BY customers DESC;
 ```
 
 **Expected on the current fixture:** `css` 5 customers, `excalibur` 1 customer. **The `jt` channel returns no rows at all.**
 
-**This is the age filter working, not a defect.** The bronze table `uc6_jt_customer` holds exactly one record, MSISDN `07700900999` with a date of birth of `20150101`. That customer is under 17, so the JT branch of the union filters them out entirely and the channel disappears from the result. Compare the bronze count against this query to see the filter take effect:
+**This is the age filter working, not a defect.** The bronze table `jt_customer` holds exactly one record, MSISDN `07700900999` with a date of birth of `20150101`. That customer is under 17, so the JT branch of the union filters them out entirely and the channel disappears from the result. Compare the bronze count against this query to see the filter take effect:
 
 | Channel | Bronze rows | Rows surviving the age filter |
 |---|---|---|
@@ -790,7 +796,7 @@ ORDER  BY customers DESC;
 
 ```sql
 SELECT targetAreaID, osapr, postcode, source_system, msisdn, match_strength
-FROM   br_digital_poc.silver.uc6_matched_address
+FROM   br_digital_poc.silver.flood_area_matched_address
 ORDER  BY targetAreaID, osapr, match_strength DESC;
 ```
 
@@ -801,7 +807,7 @@ ORDER  BY targetAreaID, osapr, match_strength DESC;
 ```sql
 SELECT targetAreaID, osapr, status, count,
        count_of_msisdn, count_of_osapr, match_strength
-FROM   br_digital_poc.gold.uc6_osapr_output
+FROM   br_digital_poc.gold.flood_warning_osapr
 ORDER  BY targetAreaID, osapr;
 ```
 
@@ -811,7 +817,7 @@ ORDER  BY targetAreaID, osapr;
 
 ```sql
 SELECT targetAreaID, telephone
-FROM   br_digital_poc.gold.uc6_telephone_output
+FROM   br_digital_poc.gold.flood_warning_telephone
 ORDER  BY targetAreaID, telephone;
 ```
 
@@ -822,7 +828,7 @@ ORDER  BY targetAreaID, telephone;
 ```sql
 SELECT '07700900003 must be ABSENT (privacy rule)' AS check_name,
        CASE WHEN count(*) = 0 THEN 'PASS' ELSE 'FAIL' END AS result
-FROM   br_digital_poc.gold.uc6_telephone_output
+FROM   br_digital_poc.gold.flood_warning_telephone
 WHERE  telephone = '07700900003';
 ```
 
@@ -833,7 +839,7 @@ WHERE  telephone = '07700900003';
 ```sql
 SELECT '07700900999 must be ABSENT (under-17)' AS check_name,
        CASE WHEN count(*) = 0 THEN 'PASS' ELSE 'FAIL' END AS result
-FROM   br_digital_poc.gold.uc6_telephone_output
+FROM   br_digital_poc.gold.flood_warning_telephone
 WHERE  telephone = '07700900999';
 ```
 
@@ -856,8 +862,8 @@ SELECT ea.osapr,
        cast(round(100.0 *
             size(array_intersect(split(ea.address_norm,' '), split(ee.address_norm,' ')))
             / greatest(size(split(ea.address_norm,' ')), 1)) AS INT) AS recomputed_score
-FROM   br_digital_poc.silver.uc6_ea_address ea
-JOIN   br_digital_poc.silver.uc6_ee_address_paf ee ON ea.postcode_norm = ee.postcode_norm
+FROM   br_digital_poc.silver.ea_request_address ea
+JOIN   br_digital_poc.silver.ee_customer_address_paf ee ON ea.postcode_norm = ee.postcode_norm
 ORDER  BY recomputed_score DESC;
 ```
 
@@ -881,15 +887,15 @@ ORDER  BY schema_name, table_name, tag_name;
 ```sql
 WITH checks AS (
     SELECT 'OSAPR output has 7 rows' AS check_name,
-           (SELECT count(*) FROM br_digital_poc.gold.uc6_osapr_output) AS actual, 7 AS expected
+           (SELECT count(*) FROM br_digital_poc.gold.flood_warning_osapr) AS actual, 7 AS expected
     UNION ALL SELECT 'Telephone output has 2 rows',
-           (SELECT count(*) FROM br_digital_poc.gold.uc6_telephone_output), 2
+           (SELECT count(*) FROM br_digital_poc.gold.flood_warning_telephone), 2
     UNION ALL SELECT 'All four statuses are present',
-           (SELECT count(DISTINCT status) FROM br_digital_poc.gold.uc6_osapr_output), 4
+           (SELECT count(DISTINCT status) FROM br_digital_poc.gold.flood_warning_osapr), 4
     UNION ALL SELECT 'Privacy rule held (07700900003 absent)',
-           (SELECT count(*) FROM br_digital_poc.gold.uc6_telephone_output WHERE telephone='07700900003'), 0
+           (SELECT count(*) FROM br_digital_poc.gold.flood_warning_telephone WHERE telephone='07700900003'), 0
     UNION ALL SELECT 'Age filter held (07700900999 absent)',
-           (SELECT count(*) FROM br_digital_poc.gold.uc6_telephone_output WHERE telephone='07700900999'), 0
+           (SELECT count(*) FROM br_digital_poc.gold.flood_warning_telephone WHERE telephone='07700900999'), 0
     UNION ALL SELECT 'Governance tags applied',
            (SELECT count(*) FROM br_digital_poc.information_schema.table_tags WHERE table_name LIKE 'uc6_%'), 72
 )
@@ -921,11 +927,12 @@ FROM   checks ORDER BY result DESC, check_name;
 
 | Aspect | Detail |
 |---|---|
-| **Mechanism** | Six reconciliation flows, one per source |
-| **Assertion** | `source_record_count > 0` |
-| **Why it works** | It attaches to a one-row metrics dataset, where the count is a real column |
-| **Execution mode** | `pipeline_audit_only` |
-| **Effect on failure** | The pipeline update fails, and a row is left in the control tables for alerting |
+| **Mechanism** | One transformation flow, `ts_uc6_source_presence_gate` → `silver.flood_warning_source_presence`, one row per source with its `count(*)` |
+| **Assertion** | `row_count > 0`, action `fail` |
+| **Why it works** | A groupBy-less aggregate yields exactly one row even over an empty table, so the expectation always evaluates — unlike a per-row rule on the ingestion flow |
+| **Why it protects the outputs** | The three flows that read bronze directly `CROSS JOIN` the gate, so it sits upstream of them; the update fails before any silver/gold MV is recomputed to zero rows |
+| **Effect on failure** | The pipeline update fails; the expectation's pass/fail counts land in the pipeline event log and are exported by `observability_export` |
+| **History** | Until 2026-09-08 this was six `pipeline_audit_only` reconciliation flows, each comparing a bronze table against itself (24 graph nodes, six published `recon__*__metrics` views). See 13.5 |
 
 ---
 
@@ -1044,7 +1051,7 @@ FROM   checks ORDER BY result DESC, check_name;
 ### B.1 Running UC6 from scratch
 
 ```bash
-# 1. Re-upload the EA request file. It is CONSUMED on every run.
+# 1. (Only needed the first time, or to deliver a new request.) Upload the EA request file. Since 2026-09-08 it is RETAINED after extraction, not consumed.
 databricks fs cp BT_Usecase/UC6/data/test_fixture/EE_2026-08-20-REQUEST_1OF1.csv.gz.gpg \
   dbfs:/Volumes/br_digital_poc/staging/uc_6/raw/EE_2026-08-20-REQUEST_1OF1.csv.gz.gpg \
   -p metaflow_v7 --overwrite
@@ -1133,8 +1140,8 @@ we do not regenerate it.** If it needs to change, it changes at the customer.
 | Fact type | How it was obtained |
 |---|---|
 | Row counts at every layer | Executed against `flowx` on `metaflow_v7` |
-| The decision table, all 7 rows | Read from `br_digital_poc.gold.uc6_osapr_output` |
-| The join output, all 11 rows | Read from `br_digital_poc.silver.uc6_matched_address` |
+| The decision table, all 7 rows | Read from `br_digital_poc.gold.flood_warning_osapr` |
+| The join output, all 11 rows | Read from `br_digital_poc.silver.flood_area_matched_address` |
 | Join SQL and business rules | Read from `BT_Usecase/UC6/onboarding/uc6_ea_flood_warning.json` |
 | Governance tag count | Counted in `br_digital_poc.information_schema.table_tags` |
 | Export file names and sizes | Listed from the output volume |

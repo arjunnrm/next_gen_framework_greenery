@@ -59,7 +59,7 @@
           ]
         },
         "placeholder": "recon_example",
-        "description": "Schema, inside the hosting pipeline's own catalog, where this flow's recon__<reconciliation_id>__<target_id>__classified, __metrics and __mismatch datasets are published. Defaults to the pipeline's own schema, which is often not where an operator wants reconciliation results to land. Rejected on presence when execution_mode is job -- a job-mode flow publishes none of those datasets."
+        "description": "Schema, inside the hosting pipeline's own catalog, where this flow's recon__<reconciliation_id>__<target_id>__metrics and __mismatch datasets are published. Since v1.7.07 this is the only thing that publishes: leave it empty and the audit datasets stay pipeline-scoped (a dq_config gate still works, nothing is exported). Required when run_log_capture or mismatch_log_capture is true, and for a healing pipeline-mode flow. Rejected on presence when execution_mode is job -- a job-mode flow publishes none of those datasets."
       },
       {
         "path": "two_tier_verification",

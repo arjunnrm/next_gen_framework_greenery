@@ -130,12 +130,14 @@ job, and are also the heal target of the reconciliation flows.
 | # | Job | Pipeline triggered | Tasks in order |
 |---|---|---|---|
 | 1 | `003_lfj_uc3_excalibur_streaming_simulator` | *(none)* | `delta_table_setup` → `stream_producer` |
-| 2 | `004_lfj_uc3_excalibur_streaming_cdc` | `004_ldp_uc3_excalibur_streaming_cdc` | `setup_control_tables` → `onboard_uc3` → `run_pipeline_update` → `apply_governance_uc3` → `observability_export` |
-| 3 | `005_lfj_uc3_excalibur_batch_recon` | `006_ldp_uc3_excalibur_batch_recon` | `setup_control_tables` → `onboard_uc3_recon` → `run_pipeline_update` → `apply_governance_uc3_recon` → `observability_export` |
+| 1b | `003b_lfj_uc3_excalibur_seed` | *(none)* | `setup_control_tables` → `onboard_streaming_cdc` → `onboard_batch_recon` (once per workspace, and after any spec change) |
+| 2 | `004_lfj_uc3_excalibur_streaming_cdc` | `004_ldp_uc3_excalibur_streaming_cdc` | `run_pipeline_update` → `observability_export` |
+| 3 | `005_lfj_uc3_excalibur_batch_recon` | `006_ldp_uc3_excalibur_batch_recon` | `run_pipeline_update` → `observability_export` |
+| 3b | `009_lfj_uc3_excalibur_governance` | *(none)* | `tag_streaming_cdc` → `tag_batch_recon` (once the tables exist, and after any `governance_tags` change) |
 
 **Ordering is a hard constraint.** Job 3 must run after Job 2, and the three jobs must **not** be
-parallelised — `setup_control_tables` applies an additive migration, and concurrent runs risk a
-Unity Catalog conflict.
+parallelised — Job 3 reads Job 2's bronze tables, and concurrent onboarding into one catalog
+risks a Unity Catalog conflict (the seed job's two onboarding tasks are serial for that reason).
 
 Dataflow groups: `dfg_uc3_excalibur_streaming_cdc`, `dfg_uc3_excalibur_batch_recon`.
 
@@ -233,12 +235,12 @@ Dataflow group: `dfg_uc6_ea_flood_warning`. Pipeline parameters include
 
 | Table | Written by | Upstream | DAG role |
 |---|---|---|---|
-| `bronze.uc6_ea_request` | `df_uc6_ea_request_ingest` | decrypted `_extracted/ea_request/*.csv` | **Upstream input** to two Silver views. 2 fail + 3 warn DQ rules. |
-| `bronze.uc6_css_account` | `df_uc6_css_account_ingest` | `raw/CSS_account_[0-9]*` | **Upstream input** to the PAF Silver view. |
-| `bronze.uc6_css_account_address` | `df_uc6_css_account_address_ingest` | `raw/CSS_account_address_*` | as above |
-| `bronze.uc6_css_subscription` | `df_uc6_css_subscription_ingest` | `raw/CSS_subscription_*` | as above |
-| `bronze.uc6_jt_customer` | `df_uc6_jt_customer_ingest` | `raw/CM_JT_Customer_Details_*` | as above |
-| `bronze.uc6_excalibur_address` | `df_uc6_excalibur_address_ingest` | `raw/CM_EXCALIBUR_ADDRESS_*` | as above |
+| `bronze.ea_request` | `df_uc6_ea_request_ingest` | decrypted `_extracted/ea_request/*.csv` | **Upstream input** to two Silver views. 2 fail + 3 warn DQ rules. |
+| `bronze.css_account` | `df_uc6_css_account_ingest` | `raw/CSS_account_[0-9]*` | **Upstream input** to the PAF Silver view. |
+| `bronze.css_account_address` | `df_uc6_css_account_address_ingest` | `raw/CSS_account_address_*` | as above |
+| `bronze.css_subscription` | `df_uc6_css_subscription_ingest` | `raw/CSS_subscription_*` | as above |
+| `bronze.jt_customer` | `df_uc6_jt_customer_ingest` | `raw/CM_JT_Customer_Details_*` | as above |
+| `bronze.excalibur_address` | `df_uc6_excalibur_address_ingest` | `raw/CM_EXCALIBUR_ADDRESS_*` | as above |
 
 **UC6 has no quarantine tables** — every ingestion flow sets `quarantine_table: null`.
 
@@ -246,26 +248,26 @@ Dataflow group: `dfg_uc6_ea_flood_warning`. Pipeline parameters include
 
 | Table | Written by | Upstream | DAG role |
 |---|---|---|---|
-| `silver.uc6_ea_base` | `ts_uc6_ea_base` | `bronze.uc6_ea_request` | **Intermediate.** Dedupes to one row per `osapr` by latest ingestion timestamp. Feeds Gold OSAPR. |
-| `silver.uc6_ea_address` | `ts_uc6_ea_address` | `bronze.uc6_ea_request` | **Intermediate.** Normalises postcode, address and town; flags PO boxes. Feeds the match view. |
-| `silver.uc6_ee_address_paf` | `ts_uc6_ee_address_paf` | **five Bronze tables** (`css_subscription`, `css_account`, `css_account_address`, `jt_customer`, `excalibur_address`) | **Fan-in.** Unifies customer PAF address + MSISDN across all five feeds into one shape with a `source_system` column. |
-| `silver.uc6_matched_address` | `ts_uc6_matched_address` | `silver.uc6_ea_address` + `silver.uc6_ee_address_paf` | **The join.** Inner join on normalised postcode; computes `match_strength` as a token-intersection percentage. Feeds both Gold views. |
+| `silver.ea_request_base` | `ts_uc6_ea_base` | `bronze.ea_request` | **Intermediate.** Dedupes to one row per `osapr` by latest ingestion timestamp. Feeds Gold OSAPR. |
+| `silver.ea_request_address` | `ts_uc6_ea_address` | `bronze.ea_request` | **Intermediate.** Normalises postcode, address and town; flags PO boxes. Feeds the match view. |
+| `silver.ee_customer_address_paf` | `ts_uc6_ee_address_paf` | **five Bronze tables** (`css_subscription`, `css_account`, `css_account_address`, `jt_customer`, `excalibur_address`) | **Fan-in.** Unifies customer PAF address + MSISDN across all five feeds into one shape with a `source_system` column. |
+| `silver.flood_area_matched_address` | `ts_uc6_matched_address` | `silver.ea_request_address` + `silver.ee_customer_address_paf` | **The join.** Inner join on normalised postcode; computes `match_strength` as a token-intersection percentage. Feeds both Gold views. |
 
 #### Gold / Semantic — two materialized views
 
 | Table | Written by | Upstream | DAG role |
 |---|---|---|---|
-| `gold.uc6_osapr_output` | `ts_uc6_osapr_output` | `silver.uc6_ea_base` + `silver.uc6_matched_address` | **Target consumer.** Applies the match-strength and address-count thresholds; emits `count` and `status` (`Single Addr`, `Bad OSAPR`, …). Feeds two sinks and the telephone view. |
-| `gold.uc6_telephone_output` | `ts_uc6_telephone_output` | `silver.uc6_matched_address` + `gold.uc6_osapr_output` | **Target consumer.** Distinct `targetAreaID, telephone`. Feeds two sinks. |
+| `gold.flood_warning_osapr` | `ts_uc6_osapr_output` | `silver.ea_request_base` + `silver.flood_area_matched_address` | **Target consumer.** Applies the match-strength and address-count thresholds; emits `count` and `status` (`Single Addr`, `Bad OSAPR`, …). Feeds two sinks and the telephone view. |
+| `gold.flood_warning_telephone` | `ts_uc6_telephone_output` | `silver.flood_area_matched_address` + `gold.flood_warning_osapr` | **Target consumer.** Distinct `targetAreaID, telephone`. Feeds two sinks. |
 
 #### Gold — four egress sinks
 
 | Sink | Upstream | Output file | Encrypted |
 |---|---|---|---|
-| `gold.uc6_export_leidos_telephone` | `gold.uc6_telephone_output` | `EE_<date>-LEIDOS_TELEPHONE_<seq>` | No — gzip only |
-| `gold.uc6_export_leidos_osapr` | `gold.uc6_osapr_output` | `EE_<date>-LEIDOS_OSAPR_<seq>` | No — gzip only |
-| `gold.uc6_export_telephone` | `gold.uc6_telephone_output` | `EE_<date>-TELEPHONE_<seq>` | **Yes** — `config.pgpkey` |
-| `gold.uc6_export_osapr` | `gold.uc6_osapr_output` | `EE_<date>-OSAPR_<seq>` | **Yes** — `config.pgpkey` |
+| `gold.leidos_telephone_export` | `gold.flood_warning_telephone` | `EE_<date>-LEIDOS_TELEPHONE_<seq>` | No — gzip only |
+| `gold.leidos_osapr_export` | `gold.flood_warning_osapr` | `EE_<date>-LEIDOS_OSAPR_<seq>` | No — gzip only |
+| `gold.telephone_export` | `gold.flood_warning_telephone` | `EE_<date>-TELEPHONE_<seq>` | **Yes** — `config.pgpkey` |
+| `gold.osapr_export` | `gold.flood_warning_osapr` | `EE_<date>-OSAPR_<seq>` | **Yes** — `config.pgpkey` |
 
 All four stage through `uc_6/output/_staging/<sink>/` and land ZIPs in `uc_6/output/`.
 
@@ -273,11 +275,14 @@ All four stage through `uc_6/output/_staging/<sink>/` and land ZIPs in `uc_6/out
 the governance engine iterates ingestion and transformation rows only and emits `ALTER TABLE`. A sink
 writes files to a volume, so there is no table to alter. The tags validate and then do nothing.
 
-#### Reconciliation — six presence checks
+#### Presence gate — one `COUNT(*)` materialized view
 
-`rf_uc6_<feed>_presence` for each of the six Bronze tables. Each compares a table against **itself**
-(`target_to_source`) as a row-presence assertion, publishing into `bronze` since no `publish_schema`
-is set.
+`silver.flood_warning_source_presence` (`ts_uc6_source_presence_gate`): one row per bronze source
+with its row count and a `row_count > 0` / `fail` expectation. The three flows that read bronze
+directly cross-join it, so an empty delivery fails the update before any downstream table is
+recomputed. UC6 declares **no** `reconciliation_flows` since 2026-09-08 (six self-comparison
+`rf_uc6_<feed>_presence` flows before that); the `onboard_uc6` task passes
+`prune_missing_flows: "true"` so their control rows are soft-disabled on re-onboarding.
 
 ### 3.4 Other UC6 assets
 

@@ -60,6 +60,9 @@ import json  # noqa: E402
 from flowx.lakeflow_framework.control_plane.schema_provisioner import (
     ensure_control_schema_exists,  # noqa: E402
 )
+from flowx.lakeflow_framework.onboarding.spec_pruning import (  # noqa: E402
+    deactivate_flows_absent_from_spec,
+)
 from flowx.lakeflow_framework.exceptions import (  # noqa: E402
     FrameworkError,
     OnboardingValidationError,
@@ -89,11 +92,16 @@ dbutils.widgets.text("spec_file_path", "", "Path to onboarding spec JSON (Worksp
 dbutils.widgets.text("catalog", "poc", "Target Unity Catalog")
 dbutils.widgets.text("env", "dev", "Target environment")
 dbutils.widgets.dropdown("action_type", "CREATE", ["CREATE", "UPDATE", "VALIDATE_ONLY"], "Onboarding action")
+# v1.7.07, opt-in: after the upsert, soft-disable this group's control rows for flows the spec no
+# longer declares. Off by default because a reconciliation flow may legitimately belong to a spec
+# other than the one owning its dataflow_group_id (see onboarding/spec_pruning.py).
+dbutils.widgets.dropdown("prune_missing_flows", "false", ["false", "true"], "Deactivate rows absent from the spec")
 
 SPEC_FILE_PATH = dbutils.widgets.get("spec_file_path").strip()
 CATALOG = dbutils.widgets.get("catalog").strip()
 ENVIRONMENT = dbutils.widgets.get("env").strip()
 ACTION_TYPE = dbutils.widgets.get("action_type").strip()
+PRUNE_MISSING_FLOWS = dbutils.widgets.get("prune_missing_flows").strip().lower() == "true"
 
 if not SPEC_FILE_PATH:
     raise ValueError("The 'spec_file_path' widget is required.")
@@ -180,6 +188,23 @@ try:
         upsert_reconciliation_flow_spec(spark, CONTROL_SCHEMA, spec["dataflow_group_id"], reconciliation_flows)
         upsert_observability_config(spark, CONTROL_SCHEMA, spec["dataflow_group_id"], observability_destinations)
         logger.info("Onboarding upsert complete for group '%s'", spec["dataflow_group_id"])
+        if PRUNE_MISSING_FLOWS:
+            pruned = deactivate_flows_absent_from_spec(
+                spark,
+                CONTROL_SCHEMA,
+                spec["dataflow_group_id"],
+                ingestion_flows,
+                transformation_flows,
+                reconciliation_flows,
+            )
+            logger.info("prune_missing_flows=true: deactivated rows per table: %s", pruned)
+        else:
+            logger.info(
+                "prune_missing_flows=false: control rows of group '%s' for flows this spec no longer declares "
+                "(if any) stay ACTIVE and keep driving the pipeline -- re-run with prune_missing_flows=true "
+                "to deactivate them.",
+                spec["dataflow_group_id"],
+            )
 
     write_audit_log_entry(
         spark=spark,

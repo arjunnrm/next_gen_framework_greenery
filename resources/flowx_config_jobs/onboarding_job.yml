@@ -40,6 +40,12 @@ resources:
           default: ${bundle.target}
         - name: action_type
           default: CREATE
+        # v1.7.07, opt-in. "true" soft-disables this group's control rows for flows the spec no
+        # longer declares (onboarding/spec_pruning.py). Off by default: a reconciliation flow may
+        # belong to a spec other than the one owning its dataflow_group_id, and pruning by group
+        # would deactivate it. Safe for groups owned by exactly one spec (every BT_Usecase group).
+        - name: prune_missing_flows
+          default: "false"
 
       tasks:
         - task_key: onboard
@@ -50,6 +56,7 @@ resources:
               catalog: "{{job.parameters.catalog}}"
               env: "{{job.parameters.env}}"
               action_type: "{{job.parameters.action_type}}"
+              prune_missing_flows: "{{job.parameters.prune_missing_flows}}"
           environment_key: framework_env
 
       environments:

@@ -23,7 +23,7 @@ runs in three places:
 
 | Entry point | What runs | When to use it |
 |---|---|---|
-| **Single-spec onboarding job** | `notebooks/02_onboarding/02_onboarding_engine.py` (widgets: `spec_file_path`, `catalog`, `env`, `action_type` = `CREATE` / `UPDATE` / `VALIDATE_ONLY`) | The normal CI/CD path — one spec changes, one job runs. |
+| **Single-spec onboarding job** | `notebooks/02_onboarding/02_onboarding_engine.py` (widgets: `spec_file_path`, `catalog`, `env`, `action_type` = `CREATE` / `UPDATE` / `VALIDATE_ONLY`, and since v1.7.07 `prune_missing_flows` = `false` / `true` — opt-in soft-disable of this group's control rows for flows the spec no longer declares, `onboarding/spec_pruning.py`) | The normal CI/CD path — one spec changes, one job runs. Without `prune_missing_flows: true` a flow deleted from the spec keeps its active row and keeps running. |
 | **Bulk directory onboarding** | `notebooks/02_onboarding/02b_bulk_config_onboarding_engine.py` → `onboarding/bulk_onboarding.py` (parameters: `spec_dir`, `action_type`, fail-soft by default) | Bringing up a whole environment or regression-onboarding the `flowx_testing/` corpus. Every spec is attempted; failures are reported per spec at the end. |
 | **Spec Builder app** | `POST /api/spec/validate` (`databricks-app/server/routers/spec_router.py` → `server/core/validator.py::SpecValidator`) | Interactive feedback while authoring in the app. This is a registry-driven, in-app **approximation** of the framework validator (Layer 1 structural + Layer 2 rule checks, no Spark session) — a spec that passes the app can still fail the framework validator, never the reverse direction you want. Treat the framework validator as authoritative. |
 
@@ -271,7 +271,12 @@ Two different SQL surfaces, two different rules:
   `CREATE`/`GRANT`/`REVOKE` (case-insensitive, word-boundary matched) is rejected outright, as
   is any `;`. Exactly one column expression per entry, e.g.
   `"trim(customer_name) AS customer_name"`. Deliberately conservative: better to reject a
-  legitimate edge case than silently accept a disguised full statement.
+  legitimate edge case than silently accept a disguised full statement. **Since v1.7.07 every
+  entry must also end with `AS <column_name>`** (`_STANDARDIZATION_ALIAS_PATTERN`, the same
+  regex the runtime uses): `ingestion/standardization_sql.py` writes the expression to exactly
+  that column via `withColumn` -- replacing an existing column of that name in place, adding it
+  otherwise, never dropping anything -- and raises without the alias, so an entry like
+  `"trim(customer_name)"` used to onboard cleanly and die at pipeline graph definition.
 - **`transformation_sql`** (and reconciliation `transform_sql`) legitimately needs full
   `SELECT`/`FROM`, so it is validated for *parse-ability and structural planning* instead, via
   an `EXPLAIN` of the post-`${param}`-substitution text (`_validate_sql_syntax`). A
@@ -382,13 +387,17 @@ on the first pipeline update. The v1.6.0 contract behind them: `logging_config.r
 now gates `reconciliation_run_log` **and** `reconciliation_result` **and** (in pipeline mode)
 whether the `recon__*__metrics` dataset is registered at all; `mismatch_log_capture` gates
 `reconciliation_mismatch_log` and the `recon__*__mismatch` dataset; both `false` means the flow
-persists only to its business targets. Both flags default to `true` and the rules evaluate the
-*defaulted* values, so absent flags never trip them.
+persists only to its business targets. Both flags default to `false` since v1.7.3 and the rules
+evaluate the *defaulted* values. **v1.7.07:** `publish_schema` is the only thing that publishes —
+without it the audit datasets are pipeline-scoped, so a capture flag needs `publish_schema` (rows
+1a/1b), and a `dq_config` gate no longer needs a capture flag (the old rule 1 is gone).
 
 | # | Rejected configuration | Rule (see `spec_validator.py` function) |
 |---|---|---|
-| 1 | `logging_config.run_log_capture: false` together with `dq_config.rules` on the same reconciliation flow | **v1.6.0.** The flow's expectations attach to its `recon__*__metrics` dataset, which is only registered when `run_log_capture` is true. Remove the rules or re-enable capture. (`_validate_logging_config`) |
-| 2 | `execution_mode: "pipeline_audit_only"` with **both** `run_log_capture: false` and `mismatch_log_capture: false` | **v1.6.0.** Audit-only mode exists solely to produce the metrics/mismatch datasets and their control-table exports — this combination registers compute with no output at all. Enable at least one flag, or use `job`/`pipeline`. (`_validate_logging_config`) |
+| 1 | ~~`logging_config.run_log_capture: false` together with `dq_config.rules`~~ | **Removed in v1.7.07.** The `__metrics` dataset is now registered whenever `dq_config.rules` exist (pipeline-scoped if nothing publishes), so a gate needs no capture flag. |
+| 1a | `run_log_capture: true` or `mismatch_log_capture: true` on a pipeline-mode flow with **no** `publish_schema` | **New in v1.7.07.** The control-table rows are exported from the *published* `recon__*__metrics`/`__mismatch` datasets; without `publish_schema` those are pipeline-scoped temporary tables and the row could never be written. Set `publish_schema`, or set both flags false. (`_validate_logging_config`) |
+| 1b | `execution_mode: "pipeline"` with any `target_configs[].append_target_table` and **no** `publish_schema` | **New in v1.7.07.** The heal handler reads the prepared source/target back through the metastore, so they must be published. Set `publish_schema`, or use `pipeline_audit_only`. (`_validate_logging_config`) |
+| 2 | `execution_mode: "pipeline_audit_only"` with **both** `run_log_capture: false` and `mismatch_log_capture: false` **and no `dq_config.rules`** | **v1.6.0, amended v1.7.07.** With no capture, no publish and no gate the flow registers compute with no output at all. Enable a flag (with `publish_schema`), declare rules, or use `job`/`pipeline`. (`_validate_logging_config`) |
 | 3 | `dq_config.rules[].action: "quarantine"` on a reconciliation flow | There is nothing to quarantine on the one-row `__metrics` dataset. Use `warn`/`drop`/`fail`. (`_validate_reconciliation_flows`) |
 | 4 | `sink_config.staged_file_format` with `format: "delta"` or `"kafka"` | **v1.6.0, presence-rejected.** The native sink formats have no framework staging step; accepting it would let a spec assert a file shape nothing ever produces. Only `pgp_zip` stages files. (`_validate_sink_config`) |
 | 5 | `format: "pgp_zip"` without `post_export_archive`, or with `post_export_archive.enabled: false` | Archiving *is* what this sink format does; use `delta`/`kafka` for a sink with no archiving step. When enabled, `output_zip_path` is also required. (`_validate_sink_config`) |
@@ -397,6 +406,7 @@ persists only to its business targets. Both flags default to `true` and the rule
 | 8 | `format: "kafka"` without `kafka_options["kafka.bootstrap.servers"]` or without `kafka_options["topic"]` | The same minimum options a Spark Structured Streaming Kafka writer requires. Every `kafka_secret_options` value must be a UC secret reference. |
 | 9 | `storage_format: "iceberg"` with any `target_type` other than `batch_table` | Use `delta` (optionally with `table_properties.enable_iceberg_read_uniformity`). (`_validate_target_config`) |
 | 10 | `cdc_load_strategy: "SCD3"` on an ingestion flow | SCD3 pivots current/previous state via an internal history table — transformation flows only. (`validate_spec`) |
+| 10a | `cdc_load_strategy: "TRUNCATE_AND_LOAD"` on a `streaming_table` (ingestion or transformation) | **New in v1.7.07.** Both strategies are no-ops in `engine/flow_registration.py::_NO_OP_CDC_STRATEGIES`, so on a streaming target TRUNCATE_AND_LOAD is realised as `dlt.read_stream` → plain append: identical to APPEND at runtime, the table is never truncated, and the spec claims a full reload it never performs. Use `materialized_view` / `batch_table` (fully recomputed each update) or declare `APPEND`. (`_reject_incompatible_target_type_strategy`) |
 | 11 | `target_config.columns_to_exclude` outside `SCD1`/`SCD2`/`SCD3` | Only those strategies have a comparison-column concept to exclude from. |
 | 12 | `target_config.cdc_operation_column`/`cdc_operation_mapping` outside `SCD1`/`SCD2`/`FULL_SNAPSHOT_CDC` | Only those strategies have a delete-marker path. |
 | 13 | `target_config.empty_target_if_source_empty` outside `TRUNCATE_AND_LOAD` | Every other strategy appends or diffs — there is no truncation to guard, so the value would be silently inert. |

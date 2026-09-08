@@ -1007,7 +1007,13 @@ standalone reconciliation task in the same commit. Grep the `resources/` tree fo
 
 ---
 
-### <a id="r9"></a>R9 🔵 `publish_schema` defaults to the hosting pipeline's own schema
+### <a id="r9"></a>R9 🔵 `publish_schema` defaults to the hosting pipeline's own schema — **RESOLVED in v1.7.07**
+
+> **v1.7.07:** an absent `publish_schema` now publishes **nothing**. `__metrics`/`__mismatch` are
+> registered as pipeline-scoped temporary tables (a `dq_config` gate still fires), and a capture
+> flag or a `"pipeline"`-mode healing flow without `publish_schema` is rejected at onboarding. The
+> text below records the pre-v1.7.07 behaviour and explains the `recon__*__metrics` views a
+> pre-v1.7.07 workspace may still carry in its business schemas.
 
 Under `execution_mode: "pipeline"` / `"pipeline_audit_only"` a flow publishes real, externally
 visible UC tables — since v1.6.0 that is `recon__<rid>__<tid>__metrics` / `__mismatch` (each

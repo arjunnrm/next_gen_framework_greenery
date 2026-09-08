@@ -122,7 +122,7 @@ Field names below are verified against `onboarding/spec_validator.py::_validate_
 | `dataflow_group_id` | `string` | the spec's own top-level `dataflow_group_id` | **New in v1.5.0 — this IS a per-flow field.** Which dataflow group's Lakeflow pipeline this flow is registered into. Omit it and the flow inherits the spec's own top-level group, which is the overwhelmingly common case and the pre-v1.5.0 behaviour. Naming a *different* group registers the flow inside THAT group's pipeline update instead — the supported way to reconcile against, or heal into, tables another group owns. **Required when `execution_mode` is `"pipeline"`/`"pipeline_audit_only"`** (V-CYC-6: a group-less flow has no pipeline to be registered into). Persisted to `reconciliation_flow_spec.dataflow_group_id`; when that column is non-null, `${param}` placeholders in `source_config`/`target_configs`/`filter_condition` resolve against that group's `pipeline_parameters_json`. |
 | `two_tier_verification` | `boolean` | `true` | See [§4](#4-two-tier-verification-phase-1-phase-2). **v1.5.0** — now genuinely persisted to `reconciliation_flow_spec.two_tier_verification`. Before v1.5.0 that column had no `StructField` and the Row literal never set it, so `false` onboarded cleanly and was silently discarded, and the runtime then defaulted to `true` — a silent behaviour inversion. |
 | `execution_mode` | `enum("job", "pipeline", "pipeline_audit_only")` | `"job"` | **New in v1.5.0.** Where this flow runs. `"job"` is today's `05_reconciliation_engine.py` job task, byte-for-byte. `"pipeline"` registers the flow as a third flow type *inside* the owning dataflow group's Lakeflow pipeline update — the L3/L4 published datasets **and** the L5 heal lane. `"pipeline_audit_only"` registers L3+L4 only: comparison, metrics and `dq_config` expectations run in-pipeline while healing stays in job mode. Full treatment: [§11](#11-execution-modes-job-pipeline-pipeline_audit_only). |
-| `publish_schema` | `string` | the hosting pipeline's own schema | **New in v1.5.0.** Schema (inside the pipeline's own catalog) that this flow's **published** datasets land in — since v1.6.0 that is `recon__<rid>__<tid>__metrics` / `__mismatch` (each registered only when its capture flag is on) plus a healing flow's `_src`/healing `_tgt`; every other recon dataset is a pipeline-scoped temporary table and is never published anywhere ([§11.10](#1110-v160--the-intermediate-object-rule-and-the-conditional-audit-datasets)). They are real, externally visible UC tables, so the default — the pipeline's own schema — is often not where you want reconciliation output to land. Persisted to `reconciliation_flow_spec.publish_schema`. **Rejected on presence when `execution_mode` is `"job"`**, which publishes no datasets. How the default is actually resolved, and why it used to resolve to `None`: [§11.9](#119-where-the-published-datasets-land--publish_schema-resolution). |
+| `publish_schema` | `string` | none — absent means **publish nothing** (since v1.7.07) | **New in v1.5.0; semantics changed in v1.7.07.** Schema (inside the pipeline's own catalog) that this flow's **published** datasets land in — since v1.6.0 that is `recon__<rid>__<tid>__metrics` / `__mismatch` (each registered only when its capture flag is on) plus a healing flow's `_src`/healing `_tgt`; every other recon dataset is a pipeline-scoped temporary table and is never published anywhere ([§11.10](#1110-v160--the-intermediate-object-rule-and-the-conditional-audit-datasets)). They are real, externally visible UC tables. **Since v1.7.07 this key is the only thing that publishes:** omit it and `__metrics`/`__mismatch` are registered as pipeline-scoped temporary tables instead — a `dq_config` gate still fails the update, but no `reconciliation_run_log`/`reconciliation_mismatch_log` row can be exported, so `run_log_capture`/`mismatch_log_capture: true` without it is rejected at onboarding, as is a `"pipeline"`-mode healing flow (its prepared `_src`/`_tgt` must be published). Persisted to `reconciliation_flow_spec.publish_schema`. **Rejected on presence when `execution_mode` is `"job"`**, which publishes no datasets. History of the pre-v1.7.07 fallback: [§11.9](#119-where-the-published-datasets-land--publish_schema-resolution). |
 | `dq_config` | `object` (the same shape as an ingestion/transformation `dq_config`) | SQL `NULL` | **New in v1.5.0.** Expectations attached to the one-row `__metrics` dataset — e.g. `{"rules": [{"rule_id": "no_value_drift", "expression": "value_drift_count = 0", "action": "fail"}]}`. Each rule requires `rule_id`, `expression` and `action` — `name`/`expr` are NOT accepted. Unlike the ingestion and transformation paths, which persist `{}` when the block is omitted, this one persists SQL `NULL` (`metadata_upsert.py`), so "no expectations" is distinguishable from "an empty rule set". This is the **first declarative way a reconciliation threshold can fail a pipeline update**, and it is *additive*: it does not repurpose `error_handling.on_failure`, which keeps its exception-level try/except meaning. `action: "quarantine"` is rejected (there is nothing to quarantine on a one-row metrics table), and the whole block is **rejected on presence when `execution_mode` is `"job"`**. |
 | `logging_config` | `object` | `{}` (both flags `true`) | See [§6](#6-runtime-log-controls). |
 | `source_config` | `object` | — (required) | See [§3.2](#32-per-side-dataset-fields-source_config-each-target_configs-entry). |
@@ -785,9 +785,21 @@ explicitly, and states that the same finding *would* be rejected under `"pipelin
 
 ### 11.9 Where the published datasets land — `publish_schema` resolution
 
-`publish_schema` is optional, and its default is *"the hosting pipeline's own schema."* That
-sentence hides a resolution chain worth knowing, because a wrong answer here does not produce a
-misplaced table — it produces a failed update.
+**Since v1.7.07, `publish_schema` is the only thing that publishes.** A flow without it registers
+its `__metrics`/`__mismatch` datasets as pipeline-scoped temporary tables with the bare
+`_recon__<rid>__<tid>__metrics` spelling — a `dq_config` gate still fires, nothing lands in any
+schema, and nothing can be exported to the reconciliation control tables (so a capture flag
+without `publish_schema`, or a `"pipeline"`-mode healing flow without one, is rejected at onboarding
+and again at graph definition). The `publish_schema` argument the pipeline notebook still passes to
+`register_reconciliation_flow` is retained for call-site compatibility and is not consulted.
+
+Everything below describes the **pre-v1.7.07** behaviour, kept because the resolution chain it
+documents still exists in `resolve_pipeline_schema` and because it explains the tables you will
+find in `bronze` on any workspace that ran an audit-only flow before the change.
+
+`publish_schema` was optional, and its default was *"the hosting pipeline's own schema."* That
+sentence hid a resolution chain worth knowing, because a wrong answer there did not produce a
+misplaced table — it produced a failed update.
 
 The node namer (`reconciliation/graph_registration.py::_node_name`) needs a concrete, safe schema
 for every L3/L4/L5 node. `notebooks/03_engine/03_lakeflow_declarative_pipeline.py` resolves
@@ -811,11 +823,13 @@ equivalent chain (`currentCatalog()` → `GROUP_ROW.catalog_name` → `CONTROL_C
 > pipeline `be78d88d`. **Anyone relying on the default is affected** — a flow that sets an explicit
 > `publish_schema` never went near this path.
 
-**Practical guidance.** The default puts the published reconciliation datasets — since v1.6.0 that
-is `__metrics`/`__mismatch` (when their capture flags are on) plus a healing flow's `_src`/healing
-`_tgt`, no longer the whole L3/L4 set — into the same schema your pipeline publishes its business
-tables into. That is rarely where reconciliation output belongs. Set `publish_schema` explicitly —
-to a dedicated audit schema in the pipeline's own catalog — for anything beyond a test fixture.
+**Practical guidance (v1.7.07).** Decide what the flow is for. A presence or threshold **gate**
+(`dq_config` only) needs no `publish_schema` and leaves nothing behind. An **audit** (a
+`reconciliation_run_log` row per update) or a **healing** flow needs `publish_schema` set to a
+dedicated reconciliation schema in the pipeline's own catalog; the pipeline's business schema is
+never used implicitly any more. Pre-v1.7.07 workspaces may still hold `recon__*__metrics` views in
+their business schemas — they were published by the old fallback and are dropped on the next
+update after the flow either sets `publish_schema` or stops capturing.
 
 ### 11.10 v1.6.0 — the Intermediate Object Rule and the conditional audit datasets
 

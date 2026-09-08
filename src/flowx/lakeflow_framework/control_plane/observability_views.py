@@ -607,7 +607,7 @@ CREATE OR REPLACE VIEW {observability_schema}.v_flow_metrics (
     pipeline_name     COMMENT 'Pipeline that executed the flow.',
     pipeline_id       COMMENT 'Lakeflow pipeline UUID.',
     update_id         COMMENT 'Pipeline update in which the flow ran. Join to v_pipeline_updates for the update outcome and duration.',
-    flow_name         COMMENT 'Fully-qualified dataset/flow name written by this flow, e.g. flowx.gold.uc6_telephone_output.',
+    flow_name         COMMENT 'Fully-qualified dataset/flow name written by this flow, e.g. flowx.gold.flood_warning_telephone.',
     dataset_name      COMMENT 'Just the table name portion of flow_name, without catalog or schema.',
     flow_status       COMMENT 'Flow status at the time of the event: COMPLETED, RUNNING, FAILED, EXCLUDED.',
     rows_written      COMMENT 'Rows this flow wrote in this update (num_output_rows). The framework throughput measure -- SUM this for volume processed.',

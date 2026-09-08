@@ -270,11 +270,14 @@ three tables, so `sequence_by_column: "sys_update_date"` (§3) is valid everywhe
 **Per explicit user instruction and the repo's own rule: do not create an onboarding job or task.**
 
 Onboard by calling the **existing generic job**, `resources/flowx_config_jobs/onboarding_job.yml`
-(job name *FlowX Config Onboarding*), via a `run_job_task`. Precedent to copy:
-`resources/uc7/uc7_cdr_asn_job.yml`.
+(job name *FlowX Config Onboarding*), via a `run_job_task`. Since 2026-09-08 that call lives in
+the one-time `resources/uc3/uc3_seed_job.yml` (`003b_lfj_uc3_excalibur_seed`), not in the two run
+jobs, which carry only `run_pipeline_update -> observability_export`. Tagging likewise moved to
+`resources/uc3/uc3_governance_job.yml` (`009_lfj_uc3_excalibur_governance`). Precedent:
+`resources/sample_jobs/flowx_sample_seed_job.yml`.
 
 ```yaml
-- task_key: onboard_uc3
+- task_key: onboard_streaming_cdc
   depends_on:
     - task_key: setup_control_tables
   run_job_task:
@@ -403,7 +406,7 @@ and during Phase C execution.
 | C2 | **`cdc_operation_mapping` shape was guessed wrong** in an early contract draft (`{"DELETE": "1"}`). | **RESOLVED.** Real shape is `{"delete_values": [...]}` — verified at `spec_validator.py:1056-1059` and `cdc/scd.py:92-95`. Contract §3 corrected; both spec authors notified mid-flight. |
 | C3 | **`src_deleted_flg` literal must agree across three artefacts** — the simulator writes it, Job 2 and Job 3 match on it via `delete_values`. The DDL sheets type it BOOLEAN. A mismatch (`true` vs `"1"`) silently disables CDC deletes: no error, deletes just never apply. | **OPEN — verify in Phase C.** Reconcile the generator's emitted type/values against both specs' `delete_values` before running Job 2. |
 | C4 | **Schema / Volume quota headroom.** `databricks.yml` L160-164 records the `dev` catalog at 51 schemas against the metastore limit and a prior Volume quota failure (52 vs 50). `uc3_bronze` is created by the framework **at pipeline start**, not declared in YAML — so this fails at *runtime*, not at `bundle validate`. | **OPEN — check before Job 2 executes.** Count existing schemas/Volumes on the target catalog first. |
-| C5 | **`setup_control_tables` may run up to 3× across the UC3 jobs.** Idempotent (`CREATE ... IF NOT EXISTS` + upsert), and Phase C runs strictly Job 1 → Job 2 → Job 3 with no concurrency, so the known UC create race is not triggered. | **ACCEPTED.** Each job standing alone is the safer property. Do not parallelize the three UC3 jobs. |
+| C5 | **`setup_control_tables` used to run up to 3× across the UC3 jobs.** Idempotent, and Phase C ran strictly Job 1 → Job 2 → Job 3 with no concurrency, so the known UC create race was not triggered. | **SUPERSEDED 2026-09-08.** Setup and both onboardings now run once in `uc3_seed_job` (its two onboarding tasks are serial), and the run jobs no longer provision anything. The additive control-table migration was never in `01_setup` anyway: the onboarding engine's `ensure_control_schema_exists` applies it. Still do not parallelize the UC3 jobs — Job 3 reads Job 2's bronze tables. |
 | C6 | **Observability wiring lives inside the job YAMLs**, per contract §12, which also names those files as their authoring agent's exclusive paths. | **RESOLVED BY DESIGN.** No separate `observability` subagent was ever spawned — precisely to avoid a concurrent write to those files. The `observability_export` task inside each job YAML is authoritative. |
 | C7 | **Deploying mid-run kills in-flight pipeline updates** (`bundle deploy` prunes superseded artifacts → `ENVIRONMENT_PIP_INSTALL_ERROR`). | **STANDING RULE.** Never deploy while a pipeline or test wave is running. Deploy once, up front, then run. |
 
@@ -753,12 +756,13 @@ hand-written DDL — but *something has to invoke the framework's applier*, and 
 not.
 
 **Fix — configuration, not code.** Both UC3 jobs gained a task calling the framework's own
-notebook, mirroring `resources/feature_tests/flowx_test_gov_001_tagging_job.yml`:
+notebook, mirroring `resources/feature_tests/flowx_test_gov_001_tagging_job.yml`. On 2026-09-08
+that task moved out of the run jobs into `resources/uc3/uc3_governance_job.yml`, which tags both
+UC3 groups and is run once the tables exist and again after any `governance_tags` change (after
+re-running `uc3_seed_job`, since tags are applied from the control-table rows):
 
 ```yaml
-- task_key: apply_governance_uc3
-  depends_on:
-    - task_key: run_pipeline_update      # the table must exist first
+- task_key: tag_streaming_cdc            # in uc3_governance_job.yml; run after 004 has published
   notebook_task:
     notebook_path: ../../notebooks/04_governance/04_apply_governance_and_egress.py
     base_parameters:
@@ -939,7 +943,9 @@ restoring returns 6/6.
 
 ### 17.8 Job 2 — FULLY GREEN, and the tag-visibility finding
 
-**`004_lfj_uc3_excalibur_streaming_cdc`: all five tasks SUCCESS.**
+**`004_lfj_uc3_excalibur_streaming_cdc`: all five tasks SUCCESS** (the five-task shape of
+that run; since 2026-09-08 the run job carries only the last two, with the first two in
+`uc3_seed_job` and tagging in `uc3_governance_job`).
 
 ```
 setup_control_tables  SUCCESS

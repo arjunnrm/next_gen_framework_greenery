@@ -1193,7 +1193,7 @@
       "items": {
         "type": "string",
         "minLength": 1,
-        "pattern": "^(?!.*\\b(?i:SELECT|FROM|JOIN|UNION|WHERE|INSERT|UPDATE|DELETE|MERGE|DROP|ALTER|CREATE|GRANT|REVOKE)\\b)(?!.*;).+$",
+        "pattern": "^(?!.*\\b(?i:SELECT|FROM|JOIN|UNION|WHERE|INSERT|UPDATE|DELETE|MERGE|DROP|ALTER|CREATE|GRANT|REVOKE)\\b)(?!.*;).*\\b(?i:AS)\\s+`?[A-Za-z_][A-Za-z0-9_]*`?\\s*$",
         "description": "A single column-expression string ending 'AS <column_name>' (e.g. \"trim(customer_name) AS customer_name\") -- never a full SELECT/FROM/JOIN/UNION or any DDL/DML statement, and never containing ';'."
       }
     },
@@ -1949,7 +1949,7 @@
         "publish_schema": {
           "type": "string",
           "minLength": 1,
-          "description": "Schema (within the hosting pipeline's own catalog) where this flow's recon__<reconciliation_id>__<target_id>__classified / __metrics / __mismatch datasets are published. Default: the hosting pipeline's own schema. Only meaningful when execution_mode is 'pipeline'/'pipeline_audit_only' -- REJECTED ON PRESENCE when execution_mode is 'job' (a job-mode flow produces none of those datasets), via reject_mode_incompatible_keys in spec_validator.py."
+          "description": "Schema (within the hosting pipeline's own catalog) where this flow's recon__<reconciliation_id>__<target_id>__metrics / __mismatch datasets (and a healing flow's prepared _src/_tgt) are PUBLISHED. Since v1.7.07 this is the only thing that publishes: absent means publish nothing -- the audit datasets are registered as pipeline-scoped temporary tables, a dq_config gate still fires, and nothing is exported to the reconciliation control tables. Therefore required when run_log_capture/mismatch_log_capture is true, and when execution_mode is 'pipeline' with a healing target (append_target_table). Only meaningful when execution_mode is 'pipeline'/'pipeline_audit_only' -- REJECTED ON PRESENCE when execution_mode is 'job' (a job-mode flow produces none of those datasets), via reject_mode_incompatible_keys in spec_validator.py."
         },
         "dq_config": {
           "$ref": "#/$defs/dqConfig",

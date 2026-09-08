@@ -534,6 +534,29 @@ _FORBIDDEN_STANDARDIZATION_KEYWORDS = re.compile(
     re.IGNORECASE,
 )
 
+# Every data-standardization expression must END with ``AS <column_name>``: the runtime
+# (``ingestion/standardization_sql.py::apply_data_standardization_sql``) parses that alias to
+# decide which column ``withColumn`` writes, and raises ``FrameworkConfigError`` when it is
+# missing. Until v1.7.07 only the runtime enforced it, so an entry without an alias onboarded
+# cleanly and failed at pipeline graph definition. Same regex as the runtime's ``_ALIAS_PATTERN``.
+_STANDARDIZATION_ALIAS_PATTERN = re.compile(r"\bAS\s+`?([A-Za-z_][A-Za-z0-9_]*)`?\s*$", re.IGNORECASE)
+
+# ``target_type`` x ``cdc_load_strategy`` combinations that onboard cleanly but cannot do what
+# they say. ``streaming_table`` + ``TRUNCATE_AND_LOAD`` is the one that has actually bitten: both
+# strategies sit in ``engine/flow_registration.py::_NO_OP_CDC_STRATEGIES``, so on a streaming
+# target TRUNCATE_AND_LOAD is realised as ``dlt.read_stream`` -> plain append -- i.e. exactly
+# APPEND, with the spec claiming a full reload it never performs. A materialized_view /
+# batch_table is the only target that is fully recomputed (which is what TRUNCATE_AND_LOAD
+# means in this framework), so the fix is to change the target_type, not the strategy.
+_INCOMPATIBLE_TARGET_TYPE_STRATEGIES = {
+    ("streaming_table", "TRUNCATE_AND_LOAD"): (
+        "'TRUNCATE_AND_LOAD' on a 'streaming_table' is realised as a plain streaming append -- "
+        "identical to APPEND at runtime, so the table is never truncated. Use target_type "
+        "'materialized_view' (or 'batch_table'), which is fully recomputed on every update, or "
+        "declare cdc_load_strategy 'APPEND' if append is what you want."
+    ),
+}
+
 # ---------------------------------------------------------------------------
 # Generic type/shape checks. Every helper appends a fully-qualified, human-readable
 # message to `errors` on failure and returns nothing -- callers just keep going so one
@@ -672,6 +695,27 @@ def _validate_standardization_expression(expression: str, path: str, errors: Lis
         return
     if ";" in expression:
         errors.append(f"{path}: {expression!r} must not contain ';' -- exactly one column expression per entry")
+    if not _STANDARDIZATION_ALIAS_PATTERN.search(expression):
+        errors.append(
+            f"{path}: {expression!r} must end with 'AS <column_name>' naming the output column "
+            "(e.g. 'trim(customer_name) AS customer_name', 'CAST(NULL AS STRING) AS acc_password') -- "
+            "the runtime writes the expression to exactly that column and rejects an entry without it"
+        )
+
+
+def _reject_incompatible_target_type_strategy(
+    target_type: Any, cdc_load_strategy: Any, path: str, errors: List[str]
+) -> None:
+    """Reject a ``target_type`` x ``cdc_load_strategy`` pair that onboards but cannot do what it says.
+
+    Both values are validated individually elsewhere; this is the cross-field check. Only pairs
+    listed in ``_INCOMPATIBLE_TARGET_TYPE_STRATEGIES`` are rejected -- every other combination is
+    either legitimate or already covered by a more specific rule (SCD3 on ingestion, iceberg on
+    non-batch_table, ...).
+    """
+    message = _INCOMPATIBLE_TARGET_TYPE_STRATEGIES.get((target_type, cdc_load_strategy))
+    if message:
+        errors.append(f"{path}: {message}")
 
 
 def _validate_data_standardization_sql(expressions: Any, path_prefix: str, errors: List[str]) -> None:
@@ -1879,12 +1923,19 @@ def _validate_reconciliation_flows(
                 allowed_values=ALLOWED_RECONCILIATION_FAILURE_MODES,
             )
 
+        target_configs_for_heal = flow.get("target_configs") if isinstance(flow.get("target_configs"), list) else []
+        heals = any(
+            isinstance(target_config, dict) and target_config.get("append_target_table")
+            for target_config in target_configs_for_heal
+        )
         _validate_logging_config(
             flow.get("logging_config"),
             f"{label}.logging_config",
             errors,
             execution_mode=execution_mode,
             dq_config=dq_config,
+            publish_schema=flow.get("publish_schema"),
+            heals=heals,
         )
 
     return reconciliation_flows
@@ -1896,10 +1947,24 @@ def _validate_logging_config(
     errors: List[str],
     execution_mode: str = "job",
     dq_config: Any = None,
+    publish_schema: Any = None,
+    heals: bool = False,
 ) -> None:
     """Validate the optional ``run_log_capture``/``mismatch_log_capture`` gates a reconciliation
-    flow can set to skip its log writes for a high-frequency continuous flow. Both default to
-    ``true`` -- absent is valid and changes nothing.
+    flow can set to skip its log writes for a high-frequency continuous flow, together with the
+    ``publish_schema`` they depend on (since v1.7.07). Both flags default to ``false``.
+
+    **v1.7.07 contract:** ``publish_schema`` is the ONLY thing that publishes. A pipeline-mode flow
+    without it registers its ``__metrics``/``__mismatch`` datasets as pipeline-scoped temporary
+    tables, so a ``dq_config`` gate still works but nothing can be exported to the reconciliation
+    control tables. Hence, mirroring ``reconciliation/graph_registration.py``:
+
+    * ``run_log_capture``/``mismatch_log_capture`` ``true`` without ``publish_schema`` is rejected
+      -- the control-table rows are exported from the published datasets.
+    * ``execution_mode: pipeline`` with a healing target (``heals``) without ``publish_schema`` is
+      rejected -- the heal handler reads the prepared source/target back through the metastore.
+    * ``dq_config.rules`` with ``run_log_capture: false`` is now LEGAL (the metrics dataset is
+      registered, temporary, for the expectations alone); before v1.7.07 it was rejected.
 
     **v1.6.0 contract:** ``run_log_capture`` gates ``reconciliation_run_log`` AND
     ``reconciliation_result`` (previously unconditional), and in pipeline mode whether the
@@ -1909,11 +1974,10 @@ def _validate_logging_config(
     (mirroring the graph-time guards in ``reconciliation/graph_registration.py``, so the
     contradiction surfaces at onboarding instead of on the first pipeline update):
 
-    * ``dq_config.rules`` present while ``run_log_capture`` is ``false`` -- the flow's
-      expectations attach to its ``__metrics`` dataset, which would not exist.
-    * ``execution_mode: pipeline_audit_only`` with BOTH flags ``false`` -- the audit-only mode
-      exists solely to produce the metrics/mismatch datasets and their control-table exports,
-      so this combination registers compute with no output at all.
+    * ``execution_mode: pipeline_audit_only`` with BOTH flags ``false`` AND no ``dq_config``
+      rules -- the audit-only mode exists to produce the metrics/mismatch datasets, their
+      control-table exports, or a dq gate; with none of those it registers compute with no
+      output at all.
 
     This block is the **onboarded per-flow layer**. It is overridden at run time by the
     ``recon_run_log_capture``/``recon_mismatch_log`` job parameters (see
@@ -1945,29 +2009,44 @@ def _validate_logging_config(
     run_log_capture = logging_config.get("run_log_capture", _DEFAULT_LOG_CAPTURE)
     mismatch_log_capture = logging_config.get("mismatch_log_capture", _DEFAULT_LOG_CAPTURE)
     dq_rules = dq_config.get("rules") if isinstance(dq_config, dict) else None
-    if dq_rules and run_log_capture is False:
+    pipeline_mode = execution_mode in _RECONCILIATION_PIPELINE_MODES
+    publishes = isinstance(publish_schema, str) and bool(publish_schema.strip())
+
+    # v1.7.07: publish_schema is the only thing that publishes. The control-table exports read
+    # the PUBLISHED recon__*__metrics / __mismatch datasets, so a capture flag without a
+    # publish_schema promises an audit row that can never be written.
+    if pipeline_mode and not publishes and (run_log_capture is True or mismatch_log_capture is True):
         errors.append(
-            f"{label}.run_log_capture resolves to false, which is incompatible with "
-            "dq_config.rules -- the flow's expectations attach to its recon__*__metrics dataset, "
-            "which is only registered when run_log_capture is true. NOTE: since v1.7.3 both "
-            "log-capture flags default to FALSE (reconciliation is silent by default), so this "
-            "fires even when the spec never wrote 'false' -- omitting logging_config is enough. "
-            "Set logging_config.run_log_capture: true explicitly, or remove the dq_config rules."
+            f"{label}: run_log_capture/mismatch_log_capture is true but the flow has no publish_schema. "
+            "Since v1.7.07 nothing is published without publish_schema -- the flow's "
+            "recon__*__metrics/__mismatch datasets are pipeline-scoped temporary tables, and the "
+            "reconciliation_run_log / reconciliation_mismatch_log rows are exported from the PUBLISHED "
+            "copies. Set publish_schema to a dedicated reconciliation schema, or set both capture flags "
+            "false (a dq_config gate still works on the pipeline-scoped __metrics dataset)."
+        )
+    if execution_mode == "pipeline" and heals and not publishes:
+        errors.append(
+            f"{label}: execution_mode 'pipeline' with a healing target (append_target_table) requires "
+            "publish_schema. The L5 heal handler reads the flow's prepared source and healing target "
+            "back through the metastore (spark.read.table), so those two nodes must be published -- "
+            "and since v1.7.07 nothing is published without publish_schema. Set publish_schema, or use "
+            "execution_mode 'pipeline_audit_only' and heal from the job task."
         )
     if (
         execution_mode == "pipeline_audit_only"
         and run_log_capture is False
         and mismatch_log_capture is False
+        and not dq_rules
     ):
         errors.append(
             f"{label}: execution_mode 'pipeline_audit_only' with both run_log_capture and "
-            "mismatch_log_capture resolving to false registers compute with no output at all -- "
-            "the audit-only mode exists solely to produce the metrics/mismatch datasets and their "
-            "control-table exports. NOTE: since v1.7.3 both flags default to FALSE "
-            "(reconciliation is silent by default), so this fires even when the spec never wrote "
-            "'false' -- omitting logging_config is enough. Set logging_config.run_log_capture: "
-            "true (and/or mismatch_log_capture: true) explicitly, or use execution_mode "
-            "'job'/'pipeline'."
+            "mismatch_log_capture resolving to false and no dq_config rules registers compute with no "
+            "output at all -- the audit-only mode exists to produce the metrics/mismatch datasets, "
+            "their control-table exports, or a dq_config gate. NOTE: since v1.7.3 both flags default "
+            "to FALSE (reconciliation is silent by default), so this fires even when the spec never "
+            "wrote 'false' -- omitting logging_config is enough. Set logging_config.run_log_capture: "
+            "true (and/or mismatch_log_capture: true) explicitly together with publish_schema, "
+            "declare dq_config rules, or use execution_mode 'job'/'pipeline'."
         )
 
 
@@ -2808,6 +2887,9 @@ def validate_spec(
         )
         _validate_path_parameters(flow.get("source_config"), pipeline_parameters, f"{label}.source_config", errors)
         cdc_load_strategy = _validate_target_config(flow.get("target_config"), f"{label}.target_config", errors, flow.get("target_type"))
+        _reject_incompatible_target_type_strategy(
+            flow.get("target_type"), cdc_load_strategy, f"{label}.target_config.cdc_load_strategy", errors
+        )
         _validate_path_parameters(flow.get("target_config"), pipeline_parameters, f"{label}.target_config", errors)
         if cdc_load_strategy == "SCD3":
             errors.append(
@@ -2834,7 +2916,15 @@ def validate_spec(
         check_string(flow.get("transformation_sql"), f"{label}.transformation_sql", errors, required=True)
 
         _validate_source_inputs(flow.get("source_inputs"), f"{label}.source_inputs", errors)
-        _validate_target_config(flow.get("target_config"), f"{label}.target_config", errors, flow.get("target_type"))
+        transformation_cdc_load_strategy = _validate_target_config(
+            flow.get("target_config"), f"{label}.target_config", errors, flow.get("target_type")
+        )
+        _reject_incompatible_target_type_strategy(
+            flow.get("target_type"),
+            transformation_cdc_load_strategy,
+            f"{label}.target_config.cdc_load_strategy",
+            errors,
+        )
         _validate_path_parameters(flow.get("target_config"), pipeline_parameters, f"{label}.target_config", errors)
         _validate_dq_config(flow.get("dq_config"), f"{label}.dq_config", errors)
         _validate_governance_tags(flow.get("governance_tags"), f"{label}.governance_tags", errors)

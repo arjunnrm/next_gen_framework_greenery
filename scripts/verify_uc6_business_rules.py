@@ -45,12 +45,12 @@ SUPPLIED = os.path.join(REPO, "BT_Usecase/UC6/data/sample_bundle")
 PW = "EA-POC-Sample-2026!"
 
 SOURCES = {
-    "uc6_ea_request": ("EE_", "|", True, None),
-    "uc6_css_account": ("CSS_account_2", "|", False, "uc6_css_account.json"),
-    "uc6_css_account_address": ("CSS_account_address_", "|", False, "uc6_css_account_address.json"),
-    "uc6_css_subscription": ("CSS_subscription_", "|", False, "uc6_css_subscription.json"),
-    "uc6_jt_customer": ("CM_JT_Customer_Details_", "|", False, "uc6_jt_customer.json"),
-    "uc6_excalibur_address": ("CM_EXCALIBUR_ADDRESS_", ",", False, "uc6_excalibur_address.json"),
+    "ea_request": ("EE_", "|", True, None),
+    "css_account": ("CSS_account_2", "|", False, "uc6_css_account.json"),
+    "css_account_address": ("CSS_account_address_", "|", False, "uc6_css_account_address.json"),
+    "css_subscription": ("CSS_subscription_", "|", False, "uc6_css_subscription.json"),
+    "jt_customer": ("CM_JT_Customer_Details_", "|", False, "uc6_jt_customer.json"),
+    "excalibur_address": ("CM_EXCALIBUR_ADDRESS_", ",", False, "uc6_excalibur_address.json"),
 }
 
 
@@ -130,7 +130,7 @@ def main():
     failures = []
 
     augmented = run(FIXTURE, spec, "AUGMENTED FIXTURE (generated)")
-    osapr = augmented["uc6_osapr_output"]
+    osapr = augmented["flood_warning_osapr"]
     by_area = osapr.groupby("targetAreaID")["status"].apply(lambda s: set(s)).to_dict()
     print("\n  OSAPR statuses by area:")
     for area in sorted(by_area):
@@ -157,7 +157,7 @@ def main():
     if {s for s, _ in expected_rows.values()} != {"Found", "Not Found", "Bad OSAPR", "Single Addr"}:
         failures.append("the fixture must exercise all four status branches")
 
-    tel = augmented["uc6_telephone_output"]
+    tel = augmented["flood_warning_telephone"]
     tel_areas = set(tel["targetAreaID"]) if len(tel) else set()
     tel_numbers = set(tel["telephone"]) if len(tel) else set()
     print("\n  TELEPHONE areas: %s" % sorted(tel_areas))
@@ -170,9 +170,9 @@ def main():
         failures.append("TELEPHONE: the under-17 JT customer was not filtered out")
 
     supplied = run(SUPPLIED, spec, "SUPPLIED POC BUNDLE (as shipped)")
-    if len(supplied["uc6_matched_address"]) != 0:
+    if len(supplied["flood_area_matched_address"]) != 0:
         failures.append("SUPPLIED: expected 0 matches")
-    supplied_statuses = set(supplied["uc6_osapr_output"]["status"]) if len(supplied["uc6_osapr_output"]) else set()
+    supplied_statuses = set(supplied["flood_warning_osapr"]["status"]) if len(supplied["flood_warning_osapr"]) else set()
     print("\n  supplied-bundle statuses: %s" % sorted(supplied_statuses))
     if not supplied_statuses <= {"Bad OSAPR", "Single Addr"}:
         failures.append("SUPPLIED: unexpected statuses %s" % supplied_statuses)

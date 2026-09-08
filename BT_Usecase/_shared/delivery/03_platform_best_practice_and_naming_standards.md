@@ -130,15 +130,15 @@ making a collision between two use cases structurally impossible.
 
 | Object | Template | Example |
 |---|---|---|
-| Bronze table | `uc<N>_<entity>` | `uc6_css_account` |
-| Bronze table, raw-decoded | `uc<N>_<entity>_raw` | `uc7_sgsn_cdr_raw` |
-| Silver table | `uc<N>_<entity>` | `uc6_customer_address` |
-| Gold / semantic table | `uc<N>_<subject>_<grain>` | `uc6_flood_warning_summary` |
+| Bronze table | `<source_table>` — the source system's own table/feed name, no use-case prefix | `css_account`, `ea_request`, `excalibur_address` |
+| Bronze table, raw-decoded | `<entity>_raw` | `sgsn_cdr_raw` |
+| Silver table | `<business_subject>` — what the data is, not which project made it | `ea_request_address`, `ee_customer_address_paf` |
+| Gold / semantic table | `<business_subject>_<output>` | `flood_warning_osapr`, `flood_warning_telephone` |
 | Staging table | `<entity>_<mode>` | `physical_device_batch`, `customer_stream` |
 | Quarantine table | `<source_table>_quarantine` | `uc7_psgw_cdr_raw_quarantine` |
 | View | `vw_<subject>` | `vw_uc6_active_warnings` |
 | Materialized view | `mv_<subject>` | `mv_uc6_warning_daily` |
-| Streaming table | No suffix — the type is a property, not a name | `uc6_css_account` |
+| Streaming table | No suffix — the type is a property, not a name | `css_account` |
 
 **Do not encode the object's Delta type in its name.** A streaming table that is later rebuilt as a
 materialized view would need renaming, and renaming is prohibited (3.8). `mv_` is the one exception,
@@ -148,12 +148,16 @@ retained because a materialized view's refresh semantics genuinely change how a 
 
 | Convention | Example | Used by |
 |---|---|---|
-| Prefixed with the use case | `uc6_css_account` | UC6 |
+| Bare source-table name | `css_account`, `customer` | UC6 (since 2026-09-08), UC3 |
 | Descriptive with a type suffix | `emsc_cdr_raw` | UC7 |
-| Bare entity name | `customer` | UC3 |
 
-Only the first makes a collision structurally impossible on a shared schema. New tables use the
-first; existing tables are not renamed.
+A bare name can collide when two source systems share a schema and an entity name (a second
+`customer` feed, say). The mitigation is one schema per source domain, or a source-system prefix
+that names the *source* (`css_account`, `excalibur_address`), never a project code: a `uc6_`
+prefix says who built the table, not what it holds, and it outlives the project. UC6 was renamed
+to this rule on 2026-09-08 (E10 in `enhancement_logs/v1.7.07_enhancement_log.md`); UC7's `_raw`
+suffix stays because it distinguishes the decoded BER payload from a derived table of the same
+entity.
 
 ### 3.4 Jobs, pipelines and tasks
 
