@@ -13,9 +13,12 @@ FlowX provides native, configuration-driven source readers for three primary ing
 
 ---
 
-> **v1.5.0 — every source read now goes through the read-once source plane.** A physical table
-> or path is read **once per pipeline update** and shared by all its consumers, instead of each
-> consumer opening its own read. Two consequences worth knowing before you configure a source:
+> **v1.5.0 — every source read now goes through the source plane (the Single-Read DAG mandate).**
+> An *external* read of a physical table or path happens **exactly once per pipeline update, per
+> execution mode**, and is shared by all its consumers in that mode, instead of each consumer
+> opening its own read. (A source consumed both as a stream and as a batch legitimately yields two
+> base nodes, `__stream` and `__batch` — the mandate's one deliberate exception.) Two consequences
+> worth knowing before you configure a source:
 >
 > * An Auto Loader path with two quarantine rules used to open **two** `cloudFiles` streams over
 >   that path, sharing one `cloudFiles.schemaLocation`. The `_<target>_staged` view is now

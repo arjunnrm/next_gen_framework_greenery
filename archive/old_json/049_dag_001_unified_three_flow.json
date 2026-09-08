@@ -45,6 +45,10 @@
   "reconciliation_flows": [
     {
       "reconciliation_id": "recon_dag_001_bronze_vs_raw_bus",
+      "logging_config": {
+        "run_log_capture": true,
+        "mismatch_log_capture": true
+      },
       "execution_mode": "pipeline",
       "dataflow_group_id": "dfg_dag_001_unified_three_flow",
       "source_config": {

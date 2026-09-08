@@ -38,6 +38,10 @@
       "dataflow_group_id": "dfg_geneva_tariffs_recon",
       "publish_schema": "geneva_admin",
       "two_tier_verification": true,
+      "logging_config": {
+        "run_log_capture": true,
+        "mismatch_log_capture": true
+      },
       "dq_config": {
         "rules": [
           {"rule_id": "no_value_drift", "expression": "value_drift_count = 0", "action": "warn"}

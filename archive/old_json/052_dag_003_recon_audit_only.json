@@ -50,6 +50,10 @@
       "dataflow_group_id": "dfg_dag_003_recon_audit_only",
       "publish_schema": "recon_dag_003",
       "two_tier_verification": true,
+      "logging_config": {
+        "run_log_capture": true,
+        "mismatch_log_capture": true
+      },
       "dq_config": {
         "rules": [
           {"rule_id": "no_missing_in_target", "expression": "missing_in_target_count = 0", "action": "warn"}

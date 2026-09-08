@@ -263,6 +263,19 @@ One asymmetry remains and is deliberate: in a mixed batch/streaming comparison, 
 
 ## 6. Runtime Log Controls
 
+!!! danger "v1.7.3 BREAKING CHANGE — reconciliation is now SILENT BY DEFAULT"
+    Both log-capture flags now fall back to **`false`** when neither the job parameter nor the flow's own `logging_config` sets them. Through v1.7.2 that fallback was `true`.
+
+    **A reconciliation flow that does not mention logging now writes nothing** — no `reconciliation_run_log`, no `reconciliation_result`, no `reconciliation_mismatch_log` rows, and in pipeline mode neither the `recon__*__metrics` nor the `recon__*__mismatch` dataset is registered. Auditing is opt-in.
+
+    **Migration.** To keep the pre-v1.7.3 behaviour, add the opt-in explicitly to every flow that needs it:
+
+    ```json
+    { "logging_config": { "run_log_capture": true, "mismatch_log_capture": true } }
+    ```
+
+    Only the *implicit* fallback moved. A flow that already writes an explicit `true` or `false` — and any run that sets the `recon_run_log_capture`/`recon_mismatch_log` job parameters — resolves exactly as it did before. **Anything reading the reconciliation control tables (BI dashboards, alerting, the observability export) will go empty for flows that have not opted in.**
+
 Two independent layers control whether a run's log rows get written. **What the flags gate widened in v1.6.0**:
 
 | Resolved flag | Gates (v1.6.0) | Pre-v1.6.0 |
@@ -270,21 +283,25 @@ Two independent layers control whether a run's log rows get written. **What the 
 | `run_log_capture` | `reconciliation_run_log` rows, **`reconciliation_result` rows**, and — in pipeline mode — whether the `recon__*__metrics` dataset is **registered at all** | `reconciliation_run_log` rows only; `reconciliation_result` was always written; `__metrics` was always registered |
 | `mismatch_log_capture` | `reconciliation_mismatch_log` rows and — in pipeline mode — whether the `recon__*__mismatch` dataset is registered | `reconciliation_mismatch_log` rows only; `__mismatch` was always registered |
 
-**Both flags resolved `false` means reconciliation persists to NOTHING but its business targets** — no metric/log dataset is created, no control-table row is written (a failed run included), and the run's job/pipeline state plus the structured log events are the only failure signal. That is the deliberate v1.6.0 contract: `logging_config` is a real off-switch, not a partial one. Two contradictory configurations are rejected — at onboarding (`spec_validator.py::_validate_logging_config`) *and* again at graph definition (`graph_registration.py`, catching runtime pipeline-conf overrides):
+**Both flags resolved `false` means reconciliation persists to NOTHING but its business targets** — no metric/log dataset is created, no control-table row is written (a failed run included), and the run's job/pipeline state plus the structured log events are the only failure signal. That is the deliberate v1.6.0 contract: `logging_config` is a real off-switch, not a partial one. **Since v1.7.3 this is also the *default* state**, reached by saying nothing at all.
+
+Two contradictory configurations are rejected — at onboarding (`spec_validator.py::_validate_logging_config`) *and* again at graph definition (`graph_registration.py`, catching runtime pipeline-conf overrides):
 
 * `dq_config.rules` while `run_log_capture` resolves `false` — the flow's expectations attach to its `__metrics` dataset, which would not exist, silently dropping declared data-quality checks.
-* `execution_mode: "pipeline_audit_only"` with **both** flags `false` — audit-only exists solely to produce the metrics/mismatch datasets and their control-table exports, so this combination registers compute with no output at all.
+* `execution_mode: "pipeline_audit_only"` with **both** flags resolving `false` — audit-only exists solely to produce the metrics/mismatch datasets and their control-table exports, so this combination registers compute with no output at all.
+
+**v1.7.3 note on these two rejections.** Both were previously reachable only when an author explicitly wrote `false`. Because the default flipped, they are now reachable by *omission* — a flow that declares `dq_config.rules` and no `logging_config` at all is rejected, as is a `pipeline_audit_only` flow with no `logging_config`. They remain rejections rather than silent downgrades (an expectation with nothing to attach to is still dropped data quality; audit-only with no output is still compute for nothing), but the error message now names **how the flag got its value** — written `false`, defaulted `false`, or overridden `false` by a pipeline-conf key — and tells you to set `run_log_capture: true`. An error that told you to remove a `false` you never wrote would be a bad error.
 
 The two layers:
 
-1. **Onboarded, per-flow layer**: `logging_config.run_log_capture` / `logging_config.mismatch_log_capture`, both default `true`. Persisted as `reconciliation_flow_spec.logging_config_json`.
+1. **Onboarded, per-flow layer**: `logging_config.run_log_capture` / `logging_config.mismatch_log_capture`, **both default `false` since v1.7.3** (they defaulted to `true` through v1.7.2). Persisted as `reconciliation_flow_spec.logging_config_json`.
 2. **Runtime, job-parameter layer** (v1.3.0): the notebook widgets `recon_run_log_capture` / `recon_mismatch_log`. Each is **tri-state**: `""` (default — defer to `logging_config`), `"true"`, `"false"`. In pipeline mode the equivalents are the pipeline-conf keys `dataflow.recon.run_log_capture` / `dataflow.recon.mismatch_log`, and since v1.6.0 they participate in the graph-definition decision (which datasets exist), not just the write decision.
 
 **Precedence, highest first** (`reconciliation/appender.py::resolve_log_capture_flags`, the single function that decides this — pure, no Spark, unit-tested with plain dicts):
 
 1. `recon_run_log_capture` / `recon_mismatch_log` job parameter, when set to `"true"`/`"false"`.
 2. `logging_config.run_log_capture` / `logging_config.mismatch_log_capture` from the flow spec.
-3. `true`.
+3. `false` — **v1.7.3 breaking change; this fallback was `true` through v1.7.2.** Layers 1 and 2 are unchanged.
 
 The two naming schemes are deliberately distinct rather than unified: `recon_*` names a runtime job/pipeline parameter that lives on one job run and evaporates afterward; `logging_config.*` names onboarded flow metadata that persists and is reviewed like any other spec field. An operator firefighting a runaway continuous flow needs to silence log writes for one run without re-onboarding the flow, and needs to be able to tell at a glance whether a value came from metadata or from the run they just launched — a plain boolean widget cannot express "I am not expressing an opinion," which is why the widgets are tri-state dropdowns rather than plain booleans.
 

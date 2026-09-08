@@ -36,7 +36,12 @@ what Phase 2 computes, and it can never *report* a difference of its own -- see 
 module docstring for the XOR fold's documented pair-cancellation property and why the asymmetry
 matters.
 
-**Two layers of log control.** ``logging_config.run_log_capture``/``mismatch_log_capture`` are the
+**Two layers of log control -- silent by default since v1.7.3.** With neither layer set, both
+flags now resolve ``False`` (through v1.7.2 they resolved ``True``): a reconciliation flow that
+says nothing about logging writes NO ``reconciliation_run_log``/``reconciliation_result``/
+``reconciliation_mismatch_log`` rows and, in pipeline mode, registers neither the ``__metrics``
+nor the ``__mismatch`` dataset. Auditing is opt-in.
+``logging_config.run_log_capture``/``mismatch_log_capture`` are the
 onboarded, per-flow layer; the ``recon_run_log_capture``/``recon_mismatch_log`` job parameters
 (``05_reconciliation_engine.py``'s widgets) are the runtime layer over them, for an operator who
 needs to silence log writes for one run without re-onboarding the flow.
@@ -678,7 +683,8 @@ def run_target_reconciliation(
         this function ever sees ``source_df``/``target_df``).
     logging_config:
         This flow's raw ``logging_config`` dict (``run_log_capture``/``mismatch_log_capture``,
-        both default ``true``) -- ``run_log_capture`` gates ``reconciliation_run_log`` AND
+        both default ``false`` since v1.7.3 -- see :func:`resolve_log_capture_flags`) --
+        ``run_log_capture`` gates ``reconciliation_run_log`` AND
         ``reconciliation_result`` (v1.6.0 -- previously the result row was unconditional);
         ``mismatch_log_capture`` gates ``reconciliation_mismatch_log``. Both false ==
         this run persists only to its business target.

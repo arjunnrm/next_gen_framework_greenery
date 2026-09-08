@@ -454,8 +454,9 @@ view into every consumer's plan. Two consumers of one `@dlt.view` over an Auto L
 observed live on TC-DQ-004 (a streaming Auto Loader source with two quarantine rules). "Declared
 once" is not "read once", and no amount of view reuse makes it so.
 
-Only **materialization** makes the read-once requirement (R2) literally true. The v1.5.0 rules,
-encoded in `engine/source_plane.py`:
+Only **materialization** makes the Single-Read DAG mandate's rule 1 (one external read per source
+table, per execution mode — see `AGENTS.md`) literally true. The rules encoded in
+`engine/source_plane.py`:
 
 - **MATERIALIZED:** every L0 shared source-plane node; every L3/L4 reconciliation dataset; a staged
   view whose flow has quarantine rules or a sink target.
@@ -464,15 +465,18 @@ encoded in `engine/source_plane.py`:
 
 Two corollaries worth memorizing:
 
-- **`read_mode` is not part of a read's identity.** One materialized *streaming table* legally
-  serves `dlt.read_stream` **and** `dlt.read` consumers in the same update. A `@dlt.view` can serve
-  neither pair — reading a streaming view with batch `dlt.read()` raises `View <name> is a streaming
+- **Execution mode *is* part of a base node's identity — the mandate's one deliberate exception.**
+  A locator consumed both as a stream and as a batch yields two base nodes (`__stream`, `__batch`),
+  because streaming and batch run on different primitives (checkpointed continuous state vs. a
+  point-in-time snapshot); `bind()` raises rather than silently reading an MV as a stream. *Within*
+  one mode, one materialized *streaming table* legally serves `dlt.read_stream` **and** `dlt.read`
+  consumers in the same update. A `@dlt.view` can serve neither pair — reading a streaming view with batch `dlt.read()` raises `View <name> is a streaming
   view and must be referenced using readStream`. So a streaming/batch collision is **resolved** by
   collapsing to a streaming table, never split into two nodes, and never papered over with
   `pipelines.incompatibleViewCheck.enabled=false` (pipeline-wide, and it silences the check without
   making a streaming plan batch-readable — recorded as known-and-rejected in
   `docs/13_known_limitations_and_gotchas.md`).
-- **Materialization is not free and the framework does not pretend it is.** A shared node is a full
+- **Materialization is not free, and the mandate pays for it anyway.** A base node is a full
   physical copy in UC storage, an extra DAG step, a checkpoint in the streaming case, and — the part
   usually missed — it **destroys predicate pushdown** of a consumer's `filter_condition` into the
   original source, which `reconciliation/matcher.py` explicitly relies on. That is why
@@ -927,8 +931,9 @@ else:
     staged_df = bind(plan, source_consumer_id, want_stream=is_streaming)
 ```
 
-Reading directly is correct rather than merely expedient: the plane exists to make a *shared*
-locator read once (R2), and a snapshot source has exactly one consumer by construction — that is
+Reading directly is correct rather than merely expedient: the plane exists to make an external
+locator read once per execution mode (mandate rule 1), and a snapshot source has exactly one
+consumer by construction — that is
 precisely what the exclusion asserts. Both sides branch on the single exported constant
 `source_plane.SNAPSHOT_EXCLUDED_FROM_SOURCE_PLANE`, never on two copies of the string, because a
 drift between them is invisible until pipeline runtime. Pinned by

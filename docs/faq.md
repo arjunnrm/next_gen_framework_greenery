@@ -126,12 +126,33 @@ the validator cannot catch see [known limitations](13_known_limitations_and_gotc
     it a pipeline-scoped temporary table.
 
 ??? question "How do I turn off ALL reconciliation logging, and what do I lose?"
-    Set `logging_config: {"run_log_capture": false, "mismatch_log_capture": false}` (or the
-    runtime overrides). v1.6.0 makes this a real off-switch: no `recon__*__metrics`/`__mismatch`
+    **Since v1.7.3 this is the default** — simply omit `logging_config` (or set both flags
+    `false` explicitly, which is equivalent and self-documenting). v1.6.0 makes this a real
+    off-switch: no `recon__*__metrics`/`__mismatch`
     dataset is registered, and no `reconciliation_run_log`, `reconciliation_mismatch_log` **or
     `reconciliation_result`** row is written — the flow persists only to its business targets. You
     lose the control-table audit trail entirely, including FAILED rows; the job/pipeline run state
     and structured log events become your only failure signal. Healing still works.
+
+??? question "Why is my reconciliation_run_log / reconciliation_mismatch_log empty since v1.7.3?"
+
+    Because reconciliation is **silent by default** as of v1.7.3. `logging_config.run_log_capture`
+    and `logging_config.mismatch_log_capture` now fall back to `false` instead of `true`, so a flow
+    that never mentioned logging writes no `reconciliation_run_log`, `reconciliation_result` or
+    `reconciliation_mismatch_log` rows, and in pipeline mode registers neither the
+    `recon__*__metrics` nor the `recon__*__mismatch` dataset. Anything reading those control tables
+    — BI dashboards, alerts, the observability export — goes empty for such a flow.
+
+    Fix: opt in explicitly on each flow that needs an audit trail, then re-onboard.
+
+    ```json
+    { "logging_config": { "run_log_capture": true, "mismatch_log_capture": true } }
+    ```
+
+    For a single run, without re-onboarding, set the `recon_run_log_capture` /
+    `recon_mismatch_log` job parameters to `"true"` (in pipeline mode, the
+    `dataflow.recon.run_log_capture` / `dataflow.recon.mismatch_log` conf keys). Only the implicit
+    fallback changed — a flow that already writes an explicit `true` or `false` is unaffected.
 
 ??? question "Why did onboarding reject `run_log_capture: false` on my flow?"
     Two combinations are rejected (at onboarding and again at graph definition): `dq_config.rules`

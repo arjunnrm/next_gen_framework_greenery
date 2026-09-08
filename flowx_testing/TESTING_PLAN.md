@@ -335,14 +335,19 @@ Tests dynamic runtime parameter substitution (`${param}`) and template resolutio
 
 ---
 
-### Module 12: Unified Pipeline-Mode Reconciliation & the Read-Once Source Plane (v1.5.0)
+### Module 12: Unified Pipeline-Mode Reconciliation & the Single-Read DAG (v1.5.0)
 
 Tests `reconciliation_flows[].execution_mode: "pipeline"` -- reconciliation registered as a third
 flow type inside a dataflow group's own Lakeflow pipeline update (L3 prepare / L4 compare / L5
-heal) instead of a standalone `05_reconciliation_engine.py` job task -- and the read-once source
-plane (`engine/source_plane.py`) that makes it possible: one external physical locator read by
-multiple consumers across ingestion, transformation and reconciliation is materialized exactly
-once per update and shared, never re-scanned per consumer. See `docs/13` and
+heal) instead of a standalone `05_reconciliation_engine.py` job task -- and the source plane
+(`engine/source_plane.py`) that makes it possible. Under the **Single-Read DAG mandate**
+(`AGENTS.md`), an external read of a source table happens exactly once per pipeline per execution
+mode: every external locator gets its own materialized base node (`materialize` defaults to
+`"always"`; `"never"` is hard-rejected at onboarding), and every downstream consumer -- ingestion,
+transformation, reconciliation alike -- reaches it via `dlt.read()`/`dlt.read_stream()` through
+`bind()` rather than re-reading the origin. The one deliberate exception is per execution mode: a
+locator consumed both as a stream and as a batch yields two base nodes (`__stream`, `__batch`).
+See `docs/13` and
 `onboarding/spec_validator.py::_validate_reconciliation_pipeline_placement` (V-CYC-1..8).
 
 | Test Case No | Testing Functionality & Objective | Realistic Production Scenario | Databricks Object Names | Proposed Pipeline & Job Architecture | Expected Output & Verification Logic |
@@ -393,7 +398,7 @@ criteria.
 | **S1** Full pipeline mode, L3+L4+L5 in one DAG | R1 + R3, and the heal lane | `TC-R2-001` (primary), `TC-DAG-001` (L3/L4 only) | `003_autoload_recon_append.json` | **Yes** -- resources deployed, seed exists |
 | **S2** Audit-only: compare in-DAG, heal in-job | The L5 lane is genuinely absent under `pipeline_audit_only` | `TC-DAG-003` | `052_dag_003_recon_audit_only.json` | **No** -- spec-only, see §3.12.2 Blockers |
 | **S3** Negative: cycle rejected at onboarding | V-CYC-3 | `TC-DAG-002` | `050_dag_002_recon_cycle_negative.json` | **Yes** -- validator runs offline, no workspace needed |
-| **S4** Read-once source plane | R2 | `TC-DAG-001` | `049_dag_001_unified_three_flow.json` | **No** -- see §3.12.4 Blockers |
+| **S4** Single-read source plane | Mandate rules 1-2 | `TC-DAG-001` | `049_dag_001_unified_three_flow.json` | **No** -- see §3.12.4 Blockers |
 | **S5** The live geneva pipeline `e41a47ba` moved in-DAG | The original defect: recon invisible in the DAG | `TC-DAG-004` | `053_geneva_e41a47ba_recon_in_pipeline.json` | **Partly** -- offline plan/validator assertions pass; the live onboard+run is blocked, see §3.12.5 |
 
 Throughout this section `{{catalog}}` is `flowx` and the target is `dev_flowx`
@@ -752,13 +757,14 @@ the wave runner's job-level verdict must be **inverted** for this case, exactly 
 
 ---
 
-#### 3.12.4 S4 (R2) -- One physical source, read exactly once per update
+#### 3.12.4 S4 (rule 1) -- One external read per source table, per execution mode
 
-**Purpose.** Prove R2 concretely: when the *same physical locator* is consumed by several flows
-of different kinds in one dataflow group, `engine/source_plane.py` materializes exactly one L0
-node and every consumer binds to it. The abstract claim ("we dedup reads") is not testable; the
-concrete claim -- *exactly one flow in this update carries a read of this locator, and it is the
-plane node's own flow* -- is.
+**Purpose.** Prove rule 1 of the Single-Read DAG mandate concretely: when the *same physical
+locator* is consumed by several flows of different kinds in one dataflow group,
+`engine/source_plane.py` materializes exactly one L0 base node per execution mode and every
+consumer binds to it (rule 2 -- downstream lineage through `dlt.read`). The abstract claim ("we
+dedup reads") is not testable; the concrete claim -- *exactly one flow in this update carries an
+external read of this locator, and it is the base node's own flow* -- is.
 
 **Spec fixture.** `flowx_testing/049_dag_001_unified_three_flow.json` -- `TC-DAG-001`,
 `dfg_dag_001_unified_three_flow`. One locator, `flowx.dag_001_usecase.shared_source_bus`, has
@@ -770,9 +776,10 @@ plane node's own flow* -- is.
 | 2 | `transformation_flows[0].source_inputs[0]` (`shared_source_direct`) | transformation input id | No (batch) |
 | 3 | `reconciliation_flows[0].target_configs[0]` | `recon_dag_001_bronze_vs_raw_bus:target:raw_source_bus_target` | No (batch) |
 
-Fanout 3 clears the `materialize: "auto"` threshold of 2, and at least one consumer streams, so
-the plane must register a **streaming table** (never a view -- a view is inlined into each
-consumer and re-opens the read once per consumer, which is precisely the failure this test
+`materialize` defaults to `"always"`, so the base node exists independently of fanout (fanout 3
+here only makes a regression to per-consumer inlining more visible); at least one consumer
+streams, so the plane must register a **streaming table** (never a view -- a view is inlined into
+each consumer and re-opens the read once per consumer, which is precisely the failure this test
 detects) named, deterministically:
 
 ```text
@@ -813,7 +820,7 @@ WHERE  event_type IN ('dataset_definition', 'flow_definition', 'sink_definition'
 
 1. **Exactly one** flow in the entire update has `flowx.dag_001_usecase.shared_source_bus`
    among its `flow_definition` inputs / read sources. Not "at least one" -- **one**. Two or three
-   means the plane fell back to per-consumer inlining and R2 is broken. This is
+   means the plane fell back to per-consumer inlining and rule 1 is broken. This is
    `test_exactly_one_flow_reads_the_shared_physical_locator`.
 2. That one reader **is** the plane node
    `_src__flowx_dag_001_usecase_shared_source_bus__d7cda736__stream`, not an ingestion or
@@ -837,8 +844,9 @@ WHERE  event_type IN ('dataset_definition', 'flow_definition', 'sink_definition'
 6. The L3 **source** node (`_recon__recon_dag_001_bronze_vs_raw_bus__src`) lists
    `flowx.bronze_dag_001.shared_source_bronze` in its `input_datasets` -- it binds as an
    `in_graph_sibling` (V-CYC-1) rather than as a second physical read of an already-materialized
-   table. This is the second, independent read-once claim in the same fixture: R2 covers external
-   locators, and in-graph sibling binding covers tables this update itself produced.
+   table. This is the second, independent single-read claim in the same fixture: rule 1 covers
+   external locators, and rule 2's in-graph sibling binding covers tables this update itself
+   produced.
 7. **Cheap corroborating signal, not a substitute for 1-2:** the update's own metrics. A
    `flow_progress` event's `metrics.num_output_rows` for the plane node should equal the source
    row count once; if three separate flows each report the same `num_output_rows` against the

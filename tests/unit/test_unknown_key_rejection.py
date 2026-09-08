@@ -22,6 +22,7 @@ from flowx.lakeflow_framework.onboarding.spec_validator import (
     ALLOWED_ROOT_KEYS,
     ALLOWED_SINK_CONFIG_KEYS,
     ALLOWED_SOURCE_INPUT_KEYS,
+    ALLOWED_SOURCE_PLANE_KEYS,
     ALLOWED_TARGET_CONFIG_KEYS,
     ALLOWED_TRANSFORMATION_FLOW_KEYS,
     UNKNOWN_KEY_ALIASES,
@@ -262,3 +263,93 @@ def test_every_shipped_spec_still_validates_clean_of_unknown_keys():
         checked += 1
         assert _unknown_errors(spec) == [], path
     assert checked >= 50, f"expected the shipped spec corpus, only found {checked}"
+
+
+# --------------------------------------------------------------- source_plane (v1.7.3)
+#
+# The Single-Read architectural mandate. Until v1.7.3 `source_plane` sat in ALLOWED_ROOT_KEYS
+# with NO validator behind it: any shape, any key, any `materialize` value was accepted, written
+# to dataflow_group_spec.source_plane_config_json, and only interpreted at pipeline runtime --
+# where an unrecognised value silently behaved as the old "auto" default. These tests pin the
+# validator that closed that gap.
+
+MATERIALIZE_NEVER_MESSAGE = (
+    "materialize='never' is deprecated and prohibited under the Single-Read architectural "
+    "mandate. Remove this setting to default to 'always', ensuring base tables are read once "
+    "and reused via dlt.read()."
+)
+
+
+def _source_plane_errors(source_plane):
+    spec = _minimal_ingestion_spec(source_plane=source_plane)
+    return [e for e in _errors(spec) if e.startswith("source_plane")]
+
+
+def test_materialize_never_is_rejected_with_the_migration_message():
+    """The prohibited value is rejected by NAME, with the migration sentence naming 'always'.
+
+    Asserted as an exact string, not a substring: this message is the machine-readable contract
+    the v1.7.3 attribute delta publishes for the Databricks App and other automated consumers,
+    so a reworded sentence is a breaking change to them even when it still reads correctly.
+    """
+    errors = _source_plane_errors({"materialize": "never"})
+    assert errors == [f"source_plane.materialize: {MATERIALIZE_NEVER_MESSAGE}"]
+
+
+def test_materialize_never_is_rejected_regardless_of_other_keys():
+    """Presence of the prohibited VALUE is the trigger -- a fully-populated, otherwise-valid
+    block does not launder it."""
+    errors = _source_plane_errors(
+        {"materialize": "never", "catalog": "metaflow", "schema": "plane"}
+    )
+    assert errors == [f"source_plane.materialize: {MATERIALIZE_NEVER_MESSAGE}"]
+
+
+def test_materialize_never_does_not_fall_through_to_the_generic_enum_error():
+    """A withdrawn value gets its migration message INSTEAD of 'not one of [always, auto]'.
+
+    The generic enum error reads as a typo and tells the author nothing about what replaced the
+    policy or why it went away -- the same reason cdc_load_strategy checks
+    REMOVED_CDC_LOAD_STRATEGIES before its allowed-values test.
+    """
+    errors = _source_plane_errors({"materialize": "never"})
+    assert len(errors) == 1
+    assert "not one of" not in errors[0]
+
+
+@pytest.mark.parametrize("policy", ["always", "auto"])
+def test_surviving_materialize_policies_are_accepted(policy):
+    """`materialize` is a surviving key, so the rejection must be VALUE-scoped.
+
+    This is why reject_removed_keys() -- which fires on key PRESENCE -- is the wrong helper
+    here: pointed at `materialize` it would reject the default `"always"` too. `"auto"` stays
+    legal because it is weaker, not prohibited: groups onboarded before the mandate set it
+    explicitly, and breaking them buys nothing that the new default does not already deliver.
+    """
+    assert _source_plane_errors({"materialize": policy}) == []
+
+
+def test_omitted_materialize_is_accepted_and_defaults_to_always():
+    """Silence is legal and means "always" -- the default lives in the engine signature and the
+    notebook fallback, not in a validator-injected value."""
+    assert _source_plane_errors({"catalog": "metaflow", "schema": "plane"}) == []
+    assert _source_plane_errors({}) == []
+
+
+def test_unrecognised_materialize_value_is_rejected():
+    """Before v1.7.3 an unknown value was accepted and silently behaved as "auto" -- the exact
+    class of silent-divergence defect the validator exists to catch."""
+    errors = _source_plane_errors({"materialize": "sometimes"})
+    assert len(errors) == 1
+    assert errors[0].startswith("source_plane.materialize:")
+
+
+def test_unknown_key_on_source_plane_is_rejected():
+    errors = _source_plane_errors({"materialize": "always", "materialise": "always"})
+    assert len(errors) == 1
+    assert "not a recognised attribute" in errors[0]
+    assert errors[0].startswith("source_plane.materialise:")
+
+
+def test_non_dict_source_plane_is_rejected():
+    assert _source_plane_errors(["always"]) != []

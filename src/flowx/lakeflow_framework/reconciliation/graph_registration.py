@@ -13,12 +13,26 @@ plane (``engine/source_plane.py``) instead of re-reading tables the same update 
 materialized, and its comparison becomes a queryable, lineage-tracked, ``dq_config``-gated set of
 Unity Catalog tables instead of opaque job-task Python.
 
+**v1.7.3 -- SILENT BY DEFAULT, and what that means for this module.** ``run_log_capture`` and
+``mismatch_log_capture`` now fall back to ``False`` rather than ``True`` when neither the
+pipeline-conf override nor the flow's own ``logging_config`` sets them (see
+:func:`~reconciliation.appender.resolve_log_capture_flags`). Because this module gates dataset
+REGISTRATION on those flags, the shape of a default graph changed: a reconciliation flow that
+says nothing about logging now registers **neither** ``__metrics`` **nor** ``__mismatch``, and so
+publishes no Unity Catalog dataset at all -- only its temporary intermediates and, for a healing
+flow, the ``_src``/``_tgt`` nodes and the L5 heal lane. Through v1.7.2 that same flow published
+both audit datasets and fed both control-table sinks. Any flow that wants audit output must now
+opt in with ``logging_config: {"run_log_capture": true, "mismatch_log_capture": true}``. The
+per-flag statements below are unchanged and still exact -- what changed is only which way an
+unstated flag resolves.
+
 **The five layers this module registers, per reconciliation flow** (v1.6.0 Intermediate Object
 Rule: every true intermediate below is a pipeline-scoped ``@dlt.table(temporary=True)`` under
 its bare name -- materialized once, never published to Unity Catalog; the only published
 datasets are ``__metrics``/``__mismatch``, which are the staging feed for the control-table
-sinks and exist only when their capture flag resolves true, plus -- for a healing flow only --
-the L3 ``_src``/healing ``_tgt`` nodes the L5 handler must read back through the metastore):
+sinks and exist only when their capture flag resolves true -- which, since v1.7.3, requires an
+explicit opt-in -- plus, for a healing flow only, the L3 ``_src``/healing ``_tgt`` nodes the L5
+handler must read back through the metastore):
 
 * **L3 RECON PREPARE** -- ``_recon__<reconciliation_id>__src`` (one shared, hash-prepared read of
   ``source_config``, paid ONCE regardless of how many targets this flow compares against) and one
@@ -354,8 +368,8 @@ def register_reconciliation_flow(
     # L5 handler's writes -- `__metrics` is registered only when run_log_capture resolves
     # true, `__mismatch` only when mismatch_log_capture does. Resolution here uses exactly
     # the same precedence the handler used at execution time (pipeline-conf override wins,
-    # then the onboarded logging_config, then True), over exactly the same inputs, so the
-    # two decisions can never disagree.
+    # then the onboarded logging_config, then -- since v1.7.3 -- False), over exactly the
+    # same inputs, so the two decisions can never disagree.
     recon_run_log_capture = (log_capture_overrides or {}).get("recon_run_log_capture")
     recon_mismatch_log = (log_capture_overrides or {}).get("recon_mismatch_log")
     run_log_capture, mismatch_log_capture = resolve_log_capture_flags(

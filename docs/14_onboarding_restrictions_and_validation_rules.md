@@ -383,7 +383,9 @@ here is gone from the spec forever — each key is perfectly valid under a *diff
 Rules that only fire when two or more fields are considered together. The two `logging_config`
 rules are **new in v1.6.0** and mirror graph-time guards in
 `reconciliation/graph_registration.py`, so the contradiction surfaces at onboarding instead of
-on the first pipeline update. The v1.6.0 contract behind them: `logging_config.run_log_capture`
+on the first pipeline update.
+
+**v1.7.3 breaking change — silent by default.** `run_log_capture` and `mismatch_log_capture` now default to **`false`** (they defaulted to `true` through v1.7.2), so both rules below now fire for a flow that simply omits `logging_config`, not only for one that writes an explicit `false`. They are still rejections rather than silent downgrades, but each message names whether the flag was written `false`, left unset (and therefore defaulted false by v1.7.3), or forced false by a `dataflow.recon.*` pipeline-conf override — and tells the author to set `run_log_capture: true`. The v1.6.0 contract behind them: `logging_config.run_log_capture`
 now gates `reconciliation_run_log` **and** `reconciliation_result` **and** (in pipeline mode)
 whether the `recon__*__metrics` dataset is registered at all; `mismatch_log_capture` gates
 `reconciliation_mismatch_log` and the `recon__*__mismatch` dataset; both `false` means the flow

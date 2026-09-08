@@ -36,11 +36,23 @@
 # MAGIC datasets agree *as of now*", which has a boundary in it. To ask more often, schedule this
 # MAGIC job more often.
 # MAGIC
-# MAGIC **Runtime log controls (v1.3.0).** The `recon_run_log_capture` / `recon_mismatch_log`
-# MAGIC job parameters are a tri-state (`""`/`"true"`/`"false"`) runtime layer *over* the flow's
-# MAGIC own `logging_config.run_log_capture` / `logging_config.mismatch_log_capture`; blank defers
-# MAGIC to the flow. `reconciliation_result` is always written regardless of both layers, so a
-# MAGIC fully-silenced run still leaves a record that it happened. See
+# MAGIC **Runtime log controls (v1.3.0; defaults flipped in v1.7.3).** The
+# MAGIC `recon_run_log_capture` / `recon_mismatch_log` job parameters are a tri-state
+# MAGIC (`""`/`"true"`/`"false"`) runtime layer *over* the flow's own
+# MAGIC `logging_config.run_log_capture` / `logging_config.mismatch_log_capture`; blank still
+# MAGIC defers to the flow, exactly as before.
+# MAGIC
+# MAGIC **What changed in v1.7.3:** when the flow's `logging_config` does not set a flag either,
+# MAGIC the final fallback is now `false`, not `true` -- reconciliation is **silent by default**.
+# MAGIC So a blank widget against a flow with no `logging_config` now writes NOTHING, where
+# MAGIC through v1.7.2 it wrote everything. To audit such a run without re-onboarding the flow,
+# MAGIC set the widgets to `"true"` explicitly.
+# MAGIC
+# MAGIC Two earlier claims on this page are now obsolete and have been corrected here:
+# MAGIC `reconciliation_result` is **not** written regardless of the flags -- since v1.6.0 it is
+# MAGIC gated by the resolved `run_log_capture` exactly like `reconciliation_run_log`, so a
+# MAGIC fully-silenced run leaves NO control-table record that it happened; its only signal is
+# MAGIC the job/pipeline run state plus the structured log events. See
 # MAGIC `appender.py::resolve_log_capture_flags`.
 # MAGIC
 # MAGIC **Two-tier verification (v1.3.0).** With `two_tier_verification` (default `true`), a cheap
@@ -131,16 +143,19 @@ dbutils.widgets.dropdown(
     "",
     ["", "true", "false"],
     "RUNTIME OVERRIDE of this flow's logging_config.run_log_capture. Tri-state: '' (default) "
-    "defers to the flow's own logging_config; 'true'/'false' force reconciliation_run_log writes "
-    "on/off for this run only. reconciliation_result is written regardless.",
+    "defers to the flow's own logging_config -- which since v1.7.3 itself defaults to FALSE when "
+    "the flow does not set the flag (silent by default; it defaulted to true through v1.7.2). "
+    "'true'/'false' force reconciliation_run_log AND reconciliation_result writes on/off for "
+    "this run only (v1.6.0: reconciliation_result is gated by this flag too, NOT unconditional).",
 )
 dbutils.widgets.dropdown(
     "recon_mismatch_log",
     "",
     ["", "true", "false"],
     "RUNTIME OVERRIDE of this flow's logging_config.mismatch_log_capture. Tri-state: '' (default) "
-    "defers to the flow's own logging_config; 'true'/'false' force reconciliation_mismatch_log "
-    "writes on/off for this run only. reconciliation_result is written regardless.",
+    "defers to the flow's own logging_config -- which since v1.7.3 itself defaults to FALSE when "
+    "the flow does not set the flag (silent by default; it defaulted to true through v1.7.2). "
+    "'true'/'false' force reconciliation_mismatch_log writes on/off for this run only.",
 )
 
 

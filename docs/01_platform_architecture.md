@@ -273,11 +273,18 @@ even though both are top-level, group-scoped objects.
 3. **Decoupled Governance DDL**: Applying `ALTER TABLE ... SET TAGS` is handled as a post-deployment task (`04_apply_governance_and_egress.py`) because Databricks prohibits catalog DDL within active DLT streaming micro-batches.
 4. **Native In-Graph Sinks**: Egress sinks (`target_type: "sink"` / `"external_sink"`) are registered as native Lakeflow sink flows (`dlt.create_sink` + `@dlt.append_flow`), ensuring exactly-once processing without external batch scripts.
 5. **One Group, One DAG (v1.5.0)**: ingestion, transformation **and** reconciliation are all registered into the *same* Lakeflow pipeline update for a dataflow group. Reconciliation is a third first-class flow type, opted into per flow with `execution_mode` (default `"job"`, so nothing already deployed changes). Observability deliberately stays a normal Lakeflow **job task** and is unchanged. See [§7](#7-the-read-once-source-plane) and [`07_reconciliation_engine.md` §11](07_reconciliation_engine.md#11-execution-modes-job-pipeline-pipeline_audit_only).
-6. **Read Once, Reuse Everywhere (v1.5.0)**: every physical source — ingestion source, transformation input, both reconciliation sides — is routed through the source plane, so one physical table or path is read exactly once per update and shared by all its consumers. See [§7](#7-the-read-once-source-plane).
+6. **The Single-Read DAG (v1.5.0)**: every source — ingestion source, transformation input, both reconciliation sides — is routed through the source plane. An *external* read (`spark.read`/`spark.readStream` against a storage path, Delta location or external catalog) occurs exactly once per pipeline per required source table, per execution mode, and every downstream consumer reaches it via `dlt.read()`/`dlt.read_stream()` instead of re-reading the origin. See [§7](#7-the-read-once-source-plane) and `AGENTS.md`'s four-rule statement of the mandate.
 
 ---
 
-## 7. The Read-Once Source Plane
+## <a id="7-the-read-once-source-plane"></a>7. The Single-Read DAG Source Plane
+
+> This section is the mechanism behind the **Single-Read DAG mandate** stated as four rules in
+> `AGENTS.md`. Rules 1 (one external read per source table, per execution mode), 2 (downstream
+> lineage through `dlt.read()`) and 4 (`materialize` defaults to `"always"`; `"never"` is
+> hard-rejected) are all enforced here. Rule 3 — "no intermediate tables" means no throwaway
+> staging tables, and explicitly does *not* apply to the base ingestion nodes below — is covered
+> by the Intermediate Object Rule later in this section.
 
 **New in v1.5.0** (`engine/source_plane.py`, `engine/identifiers.py`). Before v1.5.0, each
 consumer opened its own read of a source. Two quarantine rules over one Auto Loader path meant
@@ -320,9 +327,14 @@ computes an identity, so plan and bind cannot disagree about what is shared with
   `explode_columns` / `auto_flatten_all`, `remove_dups`, `data_standardization_sql`,
   `decrypted_columns`, watermarks, `filter_condition`, hashing for matching, DQ/quarantine
   columns, encryption. **Two consumers that shape the data differently still share one read.**
-* **`read_mode` is not in the identity.** One materialized streaming table serves
-  `dlt.read_stream` *and* `dlt.read` consumers in the same update; a `@dlt.view` can serve
-  neither pair (see [`13_known_limitations_and_gotchas.md` L7](13_known_limitations_and_gotchas.md#l7)).
+* **Execution mode *is* part of the node identity — the mandate's one deliberate exception.** A
+  locator consumed both as a stream and as a batch legitimately yields two base nodes,
+  `…__stream` and `…__batch`, because streaming and batch run on different primitives
+  (checkpointed continuous state vs. a point-in-time snapshot) and forcing one binding onto the
+  other introduces checkpoint locking and full-refresh side effects. `bind()` raises rather than
+  silently reading a materialized view as a stream. Within a single mode, one materialized
+  streaming table serves `dlt.read_stream` *and* `dlt.read` consumers in the same update; a
+  `@dlt.view` can serve neither pair (see [`13_known_limitations_and_gotchas.md` L7](13_known_limitations_and_gotchas.md#l7)).
 
 The node name always carries an 8-hex digest of the locator — never only on truncation — because
 sanitizing maps every non-identifier character to `_`, and `flowx.bronze.a_b` and
@@ -399,7 +411,7 @@ of its dataflow group — the same graph, the same topological ordering, the sam
 | | Requirement | Where it is enforced |
 |---|---|---|
 | **R1** | Ingestion, transformation **and** reconciliation all run inside **one** Lakeflow DAG per dataflow group. | `notebooks/03_engine/03_lakeflow_declarative_pipeline.py` — three registration loops in one notebook; `reconciliation/graph_registration.py` for the recon nodes. |
-| **R2** | Every physical source is read **exactly once** per update and reused by all its consumers. | `engine/source_plane.py` — the L0 plane of [§7](#7-the-read-once-source-plane). Both reconciliation sides go through it like any other read. |
+| **R2** | Every external source table is read **exactly once** per update, per execution mode, and every downstream consumer reaches it through the DAG (`dlt.read`/`dlt.read_stream`) rather than re-reading the origin. | `engine/source_plane.py` — the L0 plane of [§7](#7-the-read-once-source-plane). Both reconciliation sides go through it like any other read. See `AGENTS.md`'s four-rule Single-Read DAG mandate. |
 | **R3** | Observability stays a normal Lakeflow **job task** and is *never* folded into the pipeline. | `notebooks/08_observability/08_dlt_observability_engine.py` (triggered) and the separate `06_event_log_otel_streaming_pipeline.py` (continuous) — neither is reachable from the engine notebook. See [§8.4](#84-r3-observability-is-still-a-job-task). |
 
 ### 8.2 The actual shape of the notebook

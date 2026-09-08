@@ -67,6 +67,10 @@
   "reconciliation_flows": [
     {
       "reconciliation_id": "recon_rec_002_customer_drift",
+      "logging_config": {
+        "run_log_capture": true,
+        "mismatch_log_capture": true
+      },
       "source_config": {
         "type": "table",
         "table": "{{catalog}}.silver_crm.customer_baseline",

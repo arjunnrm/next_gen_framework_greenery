@@ -1346,7 +1346,7 @@
         },
         "asn1_pdu_name": {
           "type": "string",
-          "description": "asn1 only -- the top-level SEQUENCE type to decode each record as."
+          "description": "asn1 only -- OPTIONAL. The top-level SEQUENCE or CHOICE type in asn1_schema_path to decode each record as (a real telecom module's natural root PDU is usually a CHOICE: TAP's DataInterChange, 3GPP's CallEventRecord, EMSC's CallDataRecord). When omitted, null, empty, or whitespace-only, the framework AUTO-DETECTS the root PDU as the one top-level SEQUENCE/CHOICE that no other type in the module references -- the entry point of the module's own type-dependency graph -- and logs the inference at INFO so it is visible in the driver log. A value supplied here is an unconditional override and is never second-guessed against detection. If a module exposes two or more unreferenced SEQUENCE/CHOICE types the root is ambiguous and onboarding-time schema derivation raises Asn1DecodeError listing the candidates rather than guessing, because a wrong root does not fail loudly -- it silently produces a full table of garbage columns. See asn1/decoder.py::detect_root_pdu_name / resolve_pdu_name."
         },
         "column_normalization": {
           "type": "object",

@@ -769,8 +769,12 @@ def read_asn1_source(spark: SparkSession, source_config: Dict[str, Any]) -> Data
     ``asn1_schema_path`` (a real ``.asn``/ASN.1 module definition file -- not a hand-authored
     JSON field list; the Spark output schema is derived directly from this file via
     ``asn1/decoder.py::derive_asn1_field_defs`` introspection), ``asn1_codec`` (``"ber"`` or
-    ``"der"``), ``asn1_pdu_name`` (the top-level ``SEQUENCE`` type in that module to decode
-    each record as), optional ``file_pattern``/``reader_options`` (same as the autoloader
+    ``"der"``), **optional** ``asn1_pdu_name`` (the top-level ``SEQUENCE`` **or** ``CHOICE``
+    type in that module to decode each record as -- a real telecom module's natural root PDU is
+    usually a CHOICE, e.g. TAP's ``DataInterChange`` or 3GPP's ``CallEventRecord``; when absent,
+    ``None``, ``""`` or whitespace-only, the root PDU is auto-detected from the module's own
+    type-dependency structure by ``asn1/decoder.py::detect_root_pdu_name`` and logged at INFO,
+    and an explicitly supplied name always wins), optional ``file_pattern``/``reader_options`` (same as the autoloader
     reader), optional ``landing_retention_policy`` (same shape as the Auto Loader reader),
     and optional ``source_zip_handling`` (``enabled``, ``source_zip_path`` -- a landing
     *directory*, ``zip_file_pattern`` -- glob selecting which archive(s) in that directory to

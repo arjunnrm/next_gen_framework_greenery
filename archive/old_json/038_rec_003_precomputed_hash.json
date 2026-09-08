@@ -77,6 +77,10 @@
   "reconciliation_flows": [
     {
       "reconciliation_id": "recon_rec_003_orders_precomputed_hash",
+      "logging_config": {
+        "run_log_capture": true,
+        "mismatch_log_capture": true
+      },
       "source_config": {
         "type": "table",
         "table": "{{catalog}}.silver_sales.orders_src",

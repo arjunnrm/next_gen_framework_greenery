@@ -1275,9 +1275,17 @@ reasons:
 2. It **silences the check without making a streaming plan batch-readable.** The incompatibility is
    in the plan, not in the warning.
 
-The supported resolution is structural, not a flag: a shared source-plane node is registered as a
-**materialized streaming table whenever any consumer streams**, and one such table is legally
-readable by `dlt.read_stream` *and* `dlt.read` in the same update. A view can serve neither pair.
+The supported resolution is structural, not a flag: since v1.7.3 source-plane nodes are keyed by
+**`(identity, mode)`**, so a consumer that wants a streaming read gets a node registered as a
+**materialized streaming table**, and a consumer that wants a batch read of the same locator gets
+its own materialized view — two nodes, each in the mode its consumers actually asked for. A view
+can serve neither streaming pair, which is exactly why the batch node is never substituted for the
+stream one.
+
+(Before v1.7.3 a single streaming node served both, on the true-but-incomplete reasoning that a
+materialized streaming table is legally readable by `dlt.read_stream` *and* `dlt.read` in one
+update. It is — but it also imposes that node's checkpoint-locking and full-refresh semantics on a
+consumer that only ever wanted a batch scan, which is why the mandate split them.)
 
 ### <a id="l9"></a>L9 🔴 Reading a pipeline table's backing storage path is forbidden
 
@@ -1348,8 +1356,9 @@ else:
     staged_df = bind(plan, source_consumer_id, want_stream=is_streaming)
 ```
 
-That is a correct read-once outcome, not an exception to R2: the plane deduplicates a locator
-*shared between consumers*, and a snapshot source has exactly one consumer by construction. Every
+That is a correct single-read outcome, not an exception to the mandate: the plane guarantees one
+external read per source table per execution mode, and a snapshot source has exactly one consumer
+by construction. Every
 other strategy still binds — pinned in both directions by `tests/unit/test_flow_generators.py` §6.
 
 **If you are adding a new CDC strategy** that also sits outside the plane, add it to the exported

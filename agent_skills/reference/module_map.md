@@ -133,17 +133,36 @@ Three modules added in **v1.5.0**, when reconciliation moved inside the pipeline
   **always** appending `sha256(locator)[:8]` — never only on truncation, because sanitizing alone
   would collide `flowx.bronze.a_b` with `flowx.bronze_a.b` and raise `Cannot redefine dataset`
   for the whole update.
-- `source_plane.py` — the **read-once** plane (requirement R2: every physical source table/path is
-  read exactly once per pipeline update and reused by every consumer). Three-phase, deliberately
+- `source_plane.py` — the **Single-Read DAG** plane. It implements rules 1, 2 and 4 of the
+  Single-Read DAG mandate (see `AGENTS.md`): an *external* read
+  (`spark.read`/`spark.readStream` against a storage path, Delta location or external catalog)
+  happens **exactly once per pipeline per required source table, per execution mode**, and every
+  downstream consumer reaches it through the DAG rather than re-reading the origin. Identity is
+  keyed **per execution mode**: a locator consumed both as a stream and as a batch legitimately
+  yields two base nodes (`__stream` and `__batch`), because streaming and batch run on different
+  primitives (checkpointed continuous state vs. a point-in-time snapshot) — this is the one
+  deliberate exception to "one node per source table", not a violation of it.
+  Three-phase, deliberately
   pure-first: `plan_source_plane(...)` (no `dlt`, no Spark action, unit-testable with zero
   workspace) → `register_source_plane(spark, plan)` → `bind(plan, consumer_id, want_stream)`.
   `bind` is keyed on a **consumer id string**, never on a caller-recomputed identity, so plan and
-  bind cannot disagree; it returns one of three binding kinds — `in_graph_sibling` (`dlt.read`/
-  `read_stream` of a table this same group publishes), `shared_node` (one materialized node, a
-  streaming table if *any* consumer streams, an MV otherwise — since v1.6.0 registered as a
-  bare-named `@dlt.table(temporary=True)`, published qualified only when the spec sets both
-  `source_plane.catalog` + `source_plane.schema`; `PlaneNode.published` carries the decision), or
-  `inline` (today's exact code path, preserving predicate pushdown into the origin). Internal types: `ReadIdentity`
+  bind cannot disagree; it returns one of two binding kinds — `in_graph_sibling` (`dlt.read`/
+  `read_stream` of a table this same group publishes — no plane node, because the producer already
+  materialized it and a node would be a *second* read of what the graph produces), or `shared_node`
+  (one materialized base node, a streaming table if the consumer streams, an MV otherwise — since
+  v1.6.0 registered as a bare-named `@dlt.table(temporary=True)`, published qualified only when the
+  spec sets both `source_plane.catalog` + `source_plane.schema`; `PlaneNode.published` carries the
+  decision). `bind` raises rather than silently reading an MV as a stream.
+  **`materialize` policy (rule 4):** the default is `"always"` (since v1.7.3) — every external
+  identity gets its own base node regardless of fanout. The legacy fan-out-threshold policy
+  `"auto"` is still accepted for back-compat with control-table rows written before the change,
+  but is no longer the default and is a strictly weaker guarantee. `"never"` is **hard-rejected**
+  at onboarding validation by name with a migration message (`spec_validator.py`, the
+  `reject_removed_keys()` pattern) and raises again in `plan_source_plane`, because at fanout
+  ≥ 2 it reintroduces the silent redundant scans the plane exists to eliminate. The `inline`
+  binding kind therefore survives in the code but is reachable only via an explicit `"auto"` at
+  fanout 1.
+  Internal types: `ReadIdentity`
   (`locator_kind`/`locator`/`options_fingerprint`, locator casefolded), `ConsumerRequest`,
   `PlaneNode`, `Binding`, `SourcePlanePlan`. `assert_acyclic(plan)` runs a Kahn topological sort
   over the whole edge set and raises `FrameworkGraphCycleError` naming the ring;
