@@ -48,4 +48,4 @@ resources:
         tables.
       warehouse_id: ${var.dashboard_warehouse_id}
       parent_path: ${workspace.file_path}/databricks-genie
-      file_path: ../../databricks-genie/flowx_observability.geniespace.json
+      file_path: ${var.genie_space_file}

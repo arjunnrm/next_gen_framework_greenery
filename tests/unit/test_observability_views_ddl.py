@@ -35,6 +35,8 @@ from flowx.lakeflow_framework.control_plane.observability_views import (
     get_pipeline_registry_view_ddl,
     get_pipeline_updates_view_ddl,
     get_reconciliation_health_view_ddl,
+    get_deployment_versions_view_ddl,
+    get_installed_framework_version,
 )
 
 OBS = "poc.observability"
@@ -54,6 +56,7 @@ EXPECTED_VIEWS = [
     "v_reconciliation_health",
     "v_dataflow_lineage",
     "v_group_health_summary",
+    "v_deployment_versions",
 ]
 
 
@@ -99,10 +102,24 @@ def test_registry_precedes_every_view_that_joins_to_it():
         assert order.index(f"create view {dependent}") > registry, dependent
 
 
-def test_group_health_summary_is_created_last():
-    # It is a view over five of the others, so it must come after all of them.
+def test_group_health_summary_precedes_only_deployment_versions():
+    # v_group_health_summary is a view over five of the others, so it must come after all of
+    # them. It is no longer LAST: v_deployment_versions joins v_dataflow_group_catalog and
+    # v_pipeline_registry, so it is created after the summary. Both are terminal -- nothing
+    # joins to either -- so their relative order is free, but each must follow its own inputs.
     order = [name for name, _ in all_ddls()]
-    assert order[-1] == "create view v_group_health_summary"
+    summary = order.index("create view v_group_health_summary")
+    for upstream in ("v_pipeline_updates", "v_flow_metrics", "v_dq_results",
+                     "v_dataflow_cost", "v_reconciliation_health"):
+        assert order.index(f"create view {upstream}") < summary, upstream
+    assert order[-1] == "create view v_deployment_versions"
+
+
+def test_deployment_versions_follows_the_views_it_joins():
+    order = [name for name, _ in all_ddls()]
+    dv = order.index("create view v_deployment_versions")
+    for upstream in ("v_dataflow_group_catalog", "v_pipeline_registry"):
+        assert order.index(f"create view {upstream}") < dv, upstream
 
 
 # ------------------------------------------------------------------------- the join key
@@ -364,3 +381,57 @@ def test_ddls_are_parameterised_by_schema_and_leak_no_other_catalog():
     for description, ddl in other:
         assert "poc." not in ddl, f"{description} hardcodes the poc catalog"
         assert "alt.obs" in ddl or "alt.config" in ddl or "system." in ddl
+
+# ------------------------------------------------------- wheel drift (v_deployment_versions)
+
+
+def test_deployment_versions_parses_the_wheel_version_from_the_event_log():
+    # system.lakeflow exposes no pipeline library path, so the ONLY pure-SQL source for the
+    # wheel is the resolved config recorded on each create_update event.
+    ddl = get_deployment_versions_view_ddl(OBS, CTL, EVENT_LOGS, "0.0.4")
+    assert "event_type = 'create_update'" in ddl
+    assert "/wheels/([0-9]+[.][0-9]+[.][0-9]+)/" in ddl
+    for table in EVENT_LOGS:
+        assert table in ddl
+
+
+def test_deployment_versions_baseline_is_the_installed_version_when_known():
+    ddl = get_deployment_versions_view_ddl(OBS, CTL, EVENT_LOGS, "0.0.4")
+    # The installed version must appear as a literal and be preferred over the best observed.
+    assert "'0.0.4'" in ddl
+    assert "baseline_source" in ddl
+    assert "'installed'" in ddl
+
+
+def test_deployment_versions_falls_back_to_best_observed_and_says_so():
+    # A source checkout has no installed distribution. The view must still resolve, and must
+    # NOT silently present a best-effort baseline as authoritative.
+    ddl = get_deployment_versions_view_ddl(OBS, CTL, EVENT_LOGS, None)
+    assert "CAST(NULL AS STRING)" in ddl
+    assert "'best_observed'" in ddl
+
+
+def test_deployment_versions_ranks_versions_numerically_not_as_strings():
+    # A string sort puts 0.0.9 above 0.0.10, which would report a newer wheel as older.
+    ddl = get_deployment_versions_view_ddl(OBS, CTL, EVENT_LOGS, "0.0.4")
+    assert "CAST(split(" in ddl
+    assert "AS INT)" in ddl
+
+
+def test_deployment_versions_reports_untagged_jobs_rather_than_dropping_them():
+    ddl = get_deployment_versions_view_ddl(OBS, CTL, EVENT_LOGS, "0.0.4")
+    assert "tags['dataflow_group_id']" in ddl
+    assert "'none'" in ddl
+    # LEFT JOIN, so a group with no tagged job still has a row.
+    assert "LEFT JOIN tagged_jobs" in ddl
+
+
+def test_deployment_versions_survives_a_workspace_with_no_event_logs():
+    ddl = get_deployment_versions_view_ddl(OBS, CTL, [], "0.0.4")
+    assert "WHERE FALSE" in ddl
+    assert f"CREATE OR REPLACE VIEW {OBS}.v_deployment_versions" in ddl
+
+
+def test_installed_framework_version_is_a_dotted_version_or_none():
+    v = get_installed_framework_version()
+    assert v is None or v.count(".") == 2, v

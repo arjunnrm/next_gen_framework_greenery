@@ -363,13 +363,56 @@
       ],
       "catalog": "flowx",
       "schema": "config"
+    },
+    {
+      "name": "deployment_health",
+      "displayName": "Deployment Health (wheel drift)",
+      "queryLines": [
+        "SELECT\n",
+        "  dataflow_group_id,\n",
+        "  environment,\n",
+        "  pipeline_name,\n",
+        "  total_flow_count,\n",
+        "  wheel_version,\n",
+        "  latest_wheel_version,\n",
+        "  baseline_source,\n",
+        "  wheel_status,\n",
+        "  versions_behind,\n",
+        "  CAST(COALESCE(is_on_latest_wheel, FALSE) AS INT) AS on_latest_flag,\n",
+        "  CASE WHEN is_on_latest_wheel THEN 0 ELSE 1 END      AS needs_redeploy_flag,\n",
+        "  last_run_wheel_at,\n",
+        "  job_name,\n",
+        "  job_attribution,\n",
+        "  job_paused,\n",
+        "  spec_version,\n",
+        "  last_onboarded_at\n",
+        "FROM observability.v_deployment_versions\n"
+      ]
     }
   ],
   "pages": [
     {
       "name": "5cd319b2",
-      "displayName": "📊 Overview",
+      "displayName": "Overview",
       "layout": [
+        {
+          "widget": {
+            "name": "ov_head",
+            "multilineTextboxSpec": {
+              "lines": [
+                "# FlowX Control Metadata",
+                "",
+                "What is onboarded, and whether it is running current framework code. Audit history lives on the **Observability & Audit** page."
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 12,
+            "height": 3
+          }
+        },
         {
           "widget": {
             "name": "total_flows_counter",
@@ -384,41 +427,32 @@
                       "expression": "SUM(`total_flows`)"
                     }
                   ],
-                  "filters": [
-                    {
-                      "expression": "`dataflow_group_id` IN (:dataflow_group_id)"
-                    }
-                  ],
                   "disaggregated": false
                 }
               }
             ],
             "spec": {
-              "frame": {
-                "showTitle": true,
-                "title": {
-                  "value": "Total Flows",
-                  "fields": []
-                }
-              },
               "version": 2,
               "widgetType": "counter",
               "encodings": {
                 "value": {
                   "fieldName": "sum(total_flows)",
-                  "rowNumber": 0
+                  "displayName": "Total Flows"
                 }
               },
-              "data": {
-                "queryName": "main_query"
+              "frame": {
+                "showTitle": true,
+                "title": "Total Flows",
+                "showDescription": true,
+                "description": "Ingestion plus transformation flows declared."
               }
             }
           },
           "position": {
             "x": 0,
-            "y": 0,
-            "width": 4,
-            "height": 4
+            "y": 3,
+            "width": 3,
+            "height": 3
           }
         },
         {
@@ -435,60 +469,46 @@
                       "expression": "SUM(`active_groups`)"
                     }
                   ],
-                  "filters": [
-                    {
-                      "expression": "`dataflow_group_id` IN (:dataflow_group_id)"
-                    }
-                  ],
                   "disaggregated": false
                 }
               }
             ],
             "spec": {
-              "frame": {
-                "showTitle": true,
-                "title": {
-                  "value": "Active Groups",
-                  "fields": []
-                }
-              },
               "version": 2,
               "widgetType": "counter",
               "encodings": {
                 "value": {
                   "fieldName": "sum(active_groups)",
-                  "rowNumber": 0
+                  "displayName": "Active Groups"
                 }
               },
-              "data": {
-                "queryName": "main_query"
+              "frame": {
+                "showTitle": true,
+                "title": "Active Groups",
+                "showDescription": true,
+                "description": "Dataflow groups marked active."
               }
             }
           },
           "position": {
-            "x": 4,
-            "y": 0,
-            "width": 4,
-            "height": 4
+            "x": 3,
+            "y": 3,
+            "width": 3,
+            "height": 3
           }
         },
         {
           "widget": {
-            "name": "audit_insert_counter",
+            "name": "groups_behind_counter",
             "queries": [
               {
                 "name": "main_query",
                 "query": {
-                  "datasetName": "kpi_metrics_filtered",
+                  "datasetName": "deployment_health",
                   "fields": [
                     {
-                      "name": "sum(audit_insert_actions)",
-                      "expression": "SUM(`audit_insert_actions`)"
-                    }
-                  ],
-                  "filters": [
-                    {
-                      "expression": "`dataflow_group_id` IN (:dataflow_group_id)"
+                      "name": "sum(needs_redeploy_flag)",
+                      "expression": "SUM(`needs_redeploy_flag`)"
                     }
                   ],
                   "disaggregated": false
@@ -496,31 +516,259 @@
               }
             ],
             "spec": {
-              "frame": {
-                "showTitle": true,
-                "title": {
-                  "value": "Audit Insert Actions",
-                  "fields": []
-                }
-              },
               "version": 2,
               "widgetType": "counter",
               "encodings": {
                 "value": {
-                  "fieldName": "sum(audit_insert_actions)",
-                  "rowNumber": 0
+                  "fieldName": "sum(needs_redeploy_flag)",
+                  "displayName": "Groups Behind",
+                  "format": {
+                    "type": "number",
+                    "abbreviation": "compact",
+                    "decimalPlaces": {
+                      "type": "max",
+                      "places": 0
+                    }
+                  }
                 }
               },
-              "data": {
-                "queryName": "main_query"
+              "frame": {
+                "showTitle": true,
+                "title": "Groups Behind",
+                "showDescription": true,
+                "description": "Groups NOT running the installed wheel. Each needs a redeploy."
               }
             }
           },
           "position": {
-            "x": 8,
-            "y": 0,
-            "width": 4,
-            "height": 4
+            "x": 6,
+            "y": 3,
+            "width": 3,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "wheel_current_counter",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "deployment_health",
+                  "fields": [
+                    {
+                      "name": "countdistinct(latest_wheel_version)",
+                      "expression": "COUNT(DISTINCT `latest_wheel_version`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "countdistinct(latest_wheel_version)",
+                  "displayName": "Target Wheel"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Target Wheel",
+                "showDescription": true,
+                "description": "The installed framework version every group should be running."
+              }
+            }
+          },
+          "position": {
+            "x": 9,
+            "y": 3,
+            "width": 3,
+            "height": 3
+          }
+        },
+        {
+          "widget": {
+            "name": "ov_h_deploy",
+            "multilineTextboxSpec": {
+              "lines": [
+                "## Framework version by dataflow group",
+                "",
+                "A **BEHIND** row is running older framework code than is deployed. Redeploy its pipeline to pick up the current wheel."
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 6,
+            "width": 12,
+            "height": 2
+          }
+        },
+        {
+          "widget": {
+            "name": "deploy_table",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "deployment_health",
+                  "fields": [
+                    {
+                      "name": "dataflow_group_id",
+                      "expression": "`dataflow_group_id`"
+                    },
+                    {
+                      "name": "pipeline_name",
+                      "expression": "`pipeline_name`"
+                    },
+                    {
+                      "name": "total_flow_count",
+                      "expression": "`total_flow_count`"
+                    },
+                    {
+                      "name": "wheel_version",
+                      "expression": "`wheel_version`"
+                    },
+                    {
+                      "name": "latest_wheel_version",
+                      "expression": "`latest_wheel_version`"
+                    },
+                    {
+                      "name": "wheel_status",
+                      "expression": "`wheel_status`"
+                    },
+                    {
+                      "name": "versions_behind",
+                      "expression": "`versions_behind`"
+                    },
+                    {
+                      "name": "job_name",
+                      "expression": "`job_name`"
+                    },
+                    {
+                      "name": "job_attribution",
+                      "expression": "`job_attribution`"
+                    },
+                    {
+                      "name": "last_run_wheel_at",
+                      "expression": "`last_run_wheel_at`"
+                    },
+                    {
+                      "name": "spec_version",
+                      "expression": "`spec_version`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "dataflow_group_id",
+                    "displayName": "Dataflow Group",
+                    "actions": {
+                      "click": {
+                        "type": "link",
+                        "urlTemplate": "?p.dataflow_group_id={{ dataflow_group_id }}"
+                      }
+                    }
+                  },
+                  {
+                    "fieldName": "pipeline_name",
+                    "displayName": "Pipeline"
+                  },
+                  {
+                    "fieldName": "total_flow_count",
+                    "displayName": "Flows"
+                  },
+                  {
+                    "fieldName": "wheel_version",
+                    "displayName": "Running wheel"
+                  },
+                  {
+                    "fieldName": "latest_wheel_version",
+                    "displayName": "Target wheel"
+                  },
+                  {
+                    "fieldName": "wheel_status",
+                    "displayName": "Status"
+                  },
+                  {
+                    "fieldName": "versions_behind",
+                    "displayName": "Behind by",
+                    "style": {
+                      "type": "basic",
+                      "rules": [
+                        {
+                          "condition": {
+                            "operand": {
+                              "type": "data-value",
+                              "value": "0"
+                            },
+                            "operator": ">"
+                          },
+                          "backgroundColor": {
+                            "themeColorType": "visualizationColors",
+                            "position": 3
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "fieldName": "job_name",
+                    "displayName": "Orchestrating job"
+                  },
+                  {
+                    "fieldName": "job_attribution",
+                    "displayName": "Job match"
+                  },
+                  {
+                    "fieldName": "last_run_wheel_at",
+                    "displayName": "Wheel last seen"
+                  },
+                  {
+                    "fieldName": "spec_version",
+                    "displayName": "Spec version"
+                  }
+                ]
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "Which group runs which framework wheel",
+                "showDescription": true,
+                "description": "Click a dataflow group to filter the dashboard to it."
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 8,
+            "width": 12,
+            "height": 7
+          }
+        },
+        {
+          "widget": {
+            "name": "ov_h_flows",
+            "multilineTextboxSpec": {
+              "lines": [
+                "## Every flow the framework manages"
+              ]
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 15,
+            "width": 12,
+            "height": 1
           }
         },
         {
@@ -585,10 +833,6 @@
                       "expression": "`group_updated_at`"
                     },
                     {
-                      "name": "audit_action",
-                      "expression": "`audit_action`"
-                    },
-                    {
                       "name": "inserted_by",
                       "expression": "`inserted_by`"
                     },
@@ -617,10 +861,9 @@
             "spec": {
               "frame": {
                 "showTitle": true,
-                "title": {
-                  "value": "FlowX Audit &amp; Flow Details",
-                  "fields": []
-                }
+                "title": "Flow inventory",
+                "showDescription": true,
+                "description": "Every ingestion and transformation flow. Audit history is on the Observability & Audit page."
               },
               "version": 2,
               "widgetType": "table",
@@ -678,9 +921,6 @@
                     "fieldName": "group_updated_at"
                   },
                   {
-                    "fieldName": "audit_action"
-                  },
-                  {
                     "fieldName": "inserted_by"
                   },
                   {
@@ -701,9 +941,9 @@
           },
           "position": {
             "x": 0,
-            "y": 4,
+            "y": 16,
             "width": 12,
-            "height": 12
+            "height": 10
           }
         }
       ],
@@ -1662,6 +1902,24 @@
                         "type": "max",
                         "places": 1
                       }
+                    },
+                    "style": {
+                      "type": "basic",
+                      "rules": [
+                        {
+                          "condition": {
+                            "operand": {
+                              "type": "data-value",
+                              "value": "0"
+                            },
+                            "operator": ">"
+                          },
+                          "backgroundColor": {
+                            "themeColorType": "visualizationColors",
+                            "position": 3
+                          }
+                        }
+                      ]
                     }
                   },
                   {
@@ -1684,6 +1942,24 @@
                         "type": "max",
                         "places": 1
                       }
+                    },
+                    "style": {
+                      "type": "basic",
+                      "rules": [
+                        {
+                          "condition": {
+                            "operand": {
+                              "type": "data-value",
+                              "value": "0"
+                            },
+                            "operator": ">"
+                          },
+                          "backgroundColor": {
+                            "themeColorType": "visualizationColors",
+                            "position": 5
+                          }
+                        }
+                      ]
                     }
                   },
                   {
@@ -2340,21 +2616,40 @@
   ],
   "uiSettings": {
     "theme": {
+      "canvasBackgroundColor": {
+        "light": "#F6F7F9",
+        "dark": "#12171E"
+      },
+      "widgetBackgroundColor": {
+        "light": "#FFFFFF",
+        "dark": "#1B222B"
+      },
+      "widgetBorderColor": {
+        "light": "#E4E8EE",
+        "dark": "#2A323D"
+      },
+      "fontColor": {
+        "light": "#111820",
+        "dark": "#E7ECF2"
+      },
+      "selectionColor": {
+        "light": "#1F6FEB",
+        "dark": "#79C0FF"
+      },
       "visualizationColors": [
-        "#1E88E5",
-        "#43A047",
-        "#FB8C00",
-        "#E53935",
-        "#8E24AA",
-        "#00ACC1",
-        "#FDD835",
-        "#3949AB",
-        "#C0CA33",
-        "#F4511E"
+        "#1F6FEB",
+        "#2E9E8F",
+        "#7B5EA7",
+        "#E4572E",
+        "#C1547F",
+        "#F2A65A",
+        "#4C6E8A",
+        "#9BB1C4"
       ],
-      "widgetHeaderAlignment": "ALIGNMENT_UNSPECIFIED",
+      "widgetHeaderAlignment": "LEFT",
+      "fontFamily": "Inter",
+      "widgetCornerRadius": 10,
       "widgetPadding": 16,
-      "widgetCornerRadius": 8,
       "widgetShadow": 15,
       "fontSettings": {
         "base": {

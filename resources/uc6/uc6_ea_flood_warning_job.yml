@@ -1,7 +1,6 @@
-# UC6 -- Flood Warning System (Environment Agency -> Leidos). Drives the group end to end:
+# UC6 -- Flood Warning System (Environment Agency -> Leidos). Runs the group:
 #
-#   setup_control_tables -> onboard_uc6 -> run_pipeline_update -> apply_governance_uc6
-#                        -> observability_export
+#   run_pipeline_update -> observability_export
 #
 # THIS JOB IS ORCHESTRATION ONLY. It performs no file I/O, no decryption, no archiving and no
 # business logic -- all of that is the pipeline's, and the use case's design calls that split
@@ -9,31 +8,30 @@
 # independently. The framework enforces the same split structurally: ingestion, DQ, crypto and
 # sinks are Lakeflow graph-definition concerns and cannot run from a job task.
 #
-# apply_governance_uc6 is the ONE apparent exception, and it is not a counter-example: Unity
-# Catalog tag DDL (ALTER TABLE ... SET TAGS) runs against an ALREADY-MATERIALIZED table and is
-# illegal inside a pipeline's graph-definition code. It is post-deployment DDL, not file
-# handling. Phase C of the UC3 build proved the cost of omitting it -- a pipeline succeeded end
-# to end with zero tags in information_schema, because no task ever invoked it. The tag VALUES
-# still come from the spec's governance_tags block; nothing is hand-written here.
+# PROVISIONING, ONBOARDING AND GOVERNANCE ARE NOT PART OF THIS JOB (trimmed 2026-09-08 at the
+# project owner's request: this job carries the pipeline update and the observability export,
+# nothing else). Three consequences, each needing a separate action:
 #
-# ONBOARDING IS DELEGATED, NEVER INLINED. onboard_uc6 is a run_job_task against the generic
-# resources/flowx_config_jobs/onboarding_job.yml -- the single parameterised onboarding
-# entrypoint for the whole bundle. There is deliberately no onboarding task defined here and no
-# notebook_task pointing at 02_onboarding_engine.py; the older flowx_test_*_job.yml files that
-# pin their own are legacy drift.
+#   1. The pipeline reads control-table rows, not the spec file, so onboarding must run
+#      BEFORE the first run of this job and again after any spec edit:
+#        databricks bundle run onboarding_job -t <target> -p <profile> --params #          spec_file_path=<workspace file_path>/BT_Usecase/UC6/onboarding/uc6_ea_flood_warning.json,#          catalog=<catalog>,env=<target>,action_type=UPDATE,prune_missing_flows=true
+#      (prefix MSYS_NO_PATHCONV=1 in Git Bash, or the leading /Workspace path is mangled.)
+#      Keep prune_missing_flows=true: this spec is the only owner of dfg_uc6_ea_flood_warning,
+#      so rows for flows it no longer declares are stale by definition.
 #
-# setup_control_tables is NOT boilerplate: it applies the additive control-table migration,
-# which `bundle deploy` does not. It is idempotent, so it is safe to keep here even though UC3
-# and UC7 also run it -- PROVIDED those jobs are not run concurrently with this one, which
-# risks the known Unity Catalog create race.
+#   2. Control-table provisioning (the additive migration `bundle deploy` does not apply, plus
+#      the preflight_check_onboarding_spec UC function and the <catalog>.observability semantic
+#      layer) now comes from running notebooks/01_setup/01_setup_control_tables.py separately.
 #
-# PARAMETER CONTRACT for observability_export: pipeline_task_run_id must be a TASK
-# base_parameter, never a pipeline `configuration:` key. `{{tasks.<key>.run_id}}` is a Jobs
-# dynamic value resolved per run, and a mistyped task_key is passed through as literal text
-# rather than failing at the platform layer -- runtime_params.py detects exactly that.
+#   3. GOVERNANCE TAGS ARE NO LONGER APPLIED BY THIS JOB. UC tag DDL
+#      (ALTER TABLE ... SET TAGS) runs against an already-materialized table and is illegal
+#      inside a pipeline's graph-definition code, so it cannot move into the pipeline either --
+#      it must be run as its own step. Phase C of the UC3 build proved the cost of omitting it:
+#      a pipeline succeeded end to end with ZERO tags in information_schema because no task
+#      ever invoked it. Run notebooks/04_governance/04_apply_governance_and_egress.py for
+#      dfg_uc6_ea_flood_warning after this job, or the group's governance_tags are inert.
 #
 # SCHEDULE: none is declared. The legacy cadence is weekly, but the POC is run on demand and an
-# unattended schedule would fire against an empty raw/ and fail the presence gates by design.
 # Add a `schedule:` block when the upstream EA delivery is actually wired up.
 #
 # MANUAL PREREQUISITES (both fail loudly, neither degrades silently):
@@ -67,50 +65,13 @@ resources:
         framework: flowx
 
       tasks:
-        - task_key: setup_control_tables
-          notebook_task:
-            notebook_path: ../../notebooks/01_setup/01_setup_control_tables.py
-            base_parameters:
-              catalog: ${var.catalog}
-          environment_key: framework_env
-
-        - task_key: onboard_uc6
-          depends_on:
-            - task_key: setup_control_tables
-          run_job_task:
-            job_id: ${resources.jobs.onboarding_job.id}
-            job_parameters:
-              spec_file_path: "${workspace.file_path}/BT_Usecase/UC6/onboarding/uc6_ea_flood_warning.json"
-              catalog: ${var.catalog}
-              env: ${bundle.target}
-              action_type: CREATE
-              # This spec is the only owner of dfg_uc6_ea_flood_warning, so rows for flows it no
-              # longer declares are stale by definition. 2026-09-08: the six reconciliation_flows
-              # became one COUNT(*) gate MV; without this their control rows would keep registering
-              # the old gates on every update (onboarding/spec_pruning.py).
-              prune_missing_flows: "true"
-
         - task_key: run_pipeline_update
-          depends_on:
-            - task_key: onboard_uc6
           pipeline_task:
             pipeline_id: ${resources.pipelines.uc6_ea_flood_warning_pipeline.id}
 
-        - task_key: apply_governance_uc6
-          depends_on:
-            - task_key: run_pipeline_update
-          notebook_task:
-            notebook_path: ../../notebooks/04_governance/04_apply_governance_and_egress.py
-            base_parameters:
-              catalog: ${var.catalog}
-              dataflow_group_id: dfg_uc6_ea_flood_warning
-              apply_abac: "true"
-              capture_cdc_change_counts: "false"
-          environment_key: framework_env
-
         - task_key: observability_export
           depends_on:
-            - task_key: apply_governance_uc6
+            - task_key: run_pipeline_update
           notebook_task:
             notebook_path: ../../notebooks/08_observability/08_dlt_observability_engine.py
             base_parameters:

@@ -1,0 +1,128 @@
+Reservoir  Table Name,Feed name,Reservoir Column Name,Reservoir Data type,Feed column name,Data type,Primary Key,Nullable,Field Description,Tokenise Flag - PII(Y/N),Info Type,Data Class,PDBT,Sesnitive Columns,Drop(Specific to Data Fabric),Null(Specific to Data Fabric),csql.ro,csql.secured_ro,bq.deid_ro
+CUSTOMER,CUSTOMER,customer_id,"NUMERIC(9,0)",CUSTOMER_ID,"NUMBER(9,0)",Y,N,Identifies the customer in the system.,Y,Customer ID,CUSTOMER_ID,Customer ID - Individual Externally Identifiable,N,N,N,Y,Y,Y-Hash
+,,sys_creation_date,TIMESTAMP,SYS_CREATION_DATE,DATE,N,N,The date time on which the particular row is created,N,,,,N,N,N,Y,Y,Y
+,,sys_update_date,TIMESTAMP,SYS_UPDATE_DATE,DATE,N,Y,The date time on which the particular row is updated,N,,,,N,N,N,Y,Y,Y
+,,operator_id,"NUMERIC(9,0)",OPERATOR_ID,"NUMBER(9,0)",N,Y,"Used to store UIN Details of the user, whom action of performing the flow led to creation/updation of row.",Y,EIN Number,EIN_NUMBER,Employee ID (EIN),N,N,N,Y,Y,Y-Hash
+,,application_id,CHAR(6),APPLICATION_ID,CHAR(6),N,Y,"Used to store the Channel ID/Application Code, via which Data is inserted/updated in the current row",N,,,,N,N,N,Y,Y,Y
+,,dl_service_code,CHAR(5),DL_SERVICE_CODE,CHAR(5),N,Y,The Data Layer Code by which the record was inserted/updated,N,,,,N,N,N,Y,Y,Y
+,,dl_update_stamp,"NUMERIC(4,0)",DL_UPDATE_STAMP,"NUMBER(4,0)",N,Y,Control Field which can be repurposed to be used for BAN Locking ,N,,,,N,N,N,Y,Y,Y
+,,contact_telno,CHAR(11),CONTACT_TELNO,CHAR(11),N,Y,"Contact Telephone Number:
+The telephone number of the contact person.",Y,Phone Number,PHONE_NUMBER,Individual Telephone Number,N,N,N,Y,Y,Y-Hash
+,,contact_tn_extno,"NUMERIC(4,0)",CONTACT_TN_EXTNO,"NUMBER(4,0)",N,Y,"Contact Extension Number:
+The extension number of the contact person.",Y,Phone Number,PHONE_NUMBER,Individual Telephone Number,N,N,N,Y,Y,Y-Hash
+,,contact_faxno,CHAR(11),CONTACT_FAXNO,CHAR(11),N,Y,"Contact Fax Number:
+The fax number of the contact person.",Y,Phone Number,PHONE_NUMBER,Individual Telephone Number,N,N,N,Y,Y,Y-Hash
+,,contact_country_code,CHAR(3),CONTACT_COUNTRY_CODE,CHAR(3),N,Y,"Contact Country Code:
+The country code portion of the contact person’s telephone number.",N,,,,N,N,N,Y,Y,Y
+,,work_telno,CHAR(11),WORK_TELNO,CHAR(11),N,Y,"Work Telephone Number:
+The customers work telephone number.",Y,Phone Number,PHONE_NUMBER,Individual Telephone Number,N,N,N,Y,Y,Y-Hash
+,,work_tn_extno,"NUMERIC(4,0)",WORK_TN_EXTNO,"NUMBER(4,0)",N,Y,"Work Extension Number:
+The extension number of the customer.",Y,Phone Number,PHONE_NUMBER,Individual Telephone Number,N,N,N,Y,Y,Y-Hash
+,,home_telno,CHAR(11),HOME_TELNO,CHAR(11),N,Y,"Home Telephone Number:
+The customers home telephone number.",Y,Phone Number,PHONE_NUMBER,Individual Telephone Number,N,N,N,Y,Y,Y-Hash
+,,other_telno,CHAR(11),OTHER_TELNO,CHAR(11),N,Y,"Other Telephone Number:
+The other telephone number.",Y,Phone Number,PHONE_NUMBER,Individual Telephone Number,N,N,N,Y,Y,Y-Hash
+,,other_extno,"NUMERIC(4,0)",OTHER_EXTNO,"NUMBER(4,0)",N,Y,"Other Extension Number:
+The other extension number.",Y,Phone Number,PHONE_NUMBER,Individual Telephone Number,N,N,N,Y,Y,Y-Hash
+,,other_tn_type,VARCHAR(15),OTHER_TN_TYPE,VARCHAR2(15),N,Y,"Other Telephone Type:
+A description of the telephone number type stored in the OTHER_TELNO and OTHER_EXTNO fields, e.g., fax.",N,,,,N,N,N,Y,Y,Y
+,,birth_date,TIMESTAMP,BIRTH_DATE,DATE,N,Y,The customers date of birth.,N,,,Individual Date of Birth,N,N,N,Y,Y,Y
+,,employment_dt,CHAR(6),EMPLOYMENT_DT,CHAR(6),N,Y,The date on which the customer began working for his/her current employer. For residential customers only.,N,,,,N,N,N,Y,Y,Y
+,,emplyr_name,VARCHAR(60),EMPLYR_NAME,VARCHAR2(60),N,Y,The name of the customers employer.,Y,Name,NAME,Individual Name,N,N,N,Y,Y,Y-Hash
+,,employee_qty,CHAR(2),EMPLOYEE_QTY,CHAR(2),N,Y,Number of employees in the business. For business customers only.,N,,,,N,N,N,Y,Y,Y
+,,years_in_business,"NUMERIC(3,0)",YEARS_IN_BUSINESS,"NUMBER(3,0)",N,Y,The number of years the customer has been legally registered as a business. For business customers only. This is used for credit vetting purposes.,N,,,,N,N,N,Y,Y,Y
+,,employee_position,VARCHAR(25),EMPLOYEE_POSITION,VARCHAR2(25),N,Y,The professional position of the customer. ,N,,,,N,N,N,Y,Y,Y
+,,business_est_date,TIMESTAMP,BUSINESS_EST_DATE,DATE,N,Y,The date on which the customer’s business was established. ,N,,,,N,N,N,Y,Y,Y
+,,market_id,CHAR(3),MARKET_ID,CHAR(3),N,Y,The code of the company to which this customer belongs.,N,,,,N,N,N,Y,Y,Y
+,,gur_cr_card_type,CHAR(2),GUR_CR_CARD_TYPE,CHAR(2),N,Y,The type of credit card the customer uses as a guarantee.,N,,,,N,N,N,Y,Y,Y
+,,gur_cr_card_no,CHAR(21),GUR_CR_CARD_NO,CHAR(21),N,Y,The number of the credit card the customer uses as a guarantee.,?,,,,Y,N,Y,N,N,Y
+,,gur_cr_card_exp_dt,TIMESTAMP,GUR_CR_CARD_EXP_DT,DATE,N,Y,"Guarantee Credit Card Expiry Date:
+The expiration date of the credit card the customer uses as a guarantee.",N,,,,N,N,N,Y,Y,Y
+,,acc_password,VARCHAR(28),ACC_PASSWORD,VARCHAR2(28),N,Y,The password used to restrict access to the customer’s account information,?,,,,Y,N,Y,N,N,Y
+,,verified_date,TIMESTAMP,VERIFIED_DATE,DATE,N,Y,The last date on which the customer’s information was verified.,N,,,,N,N,N,Y,Y,Y
+,,company_register_num,VARCHAR(16),COMPANY_REGISTER_NUM,VARCHAR2(16),N,Y,The company registration number.,N,,,Supplier ID,N,N,N,Y,Y,Y
+,,business_category,"NUMERIC(5,0)",BUSINESS_CATEGORY,"NUMBER(5,0)",N,Y,The business category of a business customer.,N,,,,N,N,N,Y,Y,Y
+,,conv_run_no,"NUMERIC(3,0)",CONV_RUN_NO,"NUMBER(3,0)",N,Y,"Conversion Run Number:
+The conversion run number for this entity.",N,,,,N,N,N,Y,Y,Y
+,,legacy_cst_num,"NUMERIC(8,0)",LEGACY_CST_NUM,"NUMBER(8,0)",N,Y,"Legacy Customer Number:
+The customer number as it was mapped in the legacy system.",Y,,,,N,N,N,Y,Y,Y
+,,e_mail_addr,VARCHAR(50),E_MAIL_ADDR,VARCHAR2(50),N,Y,The email address of the customer,Y,Email address ,EMAIL_ADDRESS,Individual Email Address,N,N,N,Y,Y,Y-Hash
+,,mailshot,CHAR(10),MAILSHOT,CHAR(10),N,Y,Indicates that mailshot information was sent to the customer.,N,,,,N,N,N,Y,Y,Y
+,,imei_black_list_pass,VARCHAR(6),IMEI_BLACK_LIST_PASS,VARCHAR2(6),N,Y,"IMEI Black List Password:
+A password used by the customer to remove his/her handset from the blacklist.",?,,,,N,N,Y,N,N,Y
+,,company_type,CHAR(1),COMPANY_TYPE,CHAR(1),N,Y,The business category is assigned a classification according to company type.,N,,,,N,N,N,Y,Y,Y
+,,cust_gender,CHAR(1),CUST_GENDER,CHAR(1),N,Y,The gender of the customer.,N,,,,N,N,N,Y,Y,Y
+,,cust_personal_id,VARCHAR(16),CUST_PERSONAL_ID,VARCHAR2(16),N,Y,The personal ID number of the customer.,N,,,Customer ID - Individual Internally Identifiable,N,N,N,Y,Y,Y
+,,cust_nationality,CHAR(3),CUST_NATIONALITY,CHAR(3),N,Y,The nationality of the customer.,N,,,Individual Nationality,N,N,N,Y,Y,Y
+,,autprsn_birth_date,TIMESTAMP,AUTPRSN_BIRTH_DATE,DATE,N,Y,The date of birth of the authorised person.,N,,,Individual Date of Birth,N,N,N,Y,Y,Y
+,,autprsn_personal_id,VARCHAR(16),AUTPRSN_PERSONAL_ID,VARCHAR2(16),N,Y,The personal ID number of the authorised person.,N,,,Customer ID - Individual Internally Identifiable,N,N,N,Y,Y,Y
+,,guarantor_type,CHAR(1),GUARANTOR_TYPE,CHAR(1),N,Y,"The guarantor type.Possible values:I – Individual
+B – Business
+S – Sole Ownership
+P – Prepay
+C – Corporate",N,,,Individual Gender,N,N,N,Y,Y,Y
+,,gur_personal_id,VARCHAR(16),GUR_PERSONAL_ID,VARCHAR2(16),N,Y,The personal ID number of the guarantor (for individual guarantors).,N,,,Customer ID - Individual Internally Identifiable,N,N,N,Y,Y,Y
+,,gur_company_reg_num,VARCHAR(16),GUR_COMPANY_REG_NUM,VARCHAR2(16),N,Y,The Guarantor Company Reg Number,?,,,Company Registration Number (CRN),N,N,N,Y,Y,Y
+,,start_time_at_bank,TIMESTAMP,START_TIME_AT_BANK,DATE,N,Y,"Guarantor Company Registration Number:
+The company registration number of the guarantor (for business guarantors).",N,,,,N,N,N,Y,Y,Y
+,,gur_birth_date,TIMESTAMP,GUR_BIRTH_DATE,DATE,N,Y,The date on which the customer opened the bank account.,N,,,Individual Date of Birth,N,N,N,Y,Y,Y
+,,gur_tax_number,VARCHAR(16),GUR_TAX_NUMBER,VARCHAR2(16),N,Y,The Guarantor Tax Number,?,,,UK Taxpayer Reference (UTR) Number,N,N,N,Y,Y,Y
+,,register_ind,CHAR(1),REGISTER_IND,CHAR(1),N,Y,The tax number of the guarantor (for individual guarantors).,N,,,,N,N,N,Y,Y,Y
+,,contact_telno_2nd,CHAR(11),CONTACT_TELNO_2ND,CHAR(11),N,Y,Prepay registration indicator,Y,Phone Number,PHONE_NUMBER,Individual Telephone Number,N,N,N,Y,Y,Y-Hash
+,,contact_tn_extno_2nd,"NUMERIC(4,0)",CONTACT_TN_EXTNO_2ND,"NUMBER(4,0)",N,Y,"Contact Second Telephone Number:
+The second telephone number of the contact person.",Y,Phone Number,PHONE_NUMBER,Individual Telephone Number,N,N,N,Y,Y,Y-Hash
+,,contact_faxno_2nd,CHAR(11),CONTACT_FAXNO_2ND,CHAR(11),N,Y,"Contact Second Extension Number:
+The second extension number of the contact person.",Y,Phone Number,PHONE_NUMBER,Individual Telephone Number,N,N,N,Y,Y,Y-Hash
+,,contact_country_code_2nd,CHAR(3),CONTACT_COUNTRY_CODE_2ND,CHAR(3),N,Y,"Contact Second Fax Number:
+The second fax number of the contact person.",Y,Phone Number,PHONE_NUMBER,Individual Telephone Number,N,N,N,Y,Y,Y-Hash
+,,credit_card_ind,CHAR(1),CREDIT_CARD_IND,CHAR(1),N,Y,"Credit Card Indicator
+Indicates whether the customer has a credit card that is registered.",N,,,,N,N,N,Y,Y,Y
+,,authorized_sec,CHAR(8),AUTHORIZED_SEC,CHAR(8),N,Y,The authorised dealer for this customer,N,,,,N,N,N,Y,Y,Y
+,,etu_count,"NUMERIC(4,0)",ETU_COUNT,"NUMBER(4,0)",N,Y,Number of ETU cards ordered by the customer to date.,N,,,,N,N,N,Y,Y,Y
+,,contact_email_address,VARCHAR(50),CONTACT_EMAIL_ADDRESS,VARCHAR2(50),N,Y,The email address of the business customer contact person.,Y,Email address ,EMAIL_ADDRESS,Individual Email Address,N,N,N,Y,Y,Y-Hash
+,,contact_department,VARCHAR(50),CONTACT_DEPARTMENT,VARCHAR2(50),N,Y,The department to which the business contact belongs,N,,,,N,N,N,Y,Y,Y
+,,contact_job_description,VARCHAR(50),CONTACT_JOB_DESCRIPTION,VARCHAR2(50),N,Y,The job description of the business contact person.,N,,,,N,N,N,Y,Y,Y
+,,bac_cust_support_team,CHAR(5),BAC_CUST_SUPPORT_TEAM,CHAR(5),N,Y,"The code of the support team responsible for this business account, as defined in the CSM_Support_Team reference table.",N,,,,N,N,N,Y,Y,Y
+,,bac_territory_code,CHAR(5),BAC_TERRITORY_CODE,CHAR(5),N,Y,The territory code to which this business account belongs. The territories are defined in the CSM_Territory_Codes reference table.,N,,,,N,N,N,Y,Y,Y
+,,external_id,VARCHAR(100),EXTERNAL_ID,VARCHAR2(100),N,Y,An external identifier of the customer,N,,,,N,N,N,Y,Y,Y
+,,open_date,TIMESTAMP,OPEN_DATE,DATE,N,Y,The date when a customer (BAN) joined T-Mobile (when the BAN was created in the system in ‘Tentative’ Status).,N,,,,N,N,N,Y,Y,Y
+,,customer_type,CHAR(3),CUSTOMER_TYPE,CHAR(3),N,Y,"The account type of the customer which determines if the customer is an individual or a business or internal (YC, YEM, YPP …)",N,,,,N,N,N,Y,Y,Y
+,,assistant_user_id,"NUMERIC(9,0)",ASSISTANT_USER_ID,"NUMBER(9,0)",N,Y,The user ID of the rep that assisted the customer in the past.,N,,,,N,N,N,Y,Y,Y
+,,marketing_channel,VARCHAR(4),MARKETING_CHANNEL,VARCHAR2(4),N,Y,The marketing channel through which the customer arrived at the operator company.,N,,,,N,N,N,Y,Y,Y
+,,ch_node_id,"NUMERIC(10,0)",CH_NODE_ID,"NUMBER(10,0)",N,Y,An external identifier for the Customer Hierarchy engine representing the customer object,N,,,,N,N,N,Y,Y,Y
+,,lock_customer_ind,CHAR(1),LOCK_CUSTOMER_IND,CHAR(1),N,Y,"Indicates whether the customer is locked at the customer level, so that two users cannot work on the same customer at the same time",N,,,,N,N,N,Y,Y,Y
+,,resource_pool,VARCHAR(5),RESOURCE_POOL,VARCHAR2(5),N,Y,The resource pool that the customer owns,N,,,,N,N,N,Y,Y,Y
+,,spc_memo_ind,CHAR(1),SPC_MEMO_IND,CHAR(1),N,Y,Indicates whether a special memo exist for the customer.,N,,,,N,N,N,Y,Y,Y
+,,bill_cycle,"NUMERIC(2,0)",BILL_CYCLE,"NUMBER(2,0)",N,Y,The number of the cycle in which the bill should be prepared for all billing arrangements of this customer.,N,,,,N,N,N,Y,Y,Y
+,,bill_cyc_prod_freq,"NUMERIC(2,0)",BILL_CYC_PROD_FREQ,"NUMBER(2,0)",N,Y,The frequency of Bill Production for the billing arrangement of each customer.,N,,,,N,N,N,Y,Y,Y
+,,change_cycle_ind,CHAR(1),CHANGE_CYCLE_IND,CHAR(1),N,Y,"Indicates whether the billing cycle will be changed, and the timing of the change, during the current Bill Day run or in the next Bill Day run.",N,,,,N,N,N,Y,Y,Y
+,,chg_cycle_req_sts,CHAR(1),CHG_CYCLE_REQ_STS,CHAR(1),N,Y,Indicates the status of the change cycle request.,N,,,,N,N,N,Y,Y,Y
+,,new_cycle,"NUMERIC(2,0)",NEW_CYCLE,"NUMBER(2,0)",N,Y,"When a customer wishes to change a bill cycle, this attribute is populated with the new cycle code.",N,,,,N,N,N,Y,Y,Y
+,,new_cyc_prod_freq,"NUMERIC(2,0)",NEW_CYC_PROD_FREQ,"NUMBER(2,0)",N,Y,The new frequency of Bill Production for the account.,N,,,,N,N,N,Y,Y,Y
+,,tax_exempt_int,CHAR(1),TAX_EXEMPT_INT,CHAR(1),N,Y,Indicates whether the customer's subscribers are exempt from tax charges.,N,,,,N,N,N,Y,Y,Y
+,,tax_exempt_date,TIMESTAMP,TAX_EXEMPT_DATE,DATE,N,Y,The date on which the tax exemption indicator is changed.,N,,,,N,N,N,Y,Y,Y
+,,hierarchy_policy,VARCHAR(4),HIERARCHY_POLICY,VARCHAR2(4),N,Y,Policy of the hierarchy.,N,,,,N,N,N,Y,Y,Y
+,,credit_class,CHAR(1),CREDIT_CLASS,CHAR(1),N,Y,"The credit class of the customer, which is determined from the credit score received from the external system.",N,,,,N,N,N,Y,Y,Y
+,,cust_sub_type,VARCHAR(4),CUST_SUB_TYPE,VARCHAR2(4),N,Y,Sub-type information to be maintained and publish by CM for A/R use.,N,,,,N,N,N,Y,Y,Y
+,,dflt_pre_pcn,"NUMERIC(9,0)",DFLT_PRE_PCN,"NUMBER(9,0)",N,Y,Default pre-paid PCN used in pre-paid subscriber activation as the default PCN,N,,,,N,N,N,Y,Y,Y
+,,dflt_post_pcn,"NUMERIC(9,0)",DFLT_POST_PCN,"NUMBER(9,0)",N,Y,Default post-paid PCN used in post-paid subscriber activation as the default PCN,N,,,,N,N,N,Y,Y,Y
+,,legacy_cust_no,"NUMERIC(9,0)",LEGACY_CUST_NO,"NUMBER(9,0)",N,Y,The customer number as it was mapped in the legacy system.,N,,,,N,N,N,Y,Y,Y
+,,dealer_code,CHAR(8),DEALER_CODE,CHAR(8),N,Y,Identifies the agent that performed the sale.,N,,,,N,N,N,Y,Y,Y
+,,cust_desc_cd,CHAR(3),CUST_DESC_CD,CHAR(3),N,Y,Customer description type code,N,,,,N,N,N,Y,Y,Y
+,,charity_reg_num,CHAR(10),CHARITY_REG_NUM,CHAR(10),N,Y,Charity registration number,?,,,Supplier ID,N,N,N,Y,Y,Y
+,,no_email_reason,CHAR(4),NO_EMAIL_REASON,CHAR(4),N,Y,"Reason code if valid Email not provided,possible values:GP-Gift Purchase
+DW-Customer does not want Email
+DH-Customer does not have Email
+NS-Not Specified",N,,,,N,N,N,Y,Y,Y
+,,hint_id,"NUMERIC(9,0)",HINT_ID,"NUMBER(9,0)",N,Y,Hint id for password question,N,,,,N,N,N,Y,Y,Y
+,,hash_value,VARCHAR(50),,,,N,"Generated with combination of columns expect key, timestamp columns",N,,,,N,N,N,Y,Y,Y
+,,src_deleted_flg,BOOLEAN,,,,N,The indicator flag utilized to mark records as physically deleted on the source system. 0 represents FALSE and 1 represents TRUE,N,,,,N,N,N,Y,Y,Y
+,,gcp_insert_date,TIMESTAMP,,,,N,Date Timestamp when this row was inserted in GCP Reservoir Table (UTC),N,,,,N,N,N,Y,Y,Y
+,,gcp_insert_user,VARCHAR(20),,,,N,The name of the user or system that inserted this row in the GCP Reservoir table. ABI_MS or ABI_INC_RECON or Data Flow,N,,,,N,N,N,Y,Y,Y
+,,gcp_update_date,TIMESTAMP,,,,N,Date Timestamp when this row was last updated in GCP Reservoir Table (UTC),N,,,,N,N,N,Y,Y,Y
+,,gcp_update_user,VARCHAR(20),,,,N,The name of the user or system that most recently updated this row in the GCP Reservoir table,N,,,,N,N,N,Y,Y,Y
+,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,
+,,,Primary Keys,,,,,,,,,,,,,,,
+,,,Non-Business Keys,,,,,,,,,,,,,,,

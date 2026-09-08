@@ -22,9 +22,9 @@
       "target_table": "emsc_cdr_raw",
       "target_type": "streaming_table",
       "source_config": {
-        "path": "/Volumes/{{catalog}}/landing/uc_7/raw/EMSC/",
-        "schema_location": "/Volumes/{{catalog}}/landing/uc_7/_schemas/emsc_cdr_raw/",
-        "asn1_schema_path": "/Volumes/{{catalog}}/landing/uc_7/asn_schema/EMSC.asn1",
+        "path": "/Volumes/{{catalog}}/staging/uc_7/raw/EMSC/",
+        "schema_location": "/Volumes/{{catalog}}/staging/uc_7/_schemas/emsc_cdr_raw/",
+        "asn1_schema_path": "/Volumes/{{catalog}}/staging/uc_7/asn_schema/EMSC.asn1",
         "asn1_codec": "ber",
         "capture_technical_metadata": true
       },
@@ -67,9 +67,9 @@
       "target_table": "psgw_cdr_raw",
       "target_type": "streaming_table",
       "source_config": {
-        "path": "/Volumes/{{catalog}}/landing/uc_7/raw/PSGW/",
-        "schema_location": "/Volumes/{{catalog}}/landing/uc_7/_schemas/psgw_cdr_raw/",
-        "asn1_schema_path": "/Volumes/{{catalog}}/landing/uc_7/asn_schema/PSGW.asn1",
+        "path": "/Volumes/{{catalog}}/staging/uc_7/raw/PSGW/",
+        "schema_location": "/Volumes/{{catalog}}/staging/uc_7/_schemas/psgw_cdr_raw/",
+        "asn1_schema_path": "/Volumes/{{catalog}}/staging/uc_7/asn_schema/PSGW.asn1",
         "asn1_codec": "ber",
         "capture_technical_metadata": true
       },
@@ -107,9 +107,9 @@
       "target_table": "sgsn_cdr_raw",
       "target_type": "streaming_table",
       "source_config": {
-        "path": "/Volumes/{{catalog}}/landing/uc_7/raw/SGSN/",
-        "schema_location": "/Volumes/{{catalog}}/landing/uc_7/_schemas/sgsn_cdr_raw/",
-        "asn1_schema_path": "/Volumes/{{catalog}}/landing/uc_7/asn_schema/SGSN.asn1",
+        "path": "/Volumes/{{catalog}}/staging/uc_7/raw/SGSN/",
+        "schema_location": "/Volumes/{{catalog}}/staging/uc_7/_schemas/sgsn_cdr_raw/",
+        "asn1_schema_path": "/Volumes/{{catalog}}/staging/uc_7/asn_schema/SGSN.asn1",
         "asn1_codec": "ber",
         "capture_technical_metadata": true
       },
@@ -152,9 +152,9 @@
       "target_table": "tap310_raw",
       "target_type": "streaming_table",
       "source_config": {
-        "path": "/Volumes/{{catalog}}/landing/uc_7/raw/TAP/",
-        "schema_location": "/Volumes/{{catalog}}/landing/uc_7/_schemas/tap310_raw/",
-        "asn1_schema_path": "/Volumes/{{catalog}}/landing/uc_7/asn_schema/TAP.310.asn1",
+        "path": "/Volumes/{{catalog}}/staging/uc_7/raw/TAP/",
+        "schema_location": "/Volumes/{{catalog}}/staging/uc_7/_schemas/tap310_raw/",
+        "asn1_schema_path": "/Volumes/{{catalog}}/staging/uc_7/asn_schema/TAP.310.asn1",
         "asn1_codec": "ber",
         "capture_technical_metadata": true
       },

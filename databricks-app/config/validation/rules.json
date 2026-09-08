@@ -1221,6 +1221,145 @@
       "message": "TRUNCATE_AND_LOAD on a streaming_table is realised as a plain streaming append -- identical to APPEND at runtime, so the table is never truncated. Use target_type materialized_view (or batch_table), which is fully recomputed on every update, or declare APPEND.",
       "field_path": "target_config.cdc_load_strategy",
       "doc": "#4-cdc-load-strategies"
+    },
+    {
+      "id": "bp_clustering_or_partition_recommended",
+      "severity": "warning",
+      "scope": "flow",
+      "when": {
+        "and": [
+          {
+            "empty": [
+              "target_config.liquid_clustering_columns"
+            ]
+          },
+          {
+            "nin": [
+              "target_config.partition_mode",
+              [
+                "named"
+              ]
+            ]
+          }
+        ]
+      },
+      "message": "No physical layout declared. Set target_config.liquid_clustering_columns to the columns this table is most often filtered or joined on. Liquid clustering is the current Databricks default for new tables: it needs no partition-size tuning and can be changed later without rewriting the table, which a partition layout cannot.",
+      "field_path": "target_config.liquid_clustering_columns",
+      "doc": "#target_config"
+    },
+    {
+      "id": "bp_partition_only_for_very_large_tables",
+      "severity": "warning",
+      "scope": "flow",
+      "when": {
+        "and": [
+          {
+            "eq": [
+              "target_config.partition_mode",
+              "named"
+            ]
+          },
+          {
+            "empty": [
+              "target_config.liquid_clustering_columns"
+            ]
+          }
+        ]
+      },
+      "message": "partition_columns is declared. Hive-style partitioning is only appropriate above roughly 1 TB per table; below that it usually creates small files and slows reads. Confirm the expected size, and prefer liquid_clustering_columns unless the table really is that large or a downstream consumer requires the directory layout.",
+      "field_path": "target_config.partition_columns",
+      "doc": "#target_config"
+    },
+    {
+      "id": "bp_table_tags_recommended",
+      "severity": "warning",
+      "scope": "flow",
+      "when": {
+        "empty": [
+          "governance_tags.table_tags"
+        ]
+      },
+      "message": "No governance_tags.table_tags declared. Table tags are what make a table discoverable and attributable in Unity Catalog later -- ownership, data domain, and sensitivity are the three worth setting at onboarding, because retrofitting them across an estate is far harder than declaring them now.",
+      "field_path": "governance_tags.table_tags",
+      "doc": "#governance_tags"
+    },
+    {
+      "id": "bp_source_description_recommended",
+      "severity": "warning",
+      "scope": "flow",
+      "when": {
+        "empty": [
+          "source_description"
+        ]
+      },
+      "message": "No source_description. This is the one field that records WHICH upstream system the data came from; it becomes the table comment that Unity Catalog and Genie read as the semantic model. Without it a consumer cannot tell what the table represents.",
+      "field_path": "source_description",
+      "doc": "#ingestion_flows"
+    },
+    {
+      "id": "bp_archive_landing_data_recommended",
+      "severity": "warning",
+      "scope": "flow",
+      "when": {
+        "and": [
+          {
+            "nonempty": [
+              "source_config.path"
+            ]
+          },
+          {
+            "nin": [
+              "source_config.landing_retention_policy.clean_source",
+              [
+                "archive",
+                "delete"
+              ]
+            ]
+          }
+        ]
+      },
+      "message": "No landing_retention_policy.clean_source. Processed landing files accumulate indefinitely, which grows storage cost and slows file listing on every run. Set clean_source: archive with an archive_path to keep a replayable copy, or delete when the upstream system is the system of record.",
+      "field_path": "source_config.landing_retention_policy.clean_source",
+      "doc": "#landing_retention_policy"
+    },
+    {
+      "id": "bp_bronze_ttl_recommended",
+      "severity": "warning",
+      "scope": "flow",
+      "when": {
+        "and": [
+          {
+            "in": [
+              "target_config.cdc_load_strategy",
+              [
+                "APPEND",
+                "TRUNCATE_AND_LOAD"
+              ]
+            ]
+          },
+          {
+            "empty": [
+              "target_config.auto_ttl.expire_in_days"
+            ]
+          }
+        ]
+      },
+      "message": "No auto_ttl on an append-style table. A Bronze table that only ever grows becomes the largest and least-queried object in the catalog. Set auto_ttl.timestamp_column and auto_ttl.expire_in_days to the period the raw history is genuinely needed for replay, so expiry is declared rather than remembered.",
+      "field_path": "target_config.auto_ttl.expire_in_days",
+      "doc": "#auto_ttl"
+    },
+    {
+      "id": "bp_retention_default_costs_storage",
+      "severity": "warning",
+      "scope": "flow",
+      "when": {
+        "empty": [
+          "target_config.table_properties"
+        ]
+      },
+      "message": "No table_properties, so Delta retention stays at the 7-day default and every rewritten file remains billable for a week. Where 7 days of time travel is not a stated requirement, setting deleted_file_retention_duration to 'interval 3 days' cuts that storage materially. Keep 7 days only if a consumer actually restores or audits that far back.",
+      "field_path": "target_config.table_properties",
+      "doc": "#table_properties"
     }
   ]
 }

@@ -39,7 +39,7 @@ body -- including inside a column COMMENT -- must be escaped as ``{{ }}``, or Py
 as a replacement field and every statement in the module breaks.
 """
 
-from typing import Dict, List, Tuple
+from typing import Dict, List, Optional, Tuple
 
 # The observability views live in their own schema rather than alongside the control tables.
 # Keeping them out of `<catalog>.config` means a Genie space or a BI user can be granted SELECT on
@@ -1105,6 +1105,215 @@ GROUP BY ALL
 """
 
 
+def get_installed_framework_version() -> Optional[str]:
+    """The framework wheel version whose code is currently executing, or None if undeterminable.
+
+    This module ships INSIDE the wheel, so the installed distribution version is the version of
+    the code asking the question -- no file to read, no bundle variable to thread through. Used as
+    the wheel-drift baseline: it is what a redeploy would install right now.
+    """
+    try:
+        from importlib.metadata import version
+
+        return version("flowx")
+    except Exception:  # noqa: BLE001 - a source checkout has no installed dist; not an error
+        return None
+
+
+def get_deployment_versions_view_ddl(
+    observability_schema: str,
+    control_schema: str,
+    event_log_tables: List[str],
+    installed_version: Optional[str] = None,
+) -> str:
+    """Which framework wheel each dataflow group last RAN with, and whether that is the newest.
+
+    WHY THIS IS NOT DERIVABLE FROM system.lakeflow. The wheel a pipeline installs lives in its
+    ``environment.dependencies`` list, and that field is NOT exposed by
+    ``system.lakeflow.pipelines`` -- the ``settings`` struct carries only photon, development,
+    continuous, serverless, edition and channel, and ``system.lakeflow.job_tasks`` carries no
+    library column at all (both verified against a live workspace).
+
+    WHERE IT COMES FROM INSTEAD. Each pipeline's Unity Catalog event log records the FULL resolved
+    pipeline config on every ``create_update`` event, wheel path included, so the version is
+    recoverable in pure SQL with no job and no API call. The path shape is
+    ``/Volumes/<catalog>/config/wheels/<X.Y.Z>/.internal/flowx-<X.Y.Z>-py3-none-any.whl``
+    because ``databricks.yml`` composes ``artifact_path`` from ``wheels_root`` and
+    ``framework_version``, so the version is the path segment after ``/wheels/``. A group whose
+    pipeline publishes no event log reports NULL rather than being dropped -- silence about a
+    group is worse than an explicit unknown.
+
+    THE BASELINE IS THE INSTALLED VERSION, NOT THE BEST OBSERVED ONE. ``installed_version`` is the
+    wheel currently deployed (resolved by :func:`get_installed_framework_version`, which reads the
+    version of the very distribution this module ships in). Ranking only what has RUN would call
+    every group current the moment they all lag together -- the exact state of a workspace whose
+    four pipelines all sit on 0.0.3 while the framework ships 0.0.4, where "latest = 0.0.3" is a
+    false all-clear. When ``installed_version`` is None the view falls back to the highest observed
+    version and says so through ``baseline_source``, so a reader can tell an authoritative
+    comparison from a best-effort one. Versions rank by numeric major/minor/patch, because a string
+    sort puts 0.0.9 above 0.0.10.
+
+    JOBS ARE JOINED BY TAG, WITH THE ATTRIBUTION STATED. The orchestrating job is matched on the
+    ``dataflow_group_id`` job tag. Where that tag is absent the row still appears with
+    ``job_attribution = 'none'`` rather than being blended into a tagged figure, because an
+    untagged job is a deployment gap to fix, not a missing row.
+    """
+    if event_log_tables:
+        wheel_union = "\n    UNION ALL\n".join(
+            f"""    SELECT
+        origin.pipeline_id AS pipeline_id,
+        timestamp          AS event_time,
+        regexp_extract(details, '/wheels/([0-9]+[.][0-9]+[.][0-9]+)/', 1) AS wheel_version,
+        regexp_extract(details, '(flowx-[0-9.]+-py3-none-any[.]whl)', 1)  AS wheel_file
+    FROM {table}
+    WHERE event_type = 'create_update'"""
+            for table in event_log_tables
+        )
+    else:
+        wheel_union = """    SELECT
+        CAST(NULL AS STRING)    AS pipeline_id,
+        CAST(NULL AS TIMESTAMP) AS event_time,
+        CAST(NULL AS STRING)    AS wheel_version,
+        CAST(NULL AS STRING)    AS wheel_file
+    WHERE FALSE"""
+
+    installed_sql = (
+        "'" + installed_version.replace("'", "''") + "'"
+        if installed_version
+        else "CAST(NULL AS STRING)"
+    )
+
+    return f"""
+CREATE OR REPLACE VIEW {observability_schema}.v_deployment_versions (
+    dataflow_group_id  COMMENT 'FlowX dataflow group.',
+    environment        COMMENT 'Environment the group is registered for.',
+    pipeline_name      COMMENT 'Lakeflow pipeline implementing the group. NULL when no pipeline carries this group id in its configuration.',
+    pipeline_id        COMMENT 'Lakeflow pipeline UUID.',
+    total_flow_count   COMMENT 'Flows the group declares, from the control tables.',
+    wheel_version      COMMENT 'Framework wheel version this group was last observed RUNNING, parsed from the wheel path in its pipeline event log. NULL when the pipeline publishes no event log to Unity Catalog, or has never run.',
+    wheel_file         COMMENT 'Wheel filename observed, e.g. flowx-0.0.4-py3-none-any.whl.',
+    latest_wheel_version COMMENT 'The wheel version this group is compared against: the INSTALLED framework version when it could be resolved, else the highest version observed running. Read baseline_source to tell which.',
+    baseline_source    COMMENT 'installed when latest_wheel_version is the deployed framework version (authoritative), best_observed when it is only the highest version seen running (a fallback -- every group can look current while all of them lag).',
+    is_on_latest_wheel COMMENT 'TRUE when this group ran the newest observed wheel. FALSE means the group runs older framework code and should be redeployed. NULL when unknown -- treat NULL as unverified, never as up to date.',
+    wheel_status       COMMENT 'Plain-language drift verdict for display: on latest, BEHIND (needs redeploy), or unknown (no event log). Use this column in dashboards rather than re-deriving the wording.',
+    versions_behind    COMMENT 'How many distinct observed wheel versions sit between this group and the newest. 0 when current, NULL when unknown.',
+    last_run_wheel_at  COMMENT 'When the wheel version was last observed for this group, i.e. the most recent update start.',
+    job_name           COMMENT 'Job that orchestrates this group, matched on the dataflow_group_id job tag. NULL when no job carries the tag.',
+    job_id             COMMENT 'Numeric job id of the orchestrating job.',
+    job_attribution    COMMENT 'How the job was matched: tag when the job carries a dataflow_group_id tag, none when no tagged job exists. A none row is a deployment gap -- the tag is declared in resources/uc*/**_job.yml and only reaches the workspace on redeploy.',
+    job_is_bundle_managed COMMENT 'TRUE when the job was deployed by a Declarative Automation Bundle. FALSE flags a hand-created job that no deploy keeps in sync.',
+    job_paused         COMMENT 'TRUE when the job schedule is paused.',
+    spec_version       COMMENT 'Spec version recorded at onboarding. This is the SPEC version, unrelated to the wheel version.',
+    last_onboarded_at  COMMENT 'When the group was last onboarded.'
+)
+COMMENT 'Framework wheel drift per dataflow group: which wheel each group last ran, whether that is the newest observed, and which job orchestrates it. Answers "which flow is on which wheel and which is not on the latest" without leaving the dashboard. The wheel version is parsed from each pipeline event log because system.lakeflow does not expose pipeline library dependencies.'
+AS
+WITH wheel_events AS (
+{wheel_union}
+),
+wheel_per_pipeline AS (
+    -- Most recent create_update that actually named a wheel. An event whose config carried no
+    -- dependency yields an empty match, which must not outrank a real one.
+    SELECT
+        pipeline_id,
+        wheel_version,
+        wheel_file,
+        event_time,
+        ROW_NUMBER() OVER (PARTITION BY pipeline_id ORDER BY event_time DESC) AS rn
+    FROM wheel_events
+    WHERE wheel_version IS NOT NULL AND wheel_version <> ''
+),
+observed AS (
+    -- Rank observed versions numerically: string ordering puts 0.0.9 above 0.0.10.
+    SELECT
+        wheel_version,
+        DENSE_RANK() OVER (
+            ORDER BY
+                CAST(split(wheel_version, '[.]')[0] AS INT) DESC,
+                CAST(split(wheel_version, '[.]')[1] AS INT) DESC,
+                CAST(split(wheel_version, '[.]')[2] AS INT) DESC
+        ) AS version_rank
+    FROM (SELECT DISTINCT wheel_version FROM wheel_per_pipeline WHERE rn = 1)
+),
+best_observed AS (
+    SELECT wheel_version FROM observed WHERE version_rank = 1 LIMIT 1
+),
+newest AS (
+    -- The installed wheel wins when known; otherwise fall back to the best observed, flagged.
+    SELECT
+        COALESCE({installed_sql}, (SELECT wheel_version FROM best_observed))
+            AS latest_wheel_version,
+        CASE WHEN {installed_sql} IS NULL THEN 'best_observed' ELSE 'installed' END
+            AS baseline_source
+),
+tagged_jobs AS (
+    SELECT
+        j.tags['dataflow_group_id'] AS tag_group_id,
+        j.name                      AS job_name,
+        j.job_id,
+        j.deployment.kind = 'BUNDLE' AS job_is_bundle_managed,
+        j.paused,
+        j.change_time,
+        ROW_NUMBER() OVER (
+            PARTITION BY j.tags['dataflow_group_id'] ORDER BY j.change_time DESC) AS rn
+    FROM system.lakeflow.jobs j
+    WHERE j.delete_time IS NULL
+      AND j.tags['dataflow_group_id'] IS NOT NULL
+)
+SELECT
+    g.dataflow_group_id,
+    g.environment,
+    r.pipeline_name,
+    r.pipeline_id,
+    g.total_flow_count,
+    w.wheel_version,
+    w.wheel_file,
+    n.latest_wheel_version,
+    n.baseline_source,
+    CASE WHEN w.wheel_version IS NULL THEN CAST(NULL AS BOOLEAN)
+         ELSE w.wheel_version = n.latest_wheel_version END AS is_on_latest_wheel,
+    CASE WHEN w.wheel_version IS NULL
+              THEN 'unknown - no event log'
+         WHEN w.wheel_version = n.latest_wheel_version
+              THEN CONCAT('on latest (', w.wheel_version, ')')
+         ELSE CONCAT('BEHIND - running ', w.wheel_version,
+                     ', latest is ', n.latest_wheel_version)
+    END AS wheel_status,
+    CASE WHEN w.wheel_version IS NULL THEN CAST(NULL AS INT)
+         WHEN w.wheel_version = n.latest_wheel_version THEN 0
+         ELSE CAST(
+             (SELECT COUNT(DISTINCT v.wheel_version)
+                FROM (SELECT wheel_version FROM observed
+                      UNION
+                      SELECT n.latest_wheel_version AS wheel_version) v
+               WHERE CAST(split(v.wheel_version,'[.]')[0] AS INT) * 1000000
+                   + CAST(split(v.wheel_version,'[.]')[1] AS INT) * 1000
+                   + CAST(split(v.wheel_version,'[.]')[2] AS INT)
+                   > CAST(split(w.wheel_version,'[.]')[0] AS INT) * 1000000
+                   + CAST(split(w.wheel_version,'[.]')[1] AS INT) * 1000
+                   + CAST(split(w.wheel_version,'[.]')[2] AS INT)) AS INT)
+    END AS versions_behind,
+    w.event_time AS last_run_wheel_at,
+    t.job_name,
+    t.job_id,
+    CASE WHEN t.job_name IS NOT NULL THEN 'tag' ELSE 'none' END AS job_attribution,
+    t.job_is_bundle_managed,
+    t.paused AS job_paused,
+    g.spec_version,
+    g.last_onboarded_at
+FROM {observability_schema}.v_dataflow_group_catalog g
+LEFT JOIN {observability_schema}.v_pipeline_registry r
+       ON r.dataflow_group_id = g.dataflow_group_id
+LEFT JOIN wheel_per_pipeline w
+       ON w.pipeline_id = r.pipeline_id AND w.rn = 1
+LEFT JOIN observed o
+       ON o.wheel_version = w.wheel_version
+LEFT JOIN tagged_jobs t
+       ON t.tag_group_id = g.dataflow_group_id AND t.rn = 1
+CROSS JOIN newest n
+"""
+
+
 def get_all_observability_view_ddls(
     observability_schema: str,
     control_schema: str,
@@ -1144,4 +1353,8 @@ def get_all_observability_view_ddls(
          get_lineage_view_ddl(observability_schema)),
         ("create view v_group_health_summary",
          get_group_health_summary_view_ddl(observability_schema)),
+        ("create view v_deployment_versions",
+         get_deployment_versions_view_ddl(
+             observability_schema, control_schema, event_log_tables,
+             get_installed_framework_version())),
     ]

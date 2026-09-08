@@ -212,7 +212,7 @@
       "reconciliation_id": "rf_uc3_physical_device_batch_vs_bronze",
       "execution_mode": "pipeline",
       "dataflow_group_id": "dfg_uc3_excalibur_batch_recon",
-      "publish_schema": "staging",
+      "publish_schema": "reconciliation",
       "source_config": {
         "type": "table",
         "table": "{{catalog}}.staging.physical_device_batch",
@@ -276,7 +276,7 @@
       "reconciliation_id": "rf_uc3_customer_batch_vs_bronze",
       "execution_mode": "pipeline",
       "dataflow_group_id": "dfg_uc3_excalibur_batch_recon",
-      "publish_schema": "staging",
+      "publish_schema": "reconciliation",
       "source_config": {
         "type": "table",
         "table": "{{catalog}}.staging.customer_batch",
@@ -399,7 +399,7 @@
       "reconciliation_id": "rf_uc3_subscriber_batch_vs_bronze",
       "execution_mode": "pipeline",
       "dataflow_group_id": "dfg_uc3_excalibur_batch_recon",
-      "publish_schema": "staging",
+      "publish_schema": "reconciliation",
       "source_config": {
         "type": "table",
         "table": "{{catalog}}.staging.subscriber_batch",

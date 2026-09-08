@@ -245,6 +245,22 @@ variables:
       resource requires a warehouse id and there is no portable default -- warehouse ids are
       per workspace -- so each target sets its own. Find it with
       `databricks warehouses list -p <profile>`.
+  genie_space_file:
+    description: >-
+      Path (relative to resources/flowx_genie/) of the `.geniespace.json` this target deploys.
+
+      IT IS PER-TARGET BECAUSE DABs DOES NOT SUBSTITUTE VARIABLES INSIDE THE REFERENCED FILE.
+      `resources.genie_spaces.*.file_path` is inlined into `serialized_space` VERBATIM at deploy
+      time -- a `${var.catalog}` written into that JSON resolves with the literal text still in
+      the payload (verified on CLI v1.13.0), producing a space whose every table points at a
+      catalog named `${var.catalog}`. A Genie space has no `dataset_catalog` escape hatch the way
+      a dashboard does, because `data_sources.tables[].identifier` must be fully qualified. So the
+      catalog is baked in per rendering, and each target picks the rendering matching its catalog.
+
+      Generate a rendering for a new catalog with:
+        python scripts/render_genie_space.py --catalog <catalog>
+      then set this variable for that target. The default is the `flowx` rendering.
+    default: ../../databricks-genie/flowx_observability.geniespace.json
   dataflow_group_id:
     description: >-
       The metadata-driven dataflow_group_id the sample Lakeflow pipeline resource
@@ -267,6 +283,8 @@ targets:
       catalog: bt_digital_poc
       schema: config
       dashboard_warehouse_id: fe7871113e044faa
+      # Genie spaces cannot be catalog-templated -- see the `genie_space_file` variable above.
+      genie_space_file: ../../databricks-genie/flowx_observability.bt_digital_poc.geniespace.json
 
   metaflow_v7:
     workspace:

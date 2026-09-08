@@ -677,6 +677,10 @@
                     {
                       "name": "sum(total_discrepancies)",
                       "expression": "SUM(`total_discrepancies`)"
+                    },
+                    {
+                      "name": "daily(run_date)",
+                      "expression": "DATE_TRUNC(\"DAY\", `run_date`)"
                     }
                   ],
                   "disaggregated": false
@@ -698,6 +702,9 @@
                       "places": 0
                     }
                   }
+                },
+                "period": {
+                  "fieldName": "daily(run_date)"
                 }
               },
               "frame": {
@@ -1100,6 +1107,24 @@
                         "type": "max",
                         "places": 0
                       }
+                    },
+                    "style": {
+                      "type": "basic",
+                      "rules": [
+                        {
+                          "condition": {
+                            "operand": {
+                              "type": "data-value",
+                              "value": "0"
+                            },
+                            "operator": ">"
+                          },
+                          "backgroundColor": {
+                            "themeColorType": "visualizationColors",
+                            "position": 3
+                          }
+                        }
+                      ]
                     }
                   },
                   {
@@ -1112,6 +1137,24 @@
                         "type": "max",
                         "places": 0
                       }
+                    },
+                    "style": {
+                      "type": "basic",
+                      "rules": [
+                        {
+                          "condition": {
+                            "operand": {
+                              "type": "data-value",
+                              "value": "0"
+                            },
+                            "operator": ">"
+                          },
+                          "backgroundColor": {
+                            "themeColorType": "visualizationColors",
+                            "position": 3
+                          }
+                        }
+                      ]
                     }
                   },
                   {
@@ -1378,6 +1421,10 @@
                     {
                       "name": "sum(retry_flag)",
                       "expression": "SUM(`retry_flag`)"
+                    },
+                    {
+                      "name": "daily(started_at)",
+                      "expression": "DATE_TRUNC(\"DAY\", `started_at`)"
                     }
                   ],
                   "disaggregated": false
@@ -1399,6 +1446,9 @@
                       "places": 0
                     }
                   }
+                },
+                "period": {
+                  "fieldName": "daily(started_at)"
                 }
               },
               "frame": {
@@ -2052,6 +2102,10 @@
                     {
                       "name": "sum(rows_upserted)",
                       "expression": "SUM(`rows_upserted`)"
+                    },
+                    {
+                      "name": "daily(run_date)",
+                      "expression": "DATE_TRUNC(\"DAY\", `run_date`)"
                     }
                   ],
                   "disaggregated": false
@@ -2073,6 +2127,9 @@
                       "places": 0
                     }
                   }
+                },
+                "period": {
+                  "fieldName": "daily(run_date)"
                 }
               },
               "frame": {
@@ -2102,6 +2159,10 @@
                     {
                       "name": "sum(rows_dropped)",
                       "expression": "SUM(`rows_dropped`)"
+                    },
+                    {
+                      "name": "daily(run_date)",
+                      "expression": "DATE_TRUNC(\"DAY\", `run_date`)"
                     }
                   ],
                   "disaggregated": false
@@ -2123,6 +2184,9 @@
                       "places": 0
                     }
                   }
+                },
+                "period": {
+                  "fieldName": "daily(run_date)"
                 }
               },
               "frame": {
@@ -2498,6 +2562,24 @@
                         "type": "max",
                         "places": 0
                       }
+                    },
+                    "style": {
+                      "type": "basic",
+                      "rules": [
+                        {
+                          "condition": {
+                            "operand": {
+                              "type": "data-value",
+                              "value": "0"
+                            },
+                            "operator": ">"
+                          },
+                          "backgroundColor": {
+                            "themeColorType": "visualizationColors",
+                            "position": 3
+                          }
+                        }
+                      ]
                     }
                   },
                   {
@@ -2673,6 +2755,10 @@
                     {
                       "name": "sum(failed_records)",
                       "expression": "SUM(`failed_records`)"
+                    },
+                    {
+                      "name": "daily(event_time)",
+                      "expression": "DATE_TRUNC(\"DAY\", `event_time`)"
                     }
                   ],
                   "disaggregated": false
@@ -2694,6 +2780,9 @@
                       "places": 0
                     }
                   }
+                },
+                "period": {
+                  "fieldName": "daily(event_time)"
                 }
               },
               "frame": {
@@ -2723,6 +2812,10 @@
                     {
                       "name": "sum(total_discrepancies)",
                       "expression": "SUM(`total_discrepancies`)"
+                    },
+                    {
+                      "name": "daily(run_date)",
+                      "expression": "DATE_TRUNC(\"DAY\", `run_date`)"
                     }
                   ],
                   "disaggregated": false
@@ -2744,6 +2837,9 @@
                       "places": 0
                     }
                   }
+                },
+                "period": {
+                  "fieldName": "daily(run_date)"
                 }
               },
               "frame": {
@@ -3181,6 +3277,24 @@
                         "type": "max",
                         "places": 0
                       }
+                    },
+                    "style": {
+                      "type": "basic",
+                      "rules": [
+                        {
+                          "condition": {
+                            "operand": {
+                              "type": "data-value",
+                              "value": "0"
+                            },
+                            "operator": ">"
+                          },
+                          "backgroundColor": {
+                            "themeColorType": "visualizationColors",
+                            "position": 3
+                          }
+                        }
+                      ]
                     }
                   },
                   {
@@ -3205,6 +3319,24 @@
                         "type": "max",
                         "places": 0
                       }
+                    },
+                    "style": {
+                      "type": "basic",
+                      "rules": [
+                        {
+                          "condition": {
+                            "operand": {
+                              "type": "data-value",
+                              "value": "0"
+                            },
+                            "operator": ">"
+                          },
+                          "backgroundColor": {
+                            "themeColorType": "visualizationColors",
+                            "position": 5
+                          }
+                        }
+                      ]
                     }
                   },
                   {
@@ -5357,6 +5489,10 @@
                     {
                       "name": "avg(queue_duration_seconds)",
                       "expression": "AVG(`queue_duration_seconds`)"
+                    },
+                    {
+                      "name": "daily(started_at)",
+                      "expression": "DATE_TRUNC(\"DAY\", `started_at`)"
                     }
                   ],
                   "disaggregated": false
@@ -5377,6 +5513,9 @@
                       "places": 1
                     }
                   }
+                },
+                "period": {
+                  "fieldName": "daily(started_at)"
                 }
               },
               "frame": {
@@ -6163,38 +6302,56 @@
   "uiSettings": {
     "theme": {
       "canvasBackgroundColor": {
-        "light": "#F7F8FA",
-        "dark": "#151A21"
+        "light": "#F6F7F9",
+        "dark": "#12171E"
       },
       "widgetBackgroundColor": {
         "light": "#FFFFFF",
-        "dark": "#1C232C"
+        "dark": "#1B222B"
       },
       "widgetBorderColor": {
-        "light": "#FFFFFF",
-        "dark": "#1C232C"
+        "light": "#E4E8EE",
+        "dark": "#2A323D"
       },
       "fontColor": {
-        "light": "#141A20",
-        "dark": "#E6EBF1"
+        "light": "#111820",
+        "dark": "#E7ECF2"
       },
       "selectionColor": {
-        "light": "#2272B4",
-        "dark": "#8ACAFF"
+        "light": "#1F6FEB",
+        "dark": "#79C0FF"
       },
       "visualizationColors": [
-        "#2D7DD2",
-        "#7B5EA7",
-        "#C1547F",
-        "#E4572E",
-        "#F2A65A",
+        "#1F6FEB",
         "#2E9E8F",
+        "#7B5EA7",
+        "#E4572E",
+        "#C1547F",
+        "#F2A65A",
         "#4C6E8A",
         "#9BB1C4"
       ],
       "widgetHeaderAlignment": "LEFT",
       "fontFamily": "Inter",
-      "widgetCornerRadius": 10
+      "widgetCornerRadius": 10,
+      "widgetPadding": 16,
+      "widgetShadow": 15,
+      "fontSettings": {
+        "base": {
+          "fontFamily": "Inter",
+          "fontSize": 13
+        },
+        "widgetTitle": {
+          "fontFamily": "Inter",
+          "fontSize": 16,
+          "fontWeight": 600
+        },
+        "fieldTitle": {
+          "fontFamily": "Inter",
+          "fontSize": 12,
+          "fontWeight": 500
+        }
+      }
     }
   }
 }

@@ -111,6 +111,42 @@ For anything beyond this — every field with types, defaults and worked example
 [`references/spec_reference.json`](references/spec_reference.json) and the deep-dive map in
 [`references/framework_guide.md`](references/framework_guide.md).
 
+## Before you generate: ask, then warn
+
+A spec that validates can still be a bad spec. The framework enforces what would *break*; it
+does not enforce what a reviewer would *question*. Seven such choices are cheap to declare at
+onboarding and expensive to retrofit across an estate, so **ask about them before writing the
+JSON**, and carry any the user declines into the summary as a stated warning rather than
+silently omitting them.
+
+Ask in one batch, not one question at a time. Default to the recommendation when the user says
+"whatever you think" -- an unanswered question must never become an unset attribute by accident.
+
+| # | Ask | Why it matters | If declined |
+|---|---|---|---|
+| 1 | **Liquid clustering columns** -- which columns is this table filtered or joined on most? | `target_config.liquid_clustering_columns` is the current default physical layout. It needs no size tuning and can be changed later without rewriting the table. | Warn: table has no declared layout. |
+| 2 | **Partitioning** -- only if they asked for `partition_columns`: is this table expected to exceed ~1 TB? | Below roughly 1 TB, Hive-style partitioning usually creates small files and slows reads. Liquid clustering is the better default. | Warn: partitioned below the size where partitioning pays. |
+| 3 | **Table tags** -- owner, data domain, sensitivity? | `governance_tags.table_tags` is what makes a table attributable and discoverable in Unity Catalog. Retrofitting tags across an estate is far harder than declaring them now. | Warn: table will be untagged and unattributable. |
+| 4 | **Source system description** -- which upstream system, and what does a row represent? | `source_description` becomes the Delta table COMMENT, which Unity Catalog and Genie read as the semantic model. Without it a consumer cannot tell what the table is. | Warn: table will have no comment. |
+| 5 | **Landing archive** -- archive processed files, or delete them? | Without `source_config.landing_retention_policy.clean_source`, processed landing files accumulate forever: storage grows and file listing slows every run. `archive` keeps a replayable copy; `delete` suits a source that is the system of record. | Warn: landing zone grows without bound. |
+| 6 | **Bronze TTL** -- how long is raw history genuinely needed for replay? | `target_config.auto_ttl` (both `timestamp_column` and `expire_in_days`) makes expiry declared rather than remembered. An append-only Bronze table otherwise becomes the largest, least-queried object in the catalog. Only valid for APPEND and TRUNCATE_AND_LOAD. | Warn: Bronze table grows without bound. |
+| 7 | **Time-travel retention** -- is 7 days of time travel an actual requirement, or can it be 3? | Delta defaults to 7 days, so every rewritten file stays billable for a week. Setting `deleted_file_retention_duration: interval 3 days` in `target_config.table_properties` cuts that materially. Keep 7 only if someone really restores or audits that far back. | Warn: paying for 7 days of time travel nobody asked for. |
+
+**Then confirm before onboarding.** Generating a spec and onboarding it are two separate steps,
+and the second one writes control-table rows that drive a live pipeline. So:
+
+1. Ask the seven questions above and generate the spec.
+2. Validate it (see "The one rule that matters most"). Never show an unvalidated spec.
+3. Show the user the spec, the passing validation result, **and** the list of declined
+   best practices as explicit warnings.
+4. **Ask whether to onboard it.** Wait for a clear yes. Do not onboard as a side effect of
+   being asked to write a spec.
+
+The same seven checks run in the Onboarding App as `bp_*` rules in
+`databricks-app/config/validation/rules.json`, at severity `warning` so they inform without
+blocking. Keep the two in step: if you add a check in one place, add it in the other, or the
+app and the agent will give the same user different advice.
+
 ## Answering questions about the framework
 
 Read the file, do not recall it. [`references/framework_guide.md`](references/framework_guide.md)
