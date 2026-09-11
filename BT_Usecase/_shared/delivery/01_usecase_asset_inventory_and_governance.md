@@ -117,13 +117,23 @@ persists and keeps driving the DAG.
 
 ### 2.1 Sources
 
-| Source | Type | Path / table | Format |
+| Source | Read as | Path / table | Format |
 |---|---|---|---|
-| Excalibur batch extracts (x3) | `autoloader` | `/Volumes/br_digital_poc/staging/uc_3/batch/<table>/batch_date=<YYYY-MM-DD>/` | CSV, header, comma |
-| Excalibur change stream (x3) | `zerobus` | `br_digital_poc.staging.<table>_stream` | Delta |
+| Excalibur change stream | `zerobus` ingestion flow, one physical read shared by 3 flows | `br_digital_poc.staging.oracle_excalibur_cdc` | Delta, multiplexed Debezium envelopes |
+| Excalibur batch snapshots (x3) | **transformation flow**, `source_inputs[].is_streaming: false` | `br_digital_poc.oracle_excalibur_batch.{physical_device,customer,subscriber}` | Delta, written by the Lakeflow Connect Oracle query-based connector |
+| *Historical:* Excalibur batch extracts (x3) | `autoloader` | `/Volumes/br_digital_poc/staging/uc_3/batch/<table>/batch_date=<YYYY-MM-DD>/` | CSV, header, comma. **Superseded v0.0.7.** |
+| *Historical:* simulated change stream (x3) | `zerobus` | `br_digital_poc.staging.<table>_stream` | Delta. **Superseded v0.0.4.** |
 
-The three `*_stream` tables are Delta tables, not files — they are created and fed by the simulator
-job, and are also the heal target of the reconciliation flows.
+`staging.oracle_excalibur_cdc` is both the streaming source and the **heal target** of all three
+reconciliation flows, so a healed row is applied by the same CDC engine as any real change.
+
+**The batch snapshots cannot be read by an ingestion flow, at all.** The Lakeflow Connect tables are
+MERGE-written (`scd_type SCD_TYPE_1`), Delta refuses to stream a MERGE-written table
+(`DELTA_SOURCE_TABLE_IGNORE_CHANGES`) and `skipChangeCommits` is refused framework-wide; on top of
+that, `engine/source_plane.py` plans every ingestion source request `want_stream=True`
+unconditionally, with no batch ingestion reader to fall back to. A transformation flow's
+`is_streaming: false` is honoured verbatim and gives a real `spark.read.table(...)`, which is why
+the three batch flows are transformation flows.
 
 ### 2.2 Jobs and pipelines
 
@@ -132,7 +142,7 @@ job, and are also the heal target of the reconciliation flows.
 | 1 | `003_lfj_uc3_excalibur_streaming_simulator` | *(none)* | `delta_table_setup` → `stream_producer` |
 | 1b | `003b_lfj_uc3_excalibur_seed` | *(none)* | `setup_control_tables` → `onboard_streaming_cdc` → `onboard_batch_recon` (once per workspace, and after any spec change) |
 | 2 | `004_lfj_uc3_excalibur_streaming_cdc` | `004_ldp_uc3_excalibur_streaming_cdc` | `run_pipeline_update` → `observability_export` |
-| 3 | `005_lfj_uc3_excalibur_batch_recon` | `006_ldp_uc3_excalibur_batch_recon` | `run_pipeline_update` → `observability_export` |
+| 3 | `005_lfj_uc3_excalibur_batch_recon` | `006_ldp_uc3_excalibur_batch_recon` | `run_pipeline_update` → `heal_physical_device` ‖ `heal_customer` ‖ `heal_subscriber` → `observability_export` |
 | 3b | `009_lfj_uc3_excalibur_governance` | *(none)* | `tag_streaming_cdc` → `tag_batch_recon` (once the tables exist, and after any `governance_tags` change) |
 
 **Ordering is a hard constraint.** Job 3 must run after Job 2, and the three jobs must **not** be
@@ -141,20 +151,30 @@ risks a Unity Catalog conflict (the seed job's two onboarding tasks are serial f
 
 Dataflow groups: `dfg_uc3_excalibur_streaming_cdc`, `dfg_uc3_excalibur_batch_recon`.
 
+**The three `heal_*` tasks in job 3 are not optional.** Its reconciliation flows are
+`execution_mode: "pipeline_audit_only"`, which registers the comparison inside the pipeline update
+but **no heal lane at all**. Healing is therefore one `notebooks/05_reconciliation/05_reconciliation_engine.py`
+task per `reconciliation_id`. Without them the batch lane compares and reports forever while never
+correcting anything, with every run green.
+
 ### 2.3 Tables by layer, and their DAG role
 
 #### Staging
 
 | Table | Written by | Upstream | DAG role |
 |---|---|---|---|
-| `staging.physical_device_stream` | Job 1 simulator; also the **heal append target** of `rf_uc3_physical_device_batch_vs_bronze` | Landing CSV `uc_3/streaming` + recon heal | **Intermediate storage and re-entry point.** Feeds the CDC lane; receives healed rows from the batch lane. |
-| `staging.customer_stream` | Job 1; heal target of `rf_uc3_customer_batch_vs_bronze` | as above | as above |
-| `staging.subscriber_stream` | Job 1; heal target of `rf_uc3_subscriber_batch_vs_bronze` | as above | as above |
-| `staging.physical_device_batch` | `df_uc3_physical_device_batch_load` | `uc_3/batch/physical_device/` | **Upstream input to reconciliation.** Streaming table, APPEND, partitioned by `batch_date`. |
-| `staging.customer_batch` | `df_uc3_customer_batch_load` | `uc_3/batch/customer/` | as above |
-| `staging.subscriber_batch` | `df_uc3_subscriber_batch_load` | `uc_3/batch/subscriber/` | as above |
+| `staging.oracle_excalibur_cdc` | The Debezium/Zerobus CDC connector; **also the heal append target** of all three UC3 reconciliation flows | Excalibur CDC feed + recon heal | **The multiplexed CDC landing table and re-entry point.** One physical read feeds all three streaming flows; healed rows are appended as complete Debezium envelope rows and applied by the same CDC engine. |
+| `oracle_excalibur_batch.physical_device` | **Lakeflow Connect Oracle query-based connector** (outside this framework) | Excalibur Oracle | **Batch source.** MERGE-written, `scd_type SCD_TYPE_1`, so one row per PK. Cannot be streamed. |
+| `oracle_excalibur_batch.customer` | as above | as above | as above |
+| `oracle_excalibur_batch.subscriber` | as above | as above | as above |
+| `staging.physical_device_batch` | `df_uc3_physical_device_batch_load` (a **transformation flow**, `is_streaming: false`) | `oracle_excalibur_batch.physical_device` | **Upstream input to reconciliation.** Materialized view, `TRUNCATE_AND_LOAD`, full snapshot recomputed per update. No partition column. |
+| `staging.customer_batch` | `df_uc3_customer_batch_load` | `oracle_excalibur_batch.customer` | as above |
+| `staging.subscriber_batch` | `df_uc3_subscriber_batch_load` | `oracle_excalibur_batch.subscriber` | as above |
+| `staging.{physical_device,customer,subscriber}_stream` | Job 1 simulator | Landing CSV `uc_3/streaming` | **Historical.** The simulator's output, and the heal target until v0.0.7. Nothing reads them now. |
 
-Job 1 also creates a producer cursor table.
+Job 1 also creates a producer cursor table. Job 1 and the `uc_3` volume are historical: the
+streaming lane moved to the real CDC feed in v0.0.4 and the batch lane to Lakeflow Connect in
+v0.0.7.
 
 #### Bronze
 
@@ -168,29 +188,44 @@ All three generate framework hash columns and treat `src_deleted_flg = "1"` as a
 
 #### Reconciliation-derived datasets
 
-Three flows, each comparing a batch staging table against its Bronze CDC target and appending
-missing rows back into the corresponding `*_stream` table.
+Three flows, each comparing a batch staging table against its Bronze CDC target and appending the
+miss set back into the CDC landing table as Debezium envelope rows. All three are
+`execution_mode: "pipeline_audit_only"`, so the comparison runs inside the pipeline update and the
+append runs in the job's `heal_*` tasks.
 
 | Reconciliation flow | Source | Target | Match keys | Heals into |
 |---|---|---|---|---|
-| `rf_uc3_physical_device_batch_vs_bronze` | `staging.physical_device_batch` | `bronze.physical_device` | 4 keys, 25 compare columns | `staging.physical_device_stream` |
-| `rf_uc3_customer_batch_vs_bronze` | `staging.customer_batch` | `bronze.customer` | `customer_id`, ~89 compare columns | `staging.customer_stream` |
-| `rf_uc3_subscriber_batch_vs_bronze` | `staging.subscriber_batch` | `bronze.subscriber` | 2 keys, ~130 compare columns | `staging.subscriber_stream` |
+| `rf_uc3_physical_device_batch_vs_bronze` | `staging.physical_device_batch` | `bronze.physical_device` | 4 keys, 25 compare columns | `staging.oracle_excalibur_cdc` |
+| `rf_uc3_customer_batch_vs_bronze` | `staging.customer_batch` | `bronze.customer`, filtered to `__END_AT IS NULL` | `customer_id`, ~89 compare columns | `staging.oracle_excalibur_cdc` |
+| `rf_uc3_subscriber_batch_vs_bronze` | `staging.subscriber_batch` | `bronze.subscriber` | 2 keys, ~130 compare columns | `staging.oracle_excalibur_cdc` |
 
-Each publishes `recon__<rid>__<tid>__metrics` and `recon__<rid>__<tid>__mismatch` into
-`staging`; the `_`-prefixed prepare, classify, missing, pulse and heal datasets are pipeline-internal.
-`mismatch_log_capture` is off, so the mismatch dataset is suppressed.
+`bronze.customer` is SCD2 and holds every historical version, so its target side carries
+`filter_condition: "__END_AT IS NULL"`, because the matcher collapses duplicate keys
+`MATCHED > VALUE_DRIFT > MISSING`, so without it a stale closed version could mask real drift on
+the current row. The SCD1 tables hold one row per key and need no filter.
 
-**The UC3 DAG in one line:** Job 1 fills `staging.*_stream` → Job 2 CDC-applies them into `bronze.*`
-→ Job 3 lands `staging.*_batch` from files, reconciles batch against Bronze, and appends missing rows
-back into `staging.*_stream`, which re-enters Job 2's lane on the next run.
+Each flow's `transform_sql` reshapes the miss set into a complete Debezium envelope row (the 9
+landing columns, the verbatim Kafka-Connect `schema` block, UPPERCASE Oracle field names, epoch
+millis on Connect `Timestamp` fields, `before: null`, `op: 'r'`, and an SCN one past the current
+maximum) so the healed row is applied by the same CDC engine as any real change.
+
+Each publishes `recon__<rid>__<tid>__metrics` into `reconciliation`; the `_`-prefixed prepare,
+classify and missing datasets are pipeline-internal. `mismatch_log_capture` is off, so the mismatch
+dataset is suppressed. There is **no** pulse or heal-sink dataset: audit-only does not register an
+L5 lane.
+
+**The UC3 DAG in one line:** the Debezium feed lands in `staging.oracle_excalibur_cdc` → Job 2
+CDC-applies it into `bronze.*` → Job 3 recomputes `staging.*_batch` from the Lakeflow Connect Oracle
+tables, reconciles batch against Bronze, and its `heal_*` tasks append the miss set back into
+`staging.oracle_excalibur_cdc` as envelope rows, which Job 2's continuous pipeline then applies.
 
 ### 2.4 Other UC3 assets
 
 | Asset | Type | Provenance | Notes |
 |---|---|---|---|
-| `br_digital_poc.staging.uc_3` | Volume | **MANUAL** | Created by the setup notebook. |
-| `uc_3/_schemas/<table>_batch/` | Path | Notebook | Auto Loader schema checkpoints. |
+| `br_digital_poc.staging.uc_3` | Volume | **MANUAL** | Created by the setup notebook. **Historical**: neither lane reads it since v0.0.7. |
+| `uc_3/_schemas/<table>_batch/` | Path | Notebook | **Historical.** Auto Loader schema checkpoints. Job 3 no longer uses Auto Loader. |
+| `br_digital_poc.oracle_excalibur_batch` | Schema | **Lakeflow Connect** | Holds the three Oracle query-based-connector snapshot tables Job 3 reads. Not a declared bundle resource, and not written by this framework. |
 | `br_digital_poc.uc3_bronze` | Schema | PRE-EXISTING | **Orphaned and inert.** Nothing writes to it. |
 
 ---

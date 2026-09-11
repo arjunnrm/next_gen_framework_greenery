@@ -175,7 +175,9 @@ def register_staged_view(
         # downstream reader shares ONE physical result) but pipeline-scoped, never published
         # to Unity Catalog. The v1.6.0 Intermediate Object Rule: an intermediate is a
         # @dlt.view when it has a single reader, a temporary @dlt.table when it has more --
-        # only final sinks (targets, quarantine, SCD2 _current) are durable published tables.
+        # only final sinks (targets, quarantine) are durable published tables. The SCD2
+        # <target>_current companion was removed in v0.0.6 -- an SCD2 flow now publishes
+        # exactly one dataset, its own target (see cdc/scd.py's module docstring).
         # A temporary table always uses its bare, pipeline-local name; the pre-v1.6.0
         # qualified catalog.schema publication of staged intermediates is gone.
         register_dataset = dlt.table(name=staged_view_name, temporary=True, comment=comment)

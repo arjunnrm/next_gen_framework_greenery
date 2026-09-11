@@ -16,15 +16,20 @@ into a hidden ``_<target_table>_scd2_history`` table via ``stored_as_scd_type="2
 ranking each key's versions by ``__START_AT`` and pivoting the two most recent into
 ``current_<col>``/``previous_<col>`` columns on the public target table (:func:`register_scd3`).
 
-SCD2 also registers a companion ``<target_table>_current`` reporting table
-(:func:`register_scd2_reporting_view`) that aliases Lakeflow's native ``__START_AT``/
-``__END_AT`` tracking columns to the more conventional ``valid_from``/``valid_to``/``is_current``
-names. That reporting dataset is registered as a real ``@dlt.table``, not a ``@dlt.view`` (despite
-its name), after two real bugs found via live deployment: qualifying a ``@dlt.view``'s ``name=``
-the same way a table's is qualified raised ``AnalysisException`` (multipart names aren't
-supported for views), and even once made unqualified, a ``@dlt.view`` turned out not to be a
-durable, queryable catalog object once the pipeline update that defined it finished
-(``TABLE_OR_VIEW_NOT_FOUND``) -- see that function's own docstring for the full account.
+**An SCD2 flow publishes exactly ONE dataset: its target streaming table.** Up to v0.0.5 it also
+registered a companion ``<target_table>_current``, which re-labelled ``__START_AT``/``__END_AT``
+as ``valid_from``/``valid_to``/``is_current``. Removed in v0.0.6 -- it materialized as a
+MATERIALIZED_VIEW carrying a full copy of every row, history included, despite a ``_current``
+name that promised only current ones. It doubled storage per SCD2 target and misled any consumer
+who trusted the name (live check: ``bronze.customer_current`` held all 40 rows, of which only 30
+were current).
+
+The tracking columns cannot be renamed in place: ``dlt.apply_changes`` has no parameter for their
+names, and an SCD2 target is a ``create_streaming_table`` + ``apply_changes`` pair with no query
+body to project through -- Lakeflow writes those columns itself. Databricks' own SCD2 guidance
+aliases them in a SELECT, never in storage. A consumer that wants the conventional names aliases
+them in its own query, or in a plain UC view created outside the pipeline (which costs no storage
+and can genuinely filter to current rows). Current rows are ``WHERE __END_AT IS NULL``.
 """
 
 import logging
@@ -154,11 +159,24 @@ def register_scd2(
     Published under ``target_catalog.target_schema``, same reasoning as
     :func:`register_scd1`.
 
-    Also registers a companion reporting view (``<target_table>_current``, see
-    :func:`register_scd2_reporting_view`) that aliases Lakeflow's native
-    ``__START_AT``/``__END_AT`` SCD2 tracking columns to the more conventional
-    ``valid_from``/``valid_to``/``is_current`` names, without duplicating storage or
-    history-tracking logic.
+    **One dataset per SCD2 flow, and only one.** Up to v0.0.5 this also registered a companion
+    ``<target_table>_current`` dataset that re-labelled ``__START_AT``/``__END_AT`` as
+    ``valid_from``/``valid_to``/``is_current``. It was removed in v0.0.6: it materialized as a
+    MATERIALIZED_VIEW holding a full copy of EVERY row (history included, despite the
+    ``_current`` name promising otherwise), so it doubled storage per SCD2 target and actively
+    misled anyone who read the name and expected current rows only.
+
+    The tracking columns are **not renameable in place**. ``dlt.apply_changes`` exposes no
+    parameter for their names, and the target is a ``create_streaming_table`` + ``apply_changes``
+    pair with no query body to project through -- Lakeflow writes those columns itself. Databricks'
+    own SCD2 guidance aliases them in a SELECT (``__START_AT AS valid_from``), never in storage.
+    So a consumer wanting the conventional names aliases them in its own query or in a plain UC
+    view created outside the pipeline; the framework no longer materializes a second copy to
+    provide them. Deriving ``valid_from``/``valid_to`` in the staged view instead would be worse
+    than the ugly names: those values are computed BEFORE ``apply_changes`` assigns versions, so
+    they would not track the real version boundaries -- authoritative-looking and wrong.
+
+    Current rows are ``WHERE __END_AT IS NULL``.
     """
     keys, sequence_by = _resolve_keys_and_sequence(flow_id, "SCD2", target_config)
     apply_as_deletes = _build_apply_as_deletes_expr(target_config)
@@ -177,54 +195,10 @@ def register_scd2(
             stored_as_scd_type="2",
             track_history_column_list=target_config.get("columns_to_check"),
         )
-        register_scd2_reporting_view(target_table, target_catalog, target_schema, table_properties)
     except Exception as exc:  # noqa: BLE001
         raise CdcStrategyError(f"Flow '{flow_id}': failed to register SCD2 target '{target_table}': {exc}") from exc
 
 
-def register_scd2_reporting_view(
-    target_table: str, target_catalog: str, target_schema: str, table_properties: Dict[str, str]
-) -> None:
-    """Register ``<target_table>_current``, a friendly-column table over a native SCD2 table.
-
-    Lakeflow's ``apply_changes(stored_as_scd_type="2")`` manages history internally via
-    ``__START_AT``/``__END_AT`` (the current version has ``__END_AT IS NULL``) -- this is
-    the correct, native mechanism and is left untouched. This dataset simply re-labels
-    those columns as ``valid_from``/``valid_to``/``is_current`` for consumers who expect
-    conventional SCD2 column names, without a second copy of the history-*tracking logic*
-    (the SCD2 table above is still the sole source of truth `apply_changes` maintains).
-
-    Registered as a real, materialized ``@dlt.table`` -- **not** a ``@dlt.view``, despite
-    the name. Two real bugs were found in sequence getting here, both via live
-    deployment: (1) qualifying a ``@dlt.view``'s own ``name=`` the same way a table's is
-    qualified raised ``AnalysisException: View with multipart name '...' is not
-    supported``, so this was changed to an *unqualified* view; but (2) once an SCD2 flow
-    actually ran end to end and something tried to query the reporting view afterward, it
-    raised ``TABLE_OR_VIEW_NOT_FOUND`` -- confirmed empirically that a ``@dlt.view`` is
-    never a durable, queryable catalog object once the pipeline update that defined it
-    finishes, making a "reporting view" meant for consumers to query *after* the pipeline
-    runs completely useless as a view. A real ``@dlt.table`` doesn't have either problem:
-    its `name=` accepts full qualification like any other table, and it's durably
-    queryable afterward like any other table -- the storage cost of one extra small,
-    derived Delta table per SCD2 target is the right trade for a reporting dataset that
-    actually needs to be queried outside the pipeline.
-    """
-    try:
-        qualified_target = qualified_table_name(target_catalog, target_schema, target_table)
-        qualified_view_name = qualified_table_name(target_catalog, target_schema, f"{target_table}_current")
-
-        @dlt.table(
-            name=qualified_view_name,
-            comment=f"SCD2 reporting table over '{qualified_target}': valid_from/valid_to/is_current aliases",
-            table_properties=table_properties,
-        )
-        def _scd2_reporting_view():
-            history_df = dlt.read(qualified_target)
-            return history_df.withColumn("valid_from", F.col("__START_AT")).withColumn(
-                "valid_to", F.col("__END_AT")
-            ).withColumn("is_current", F.col("__END_AT").isNull())
-    except Exception as exc:  # noqa: BLE001
-        raise CdcStrategyError(f"Failed to register SCD2 reporting view over '{target_table}': {exc}") from exc
 
 
 def register_scd3(

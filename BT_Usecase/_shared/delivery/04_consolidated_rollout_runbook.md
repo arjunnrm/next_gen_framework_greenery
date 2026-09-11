@@ -103,15 +103,22 @@ use case rather than a hunt across `docs/`, `onboarding/` and `flowx_testing/`.
 
 | Use case | Copy this repository tree | Into | Which the notebook stages into |
 |---|---|---|---|
-| **UC3** | `build/uc3_test_data/` — generated, see below | `<workspace_staging_path>/UC3/` | `/Volumes/<catalog>/staging/uc_3/{streaming,batch}/` |
+| **UC3** | *(nothing, see below)* | n/a | n/a |
 | **UC6** | `BT_Usecase/UC6/data/sample_bundle/` **or** `BT_Usecase/UC6/data/test_fixture/` | `<workspace_staging_path>/UC6/` | `/Volumes/<catalog>/staging/uc_6/raw/` |
 | **UC7** | `BT_Usecase/UC7/data/` — `asn_schema/`, `synthetic/`, `tap311_sample.ber` | `<workspace_staging_path>/UC7/` | `/Volumes/<catalog>/landing/uc_7/{asn_schema,raw/<ELEMENT>}/` |
 
-UC3 is the exception: `BT_Usecase/UC3/data/` holds the three Excalibur `*_DDL.csv` governance
-sheets, which are column definitions rather than data. Generate the CSVs first —
-`python scripts/generate_uc3_test_data.py --out-dir build/uc3_test_data` — which writes the
-`batch_date=YYYY-MM-DD` layout the routing rules expect, so uploading it verbatim keeps the
-partitioning instead of falling back to today's date.
+**UC3 needs no upload at all since v0.0.7.** Both of its lanes read connector output that already
+exists in Unity Catalog: the streaming lane reads `<catalog>.staging.oracle_excalibur_cdc` (the
+multiplexed Debezium landing table, since v0.0.4) and the batch lane reads
+`<catalog>.oracle_excalibur_batch.{customer,physical_device,subscriber}`, written by the Lakeflow
+Connect Oracle query-based connector. There are no CSVs, no `batch_date=YYYY-MM-DD` folders and no
+`uc_3` volume dependency.
+
+`BT_Usecase/UC3/data/` still holds the three Excalibur `*_DDL.csv` governance sheets, which are
+column definitions rather than data. *(Historical: while the lanes read files, the CSVs were
+generated with `python scripts/generate_uc3_test_data.py --out-dir build/uc3_test_data`, which
+wrote the `batch_date=YYYY-MM-DD` layout the routing rules expect, and uploaded into
+`/Volumes/<catalog>/staging/uc_3/{streaming,batch}/`.)*
 
 For UC6, upload **one** of the two trees, not both: they share the same six filenames, so the
 second would overwrite the first in `staging/uc_6/raw/`. `sample_bundle/` is the customer's
@@ -156,8 +163,9 @@ particular:
 
 - **The `_unrouted` count must be zero,** or every entry in it must be a file you agree should not
   be staged. An unrouted file is one the rule table did not recognise.
-- **UC3 files with no date in the name** fall back to today's date, with a warning. Confirm that is
-  correct for your load.
+- **UC3 files with no date in the name** fall back to today's date, with a warning. *(Moot since
+  v0.0.7, because UC3 stages no files at all, so its routing rules see nothing. The behaviour is still in
+  the notebook and would apply if you staged CSVs to reproduce the old topology.)*
 - **UC7 files** must land under the right element folder. A misrouted CDR decodes against the wrong
   ASN.1 module and quarantines every record.
 - **All four UC7 `.asn1` modules must be present**, including the customer-supplied `SGSN.asn1`
@@ -237,8 +245,8 @@ Run each use case's job. The first run is what creates the nine control tables v
 
 | Use case | Job | Task sequence |
 |---|---|---|
-| UC3 streaming | `uc3_streaming_cdc_job` | `setup_control_tables`, `onboard_uc3`, `run_pipeline_update`, `apply_governance_uc3`, `observability_export` |
-| UC3 batch | `uc3_batch_recon_job` | as above, with `onboard_uc3_recon` and `apply_governance_uc3_recon` |
+| UC3 streaming | **pipeline, not a job** — `bundle run uc3_streaming_cdc_pipeline` | v0.0.4: the pipeline is `continuous: true` for seconds-level CDC latency, so it is started directly and Databricks owns its lifecycle; a continuous update never completes, so no job can wait on it. Seeding is `uc3_seed_job`, tagging is `uc3_governance_job`, and observability is continuous (the pipeline's event log is streamed) — `uc3_streaming_cdc_job` now holds only an on-demand export. See `BT_Usecase/UC3/docs/UC3_MASTER_DOCUMENT.md` §3a.6. |
+| UC3 batch | `uc3_batch_recon_job` | `run_pipeline_update` → `heal_physical_device` ‖ `heal_customer` ‖ `heal_subscriber` → `observability_export`. Seeding and tagging are `uc3_seed_job` / `uc3_governance_job`, as for the streaming lane. **v0.0.7:** the lane reads the Lakeflow Connect Oracle tables in `<catalog>.oracle_excalibur_batch`, not the `uc_3` volume. The three `heal_*` tasks are **required**: the reconciliation flows are `execution_mode: "pipeline_audit_only"`, which compares inside the pipeline update but registers no heal lane, so without them the lane reports drift forever and corrects nothing while every run stays green. See `BT_Usecase/UC3/docs/UC3_MASTER_DOCUMENT.md` §3b and §8.3. |
 | UC6 | UC6 job (007) | `setup_control_tables`, `onboard_uc6`, `run_pipeline_update`, `apply_governance_uc6`, `observability_export` |
 | UC7 | `uc7_cdr_asn_job` (001) | `setup_control_tables`, `onboard_uc7`, `run_pipeline_update`, `observability_export` — **no governance task** |
 
@@ -353,7 +361,7 @@ notebook, the remainder from the governance inventory. Each names who should dec
 | 4 | `/local_disk0` for zip expansion | Used for archive expansion and the Workspace Export API fallback. | **Confirm it is writable on your compute.** On serverless it may not be; switch to `tempfile.mkdtemp()` if not. | Data Engineering Lead |
 | 5 | Duplicate `silver` and `gold` creation | Created by both the notebook and the pipeline-adjacent DDL. | No action needed — both are `IF NOT EXISTS`. Recorded so it is not later reported as a defect. | — (informational) |
 | 6 | The `_unrouted` quarantine volume | A new object in no build contract. | **Approve the new volume, or choose the subfolder alternative.** See the cross-alignment record in [document 04](04_consolidated_rollout_runbook.md), check (b). | Data Architecture Lead |
-| 7 | UC3 batch credential columns | Four columns are nulled at source on the **streaming** path. The batch path has not been verified to do the same. | **Verify the batch path.** If it differs, the batch load lands credentials and a card number that streaming discards. See C.4.2. | Data Governance Lead |
+| 7 | UC3 batch credential columns | Four columns are nulled at source on the **streaming** path. **v0.0.7: the batch path now nulls them in its `transformation_sql`** (`CAST(NULL AS STRING) AS <col>` on `esn_pin`, `blacklist_password`, `acc_password`, `imei_black_list_pass`, `gur_cr_card_no`), which is where a transformation flow expresses shaping; `data_standardization_sql` is a `source_config` key and no longer applies. | **Confirm on the live tables after the next run.** The spec is correct by inspection, but the end-to-end run had not been verified at the time of writing. See C.4.2 and `BT_Usecase/UC3/docs/UC3_MASTER_DOCUMENT.md` §7.2. | Data Governance Lead |
 | 8 | Enforcement decision | No column masks or row filters exist. | Decide whether Beta accepts descriptive-only governance, and **record the decision either way**. Gap G-11, critical finding 2. | Data Governance Lead with Information Security |
 | 9 | Sink tagging | Four UC6 sinks declare tags the engine cannot apply. | Extend the engine, or reject the tags at validation. Silence is not an option under `AGENTS.md`. Gap G-04, critical finding 3. | Framework Engineering Lead |
 | 10 | Secret rotation | One passphrase covers UC6 ingress and egress; no rotation record exists. | Decide whether to split the passphrases, and set a rotation schedule. Gap G-13. | Information Security |

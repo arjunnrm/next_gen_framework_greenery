@@ -114,7 +114,7 @@ the validator cannot catch see [known limitations](13_known_limitations_and_gotc
 ??? question "Why don't I see the `_staged` / `_src__*` / `_recon__*` tables in my catalog anymore?"
     v1.6.0's Intermediate Object Rule: intermediates are `@dlt.view`s or pipeline-scoped
     **temporary** tables — materialized once per update where read-once demands it, but never
-    published to Unity Catalog. Only final sinks (targets, quarantine tables, SCD2 `_current`) and
+    published to Unity Catalog. Only final sinks (targets and quarantine tables) and
     the conditional reconciliation audit datasets (`__metrics`/`__mismatch`) are published. The
     datasets still exist inside the pipeline — check the pipeline's graph/event log, not the
     catalog. See [Known limitations O7](13_known_limitations_and_gotchas.md#o7) for the upgrade

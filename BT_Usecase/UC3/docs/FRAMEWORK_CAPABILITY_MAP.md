@@ -24,7 +24,7 @@ constants), which `tests/unit/test_unknown_key_rejection.py` asserts against the
 | 4 | **Column/table tagging** | **Config** (pre-confirmed) | `governance_tags.table_tags` (map) + `governance_tags.column_tags[]` (`{column, tags{}}`) | `governance/tags.py`, `spec_validator.py:297` |
 | 5 | **Liquid clustering** | **Config**, but **capped at 3 columns** | `target_config.liquid_clustering_columns` | `spec_validator.py:484` `MAX_LIQUID_CLUSTERING_COLUMNS = 3` |
 | 6 | **Iceberg / UniForm** | **Config**, but framework emits **one** property, not three | `target_config.table_properties.enable_iceberg_read_uniformity: true` | `storage/table_properties.py:119` |
-| 7 | **Batch load** | **Config** | `target_type: "batch_table"`; batch CSVs land via `source_type: "autoloader"` | `spec_validator.py:75` |
+| 7 | **Batch load** | **Config** | **v0.0.7:** a `transformation_flows[]` entry with `source_inputs[].is_streaming: false` over the Lakeflow Connect Oracle table, writing `target_type: "materialized_view"` + `cdc_load_strategy: "TRUNCATE_AND_LOAD"`. *(Historical: while the batch lane read dated CSVs from a Volume it was an ingestion flow with `source_type: "autoloader"`; that is still the right key for a file-based batch load, it is simply not what UC3 does now.)* | `spec_validator.py:75`, `engine/source_plane.py` |
 | 8 | **Batch-vs-stream reconciliation** | **Config** — a first-class engine | `reconciliation_flows[]` with `match_keys`, `compare_columns`, `execution_mode`, `logging_config`, `target_configs[].append_target_table` | `reconciliation/` package, `spec_validator.py:310` |
 
 **Conclusion: zero hand-written code is required for Jobs 2 and 3.** All eight capabilities exist

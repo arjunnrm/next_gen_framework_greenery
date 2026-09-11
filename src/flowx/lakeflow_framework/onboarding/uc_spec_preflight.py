@@ -36,7 +36,10 @@ attempt work" reconnaissance, layered on top of the framework's own existing val
    required) but gets an additional ``"append_schema"`` check comparing its existing columns
    against the flow's declared append shape (the source table's columns, adjusted for
    ``hash_precomputed`` -- see :func:`_check_append_target_schema_shape`), reported as
-   ``SCHEMA_OK``/``SCHEMA_MISMATCH`` since a declared Delta sink cannot ``mergeSchema``.
+   ``SCHEMA_OK``/``SCHEMA_MISMATCH`` since a declared Delta sink cannot ``mergeSchema``. A flow
+   carrying ``transform_sql`` reshapes its miss set before the append, so its appended shape is
+   the SQL's SELECT list, not the source table's columns; that case is reported as
+   ``SHAPE_DEFINED_BY_TRANSFORM_SQL`` (advisory, never judged) instead of a spurious mismatch.
 4. Returns one JSON string report: ``{"valid": bool, "validation_errors": [...],
    "existence_checks": [...], "summary": "..."}`` -- see :func:`preflight_check_onboarding_spec`
    for the full shape. Designed so an LLM agent calling this as a tool gets one unambiguous
@@ -490,7 +493,12 @@ def _run_existence_checks(
             return
         _add_required_table(table_ref, required_note, lambda n=table_ref: _table_exists(n))
 
-    def _check_append_target_schema_shape(source_config: Dict[str, Any], target_config: Dict[str, Any], flow_id: str) -> None:
+    def _check_append_target_schema_shape(
+        source_config: Dict[str, Any],
+        target_config: Dict[str, Any],
+        flow_id: str,
+        transform_sql: Any = None,
+    ) -> None:
         append_target_table = target_config.get("append_target_table")
         source_table = source_config.get("table")
         if not isinstance(append_target_table, str) or not append_target_table:
@@ -499,6 +507,32 @@ def _run_existence_checks(
             return
         key = ("append_schema", append_target_table)
         if key in seen:
+            return
+
+        target_id = target_config.get("target_id") or "<unknown>"
+        if isinstance(transform_sql, str) and transform_sql.strip():
+            # The flow reshapes its miss set with transform_sql before appending
+            # (reconciliation/appender.py::apply_transform_sql), so the appended shape is the SQL's
+            # SELECT list, not the source table's columns. Comparing the source's columns against
+            # append_target_table here would report a SCHEMA_MISMATCH for every correctly written
+            # reshaping flow (v1.7.11: UC3's batch lane heals a flat staging table into the
+            # 9-column Debezium landing table). The shape is only knowable by running the SQL, so
+            # it is reported as advisory rather than judged.
+            seen.add(key)
+            existence_checks.append(
+                {
+                    "kind": "append_schema",
+                    "path": append_target_table,
+                    "status": "SHAPE_DEFINED_BY_TRANSFORM_SQL",
+                    "note": (
+                        f"append_target_table of reconciliation_flow[{flow_id}].target_configs[{target_id}] "
+                        "receives rows reshaped by this flow's transform_sql, so the appended shape is that "
+                        "SQL's SELECT list rather than the source table's columns and cannot be compared "
+                        "statically here -- verify the SELECT list against the table's columns yourself "
+                        "(the append runs with mergeSchema, so a misspelt alias ADDS a column rather than failing)"
+                    ),
+                }
+            )
             return
 
         source_columns = _table_columns(source_table)
@@ -518,7 +552,6 @@ def _run_existence_checks(
         if not source_config.get("hash_precomputed"):
             expected_columns.discard(_FRAMEWORK_HASH_VALUE_COLUMN)
 
-        target_id = target_config.get("target_id") or "<unknown>"
         missing_columns = sorted(expected_columns - append_columns)
         if missing_columns:
             existence_checks.append(
@@ -584,7 +617,9 @@ def _run_existence_checks(
                     "healing append writes here; not existing yet is normal, the append can create it",
                     lambda n=append_target_table: _table_exists(n),
                 )
-                _check_append_target_schema_shape(source_config, target_config, flow_id)
+                _check_append_target_schema_shape(
+                    source_config, target_config, flow_id, transform_sql=flow.get("transform_sql")
+                )
 
     return existence_checks, notes
 
@@ -625,7 +660,8 @@ def preflight_check_onboarding_spec(spec_json_or_yaml_text: str, catalog: str) -
           problem found, each already a fully-qualified, human-readable message.
         - ``existence_checks`` (list[dict]): one entry per distinct
           ``{"kind": "catalog"|"schema"|"table"|"volume"|"append_schema", "path": str,
-          "status": "EXISTS"|"WILL_BE_CREATED"|"MISSING_REQUIRED"|"SCHEMA_OK"|"SCHEMA_MISMATCH",
+          "status": "EXISTS"|"WILL_BE_CREATED"|"MISSING_REQUIRED"|"SCHEMA_OK"|"SCHEMA_MISMATCH"
+                    |"SHAPE_DEFINED_BY_TRANSFORM_SQL",
           "note": str}`` for every catalog/schema/table/volume this spec references, plus one
           ``"append_schema"`` entry per ``reconciliation_flows[].target_configs[].append_target_table``
           whose columns could be compared against its flow's declared append shape (see module

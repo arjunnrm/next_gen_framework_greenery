@@ -5,10 +5,28 @@ Single source of truth shared by SCD2's native ``track_history_column_list`` and
 answer to "which columns matter for change detection", so it's resolved once, here, rather
 than duplicated.
 
-**Comparison vs. storage are fully decoupled in v2**: ``columns_to_exclude`` no longer
-reaches ``dlt.apply_changes``'s ``except_column_list`` for user columns (a real behavior
-change from v1) -- it only affects this resolution. Excluding a column from comparison
-never drops it from the target table.
+**``columns_to_exclude`` has TWO jobs, and this module implements only the first.** It narrows
+the comparison basis resolved here (change detection + ``__framework_hash_value``), *and* it is
+passed to ``dlt.apply_changes``'s ``except_column_list`` by ``cdc/scd.py`` for SCD1/SCD2/SCD3,
+which drops those columns from the target table's schema entirely. The two compose correctly:
+the drop happens at apply time, after this resolution, so narrowing the hash basis and dropping
+the column agree rather than fighting.
+
+That overloading is deliberate and load-bearing: ``except_column_list`` is the framework's
+**only** mechanism for "don't store this column at all" on a CDC target. Nothing else in the
+spec can do it -- ``data_standardization_sql`` is strictly add/replace (every expression must
+end in ``AS <name>``), ``column_normalization`` and ``schema_config`` only rename/cast/comment,
+and ``columns_to_check`` scopes comparison. Removing the passthrough would delete a capability
+with no replacement *and* silently re-add columns to every already-materialized SCD target.
+
+A prior docstring here asserted the opposite -- that comparison and storage had been decoupled,
+so an excluded column stayed in the target. That was an aspiration written down but never
+implemented: there is no attribute delta, release note or migration for such a change, and a
+live Bronze table inspection (2026-09-11, ``bt_digital_poc.bronze.physical_device``) confirms
+the excluded columns are genuinely ABSENT from the target. The prose was corrected rather than
+the code, because the code is the contract that shipped. If the overloading is ever to be undone,
+the remedy is to ADD a storage-exclusion attribute and migrate onto it under this repo's
+reject-never-ignore removal protocol -- not to silently narrow this one.
 """
 
 from typing import Iterable, List, Optional, Sequence
@@ -49,8 +67,12 @@ def resolve_comparison_columns(
         ``columns_to_exclude`` and ``primary_keys``, in case of an author mistake). When
         empty/``None``, every applicable column on ``all_columns`` is compared.
     columns_to_exclude:
-        Comparison-only exclusion (v2 semantics) -- removed from whichever base set applies
-        above. Never affects what's stored on the target table.
+        Removed from whichever base set applies above. **Also** drops the column from the
+        target table's schema -- ``cdc/scd.py`` passes the same list to ``apply_changes``'s
+        ``except_column_list``, which this function is deliberately unaware of (it resolves
+        comparison; scd.py applies storage). To narrow comparison WITHOUT dropping the column
+        from the target, use ``columns_to_check`` to name the columns that should be compared
+        and leave this unset.
 
     Returns
     -------

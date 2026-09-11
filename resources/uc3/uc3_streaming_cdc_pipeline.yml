@@ -6,6 +6,16 @@
 # group is defined in BT_Usecase/UC3/onboarding/uc3_excalibur_streaming_cdc.json and reaches the engine
 # through the control tables, not through this file -- the only wiring here is the group id.
 #
+# SOURCE: all three flows read ONE multiplexed Debezium landing table,
+# bt_digital_poc.staging.oracle_excalibur_cdc, whose `value` column carries the full Debezium
+# envelope as a JSON string. Because the three flows name the same source_catalog/schema/table,
+# engine/source_plane.py computes a single ReadIdentity for them and emits ONE base streaming
+# read that all three consume via bind() -- the Single-Read DAG mandate. Each flow then filters
+# to its own Debezium topic with a dq_config `drop` rule, so this pipeline's graph is:
+#
+#   1 shared source-plane read  ->  3 staged views (topic-filtered, envelope-parsed)
+#                               ->  3 apply_changes targets (SCD1 / SCD2 / SCD1)
+#
 # Catalog/schema come from BUILD_CONTRACT.md section 1: the shared `flowx` catalog via
 # ${var.catalog} (never hardcoded), and the `bronze` governed schema. The `uc3_` prefix
 # carries the use-case identity that a dedicated `uc3` catalog would otherwise have carried;
@@ -28,7 +38,45 @@ resources:
       serverless: true
       photon: true
       development: true
-      continuous: false
+      # CONTINUOUS, unlike every other dfg_*-scoped pipeline in this project. The Excalibur
+      # source is a Debezium CDC feed landing in bt_digital_poc.staging.oracle_excalibur_cdc
+      # through the Zerobus gRPC sink, and UC3's requirement is seconds-level end-to-end
+      # latency from an Oracle commit to the governed bronze table. A triggered pipeline's
+      # latency is its trigger interval (minutes at best), so `continuous: false` cannot meet
+      # that however often it is scheduled. With `continuous: true` Databricks keeps the
+      # update running and restarting, and each micro-batch commits as soon as new CDC rows
+      # land -- the Delta streaming read on the landing table has no added trigger delay.
+      #
+      # TWO CONSEQUENCES, both deliberate:
+      #  1. A continuous update never "completes", so this pipeline is NOT wrapped by a job
+      #     that waits on it -- the same choice (and the same reasoning) as
+      #     resources/observability/observability_otel_streaming_pipeline.yml. Start it with
+      #     `databricks bundle run uc3_streaming_cdc_pipeline -t <target>`; Databricks owns
+      #     the lifecycle thereafter. The observability export therefore runs on its own
+      #     schedule -- resources/uc3/uc3_streaming_observability_job.yml -- instead of as a
+      #     downstream task of a pipeline task that would never finish.
+      #  2. Serverless compute stays up for as long as the pipeline runs, so this bills
+      #     continuously rather than per update. That is the cost of seconds-level latency;
+      #     set `continuous: false` here (and re-attach the export task) to trade the latency
+      #     back for triggered-only billing.
+      #
+      # NEVER `bundle deploy` while this pipeline is running: a deploy prunes superseded
+      # artifacts from <artifact_path>/.internal/ and kills the live update with
+      # ENVIRONMENT_PIP_INSTALL_ERROR. Stop the pipeline first (see flowx_testing/TESTING_PLAN.md
+      # section 0) -- with a continuous pipeline that window is *always* open, unlike a
+      # triggered one.
+      continuous: true
+
+      # Publish this pipeline's own event log to a Unity Catalog Delta table. REQUIRED by the
+      # continuous observability engine: a continuous pipeline has no terminal update and so no
+      # upstream task run to resolve a pipeline id from, which is why the continuous engine is
+      # told which event-log tables to stream instead (spec_validator.py enforces
+      # destination_config.event_log_tables for mode 'continuous'). This is the table named
+      # there, and in resources/observability/observability_otel_streaming_pipeline.yml.
+      event_log:
+        catalog: ${var.catalog}
+        schema: observability
+        name: uc3_excalibur_streaming_cdc_event_log
 
       libraries:
         - notebook:

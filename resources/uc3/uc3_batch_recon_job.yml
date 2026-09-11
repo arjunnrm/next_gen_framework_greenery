@@ -1,6 +1,6 @@
 # Runs the UC3 Excalibur batch-load + reconciliation group:
 #
-#   run_pipeline_update -> observability_export
+#   run_pipeline_update -> heal_<table> (x3, parallel) -> observability_export
 #
 # This is a RUN job, not a provisioning job. Since 2026-09-08 the one-time steps live in their
 # own jobs so this one carries only what every run needs (see the header of
@@ -8,6 +8,24 @@
 #
 #   resources/uc3/uc3_seed_job.yml        setup_control_tables -> onboard both UC3 specs
 #   resources/uc3/uc3_governance_job.yml  ALTER TABLE ... SET TAGS for both UC3 groups
+#
+# WHY THE THREE heal_* TASKS EXIST. The three reconciliation flows are
+# `execution_mode: "pipeline_audit_only"`, so their comparison (L3+L4: the prepared sides,
+# __classified and the published __metrics) runs INSIDE the pipeline update above, but the
+# corrective append does NOT: audit-only registers no heal sink at all
+# (`reconciliation/graph_registration.py`, `if not needs_heal: return`). Healing is therefore
+# the standalone `05_reconciliation_engine.py` job task, one per reconciliation_id, and WITHOUT
+# these three tasks the batch lane would compare and report forever while never healing.
+#
+# Audit-only is forced, not stylistic, and an in-graph sink is NOT reachable from this source.
+# `"pipeline"` is the only mode that registers the L5 heal lane as graph nodes, but it STREAMS
+# its source to drive the heal pulse. The recon source `staging.<table>_batch` is a
+# TRUNCATE_AND_LOAD materialized view, which source_plane's G-STREAM guard rejects; the Lakeflow
+# Connect table behind it is MERGE-written, which Delta refuses to stream; and an APPEND copy of
+# the snapshot cannot be built either, because `target_type: streaming_table` forces
+# is_streaming=True on the staged view while that view's own input must stay batch. Proven at
+# runtime: `View '_<table>_batch_events_staged' is not a streaming view and must be referenced
+# using read`. Do not retry that shape.
 #
 # RUNTIME DEPENDENCY: this job must run AFTER 004_lfj_uc3_excalibur_streaming_cdc. The
 # reconciliation compares each batch table against <catalog>.bronze.<table>, which does not
@@ -33,9 +51,45 @@ resources:
         - task_key: run_pipeline_update
           pipeline_task:
             pipeline_id: ${resources.pipelines.uc3_batch_recon_pipeline.id}
-        - task_key: observability_export
+
+        - task_key: heal_physical_device
           depends_on:
             - task_key: run_pipeline_update
+          notebook_task:
+            notebook_path: ../../notebooks/05_reconciliation/05_reconciliation_engine.py
+            base_parameters:
+              catalog: ${var.catalog}
+              reconciliation_id: rf_uc3_physical_device_batch_vs_bronze
+              task_run_id: "{{job.run_id}}"
+          environment_key: framework_env
+
+        - task_key: heal_customer
+          depends_on:
+            - task_key: run_pipeline_update
+          notebook_task:
+            notebook_path: ../../notebooks/05_reconciliation/05_reconciliation_engine.py
+            base_parameters:
+              catalog: ${var.catalog}
+              reconciliation_id: rf_uc3_customer_batch_vs_bronze
+              task_run_id: "{{job.run_id}}"
+          environment_key: framework_env
+
+        - task_key: heal_subscriber
+          depends_on:
+            - task_key: run_pipeline_update
+          notebook_task:
+            notebook_path: ../../notebooks/05_reconciliation/05_reconciliation_engine.py
+            base_parameters:
+              catalog: ${var.catalog}
+              reconciliation_id: rf_uc3_subscriber_batch_vs_bronze
+              task_run_id: "{{job.run_id}}"
+          environment_key: framework_env
+
+        - task_key: observability_export
+          depends_on:
+            - task_key: heal_physical_device
+            - task_key: heal_customer
+            - task_key: heal_subscriber
           notebook_task:
             notebook_path: ../../notebooks/08_observability/08_dlt_observability_engine.py
             base_parameters:

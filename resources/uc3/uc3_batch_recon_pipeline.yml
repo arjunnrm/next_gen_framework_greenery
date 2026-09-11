@@ -1,20 +1,55 @@
-# UC3 Excalibur batch load + reconciliation -> flowx.bronze.
+# UC3 Excalibur batch snapshot + reconciliation -> <catalog>.bronze.
 #
-# Three autoloader ingestion flows land the 4 dated batch CSV sets per table into
-# flowx.staging.<table>_batch, and three reconciliation flows (execution_mode "pipeline")
-# compare each batch table against its bronze counterpart INSIDE this pipeline's DAG, then feed
-# healed rows back through Job 2's CDC engine via append_target_table. All of it is declared in
-# BT_Usecase/UC3/onboarding/uc3_excalibur_batch_recon.json -- this file only declares the pipeline that
-# executes that group.
+# v0.0.7: the batch lane no longer reads CSVs from a Volume. Three TRANSFORMATION flows read the
+# three tables the Lakeflow Connect Oracle query-based connector writes into
+# <catalog>.oracle_excalibur_batch as BATCH inputs (`source_inputs[].is_streaming: false`) and
+# recompute each as a full snapshot in <catalog>.staging.<table>_batch
+# (`target_type: materialized_view` + `cdc_load_strategy: TRUNCATE_AND_LOAD`) -- a true
+# point-in-time snapshot of the Oracle source, which is what a reconciliation against the CDC
+# lane needs. The connector's tables already hold exactly one row per primary key, so no CDC
+# collapse is wanted on this side.
+#
+# They are TRANSFORMATION flows, not ingestion flows, and that is forced rather than stylistic.
+# The Lakeflow Connect destinations are MERGE-written (connector default `scd_type: SCD_TYPE_1`;
+# their Delta history shows MERGE, and they carry `__ingestion_connector_primary_key` /
+# `__ingestion_connector_cursor_columns`). Delta refuses to stream a MERGE-written table
+# (DELTA_SOURCE_TABLE_IGNORE_CHANGES) and this framework refuses `skipChangeCommits`. No
+# ingestion flow of ANY target_type can read them either: `engine/source_plane.py`
+# ::_requests_from_ingestion_rows plans every ingestion source request `want_stream=True`
+# unconditionally ("there is no batch ingestion reader to fall back to") and `_execute_reader`
+# hard-rejects a batch bind of an ingestion identity. A `zerobus` version of this lane failed at
+# runtime with `Failed to resolve flow: '_<table>_batch_staged'` on every update.
+#
+# Each snapshot is then copied into an APPEND streaming table <catalog>.staging.<table>_batch_events.
+# That copy exists for one reason: `execution_mode: "pipeline"` STREAMS the reconciliation source to
+# drive its heal pulse, and only an append-only target can serve that. The MV itself cannot
+# (TRUNCATE_AND_LOAD is in G-STREAM's rejection set), and the Lakeflow Connect table cannot either
+# (MERGE-written).
+#
+# Three reconciliation flows (`execution_mode: "pipeline"`) compare each _batch_events table against
+# its <catalog>.bronze counterpart INSIDE this pipeline's DAG, and the corrective append IS in this
+# graph too: the L5 heal lane registers `_recon__<id>__pulse`, `recon__<id>__heal_flow` and the
+# `_recon__<id>__heal_sink` foreach_batch_sink as real nodes. The sink fires once per update even
+# when nothing is unmatched, writing a reconciliation_run_log row with appended_count 0. Healed rows
+# are appended to <catalog>.staging.oracle_excalibur_cdc as full Debezium envelope rows, so the 004
+# streaming lane applies them as ordinary change events.
+#
+# All of it is declared in BT_Usecase/UC3/onboarding/uc3_excalibur_batch_recon.json -- this file
+# only declares the pipeline that executes that group.
+#
+# `continuous: false` is deliberate and unchanged. The query-based connector is scheduled, not
+# continuous ("They don't provide continuous ingestion"), and a reconciliation is a comparison
+# of two settled states -- there is nothing for a standing update to do between batches. This
+# is the opposite choice from 004_ldp_uc3_excalibur_streaming_cdc, which IS continuous.
 #
 # NAME: 006_ldp_uc3_excalibur_batch_recon, driven by job 005_lfj_uc3_excalibur_batch_recon.
 # The 005/006 mismatch is DELIBERATE (BUILD_CONTRACT.md section 2) -- Job 2's job and pipeline are
 # both 004, Job 3's are 005 and 006. Preserve it.
 #
 # Modelled on resources/uc7/uc7_cdr_asn_pipeline.yml and kept structurally identical to
-# resources/uc3/uc3_streaming_cdc_pipeline.yml, differing only in name, dataflow group and the
-# `schema` default -- reconciliation publishes its own datasets under publish_schema, declared
-# per-flow in the spec.
+# resources/uc3/uc3_streaming_cdc_pipeline.yml, differing only in name, dataflow group, the
+# `schema` default and `continuous` -- reconciliation publishes its own datasets under
+# publish_schema, declared per-flow in the spec.
 
 resources:
   pipelines:

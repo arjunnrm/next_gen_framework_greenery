@@ -344,7 +344,7 @@ migration). Dispatched by `cdc/dispatcher.py::register_cdc_strategy`.
 | `APPEND` | yes | yes | No-op here — caller registers the staged view directly as the target (streaming table → append). | — |
 | `TRUNCATE_AND_LOAD` | yes | yes | No-op here — full recompute (materialized view semantics). | — |
 | `SCD1` | yes | yes | `dlt.apply_changes(..., stored_as_scd_type="1")` — overwrite-on-match. `cdc/scd.py::register_scd1`. | `primary_keys` |
-| `SCD2` | yes | yes | `dlt.apply_changes(..., stored_as_scd_type="2")` — full history via native `__START_AT`/`__END_AT`, plus a companion `<target>_current` reporting **table** (`valid_from`/`valid_to`/`is_current` aliases). `cdc/scd.py::register_scd2`/`register_scd2_reporting_view`. | `primary_keys` |
+| `SCD2` | yes | yes | `dlt.apply_changes(..., stored_as_scd_type="2")` — full history via native `__START_AT`/`__END_AT`. Publishes **exactly one** dataset: the target streaming table. (The `<target>_current` companion was removed in v0.0.6 — it copied every row, history included, under a name promising only current ones. Those columns cannot be renamed in place; alias them in a query or a plain UC view. Current rows: `WHERE __END_AT IS NULL`.) `cdc/scd.py::register_scd2`. | `primary_keys` |
 | `SCD3` | **no** (transformation only) | yes | Current/previous-value pivot, derived from an internal hidden SCD2 history table via window functions (`ROW_NUMBER` over `__START_AT DESC`). `cdc/scd.py::register_scd3`. | `primary_keys`, `columns_to_check` |
 | `FULL_SNAPSHOT_CDC` | yes | yes | `dlt.apply_changes_from_snapshot(..., stored_as_scd_type="1")` — diffs successive full-extract snapshots. `cdc/snapshot.py::register_full_snapshot_cdc`. | `primary_keys` |
 | ~~`FULL_SNAPSHOT_CDC_NO_PK`~~ | — | — | **REMOVED in v1.4.0.** It keyed the diff on a framework-generated `__framework_surrogate_key` (a SHA-256 over the whole payload). Onboarding rejects it by name. Migrate to `FULL_SNAPSHOT_CDC` with a real `primary_keys`, or to `TRUNCATE_AND_LOAD` if the source genuinely has no key. | — |
@@ -360,8 +360,13 @@ rejects one used outside its set, so do not treat these as universally available
 | `columns_to_exclude` | `SCD1`, `SCD2`, `SCD3` | **`APPEND`, `TRUNCATE_AND_LOAD`, `FULL_SNAPSHOT_CDC`** — they have no comparison-column concept to exclude from |
 | `cdc_operation_column` / `cdc_operation_mapping.delete_values` | `SCD1`, `SCD2`, `FULL_SNAPSHOT_CDC` | **`SCD3`** — a current/previous pivot has no delete path at all |
 
-`columns_to_check`/`columns_to_exclude` are comparison-only in v2 — neither drops a column from
-the target table; see `cdc/comparison_columns.py`. `cdc_operation_column` marks source rows as
+`columns_to_check` is comparison-only — it scopes change detection and nothing else.
+`columns_to_exclude` does **two** things: it narrows the same comparison basis **and** it is
+passed to `apply_changes`'s `except_column_list` by `cdc/scd.py`, which drops those columns from
+the target table's schema. That makes it the framework's only "don't store this column at all"
+mechanism for a CDC target — `data_standardization_sql` is add/replace-only (every expression
+must end in `AS <name>`), and `schema_config`/`column_normalization` only rename, cast or
+comment. See `cdc/comparison_columns.py`. `cdc_operation_column` marks source rows as
 deletes: `SCD1`/`SCD2` pass it to `apply_changes` as `apply_as_deletes`, while
 `FULL_SNAPSHOT_CDC` filters flagged rows out of the snapshot so the diff deletes them by
 absence — the same end result by a different route. The two enforcing sets are

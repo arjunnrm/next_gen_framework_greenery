@@ -2,9 +2,9 @@
   "$schema": "../../../onboarding_templates/onboarding_spec.schema.json",
   "_about": {
     "use_case": "UC3 - Excalibur streaming CDC (Job 2 of 3)",
-    "description": "Streams the three Excalibur staging tables (physical_device, customer, subscriber) written by the Job 1 simulator and applies SCD1/SCD2 change data capture into governed <catalog>.bronze tables, with framework hash columns, Null(DF) standardisation and Unity Catalog governance tags. Design and evidence: BT_Usecase/UC3/docs/UC3_MASTER_DOCUMENT.md.",
+    "description": "Streams the Excalibur Oracle CDC feed from the single multiplexed Debezium landing table <catalog>.staging.oracle_excalibur_cdc (written by Debezium Server through the Zerobus gRPC sink) and applies SCD1/SCD2 change data capture into governed <catalog>.bronze tables. All three ingestion flows name the same source table, so the framework's source plane performs exactly ONE streaming read and fans it out to three consumers via bind() (the Single-Read DAG mandate); each flow then filters to its own Debezium topic with a dq_config drop rule, parses the envelope from the value JSON string column with an explicit schema_ddl, and sequences CDC by the Oracle SCN. Design and evidence: BT_Usecase/UC3/docs/UC3_MASTER_DOCUMENT.md.",
     "version": "FlowX 0.0.4",
-    "date": "2026-09-05",
+    "date": "2026-09-11",
     "developer": "Madhan Raghu"
   },
   "dataflow_group_id": "dfg_uc3_excalibur_streaming_cdc",
@@ -14,7 +14,7 @@
       "source_system": "excalibur",
       "source_database": "staging",
       "source_table_name": "PHYSICAL_DEVICE",
-      "source_description": "Excalibur PHYSICAL_DEVICE CDC stream: SCD1 (latest row per device) applied from the Job 1 simulator's staging table into the governed bronze layer. Clusters on __framework_hash_key because the 4-column primary key exceeds MAX_LIQUID_CLUSTERING_COLUMNS = 3 (BUILD_CONTRACT.md section 3 / capability map 2.3).",
+      "source_description": "Excalibur PHYSICAL_DEVICE CDC stream (SCD1): Debezium change events delivered by Debezium Server through the Zerobus gRPC sink into staging.oracle_excalibur_cdc, a MULTIPLEXED landing table shared by all three Excalibur tables. This flow filters to Debezium topic 'oracdc-excalibur.EXCALIBUR.PHYSICAL_DEVICE', parses the envelope out of the value JSON string column, and applies SCD1 into the governed bronze layer keyed on customer_id, subscriber_no, equipment_no, phy_seq_no, sequenced by the Oracle SCN. Clusters on __framework_hash_key because the 4-column primary key exceeds MAX_LIQUID_CLUSTERING_COLUMNS = 3 (BUILD_CONTRACT.md section 3 / capability map 2.3). Design and evidence: BT_Usecase/UC3/docs/UC3_MASTER_DOCUMENT.md.",
       "source_type": "zerobus",
       "target_catalog": "{{catalog}}",
       "target_schema": "bronze",
@@ -23,15 +23,55 @@
       "source_config": {
         "source_catalog": "{{catalog}}",
         "source_schema": "staging",
-        "source_table": "physical_device_stream",
-        "data_standardization_sql": [
-          "CAST(NULL AS STRING) AS esn_pin",
-          "CAST(NULL AS STRING) AS blacklist_password"
+        "source_table": "oracle_excalibur_cdc",
+        "starting_version": 0,
+        "json_string_columns": [
+          {
+            "column": "value",
+            "schema_ddl": "struct<payload:struct<before:struct<`CUSTOMER_ID`:DOUBLE,`SUBSCRIBER_NO`:STRING,`EQUIPMENT_NO`:STRING,`PHY_SEQ_NO`:DOUBLE,`SYS_CREATION_DATE`:BIGINT,`SYS_UPDATE_DATE`:BIGINT,`OPERATOR_ID`:DOUBLE,`APPLICATION_ID`:STRING,`DL_SERVICE_CODE`:STRING,`DL_UPDATE_STAMP`:DOUBLE,`EFFECTIVE_DATE_TIME`:BIGINT,`EXPIRATION_DATE_TIME`:BIGINT,`EQUIPMENT_IND`:STRING,`OWNERSHIP_CODE`:STRING,`MACHINE_SERIAL_NO`:STRING,`CHANGE_REASON_CODE`:STRING,`CHANGE_EQUIP_ACTV`:STRING,`MODEL_CODE`:STRING,`LOCK_CODE`:STRING,`ESN_PIN`:STRING,`CONV_RUN_NO`:DOUBLE,`BLACKLIST_PASSWORD`:STRING,`UPGRADE_AMT`:DOUBLE,`F_O_C_IND`:STRING,`UPGRADE_TYPE`:STRING,`MAX_FOC_CODE`:STRING,`RETENTION_OFFER_ID`:DOUBLE,`WRH_ORDER_NO`:STRING,`DEALER_CODE`:STRING,`CHG_CREATED_IND`:STRING,`DVC_UNLOCK_CHGDATE`:BIGINT>,after:struct<`CUSTOMER_ID`:DOUBLE,`SUBSCRIBER_NO`:STRING,`EQUIPMENT_NO`:STRING,`PHY_SEQ_NO`:DOUBLE,`SYS_CREATION_DATE`:BIGINT,`SYS_UPDATE_DATE`:BIGINT,`OPERATOR_ID`:DOUBLE,`APPLICATION_ID`:STRING,`DL_SERVICE_CODE`:STRING,`DL_UPDATE_STAMP`:DOUBLE,`EFFECTIVE_DATE_TIME`:BIGINT,`EXPIRATION_DATE_TIME`:BIGINT,`EQUIPMENT_IND`:STRING,`OWNERSHIP_CODE`:STRING,`MACHINE_SERIAL_NO`:STRING,`CHANGE_REASON_CODE`:STRING,`CHANGE_EQUIP_ACTV`:STRING,`MODEL_CODE`:STRING,`LOCK_CODE`:STRING,`ESN_PIN`:STRING,`CONV_RUN_NO`:DOUBLE,`BLACKLIST_PASSWORD`:STRING,`UPGRADE_AMT`:DOUBLE,`F_O_C_IND`:STRING,`UPGRADE_TYPE`:STRING,`MAX_FOC_CODE`:STRING,`RETENTION_OFFER_ID`:DOUBLE,`WRH_ORDER_NO`:STRING,`DEALER_CODE`:STRING,`CHG_CREATED_IND`:STRING,`DVC_UNLOCK_CHGDATE`:BIGINT>,source:struct<version:STRING,connector:STRING,name:STRING,ts_ms:BIGINT,snapshot:STRING,db:STRING,sequence:STRING,ts_us:BIGINT,ts_ns:BIGINT,schema:STRING,`table`:STRING,txId:STRING,scn:STRING,commit_scn:STRING,lcr_position:STRING,rs_id:STRING,ssn:BIGINT,redo_thread:INT,user_name:STRING,row_id:STRING,commit_ts_ms:BIGINT,start_scn:STRING,start_ts_ms:BIGINT,txSeq:BIGINT>,op:STRING,ts_ms:BIGINT,ts_us:BIGINT,ts_ns:BIGINT>>"
+          }
         ],
         "column_normalization": {
           "enabled": true,
           "case": "lower"
-        }
+        },
+        "data_standardization_sql": [
+          "value.payload.op AS __cdc_op",
+          "CAST(COALESCE(value.payload.source.scn, '0') AS DECIMAL(38,0)) AS __cdc_scn",
+          "value.payload.source.`table` AS __cdc_source_table",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`CUSTOMER_ID` ELSE value.payload.after.`CUSTOMER_ID` END AS customer_id",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`SUBSCRIBER_NO` ELSE value.payload.after.`SUBSCRIBER_NO` END AS subscriber_no",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`EQUIPMENT_NO` ELSE value.payload.after.`EQUIPMENT_NO` END AS equipment_no",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`PHY_SEQ_NO` ELSE value.payload.after.`PHY_SEQ_NO` END AS phy_seq_no",
+          "timestamp_millis(CASE WHEN value.payload.op = 'd' THEN value.payload.before.`SYS_CREATION_DATE` ELSE value.payload.after.`SYS_CREATION_DATE` END) AS sys_creation_date",
+          "timestamp_millis(CASE WHEN value.payload.op = 'd' THEN value.payload.before.`SYS_UPDATE_DATE` ELSE value.payload.after.`SYS_UPDATE_DATE` END) AS sys_update_date",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`OPERATOR_ID` ELSE value.payload.after.`OPERATOR_ID` END AS operator_id",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`APPLICATION_ID` ELSE value.payload.after.`APPLICATION_ID` END AS application_id",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`DL_SERVICE_CODE` ELSE value.payload.after.`DL_SERVICE_CODE` END AS dl_service_code",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`DL_UPDATE_STAMP` ELSE value.payload.after.`DL_UPDATE_STAMP` END AS dl_update_stamp",
+          "timestamp_millis(CASE WHEN value.payload.op = 'd' THEN value.payload.before.`EFFECTIVE_DATE_TIME` ELSE value.payload.after.`EFFECTIVE_DATE_TIME` END) AS effective_date_time",
+          "timestamp_millis(CASE WHEN value.payload.op = 'd' THEN value.payload.before.`EXPIRATION_DATE_TIME` ELSE value.payload.after.`EXPIRATION_DATE_TIME` END) AS expiration_date_time",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`EQUIPMENT_IND` ELSE value.payload.after.`EQUIPMENT_IND` END AS equipment_ind",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`OWNERSHIP_CODE` ELSE value.payload.after.`OWNERSHIP_CODE` END AS ownership_code",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`MACHINE_SERIAL_NO` ELSE value.payload.after.`MACHINE_SERIAL_NO` END AS machine_serial_no",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`CHANGE_REASON_CODE` ELSE value.payload.after.`CHANGE_REASON_CODE` END AS change_reason_code",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`CHANGE_EQUIP_ACTV` ELSE value.payload.after.`CHANGE_EQUIP_ACTV` END AS change_equip_actv",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`MODEL_CODE` ELSE value.payload.after.`MODEL_CODE` END AS model_code",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`LOCK_CODE` ELSE value.payload.after.`LOCK_CODE` END AS lock_code",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`CONV_RUN_NO` ELSE value.payload.after.`CONV_RUN_NO` END AS conv_run_no",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`UPGRADE_AMT` ELSE value.payload.after.`UPGRADE_AMT` END AS upgrade_amt",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`F_O_C_IND` ELSE value.payload.after.`F_O_C_IND` END AS f_o_c_ind",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`UPGRADE_TYPE` ELSE value.payload.after.`UPGRADE_TYPE` END AS upgrade_type",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`MAX_FOC_CODE` ELSE value.payload.after.`MAX_FOC_CODE` END AS max_foc_code",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`RETENTION_OFFER_ID` ELSE value.payload.after.`RETENTION_OFFER_ID` END AS retention_offer_id",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`WRH_ORDER_NO` ELSE value.payload.after.`WRH_ORDER_NO` END AS wrh_order_no",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`DEALER_CODE` ELSE value.payload.after.`DEALER_CODE` END AS dealer_code",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`CHG_CREATED_IND` ELSE value.payload.after.`CHG_CREATED_IND` END AS chg_created_ind",
+          "timestamp_millis(CASE WHEN value.payload.op = 'd' THEN value.payload.before.`DVC_UNLOCK_CHGDATE` ELSE value.payload.after.`DVC_UNLOCK_CHGDATE` END) AS dvc_unlock_chgdate",
+          "CASE WHEN value.payload.op = 'd' THEN '1' ELSE '0' END AS src_deleted_flg",
+          "CAST(NULL AS STRING) AS esn_pin",
+          "CAST(NULL AS STRING) AS blacklist_password"
+        ]
       },
       "target_config": {
         "cdc_load_strategy": "SCD1",
@@ -44,10 +84,12 @@
           "equipment_no",
           "phy_seq_no"
         ],
-        "sequence_by_column": "sys_update_date",
+        "sequence_by_column": "__cdc_scn",
         "columns_to_exclude": [
           "sys_creation_date",
-          "sys_update_date"
+          "sys_update_date",
+          "__cdc_op",
+          "__cdc_source_table"
         ],
         "cdc_operation_column": "src_deleted_flg",
         "cdc_operation_mapping": {
@@ -156,6 +198,20 @@
           "use_case": "uc3",
           "domain": "Customer 360"
         }
+      },
+      "dq_config": {
+        "rules": [
+          {
+            "rule_id": "only_physical_device_topic",
+            "expression": "destination = 'oracdc-excalibur.EXCALIBUR.PHYSICAL_DEVICE'",
+            "action": "drop"
+          },
+          {
+            "rule_id": "cdc_op_recognised",
+            "expression": "__cdc_op IN ('r','c','u','d')",
+            "action": "drop"
+          }
+        ]
       }
     },
     {
@@ -163,7 +219,7 @@
       "source_system": "excalibur",
       "source_database": "staging",
       "source_table_name": "CUSTOMER",
-      "source_description": "Excalibur CUSTOMER CDC stream: SCD2 history keyed on customer_id, applied from the Job 1 simulator's staging table into the governed bronze layer.",
+      "source_description": "Excalibur CUSTOMER CDC stream (SCD2): Debezium change events delivered by Debezium Server through the Zerobus gRPC sink into staging.oracle_excalibur_cdc, a MULTIPLEXED landing table shared by all three Excalibur tables. This flow filters to Debezium topic 'oracdc-excalibur.EXCALIBUR.CUSTOMER', parses the envelope out of the value JSON string column, and applies SCD2 into the governed bronze layer keyed on customer_id, sequenced by the Oracle SCN. Design and evidence: BT_Usecase/UC3/docs/UC3_MASTER_DOCUMENT.md.",
       "source_type": "zerobus",
       "target_catalog": "{{catalog}}",
       "target_schema": "bronze",
@@ -172,16 +228,114 @@
       "source_config": {
         "source_catalog": "{{catalog}}",
         "source_schema": "staging",
-        "source_table": "customer_stream",
-        "data_standardization_sql": [
-          "CAST(NULL AS STRING) AS gur_cr_card_no",
-          "CAST(NULL AS STRING) AS acc_password",
-          "CAST(NULL AS STRING) AS imei_black_list_pass"
+        "source_table": "oracle_excalibur_cdc",
+        "starting_version": 0,
+        "json_string_columns": [
+          {
+            "column": "value",
+            "schema_ddl": "struct<payload:struct<before:struct<`CUSTOMER_ID`:DOUBLE,`SYS_CREATION_DATE`:BIGINT,`SYS_UPDATE_DATE`:BIGINT,`OPERATOR_ID`:DOUBLE,`APPLICATION_ID`:STRING,`DL_SERVICE_CODE`:STRING,`DL_UPDATE_STAMP`:DOUBLE,`CONTACT_TELNO`:STRING,`CONTACT_TN_EXTNO`:DOUBLE,`CONTACT_FAXNO`:STRING,`CONTACT_COUNTRY_CODE`:STRING,`WORK_TELNO`:STRING,`WORK_TN_EXTNO`:DOUBLE,`HOME_TELNO`:STRING,`OTHER_TELNO`:STRING,`OTHER_EXTNO`:DOUBLE,`OTHER_TN_TYPE`:STRING,`BIRTH_DATE`:BIGINT,`EMPLOYMENT_DT`:STRING,`EMPLYR_NAME`:STRING,`EMPLOYEE_QTY`:STRING,`YEARS_IN_BUSINESS`:DOUBLE,`EMPLOYEE_POSITION`:STRING,`BUSINESS_EST_DATE`:BIGINT,`MARKET_ID`:STRING,`GUR_CR_CARD_TYPE`:STRING,`GUR_CR_CARD_NO`:STRING,`GUR_CR_CARD_EXP_DT`:BIGINT,`ACC_PASSWORD`:STRING,`VERIFIED_DATE`:BIGINT,`COMPANY_REGISTER_NUM`:STRING,`BUSINESS_CATEGORY`:DOUBLE,`CONV_RUN_NO`:DOUBLE,`LEGACY_CST_NUM`:DOUBLE,`E_MAIL_ADDR`:STRING,`MAILSHOT`:STRING,`IMEI_BLACK_LIST_PASS`:STRING,`COMPANY_TYPE`:STRING,`CUST_GENDER`:STRING,`CUST_PERSONAL_ID`:STRING,`CUST_NATIONALITY`:STRING,`AUTPRSN_BIRTH_DATE`:BIGINT,`AUTPRSN_PERSONAL_ID`:STRING,`GUARANTOR_TYPE`:STRING,`GUR_PERSONAL_ID`:STRING,`GUR_COMPANY_REG_NUM`:STRING,`START_TIME_AT_BANK`:BIGINT,`GUR_BIRTH_DATE`:BIGINT,`GUR_TAX_NUMBER`:STRING,`REGISTER_IND`:STRING,`CONTACT_TELNO_2ND`:STRING,`CONTACT_TN_EXTNO_2ND`:DOUBLE,`CONTACT_FAXNO_2ND`:STRING,`CONTACT_COUNTRY_CODE_2ND`:STRING,`CREDIT_CARD_IND`:STRING,`AUTHORIZED_SEC`:STRING,`ETU_COUNT`:DOUBLE,`CONTACT_EMAIL_ADDRESS`:STRING,`CONTACT_DEPARTMENT`:STRING,`CONTACT_JOB_DESCRIPTION`:STRING,`BAC_CUST_SUPPORT_TEAM`:STRING,`BAC_TERRITORY_CODE`:STRING,`EXTERNAL_ID`:STRING,`OPEN_DATE`:BIGINT,`CUSTOMER_TYPE`:STRING,`ASSISTANT_USER_ID`:DOUBLE,`MARKETING_CHANNEL`:STRING,`CH_NODE_ID`:DOUBLE,`LOCK_CUSTOMER_IND`:STRING,`RESOURCE_POOL`:STRING,`SPC_MEMO_IND`:STRING,`BILL_CYCLE`:DOUBLE,`BILL_CYC_PROD_FREQ`:DOUBLE,`CHANGE_CYCLE_IND`:STRING,`CHG_CYCLE_REQ_STS`:STRING,`NEW_CYCLE`:DOUBLE,`NEW_CYC_PROD_FREQ`:DOUBLE,`TAX_EXEMPT_INT`:STRING,`TAX_EXEMPT_DATE`:BIGINT,`HIERARCHY_POLICY`:STRING,`CREDIT_CLASS`:STRING,`CUST_SUB_TYPE`:STRING,`DFLT_PRE_PCN`:DOUBLE,`DFLT_POST_PCN`:DOUBLE,`LEGACY_CUST_NO`:DOUBLE,`DEALER_CODE`:STRING,`CUST_DESC_CD`:STRING,`CHARITY_REG_NUM`:STRING,`NO_EMAIL_REASON`:STRING,`HINT_ID`:DOUBLE>,after:struct<`CUSTOMER_ID`:DOUBLE,`SYS_CREATION_DATE`:BIGINT,`SYS_UPDATE_DATE`:BIGINT,`OPERATOR_ID`:DOUBLE,`APPLICATION_ID`:STRING,`DL_SERVICE_CODE`:STRING,`DL_UPDATE_STAMP`:DOUBLE,`CONTACT_TELNO`:STRING,`CONTACT_TN_EXTNO`:DOUBLE,`CONTACT_FAXNO`:STRING,`CONTACT_COUNTRY_CODE`:STRING,`WORK_TELNO`:STRING,`WORK_TN_EXTNO`:DOUBLE,`HOME_TELNO`:STRING,`OTHER_TELNO`:STRING,`OTHER_EXTNO`:DOUBLE,`OTHER_TN_TYPE`:STRING,`BIRTH_DATE`:BIGINT,`EMPLOYMENT_DT`:STRING,`EMPLYR_NAME`:STRING,`EMPLOYEE_QTY`:STRING,`YEARS_IN_BUSINESS`:DOUBLE,`EMPLOYEE_POSITION`:STRING,`BUSINESS_EST_DATE`:BIGINT,`MARKET_ID`:STRING,`GUR_CR_CARD_TYPE`:STRING,`GUR_CR_CARD_NO`:STRING,`GUR_CR_CARD_EXP_DT`:BIGINT,`ACC_PASSWORD`:STRING,`VERIFIED_DATE`:BIGINT,`COMPANY_REGISTER_NUM`:STRING,`BUSINESS_CATEGORY`:DOUBLE,`CONV_RUN_NO`:DOUBLE,`LEGACY_CST_NUM`:DOUBLE,`E_MAIL_ADDR`:STRING,`MAILSHOT`:STRING,`IMEI_BLACK_LIST_PASS`:STRING,`COMPANY_TYPE`:STRING,`CUST_GENDER`:STRING,`CUST_PERSONAL_ID`:STRING,`CUST_NATIONALITY`:STRING,`AUTPRSN_BIRTH_DATE`:BIGINT,`AUTPRSN_PERSONAL_ID`:STRING,`GUARANTOR_TYPE`:STRING,`GUR_PERSONAL_ID`:STRING,`GUR_COMPANY_REG_NUM`:STRING,`START_TIME_AT_BANK`:BIGINT,`GUR_BIRTH_DATE`:BIGINT,`GUR_TAX_NUMBER`:STRING,`REGISTER_IND`:STRING,`CONTACT_TELNO_2ND`:STRING,`CONTACT_TN_EXTNO_2ND`:DOUBLE,`CONTACT_FAXNO_2ND`:STRING,`CONTACT_COUNTRY_CODE_2ND`:STRING,`CREDIT_CARD_IND`:STRING,`AUTHORIZED_SEC`:STRING,`ETU_COUNT`:DOUBLE,`CONTACT_EMAIL_ADDRESS`:STRING,`CONTACT_DEPARTMENT`:STRING,`CONTACT_JOB_DESCRIPTION`:STRING,`BAC_CUST_SUPPORT_TEAM`:STRING,`BAC_TERRITORY_CODE`:STRING,`EXTERNAL_ID`:STRING,`OPEN_DATE`:BIGINT,`CUSTOMER_TYPE`:STRING,`ASSISTANT_USER_ID`:DOUBLE,`MARKETING_CHANNEL`:STRING,`CH_NODE_ID`:DOUBLE,`LOCK_CUSTOMER_IND`:STRING,`RESOURCE_POOL`:STRING,`SPC_MEMO_IND`:STRING,`BILL_CYCLE`:DOUBLE,`BILL_CYC_PROD_FREQ`:DOUBLE,`CHANGE_CYCLE_IND`:STRING,`CHG_CYCLE_REQ_STS`:STRING,`NEW_CYCLE`:DOUBLE,`NEW_CYC_PROD_FREQ`:DOUBLE,`TAX_EXEMPT_INT`:STRING,`TAX_EXEMPT_DATE`:BIGINT,`HIERARCHY_POLICY`:STRING,`CREDIT_CLASS`:STRING,`CUST_SUB_TYPE`:STRING,`DFLT_PRE_PCN`:DOUBLE,`DFLT_POST_PCN`:DOUBLE,`LEGACY_CUST_NO`:DOUBLE,`DEALER_CODE`:STRING,`CUST_DESC_CD`:STRING,`CHARITY_REG_NUM`:STRING,`NO_EMAIL_REASON`:STRING,`HINT_ID`:DOUBLE>,source:struct<version:STRING,connector:STRING,name:STRING,ts_ms:BIGINT,snapshot:STRING,db:STRING,sequence:STRING,ts_us:BIGINT,ts_ns:BIGINT,schema:STRING,`table`:STRING,txId:STRING,scn:STRING,commit_scn:STRING,lcr_position:STRING,rs_id:STRING,ssn:BIGINT,redo_thread:INT,user_name:STRING,row_id:STRING,commit_ts_ms:BIGINT,start_scn:STRING,start_ts_ms:BIGINT,txSeq:BIGINT>,op:STRING,ts_ms:BIGINT,ts_us:BIGINT,ts_ns:BIGINT>>"
+          }
         ],
         "column_normalization": {
           "enabled": true,
           "case": "lower"
-        }
+        },
+        "data_standardization_sql": [
+          "value.payload.op AS __cdc_op",
+          "CAST(COALESCE(value.payload.source.scn, '0') AS DECIMAL(38,0)) AS __cdc_scn",
+          "value.payload.source.`table` AS __cdc_source_table",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`CUSTOMER_ID` ELSE value.payload.after.`CUSTOMER_ID` END AS customer_id",
+          "timestamp_millis(CASE WHEN value.payload.op = 'd' THEN value.payload.before.`SYS_CREATION_DATE` ELSE value.payload.after.`SYS_CREATION_DATE` END) AS sys_creation_date",
+          "timestamp_millis(CASE WHEN value.payload.op = 'd' THEN value.payload.before.`SYS_UPDATE_DATE` ELSE value.payload.after.`SYS_UPDATE_DATE` END) AS sys_update_date",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`OPERATOR_ID` ELSE value.payload.after.`OPERATOR_ID` END AS operator_id",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`APPLICATION_ID` ELSE value.payload.after.`APPLICATION_ID` END AS application_id",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`DL_SERVICE_CODE` ELSE value.payload.after.`DL_SERVICE_CODE` END AS dl_service_code",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`DL_UPDATE_STAMP` ELSE value.payload.after.`DL_UPDATE_STAMP` END AS dl_update_stamp",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`CONTACT_TELNO` ELSE value.payload.after.`CONTACT_TELNO` END AS contact_telno",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`CONTACT_TN_EXTNO` ELSE value.payload.after.`CONTACT_TN_EXTNO` END AS contact_tn_extno",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`CONTACT_FAXNO` ELSE value.payload.after.`CONTACT_FAXNO` END AS contact_faxno",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`CONTACT_COUNTRY_CODE` ELSE value.payload.after.`CONTACT_COUNTRY_CODE` END AS contact_country_code",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`WORK_TELNO` ELSE value.payload.after.`WORK_TELNO` END AS work_telno",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`WORK_TN_EXTNO` ELSE value.payload.after.`WORK_TN_EXTNO` END AS work_tn_extno",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`HOME_TELNO` ELSE value.payload.after.`HOME_TELNO` END AS home_telno",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`OTHER_TELNO` ELSE value.payload.after.`OTHER_TELNO` END AS other_telno",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`OTHER_EXTNO` ELSE value.payload.after.`OTHER_EXTNO` END AS other_extno",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`OTHER_TN_TYPE` ELSE value.payload.after.`OTHER_TN_TYPE` END AS other_tn_type",
+          "timestamp_millis(CASE WHEN value.payload.op = 'd' THEN value.payload.before.`BIRTH_DATE` ELSE value.payload.after.`BIRTH_DATE` END) AS birth_date",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`EMPLOYMENT_DT` ELSE value.payload.after.`EMPLOYMENT_DT` END AS employment_dt",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`EMPLYR_NAME` ELSE value.payload.after.`EMPLYR_NAME` END AS emplyr_name",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`EMPLOYEE_QTY` ELSE value.payload.after.`EMPLOYEE_QTY` END AS employee_qty",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`YEARS_IN_BUSINESS` ELSE value.payload.after.`YEARS_IN_BUSINESS` END AS years_in_business",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`EMPLOYEE_POSITION` ELSE value.payload.after.`EMPLOYEE_POSITION` END AS employee_position",
+          "timestamp_millis(CASE WHEN value.payload.op = 'd' THEN value.payload.before.`BUSINESS_EST_DATE` ELSE value.payload.after.`BUSINESS_EST_DATE` END) AS business_est_date",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`MARKET_ID` ELSE value.payload.after.`MARKET_ID` END AS market_id",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`GUR_CR_CARD_TYPE` ELSE value.payload.after.`GUR_CR_CARD_TYPE` END AS gur_cr_card_type",
+          "timestamp_millis(CASE WHEN value.payload.op = 'd' THEN value.payload.before.`GUR_CR_CARD_EXP_DT` ELSE value.payload.after.`GUR_CR_CARD_EXP_DT` END) AS gur_cr_card_exp_dt",
+          "timestamp_millis(CASE WHEN value.payload.op = 'd' THEN value.payload.before.`VERIFIED_DATE` ELSE value.payload.after.`VERIFIED_DATE` END) AS verified_date",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`COMPANY_REGISTER_NUM` ELSE value.payload.after.`COMPANY_REGISTER_NUM` END AS company_register_num",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`BUSINESS_CATEGORY` ELSE value.payload.after.`BUSINESS_CATEGORY` END AS business_category",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`CONV_RUN_NO` ELSE value.payload.after.`CONV_RUN_NO` END AS conv_run_no",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`LEGACY_CST_NUM` ELSE value.payload.after.`LEGACY_CST_NUM` END AS legacy_cst_num",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`E_MAIL_ADDR` ELSE value.payload.after.`E_MAIL_ADDR` END AS e_mail_addr",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`MAILSHOT` ELSE value.payload.after.`MAILSHOT` END AS mailshot",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`COMPANY_TYPE` ELSE value.payload.after.`COMPANY_TYPE` END AS company_type",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`CUST_GENDER` ELSE value.payload.after.`CUST_GENDER` END AS cust_gender",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`CUST_PERSONAL_ID` ELSE value.payload.after.`CUST_PERSONAL_ID` END AS cust_personal_id",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`CUST_NATIONALITY` ELSE value.payload.after.`CUST_NATIONALITY` END AS cust_nationality",
+          "timestamp_millis(CASE WHEN value.payload.op = 'd' THEN value.payload.before.`AUTPRSN_BIRTH_DATE` ELSE value.payload.after.`AUTPRSN_BIRTH_DATE` END) AS autprsn_birth_date",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`AUTPRSN_PERSONAL_ID` ELSE value.payload.after.`AUTPRSN_PERSONAL_ID` END AS autprsn_personal_id",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`GUARANTOR_TYPE` ELSE value.payload.after.`GUARANTOR_TYPE` END AS guarantor_type",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`GUR_PERSONAL_ID` ELSE value.payload.after.`GUR_PERSONAL_ID` END AS gur_personal_id",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`GUR_COMPANY_REG_NUM` ELSE value.payload.after.`GUR_COMPANY_REG_NUM` END AS gur_company_reg_num",
+          "timestamp_millis(CASE WHEN value.payload.op = 'd' THEN value.payload.before.`START_TIME_AT_BANK` ELSE value.payload.after.`START_TIME_AT_BANK` END) AS start_time_at_bank",
+          "timestamp_millis(CASE WHEN value.payload.op = 'd' THEN value.payload.before.`GUR_BIRTH_DATE` ELSE value.payload.after.`GUR_BIRTH_DATE` END) AS gur_birth_date",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`GUR_TAX_NUMBER` ELSE value.payload.after.`GUR_TAX_NUMBER` END AS gur_tax_number",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`REGISTER_IND` ELSE value.payload.after.`REGISTER_IND` END AS register_ind",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`CONTACT_TELNO_2ND` ELSE value.payload.after.`CONTACT_TELNO_2ND` END AS contact_telno_2nd",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`CONTACT_TN_EXTNO_2ND` ELSE value.payload.after.`CONTACT_TN_EXTNO_2ND` END AS contact_tn_extno_2nd",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`CONTACT_FAXNO_2ND` ELSE value.payload.after.`CONTACT_FAXNO_2ND` END AS contact_faxno_2nd",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`CONTACT_COUNTRY_CODE_2ND` ELSE value.payload.after.`CONTACT_COUNTRY_CODE_2ND` END AS contact_country_code_2nd",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`CREDIT_CARD_IND` ELSE value.payload.after.`CREDIT_CARD_IND` END AS credit_card_ind",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`AUTHORIZED_SEC` ELSE value.payload.after.`AUTHORIZED_SEC` END AS authorized_sec",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`ETU_COUNT` ELSE value.payload.after.`ETU_COUNT` END AS etu_count",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`CONTACT_EMAIL_ADDRESS` ELSE value.payload.after.`CONTACT_EMAIL_ADDRESS` END AS contact_email_address",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`CONTACT_DEPARTMENT` ELSE value.payload.after.`CONTACT_DEPARTMENT` END AS contact_department",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`CONTACT_JOB_DESCRIPTION` ELSE value.payload.after.`CONTACT_JOB_DESCRIPTION` END AS contact_job_description",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`BAC_CUST_SUPPORT_TEAM` ELSE value.payload.after.`BAC_CUST_SUPPORT_TEAM` END AS bac_cust_support_team",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`BAC_TERRITORY_CODE` ELSE value.payload.after.`BAC_TERRITORY_CODE` END AS bac_territory_code",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`EXTERNAL_ID` ELSE value.payload.after.`EXTERNAL_ID` END AS external_id",
+          "timestamp_millis(CASE WHEN value.payload.op = 'd' THEN value.payload.before.`OPEN_DATE` ELSE value.payload.after.`OPEN_DATE` END) AS open_date",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`CUSTOMER_TYPE` ELSE value.payload.after.`CUSTOMER_TYPE` END AS customer_type",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`ASSISTANT_USER_ID` ELSE value.payload.after.`ASSISTANT_USER_ID` END AS assistant_user_id",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`MARKETING_CHANNEL` ELSE value.payload.after.`MARKETING_CHANNEL` END AS marketing_channel",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`CH_NODE_ID` ELSE value.payload.after.`CH_NODE_ID` END AS ch_node_id",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`LOCK_CUSTOMER_IND` ELSE value.payload.after.`LOCK_CUSTOMER_IND` END AS lock_customer_ind",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`RESOURCE_POOL` ELSE value.payload.after.`RESOURCE_POOL` END AS resource_pool",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`SPC_MEMO_IND` ELSE value.payload.after.`SPC_MEMO_IND` END AS spc_memo_ind",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`BILL_CYCLE` ELSE value.payload.after.`BILL_CYCLE` END AS bill_cycle",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`BILL_CYC_PROD_FREQ` ELSE value.payload.after.`BILL_CYC_PROD_FREQ` END AS bill_cyc_prod_freq",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`CHANGE_CYCLE_IND` ELSE value.payload.after.`CHANGE_CYCLE_IND` END AS change_cycle_ind",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`CHG_CYCLE_REQ_STS` ELSE value.payload.after.`CHG_CYCLE_REQ_STS` END AS chg_cycle_req_sts",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`NEW_CYCLE` ELSE value.payload.after.`NEW_CYCLE` END AS new_cycle",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`NEW_CYC_PROD_FREQ` ELSE value.payload.after.`NEW_CYC_PROD_FREQ` END AS new_cyc_prod_freq",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`TAX_EXEMPT_INT` ELSE value.payload.after.`TAX_EXEMPT_INT` END AS tax_exempt_int",
+          "timestamp_millis(CASE WHEN value.payload.op = 'd' THEN value.payload.before.`TAX_EXEMPT_DATE` ELSE value.payload.after.`TAX_EXEMPT_DATE` END) AS tax_exempt_date",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`HIERARCHY_POLICY` ELSE value.payload.after.`HIERARCHY_POLICY` END AS hierarchy_policy",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`CREDIT_CLASS` ELSE value.payload.after.`CREDIT_CLASS` END AS credit_class",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`CUST_SUB_TYPE` ELSE value.payload.after.`CUST_SUB_TYPE` END AS cust_sub_type",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`DFLT_PRE_PCN` ELSE value.payload.after.`DFLT_PRE_PCN` END AS dflt_pre_pcn",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`DFLT_POST_PCN` ELSE value.payload.after.`DFLT_POST_PCN` END AS dflt_post_pcn",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`LEGACY_CUST_NO` ELSE value.payload.after.`LEGACY_CUST_NO` END AS legacy_cust_no",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`DEALER_CODE` ELSE value.payload.after.`DEALER_CODE` END AS dealer_code",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`CUST_DESC_CD` ELSE value.payload.after.`CUST_DESC_CD` END AS cust_desc_cd",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`CHARITY_REG_NUM` ELSE value.payload.after.`CHARITY_REG_NUM` END AS charity_reg_num",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`NO_EMAIL_REASON` ELSE value.payload.after.`NO_EMAIL_REASON` END AS no_email_reason",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`HINT_ID` ELSE value.payload.after.`HINT_ID` END AS hint_id",
+          "CASE WHEN value.payload.op = 'd' THEN '1' ELSE '0' END AS src_deleted_flg",
+          "CAST(NULL AS STRING) AS gur_cr_card_no",
+          "CAST(NULL AS STRING) AS acc_password",
+          "CAST(NULL AS STRING) AS imei_black_list_pass"
+        ]
       },
       "target_config": {
         "cdc_load_strategy": "SCD2",
@@ -191,10 +345,12 @@
         "primary_keys": [
           "customer_id"
         ],
-        "sequence_by_column": "sys_update_date",
+        "sequence_by_column": "__cdc_scn",
         "columns_to_exclude": [
           "sys_creation_date",
-          "sys_update_date"
+          "sys_update_date",
+          "__cdc_op",
+          "__cdc_source_table"
         ],
         "cdc_operation_column": "src_deleted_flg",
         "cdc_operation_mapping": {
@@ -608,6 +764,20 @@
           "use_case": "uc3",
           "domain": "Customer 360"
         }
+      },
+      "dq_config": {
+        "rules": [
+          {
+            "rule_id": "only_customer_topic",
+            "expression": "destination = 'oracdc-excalibur.EXCALIBUR.CUSTOMER'",
+            "action": "drop"
+          },
+          {
+            "rule_id": "cdc_op_recognised",
+            "expression": "__cdc_op IN ('r','c','u','d')",
+            "action": "drop"
+          }
+        ]
       }
     },
     {
@@ -615,7 +785,7 @@
       "source_system": "excalibur",
       "source_database": "staging",
       "source_table_name": "SUBSCRIBER",
-      "source_description": "Excalibur SUBSCRIBER CDC stream: SCD1 (latest row per subscriber) applied from the Job 1 simulator's staging table into the governed bronze layer.",
+      "source_description": "Excalibur SUBSCRIBER CDC stream (SCD1): Debezium change events delivered by Debezium Server through the Zerobus gRPC sink into staging.oracle_excalibur_cdc, a MULTIPLEXED landing table shared by all three Excalibur tables. This flow filters to Debezium topic 'oracdc-excalibur.EXCALIBUR.SUBSCRIBER', parses the envelope out of the value JSON string column, and applies SCD1 into the governed bronze layer keyed on subscriber_no, customer_id, sequenced by the Oracle SCN. Design and evidence: BT_Usecase/UC3/docs/UC3_MASTER_DOCUMENT.md.",
       "source_type": "zerobus",
       "target_catalog": "{{catalog}}",
       "target_schema": "bronze",
@@ -624,11 +794,155 @@
       "source_config": {
         "source_catalog": "{{catalog}}",
         "source_schema": "staging",
-        "source_table": "subscriber_stream",
+        "source_table": "oracle_excalibur_cdc",
+        "starting_version": 0,
+        "json_string_columns": [
+          {
+            "column": "value",
+            "schema_ddl": "struct<payload:struct<before:struct<`SUBSCRIBER_NO`:STRING,`CUSTOMER_ID`:DOUBLE,`SYS_CREATION_DATE`:BIGINT,`SYS_UPDATE_DATE`:BIGINT,`OPERATOR_ID`:DOUBLE,`APPLICATION_ID`:STRING,`DL_SERVICE_CODE`:STRING,`DL_UPDATE_STAMP`:DOUBLE,`EFFECTIVE_DATE`:BIGINT,`INIT_ACTIVATION_DATE`:BIGINT,`SUB_STATUS`:STRING,`SUB_STATUS_DATE`:BIGINT,`SUB_STATUS_LAST_ACT`:STRING,`SUB_STATUS_RSN_CODE`:STRING,`CUSTOMER_BAN`:DOUBLE,`COMMIT_START_DATE`:BIGINT,`COMMIT_END_DATE`:BIGINT,`COMMIT_REASON_CODE`:STRING,`COMMIT_ORIG_NO_MONTH`:DOUBLE,`SUSP_RC_RATE_TYPE`:STRING,`REQ_DEPOSIT_AMT`:DOUBLE,`ALLOCATION_CODE_1`:STRING,`ALLOCATION_CODE_2`:STRING,`ACTIVATION_METHOD`:STRING,`LAST_ACTV_CODE`:STRING,`LAST_ACTV_REASON`:STRING,`LAST_ACTV_DATE`:BIGINT,`TTN`:STRING,`TTN_IND`:STRING,`NEXT_CTN`:STRING,`NEXT_CTN_CHG_DATE`:BIGINT,`PRV_CTN`:STRING,`PRV_CTN_CHG_DATE`:BIGINT,`NEXT_BAN`:DOUBLE,`NEXT_BAN_MOVE_DATE`:BIGINT,`PRV_BAN`:DOUBLE,`PRV_BAN_MOVE_DATE`:BIGINT,`CONV_RUN_NO`:DOUBLE,`DEFAULT_UC_BEN`:DOUBLE,`DEFAULT_OC_BEN`:DOUBLE,`DEFAULT_RC_BEN`:DOUBLE,`RC_BEN_LEVEL_CODE`:STRING,`VIN`:STRING,`CAR_REGISTRATION`:STRING,`SUBSCRIBER_REF`:STRING,`NP_CODE`:STRING,`PRODUCT_CODE`:STRING,`ARRANGMENT`:STRING,`SUB_CUSTOMER_VALUE`:STRING,`DIR_PUBLISH_IND`:STRING,`THRESHOLD_CLASS`:STRING,`PRE_PAYMENT_IND`:STRING,`PRE_ACTIVE_IND`:STRING,`MANUAL_UPGRADE_AMT`:DOUBLE,`MANUAL_UPGRADE_GIVEN_DATE`:BIGINT,`MANUAL_UPGRADE_LAST_DATE`:BIGINT,`PARTNER_IND`:STRING,`MAX_PARTNERS`:DOUBLE,`F_O_C_IND`:STRING,`CREFIT_LIMIT_PRIM_IND`:STRING,`PREC_UPGRADE`:STRING,`NEXT_COUPON_ACTV_DATE`:BIGINT,`NEXT_COUPON_POLICY_CODE`:STRING,`NEXT_COUPON_POLICY_STEP`:DOUBLE,`INTERLOCK_CODE`:DOUBLE,`PSTN`:STRING,`TENURE_DATE_PREC`:BIGINT,`TENURE_DATE_EURO`:BIGINT,`DUAL_SIM_LINK_IND`:STRING,`PCLI`:STRING,`DISABILITY_CODE`:STRING,`MAX_FOC_CODE`:STRING,`FOC_UPGRADE_STATUS`:STRING,`FOC_TENURE_DATE`:BIGINT,`ENFORCE_RESTRICTION`:STRING,`ENFORCE_RESTR_EXP_DATE`:BIGINT,`WAIVE_RESTRICTION`:STRING,`WAIVE_RESTR_EXP_DATE`:BIGINT,`HANDSET_OPTION`:STRING,`RC_LEVEL`:STRING,`THRESHOLD_AMOUNT`:DOUBLE,`SUB_SEQ_NO`:DOUBLE,`EXTERNAL_ID`:STRING,`EXT_PARENT_ID`:STRING,`CH_NODE_ID`:DOUBLE,`SUB_STS_ISSUE_DATE`:BIGINT,`DEALER_CODE`:STRING,`INITIAL_DLR_CODE`:STRING,`SUBSCRIBER_TYPE`:STRING,`ACT_WAIVE_RSN_CD`:STRING,`EARLIEST_ACTV_DATE`:BIGINT,`CHANGE_PP_CNT`:DOUBLE,`FORMAL_CANCEL_DATE`:BIGINT,`RETENTION_CODE`:STRING,`PRIM_RESOURCE_TP`:STRING,`PRIM_RES_PARAM_CD`:STRING,`PRIM_RESOURCE_VAL`:STRING,`CALC_PYM_CATEGORY`:STRING,`RETENTION_START_DT`:BIGINT,`INIT_ACT_DATE`:BIGINT,`SUB_STS_LAST_ACT`:STRING,`SUB_STS_RSN_CD`:STRING,`SUBSCR_SEQ_NO`:DOUBLE,`DD_AMOUNT`:DOUBLE,`DD_PP_STATUS`:STRING,`DD_PREPAY_IND`:STRING,`DD_PP_DUE_DATE`:BIGINT,`DD_PP_BILL_SEQ_NO`:DOUBLE,`PAYMENT_COMBINATION`:STRING,`PRE_NOTIFY_TYPE`:STRING,`SUB_EMAIL`:STRING,`MULTI_SIM_MASTER`:STRING,`MULTI_SIM_SEC_NUM`:STRING,`BUNDLE_GROUP`:DOUBLE,`CNTR_EXT_NON_UPG`:BIGINT,`RETENTION_OFFER_ID`:DOUBLE,`TO_NONUPG_END_DATE`:BIGINT,`TO_UPG_END_DATE`:BIGINT,`NO_DOWNWARD_END_DATE`:BIGINT,`MINIMAL_RC`:DOUBLE,`FAMILY_ROLE`:STRING,`LIFETIME_ID`:DOUBLE,`PCC_ID`:STRING,`PCC_EMAIL`:STRING,`SOURCE_BRAND`:STRING,`SOURCE_BAN`:DOUBLE,`START_SERVICE_DATE`:BIGINT,`EXCHG_EQP_RESTRICT_IND`:STRING,`PP_TYPE`:STRING,`CONTRACT_IND`:STRING,`PRICE_RISE_SEGMENT`:STRING>,after:struct<`SUBSCRIBER_NO`:STRING,`CUSTOMER_ID`:DOUBLE,`SYS_CREATION_DATE`:BIGINT,`SYS_UPDATE_DATE`:BIGINT,`OPERATOR_ID`:DOUBLE,`APPLICATION_ID`:STRING,`DL_SERVICE_CODE`:STRING,`DL_UPDATE_STAMP`:DOUBLE,`EFFECTIVE_DATE`:BIGINT,`INIT_ACTIVATION_DATE`:BIGINT,`SUB_STATUS`:STRING,`SUB_STATUS_DATE`:BIGINT,`SUB_STATUS_LAST_ACT`:STRING,`SUB_STATUS_RSN_CODE`:STRING,`CUSTOMER_BAN`:DOUBLE,`COMMIT_START_DATE`:BIGINT,`COMMIT_END_DATE`:BIGINT,`COMMIT_REASON_CODE`:STRING,`COMMIT_ORIG_NO_MONTH`:DOUBLE,`SUSP_RC_RATE_TYPE`:STRING,`REQ_DEPOSIT_AMT`:DOUBLE,`ALLOCATION_CODE_1`:STRING,`ALLOCATION_CODE_2`:STRING,`ACTIVATION_METHOD`:STRING,`LAST_ACTV_CODE`:STRING,`LAST_ACTV_REASON`:STRING,`LAST_ACTV_DATE`:BIGINT,`TTN`:STRING,`TTN_IND`:STRING,`NEXT_CTN`:STRING,`NEXT_CTN_CHG_DATE`:BIGINT,`PRV_CTN`:STRING,`PRV_CTN_CHG_DATE`:BIGINT,`NEXT_BAN`:DOUBLE,`NEXT_BAN_MOVE_DATE`:BIGINT,`PRV_BAN`:DOUBLE,`PRV_BAN_MOVE_DATE`:BIGINT,`CONV_RUN_NO`:DOUBLE,`DEFAULT_UC_BEN`:DOUBLE,`DEFAULT_OC_BEN`:DOUBLE,`DEFAULT_RC_BEN`:DOUBLE,`RC_BEN_LEVEL_CODE`:STRING,`VIN`:STRING,`CAR_REGISTRATION`:STRING,`SUBSCRIBER_REF`:STRING,`NP_CODE`:STRING,`PRODUCT_CODE`:STRING,`ARRANGMENT`:STRING,`SUB_CUSTOMER_VALUE`:STRING,`DIR_PUBLISH_IND`:STRING,`THRESHOLD_CLASS`:STRING,`PRE_PAYMENT_IND`:STRING,`PRE_ACTIVE_IND`:STRING,`MANUAL_UPGRADE_AMT`:DOUBLE,`MANUAL_UPGRADE_GIVEN_DATE`:BIGINT,`MANUAL_UPGRADE_LAST_DATE`:BIGINT,`PARTNER_IND`:STRING,`MAX_PARTNERS`:DOUBLE,`F_O_C_IND`:STRING,`CREFIT_LIMIT_PRIM_IND`:STRING,`PREC_UPGRADE`:STRING,`NEXT_COUPON_ACTV_DATE`:BIGINT,`NEXT_COUPON_POLICY_CODE`:STRING,`NEXT_COUPON_POLICY_STEP`:DOUBLE,`INTERLOCK_CODE`:DOUBLE,`PSTN`:STRING,`TENURE_DATE_PREC`:BIGINT,`TENURE_DATE_EURO`:BIGINT,`DUAL_SIM_LINK_IND`:STRING,`PCLI`:STRING,`DISABILITY_CODE`:STRING,`MAX_FOC_CODE`:STRING,`FOC_UPGRADE_STATUS`:STRING,`FOC_TENURE_DATE`:BIGINT,`ENFORCE_RESTRICTION`:STRING,`ENFORCE_RESTR_EXP_DATE`:BIGINT,`WAIVE_RESTRICTION`:STRING,`WAIVE_RESTR_EXP_DATE`:BIGINT,`HANDSET_OPTION`:STRING,`RC_LEVEL`:STRING,`THRESHOLD_AMOUNT`:DOUBLE,`SUB_SEQ_NO`:DOUBLE,`EXTERNAL_ID`:STRING,`EXT_PARENT_ID`:STRING,`CH_NODE_ID`:DOUBLE,`SUB_STS_ISSUE_DATE`:BIGINT,`DEALER_CODE`:STRING,`INITIAL_DLR_CODE`:STRING,`SUBSCRIBER_TYPE`:STRING,`ACT_WAIVE_RSN_CD`:STRING,`EARLIEST_ACTV_DATE`:BIGINT,`CHANGE_PP_CNT`:DOUBLE,`FORMAL_CANCEL_DATE`:BIGINT,`RETENTION_CODE`:STRING,`PRIM_RESOURCE_TP`:STRING,`PRIM_RES_PARAM_CD`:STRING,`PRIM_RESOURCE_VAL`:STRING,`CALC_PYM_CATEGORY`:STRING,`RETENTION_START_DT`:BIGINT,`INIT_ACT_DATE`:BIGINT,`SUB_STS_LAST_ACT`:STRING,`SUB_STS_RSN_CD`:STRING,`SUBSCR_SEQ_NO`:DOUBLE,`DD_AMOUNT`:DOUBLE,`DD_PP_STATUS`:STRING,`DD_PREPAY_IND`:STRING,`DD_PP_DUE_DATE`:BIGINT,`DD_PP_BILL_SEQ_NO`:DOUBLE,`PAYMENT_COMBINATION`:STRING,`PRE_NOTIFY_TYPE`:STRING,`SUB_EMAIL`:STRING,`MULTI_SIM_MASTER`:STRING,`MULTI_SIM_SEC_NUM`:STRING,`BUNDLE_GROUP`:DOUBLE,`CNTR_EXT_NON_UPG`:BIGINT,`RETENTION_OFFER_ID`:DOUBLE,`TO_NONUPG_END_DATE`:BIGINT,`TO_UPG_END_DATE`:BIGINT,`NO_DOWNWARD_END_DATE`:BIGINT,`MINIMAL_RC`:DOUBLE,`FAMILY_ROLE`:STRING,`LIFETIME_ID`:DOUBLE,`PCC_ID`:STRING,`PCC_EMAIL`:STRING,`SOURCE_BRAND`:STRING,`SOURCE_BAN`:DOUBLE,`START_SERVICE_DATE`:BIGINT,`EXCHG_EQP_RESTRICT_IND`:STRING,`PP_TYPE`:STRING,`CONTRACT_IND`:STRING,`PRICE_RISE_SEGMENT`:STRING>,source:struct<version:STRING,connector:STRING,name:STRING,ts_ms:BIGINT,snapshot:STRING,db:STRING,sequence:STRING,ts_us:BIGINT,ts_ns:BIGINT,schema:STRING,`table`:STRING,txId:STRING,scn:STRING,commit_scn:STRING,lcr_position:STRING,rs_id:STRING,ssn:BIGINT,redo_thread:INT,user_name:STRING,row_id:STRING,commit_ts_ms:BIGINT,start_scn:STRING,start_ts_ms:BIGINT,txSeq:BIGINT>,op:STRING,ts_ms:BIGINT,ts_us:BIGINT,ts_ns:BIGINT>>"
+          }
+        ],
         "column_normalization": {
           "enabled": true,
           "case": "lower"
-        }
+        },
+        "data_standardization_sql": [
+          "value.payload.op AS __cdc_op",
+          "CAST(COALESCE(value.payload.source.scn, '0') AS DECIMAL(38,0)) AS __cdc_scn",
+          "value.payload.source.`table` AS __cdc_source_table",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`SUBSCRIBER_NO` ELSE value.payload.after.`SUBSCRIBER_NO` END AS subscriber_no",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`CUSTOMER_ID` ELSE value.payload.after.`CUSTOMER_ID` END AS customer_id",
+          "timestamp_millis(CASE WHEN value.payload.op = 'd' THEN value.payload.before.`SYS_CREATION_DATE` ELSE value.payload.after.`SYS_CREATION_DATE` END) AS sys_creation_date",
+          "timestamp_millis(CASE WHEN value.payload.op = 'd' THEN value.payload.before.`SYS_UPDATE_DATE` ELSE value.payload.after.`SYS_UPDATE_DATE` END) AS sys_update_date",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`OPERATOR_ID` ELSE value.payload.after.`OPERATOR_ID` END AS operator_id",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`APPLICATION_ID` ELSE value.payload.after.`APPLICATION_ID` END AS application_id",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`DL_SERVICE_CODE` ELSE value.payload.after.`DL_SERVICE_CODE` END AS dl_service_code",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`DL_UPDATE_STAMP` ELSE value.payload.after.`DL_UPDATE_STAMP` END AS dl_update_stamp",
+          "timestamp_millis(CASE WHEN value.payload.op = 'd' THEN value.payload.before.`EFFECTIVE_DATE` ELSE value.payload.after.`EFFECTIVE_DATE` END) AS effective_date",
+          "timestamp_millis(CASE WHEN value.payload.op = 'd' THEN value.payload.before.`INIT_ACTIVATION_DATE` ELSE value.payload.after.`INIT_ACTIVATION_DATE` END) AS init_activation_date",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`SUB_STATUS` ELSE value.payload.after.`SUB_STATUS` END AS sub_status",
+          "timestamp_millis(CASE WHEN value.payload.op = 'd' THEN value.payload.before.`SUB_STATUS_DATE` ELSE value.payload.after.`SUB_STATUS_DATE` END) AS sub_status_date",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`SUB_STATUS_LAST_ACT` ELSE value.payload.after.`SUB_STATUS_LAST_ACT` END AS sub_status_last_act",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`SUB_STATUS_RSN_CODE` ELSE value.payload.after.`SUB_STATUS_RSN_CODE` END AS sub_status_rsn_code",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`CUSTOMER_BAN` ELSE value.payload.after.`CUSTOMER_BAN` END AS customer_ban",
+          "timestamp_millis(CASE WHEN value.payload.op = 'd' THEN value.payload.before.`COMMIT_START_DATE` ELSE value.payload.after.`COMMIT_START_DATE` END) AS commit_start_date",
+          "timestamp_millis(CASE WHEN value.payload.op = 'd' THEN value.payload.before.`COMMIT_END_DATE` ELSE value.payload.after.`COMMIT_END_DATE` END) AS commit_end_date",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`COMMIT_REASON_CODE` ELSE value.payload.after.`COMMIT_REASON_CODE` END AS commit_reason_code",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`COMMIT_ORIG_NO_MONTH` ELSE value.payload.after.`COMMIT_ORIG_NO_MONTH` END AS commit_orig_no_month",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`SUSP_RC_RATE_TYPE` ELSE value.payload.after.`SUSP_RC_RATE_TYPE` END AS susp_rc_rate_type",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`REQ_DEPOSIT_AMT` ELSE value.payload.after.`REQ_DEPOSIT_AMT` END AS req_deposit_amt",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`ALLOCATION_CODE_1` ELSE value.payload.after.`ALLOCATION_CODE_1` END AS allocation_code_1",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`ALLOCATION_CODE_2` ELSE value.payload.after.`ALLOCATION_CODE_2` END AS allocation_code_2",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`ACTIVATION_METHOD` ELSE value.payload.after.`ACTIVATION_METHOD` END AS activation_method",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`LAST_ACTV_CODE` ELSE value.payload.after.`LAST_ACTV_CODE` END AS last_actv_code",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`LAST_ACTV_REASON` ELSE value.payload.after.`LAST_ACTV_REASON` END AS last_actv_reason",
+          "timestamp_millis(CASE WHEN value.payload.op = 'd' THEN value.payload.before.`LAST_ACTV_DATE` ELSE value.payload.after.`LAST_ACTV_DATE` END) AS last_actv_date",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`TTN` ELSE value.payload.after.`TTN` END AS ttn",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`TTN_IND` ELSE value.payload.after.`TTN_IND` END AS ttn_ind",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`NEXT_CTN` ELSE value.payload.after.`NEXT_CTN` END AS next_ctn",
+          "timestamp_millis(CASE WHEN value.payload.op = 'd' THEN value.payload.before.`NEXT_CTN_CHG_DATE` ELSE value.payload.after.`NEXT_CTN_CHG_DATE` END) AS next_ctn_chg_date",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`PRV_CTN` ELSE value.payload.after.`PRV_CTN` END AS prv_ctn",
+          "timestamp_millis(CASE WHEN value.payload.op = 'd' THEN value.payload.before.`PRV_CTN_CHG_DATE` ELSE value.payload.after.`PRV_CTN_CHG_DATE` END) AS prv_ctn_chg_date",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`NEXT_BAN` ELSE value.payload.after.`NEXT_BAN` END AS next_ban",
+          "timestamp_millis(CASE WHEN value.payload.op = 'd' THEN value.payload.before.`NEXT_BAN_MOVE_DATE` ELSE value.payload.after.`NEXT_BAN_MOVE_DATE` END) AS next_ban_move_date",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`PRV_BAN` ELSE value.payload.after.`PRV_BAN` END AS prv_ban",
+          "timestamp_millis(CASE WHEN value.payload.op = 'd' THEN value.payload.before.`PRV_BAN_MOVE_DATE` ELSE value.payload.after.`PRV_BAN_MOVE_DATE` END) AS prv_ban_move_date",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`CONV_RUN_NO` ELSE value.payload.after.`CONV_RUN_NO` END AS conv_run_no",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`DEFAULT_UC_BEN` ELSE value.payload.after.`DEFAULT_UC_BEN` END AS default_uc_ben",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`DEFAULT_OC_BEN` ELSE value.payload.after.`DEFAULT_OC_BEN` END AS default_oc_ben",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`DEFAULT_RC_BEN` ELSE value.payload.after.`DEFAULT_RC_BEN` END AS default_rc_ben",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`RC_BEN_LEVEL_CODE` ELSE value.payload.after.`RC_BEN_LEVEL_CODE` END AS rc_ben_level_code",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`VIN` ELSE value.payload.after.`VIN` END AS vin",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`CAR_REGISTRATION` ELSE value.payload.after.`CAR_REGISTRATION` END AS car_registration",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`SUBSCRIBER_REF` ELSE value.payload.after.`SUBSCRIBER_REF` END AS subscriber_ref",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`NP_CODE` ELSE value.payload.after.`NP_CODE` END AS np_code",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`PRODUCT_CODE` ELSE value.payload.after.`PRODUCT_CODE` END AS product_code",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`ARRANGMENT` ELSE value.payload.after.`ARRANGMENT` END AS arrangment",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`SUB_CUSTOMER_VALUE` ELSE value.payload.after.`SUB_CUSTOMER_VALUE` END AS sub_customer_value",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`DIR_PUBLISH_IND` ELSE value.payload.after.`DIR_PUBLISH_IND` END AS dir_publish_ind",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`THRESHOLD_CLASS` ELSE value.payload.after.`THRESHOLD_CLASS` END AS threshold_class",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`PRE_PAYMENT_IND` ELSE value.payload.after.`PRE_PAYMENT_IND` END AS pre_payment_ind",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`PRE_ACTIVE_IND` ELSE value.payload.after.`PRE_ACTIVE_IND` END AS pre_active_ind",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`MANUAL_UPGRADE_AMT` ELSE value.payload.after.`MANUAL_UPGRADE_AMT` END AS manual_upgrade_amt",
+          "timestamp_millis(CASE WHEN value.payload.op = 'd' THEN value.payload.before.`MANUAL_UPGRADE_GIVEN_DATE` ELSE value.payload.after.`MANUAL_UPGRADE_GIVEN_DATE` END) AS manual_upgrade_given_date",
+          "timestamp_millis(CASE WHEN value.payload.op = 'd' THEN value.payload.before.`MANUAL_UPGRADE_LAST_DATE` ELSE value.payload.after.`MANUAL_UPGRADE_LAST_DATE` END) AS manual_upgrade_last_date",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`PARTNER_IND` ELSE value.payload.after.`PARTNER_IND` END AS partner_ind",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`MAX_PARTNERS` ELSE value.payload.after.`MAX_PARTNERS` END AS max_partners",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`F_O_C_IND` ELSE value.payload.after.`F_O_C_IND` END AS f_o_c_ind",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`CREFIT_LIMIT_PRIM_IND` ELSE value.payload.after.`CREFIT_LIMIT_PRIM_IND` END AS crefit_limit_prim_ind",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`PREC_UPGRADE` ELSE value.payload.after.`PREC_UPGRADE` END AS prec_upgrade",
+          "timestamp_millis(CASE WHEN value.payload.op = 'd' THEN value.payload.before.`NEXT_COUPON_ACTV_DATE` ELSE value.payload.after.`NEXT_COUPON_ACTV_DATE` END) AS next_coupon_actv_date",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`NEXT_COUPON_POLICY_CODE` ELSE value.payload.after.`NEXT_COUPON_POLICY_CODE` END AS next_coupon_policy_code",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`NEXT_COUPON_POLICY_STEP` ELSE value.payload.after.`NEXT_COUPON_POLICY_STEP` END AS next_coupon_policy_step",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`INTERLOCK_CODE` ELSE value.payload.after.`INTERLOCK_CODE` END AS interlock_code",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`PSTN` ELSE value.payload.after.`PSTN` END AS pstn",
+          "timestamp_millis(CASE WHEN value.payload.op = 'd' THEN value.payload.before.`TENURE_DATE_PREC` ELSE value.payload.after.`TENURE_DATE_PREC` END) AS tenure_date_prec",
+          "timestamp_millis(CASE WHEN value.payload.op = 'd' THEN value.payload.before.`TENURE_DATE_EURO` ELSE value.payload.after.`TENURE_DATE_EURO` END) AS tenure_date_euro",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`DUAL_SIM_LINK_IND` ELSE value.payload.after.`DUAL_SIM_LINK_IND` END AS dual_sim_link_ind",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`PCLI` ELSE value.payload.after.`PCLI` END AS pcli",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`DISABILITY_CODE` ELSE value.payload.after.`DISABILITY_CODE` END AS disability_code",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`MAX_FOC_CODE` ELSE value.payload.after.`MAX_FOC_CODE` END AS max_foc_code",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`FOC_UPGRADE_STATUS` ELSE value.payload.after.`FOC_UPGRADE_STATUS` END AS foc_upgrade_status",
+          "timestamp_millis(CASE WHEN value.payload.op = 'd' THEN value.payload.before.`FOC_TENURE_DATE` ELSE value.payload.after.`FOC_TENURE_DATE` END) AS foc_tenure_date",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`ENFORCE_RESTRICTION` ELSE value.payload.after.`ENFORCE_RESTRICTION` END AS enforce_restriction",
+          "timestamp_millis(CASE WHEN value.payload.op = 'd' THEN value.payload.before.`ENFORCE_RESTR_EXP_DATE` ELSE value.payload.after.`ENFORCE_RESTR_EXP_DATE` END) AS enforce_restr_exp_date",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`WAIVE_RESTRICTION` ELSE value.payload.after.`WAIVE_RESTRICTION` END AS waive_restriction",
+          "timestamp_millis(CASE WHEN value.payload.op = 'd' THEN value.payload.before.`WAIVE_RESTR_EXP_DATE` ELSE value.payload.after.`WAIVE_RESTR_EXP_DATE` END) AS waive_restr_exp_date",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`HANDSET_OPTION` ELSE value.payload.after.`HANDSET_OPTION` END AS handset_option",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`RC_LEVEL` ELSE value.payload.after.`RC_LEVEL` END AS rc_level",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`THRESHOLD_AMOUNT` ELSE value.payload.after.`THRESHOLD_AMOUNT` END AS threshold_amount",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`SUB_SEQ_NO` ELSE value.payload.after.`SUB_SEQ_NO` END AS sub_seq_no",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`EXTERNAL_ID` ELSE value.payload.after.`EXTERNAL_ID` END AS external_id",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`EXT_PARENT_ID` ELSE value.payload.after.`EXT_PARENT_ID` END AS ext_parent_id",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`CH_NODE_ID` ELSE value.payload.after.`CH_NODE_ID` END AS ch_node_id",
+          "timestamp_millis(CASE WHEN value.payload.op = 'd' THEN value.payload.before.`SUB_STS_ISSUE_DATE` ELSE value.payload.after.`SUB_STS_ISSUE_DATE` END) AS sub_sts_issue_date",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`DEALER_CODE` ELSE value.payload.after.`DEALER_CODE` END AS dealer_code",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`INITIAL_DLR_CODE` ELSE value.payload.after.`INITIAL_DLR_CODE` END AS initial_dlr_code",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`SUBSCRIBER_TYPE` ELSE value.payload.after.`SUBSCRIBER_TYPE` END AS subscriber_type",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`ACT_WAIVE_RSN_CD` ELSE value.payload.after.`ACT_WAIVE_RSN_CD` END AS act_waive_rsn_cd",
+          "timestamp_millis(CASE WHEN value.payload.op = 'd' THEN value.payload.before.`EARLIEST_ACTV_DATE` ELSE value.payload.after.`EARLIEST_ACTV_DATE` END) AS earliest_actv_date",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`CHANGE_PP_CNT` ELSE value.payload.after.`CHANGE_PP_CNT` END AS change_pp_cnt",
+          "timestamp_millis(CASE WHEN value.payload.op = 'd' THEN value.payload.before.`FORMAL_CANCEL_DATE` ELSE value.payload.after.`FORMAL_CANCEL_DATE` END) AS formal_cancel_date",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`RETENTION_CODE` ELSE value.payload.after.`RETENTION_CODE` END AS retention_code",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`PRIM_RESOURCE_TP` ELSE value.payload.after.`PRIM_RESOURCE_TP` END AS prim_resource_tp",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`PRIM_RES_PARAM_CD` ELSE value.payload.after.`PRIM_RES_PARAM_CD` END AS prim_res_param_cd",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`PRIM_RESOURCE_VAL` ELSE value.payload.after.`PRIM_RESOURCE_VAL` END AS prim_resource_val",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`CALC_PYM_CATEGORY` ELSE value.payload.after.`CALC_PYM_CATEGORY` END AS calc_pym_category",
+          "timestamp_millis(CASE WHEN value.payload.op = 'd' THEN value.payload.before.`RETENTION_START_DT` ELSE value.payload.after.`RETENTION_START_DT` END) AS retention_start_dt",
+          "timestamp_millis(CASE WHEN value.payload.op = 'd' THEN value.payload.before.`INIT_ACT_DATE` ELSE value.payload.after.`INIT_ACT_DATE` END) AS init_act_date",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`SUB_STS_LAST_ACT` ELSE value.payload.after.`SUB_STS_LAST_ACT` END AS sub_sts_last_act",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`SUB_STS_RSN_CD` ELSE value.payload.after.`SUB_STS_RSN_CD` END AS sub_sts_rsn_cd",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`SUBSCR_SEQ_NO` ELSE value.payload.after.`SUBSCR_SEQ_NO` END AS subscr_seq_no",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`DD_AMOUNT` ELSE value.payload.after.`DD_AMOUNT` END AS dd_amount",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`DD_PP_STATUS` ELSE value.payload.after.`DD_PP_STATUS` END AS dd_pp_status",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`DD_PREPAY_IND` ELSE value.payload.after.`DD_PREPAY_IND` END AS dd_prepay_ind",
+          "timestamp_millis(CASE WHEN value.payload.op = 'd' THEN value.payload.before.`DD_PP_DUE_DATE` ELSE value.payload.after.`DD_PP_DUE_DATE` END) AS dd_pp_due_date",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`DD_PP_BILL_SEQ_NO` ELSE value.payload.after.`DD_PP_BILL_SEQ_NO` END AS dd_pp_bill_seq_no",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`PAYMENT_COMBINATION` ELSE value.payload.after.`PAYMENT_COMBINATION` END AS payment_combination",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`PRE_NOTIFY_TYPE` ELSE value.payload.after.`PRE_NOTIFY_TYPE` END AS pre_notify_type",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`SUB_EMAIL` ELSE value.payload.after.`SUB_EMAIL` END AS sub_email",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`MULTI_SIM_MASTER` ELSE value.payload.after.`MULTI_SIM_MASTER` END AS multi_sim_master",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`MULTI_SIM_SEC_NUM` ELSE value.payload.after.`MULTI_SIM_SEC_NUM` END AS multi_sim_sec_num",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`BUNDLE_GROUP` ELSE value.payload.after.`BUNDLE_GROUP` END AS bundle_group",
+          "timestamp_millis(CASE WHEN value.payload.op = 'd' THEN value.payload.before.`CNTR_EXT_NON_UPG` ELSE value.payload.after.`CNTR_EXT_NON_UPG` END) AS cntr_ext_non_upg",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`RETENTION_OFFER_ID` ELSE value.payload.after.`RETENTION_OFFER_ID` END AS retention_offer_id",
+          "timestamp_millis(CASE WHEN value.payload.op = 'd' THEN value.payload.before.`TO_NONUPG_END_DATE` ELSE value.payload.after.`TO_NONUPG_END_DATE` END) AS to_nonupg_end_date",
+          "timestamp_millis(CASE WHEN value.payload.op = 'd' THEN value.payload.before.`TO_UPG_END_DATE` ELSE value.payload.after.`TO_UPG_END_DATE` END) AS to_upg_end_date",
+          "timestamp_millis(CASE WHEN value.payload.op = 'd' THEN value.payload.before.`NO_DOWNWARD_END_DATE` ELSE value.payload.after.`NO_DOWNWARD_END_DATE` END) AS no_downward_end_date",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`MINIMAL_RC` ELSE value.payload.after.`MINIMAL_RC` END AS minimal_rc",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`FAMILY_ROLE` ELSE value.payload.after.`FAMILY_ROLE` END AS family_role",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`LIFETIME_ID` ELSE value.payload.after.`LIFETIME_ID` END AS lifetime_id",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`PCC_ID` ELSE value.payload.after.`PCC_ID` END AS pcc_id",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`PCC_EMAIL` ELSE value.payload.after.`PCC_EMAIL` END AS pcc_email",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`SOURCE_BRAND` ELSE value.payload.after.`SOURCE_BRAND` END AS source_brand",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`SOURCE_BAN` ELSE value.payload.after.`SOURCE_BAN` END AS source_ban",
+          "timestamp_millis(CASE WHEN value.payload.op = 'd' THEN value.payload.before.`START_SERVICE_DATE` ELSE value.payload.after.`START_SERVICE_DATE` END) AS start_service_date",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`EXCHG_EQP_RESTRICT_IND` ELSE value.payload.after.`EXCHG_EQP_RESTRICT_IND` END AS exchg_eqp_restrict_ind",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`PP_TYPE` ELSE value.payload.after.`PP_TYPE` END AS pp_type",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`CONTRACT_IND` ELSE value.payload.after.`CONTRACT_IND` END AS contract_ind",
+          "CASE WHEN value.payload.op = 'd' THEN value.payload.before.`PRICE_RISE_SEGMENT` ELSE value.payload.after.`PRICE_RISE_SEGMENT` END AS price_rise_segment",
+          "CASE WHEN value.payload.op = 'd' THEN '1' ELSE '0' END AS src_deleted_flg"
+        ]
       },
       "target_config": {
         "cdc_load_strategy": "SCD1",
@@ -640,10 +954,12 @@
           "subscriber_no",
           "customer_id"
         ],
-        "sequence_by_column": "sys_update_date",
+        "sequence_by_column": "__cdc_scn",
         "columns_to_exclude": [
           "sys_creation_date",
-          "sys_update_date"
+          "sys_update_date",
+          "__cdc_op",
+          "__cdc_source_table"
         ],
         "cdc_operation_column": "src_deleted_flg",
         "cdc_operation_mapping": {
@@ -884,6 +1200,20 @@
           "use_case": "uc3",
           "domain": "Customer 360"
         }
+      },
+      "dq_config": {
+        "rules": [
+          {
+            "rule_id": "only_subscriber_topic",
+            "expression": "destination = 'oracdc-excalibur.EXCALIBUR.SUBSCRIBER'",
+            "action": "drop"
+          },
+          {
+            "rule_id": "cdc_op_recognised",
+            "expression": "__cdc_op IN ('r','c','u','d')",
+            "action": "drop"
+          }
+        ]
       }
     }
   ],
@@ -894,9 +1224,12 @@
       "type": "DATABRICKS_VOLUME",
       "destination_config": {
         "volume_path": "/Volumes/{{catalog}}/observability/app_logs/streaming_cdc",
-        "file_format": "JSON"
+        "file_format": "JSON",
+        "event_log_tables": [
+          "{{catalog}}.observability.uc3_excalibur_streaming_cdc_event_log"
+        ]
       },
-      "mode": "triggered"
+      "mode": "continuous"
     }
   ]
 }

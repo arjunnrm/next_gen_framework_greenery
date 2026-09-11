@@ -518,7 +518,7 @@
       "tips": [
         "SCD1, SCD2 and SCD3 only; a validation error on APPEND, TRUNCATE_AND_LOAD and FULL_SNAPSHOT_CDC.",
         "primary_keys and the framework's own technical columns are excluded automatically -- you do not need to list them.",
-        "Whether the listed columns are also dropped from the target's schema is currently inconsistent between the validator and the SCD registrar. Do not rely on this field to shape the target schema; use it for comparison scoping only."
+        "This field does TWO things: it narrows change comparison AND it is passed to apply_changes's except_column_list, which DROPS the listed columns from the target table's schema. It is the only way to keep a column out of a CDC target -- data_standardization_sql can only add or replace a column, never remove one."
       ]
     },
     "target_config.cdc_operation_column": {
@@ -573,7 +573,7 @@
       ],
       "tips": [
         "pipeline_audit_only publishes the classified/metrics/mismatch datasets and runs dq_config expectations in-pipeline, but leaves the append-back healing lane in job mode. It is the right setting for a flow whose source is a static table.",
-        "Both pipeline modes require a flow-level dataflow_group_id, an append-only source producer (not an apply_changes strategy, and not a fully-refreshed materialized view), and read_mode batch on every side.",
+        "Both pipeline modes require a flow-level dataflow_group_id and read_mode batch on every side. Only 'pipeline' additionally requires an append-only source producer, because it streams the source to drive the heal lane; 'pipeline_audit_only' reads the source as a batch and is the correct mode when the source is written by SCD1/SCD2/SCD3/FULL_SNAPSHOT_CDC or is a fully-refreshed materialized view.",
         "publish_schema and dq_config only exist in the pipeline modes; task_run_id_column and read_mode 'streaming' only exist in job mode. The builder hides the first pair in job mode; the last two are rejected at onboarding."
       ],
       "errors": [

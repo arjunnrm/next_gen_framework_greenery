@@ -766,6 +766,24 @@ L4 still run in-update, so `__classified` / `__metrics` / `__mismatch` are recom
 update and the `dq_config` expectation still evaluates; the corrective append moves back to the
 standalone `05_reconciliation_engine.py` job task on its own cadence.
 
+> **v1.7.11: the onboarding validator now agrees with this section.** Through v1.7.10 the
+> matching onboarding rule, **V-CYC-7** in `onboarding/spec_validator.py`, fired under **both**
+> pipeline modes, so the very setting this section, [`13_known_limitations_and_gotchas.md` R7](13_known_limitations_and_gotchas.md#r7)
+> and the G-STREAM message all named as the fix was itself rejected at onboarding, leaving a
+> MERGE-written or fully-recomputed source with no legal in-pipeline setting at all. From v1.7.11
+> the rule is gated on `execution_mode == "pipeline"` alone, and `"pipeline_audit_only"` is
+> explicitly legal for exactly this case, because it binds `_recon__<rid>__src` with
+> `want_stream=False` (a batch `dlt.read`) and returns before registering any heal lane, so the
+> streaming hazard does not exist for it. This is a relaxation only: every spec that validated
+> before still validates, and no onboarded control-table row changes shape. The surviving
+> `"pipeline"` rejection now names `pipeline_audit_only` as the in-pipeline fix and `job` as the
+> alternative.
+>
+> **If you take `"pipeline_audit_only"`, add the heal task yourself.** Audit-only registers no
+> heal sink at all, so without one `05_reconciliation_engine.py` job task per `reconciliation_id`
+> the flow compares and reports forever while never healing anything. UC3's batch lane is the
+> worked example: see `BT_Usecase/UC3/docs/UC3_MASTER_DOCUMENT.md` §8.3 and §9.2.
+
 ### 11.8 Validator severity — the V-CYC append-loop rules are mode-dependent
 
 The `V-CYC` rules in `onboarding/spec_validator.py` that describe an **append loop** —
@@ -793,8 +811,12 @@ explicitly, and states that the same finding *would* be rejected under `"pipelin
 
 > **Not in this group:** `V-CYC-1`, `V-CYC-6` and `V-CYC-7` (source must be a dataset this group
 > publishes; `dataflow_group_id` required; producer must be append-only) are unconditional errors
-> *in pipeline mode only* and are not evaluated at all under `"job"` — they are placement rules, not
-> loop rules. `V-CYC-8` is a pure **ingestion** rule (two flows landing on one raw path while
+> in pipeline mode and are not evaluated at all under `"job"`; they are placement rules, not
+> loop rules. **Their mode scoping is not identical, though.** `V-CYC-1` and `V-CYC-6` fire under
+> **both** `"pipeline"` and `"pipeline_audit_only"`. Since **v1.7.11**, `V-CYC-7` fires under
+> `"pipeline"` **only**: audit-only reads its source as a batch and registers no heal lane, so it
+> is the documented fix for a non-append-only producer rather than a second way to hit the same
+> rule (see [§11.7](#117-the-reconciliation-source-must-be-append-only-in-pipeline-mode)). `V-CYC-8` is a pure **ingestion** rule (two flows landing on one raw path while
 > disagreeing about `landing_retention_policy` / `source_zip_handling`) and is invoked from
 > `validate_spec` directly. It had been called from inside the reconciliation placement validator,
 > which early-returns when a spec declares no reconciliation flows — so the rule was **dead** for

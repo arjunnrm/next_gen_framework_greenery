@@ -1107,6 +1107,100 @@ def test_v_cyc_7_truncate_and_load_into_materialized_view_producer_is_rejected_f
     assert any("fully refreshed (not append-only) on every" in e for e in errors)
 
 
+def _audit_only_recon_flow_over(source_table):
+    """A ``pipeline_audit_only`` flow whose source is ``source_table``, carrying the
+    ``publish_schema`` and capture flag that mode needs so nothing *else* in the validator
+    objects -- isolating V-CYC-7."""
+    return _base_reconciliation_flow(
+        execution_mode="pipeline_audit_only",
+        dataflow_group_id="dfg_test",
+        publish_schema="recon",
+        logging_config={"run_log_capture": True, "mismatch_log_capture": False},
+        source_config={"type": "table", "table": source_table},
+        target_configs=[
+            {
+                "target_id": "primary",
+                "type": "table",
+                "table": "poc.bronze_x.replica",
+                "append_target_table": "poc.bronze_x.other_cdc",
+            }
+        ],
+    )
+
+
+def test_v_cyc_7_merge_cdc_strategy_producer_is_accepted_for_pipeline_audit_only_mode():
+    """v1.7.11: ``pipeline_audit_only`` reads its source as a BATCH ``dlt.read`` and registers no
+    heal lane (``reconciliation/graph_registration.py``: the ``_src`` node's ``_want_stream`` is
+    ``needs_heal``, which is only ever true under ``execution_mode: "pipeline"``), so a
+    MERGE-written producer is exactly the case that mode exists for -- what ``docs/07`` section
+    11.7 and ``engine/source_plane.py``'s G-STREAM message have always told authors to use.
+    Through v1.7.10 V-CYC-7 fired for both pipeline modes and rejected it anyway, leaving no
+    legal in-pipeline setting at all for an SCD1/SCD2 source."""
+    spec = {
+        "dataflow_group_id": "dfg_test",
+        "ingestion_flows": [
+            _base_ingestion_flow(
+                target_catalog="poc",
+                target_schema="bronze_x",
+                target_table="product",
+                target_config={"cdc_load_strategy": "SCD1", "primary_keys": ["id"]},
+            )
+        ],
+        "reconciliation_flows": [_audit_only_recon_flow_over("poc.bronze_x.product")],
+    }
+    _, _, _, _, errors = validate_spec(None, spec)
+    assert errors == [], errors
+
+
+def test_v_cyc_7_truncate_and_load_mv_producer_is_accepted_for_pipeline_audit_only_mode():
+    """Same relaxation for the other non-append-only producer shape."""
+    spec = {
+        "dataflow_group_id": "dfg_test",
+        "ingestion_flows": [
+            _base_ingestion_flow(
+                target_catalog="poc",
+                target_schema="bronze_x",
+                target_table="product",
+                target_type="materialized_view",
+                target_config={"cdc_load_strategy": "TRUNCATE_AND_LOAD"},
+            )
+        ],
+        "reconciliation_flows": [_audit_only_recon_flow_over("poc.bronze_x.product")],
+    }
+    _, _, _, _, errors = validate_spec(None, spec)
+    assert errors == [], errors
+
+
+def test_v_cyc_7_rejection_under_pipeline_mode_names_pipeline_audit_only_as_the_fix():
+    """The rejection stays for ``execution_mode: "pipeline"`` (that mode streams the source for
+    the L5 heal pulse), and its message must send the author to the setting that actually keeps
+    the comparison in the pipeline -- not, as through v1.7.10, only to ``job``."""
+    spec = {
+        "dataflow_group_id": "dfg_test",
+        "ingestion_flows": [
+            _base_ingestion_flow(
+                target_catalog="poc",
+                target_schema="bronze_x",
+                target_table="product",
+                target_config={"cdc_load_strategy": "SCD2", "primary_keys": ["id"]},
+            )
+        ],
+        "reconciliation_flows": [
+            _base_reconciliation_flow(
+                execution_mode="pipeline",
+                dataflow_group_id="dfg_test",
+                publish_schema="recon",
+                source_config={"type": "table", "table": "poc.bronze_x.product"},
+            )
+        ],
+    }
+    _, _, _, _, errors = validate_spec(None, spec)
+    v_cyc_7 = [e for e in errors if "dispatches through dlt.apply_changes" in e]
+    assert len(v_cyc_7) == 1, errors
+    assert "'pipeline_audit_only'" in v_cyc_7[0]
+    assert "L5 heal pulse" in v_cyc_7[0]
+
+
 def test_v_cyc_8_landing_retention_policy_collision_on_shared_path_is_rejected():
     """Two ingestion flows sharing one Auto Loader landing path with different
     landing_retention_policy configs is a latent data-loss race: cloudFiles.cleanSource MOVES or

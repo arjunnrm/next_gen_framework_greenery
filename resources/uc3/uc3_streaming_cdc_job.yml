@@ -1,42 +1,63 @@
-# Runs the UC3 Excalibur streaming-CDC group:
+# UC3 Excalibur streaming-CDC: governance + a manual observability export.
 #
-#   run_pipeline_update -> observability_export
+# WHAT CHANGED, AND WHY THIS JOB NO LONGER RUNS THE PIPELINE.
+# uc3_streaming_cdc_pipeline.yml is now `continuous: true` -- UC3's requirement is seconds-level
+# latency from an Oracle commit (Debezium -> Zerobus -> bt_digital_poc.staging.oracle_excalibur_cdc)
+# to the governed bronze tables, and a triggered pipeline's latency is its trigger interval.
+# A continuous update never reaches a terminal state, so the previous shape
 #
-# This is a RUN job, not a provisioning job. Since 2026-09-08 the one-time steps live in their
-# own jobs so this one carries only what every run needs:
+#     run_pipeline_update (pipeline_task)  ->  observability_export (depends_on)
 #
-#   resources/uc3/uc3_seed_job.yml        setup_control_tables -> onboard both UC3 specs
-#   resources/uc3/uc3_governance_job.yml  ALTER TABLE ... SET TAGS for both UC3 groups
+# cannot work any more: the export task would wait forever on a task that never finishes, and
+# the job run would never complete. Both tasks are therefore gone from the run path:
 #
-# Order for a fresh workspace: uc3_seed_job once, then 003 (simulator), 004 (this job), 005
-# (batch recon), then uc3_governance_job once the tables exist -- and again after any change
-# to a spec's governance_tags, because tags are applied from the control-table rows, not the
-# file. The same two-task shape as resources/sample_jobs/*_job.yml, whose layout test pins it.
+#   * STARTING THE PIPELINE is `databricks bundle run uc3_streaming_cdc_pipeline -t <target>`.
+#     Databricks owns a continuous pipeline's lifecycle (running/restarting) once started --
+#     a job task that merely started it would duplicate that and then sit forever. This is the
+#     same choice, for the same reason, as
+#     resources/observability/observability_otel_streaming_pipeline.yml, which likewise has no
+#     wrapping job.
 #
-# What the pipeline needs at runtime is exactly two spark.conf keys (set in
-# uc3_streaming_cdc_pipeline.yml) plus active control-table rows for the group; it never runs
-# setup, onboarding or governance itself. The additive control-table migration
-# (ensure_control_table_columns) runs inside the onboarding engine, not in 01_setup, so a run
-# job gains nothing from re-running setup on every trigger.
+#   * ROUTINE OBSERVABILITY is now CONTINUOUS, not a post-update export. The spec's
+#     observability destination moved to `mode: "continuous"`, and the pipeline publishes its
+#     event log to <catalog>.observability.uc3_excalibur_streaming_cdc_event_log (the
+#     `event_log:` block in the pipeline resource). The continuous engine
+#     (notebooks/06_observability_streaming) streams that table -- it is told which tables to
+#     read precisely because a standing pipeline has no upstream task run to resolve a
+#     pipeline id from, which is what the triggered engine requires
+#     (observability/runtime_params.py::REQUIRED_TRIGGERED_PARAMETERS). Run it via
+#     `databricks bundle run observability_otel_streaming_pipeline` with that event-log table
+#     in its `event_log_tables`.
 #
-# ONBOARDING IS DELEGATED, NEVER INLINED. The seed job is a run_job_task against the generic
-# resources/flowx_config_jobs/onboarding_job.yml -- the single parameterised onboarding
-# entrypoint for the whole bundle (BUILD_CONTRACT.md section 7, and the repo's standing rule).
+# WHAT IS LEFT HERE. Exactly one thing: an on-demand triggered export, for the case an operator
+# wants a bounded snapshot of one specific past update rather than the continuous stream.
+# Governance is NOT here -- it already has its own job (resources/uc3/uc3_governance_job.yml,
+# 009_lfj_uc3_excalibur_governance, which tags both UC3 groups); re-declaring it here would
+# apply the same tags twice from two jobs.
+#
+# THE MANUAL EXPORT TASK IS NOT SCHEDULED AND NOT WIRED TO A PIPELINE TASK. It takes
+# `pipeline_task_run_id` as a JOB PARAMETER, so an operator supplies a real update's task run
+# id when they want it. Do NOT put `{{tasks.<key>.run_id}}` here: there is no pipeline task in
+# this job, and the Jobs service passes an unresolvable reference through as LITERAL TEXT
+# rather than failing -- runtime_params.py detects exactly that and names it. Leaving the
+# parameter empty makes the task fail with that diagnostic, which is the intended behaviour
+# for "you forgot to say which update".
+#
+# ONBOARDING IS DELEGATED, NEVER INLINED -- resources/uc3/uc3_seed_job.yml is a run_job_task
+# against the generic resources/flowx_config_jobs/onboarding_job.yml (BUILD_CONTRACT.md
+# section 7, and the repo's standing rule). Unchanged by this split.
 #
 # JOB TAGS STAY. `dataflow_group_id` is the ONLY way a Lakeflow job run is attributed back to
 # its FlowX dataflow group in the system tables (flowx.observability.v_job_runs,
 # system.billing.usage). No pipeline in this bundle sets tags; the job tag is the join key.
 #
-# PARAMETER CONTRACT for observability_export: pipeline_task_run_id must be a TASK
-# base_parameter, never a pipeline configuration: key. `{{tasks.<key>.run_id}}` is a Jobs
-# dynamic value resolved per job run, and a mistyped task_key is passed through as literal text
-# rather than failing at the platform layer -- runtime_params.py detects exactly that and names
-# it. The key below is `run_pipeline_update`, which is the task_key declared in this same file.
-# The task also cross-checks dataflow_group_id against the pipeline it observed and fails if
-# they disagree, which catches a copy-paste left pointing at the job it came from.
+# NEVER `bundle deploy` while the continuous pipeline is running: a deploy prunes superseded
+# artifacts from <artifact_path>/.internal/ and kills the live update with
+# ENVIRONMENT_PIP_INSTALL_ERROR. With a continuous pipeline that window is always open --
+# stop it first (flowx_testing/TESTING_PLAN.md section 0).
 #
-# NAME: 004_lfj_uc3_excalibur_streaming_cdc, driving pipeline 004_ldp_uc3_excalibur_streaming_cdc
-# -- both 004, deliberately (BUILD_CONTRACT.md section 2).
+# NAME: 004_lfj_uc3_excalibur_streaming_cdc, companion to pipeline
+# 004_ldp_uc3_excalibur_streaming_cdc -- both 004, deliberately (BUILD_CONTRACT.md section 2).
 
 resources:
   jobs:
@@ -45,20 +66,20 @@ resources:
       tags:
         dataflow_group_id: dfg_uc3_excalibur_streaming_cdc
         framework: flowx
+      parameters:
+        # Supplied per run, for the on-demand export only. Empty by default on purpose:
+        # see "THE MANUAL EXPORT TASK" above.
+        - name: pipeline_task_run_id
+          default: ""
       tasks:
-        - task_key: run_pipeline_update
-          pipeline_task:
-            pipeline_id: ${resources.pipelines.uc3_streaming_cdc_pipeline.id}
-        - task_key: observability_export
-          depends_on:
-            - task_key: run_pipeline_update
+        - task_key: observability_export_on_demand
           notebook_task:
             notebook_path: ../../notebooks/08_observability/08_dlt_observability_engine.py
             base_parameters:
               dataflow_group_id: dfg_uc3_excalibur_streaming_cdc
               catalog: ${var.catalog}
               env: ${bundle.target}
-              pipeline_task_run_id: "{{tasks.run_pipeline_update.run_id}}"
+              pipeline_task_run_id: "{{job.parameters.pipeline_task_run_id}}"
               service_name: dlt-observability-uc3-excalibur-streaming-cdc
               fail_task_on_dispatch_error: "true"
           environment_key: framework_env

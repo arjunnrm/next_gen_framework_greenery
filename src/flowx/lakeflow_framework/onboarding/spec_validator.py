@@ -1193,9 +1193,15 @@ def _validate_target_config(
     if target_config.get("columns_to_check") is not None:
         check_list_of_str(target_config.get("columns_to_check"), f"{path_prefix}.columns_to_check", errors)
 
-    # columns_to_exclude is COMPARISON-ONLY now (never dropped from the target table -- see
-    # cdc/comparison_columns.py::resolve_comparison_columns). Still scoped to strategies that
-    # have a comparison concept at all.
+    # columns_to_exclude does TWO things (see cdc/comparison_columns.py's module docstring):
+    # it narrows the comparison basis (change detection + __framework_hash_value) AND it is
+    # passed to dlt.apply_changes's except_column_list by cdc/scd.py, which drops the columns
+    # from the target table's schema. It is the framework's ONLY "don't store this column at
+    # all" mechanism for a CDC target. A previous comment here claimed comparison-only /
+    # "never dropped from the target table"; that was never implemented and is corrected --
+    # a live Bronze inspection confirms the columns are absent. Scoped to the strategies that
+    # go through apply_changes and therefore have both a comparison basis and an
+    # except_column_list to pass.
     strategies_supporting_comparison_exclusion = {"SCD1", "SCD2", "SCD3"}
     if target_config.get("columns_to_exclude") is not None:
         check_list_of_str(target_config.get("columns_to_exclude"), f"{path_prefix}.columns_to_exclude", errors)
@@ -2475,9 +2481,15 @@ def _validate_path_parameters(config: Any, parameters: Dict[str, Any], label: st
 
 # CDC strategies that dispatch through dlt.apply_changes[_from_snapshot] -- i.e. the producing
 # target's Delta transaction log contains real MERGE/UPDATE/DELETE operations, not only
-# appends. A reconciliation source resolving to one of these in a pipeline execution_mode would
-# have its L5 heal lane appending into a comparison built over rows Lakeflow may still rewrite
-# in place before the next update.
+# appends. A reconciliation source resolving to one of these under execution_mode "pipeline"
+# cannot be registered: that mode streams the source (the L3 ``_src`` node and the L5 heal pulse
+# are ``dlt.read_stream`` binds -- ``reconciliation/graph_registration.py``), and Delta refuses to
+# stream a MERGE-written table (``DELTA_SOURCE_TABLE_IGNORE_CHANGES``; ``skipChangeCommits`` is
+# refused framework-wide). ``"pipeline_audit_only"`` is deliberately NOT subject to this rule
+# (v1.7.11): it reads the source as a batch ``dlt.read`` and registers no heal lane, so a
+# MERGE-written or fully-refreshed producer is exactly the case it exists for -- which is what
+# ``engine/source_plane.py``'s G-STREAM message and ``docs/07`` section 11.7 have always said.
+# Through v1.7.10 the check fired for both pipeline modes, contradicting both.
 _RECONCILIATION_SOURCE_MERGE_CDC_STRATEGIES = {"SCD1", "SCD2", "SCD3", "FULL_SNAPSHOT_CDC"}
 
 
@@ -2699,22 +2711,31 @@ def _validate_reconciliation_pipeline_placement(
                 "group's actual producing target, or set execution_mode to 'job'."
             )
 
-        # V-CYC-7
-        if pipeline_mode and producer is not None:
+        # V-CYC-7 -- execution_mode "pipeline" ONLY. That mode streams the reconciliation source
+        # (the L3 `_src` node and the L5 heal pulse are dlt.read_stream binds), so its producer
+        # must be append-only. "pipeline_audit_only" reads the source as a batch dlt.read and
+        # registers no heal lane, so it is the documented, legal setting for a MERGE-written or
+        # fully-refreshed source (docs/07 section 11.7, engine/source_plane.py G-STREAM message).
+        # Through v1.7.10 this rule fired for both pipeline modes and contradicted both of those.
+        if execution_mode == "pipeline" and producer is not None:
             _, cdc_load_strategy, target_type = producer
             if cdc_load_strategy in _RECONCILIATION_SOURCE_MERGE_CDC_STRATEGIES:
                 errors.append(
                     f"{label}.source_config.table: is produced by cdc_load_strategy {cdc_load_strategy!r}, which "
                     f"dispatches through dlt.apply_changes[_from_snapshot] (real MERGE/UPDATE/DELETE writes, "
-                    f"not append-only) -- execution_mode {execution_mode!r} requires an append-only producer. "
-                    "Set execution_mode to 'job' to keep the standalone engine for this source."
+                    f"not append-only) -- execution_mode 'pipeline' streams this source for the L5 heal pulse, "
+                    "so it requires an append-only producer. Set execution_mode to 'pipeline_audit_only' (the "
+                    "comparison stays in this pipeline as a batch read; healing moves to the "
+                    "05_reconciliation_engine.py job task) or to 'job' to keep the standalone engine for this source."
                 )
             elif cdc_load_strategy == "TRUNCATE_AND_LOAD" and target_type == "materialized_view":
                 errors.append(
                     f"{label}.source_config.table: is produced by cdc_load_strategy 'TRUNCATE_AND_LOAD' into "
                     "target_type 'materialized_view', which is fully refreshed (not append-only) on every "
-                    f"update -- execution_mode {execution_mode!r} requires an append-only producer. Set "
-                    "execution_mode to 'job' to keep the standalone engine for this source."
+                    "update -- execution_mode 'pipeline' streams this source for the L5 heal pulse, so it "
+                    "requires an append-only producer. Set execution_mode to 'pipeline_audit_only' (the "
+                    "comparison stays in this pipeline as a batch read; healing moves to the "
+                    "05_reconciliation_engine.py job task) or to 'job' to keep the standalone engine for this source."
                 )
 
         target_configs = flow.get("target_configs") if isinstance(flow.get("target_configs"), list) else []

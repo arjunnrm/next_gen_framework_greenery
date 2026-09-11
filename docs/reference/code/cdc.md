@@ -74,7 +74,6 @@ Slowly Changing Dimension strategies: SCD1/SCD2 (native ``apply_changes``) and S
 |---|---|
 | `register_scd1(flow_id: str, source_view: str, target_table: str, target_catalog: str, target_schema: str, target_config: Dict[str, Any], table_properties: Dict[str, str]) -> None` | Register an SCD Type 1 (overwrite-on-match) target via ``dlt.apply_changes``. |
 | `register_scd2(flow_id: str, source_view: str, target_table: str, target_catalog: str, target_schema: str, target_config: Dict[str, Any], table_properties: Dict[str, str]) -> None` | Register an SCD Type 2 (full history) target via ``dlt.apply_changes``. |
-| `register_scd2_reporting_view(target_table: str, target_catalog: str, target_schema: str, table_properties: Dict[str, str]) -> None` | Register ``<target_table>_current``, a friendly-column table over a native SCD2 table. |
 | `register_scd3(flow_id: str, source_view: str, target_table: str, target_catalog: str, target_schema: str, target_config: Dict[str, Any], table_properties: Dict[str, str]) -> None` | Implement SCD3 (current/previous columns) as a pivot over an internal SCD2 history table. |
 
 

@@ -23,6 +23,8 @@ body, .md-typeset, .md-typeset table, .md-typeset h1, .md-typeset h2,
 | 1 | [Business Context](#1-business-context) | Why UC3 exists, who cares |
 | 2 | [As-Is Process](#2-as-is-process-today-in-excalibur) | How Excalibur works today, and its pain points |
 | 3 | [To-Be on Databricks](#3-to-be-the-databricks-implementation) | The target architecture in one picture |
+| 3a | [The real streaming source](#3a-the-real-streaming-source-debezium-cdc-v004-supersedes-job-1-for-the-stream-lane) | The Debezium CDC feed, and the traps in parsing it |
+| 3b | [The real batch source](#3b-the-real-batch-source-lakeflow-connect-and-why-its-flows-are-transformation-flows-v007) | Lakeflow Connect, and why Job 3's flows are *transformation* flows, not ingestion flows |
 | 4 | [The Data We Use](#4-the-data-we-use) | Three tables, their PKs, where definitions come from |
 | 5 | [Generated Test Data](#5-generated-test-data-what-exactly-is-produced) | What the generator makes and why |
 | 6 | [File Locations](#6-file-locations-the-exact-paths) | Exact paths, in repo and on the volume |
@@ -107,37 +109,278 @@ Oracle Excalibur (OLTP)
 **The whole picture:**
 
 ```
-  Excalibur (Oracle)
-        |
-        |  [ simulated in this build by Job 1 ]
-        v
-  +----------------------------------------------------+
-  |  STREAMING PATH                 BATCH PATH         |
-  |  (near real-time)               (daily files)      |
-  |                                                    |
-  |  br_digital_poc.staging.<t>_stream       /Volumes/.../batch  |
-  |         |                               |          |
-  |    [ Job 2 : 004 ]               [ Job 3 : 005 ]   |
-  |    streaming CDC                 autoloader        |
-  |         |                               |          |
-  |         v                               v          |
-  |   br_digital_poc.bronze.<t>           br_digital_poc.staging.<t>_batch|
-  |    (SCD1 / SCD2)                        |          |
-  |         ^                               |          |
-  |         |         reconciliation        |          |
-  |         +-------------------------------+          |
-  |            heal: append missing rows               |
-  +----------------------------------------------------+
+                       Excalibur (Oracle)
+                              |
+        +---------------------+---------------------+
+        |                                           |
+   Debezium CDC feed                   Lakeflow Connect Oracle
+        |                              query-based connector
+        v                                           v
+  +-------------------------------------------------------------------+
+  |  STREAMING PATH                      BATCH PATH                   |
+  |  (near real-time)                    (scheduled snapshot)         |
+  |                                                                   |
+  |  <cat>.staging.oracle_excalibur_cdc   <cat>.oracle_excalibur_batch.<t>  |
+  |         |                                      |                  |
+  |    [ Job 2 : 004 ]                    [ Job 3 : 005 / 006 ]       |
+  |    streaming CDC                      transformation flow         |
+  |         |                             (batch table read)          |
+  |         v                                      v                  |
+  |   <cat>.bronze.<t>                    <cat>.staging.<t>_batch     |
+  |    (SCD1 / SCD2)                       (materialized view,        |
+  |         ^                               TRUNCATE_AND_LOAD)        |
+  |         |                                      |                  |
+  |         |           reconciliation             |                  |
+  |         |   (pipeline_audit_only: compare in   |                  |
+  |         |    the pipeline, heal in job tasks)  |                  |
+  |         |                                      |                  |
+  |         |    heal: Debezium envelope rows      |                  |
+  |         +--<-- <cat>.staging.oracle_excalibur_cdc --<-------------+
+  +-------------------------------------------------------------------+
 ```
 
 **Reading it in words:**
 
-1. **Job 1** pretends to be Excalibur — it drips rows into staging tables on a timer.
-2. **Job 2** reads those tables as a **stream** and applies CDC into governed Bronze tables.
-3. **Job 3** reads the **daily batch files**, then **compares** batch against Bronze.
-4. Where the batch has rows the stream missed, Job 3 **feeds them back** into the stream lane, and Job 2 CDC engine applies them properly.
+1. **Job 1** pretended to be Excalibur, dripping rows into staging tables on a timer.
+   *(Superseded for the streaming lane in v0.0.4 and for the batch lane in v0.0.7. Both lanes now
+   read real connector output: the stream reads the Debezium CDC feed in
+   `<catalog>.staging.oracle_excalibur_cdc` (§3a), and the batch lane reads the three tables the
+   Lakeflow Connect Oracle query-based connector writes into `<catalog>.oracle_excalibur_batch`.
+   Job 1 and its generated CSVs are now historical.)*
+2. **Job 2** reads the CDC landing table as a **stream** and applies CDC into governed Bronze tables.
+3. **Job 3** reads the three connector snapshot tables as **batch table inputs**, recomputes
+   `<catalog>.staging.<table>_batch` as a full snapshot, then **compares** batch against Bronze.
+4. Where the batch disagrees with Bronze, Job 3 **feeds the miss set back** into
+   `<catalog>.staging.oracle_excalibur_cdc` as a complete Debezium envelope row, and Job 2's CDC
+   engine applies it as an ordinary change event.
 
 **The key idea:** the batch path is not a second copy of the data. It is an **audit and repair mechanism** for the streaming path.
+
+---
+
+## 3a. The real streaming source — Debezium CDC (v0.0.4, supersedes Job 1 for the stream lane)
+
+Everything above describes the **simulated** stream: Job 1 dripping rows into three
+pre-split, pre-flattened staging tables (`staging.physical_device_stream`,
+`customer_stream`, `subscriber_stream`), which Job 2 then read one-for-one. The batch lane
+and the reconciliation description are unchanged and still accurate.
+
+The streaming lane now reads the **real** Excalibur feed. Debezium Server captures the Oracle
+redo log and writes change events, through the Zerobus gRPC sink, into a **single multiplexed
+landing table**:
+
+```
+  Excalibur (Oracle)  --redo log-->  Debezium Server  --gRPC-->  Zerobus sink
+                                                                      |
+                                                                      v
+                              <catalog>.staging.oracle_excalibur_cdc      (ONE table)
+                              all three Excalibur tables interleaved,
+                              Debezium envelope as JSON in `value`
+                                                                      |
+                            +-----------------+--------------------+--+
+                            |                 |                    |
+                     filter CUSTOMER   filter PHYSICAL_DEVICE  filter SUBSCRIBER
+                            |                 |                    |
+                            v                 v                    v
+                  bronze.customer   bronze.physical_device   bronze.subscriber
+                      (SCD2)              (SCD1)                 (SCD1)
+```
+
+### 3a.1 What the landing table looks like
+
+Nine columns, of which four matter to the pipeline:
+
+| Column | Type | What it carries |
+|---|---|---|
+| `destination` | STRING | The Debezium topic, e.g. `oracdc-excalibur.EXCALIBUR.CUSTOMER`. **This is the column each flow filters on** — it is what identifies which Oracle table a row belongs to. |
+| `value` | STRING | The full Debezium envelope as a **JSON string**: `{schema, payload{before, after, source, op, ts_ms}}`. |
+| `key` | STRING | Debezium key JSON, carrying the primary key. Not read by the pipeline (the keys come out of the payload). |
+| `source_position` | STRING | The Oracle SCN. The landing table's own comment says *"deduplicate on this"*. |
+| `operation` | STRING | `read` / `create` / `update` / `delete` / `change` — the sink's own label, mirroring `payload.op` (`r`/`c`/`u`/`d`). |
+
+A fourth topic, `oracdc-excalibur` with no table suffix, carries Debezium
+**heartbeat/schema-change** events. It has no `payload.op` and no row image, and is excluded
+by both DQ rules on every flow.
+
+### 3a.2 One read, three targets — and why that is not a rule violation
+
+All three ingestion flows declare the **same** `source_catalog` / `source_schema` /
+`source_table`. That is deliberate and is what satisfies the Single-Read DAG mandate rather
+than breaking it: `engine/source_plane.py` fingerprints only the **base-read** options, so the
+three flows collapse to **one** `ReadIdentity` and therefore **one** physical
+`spark.readStream` on the landing table, which all three consume through `bind()`. The
+per-flow topic filter, envelope parse and projection are per-consumer *overlays* applied on
+top of that shared DataFrame — they do not re-read the source.
+
+The graph is:
+
+```
+  1 source-plane base node  (the single streaming read of oracle_excalibur_cdc)
+        |
+        +--> staged view: filter CUSTOMER topic         --> apply_changes SCD2 --> bronze.customer
+        +--> staged view: filter PHYSICAL_DEVICE topic  --> apply_changes SCD1 --> bronze.physical_device
+        +--> staged view: filter SUBSCRIBER topic       --> apply_changes SCD1 --> bronze.subscriber
+```
+
+`tests/unit/test_uc3_specs.py::test_single_read_identity_across_all_three_flows` asserts this
+using the framework's own identity functions, so it cannot drift from the engine.
+
+### 3a.3 How each flow splits its own rows out
+
+`data_standardization_sql` is **projection-only** — one `withColumn` per entry — so it cannot
+filter rows. The split is therefore a `dq_config` rule with `action: "drop"`, which the engine
+turns into `dlt.expect_all_or_drop` on the staged view, *ahead* of `apply_changes`:
+
+| Rule | Expression | Why |
+|---|---|---|
+| `only_<table>_topic` | `destination = 'oracdc-excalibur.EXCALIBUR.<TABLE>'` | Admits only this flow's Oracle table. Without it every Bronze table would receive all three tables' change events. |
+| `cdc_op_recognised` | `__cdc_op IN ('r','c','u','d')` | Drops the heartbeat topic and any envelope with no operation. |
+
+### 3a.4 Three traps in parsing the envelope — each one silent
+
+Every one of these produced a spec that passed **both** validation gates and would still have
+written a wrong Bronze table. All three were caught by querying the live table, and all three
+are now pinned by unit tests.
+
+| # | Trap | Symptom | Fix |
+|---|---|---|---|
+| 1 | **`from_json` field matching is case-sensitive.** Debezium emits Oracle's **UPPERCASE** column names. | A lowercase `schema_ddl` parsed **every** payload column to NULL — all 31 / 90 / 131 of them, primary keys included. Row counts and op codes looked perfect. | Declare the row-image fields **uppercase** in `schema_ddl` and reference them uppercase; lowercase only in the `AS` alias, which is what Bronze stores. |
+| 2 | **Connect `Timestamp` is epoch MILLIseconds** in an int64. | Declaring the field as `TIMESTAMP` makes Spark read the number as **MICRO**seconds — a silent 1000x error that turned `2026-09-11` into year **+58664**. | Declare those fields `BIGINT` and convert with `timestamp_millis(...)` in the projection. |
+| 3 | **A delete carries its row image in `before`**, not `after`. | Projecting only `payload.after.<col>` yields an all-NULL row for every `op='d'`, primary keys included, so `apply_as_deletes` could never match a target key. | Every payload column is `CASE WHEN payload.op = 'd' THEN payload.before.<col> ELSE payload.after.<col> END`. |
+
+### 3a.5 Sequencing, dedup and the initial snapshot
+
+| Concern | Decision |
+|---|---|
+| **Sequencer** | `sequence_by_column: __cdc_scn`, derived from `payload.source.scn` (the Oracle SCN). **Not** `sys_update_date`: two changes committed inside the same second share that timestamp, so `apply_changes` would order them arbitrarily. |
+| **At-least-once delivery** | Handled by the sequencer, not by a dedup pass. `apply_changes` discards a replayed row whose sequence is equal or lower, which makes redelivery idempotent by construction. `source_config.remove_dups` is deliberately **not** set: it is *full-row* dedup with **unbounded** streaming state, and the sink's per-row `idempotency_key` would make every replay look unique to it anyway. |
+| **Initial snapshot** | Debezium's snapshot rows arrive as `op='r'` and are **kept** as the Bronze initial load. `starting_version: 0` on the source ensures the stream starts from the landing table's first version rather than from "now". A snapshot row carries no `scn`, so `__cdc_scn` is `COALESCE(scn, '0')` — it sorts below every real change, which is exactly right for an initial load. |
+| **Deletes** | `payload.op = 'd'` sets `src_deleted_flg = '1'`, which `target_config.cdc_operation_column` reads and maps to `apply_as_deletes`. On SCD1 the row is removed; on SCD2 the open version is closed (`__END_AT` set), preserving history. |
+
+### 3a.6 Latency — the pipeline is continuous
+
+`004_ldp_uc3_excalibur_streaming_cdc` is now **`continuous: true`**. UC3's requirement is
+seconds-level latency from an Oracle commit to Bronze, and a triggered pipeline's latency is
+its trigger interval (minutes at best) however often it is scheduled. Two consequences, both
+deliberate:
+
+1. **A continuous update never completes**, so the pipeline is **not** wrapped by a job that
+   waits on it. Start it with
+   `databricks bundle run uc3_streaming_cdc_pipeline -t <target>`; Databricks owns the
+   lifecycle thereafter. This is the same pattern as
+   `resources/observability/observability_otel_streaming_pipeline.yml`.
+2. **Observability moved to `mode: "continuous"`.** The triggered engine hard-requires a
+   `pipeline_task_run_id` resolved from an upstream pipeline task
+   (`observability/runtime_params.py::REQUIRED_TRIGGERED_PARAMETERS`), and a standing pipeline
+   has no such task. The continuous engine is told which event-log tables to stream instead,
+   which is why the pipeline now publishes its event log to
+   `<catalog>.observability.uc3_excalibur_streaming_cdc_event_log` and the spec names that
+   table in `destination_config.event_log_tables`.
+
+Serverless compute stays up for as long as a continuous pipeline runs, so this bills
+continuously rather than per update. That is the cost of seconds-level latency.
+
+> [!WARNING]
+> **Never `bundle deploy` while the pipeline is running.** A deploy prunes superseded artifacts
+> from `<artifact_path>/.internal/` and kills the live update with
+> `ENVIRONMENT_PIP_INSTALL_ERROR`. With a *continuous* pipeline that window is always open,
+> unlike a triggered one — stop the pipeline first (`flowx_testing/TESTING_PLAN.md` §0).
+
+### 3a.7 Expected row counts on the current landing-table contents
+
+Measured against the live table (196 rows, 4 topics) by replaying the exact spec projection,
+so these are the verification baseline for the first run:
+
+| Bronze table | Strategy | Change events | Distinct keys | Deletes | Expected rows |
+|---|---|---|---|---|---|
+| `bronze.physical_device` | SCD1 | 88 | 80 | 3 | **77** (live keys) |
+| `bronze.customer` | SCD2 | 40 | 30 | 0 | **30** current versions (plus closed history) |
+| `bronze.subscriber` | SCD1 | 63 | 55 | 0 | **55** |
+
+A green `bundle run` does **not** prove the pipeline worked — check these counts, and check
+the pipeline's own update state, not just the job's.
+
+### 3a.8 `columns_to_exclude` does two things (framework prose corrected in 0.0.5)
+
+`target_config.columns_to_exclude` is
+`["sys_creation_date", "sys_update_date", "__cdc_op", "__cdc_source_table"]` on all three flows.
+That attribute does **two** things, and both are intended:
+
+1. it narrows the **comparison** basis (change detection and `__framework_hash_value`), and
+2. `cdc/scd.py` passes the same list to `dlt.apply_changes`'s `except_column_list`, which
+   **drops those columns from the target table's schema**.
+
+This was verified empirically, not from the docs: before this rebuild,
+`bt_digital_poc.bronze.physical_device` genuinely lacked `sys_creation_date`/`sys_update_date`.
+
+The framework's *prose* used to deny the second half — `cdc/comparison_columns.py`,
+`spec_validator.py`, `docs/00_master_reference_index.md` and `agent_skills/SKILL.md` all claimed
+"comparison-only … never drops it from the target table". **That prose was wrong and is corrected
+in 0.0.5**; the code was left alone, because `except_column_list` is the framework's *only*
+mechanism for "don't store this column at all" on a CDC target — `data_standardization_sql` is
+add/replace-only (every expression must end in `AS <name>`), and `schema_config` /
+`column_normalization` only rename, cast or comment. Narrowing it would have deleted a capability
+with no replacement and silently re-added columns to every already-materialized SCD target.
+`tests/unit/test_comparison_columns.py` now pins both halves, including a guard that fails if the
+"comparison-only" claim reappears.
+
+**So these four columns are deliberately absent from Bronze.** `sys_creation_date` /
+`sys_update_date` are Oracle audit timestamps that change on every touch, so comparing them would
+make every row look drifted. Keeping them stored *and* out of comparison would mean populating
+`columns_to_check` — but for SCD2 that is also passed as `track_history_column_list`, so an
+explicit list would change which column changes open a new history version. That is a real
+semantic change to history tracking, so comparison is left implicit. `__cdc_op` /
+`__cdc_source_table` are framework control columns with no business meaning in Bronze.
+`__cdc_scn` is deliberately **not** excluded — `apply_changes` must read its own `sequence_by`
+column, and the SCN is useful lineage.
+
+---
+
+## 3b. The real batch source: Lakeflow Connect, and why its flows are *transformation* flows (v0.0.7)
+
+**This is the single most useful thing to understand about Job 3 as it now stands.** The batch lane
+no longer reads CSVs from a Volume. Its source is the **Lakeflow Connect Oracle query-based
+connector**, which writes three tables into `{{catalog}}.oracle_excalibur_batch`:
+`customer`, `physical_device`, `subscriber`. There is no Volume, no CSV, no `batch_date` partition
+and no `pipeline_parameters.landing_root` anywhere in the spec.
+
+**Those three tables cannot be read by an ingestion flow of any kind, and this is not a preference.**
+Three independent facts stack up:
+
+| # | Fact | Evidence |
+|---|---|---|
+| 1 | The connector writes those tables by **MERGE**, not append. Its default is `scd_type: SCD_TYPE_1`, so it collapses to exactly one row per primary key. | A `MERGE` operation at version 2 in each table's Delta history, and the `__ingestion_connector_primary_key` / `__ingestion_connector_cursor_columns` table properties the connector sets. |
+| 2 | **Delta refuses to stream a MERGE-written table**, raising `DELTA_SOURCE_TABLE_IGNORE_CHANGES`. Delta's own escape hatch, `skipChangeCommits`, is **refused framework-wide** because it silently drops changed rows instead of failing. | `docs/07_reconciliation_engine.md` §11.7, `docs/13_known_limitations_and_gotchas.md` R7. |
+| 3 | **Every FlowX ingestion flow is planned as a streaming read**, unconditionally. `engine/source_plane.py` requests every ingestion source with `want_stream=True` ("there is no batch ingestion reader to fall back to"), and `_execute_reader` hard-rejects a batch bind of an ingestion identity. Changing `target_type` does not help: the constraint sits on the *read*, not on the write. | `engine/source_plane.py`. |
+
+Put together: an ingestion flow would try to stream a table Delta will not stream. **A transformation
+flow does not.** `source_inputs[].is_streaming: false` is honoured verbatim and resolves to a real
+`spark.read.table(...)` batch read, which is exactly what a point-in-time snapshot comparison wants.
+
+**So each of the three batch flows is a `transformation_flows[]` entry:**
+
+- one `source_inputs[]` entry, `is_streaming: false`, naming `{{catalog}}.oracle_excalibur_batch.<table>`;
+- a `transformation_sql` that casts **every** business column to the type the streaming lane writes
+  to Bronze (Oracle `NUMBER` to `DOUBLE`, `DATE` to `TIMESTAMP`, `CHAR`/`VARCHAR2` to `STRING`) and
+  forces the `Null(DF)=Y` columns to `NULL` with `CAST(NULL AS STRING)`;
+- `target_type: "materialized_view"` with `cdc_load_strategy: "TRUNCATE_AND_LOAD"`, so
+  `{{catalog}}.staging.<table>_batch` is a **full snapshot recomputed on every update**.
+
+**Why the casting matters more than it looks.** The reconciliation compares hashes. A hash is over
+values *and* their types, so if the batch lane left `CUSTOMER_ID` as the connector's `DECIMAL` while
+the streaming lane wrote `DOUBLE` into Bronze, every single row would report as drifted while the
+data was in fact identical. The casts exist to make the two lanes' hashes agree, and the forced
+NULLs exist so a batch row can never re-introduce a credential column the streaming lane nulled out.
+
+**And why the reconciliation flows are `pipeline_audit_only`.** Their source,
+`{{catalog}}.staging.<table>_batch`, is now this same group's own `TRUNCATE_AND_LOAD` materialized
+view, fully replaced on every update. `execution_mode: "pipeline"` *streams* its source to drive the
+L5 heal pulse, so it is illegal here for the same reason as fact 2 above. `pipeline_audit_only`
+binds the source as a batch read and registers no heal lane at all, which is why the three
+`heal_<table>` job tasks in §8.3 exist.
+
+---
+
 
 <div class="screenshot"><b>[ SCREENSHOT PLACEHOLDER 1 ]</b><br/>
 Databricks Workflows list showing the three UC3 jobs:<br/>
@@ -196,6 +439,15 @@ The column lists are **not hand-typed anywhere**. They are read at runtime from 
 
 Real Excalibur data cannot be used for development. `scripts/generate_uc3_test_data.py` produces a realistic stand-in. **Everything in this section is [Simulated]** — every row is synthesised by that one script. It is written to `build/uc3_test_data/` (`--out-dir build/uc3_test_data`, the default), which is **generated output, not source**.
 
+> ### This whole section is now HISTORICAL. Neither lane reads it.
+>
+> The streaming lane stopped reading the simulator in **v0.0.4** (§3a) and the batch lane stopped
+> in **v0.0.7** (§3b). Job 3 now reads the three Lakeflow Connect Oracle tables in
+> `{{catalog}}.oracle_excalibur_batch`. There is no Volume, no CSV and no `batch_date` anywhere in
+> its spec. The section is kept intact rather than deleted, because the verified figures below are
+> the evidence behind the reconciliation results quoted in §14.5, which were measured in the CSV
+> era and cannot be reproduced now. Read everything under §5 as "what the CSV-era build did".
+
 **The two provenance classes, side by side:**
 
 | Asset | Provenance | Who produces it |
@@ -209,8 +461,8 @@ Paths below are relative to the `--out-dir` (default `build/uc3_test_data/`).
 
 | Output | Rows | Provenance | Purpose |
 |---|---|---|---|
-| `streaming/<table>/<table>_stream.csv` | **100 rows** | **[Simulated]** | Fed by Job 1 into the streaming lane |
-| `batch/<table>/batch_date=YYYY-MM-DD/<table>_batch.csv` | **30 rows x 4 dates = 120** | **[Simulated]** | Fed by Job 3 into the batch lane |
+| `streaming/<table>/<table>_stream.csv` | **100 rows** | **[Simulated]** | *Historical.* Fed by Job 1 into the streaming lane until v0.0.4 |
+| `batch/<table>/batch_date=YYYY-MM-DD/<table>_batch.csv` | **30 rows x 4 dates = 120** | **[Simulated]** | *Historical.* Fed by Job 3 into the batch lane until v0.0.7 |
 
 **The four batch dates:** `2026-08-01`, `2026-08-02`, `2026-08-03`, `2026-08-04`.
 
@@ -245,8 +497,8 @@ This is the most important design point in the test data. The batch set is **eng
 | What | Path | Provenance |
 |---|---|---|
 | Governance sheets | `BT_Usecase/UC3/data/*_DDL.csv` | **[Customer-Provided]** |
-| Test data generator | `scripts/generate_uc3_test_data.py` | — |
-| Generated test data | `build/uc3_test_data/` *(generated output, not source)* | **[Simulated]** |
+| Test data generator | `scripts/generate_uc3_test_data.py` *(historical: no lane reads its output any more, see §5)* | n/a |
+| Generated test data | `build/uc3_test_data/` *(generated output, not source; historical)* | **[Simulated]** |
 | Streaming CDC spec | `BT_Usecase/UC3/onboarding/uc3_excalibur_streaming_cdc.json` | — |
 | Batch and recon spec | `BT_Usecase/UC3/onboarding/uc3_excalibur_batch_recon.json` | — |
 | This document and its companions | `BT_Usecase/UC3/docs/{UC3_MASTER_DOCUMENT,BUILD_CONTRACT,FRAMEWORK_CAPABILITY_MAP}.md` | — |
@@ -264,10 +516,16 @@ This is the most important design point in the test data. The batch set is **eng
 
 | Path | Contents |
 |---|---|
-| `/Volumes/br_digital_poc/staging/uc_3/streaming/<table>/` | The 100-row streaming CSV that Job 1 drains |
-| `/Volumes/br_digital_poc/staging/uc_3/batch/<table>/batch_date=YYYY-MM-DD/` | The 4 x 30-row batch CSVs Job 3 reads |
-| `/Volumes/br_digital_poc/staging/uc_3/_schemas/<table>_batch/` | Auto Loader schema-inference checkpoints |
-| `/Volumes/br_digital_poc/observability/app_logs/streaming_cdc/` | Exported observability JSON |
+| `/Volumes/br_digital_poc/observability/app_logs/streaming_cdc/` | Exported observability JSON, streaming lane |
+| `/Volumes/br_digital_poc/observability/app_logs/batch_recon/` | Exported observability JSONL + gzip, batch lane |
+| `/Volumes/br_digital_poc/staging/uc_3/streaming/<table>/` | *Historical.* The 100-row streaming CSV Job 1 drained, until v0.0.4 |
+| `/Volumes/br_digital_poc/staging/uc_3/batch/<table>/batch_date=YYYY-MM-DD/` | *Historical.* The 4 x 30-row batch CSVs Job 3 read, until v0.0.7 |
+| `/Volumes/br_digital_poc/staging/uc_3/_schemas/<table>_batch/` | *Historical.* Auto Loader schema-inference checkpoints. Job 3 no longer uses Auto Loader, so nothing reads or writes these |
+
+> **Neither lane reads this volume any more.** The streaming lane reads
+> `{{catalog}}.staging.oracle_excalibur_cdc` (§3a) and the batch lane reads
+> `{{catalog}}.oracle_excalibur_batch.<table>` (§3b). Only the two observability paths are live.
+> The `uc_3` volume and its leftover CSVs are inert, not load-bearing.
 
 > **Gotcha worth knowing:** `databricks fs cp` does **not** create intermediate directories on a UC Volume. It fails with `no such directory`. Create the directory tree first.
 
@@ -275,10 +533,12 @@ This is the most important design point in the test data. The batch set is **eng
 
 | Layer | Tables |
 |---|---|
-| **Staging (stream)** | `br_digital_poc.staging.{physical_device,customer,subscriber}_stream` |
-| **Staging (batch)** | `br_digital_poc.staging.{physical_device,customer,subscriber}_batch` |
+| **Landing (stream)** | `br_digital_poc.staging.oracle_excalibur_cdc`, the multiplexed Debezium CDC feed Job 2 streams, and the table Job 3's heal tasks append envelope rows into |
+| **Landing (batch)** | `br_digital_poc.oracle_excalibur_batch.{physical_device,customer,subscriber}`, written by the Lakeflow Connect Oracle query-based connector, **not** by this framework |
+| **Staging (batch)** | `br_digital_poc.staging.{physical_device,customer,subscriber}_batch`, now **materialized views**, `TRUNCATE_AND_LOAD`, recomputed in full on every Job 3 update |
 | **Bronze (governed)** | `br_digital_poc.bronze.{physical_device,customer,subscriber}` |
 | **Control tables** | `reconciliation_run_log`, `reconciliation_result`, `ingestion_flow_spec`, and others |
+| *Historical* | `br_digital_poc.staging.{physical_device,customer,subscriber}_stream`, the Job 1 simulator's tables. Also the heal append target until v0.0.7; healing now goes to `staging.oracle_excalibur_cdc` instead |
 
 <div class="screenshot"><b>[ SCREENSHOT PLACEHOLDER 2 ]</b><br/>
 Catalog Explorer showing <code>flowx</code> with the <code>staging</code> and <code>bronze</code> schemas and the UC3 tables listed.</div>
@@ -332,12 +592,14 @@ This is the heart of the build. **No CDC code, no hashing code, no tagging code 
 
 | Attribute | Type | Value | Why |
 |---|---|---|---|
-| `source_type` *(flow-level, not inside `source_config`)* | string | `zerobus` | Reads an **existing Delta table** as a stream. The simulator writes Delta, so this is the correct reader — not `autoloader`, which reads files. |
+| `source_type` *(flow-level, not inside `source_config`)* | string | `zerobus` | Reads an **existing Delta table** as a stream. The Zerobus sink writes Delta, so this is the correct reader — not `autoloader`, which reads files. |
 | `source_catalog` | string | `{{catalog}}` | **Never hardcode the catalog.** Substituted at onboarding time so the same spec works in dev, test and prod. |
-| `source_schema` / `source_table` | string | `staging` / `<table>_stream` | The simulator output tables. |
+| `source_schema` / `source_table` | string | `staging` / `oracle_excalibur_cdc` | **v0.0.4: the one multiplexed Debezium landing table, identical on all three flows** — which is what collapses them to a single physical read (§3a.2). Was `<table>_stream`, the three simulator output tables. |
+| `starting_version` | integer | `0` | Stream the landing table from its **first** version, so Debezium's initial snapshot (`op='r'`) is ingested as the Bronze initial load rather than skipped (§3a.5). |
+| `json_string_columns` | array of objects | `[{column: "value", schema_ddl: "struct<payload:struct<...>>"}]` | Parses the Debezium envelope out of the `value` **JSON string** column with an **explicit** schema — deterministic on batch and streaming alike, unlike the inferring `from_json`. Field names are **UPPERCASE** because `from_json` matching is case-sensitive (§3a.4 trap 1). |
 | `capture_technical_metadata` | boolean | `true` | Adds `__framework_ingestion_timestamp_utc` and source-file lineage columns. This is what makes section 15 traceability possible. |
 | `column_normalization` | object `{enabled, case}` | `{enabled: true, case: "lower"}` | Oracle sheets are UPPERCASE; Databricks convention is lowercase. Normalising once at the boundary means no downstream query ever has to guess the case. |
-| `data_standardization_sql` | array of strings | `["CAST(NULL AS STRING) AS esn_pin", ...]` | **This is how `Null(DF)=Y` is enforced.** The column still exists (schema stability) but is forced to NULL at ingestion. |
+| `data_standardization_sql` | array of strings | 35 / 94 / 135 expressions | **v0.0.4: now also does the envelope projection.** It promotes the CDC control columns (`__cdc_op`, `__cdc_scn`, `__cdc_source_table`), then projects every payload column as `CASE WHEN payload.op='d' THEN payload.before.<COL> ELSE payload.after.<COL> END` (a delete carries its image in `before` — §3a.4 trap 3), converting Connect Timestamp fields with `timestamp_millis()` (§3a.4 trap 2), and derives `src_deleted_flg`. It still enforces `Null(DF)=Y` with `CAST(NULL AS STRING) AS <col>`. **Projection-only — it cannot filter rows**, which is why the topic split is a `dq_config` drop rule (§3a.3). |
 
 > **`data_standardization_sql` is not present on all three flows.** `physical_device` declares 2 expressions (`esn_pin`, `blacklist_password`) and `customer` declares 3 (`gur_cr_card_no`, `acc_password`, `imei_black_list_pass`). **`subscriber` omits the key entirely** — its two sensitive columns are `Drop(DF)=Y`, and a dropped column cannot also be a nulled one, so there is nothing left to null. This matches 11.2 and 11.3 exactly.
 
@@ -348,11 +610,26 @@ This is the heart of the build. **No CDC code, no hashing code, no tagging code 
 | `target_type` *(flow-level)* | string | `streaming_table` | same | same | Continuously updated, checkpointed. |
 | `cdc_load_strategy` | string | `SCD1` | **`SCD2`** | `SCD1` | The business rule from 4.1. Selects the `dlt.apply_changes` mode — `SCD2` sets `stored_as_scd_type="2"`. **One word switches the whole history model.** |
 | `primary_keys` | array of strings | 4 cols | 1 col | 2 cols | Identity for CDC matching. Order is load-bearing — it is the basis of `__framework_hash_key`. |
-| `sequence_by_column` | string | `sys_update_date` | same | same | **Which change wins.** Out-of-order arrivals are ordered by this, not by arrival time. Critical for correctness. |
+| `sequence_by_column` | string | `__cdc_scn` | same | same | **Which change wins.** Out-of-order arrivals are ordered by this, not by arrival time. **v0.0.4: the Oracle SCN**, derived from `payload.source.scn` — not `sys_update_date`, which is identical for changes committed inside the same second and so cannot order them. Sequencing by SCN also makes `apply_changes` idempotent against Debezium's at-least-once redelivery (§3a.5). |
 | `cdc_operation_column` | string | `src_deleted_flg` | same | same | The column carrying the delete signal. |
 | `cdc_operation_mapping` | object `{delete_values: [string]}` | `{"delete_values": ["1"]}` | same | same | Evaluated as `col(cdc_operation_column).isin(delete_values)`. Value `'1'` means "delete this row". |
 | `generate_hash_columns` | boolean | `true` | same | same | Framework materialises `__framework_hash_key` and `__framework_hash_value`. **One boolean replaces a hand-written SHA-256 loop.** |
-| `columns_to_exclude` | array of strings | `["sys_creation_date","sys_update_date"]` | same | same | **Comparison-only, never dropped from storage.** Excluded from the **value hash** and from change detection — audit timestamps change on every touch and would make every row look drifted. The columns are still written to Bronze. |
+
+**Data quality (`dq_config`, per flow — new in v0.0.4):**
+
+The landing table is multiplexed, so each flow must admit only its own Oracle table's rows.
+`data_standardization_sql` is projection-only and cannot filter, so the split is a DQ rule with
+`action: "drop"`, which the engine turns into `dlt.expect_all_or_drop` on the staged view —
+*before* `apply_changes` sees the rows.
+
+| `rule_id` | Expression | Action | Why |
+|---|---|---|---|
+| `only_<table>_topic` | `destination = 'oracdc-excalibur.EXCALIBUR.<TABLE>'` | `drop` | Admits only this flow's Oracle table. Without it every Bronze table would receive all three tables' change events. |
+| `cdc_op_recognised` | `__cdc_op IN ('r','c','u','d')` | `drop` | Drops the `oracdc-excalibur` heartbeat/schema-change topic, which carries no `payload.op` and no row image. |
+
+> Dropped rows are still counted in the pipeline's data-quality metrics, so the fan-out is
+> observable: each flow's drop count is the number of rows belonging to the *other* two tables.
+| `columns_to_exclude` | array of strings | `["sys_creation_date","sys_update_date","__cdc_op","__cdc_source_table"]` | same | same | Excluded from the **value hash** and from change detection — audit timestamps change on every touch and would make every row look drifted. **This attribute also DROPS these columns from the target schema** (`cdc/scd.py` passes it to `apply_changes`'s `except_column_list`) — it is the framework's only "don't store this column at all" mechanism. So all four are deliberately absent from Bronze. The framework prose that used to claim comparison-only was wrong and is corrected in 0.0.5. See §3a.8. |
 | `liquid_clustering_columns` | array of strings | `["__framework_hash_key"]` | `["customer_id"]` | `["subscriber_no","customer_id"]` | Physical layout for fast lookups. |
 
 > **Why `physical_device` clusters on `__framework_hash_key` and not its PK:** Liquid clustering supports a **maximum of 3 columns**. `physical_device` has a **4-column** PK. Rather than truncate the PK — which would cluster on a partial key and skew the layout — the framework clusters on the single hash column that already encodes all four. **The PK itself is never truncated.**
@@ -375,33 +652,36 @@ Full detail in section 11.
 
 ### 7.2 Job 3 spec — `uc3_excalibur_batch_recon.json`
 
-**Pipeline parameters:**
+> **Rewritten for v0.0.7.** The batch lane no longer reads files. There is **no**
+> `pipeline_parameters` block, **no** `${landing_root}`, **no** `source_type: "autoloader"`, no
+> `path` / `format` / `schema_location` / `reader_options`, and no `partition_columns`. Those
+> attributes were correct for the CSV-era build and are listed in the *historical* table at the end
+> of this section so a reader of an older deployment can still map it. §3b explains why the flows
+> changed shape; this section lists what they now declare.
 
-```json
-"pipeline_parameters": { "landing_root": "/Volumes/br_digital_poc/staging/uc_3/batch" }
-```
-
-| Attribute | Type | Why |
-|---|---|---|
-| `pipeline_parameters` | object of string to string | Declares `${landing_root}` = `/Volumes/br_digital_poc/staging/uc_3/batch`, referenced by all three source paths. **Resolved fresh on every pipeline update**, so an operator can retarget paths without re-onboarding. |
-
-**Batch ingestion flows (3 flows, one per table):**
+**Batch snapshot flows, declared as `transformation_flows[]`, 3 flows, one per table:**
 
 | Attribute | Type | Value | What it does at runtime |
 |---|---|---|---|
-| `source_type` *(flow-level)* | string | `autoloader` | Reads **files** incrementally with a checkpoint. Only new files are picked up on each run. |
-| `source_config.path` | string | `${landing_root}/<table>/` | Points at the **top-level table folder**, not a pinned `batch_date`. Auto Loader discovers new date folders automatically. |
-| `source_config.format` | string | `csv` | The Auto Loader `cloudFiles.format`. |
-| `source_config.schema_location` | string | `/Volumes/br_digital_poc/staging/uc_3/_schemas/<table>_batch/` | Where Auto Loader remembers the inferred schema across runs. |
-| `source_config.reader_options` | object of string to string | `{header, delimiter, cloudFiles.inferColumnTypes}` | Passed straight to the reader. `cloudFiles.inferColumnTypes: "true"` infers real types from CSV rather than making everything a string. |
-| `source_config.capture_technical_metadata` | boolean | `true` | Same lineage columns as the streaming side. |
-| `source_config.column_normalization` | object `{enabled, case}` | `{enabled: true, case: "lower"}` | Lower-cases the CSV headers so batch and Bronze column names align for reconciliation. |
-| `source_config.data_standardization_sql` | array of strings | 2 on `physical_device`, 3 on `customer`, **absent on `subscriber`** | Re-applies the same `Null(DF)=Y` forced NULLs as Job 2, so a batch row can never re-introduce a value the streaming lane nulled out. |
-| `target_config.cdc_load_strategy` | string | **`APPEND`** | **Deliberately not a CDC strategy.** Staging keeps all four dated sets side by side as an audit record. |
-| `target_config.partition_columns` | array of strings | `["batch_date"]` | Enables efficient per-day filtering. |
-| `governance_tags.table_tags` | object of string to string | `source_system`, `use_case`, `domain`, **`layer: staging`**, **`load_pattern: batch`** | Two tags more than the Bronze tables carry — they mark these as the staging/batch lane so a query can tell the two apart. |
+| `dataflow_id` / `flow_step_id` | string | `df_uc3_<table>_batch_load` | Unchanged names, deliberately: the same flow identity, a different flow *type*. |
+| `source_inputs[].input_name` | string | `<table>_src` | The alias the `transformation_sql` selects `FROM`. |
+| `source_inputs[].table` | string | `{{catalog}}.oracle_excalibur_batch.<table>` | The Lakeflow Connect Oracle query-based connector's output table. |
+| `source_inputs[].is_streaming` | boolean | **`false`** | **The load-bearing attribute.** A transformation flow honours it verbatim and resolves to a real `spark.read.table(...)`. This is the only way to read a MERGE-written table in this framework. See §3b. |
+| `transformation_sql` | string | one `SELECT` per flow, 31 / 90 / 131 columns | Casts **every** business column to the Bronze-side type (Oracle `NUMBER` to `DOUBLE`, `DATE` to `TIMESTAMP`, `CHAR`/`VARCHAR2` to `STRING`) so the two lanes' hashes agree, and forces the `Null(DF)=Y` columns to `NULL` via `CAST(NULL AS STRING)` so a batch row cannot re-introduce a credential the streaming lane discarded. |
+| `target_catalog` / `target_schema` / `target_table` | string | `{{catalog}}` / `staging` / `<table>_batch` | Unchanged destination. |
+| `target_type` | string | **`materialized_view`** | Was a streaming table. An MV is what `TRUNCATE_AND_LOAD` needs, and it is what makes each update a clean point-in-time snapshot. |
+| `target_config.cdc_load_strategy` | string | **`TRUNCATE_AND_LOAD`** | Full recompute on every update. Was `APPEND`, which kept four dated sets side by side; there are no dated sets any more, and a reconciliation wants *one* current snapshot, not an accumulating pile. |
+| `target_config.liquid_clustering_columns` | array of strings | the table PK, 3 / 1 / 2 columns | Capped at 3 by the framework. |
+| `governance_tags.table_tags` | object of string to string | `source_system`, `use_case`, `domain`, **`layer: staging`**, **`load_pattern: batch`** | Unchanged. Two tags more than the Bronze tables carry, marking these as the staging/batch lane. |
+| `governance_tags.column_tags[]` | array | 2 on `physical_device`, 3 on `customer`, **absent on `subscriber`** | The credential columns the `transformation_sql` nulls out, tagged `data_fabric_action: NULL_AT_SOURCE`. |
 
 > **Why no `generate_hash_columns` on the batch side:** the hashes for comparison are computed by the **reconciliation engine itself** (`hash_precomputed: false`). Adding them here would compute a hash over a *different* column set and cause exactly the mismatch described below.
+
+> **Why the forced NULLs moved from `data_standardization_sql` into `transformation_sql`.** They are
+> the same nulls, expressed in the only place a transformation flow has to express them.
+> `data_standardization_sql` is a `source_config` attribute of an **ingestion** flow; a
+> transformation flow's shaping *is* its `transformation_sql`, so the `CAST(NULL AS STRING) AS
+> <col>` projections carry it. The `Null(DF)=Y` contract in §4.3 is unchanged.
 
 **Reconciliation flows (3 flows, one per table):**
 
@@ -409,8 +689,8 @@ Full detail in section 11.
 |---|---|---|---|
 | `reconciliation_id` | string | `rf_uc3_<table>_batch_vs_bronze` | Unique flow id. Names the generated DAG nodes and is the key written to `reconciliation_run_log`. |
 | `dataflow_group_id` | string | `dfg_uc3_excalibur_batch_recon` | Binds the flow to the same group as the batch ingestion flows, so both land in one pipeline. |
-| `execution_mode` | string | `pipeline` | Runs **inside the DAG**, not as a separate job task. Lakeflow tracks lineage natively. |
-| `publish_schema` | string | `staging` | Where the published `recon__<id>__<tgt>__metrics` table is created. |
+| `execution_mode` | string | **`pipeline_audit_only`** | The comparison (L3 + L4: prepared sides, `__classified`, the published `__metrics`) runs **inside the DAG**. The corrective append does **not**, because audit-only registers no heal lane, which is why §8.3 has three `heal_<table>` job tasks. Was `pipeline`; that mode streams its source for the L5 pulse and is now illegal here, because the source is this group's own `TRUNCATE_AND_LOAD` materialized view (§3b). |
+| `publish_schema` | string | `reconciliation` | Where the published `recon__<id>__<tgt>__metrics` table is created. |
 | `match_keys` | array of strings | The table PK — 4 / 1 / 2 columns | How a source row is paired with a target row. |
 | `source_config.type` | string | `table` | The source is a UC table, not a path. |
 | `source_config.table` | string | `br_digital_poc.staging.<table>_batch` | The batch side. |
@@ -421,7 +701,9 @@ Full detail in section 11.
 | `target_configs[].table` | string | `br_digital_poc.bronze.<table>` | The Bronze side produced by Job 2. |
 | `target_configs[].hash_precomputed` | boolean | **`false`** | See the critical note below. |
 | `target_configs[].comparison_direction` | string | `both` | Reports rows missing in target *and* rows missing in source. |
-| `target_configs[].append_target_table` | string | `br_digital_poc.staging.<table>_stream` | **The self-healing lane.** Missing/drifted rows are appended here, then re-applied by the Job 2 CDC engine. |
+| `target_configs[].append_target_table` | string | **`{{catalog}}.staging.oracle_excalibur_cdc`** | **The self-healing lane.** Missing/drifted rows are appended into the **multiplexed Debezium CDC landing table Job 2 already streams**, so a healed row re-enters through the same CDC engine as any real change. Was `staging.<table>_stream`, the simulator tables, which nothing reads any more. |
+| `target_configs[].filter_condition` | string | **`__END_AT IS NULL`**, **`customer` only** | Restricts the Bronze side to **current** versions. `bronze.customer` is **SCD2** and holds every historical version, so without this filter a stale closed version could mask real drift: the matcher collapses duplicate keys `MATCHED > VALUE_DRIFT > MISSING`, so one matching historical row makes the key count as matched even when the current row disagrees. `physical_device` and `subscriber` are SCD1 and hold one row per key, so they need no filter. |
+| `transform_sql` | string | one per flow, 12 / 22 / 32 KB | **Reshapes the miss set into a complete Debezium envelope row** before the append. Detailed immediately below. |
 | `compare_columns` | array of strings | **25 / 87 / 127** columns | **Which columns must agree** for a row to count as matched. Omitting it degrades matching to key-presence only. |
 | `two_tier_verification` | boolean | `true` | Fast hash comparison first, then column-level detail only for rows that differ. |
 | `error_handling.on_failure` | string | `warn` | A reconciliation failure logs a warning rather than failing the pipeline update — the batch lane is an audit mechanism and must not take the pipeline down. |
@@ -434,6 +716,51 @@ Full detail in section 11.
 >
 > **2. `hash_precomputed: true` on the target makes `matched_count` collapse to 0.** Bronze `__framework_hash_value` was built by the **CDC engine** over its comparison column set. The recon builds its source hash over **`compare_columns`**. Two different column sets give two different hashes, so every row reports as drifted. Setting `hash_precomputed: false` on **both** sides makes the engine compute both hashes over the same set. **After changing this, a `--full-refresh` is required** — otherwise the pipeline serves cached datasets and the metrics do not move.
 
+**What `transform_sql` produces (new in v0.0.7).** `reconciliation/appender.py::apply_transform_sql`
+runs this SQL over the miss set, exposed as `_reconciliation_unmatched_records`, **before**
+`append_missing_records` writes it. So the appended shape is this SQL's `SELECT` list, not the
+source table's columns. Each flow's SQL emits the **nine columns of the Debezium landing table**
+(`destination`, `target_table`, `key`, `value`, `operation`, `source_position`,
+`idempotency_key`, `partition`, `headers`), populated so the result is indistinguishable from a
+real connector message:
+
+| Piece of the envelope | How it is built |
+|---|---|
+| `key` / `value` | `concat('{"schema":', <verbatim Kafka-Connect schema block>, ',"payload":', to_json(...), '}')`. The schema block is copied verbatim from the real feed, not re-derived. |
+| Field names inside the payload | **UPPERCASE Oracle names** (`CUSTOMER_ID`, not `customer_id`), because `from_json` is case-sensitive and the streaming lane parses against the uppercase schema. |
+| Connect `Timestamp` fields | `unix_millis(...)`, giving epoch milliseconds as `int64`, which is what Connect's `org.apache.kafka.connect.data.Timestamp` logical type means. A string timestamp parses to NULL silently. |
+| `before` | `null`. A heal is a corrected *current* image; there is no prior image to report. |
+| `op` | `'r'` (read/snapshot), and `operation` is `'read'`. |
+| `source.scn` | `MAX(existing scn) + 1`, read from the landing table itself, so a healed row sequences **after** everything already in the feed and cannot be beaten by a stale CDC event. |
+| `headers` | `__flowx.producer`, `__flowx.reconciliation_id`, `__flowx.target_id`, `__flowx.heal_scn`, `__flowx.healed_at_utc`. Enough to trace any Bronze row back to the heal that produced it. |
+| `idempotency_key` | `sha256` over `destination`, `key` and `value`, so a re-run of the same heal produces the same key. |
+
+> **The onboarding preflight will tell you it cannot check this shape.** Since **v1.7.11** the
+> `append_schema` existence check reports the advisory status `SHAPE_DEFINED_BY_TRANSFORM_SQL`
+> instead of a false `SCHEMA_MISMATCH` when a flow declares `transform_sql`. It is informational,
+> not an error. **You must verify the `SELECT` list yourself**: the append runs with
+> `mergeSchema`, so a misspelt alias silently **adds a column** to the landing table rather than
+> failing.
+
+**Historical: the CSV-era attributes, for reading an older deployment.** None of these appear in
+the spec any more. Presence of an unknown key is a hard onboarding rejection since v1.7.1, so do
+not copy them forward.
+
+| Attribute | Old value | Replaced by |
+|---|---|---|
+| `pipeline_parameters.landing_root` | `/Volumes/br_digital_poc/staging/uc_3/batch` | *(nothing, no paths remain)* |
+| `source_type` *(flow-level)* | `autoloader` | a `transformation_flows[]` entry with `source_inputs[].is_streaming: false` |
+| `source_config.path` | `${landing_root}/<table>/` | `source_inputs[].table` |
+| `source_config.format` | `csv` | *(nothing, the source is a table)* |
+| `source_config.schema_location` | `/Volumes/.../_schemas/<table>_batch/` | *(nothing, no Auto Loader and no schema checkpoint)* |
+| `source_config.reader_options` | `{header, delimiter, cloudFiles.inferColumnTypes}` | *(nothing)* |
+| `source_config.column_normalization` | `{enabled: true, case: "lower"}` | the lower-case aliases in `transformation_sql` |
+| `source_config.data_standardization_sql` | forced `NULL`s per `Null(DF)=Y` | the `CAST(NULL AS ...)` projections in `transformation_sql` |
+| `target_config.cdc_load_strategy` | `APPEND` | `TRUNCATE_AND_LOAD` |
+| `target_config.partition_columns` | `["batch_date"]` | *(nothing, there is no `batch_date`)* |
+| `target_configs[].append_target_table` | `staging.<table>_stream` | `staging.oracle_excalibur_cdc` plus `transform_sql` |
+| `execution_mode` | `pipeline` | `pipeline_audit_only` plus three `heal_<table>` job tasks |
+
 ### 7.3 `${param}` vs `{{catalog}}` — two different lifecycles
 
 This distinction matters and is easy to get wrong.
@@ -445,6 +772,11 @@ This distinction matters and is easy to get wrong.
 
 **Why the difference is deliberate:** the catalog is fixed for a deployment, so resolving it once is right. A path may need retargeting without re-onboarding, so it stays a placeholder in the control table and resolves fresh each run.
 
+> **Neither UC3 spec uses `${param}` any more (v0.0.7).** It went away with `landing_root`, the last
+> path either lane had. The distinction is kept here because it is a framework-wide rule and the
+> failure it prevents (`Path must be absolute: ${landing_root}/...`, Appendix A R10) is one this
+> build actually hit.
+
 ### 7.4 `observability` — the telemetry export block
 
 Both specs declare exactly one observability destination. This is what the `observability_export` task in section 8.2 drains.
@@ -455,7 +787,7 @@ Both specs declare exactly one observability destination. This is what the `obse
 | `enabled` | boolean | `true` | `true` | Active flag. A disabled destination is stored but never dispatched to. |
 | `type` | string | `DATABRICKS_VOLUME` | same | Writes event-log telemetry to a UC Volume. The alternative is `OTLP_CONSUMER`, which posts to an OTLP endpoint. |
 | `mode` | string | `triggered` | same | Bounded post-update export for one pipeline, run by the `observability_export` task. The alternative, `continuous`, is an always-on streaming export and is **not** used here. |
-| `destination_config.volume_path` | string | `/Volumes/{{catalog}}/observability/app_logs/streaming_cdc` | `/Volumes/br_digital_poc/observability/app_logs/batch_recon` | Export target. Note Job 2 uses the `{{catalog}}` placeholder and Job 3 hardcodes `flowx` — see 7.3 for why the placeholder form is preferred. |
+| `destination_config.volume_path` | string | `/Volumes/{{catalog}}/observability/app_logs/streaming_cdc` | `/Volumes/{{catalog}}/observability/app_logs/batch_recon` | Export target. Both specs now use the `{{catalog}}` placeholder. Job 3 used to hardcode a catalog name, which is corrected. See 7.3 for why the placeholder form is preferred. |
 | `destination_config.file_format` | string | `JSON` | `JSONL` | Output encoding. Allowed values are `JSONL` (default) and `JSON`. |
 | `destination_config.compression` | **string** | *(omitted — defaults to `none`)* | `GZIP` | Compression applied to the exported file. |
 
@@ -518,7 +850,28 @@ in two one-time jobs (same split as `resources/sample_jobs/flowx_sample_seed_job
 
 ### 8.3 Job 3 — `005_lfj_uc3_excalibur_batch_recon`
 
-Same two-task shape, driving pipeline **`006_ldp_uc3_excalibur_batch_recon`**; its spec is onboarded by the seed job's second task and tagged by the governance job's second task.
+**Five tasks**, driving pipeline **`006_ldp_uc3_excalibur_batch_recon`**; its spec is onboarded by the seed job's second task and tagged by the governance job's second task.
+
+| Order | Task | What it does |
+|---|---|---|
+| 1 | `run_pipeline_update` | Recomputes the three `staging.<table>_batch` materialized views from the Lakeflow Connect tables, then runs the three reconciliation comparisons (L3 + L4) inside the same update and publishes `recon__<id>__<tgt>__metrics`. |
+| 2 | `heal_physical_device` | `notebooks/05_reconciliation/05_reconciliation_engine.py`, `reconciliation_id: rf_uc3_physical_device_batch_vs_bronze` |
+| 2 | `heal_customer` | same notebook, `rf_uc3_customer_batch_vs_bronze` |
+| 2 | `heal_subscriber` | same notebook, `rf_uc3_subscriber_batch_vs_bronze` |
+| 3 | `observability_export` | Drains the pipeline's event log to the observability volume. Depends on all three heal tasks. |
+
+> **Why the three `heal_*` tasks exist, and why removing them breaks the use case silently.** The
+> three reconciliation flows are `execution_mode: "pipeline_audit_only"` (§7.2, §3b), and audit-only
+> registers the comparison but **no heal lane at all**. Without these tasks the batch lane would
+> compare and report forever while never healing anything: every run green, every metric
+> populated, and not one correction applied. One task per `reconciliation_id`; the notebook takes
+> exactly one.
+
+The three heal tasks run **in parallel with each other** (different `reconciliation_id`, different
+source, different target, no shared state) but all **after** the pipeline update, because each
+re-reads the prepared source and target that update just published. Each passes
+`task_run_id: {{job.run_id}}`, which is what correlates every `reconciliation_run_log` and
+`reconciliation_result` row back to this job run.
 
 > **The 005 / 006 numbering mismatch is deliberate.** Job 2 job and pipeline are both `004`. Job 3 are `005` and `006`. This is intentional and preserved from the original specification. Do not "fix" it.
 
@@ -554,15 +907,17 @@ Job run detail for <code>004_lfj_uc3_excalibur_streaming_cdc</code> showing all 
 
 **How to read this:** if a name starts with `_`, it is **internal plumbing** — it holds no business data you should query. Query `br_digital_poc.bronze.<table>`.
 
-### 9.2 Job 3 DAG — batch and reconciliation (five layers)
+### 9.2 Job 3 DAG, batch and reconciliation (four layers in the graph, healing outside it)
 
 ```
- /Volumes/.../batch/<table>/  --> [ autoloader ] --> br_digital_poc.staging.<table>_batch   (L1: real table)
-                                                              |
+ <cat>.oracle_excalibur_batch.<table>  --> [ transformation flow,     --> <cat>.staging.<table>_batch
+   (Lakeflow Connect, MERGE-written)         is_streaming: false,          (L1: MATERIALIZED VIEW,
+                                             transformation_sql ]           TRUNCATE_AND_LOAD,
+                                                              |             recomputed every update)
                                                               v
-                                    _recon__<id>__src         (L3: temporary)
-                                    _recon__<id>__<tgt>__tgt  (L3: temporary)  <-- br_digital_poc.bronze.<table>
-                                                              |
+                                    _recon__<id>__src         (L3: batch read)
+                                    _recon__<id>__<tgt>__tgt  (L3: batch read)  <-- <cat>.bronze.<table>
+                                                              |                     (customer: __END_AT IS NULL)
                                                               v
                                     _recon__<id>__<tgt>__classified  (L4: temporary)
                                                               |
@@ -570,29 +925,36 @@ Job run detail for <code>004_lfj_uc3_excalibur_streaming_cdc</code> showing all 
                               v                               v                 v
                      recon__<id>__<tgt>__metrics    _recon__..__missing    (mismatch: OFF)
                           (L4: PUBLISHED)              (L4: temporary)
-                                                              |
-                                                              v
-                                    _recon__<id>__heal_sink  (L5) --> appends into
-                                                                      br_digital_poc.staging.<table>_stream
+
+  ------------------------------- end of the pipeline graph -------------------------------
+
+  heal_<table> job task --> 05_reconciliation_engine.py --> transform_sql --> appends
+                                                             (Debezium envelope rows)
+                                                             into <cat>.staging.oracle_excalibur_cdc
+                                                             --> Job 2 applies them as ordinary CDC
 ```
 
 **Every node, and whether it stores data:**
 
 | Layer | Node | Stored in Unity Catalog? | Purpose |
 |---|---|---|---|
-| L1 | `br_digital_poc.staging.<table>_batch` | **YES** | The landed batch data. Query this. |
-| L3 | `_recon__<id>__src` | **No** (temporary) | One shared hash-prepared read of the source. Paid **once** regardless of target count. |
-| L3 | `_recon__<id>__<tgt>__tgt` | **No** (temporary) | The Bronze side, read as batch. |
+| L1 | `br_digital_poc.staging.<table>_batch` | **YES, a materialized view** | The current batch snapshot, recomputed in full on every update. Query this. |
+| L3 | `_recon__<id>__src` | **No** (temporary) | One shared hash-prepared **batch** read of the source. Under `pipeline_audit_only` this is bound with `want_stream=False`, which is the whole point (§3b). |
+| L3 | `_recon__<id>__<tgt>__tgt` | **No** (temporary) | The Bronze side, read as batch. On `customer` the `filter_condition: "__END_AT IS NULL"` is applied here, so only current SCD2 versions are compared. |
 | L4 | `_recon__<id>__<tgt>__classified` | **No** (temporary) | The full-outer-join classification. Read up to 3 times downstream, so materialised to compute the join once. |
 | L4 | `recon__<id>__<tgt>__metrics` | **YES — published** | **One row** of counts. This is the audit record. |
 | L4 | `..__mismatch` | **Not registered** | Per-record detail. `mismatch_log_capture: false`, so this node does not exist in our DAG. |
 | L4 | `_recon__<id>__<tgt>__missing` | **No** (temporary) | The rows to heal. |
-| L5 | `_recon__<id>__pulse` | **No** (temporary) | A one-column streaming projection whose only job is to give the sink something to trigger on. |
-| L5 | `_recon__<id>__heal_sink` | **Never a dataset** | The handler that appends healed rows back into the stream lane. |
 
-> **The single most useful thing to understand here:** of the roughly 9 nodes per reconciliation flow, only **two** hold queryable business data — the `_batch` table and the `__metrics` table. Everything prefixed `_` is intermediate. This is the **Intermediate Object Rule**: intermediates are materialised for correctness and performance but never published, so the catalog stays clean.
+> **There is no L5 in this graph any more.** Under `pipeline_audit_only` the framework returns
+> before registering the L5 pulse, heal flow and `foreach_batch_sink` handler, so
+> `_recon__<id>__pulse` and `_recon__<id>__heal_sink` **do not exist** in `006_ldp_uc3_excalibur_batch_recon`.
+> If you go looking for them in the Lakeflow graph you will not find them, and that is correct.
+> Healing is the three `heal_<table>` job tasks in §8.3, running the standalone
+> `05_reconciliation_engine.py` after the update completes. See §3b for why the pipeline lane is
+> not available here, and `docs/07_reconciliation_engine.md` §11.7 for the framework rule.
 
-> **Why the healing path needs a "pulse" at all.** `foreach_batch_sink` is streaming-only and needs a stream to trigger on. The pulse is a minimal one-column stream that exists purely to fire the sink once per update, joined against a one-row aggregate of `__classified` **as an ordering edge** — this is what forces Lakeflow to schedule healing *after* classification completes.
+> **The single most useful thing to understand here:** of the nodes per reconciliation flow, only **two** hold queryable business data: the `_batch` materialized view and the `__metrics` table. Everything prefixed `_` is intermediate. This is the **Intermediate Object Rule**: intermediates are materialised for correctness and performance but never published, so the catalog stays clean.
 
 <div class="screenshot"><b>[ SCREENSHOT PLACEHOLDER 4 ]</b><br/>
 Lakeflow pipeline graph view for <code>006_ldp_uc3_excalibur_batch_recon</code>, showing the L1 to L3 to L4 to L5 node chain.</div>
@@ -880,7 +1242,7 @@ CDC means **Change Data Capture**. Instead of reloading the whole table, we appl
 
 ### 14.5 The reconciliation CDC case — the scenario that matters most
 
-**The situation:** a record exists in the source and was loaded to Bronze via streaming. Later, the **batch file carries different values** for that same key — values the stream never captured, because of a missed message, a late correction, or a network drop.
+**The situation:** a record exists in the source and was loaded to Bronze via streaming. Later, the **batch snapshot carries different values** for that same key, values the stream never captured, because of a missed message, a late correction, or a network drop.
 
 **Step 1 — the streaming row already in Bronze:**
 
@@ -888,26 +1250,53 @@ CDC means **Change Data Capture**. Instead of reloading the whole table, we appl
 |---|---|---|---|
 | C042 | 07700 900111 | 2026-08-01 10:00:00 | stream |
 
-**Step 2 — the batch file for `2026-08-03` carries different values:**
+**Step 2. The batch snapshot carries different values for the same key:**
 
-| customer_id | contact_telno | sys_update_date | batch_date |
-|---|---|---|---|
-| C042 | **07700 900999** | **2026-08-03 16:45:00** | 2026-08-03 |
+| customer_id | contact_telno | sys_update_date |
+|---|---|---|
+| C042 | **07700 900999** | **2026-08-03 16:45:00** |
 
-**Step 3 — reconciliation compares them.**
+**Step 3. Reconciliation compares them, inside the pipeline update.**
 
 - `match_keys: ["customer_id"]` — same key, so the rows **pair up**.
+- The Bronze side is filtered to `__END_AT IS NULL`, so only the **current** SCD2 version of C042 takes part. Without that filter a stale closed version could match and mask the drift.
 - `compare_columns` (87 columns) — `contact_telno` differs.
 - Both hashes computed over the same 87 columns, so **hashes differ**.
-- Classification: **`VALUE_DRIFT`**, so `value_drift_count` increments.
+- Classification: **`VALUE_DRIFT`**, so `value_drift_count` increments, and `recon__…__metrics` is published by the same update.
 
-**Step 4 — self-healing.** `append_target_table: br_digital_poc.staging.customer_stream` appends the batch row **back into the streaming lane**.
+**Step 4. Self-healing, in the `heal_customer` job task.** The comparison ran inside the pipeline,
+but the correction does not: `execution_mode: "pipeline_audit_only"` registers no heal lane, so the
+`heal_customer` task runs `05_reconciliation_engine.py` after the update finishes (§8.3). It reads
+the miss set, runs the flow's `transform_sql` over it, and appends the result into
+`append_target_table: {{catalog}}.staging.oracle_excalibur_cdc`, **the same multiplexed Debezium
+landing table Job 2 is already streaming**.
 
-**Step 5 — Job 2 CDC engine applies it.** On the next update, that row is treated as a normal streaming change: sequenced by `sys_update_date`, and since `2026-08-03 16:45` is later than `2026-08-01 10:00`, it wins. On SCD2 it creates a **new version**; on SCD1 it **overwrites**.
+**What is appended is a complete Debezium envelope row**, not a copy of the staging row: the nine
+landing columns, the verbatim Kafka-Connect `schema` block, UPPERCASE Oracle field names,
+`unix_millis()` on the Connect `Timestamp` fields, `before: null`, `op: 'r'`, and
+`source.scn = MAX(existing scn) + 1` so the heal sequences after everything already in the feed.
+See §7.2 for the full breakdown.
 
-> **Why heal through the stream lane rather than writing to Bronze directly?** Writing directly would bypass the CDC engine — no sequencing, no SCD2 versioning, no delete handling. Routing the repair through the same lane means **there is exactly one implementation of "how a change is applied"**. The healed row is indistinguishable from one that arrived on time.
+**Step 5. Job 2's CDC engine applies it.** Job 2 is `continuous: true`, so it picks the row up as
+an ordinary change event: parsed by the same `from_json`, sequenced by the same column, applied by
+the same `apply_changes`. On SCD2 it creates a **new version**; on SCD1 it **overwrites**.
 
-**Verified reconciliation metrics:**
+> **Why heal through the CDC landing table rather than writing to Bronze directly?** Writing
+> directly would bypass the CDC engine: no sequencing, no SCD2 versioning, no delete handling.
+> Routing the repair through the same bus means **there is exactly one implementation of "how a
+> change is applied"**. The healed row is indistinguishable from one that arrived on time, which is
+> exactly the property that makes the audit trustworthy.
+>
+> *(Until v0.0.7 the heal target was `staging.customer_stream`, the Job 1 simulator's table. The
+> principle was the same; the target was a simulator table that nothing reads any more.)*
+
+**Reconciliation metrics from the CSV-era build. HISTORICAL, not current:**
+
+> These figures were measured when Job 3 read the four dated CSV sets. **They cannot be reproduced
+> against the Lakeflow Connect source and should not be quoted as current results.** They are kept
+> because the arithmetic checks below are the evidence for two counting behaviours that are still
+> true, and deleting the numbers would delete the proof. The v0.0.7 end-to-end run had not been
+> verified at the time of writing, so no current figures are stated here.
 
 | Flow | src | tgt | matched | missing_in_target | missing_in_source | drift |
 |---|---|---|---|---|---|---|
@@ -1136,18 +1525,28 @@ SELECT
   'overlapping_keys should equal matched_count + value_drift_count' AS note;
 ```
 
-**Expected:** `overlapping_keys` is 48, and from T10 `matched 26 + drift 22 = 48`.
+**Expected:** the identity `overlapping_keys = matched_count + value_drift_count` from T10 holds.
+The identity is what this query proves; the absolute numbers depend on what the Oracle source
+currently holds. *(In the CSV-era build it read 48, with `matched 26 + drift 22 = 48`.)*
 
-### T12 — Batch rows per `batch_date`
+**Note for `customer`:** T10's counts come from a Bronze side filtered to `__END_AT IS NULL`, while
+`bronze_keys` above is unfiltered. `customer` is SCD2, so add `WHERE __END_AT IS NULL` to
+`bronze_keys` to compare like with like.
+
+### T12. Batch snapshot row count
 
 ```sql
-SELECT batch_date, count(*) AS row_count
-FROM br_digital_poc.staging.customer_batch
-GROUP BY batch_date
-ORDER BY batch_date;
+SELECT count(*) AS row_count, count(DISTINCT customer_id) AS distinct_keys
+FROM br_digital_poc.staging.customer_batch;
 ```
 
-**Expected:** 4 dates, 30 rows each, 120 total.
+**Expected:** one row per primary key. `staging.customer_batch` is a `TRUNCATE_AND_LOAD`
+materialized view over a Lakeflow Connect `SCD_TYPE_1` table, so it is a **current snapshot**, not
+an accumulation. `row_count` and `distinct_keys` must be equal.
+
+> **`batch_date` no longer exists.** Until v0.0.7 this query grouped by `batch_date` and expected
+> 4 dates x 30 rows = 120, because the lane appended four dated CSV sets. There are no dated sets
+> and no partition column now (§3b).
 
 ### T13 — Verify the hash by hand
 
@@ -1461,16 +1860,67 @@ UC3 surfaced **five genuine framework defects**, all fixed. They are recorded he
 ### Running from scratch
 
 ```bash
-# 1. Generate test data
-python scripts/generate_uc3_test_data.py --upload --catalog flowx --staging-schema staging
+# 1. HISTORICAL -- the test-data generator fed the CSV-era build. Neither lane reads its
+#    output now (see section 5). Skip it unless you are reproducing the old topology.
+# python scripts/generate_uc3_test_data.py --upload --catalog flowx --staging-schema staging
 
 # 2. Deploy. NEVER do this while a pipeline is running.
 databricks bundle deploy -t metaflow_v7 -p metaflow_v7
 
-# 3. Run IN ORDER. Never in parallel.
-databricks bundle run uc3_streaming_simulator_job -t metaflow_v7 -p metaflow_v7
-databricks bundle run uc3_streaming_cdc_job       -t metaflow_v7 -p metaflow_v7
-databricks bundle run uc3_batch_recon_job         -t metaflow_v7 -p metaflow_v7
+# 3. Seed the control tables once per workspace (onboards both UC3 specs).
+databricks bundle run uc3_seed_job -t hoonartek -p Hoonartek
+
+# 4. Start the STREAMING lane. v0.0.4: this is the PIPELINE, not a job -- it is
+#    `continuous: true`, so it never completes and Databricks owns its lifecycle
+#    thereafter. Do NOT wrap it in a job that waits on it. (UC3_MASTER_DOCUMENT.md 3a.6)
+databricks bundle run uc3_streaming_cdc_pipeline -t hoonartek -p Hoonartek
+
+# 5. The BATCH lane still runs as an ordinary triggered job.
+databricks bundle run uc3_batch_recon_job -t hoonartek -p Hoonartek
+
+# 6. Tag the tables once they exist -- and again after any governance_tags change,
+#    because tags are applied from the control-table rows, not from the spec file.
+databricks bundle run uc3_governance_job -t hoonartek -p Hoonartek
+```
+
+> **Neither lane needs `uc3_streaming_simulator_job` any more.** The stream reads the real Debezium
+> CDC feed in `<catalog>.staging.oracle_excalibur_cdc` (v0.0.4) and the batch lane reads the
+> Lakeflow Connect Oracle tables in `<catalog>.oracle_excalibur_batch` (v0.0.7). The simulator, its
+> CSVs and the `uc_3` volume are historical.
+>
+> **Stop the continuous pipeline before any redeploy.** `bundle deploy` prunes superseded
+> artifacts from `<artifact_path>/.internal/` and kills a live update with
+> `ENVIRONMENT_PIP_INSTALL_ERROR`; with a continuous pipeline that window is always open.
+
+### One-time migration to the v0.0.7 batch lane
+
+**Only needed on a workspace that ran the CSV-era Job 3.** A fresh workspace needs neither step.
+Both are once-only, and skipping either fails in a way that is easy to misread.
+
+**1. Drop the three old `_batch` streaming tables first.**
+
+```sql
+DROP TABLE IF EXISTS <catalog>.staging.physical_device_batch;
+DROP TABLE IF EXISTS <catalog>.staging.customer_batch;
+DROP TABLE IF EXISTS <catalog>.staging.subscriber_batch;
+```
+
+They were `STREAMING_TABLE`s and are now materialized views. **Lakeflow cannot convert a streaming
+table into a materialized view in place**: the update fails rather than rewriting the object. Drop
+them and let the pipeline recreate them.
+
+**2. Re-onboard the spec with `prune_missing_flows=true`.**
+
+Changing a flow's *type* does not retire the old row. The three `df_uc3_<table>_batch_load` flows
+moved from `ingestion_flows` to `transformation_flows`, and their old `ingestion_flow_spec` rows
+stay `is_active = true` unless pruned, so the pipeline would build **both** shapes of the flow and
+the ingestion one would fail exactly as §3b predicts. Run the onboarding job for
+`uc3_excalibur_batch_recon.json` with `prune_missing_flows=true`.
+
+**Then the batch lane runs as it always has:**
+
+```bash
+databricks bundle run uc3_batch_recon_job -t hoonartek -p Hoonartek
 ```
 
 ### Validating a spec before deploying
@@ -1502,6 +1952,10 @@ Every entry below is a failure this build actually hit.
 | `NotebookImportException` | Python module placed under `notebooks/` | Move it to `src/` |
 | `PERSIST TABLE is not supported` | `.cache()` on serverless | Remove it |
 | `no such directory` on volume copy | Intermediate dirs missing | Create the directory tree first |
+| `DELTA_SOURCE_TABLE_IGNORE_CHANGES` on a batch flow | Something is trying to **stream** the MERGE-written Lakeflow Connect table, or the `_batch` MV | The batch flows must be `transformation_flows` with `is_streaming: false`, and the recon flows `pipeline_audit_only`. See §3b |
+| Batch lane reports drift every run but nothing is ever corrected | `pipeline_audit_only` registers no heal lane and the `heal_<table>` job tasks are missing | Add one `05_reconciliation_engine.py` task per `reconciliation_id` (§8.3) |
+| `_batch` table fails to become a materialized view | It still exists as the old `STREAMING_TABLE`; Lakeflow will not convert in place | Drop the three `staging.<table>_batch` tables once, then re-run (Appendix B) |
+| The old ingestion flow still builds after the spec changed | Flow-type change leaves `ingestion_flow_spec` rows `is_active = true` | Re-onboard with `prune_missing_flows=true` (Appendix B) |
 
 ---
 

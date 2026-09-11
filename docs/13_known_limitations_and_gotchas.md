@@ -723,10 +723,19 @@ SCD3 has no native Lakeflow equivalent — it is built by materializing full his
 `_<target>_scd2_history` table and pivoting the two most recent versions per key into
 `current_<col>`/`previous_<col>`.
 
-**Related:** SCD2 registers a companion `<target_table>_current` reporting dataset aliasing
-`__START_AT`/`__END_AT` to `valid_from`/`valid_to`/`is_current`. Despite the name, it is a real
-`@dlt.table`, not a view — a `@dlt.view` cannot take a multipart qualified name, and is not a
-durable, queryable catalog object once the defining update finishes.
+**Related — removed in v0.0.6:** SCD2 used to register a companion `<target_table>_current`
+dataset aliasing `__START_AT`/`__END_AT` to `valid_from`/`valid_to`/`is_current`. It is gone. It
+materialized as a MATERIALIZED_VIEW holding a full copy of **every** row, history included,
+despite the `_current` name promising only current ones — doubling storage per SCD2 target and
+misleading anyone who trusted the name. **An SCD2 flow now publishes exactly one dataset.**
+
+Those tracking columns **cannot be renamed in place**: `dlt.apply_changes` has no parameter for
+their names, and an SCD2 target is a `create_streaming_table` + `apply_changes` pair with no query
+body to project through — Lakeflow writes them itself. Alias them in your own query
+(`__START_AT AS valid_from`), or in a plain UC view created outside the pipeline, which costs no
+storage and can genuinely filter to current rows. Current rows are `WHERE __END_AT IS NULL`.
+Do **not** try to derive `valid_from`/`valid_to` in the staged view: they would be computed before
+`apply_changes` assigns versions, so they would not track the real version boundaries.
 
 ---
 
@@ -955,7 +964,17 @@ streaming read is illegal.
 
 **The fix is one word: `execution_mode: "pipeline_audit_only"`.** L3 and L4 still run in-update, so
 the comparison, `__metrics` and the `dq_config` expectation are unaffected; only the corrective
-append moves back to the standalone `05_reconciliation_engine.py` job task.
+append moves back to the standalone `05_reconciliation_engine.py` job task. Add one such task per
+`reconciliation_id` when you do, because audit-only registers no heal sink and will otherwise
+compare and report forever without healing anything.
+
+> **The fix was itself rejected until v1.7.11, so check your version.** Through v1.7.10 the matching
+> onboarding rule, **V-CYC-7**, fired under *both* pipeline modes, so a spec taking the advice above
+> failed onboarding with the same message that recommended it. From **v1.7.11** V-CYC-7 is gated on
+> `execution_mode == "pipeline"` alone and `"pipeline_audit_only"` is explicitly legal for exactly
+> this case. On v1.7.10 and earlier the only accepted setting was `execution_mode: "job"`, which
+> also moves the comparison out of the update. The change is a relaxation: nothing that validated
+> before is rejected now.
 
 **Why this is graded 🟠 and not 🔵.** `TRUNCATE_AND_LOAD` was **missing** from the plan-time guard
 (`engine/source_plane.py::_NON_APPEND_ONLY_CDC_STRATEGIES`, which listed only the four CDC
@@ -978,6 +997,12 @@ which is that same group's own `TRUNCATE_AND_LOAD` ingestion target — which is
 scenario is verified **offline only** (validator + `plan_source_plane`, pinned by
 `tests/unit/test_geneva_e41a47ba_topology.py`); it has never been confirmed by a live run, because
 its target table's grants block the pipeline's run-as identity — see [O6](#o6).
+
+**Second real instance (v1.7.11):** UC3's batch lane. Its three reconciliation sources,
+`<catalog>.staging.{physical_device,customer,subscriber}_batch`, are that same group's own
+`TRUNCATE_AND_LOAD` materialized views, so all three flows declare `pipeline_audit_only` and
+`005_lfj_uc3_excalibur_batch_recon` carries one `05_reconciliation_engine.py` heal task per
+`reconciliation_id`. See `BT_Usecase/UC3/docs/UC3_MASTER_DOCUMENT.md` §7.2.
 
 ---
 

@@ -124,3 +124,164 @@ def test_zerobus_flows_do_not_restate_the_capture_technical_metadata_default():
         assert "capture_technical_metadata" not in flow["source_config"], flow["dataflow_id"]
         for key in ("source_catalog", "source_schema", "source_table"):
             assert flow["source_config"][key], (flow["dataflow_id"], key)
+
+
+# ---------------------------------------------------------------------------------------------
+# The batch lane (v0.0.7) -- the Lakeflow Connect Oracle query-based connector
+#
+# Every assertion below pins a mistake that was actually made, most of them caught only at
+# pipeline runtime after validating clean through BOTH spec gates.
+# ---------------------------------------------------------------------------------------------
+
+#: dataflow_id -> (UC table, business column count)
+_UC3_BATCH_FLOWS = {
+    "df_uc3_physical_device_batch_load": ("physical_device", 31),
+    "df_uc3_customer_batch_load": ("customer", 90),
+    "df_uc3_subscriber_batch_load": ("subscriber", 131),
+}
+#: reconciliation_id -> the bronze twin's SCD type, which decides whether a filter is required
+_UC3_RECON_FLOWS = {
+    "rf_uc3_physical_device_batch_vs_bronze": 1,
+    "rf_uc3_customer_batch_vs_bronze": 2,
+    "rf_uc3_subscriber_batch_vs_bronze": 1,
+}
+HEAL_LANDING_TABLE = "{{catalog}}.staging.oracle_excalibur_cdc"
+LANDING_TABLE_COLUMNS = [
+    "destination", "target_table", "key", "value", "operation",
+    "source_position", "idempotency_key", "partition", "headers",
+]
+
+
+def _batch_spec():
+    return json.loads(SPEC_PATHS["batch_recon"].read_text(encoding="utf-8"))
+
+
+def test_batch_flows_are_transformation_flows_not_ingestion_flows():
+    """An ingestion flow cannot read these tables AT ALL. source_plane's
+    _requests_from_ingestion_rows plans every ingestion source request want_stream=True
+    unconditionally ("there is no batch ingestion reader to fall back to") and _execute_reader
+    hard-rejects a batch bind of an ingestion identity, so the source_type zerobus draft of this
+    lane failed on every update with "Failed to resolve flow: '_<table>_batch_staged'"."""
+    spec = _batch_spec()
+    assert not spec.get("ingestion_flows"), spec.get("ingestion_flows")
+    flows = spec["transformation_flows"]
+    assert len(flows) == 3, [f["dataflow_id"] for f in flows]
+    assert sorted(f["dataflow_id"] for f in flows) == sorted(_UC3_BATCH_FLOWS)
+
+
+def test_every_batch_flow_reads_its_lakeflow_connect_table_as_a_batch_input():
+    """The Lakeflow Connect destinations are MERGE-written (scd_type SCD_TYPE_1, confirmed by
+    MERGE at v2 in their Delta history). Delta refuses a streaming read of a MERGE-written table
+    (DELTA_SOURCE_TABLE_IGNORE_CHANGES) and this framework refuses skipChangeCommits, so
+    is_streaming must be the BOOLEAN False. The string "false" is truthy in Python and would plan
+    exactly the streaming read that fails."""
+    for flow in _batch_spec()["transformation_flows"]:
+        table, _ = _UC3_BATCH_FLOWS[flow["dataflow_id"]]
+        inputs = flow["source_inputs"]
+        assert len(inputs) == 1, flow["dataflow_id"]
+        source = inputs[0]
+        assert source["table"] == "{{catalog}}.oracle_excalibur_batch." + table, flow["dataflow_id"]
+        assert source["is_streaming"] is False, (flow["dataflow_id"], repr(source["is_streaming"]))
+
+
+def test_batch_targets_are_full_snapshot_materialized_views():
+    """A full recompute per update, not a CDC collapse: the connector table already holds exactly
+    one row per key (live: 30/77/55, distinct-PK == rows), so apply_changes would be redundant.
+    Declaring primary_keys or sequence_by_column, or target_type streaming_table, would each force
+    the streaming read ruled out above (flow_generators derives is_streaming from target_type)."""
+    for flow in _batch_spec()["transformation_flows"]:
+        assert flow["target_type"] == "materialized_view", flow["dataflow_id"]
+        target_config = flow["target_config"]
+        assert target_config["cdc_load_strategy"] == "TRUNCATE_AND_LOAD", flow["dataflow_id"]
+        assert "primary_keys" not in target_config, flow["dataflow_id"]
+        assert "sequence_by_column" not in target_config, flow["dataflow_id"]
+
+
+def test_no_batch_flow_sequences_by_a_per_query_constant():
+    """An earlier draft sequenced CDC by a struct whose tiebreaker was current_timestamp(). Spark
+    evaluates it ONCE PER QUERY, so it is constant across every row of a micro-batch and breaks no
+    tie whatsoever. transform_sql legitimately calls it once, in heal_params, where a single
+    per-run heal stamp is exactly what is wanted; that is not a row ordering."""
+    spec = _batch_spec()
+    for flow in spec["transformation_flows"]:
+        assert "current_timestamp()" not in flow["transformation_sql"].lower(), flow["dataflow_id"]
+        assert "sequence_by_column" not in flow["target_config"], flow["dataflow_id"]
+    assert "data_standardization_sql" not in json.dumps(spec)
+
+
+def test_batch_columns_are_cast_to_the_bronze_side_types():
+    """cdc/hashing.py normalises every compare column with trim(lower(cast(col AS STRING))), so
+    the batch lane must cast to the SAME types the streaming lane writes to bronze. A
+    decimal(9,0) 100002 and a double 100002.0 render as different strings and hash differently,
+    which would report every row as VALUE_DRIFT while both lanes were in fact identical."""
+    import re
+
+    cast = re.compile(r"CAST\((?:t\.`[A-Z0-9_]+`|NULL) AS (?:DOUBLE|TIMESTAMP|STRING)\)")
+    for flow in _batch_spec()["transformation_flows"]:
+        _, expected_columns = _UC3_BATCH_FLOWS[flow["dataflow_id"]]
+        sql = flow["transformation_sql"]
+        upper = sql.upper()
+        for banned in ("DECIMAL(", "CHAR(", "VARCHAR("):
+            assert banned not in upper, (flow["dataflow_id"], banned)
+        assert len(cast.findall(sql)) == expected_columns, flow["dataflow_id"]
+
+
+def test_the_scd2_reconciliation_target_filters_to_current_rows_only():
+    """bronze.customer is written SCD2 and holds EVERY historical version of a key (live: 40 rows,
+    30 current). reconciliation/matcher.py collapses duplicate keys with MATCHED beating
+    VALUE_DRIFT beating MISSING -- "a key counts as matched as soon as *any* target row matches"
+    -- so an unfiltered SCD2 target lets a stale CLOSED version silently mask real drift on the
+    current row, and that drives live heal writes. The SCD1 targets must NOT carry the filter:
+    they have no __END_AT column to reference."""
+    for flow in _batch_spec()["reconciliation_flows"]:
+        scd_type = _UC3_RECON_FLOWS[flow["reconciliation_id"]]
+        target = flow["target_configs"][0]
+        if scd_type == 2:
+            assert target.get("filter_condition") == "__END_AT IS NULL", flow["reconciliation_id"]
+        else:
+            assert "filter_condition" not in target, flow["reconciliation_id"]
+
+
+def test_every_reconciliation_heals_into_the_debezium_landing_table():
+    """The heal must re-enter through the SAME CDC engine as a real change, so it appends to the
+    multiplexed landing table rather than writing bronze directly, and never to the obsolete
+    pre-split staging.<table>_stream tables.
+
+    execution_mode is pipeline_audit_only, so the L5 heal lane is NOT a node in the pipeline
+    graph and healing runs as the three 05_reconciliation_engine.py job tasks in
+    005_lfj_uc3_excalibur_batch_recon. That is forced by the source, not preferred: "pipeline" is
+    the only mode that registers the heal lane, and it STREAMS its source. The pre-v0.0.7 CSV lane
+    could use it because Auto Loader is a streaming reader feeding an APPEND streaming table. The
+    connector table cannot be streamed (MERGE-written), the snapshot MV cannot (TRUNCATE_AND_LOAD
+    is in G-STREAM's rejection set), and an APPEND copy of the MV cannot bridge the two, because
+    target_type streaming_table forces is_streaming=True on the staged view while that view's own
+    input must stay batch -- proven at runtime as "View '_<table>_batch_events_staged' is not a
+    streaming view and must be referenced using read". Do not retry that shape."""
+    spec = _batch_spec()
+    assert sorted(f["reconciliation_id"] for f in spec["reconciliation_flows"]) == sorted(_UC3_RECON_FLOWS)
+    for flow in spec["reconciliation_flows"]:
+        assert flow["execution_mode"] == "pipeline_audit_only", flow["reconciliation_id"]
+        assert flow["target_configs"][0]["append_target_table"] == HEAL_LANDING_TABLE, flow["reconciliation_id"]
+    stale = [v for v in _string_values(spec) if v.startswith("{{catalog}}.staging.") and v.endswith("_stream")]
+    assert not stale, stale
+
+
+def test_every_transform_sql_emits_exactly_the_landing_table_columns():
+    """The heal append runs with mergeSchema=true, so a misspelt alias silently ADDS a column to
+    the landing table instead of failing. Neither spec gate catches it: _validate_sql_syntax
+    returns immediately when spark is None, which is how both gates and these tests call it."""
+    sqlglot = pytest.importorskip("sqlglot")
+    for flow in _batch_spec()["reconciliation_flows"]:
+        tree = sqlglot.parse_one(flow["transform_sql"], read="databricks")
+        aliases = [e.alias_or_name for e in tree.expressions]
+        assert aliases == LANDING_TABLE_COLUMNS, (flow["reconciliation_id"], aliases)
+
+
+def test_every_transform_sql_preserves_oracle_uppercase_field_names():
+    """from_json field matching is CASE-SENSITIVE and Debezium emits Oracle's UPPERCASE names. A
+    lowercase envelope parses every payload column to NULL, primary keys included, while row
+    counts, op codes and delete flags all still look perfect."""
+    for flow in _batch_spec()["reconciliation_flows"]:
+        sql = flow["transform_sql"]
+        assert "'CUSTOMER_ID'" in sql, flow["reconciliation_id"]
+        assert "'customer_id'" not in sql, flow["reconciliation_id"]

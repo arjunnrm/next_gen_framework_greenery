@@ -231,7 +231,7 @@ Aimed at technical columns a source stamps on every row -- load timestamps, batc
 
     - SCD1, SCD2 and SCD3 only; a validation error on APPEND, TRUNCATE_AND_LOAD and FULL_SNAPSHOT_CDC.
     - primary_keys and the framework's own technical columns are excluded automatically -- you do not need to list them.
-    - Whether the listed columns are also dropped from the target's schema is currently inconsistent between the validator and the SCD registrar. Do not rely on this field to shape the target schema; use it for comparison scoping only.
+    - This field does TWO things: it narrows change comparison AND it is passed to apply_changes's except_column_list, which DROPS the listed columns from the target table's schema. It is the only way to keep a column out of a CDC target -- data_standardization_sql can only add or replace a column, never remove one.
 
 
 ---

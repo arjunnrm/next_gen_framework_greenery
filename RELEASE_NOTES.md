@@ -15,6 +15,296 @@ resolving. Per-version directories fix that structurally.
 
 ---
 
+## UC3's batch lane reads the Oracle connector tables, and heals through the CDC engine — 2026-09-11
+
+**No spec attribute is added, removed or renamed, and `pyproject.toml` stays at `0.0.6`.** Two
+framework changes, both **relaxations** of existing validation: every spec that validated before
+still validates, and no onboarded control-table row changes shape. Everything else here is UC3
+configuration, job topology and tests. Full detail in
+`enhancement_logs/v1.7.11_enhancement_log.md`; machine-readable delta in
+`docs/v1.7.11_json_attribute_delta.json`.
+
+UC3's batch lane used to read dated CSV batches from a Volume with Auto Loader. It now reads the
+three tables written by the Oracle **Lakeflow Connect query-based connector**,
+`<catalog>.oracle_excalibur_batch.{customer,physical_device,subscriber}`, recomputing
+`<catalog>.staging.<table>_batch` as a `TRUNCATE_AND_LOAD` materialized view — a full snapshot per
+update, which is what a reconciliation against a CDC twin actually needs. `pipeline_parameters` and
+the `landing_root` path are gone.
+
+### The connector's tables are MERGE-written, so no ingestion flow can read them
+
+This is the part worth remembering. Verified live rather than assumed: the connector destinations
+show `MERGE` at Delta version 2 and carry `__ingestion_connector_primary_key` plus
+`__ingestion_connector_cursor_columns = ["SYS_UPDATE_DATE"]` — the connector's default
+`scd_type: SCD_TYPE_1`, not `APPEND_ONLY`. Delta refuses to stream a MERGE-written table
+(`DELTA_SOURCE_TABLE_IGNORE_CHANGES`) and this framework refuses `skipChangeCommits` outright.
+
+**Changing `source_type` or `target_type` does not help.**
+`engine/source_plane.py::_requests_from_ingestion_rows` plans **every** ingestion source request
+with `want_stream=True` unconditionally — "there is no batch ingestion reader to fall back to" —
+and `_execute_reader` hard-rejects a batch bind of an ingestion identity. A first attempt using
+`source_type: zerobus` with `target_type: materialized_view` passed both spec gates and then failed
+at pipeline runtime on every update with `Failed to resolve flow: '_<table>_batch_staged'`.
+
+The answer is a **transformation** flow: `source_inputs[].is_streaming: false` is honoured verbatim
+by the source plane, the reader origin is `"table"`, and you get a real `spark.read.table(...)`.
+Each flow's `transformation_sql` casts every business column to the type the streaming lane writes
+to Bronze (Oracle `NUMBER` to `DOUBLE`, `DATE` to `TIMESTAMP`, `CHAR`/`VARCHAR2` to `STRING`).
+
+### V-CYC-7 now applies to `execution_mode: "pipeline"` only
+
+The validator rejected a reconciliation source produced by SCD1/SCD2/SCD3/FULL_SNAPSHOT_CDC, or by
+`TRUNCATE_AND_LOAD` into a materialized view, under **both** pipeline modes. Only `pipeline`
+streams its source: the L3 `_src` node and the L5 heal pulse bind with `want_stream=needs_heal`, and
+`needs_heal` is only ever true there. `pipeline_audit_only` binds the same node with
+`want_stream=False`, a batch `dlt.read`, and registers no heal lane at all — so the hazard the rule
+guards does not exist for it.
+
+`engine/source_plane.py`'s G-STREAM message, `docs/07` §11.7 and `docs/13` R7 had **always** named
+`pipeline_audit_only` as the fix, while the validator rejected exactly that fix. A MERGE-written
+source therefore had no legal in-pipeline setting at all. The rejection messages now name
+`pipeline_audit_only` as well as `job`, and say why.
+
+### The onboarding preflight stops reporting a false `SCHEMA_MISMATCH`
+
+The `append_schema` check compared the **source** table's columns against `append_target_table`.
+That only holds when `transform_sql` is absent: `reconciliation/appender.py::apply_transform_sql`
+runs the SQL over the miss set *before* the append, so with `transform_sql` the appended shape is
+that SQL's SELECT list. The check now reports the new advisory status
+**`SHAPE_DEFINED_BY_TRANSFORM_SQL`** instead. It never affects `valid`; flows without
+`transform_sql` still get `SCHEMA_OK`/`SCHEMA_MISMATCH` exactly as before. Any consumer switching on
+`existence_checks[].status` must tolerate the new value and render it as informational.
+
+### Healing re-enters through the CDC engine, not around it
+
+The three reconciliation flows moved to `pipeline_audit_only` and now append into
+`<catalog>.staging.oracle_excalibur_cdc` — the multiplexed Debezium landing table the 004 streaming
+lane consumes — instead of three obsolete simulator tables that do not exist. Each flow gained a
+generated `transform_sql` (12,043 / 22,380 / 31,955 characters) that rebuilds the miss set as a
+complete Debezium envelope row: the 9 landing columns, the verbatim Kafka-Connect `schema` block,
+UPPERCASE Oracle field names because `from_json` is case-sensitive, `unix_millis()` for Connect
+`Timestamp` fields, a null `before`, `op` set to `r`, and `source.scn` set to
+`MAX(existing scn) + 1` so a healed row outranks everything already delivered. **A healed row is
+applied by the same CDC engine as a real change — there is one implementation of "how a change is
+applied".**
+
+Because audit-only registers no heal lane, job `005_lfj_uc3_excalibur_batch_recon` gained three
+parallel `heal_<table>` tasks running `05_reconciliation_engine.py`, one per `reconciliation_id`,
+between `run_pipeline_update` and `observability_export`. Without them the lane would compare
+forever and heal nothing.
+
+> [!WARNING]
+> Two one-time operational steps were needed and are not automated. Lakeflow cannot convert a
+> streaming table into a materialized view in place, so the three existing
+> `staging.<table>_batch` streaming tables had to be **dropped** by hand. And after changing a
+> flow's *type* (ingestion to transformation) the old `ingestion_flow_spec` rows stay
+> `is_active = true` and keep driving the graph — re-onboard with the generic onboarding job's
+> `prune_missing_flows=true`.
+
+> [!WARNING]
+> `bronze.customer` is SCD2 and the reconciliation target had no current-row filter, so **closed
+> history versions took part in matching**. `matcher.py` collapses duplicate keys
+> MATCHED > VALUE_DRIFT > MISSING, so a stale closed version could mask real drift — and that now
+> drives live heal writes. Fixed with `"filter_condition": "__END_AT IS NULL"` on the customer flow
+> only; the other two tables are SCD1. Anyone reconciling against an SCD2 target needs this filter.
+
+### Verification
+
+Both spec gates pass (validator: 0 warnings; JSON schema Draft 2020-12: 0 errors); `bundle validate`
+OK on `metaflow_v7` and `hoonartek`; 141 passed across `test_spec_validator.py` and
+`test_uc_spec_preflight.py` (5 new) and 21 in `test_uc3_specs.py`. Each new test was re-run with its
+fix stashed: all four fail without the change and pass with it, and the pre-existing
+`SCHEMA_MISMATCH` test passes in both states, proving the new branch does not swallow real findings.
+
+Offline, a script rebuilt the heal envelope from each `transform_sql`'s own field list and replayed
+the 004 streaming spec's real rules over it — `schema_ddl` paths case-sensitively, the
+before/after delete projection, both `dq_config` drop predicates. For all three tables the heal's
+`after` field list is **identical to and in the same order as** the live Debezium schema
+(31 / 90 / 131 fields), every field path resolves, both DQ rules pass, all primary keys are
+non-null, `src_deleted_flg` is `0`, `__cdc_op` is `r`, and every compare and match column is
+reachable in Bronze. Each `transform_sql` parses under `sqlglot` (dialect `databricks`) with a final
+SELECT of exactly the 9 landing columns in order. Live: each `transformation_sql` replayed against
+the real connector tables returns the expected 31 / 90 / 131 columns with correct types; the tables
+hold 30 / 77 / 55 rows with distinct-PK equal to row count and zero NULLs in the cursor column.
+
+**Not yet verified end to end.** The batch pipeline run was still being validated when this was
+written; row counts and reconciliation metrics must be confirmed after a successful update, and a
+green `bundle run` exit does **not** mean the pipeline succeeded.
+
+### Open caveats worth knowing before you use this shape
+
+- **Job-mode heal idempotency is key-only and unbounded.**
+  `reconciliation/appender.py::compute_batch_fingerprint` hashes the miss set's **match keys**, not
+  its values, and checks against all prior `SUCCESS` runs with no time bound. A second, genuinely
+  different drift on the same key set is silently skipped as `SKIPPED_ALREADY_PROCESSED`. Supersede
+  that `reconciliation_run_log` row, or re-onboard under a new `reconciliation_id`. Framework-wide,
+  not fixed here.
+- **The comparison runs twice per cycle** under audit-only plus a job heal task: once in the pipeline
+  update, once in the job. That is the documented shape, but the cost is real.
+- **The heal writes into another dataflow group's raw ingestion source, and no gate checks it.**
+  V-CYC-3 and V-CYC-4 only inspect the same spec document, so this cross-spec loop gets neither an
+  error nor a warning. Deliberate, but unguarded.
+- **Deletes are asymmetric.** Bronze applies CDC deletes; a batch snapshot has no delete concept and
+  the heal envelope hardcodes the snapshot-read operation. A key deleted in Oracle but still present
+  in the snapshot would be re-healed back into Bronze. Open design question.
+- **The connector cursor is `SYS_UPDATE_DATE`, and rows whose cursor is NULL are never ingested.**
+  There are none today, so the snapshot is complete — but a never-updated Oracle row would be
+  permanently absent and would report as a permanent `MISSING_IN_SOURCE`.
+
+**App update pending.** The `execution_mode` help sentence in `config/registry/reconciliation.json`,
+both `attribute_knowledge*.json` files and `web/src/registry.js` still say "Both pipeline modes
+require … an append-only source producer", which is now wrong. Correcting them requires
+`npm run build` in `databricks-app/web` before deployment, because Databricks Apps does not build at
+deploy time.
+
+---
+
+## SCD2 publishes one dataset, not two — and `columns_to_exclude` really does drop columns — 2026-09-11
+
+**`0.0.4` → `0.0.6`.** Two framework changes, deployed and run green on `hoonartek`. Full detail in
+`enhancement_logs/v1.7.10_enhancement_log.md`.
+
+### `columns_to_exclude` has two jobs (0.0.5)
+
+The repo contradicted itself for releases. `cdc/comparison_columns.py`, `spec_validator.py`,
+`docs/00_master_reference_index.md` and `agent_skills/SKILL.md` all said the attribute was
+"comparison-only … never drops it from the target table", while `cdc/scd.py` went on passing it to
+`apply_changes`'s `except_column_list` — which **does** drop the column.
+
+**The code was right; the prose was wrong.** Settled empirically rather than by reading: the
+deployed Bronze tables genuinely lacked the excluded columns. So the prose was corrected in all
+four places.
+
+The initial plan was the opposite — "fix" `scd.py` to match the docs. That was **backwards**, and
+an adversarial verification pass caught it before it shipped. `columns_to_exclude` →
+`except_column_list` is the framework's **only** mechanism for "don't store this column at all" on
+a CDC target: `data_standardization_sql` is add/replace-only (a mandatory `AS <name>` alias means
+it can never un-create a column), `schema_config` and `column_normalization` only rename/cast/
+comment, and no `columns_to_drop` exists. Narrowing it would have been a capability regression with
+no replacement *and* would have silently re-added columns to every materialized SCD target. The
+"v2 decoupling" the docstrings described turned out never to have shipped — no attribute delta, no
+release note, no migration. Intent written down, not a contract.
+
+### SCD2 `<target>_current` removed (0.0.6)
+
+Every SCD2 flow used to publish a second dataset re-labelling `__START_AT`/`__END_AT` as
+`valid_from`/`valid_to`/`is_current`. It is gone. **An SCD2 flow now publishes exactly one
+dataset: its target streaming table.**
+
+It was actively harmful, not merely redundant: it materialized as a `MATERIALIZED_VIEW` holding a
+full copy of **every** row — history included — despite a `_current` name promising only current
+ones. `bronze.customer_current` held all 40 rows, of which 30 were current. Anyone writing
+`SELECT * FROM customer_current` for a report got wrong answers with no signal, and paid for a
+second copy of the table.
+
+**No replacement was added, because those columns cannot be renamed in place.**
+`dlt.apply_changes` has 18 parameters and none names them; an SCD2 target is
+`create_streaming_table` + `apply_changes` with no query body to project through — Lakeflow writes
+them itself; and Databricks' own SCD2 guidance only ever aliases them in a SELECT, never in
+storage. Alias them in your own query or in a plain UC view outside the pipeline (zero storage, and
+it can genuinely filter to current rows). **Current rows are `WHERE __END_AT IS NULL`.**
+
+> [!WARNING]
+> Deriving `valid_from`/`valid_to` in the staged view feeding `apply_changes` is a trap, not a
+> workaround: they would be computed *before* `apply_changes` assigns versions, so they would not
+> track the real version boundaries — authoritative-looking and wrong.
+
+**Upgrading:** Lakeflow cannot convert MV→ST in place and a full refresh does not help, so drop any
+existing `<target>_current` by hand. The pipeline no longer maintains it, so left in place it
+silently goes stale. UC3's was dropped and confirmed not recreated.
+
+### Verification
+
+Both gates pass; `bundle validate` OK; 17 + 21 unit tests and 217 app tests pass; full unit
+failing-**ID** set identical before and after (147 = the known offline no-Spark baseline) — **zero
+regressions**. Live: `customer_current` gone and not recreated across `SETTING_UP_TABLES` and 20
+RUNNING polls; pipeline graph down to 1 shared source read + 3 targets; row counts **unchanged**
+(customer 40 = 30 current + 10 closed, physical_device 77, subscriber 55), confirming the removed
+dataset was pure duplication.
+
+7 new tests pin both changes, including a prose-regression guard that fails if the
+"comparison-only" claim returns, and a behavioural test (with `dlt` stubbed) asserting
+`register_scd2` makes exactly one `apply_changes` call and registers **zero** extra datasets.
+
+---
+
+## UC3 streams the real Debezium CDC feed — and three parsing traps that pass every gate — 2026-09-11
+
+`pyproject.toml` stays at `0.0.4` and `databricks.yml`'s `framework_version` with it: **no
+framework source changed**, so no wheel behaviour changed and no rebuild is needed. Everything
+here is UC3 configuration, job topology, docs and tests. Full detail in
+`enhancement_logs/v1.7.09_enhancement_log.md`.
+
+UC3's streaming lane was reading three staging tables that **do not exist**
+(`staging.physical_device_stream`, `customer_stream`, `subscriber_stream`) — the shape the Job 1
+simulator produced. The real Excalibur feed is one **multiplexed** Debezium landing table,
+`<catalog>.staging.oracle_excalibur_cdc`, written by Debezium Server through the Zerobus gRPC
+sink: all three Oracle tables interleaved, each row's image nested inside a Debezium envelope
+held as a **JSON string** in the `value` column.
+
+**One read, three targets.** All three ingestion flows now name the *same* source table, which
+is what satisfies the Single-Read DAG mandate rather than breaking it: `engine/source_plane.py`
+fingerprints only the base-read options, so the three collapse to one `ReadIdentity` and
+therefore **one** physical `spark.readStream`, consumed by three `bind()` calls. Each flow then
+filters to its own Debezium topic with a `dq_config` rule whose `action` is `drop` —
+`data_standardization_sql` is projection-only and cannot filter rows, and
+`source_config.filter_condition` does not exist for ingestion flows. A unit test asserts the
+single identity using the framework's own identity functions, so it cannot drift from the engine.
+
+**Three traps, each of which passes both validation gates and still writes a wrong table.**
+None was caught by validation or by review; all three were caught by querying the live table:
+
+1. **`from_json` field matching is case-sensitive.** Debezium emits Oracle's UPPERCASE column
+   names, so a lowercase `schema_ddl` parsed **every** payload column to NULL — all 31/90/131 of
+   them, primary keys included — while row counts, op codes, SCN and delete flags all looked
+   perfect.
+2. **Kafka-Connect `Timestamp` is epoch milliseconds** in an int64. Declaring the field
+   `TIMESTAMP` makes Spark read the number as *micro*seconds: a silent 1000x error that turned
+   `2026-09-11` into year **+58664**. Declare `BIGINT`, convert with `timestamp_millis()`.
+3. **A Debezium delete carries its row image in `before`**, not `after`. Projecting only `after`
+   yields an all-NULL row for every `op='d'`, primary keys included, so `apply_as_deletes` could
+   never match a target key.
+
+**CDC is now sequenced by the Oracle SCN**, not `sys_update_date` — two changes committed inside
+the same second share that timestamp, so `apply_changes` ordered them arbitrarily. Sequencing by
+SCN also makes at-least-once redelivery idempotent for free (a replayed row has an equal or lower
+sequence and is discarded), which is why `remove_dups` is deliberately *not* set: it is full-row
+dedup with unbounded streaming state, and the sink's per-row `idempotency_key` would defeat it
+anyway.
+
+**The pipeline is `continuous: true`,** which is what actually delivers seconds-level latency —
+a triggered pipeline's latency is its trigger interval however often it is scheduled. That
+forces a topology change rather than merely suggesting one: a continuous update never reaches a
+terminal state, so the old `pipeline_task → observability_export (depends_on)` chain meant the
+export waited on a task that never finished. The streaming lane is therefore started as a
+**pipeline** (`bundle run uc3_streaming_cdc_pipeline`), Databricks owns its lifecycle, and
+observability moved to `mode: "continuous"` against a new pipeline `event_log:` table. The
+framework already anticipated this: `spec_validator.py` requires `event_log_tables` for, and only
+for, continuous mode, precisely because a standing pipeline has no upstream task run to resolve a
+pipeline id from.
+
+> [!WARNING]
+> With a continuous pipeline the never-deploy-mid-run window is **always** open. `bundle deploy`
+> prunes superseded artifacts from `<artifact_path>/.internal/` and kills a live update with
+> `ENVIRONMENT_PIP_INSTALL_ERROR`. Stop the pipeline first.
+
+**Also found, not fixed:** `target_config.columns_to_exclude` is self-contradictory in the
+framework. `cdc/comparison_columns.py` and `spec_validator.py` both state it is comparison-only
+in v2 and never drops a column from the target, but `cdc/scd.py` still passes it into
+`apply_changes`'s `except_column_list`, which does. So `sys_creation_date`/`sys_update_date` are
+absent from Bronze, not merely excluded from the value hash — contradicting UC3's own attribute
+table. Documented rather than silently changed, since fixing it would alter the shape of every
+existing SCD target.
+
+**Verification.** Both gates pass (validator: 9 pre-existing tagging warnings; JSON schema: 0
+errors); `bundle validate` OK on both targets; `tests/unit/test_uc3_specs.py` 21 passed with 9
+new tests; full unit suite failing-**ID** sets identical before and after (147 = the known
+offline no-Spark baseline), so **zero regressions**. Every data claim was checked against the
+live table. **Not deployed and not run** — the expected Bronze counts (77 / 30 / 55) are
+predicted from replaying the spec's SQL, not observed.
+
+---
+
 ## Three BT use cases live on a second workspace — and four things that only break there — 2026-09-08
 
 *Deployed and run green* on the `hoonartek` target (catalog `bt_digital_poc`). `pyproject.toml`
