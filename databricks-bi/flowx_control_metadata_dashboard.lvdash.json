@@ -768,7 +768,7 @@
             "x": 0,
             "y": 15,
             "width": 12,
-            "height": 1
+            "height": 2
           }
         },
         {
@@ -941,7 +941,7 @@
           },
           "position": {
             "x": 0,
-            "y": 16,
+            "y": 17,
             "width": 12,
             "height": 10
           }
@@ -1009,14 +1009,14 @@
     },
     {
       "name": "ingestion_flows",
-      "displayName": "📥 Ingestion Flows",
+      "displayName": "\ud83d\udce5 Ingestion Flows",
       "layout": [
         {
           "widget": {
             "name": "header",
             "multilineTextboxSpec": {
               "lines": [
-                "## 📥 Ingestion Flows\n",
+                "## \ud83d\udce5 Ingestion Flows\n",
                 "Complete view of all data ingestion pipelines with source configurations, target destinations, and CDC strategies."
               ]
             }
@@ -1299,14 +1299,14 @@
     },
     {
       "name": "transformation_flows",
-      "displayName": "⚙️ Transformation Flows",
+      "displayName": "\u2699\ufe0f Transformation Flows",
       "layout": [
         {
           "widget": {
             "name": "header",
             "multilineTextboxSpec": {
               "lines": [
-                "## ⚙️ Transformation Flows\n",
+                "## \u2699\ufe0f Transformation Flows\n",
                 "Data transformation pipelines that process and enrich data with SQL logic, including source inputs and target configurations."
               ]
             }
@@ -1589,14 +1589,14 @@
     },
     {
       "name": "reconciliation",
-      "displayName": "🔄 Reconciliation",
+      "displayName": "\ud83d\udd04 Reconciliation",
       "layout": [
         {
           "widget": {
             "name": "header",
             "multilineTextboxSpec": {
               "lines": [
-                "## 🔄 Reconciliation\n",
+                "## \ud83d\udd04 Reconciliation\n",
                 "Data quality reconciliation flows with run statistics showing matched records, mismatches, and data drift detection."
               ]
             }
@@ -1985,14 +1985,14 @@
     },
     {
       "name": "observability",
-      "displayName": "👁️ Observability & Audit",
+      "displayName": "\ud83d\udc41\ufe0f Observability & Audit",
       "layout": [
         {
           "widget": {
             "name": "header",
             "multilineTextboxSpec": {
               "lines": [
-                "## 👁️ Observability & Audit\n",
+                "## \ud83d\udc41\ufe0f Observability & Audit\n",
                 "Comprehensive audit trail of all onboarding actions, status tracking, and historical changes across the metadata platform."
               ]
             }
@@ -2282,14 +2282,14 @@
     },
     {
       "name": "raw_json_debug",
-      "displayName": "🧪 Raw JSON",
+      "displayName": "\ud83e\uddea Raw JSON",
       "layout": [
         {
           "widget": {
             "name": "header",
             "multilineTextboxSpec": {
               "lines": [
-                "## 🧪 Raw JSON (debug)\n",
+                "## \ud83e\uddea Raw JSON (debug)\n",
                 "The complete stored payload for every flow, exactly as the control tables hold it. Pick a flow in the picker, then open `full_spec_json` in the panel below and copy it straight out for debugging or for re-onboarding.\n",
                 "\n",
                 "`full_spec_json` is the whole flow reassembled; the four `*_config_json` columns are the individual blobs as stored, for when you want just one of them."
@@ -2481,7 +2481,7 @@
             "spec": {
               "frame": {
                 "showTitle": true,
-                "title": "Flows — pick one to inspect"
+                "title": "Flows \u2014 pick one to inspect"
               },
               "version": 2,
               "widgetType": "table",
@@ -2570,7 +2570,7 @@
             "spec": {
               "frame": {
                 "showTitle": true,
-                "title": "Raw JSON payload — click a cell, then Ctrl+C to copy"
+                "title": "Raw JSON payload \u2014 click a cell, then Ctrl+C to copy"
               },
               "version": 2,
               "widgetType": "table",
