@@ -46,6 +46,15 @@ Usage::
 
 Idempotent: on a workspace already bootstrapped, phase 1 is skipped (the Volume resolves) and
 the script goes straight to the normal deploy, so it is safe to re-run.
+
+**DO NOT PIPE THIS SCRIPT.** It signals failure through its exit code, and a pipe throws that
+away: in `python scripts/bootstrap_workspace.py ... | tail -60` the shell reports *tail's*
+status, which is always 0, so a failed bootstrap looks like a success. On the bt_digital_poc
+bring-up (2026-09-13) that masked a phase-2 deploy failure. Run it unpiped and read the exit
+code. If you need the output in a file as well, redirect rather than pipe --
+`... > bootstrap.log 2>&1` keeps the script's own status -- or in bash set `PIPESTATUS`/
+`set -o pipefail` before piping. The failure banner is printed in full so that it survives
+a pipe even when the exit code does not.
 """
 
 from __future__ import annotations
@@ -280,8 +289,27 @@ def main() -> int:
                     file=sys.stderr,
                 )
             else:
+                # The banner is deliberately loud and multi-line. This script's exit code is
+                # the reliable signal, but it is EASY TO LOSE: piping the run through another
+                # command (`... | tail -60`) makes the shell report the LAST command's status,
+                # so a failed bootstrap looks like a clean exit 0. That happened on the
+                # bt_digital_poc bring-up (2026-09-13) and very nearly hid a failed deploy.
+                # A banner survives the pipe even when the exit code does not.
                 print(
-                    NL + "ERROR: the full deploy failed; see the output above.",
+                    NL + "=" * 72 + NL +
+                    "ERROR: the full deploy FAILED; see the output above." + NL +
+                    "  Phase 1 may have succeeded -- the target is PARTIALLY deployed." + NL +
+                    "  Resources created before the failure may exist in the workspace" + NL +
+                    "  WITHOUT being recorded in DABs state; the next deploy will try to" + NL +
+                    "  create them again and fail with ALREADY_EXISTS. Check with:" + NL +
+                    f"    databricks bundle summary -t {args.target} -p {args.profile}" + NL +
+                    "  and adopt any orphan with `databricks bundle deployment bind" + NL +
+                    "  <bare_resource_key> <id>`. See" + NL +
+                    "  docs/onboarding/06_bt_digital_poc_deployment_issues.md" + NL +
+                    "NOTE: this script is exiting NON-ZERO. If your shell reported 0, you" + NL +
+                    "  piped it (`| tail`) and the pipe masked the status -- trust this" + NL +
+                    "  banner, not the exit code." + NL +
+                    "=" * 72,
                     file=sys.stderr,
                 )
                 return 1

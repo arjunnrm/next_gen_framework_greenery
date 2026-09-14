@@ -1,6 +1,14 @@
-# Governance tagging for both UC3 Excalibur groups:
+# Governance tagging for both UC3 Excalibur groups, in ONE task:
 #
-#   tag_streaming_cdc -> tag_batch_recon
+#   tag_uc3_groups   (dataflow_group_id = "dfg_uc3_excalibur_streaming_cdc,dfg_uc3_excalibur_batch_recon")
+#
+# MULTI-GROUP (v0.0.7). `04_apply_governance_and_egress.py`'s `dataflow_group_id` widget accepts a
+# COMMA-SEPARATED LIST, so the two groups that used to need two chained tasks are now one task.
+# This replaces the previous `tag_streaming_cdc -> tag_batch_recon` pair. The notebook applies each
+# group independently and, if one fails, still attempts the rest before failing the task with every
+# failing group named -- so combining them does not let one group's failure hide another's tags.
+#
+# Adding a third UC3 group is now an edit to the comma-separated string below, not a new task.
 #
 # GOVERNANCE TAGGING IS A POST-MATERIALIZATION STEP and cannot live in the pipeline graph. The
 # framework applies `governance_tags` via governance/tags.py::apply_all_governance_tags, which
@@ -28,23 +36,13 @@ resources:
         framework: flowx
         use_case: uc3
       tasks:
-        - task_key: tag_streaming_cdc
+        - task_key: tag_uc3_groups
           notebook_task:
             notebook_path: ../../notebooks/04_governance/04_apply_governance_and_egress.py
             base_parameters:
               catalog: ${var.catalog}
-              dataflow_group_id: dfg_uc3_excalibur_streaming_cdc
-              apply_abac: "true"
-              capture_cdc_change_counts: "false"
-          environment_key: framework_env
-        - task_key: tag_batch_recon
-          depends_on:
-            - task_key: tag_streaming_cdc
-          notebook_task:
-            notebook_path: ../../notebooks/04_governance/04_apply_governance_and_egress.py
-            base_parameters:
-              catalog: ${var.catalog}
-              dataflow_group_id: dfg_uc3_excalibur_batch_recon
+              # Comma-separated list -- one task, both groups. Order is preserved.
+              dataflow_group_id: dfg_uc3_excalibur_streaming_cdc,dfg_uc3_excalibur_batch_recon
               apply_abac: "true"
               capture_cdc_change_counts: "false"
           environment_key: framework_env

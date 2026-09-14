@@ -12,9 +12,23 @@
 #                    Its absence is the exact error this file was added for:
 #                    "cannot create resources.volumes.framework_wheels_volume:
 #                     Schema 'flowx.config' does not exist".
-#   ${var.schema}    the framework's default working schema (`dev` on every current target),
-#                    named by ${var.schema} across job parameters.
 #   flowx_sample  the sample suite's isolated schema, plus its three Volumes below.
+#
+# THERE IS NO SEPARATE "WORKING" SCHEMA, AND ${var.schema} NO LONGER EXISTS (removed 2026-09-14).
+# A `working_schema` resource used to declare ${var.schema} here. It was removed because nothing
+# consumed the variable: the pipelines hard-code their own target schemas (`bronze`,
+# `observability`), and the two jobs taking a `schema` parameter default to `staging` and
+# ${var.spec_schema} respectively. Its only effect was to create an empty schema per target --
+# and it made a target that set `schema: config` UNDEPLOYABLE, because `config_schema` below
+# already declares that name and DABs identifies a schema by its full name:
+#
+#   Error: cannot create resources.schemas.working_schema:
+#          Schema 'config' already exists (400 SCHEMA_ALREADY_EXISTS)
+#
+# which then took `volumes.framework_docs_volume` down with it via the dependency edge. That hit
+# the `bt_digital_poc` target on 2026-09-13 and `hoonartek` carried the same latent collision.
+# Framework data lives in `config` (control tables) and the per-pipeline schemas; if a target
+# ever needs another schema, declare it here explicitly rather than reintroducing the variable.
 #
 # `config_schema` uses the LITERAL `config`, not ${var.spec_schema}, for the same reason
 # framework_wheels_volume.yml does: databricks.yml's artifact_path spells `config` literally, so
@@ -51,15 +65,6 @@ resources:
       comment: >-
         Framework configuration schema -- control tables, the onboarding-spec Volume the
         Onboarding App writes to, and the wheels Volume that `bundle deploy` publishes into.
-      lifecycle:
-        prevent_destroy: true
-
-    working_schema:
-      catalog_name: ${var.catalog}
-      name: ${var.schema}
-      comment: >-
-        Default working schema for the FlowX (${var.schema}), referenced
-        by job parameters across the bundle.
       lifecycle:
         prevent_destroy: true
 

@@ -118,6 +118,25 @@ Because Databricks Lakeflow disallows executing DDL statements (`ALTER TABLE ...
 3. It queries `governance_tags_json` from the control tables and executes idempotent `ALTER TABLE <catalog>.<schema>.<table> SET TAGS (...)` DDL commands.
 4. **`target_type: "sink"` flows are skipped** (v1.7.5). A pure sink is a `dlt.create_sink` + `@dlt.append_flow` with **no persisted dataset** — its `target_table` names the sink, not a table — so there is nothing to `ALTER`. Before v1.7.5 the loop tagged it anyway, raised `TABLE_OR_VIEW_NOT_FOUND`, and because the group-level loop has no per-flow isolation, **every other flow's tags in the group went unapplied too**. Found live on UC6's first green pipeline update. `external_sink` is *not* skipped: it materializes a real main table first and only additionally exports it, so its tags apply as normal. A `governance_tags` block on a `sink` flow is therefore accepted but inert; put table tags on the flow that produces the data the sink reads.
 
+#### Tagging several dataflow groups in one task (v0.0.7)
+
+The `dataflow_group_id` widget accepts **either a single id or a comma-separated list**:
+
+```yaml
+base_parameters:
+  catalog: ${var.catalog}
+  dataflow_group_id: dfg_uc3_excalibur_streaming_cdc,dfg_uc3_excalibur_batch_recon
+  apply_abac: "true"
+```
+
+A use case whose groups previously needed one chained task each is now one task — `resources/uc3/uc3_governance_job.yml` collapsed its `tag_streaming_cdc -> tag_batch_recon` pair into a single `tag_uc3_groups` task this way. Adding a further group is an edit to the comma-separated string, not a new task.
+
+A single id is simply the one-element case, so **every pre-existing single-id job definition keeps working unchanged** — no `resources/*.yml` needed editing for this change. Blank entries (a trailing comma) and duplicate ids are dropped, and ordering is preserved.
+
+**Each group is isolated.** If one group fails, the remaining groups are still attempted and the task then fails at the end naming every group that failed, with a `N of M group(s)` count. This matters because the alternative — stopping at the first failure — would make one task carrying N groups strictly *worse* than N separate tasks: a single bad group would silently deny its tags to every group listed after it, which is the same class of silent-gap failure that item 4 above describes at the flow level.
+
+> **Note — this is group-level isolation only.** Within a single group, `apply_all_governance_tags` still has no per-flow isolation, so the item-4 caveat continues to apply inside each group.
+
 ---
 
 ## 4. Attribute-Based Access Control (ABAC) Integration

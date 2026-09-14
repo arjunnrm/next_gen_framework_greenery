@@ -12,7 +12,7 @@ bundle:
 # from the config as one to delete from the target.
 #
 #   resources/flowx_bootstrap/   the UC containers other resources live in: the
-#                                   config/${var.schema}/flowx_sample schemas and the sample
+#                                   config and flowx_sample schemas and the sample
 #                                   suite's four Volumes. NOT the catalog -- that is a
 #                                   prerequisite, see the group's README.md
 #   resources/flowx_app/         the Onboarding App + the UC Volume it stores specs in
@@ -219,8 +219,6 @@ variables:
     default: /Volumes/${var.catalog}/config/wheels
   catalog:
     description: The catalog to use
-  schema:
-    description: The schema to use
   spec_schema:
     description: >-
       Schema holding the UC Volume that the FlowX Onboarding App reads and writes
@@ -281,7 +279,6 @@ targets:
 
     variables:
       catalog: bt_digital_poc
-      schema: config
       dashboard_warehouse_id: fe7871113e044faa
       # Genie spaces cannot be catalog-templated -- see the `genie_space_file` variable above.
       genie_space_file: ../../databricks-genie/flowx_observability.bt_digital_poc.geniespace.json
@@ -296,7 +293,6 @@ targets:
 
     variables:
       catalog: flowx
-      schema: dev
       dashboard_warehouse_id: 3942c176e8c4dee8
 
   bt_digital_poc:
@@ -309,7 +305,6 @@ targets:
 
     variables:
       catalog: bt_digital_poc
-      schema: dev
       dashboard_warehouse_id: ff89f2ac8656a792
       # Genie spaces cannot be catalog-templated -- see the `genie_space_file` variable above.
       genie_space_file: ../../databricks-genie/flowx_observability.bt_digital_poc.geniespace.json

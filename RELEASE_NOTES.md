@@ -15,6 +15,42 @@ resolving. Per-version directories fix that structurally.
 
 ---
 
+## Governance tagging accepts several dataflow groups in one task — 2026-09-14
+
+**No spec attribute is added, removed or renamed, and `pyproject.toml` stays at `0.0.6`.** One
+notebook widget is widened and one UC3 job topology is simplified. Every existing job definition
+keeps working unchanged. Full detail in `enhancement_logs/v1.7.12_enhancement_log.md`.
+
+`notebooks/04_governance/04_apply_governance_and_egress.py`'s `dataflow_group_id` widget now
+accepts **either a single id or a comma-separated list** (`dfg_a,dfg_b`). A single id is the
+one-element case, so this is backward compatible by construction — no `resources/*.yml` required
+an edit, and the archived feature-test jobs that pass one id still work.
+
+`resources/uc3/uc3_governance_job.yml` collapses its two chained tasks
+(`tag_streaming_cdc -> tag_batch_recon`) into one `tag_uc3_groups` task passing both groups.
+
+**Each group is isolated.** A failing group no longer prevents the groups listed after it from
+being tagged: every group is attempted, and the task fails at the end naming all failures with an
+`N of M group(s)` count. Stopping at the first failure would have made a combined task strictly
+worse than separate tasks — the same silent-gap class of bug as the pre-v1.7.5 `sink`-flow
+failure that took a whole group's tags down with it. Note this is **group**-level isolation only;
+within one group `apply_all_governance_tags` still has no per-flow isolation.
+
+**Investigated and rejected: in-pipeline column tagging.** Applying tags from inside the pipeline
+graph was evaluated and is not implementable. `ALTER TABLE ... SET TAGS` is DDL, and DDL from
+inside a dataset query definition is one of the three hard prohibitions in
+`agent_skills/reference/common_pitfalls.md` §23; the notebook's top level runs at
+graph-*definition* time, before any target table exists, so there is no legal execution point
+inside an update either. Post-update tagging remains the only working shape.
+
+**Investigated and rejected: an in-graph reconciliation heal sink for UC3.** Moving UC3's
+mismatch append into the declarative DAG requires `execution_mode: "pipeline"`, which *streams*
+the reconciliation source. Two further bridge designs were tried and both fail — details and the
+offline reproduction recipe are in the enhancement log. UC3 keeps `pipeline_audit_only` plus the
+`05_reconciliation_engine.py` job tasks.
+
+---
+
 ## UC3's batch lane reads the Oracle connector tables, and heals through the CDC engine — 2026-09-11
 
 **No spec attribute is added, removed or renamed, and `pyproject.toml` stays at `0.0.6`.** Two
