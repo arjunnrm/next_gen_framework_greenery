@@ -171,7 +171,8 @@
   "reconciliation_flows": [
     {
       "reconciliation_id": "rf_uc3_physical_device_batch_vs_bronze",
-      "execution_mode": "pipeline_audit_only",
+      "execution_mode": "pipeline",
+      "heal_trigger": "update_pulse",
       "dataflow_group_id": "dfg_uc3_excalibur_batch_recon",
       "publish_schema": "reconciliation",
       "source_config": {
@@ -236,7 +237,8 @@
     },
     {
       "reconciliation_id": "rf_uc3_customer_batch_vs_bronze",
-      "execution_mode": "pipeline_audit_only",
+      "execution_mode": "pipeline",
+      "heal_trigger": "update_pulse",
       "dataflow_group_id": "dfg_uc3_excalibur_batch_recon",
       "publish_schema": "reconciliation",
       "source_config": {
@@ -361,7 +363,8 @@
     },
     {
       "reconciliation_id": "rf_uc3_subscriber_batch_vs_bronze",
-      "execution_mode": "pipeline_audit_only",
+      "execution_mode": "pipeline",
+      "heal_trigger": "update_pulse",
       "dataflow_group_id": "dfg_uc3_excalibur_batch_recon",
       "publish_schema": "reconciliation",
       "source_config": {

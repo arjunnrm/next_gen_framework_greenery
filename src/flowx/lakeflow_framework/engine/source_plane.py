@@ -479,11 +479,19 @@ def _requests_from_reconciliation_rows(
         source_table = source_config["table"]
         source_identity = _table_identity(source_table)
         source_consumer_id = f"{reconciliation_id}:source"
+        # heal_trigger "update_pulse" (v0.0.7) decouples the L5 trigger from the source: the
+        # append flow is driven by a rate-micro-batch pulse carrying no data, and the miss set
+        # reaches it as a BATCH dlt.read. Nothing streams the source, so this request stays
+        # batch and the G-STREAM guard below has nothing to reject -- which is what lets a
+        # MERGE-written or TRUNCATE_AND_LOAD/materialized_view source heal in-graph at all.
+        # "source_stream" (the default) keeps the original behaviour verbatim.
+        heal_trigger = _row_get(row, "heal_trigger") or "source_stream"
+        wants_source_stream = execution_mode == "pipeline" and heal_trigger != "update_pulse"
         requests.append(
             ConsumerRequest(
                 source_consumer_id,
                 source_identity,
-                want_stream=(execution_mode == "pipeline"),
+                want_stream=wants_source_stream,
                 side_effecting=False,
             )
         )

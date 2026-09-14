@@ -331,9 +331,25 @@ ALLOWED_ARCHIVE_FORMATS = {"gzip", "zip"}
 
 ALLOWED_RECONCILIATION_FLOW_KEYS = {
     "compare_columns", "dataflow_group_id", "dq_config", "error_handling", "execution_mode",
-    "logging_config", "match_keys", "publish_schema", "reconciliation_id", "source_config",
-    "target_configs", "transform_sql", "two_tier_verification"
+    "heal_trigger", "logging_config", "match_keys", "publish_schema", "reconciliation_id",
+    "source_config", "target_configs", "transform_sql", "two_tier_verification"
 }
+
+#: ``heal_trigger`` values -- what drives the L5 heal lane's ``@dlt.append_flow`` under
+#: ``execution_mode: "pipeline"``.
+#:
+#: ``"source_stream"`` (the default, and the only behaviour before v0.0.7) streams the
+#: reconciliation SOURCE to trigger the heal. That makes the heal lane inherit the source's
+#: streamability, so a MERGE-written or fully-recomputed (``TRUNCATE_AND_LOAD`` /
+#: ``materialized_view``) source cannot heal in-graph at all -- V-CYC-7 below rejects it.
+#:
+#: ``"update_pulse"`` decouples the TRIGGER from the PAYLOAD, exactly as
+#: ``sink_config.export_trigger: "per_update"`` already does for sink exports (v1.7.5): the
+#: append flow is driven by a ``rate-micro-batch`` pulse that ticks once per update and carries
+#: no data, while the miss set joins in as a BATCH ``dlt.read``. Nothing streams the source, so
+#: the source's write pattern stops mattering and V-CYC-7 does not apply.
+ALLOWED_HEAL_TRIGGERS = {"source_stream", "update_pulse"}
+_DEFAULT_HEAL_TRIGGER = "source_stream"
 
 
 # Known-wrong attribute names and what they should be, checked before difflib's fuzzy match.
@@ -1872,6 +1888,24 @@ def _validate_reconciliation_flows(
         execution_mode = raw_execution_mode if raw_execution_mode in ALLOWED_RECONCILIATION_EXECUTION_MODES else "job"
         pipeline_mode = execution_mode in _RECONCILIATION_PIPELINE_MODES
 
+        # heal_trigger -- what drives the L5 heal append_flow. Only meaningful under
+        # execution_mode "pipeline" (the only mode with an L5 lane at all); declaring it on any
+        # other mode is rejected rather than silently ignored, so a spec cannot appear to select
+        # a healing shape that never runs.
+        raw_heal_trigger = flow.get("heal_trigger")
+        if raw_heal_trigger is not None:
+            check_string(
+                raw_heal_trigger, f"{label}.heal_trigger", errors, allowed_values=ALLOWED_HEAL_TRIGGERS
+            )
+            if execution_mode != "pipeline":
+                errors.append(
+                    f"{label}.heal_trigger: is only meaningful when execution_mode is 'pipeline' "
+                    f"(got {execution_mode!r}). Only 'pipeline' registers the L5 heal lane the "
+                    "trigger drives -- 'pipeline_audit_only' registers no heal lane at all, and "
+                    "'job' heals from the standalone 05_reconciliation_engine.py task. Remove "
+                    "heal_trigger, or set execution_mode to 'pipeline'."
+                )
+
         if flow.get("dataflow_group_id") is not None:
             check_string(flow.get("dataflow_group_id"), f"{label}.dataflow_group_id", errors)
         if flow.get("publish_schema") is not None:
@@ -2717,7 +2751,12 @@ def _validate_reconciliation_pipeline_placement(
         # registers no heal lane, so it is the documented, legal setting for a MERGE-written or
         # fully-refreshed source (docs/07 section 11.7, engine/source_plane.py G-STREAM message).
         # Through v1.7.10 this rule fired for both pipeline modes and contradicted both of those.
-        if execution_mode == "pipeline" and producer is not None:
+        # heal_trigger "update_pulse" exempts the flow from V-CYC-7 entirely: the heal lane is
+        # driven by a rate-micro-batch pulse and the source is read as a BATCH dlt.read, so the
+        # producer's write pattern is irrelevant. Only "source_stream" (the default) streams the
+        # source and therefore still requires an append-only producer.
+        heal_trigger = flow.get("heal_trigger") or _DEFAULT_HEAL_TRIGGER
+        if execution_mode == "pipeline" and heal_trigger == "source_stream" and producer is not None:
             _, cdc_load_strategy, target_type = producer
             if cdc_load_strategy in _RECONCILIATION_SOURCE_MERGE_CDC_STRATEGIES:
                 errors.append(

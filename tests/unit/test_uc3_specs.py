@@ -247,20 +247,26 @@ def test_every_reconciliation_heals_into_the_debezium_landing_table():
     multiplexed landing table rather than writing bronze directly, and never to the obsolete
     pre-split staging.<table>_stream tables.
 
-    execution_mode is pipeline_audit_only, so the L5 heal lane is NOT a node in the pipeline
-    graph and healing runs as the three 05_reconciliation_engine.py job tasks in
-    005_lfj_uc3_excalibur_batch_recon. That is forced by the source, not preferred: "pipeline" is
-    the only mode that registers the heal lane, and it STREAMS its source. The pre-v0.0.7 CSV lane
-    could use it because Auto Loader is a streaming reader feeding an APPEND streaming table. The
-    connector table cannot be streamed (MERGE-written), the snapshot MV cannot (TRUNCATE_AND_LOAD
-    is in G-STREAM's rejection set), and an APPEND copy of the MV cannot bridge the two, because
-    target_type streaming_table forces is_streaming=True on the staged view while that view's own
-    input must stay batch -- proven at runtime as "View '_<table>_batch_events_staged' is not a
-    streaming view and must be referenced using read". Do not retry that shape."""
+    Since v0.0.7 execution_mode is "pipeline" with heal_trigger "update_pulse", so the L5 heal
+    lane IS a node in the pipeline graph: a dlt.create_sink(format="delta") + @dlt.append_flow
+    per healing target, appending inside the same update that computed the miss set. The three
+    05_reconciliation_engine.py heal tasks were removed from 005_lfj_uc3_excalibur_batch_recon.
+
+    This was previously impossible and the reason is worth keeping: "pipeline" used to STREAM its
+    source, and this source cannot be streamed -- the connector table is MERGE-written, the
+    snapshot MV is TRUNCATE_AND_LOAD (in G-STREAM's rejection set), and an APPEND copy cannot
+    bridge them because target_type streaming_table forces is_streaming=True on the staged view
+    while that view's own input must stay batch ("View '_<table>_batch_events_staged' is not a
+    streaming view", proven at runtime 2026-09-11). heal_trigger "update_pulse" sidesteps all of
+    it by decoupling the TRIGGER from the PAYLOAD: a rate-micro-batch pulse drives the append
+    flow and the miss set arrives as a batch dlt.read, so nothing streams the source. The
+    G-STREAM guard is NOT relaxed generally -- see
+    tests/unit/test_recon_heal_trigger_update_pulse.py."""
     spec = _batch_spec()
     assert sorted(f["reconciliation_id"] for f in spec["reconciliation_flows"]) == sorted(_UC3_RECON_FLOWS)
     for flow in spec["reconciliation_flows"]:
-        assert flow["execution_mode"] == "pipeline_audit_only", flow["reconciliation_id"]
+        assert flow["execution_mode"] == "pipeline", flow["reconciliation_id"]
+        assert flow["heal_trigger"] == "update_pulse", flow["reconciliation_id"]
         assert flow["target_configs"][0]["append_target_table"] == HEAL_LANDING_TABLE, flow["reconciliation_id"]
     stale = [v for v in _string_values(spec) if v.startswith("{{catalog}}.staging.") and v.endswith("_stream")]
     assert not stale, stale

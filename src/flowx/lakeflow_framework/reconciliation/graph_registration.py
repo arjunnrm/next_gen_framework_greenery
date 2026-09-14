@@ -152,6 +152,8 @@ from flowx.lakeflow_framework.cdc.hashing import HASH_KEY_COLUMN, HASH_VALUE_COL
 from flowx.lakeflow_framework.dq.expectations import apply_dq_expectations
 from flowx.lakeflow_framework.engine.identifiers import sanitize_identifier
 from flowx.lakeflow_framework.engine.sink_registration import (
+    _PULSE_GATE_COLUMN,
+    _register_shared_export_pulse,
     register_foreach_batch_sink,
     require_streaming_source,
 )
@@ -160,6 +162,7 @@ from flowx.lakeflow_framework.exceptions import FrameworkConfigError
 from flowx.lakeflow_framework.observability.structured_logger import log_flow_event
 from flowx.lakeflow_framework.reconciliation import matcher, mismatch_logging
 from flowx.lakeflow_framework.reconciliation.appender import (
+    apply_transform_sql,
     resolve_log_capture_flags,
     run_target_reconciliation,
     write_reconciliation_result,
@@ -182,6 +185,10 @@ _VALID_PIPELINE_EXECUTION_MODES = (_PIPELINE_EXECUTION_MODE, _PIPELINE_AUDIT_ONL
 #: ``evaluate_source_to_target`` gate, kept as a local literal (this module has no import-safe
 #: access to that function-local name).
 _HEAL_DIRECTIONS = ("source_to_target", "both")
+
+#: ``heal_trigger`` values -- see ``onboarding/spec_validator.py::ALLOWED_HEAL_TRIGGERS``.
+_HEAL_TRIGGER_SOURCE_STREAM = "source_stream"
+_HEAL_TRIGGER_UPDATE_PULSE = "update_pulse"
 
 
 def _row_get(row: Any, name: str, default: Any = None) -> Any:
@@ -399,7 +406,23 @@ def register_reconciliation_flow(
     heal_targets = [tc for tc in target_configs if _wants_heal(tc)]
     needs_heal = execution_mode == _PIPELINE_EXECUTION_MODE and bool(heal_targets)
 
-    if needs_heal and not publishes:
+    # heal_trigger (v0.0.7) -- what drives the L5 append_flow.
+    #
+    #   "source_stream" (default, pre-v0.0.7 behaviour): stream the reconciliation SOURCE. The
+    #       heal lane then inherits the source's streamability, and the handler is a
+    #       foreach_batch_sink.
+    #   "update_pulse": drive the append_flow from the shared rate-micro-batch update pulse and
+    #       read the miss set as a BATCH dlt.read, appending through a declarative
+    #       dlt.create_sink(format="delta"). Nothing streams the source, so a MERGE-written or
+    #       TRUNCATE_AND_LOAD/materialized_view source can heal in-graph -- the shape UC3 needs.
+    #
+    # This flag ALSO decides whether `_src`/`_tgt` must stream and be published: the pulse path's
+    # sink is declarative and reads its payload through dlt.read, so it needs neither.
+    heal_trigger = _row_get(flow_row, "heal_trigger") or _HEAL_TRIGGER_SOURCE_STREAM
+    pulse_driven_heal = needs_heal and heal_trigger == _HEAL_TRIGGER_UPDATE_PULSE
+    source_stream_heal = needs_heal and not pulse_driven_heal
+
+    if source_stream_heal and not publishes:
         raise FrameworkConfigError(
             f"Reconciliation flow '{reconciliation_id}': execution_mode='pipeline' with a healing "
             "target (append_target_table) requires publish_schema. The L5 heal handler reads the "
@@ -471,7 +494,10 @@ def register_reconciliation_flow(
     # therefore requires those specific nodes to remain published qualified tables.
     # -----------------------------------------------------------------------------------------
 
-    src_published = needs_heal
+    # Only the source_stream heal path needs `_src` published and streaming: its
+    # foreach_batch_sink handler reads it back through the metastore. The pulse path reads
+    # the miss set via dlt.read inside the graph, so `_src` stays a temporary batch MV.
+    src_published = source_stream_heal
     _src_bare_name = f"_recon__{sanitized_reconciliation_id}__src"
     src_table_name = _node_name(_src_bare_name) if src_published else _src_bare_name
 
@@ -508,7 +534,7 @@ def register_reconciliation_flow(
 
         # A target's L3 node must stay published only when the L5 handler will read it back
         # via spark.read.table -- i.e. this flow heals AND this specific target is a healer.
-        tgt_published = needs_heal and _wants_heal(target_config)
+        tgt_published = source_stream_heal and _wants_heal(target_config)
         _tgt_bare_name = f"_recon__{sanitized_reconciliation_id}__{sanitized_target_id}__tgt"
         tgt_table_name = _node_name(_tgt_bare_name) if tgt_published else _tgt_bare_name
         target_table_names[target_id] = tgt_table_name
@@ -689,6 +715,106 @@ def register_reconciliation_flow(
     # -----------------------------------------------------------------------------------------
 
     if not needs_heal:
+        return
+
+    if pulse_driven_heal:
+        # -------------------------------------------------------------------------------------
+        # L5 RECON HEAL -- DECLARATIVE (heal_trigger "update_pulse", v0.0.7).
+        #
+        # dlt.create_sink(format="delta", options={"tableName": ...}) + @dlt.append_flow, with
+        # the shared rate-micro-batch update pulse as the TRIGGER and the miss set as a BATCH
+        # PAYLOAD. This is the same trigger/payload split `sink_registration.py::
+        # register_per_update_sink_target` already uses for export_trigger "per_update", applied
+        # to healing: the pulse makes the append flow genuinely streaming (Lakeflow accepts only
+        # streaming queries into a sink) while nothing streams the reconciliation source, so a
+        # MERGE-written or TRUNCATE_AND_LOAD/materialized_view source can heal in-graph.
+        #
+        # Versus the "source_stream" path below: no foreach_batch_sink (a Public Preview
+        # construct absent from the local dlt stub), no Python handler, no metastore read-back
+        # of `_src`/`_tgt` -- the append is a real DAG edge.
+        #
+        # The transform_sql reshaping that the foreach_batch_sink path performs inside
+        # `run_target_reconciliation` is applied here as a SQL overlay on the miss set, because
+        # the append target (a Debezium landing table) expects envelope columns, not the
+        # source's business columns.
+        # -------------------------------------------------------------------------------------
+        pulse_table_name = _register_shared_export_pulse()
+
+        for target_config in heal_targets:
+            target_id = target_config["target_id"]
+            sanitized_target_id = sanitize_identifier(target_id)
+            append_target_table = target_config["append_target_table"]
+            missing_table_name = missing_table_names[target_id]
+            gate_table_name = classified_table_names[target_id]
+            heal_sink_name = f"_recon__{sanitized_reconciliation_id}__{sanitized_target_id}__heal_delta_sink"
+            heal_flow_name = f"recon__{sanitized_reconciliation_id}__{sanitized_target_id}__heal_flow"
+
+            dlt.create_sink(
+                name=heal_sink_name,
+                format="delta",
+                options={"tableName": append_target_table},
+            )
+
+            def _make_declarative_heal_flow(
+                _heal_flow_name=heal_flow_name,
+                _heal_sink_name=heal_sink_name,
+                _missing_table_name=missing_table_name,
+                _gate_table_name=gate_table_name,
+                _pulse_table_name=pulse_table_name,
+                _append_target_table=append_target_table,
+                _target_id=target_id,
+                _transform_sql=transform_sql,
+                _parameters=dict(parameters),
+            ):
+                @dlt.append_flow(
+                    name=_heal_flow_name,
+                    target=_heal_sink_name,
+                    comment=(
+                        f"L5 RECON HEAL (declarative) -- appends reconciliation "
+                        f"'{reconciliation_id}' target '{_target_id}''s miss set into "
+                        f"'{_append_target_table}'. Triggered by the update pulse; the miss set "
+                        f"is a batch payload joined on a constant literal."
+                    ),
+                )
+                def _recon_declarative_heal_flow():
+                    pulse_df = dlt.read_stream(_pulse_table_name)
+                    missing_df = dlt.read(_missing_table_name)
+                    # Ordering edge: a one-row aggregate of __classified makes this flow
+                    # structurally depend on L4 having materialized this update, exactly as the
+                    # source_stream path's gate does. groupBy-less .agg() emits one row even
+                    # over an empty relation, so an all-matched update still ticks.
+                    gate_df = (
+                        dlt.read(_gate_table_name)
+                        .agg(F.count(F.lit(1)).alias("__recon_classified_rowcount"))
+                        .select("__recon_classified_rowcount")
+                    )
+                    payload_df = missing_df.crossJoin(gate_df).drop("__recon_classified_rowcount")
+                    if _transform_sql:
+                        payload_df = apply_transform_sql(
+                            payload_df,
+                            _transform_sql,
+                            _parameters,
+                            reconciliation_id=reconciliation_id,
+                            target_id=_target_id,
+                        )
+                    # Equi-join on a constant literal -- the one legal stream-static shape (a
+                    # non-equi lit(True) raises "Detected implicit cartesian product"). The one
+                    # pulse row fans out across every payload row; the gate column never reaches
+                    # the sink.
+                    payload_df = payload_df.withColumn(_PULSE_GATE_COLUMN, F.lit(1))
+                    joined = pulse_df.join(payload_df, on=_PULSE_GATE_COLUMN, how="inner")
+                    return joined.drop(_PULSE_GATE_COLUMN)
+
+            _make_declarative_heal_flow()
+
+        logger.info(
+            "Registered reconciliation flow '%s' (execution_mode=%s, heal_trigger=update_pulse) "
+            "into the pipeline graph: %d target(s), %d healing via declarative delta sink.",
+            reconciliation_id,
+            execution_mode,
+            len(target_configs),
+            len(heal_targets),
+        )
         return
 
     pulse_table_name = f"_recon__{sanitized_reconciliation_id}__pulse"

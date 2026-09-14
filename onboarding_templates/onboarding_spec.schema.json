@@ -1946,6 +1946,15 @@
           "default": "job",
           "description": "Default: 'job' -- runs as a 05_reconciliation_engine.py job task, exactly as today; MUST stay the default because four DABs resources already run recon tasks against onboarded rows, and 'pipeline' as a default would run those flows twice per cycle. 'pipeline': registers this flow inside this dataflow group's Lakeflow pipeline update as a third flow type -- L3+L4 published comparison datasets AND the L5 heal (append-back) lane; requires dataflow_group_id (V-CYC-6) and an append-only source producer (V-CYC-7). 'pipeline_audit_only': registers L3+L4 only -- the comparison, metrics and dq_config expectations run in-pipeline, but healing stays in job mode; the landing zone if a foreach_batch_sink handler cannot read a pipeline dataset, and the correct setting for a recon flow whose source is static. See onboarding_spec_full_reference.md and docs/07_reconciliation_engine.md."
         },
+        "heal_trigger": {
+          "type": "string",
+          "enum": [
+            "source_stream",
+            "update_pulse"
+          ],
+          "default": "source_stream",
+          "description": "Only meaningful when execution_mode is 'pipeline' (the only mode with an L5 heal lane); rejected on any other mode. 'source_stream' (default, the pre-v0.0.7 behaviour) STREAMS the reconciliation source to trigger the heal, so the source must be append-only -- a MERGE-written or TRUNCATE_AND_LOAD/materialized_view source is rejected by V-CYC-7. 'update_pulse' decouples the trigger from the payload exactly as sink_config.export_trigger 'per_update' does for exports: the append flow is driven by a rate-micro-batch pulse carrying no data while the miss set joins in as a batch dlt.read, and the append itself is a declarative dlt.create_sink(format='delta') + @dlt.append_flow. Nothing streams the source, so V-CYC-7 does not apply and a non-append-only source can heal in-graph."
+        },
         "publish_schema": {
           "type": "string",
           "minLength": 1,
