@@ -101,6 +101,7 @@ nav:
           - 3 · Using the Spec Builder app: onboarding/03_spec_builder_app.md
           - 4 · Deploying with DABs: onboarding/04_deploying.md
           - 5 · New-workspace bootstrap: onboarding/05_new_workspace_bootstrap.md
+          - 6 · BT Digital POC deployment issues: onboarding/06_bt_digital_poc_deployment_issues.md
       - Going further:
           - Developer guide & recipes: 09_developer_guide_and_recipes.md
 

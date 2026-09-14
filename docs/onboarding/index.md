@@ -10,6 +10,7 @@ can actually check.
 - **3 · [Using the Spec Builder](03_spec_builder_app.md)** — author and validate without hand-writing JSON.
 - **4 · [Deploying with DABs](04_deploying.md)** — publish the wheel, deploy, run onboarding.
 - **5 · [New-workspace bootstrap](05_new_workspace_bootstrap.md)** — the first-time runbook for a workspace that has never held this bundle.
+- **6 · [BT Digital POC deployment issues](06_bt_digital_poc_deployment_issues.md)** — the `bt_digital_poc` target: per-target attributes that must not be copied, orphans left by interrupted deploys, and the workspace storage fault blocking the Genie space.
 
 </div>
 
