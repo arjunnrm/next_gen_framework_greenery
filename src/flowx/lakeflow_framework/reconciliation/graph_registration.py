@@ -501,7 +501,11 @@ def register_reconciliation_flow(
     _src_bare_name = f"_recon__{sanitized_reconciliation_id}__src"
     src_table_name = _node_name(_src_bare_name) if src_published else _src_bare_name
 
-    def _make_src_table(_source_config=source_config, _want_stream=needs_heal):
+    # _want_stream follows source_stream_heal, NOT needs_heal: under heal_trigger
+    # "update_pulse" nothing streams the source (the pulse is a rate-micro-batch tick and the
+    # miss set is a batch dlt.read), so this node must stay a materialized view. Binding it as
+    # a stream is what made the pulse path fail to resolve against a TRUNCATE_AND_LOAD source.
+    def _make_src_table(_source_config=source_config, _want_stream=source_stream_heal):
         @dlt.table(
             name=src_table_name,
             temporary=not src_published,

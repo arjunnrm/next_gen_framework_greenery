@@ -1,0 +1,6698 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Metadata-driven ingestion, transformation, reconciliation and observability pipelines on Databricks Lakeflow — platform hub, four framework pillars, console walkthroughs, the master configuration reference and operational runbooks.">
+      
+      
+        <meta name="author" content="Data Platform Engineering">
+      
+      
+      
+        <link rel="prev" href="../08_observability_and_telemetry/">
+      
+      
+        <link rel="next" href="../11_hashing_and_determinism/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>Framework observability, AI/BI & Genie - FlowX</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+  
+  
+    
+      
+      
+    
+  
+    
+      
+      
+    
+  
+  
+  <style>:root{--md-admonition-icon--abstract:url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2024%2024%22%3E%3Cpath%20d%3D%22M10.59%2013.41c.41.39.41%201.03%200%201.42-.39.39-1.03.39-1.42%200a5.003%205.003%200%200%201%200-7.07l3.54-3.54a5.003%205.003%200%200%201%207.07%200%205.003%205.003%200%200%201%200%207.07l-1.49%201.49c.01-.82-.12-1.64-.4-2.42l.47-.48a2.98%202.98%200%200%200%200-4.24%202.98%202.98%200%200%200-4.24%200l-3.53%203.53a2.98%202.98%200%200%200%200%204.24m2.82-4.24c.39-.39%201.03-.39%201.42%200a5.003%205.003%200%200%201%200%207.07l-3.54%203.54a5.003%205.003%200%200%201-7.07%200%205.003%205.003%200%200%201%200-7.07l1.49-1.49c-.01.82.12%201.64.4%202.43l-.47.47a2.98%202.98%200%200%200%200%204.24%202.98%202.98%200%200%200%204.24%200l3.53-3.53a2.98%202.98%200%200%200%200-4.24.973.973%200%200%201%200-1.42%22/%3E%3C/svg%3E');--md-admonition-icon--example:url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2024%2024%22%3E%3Cpath%20d%3D%22M5%203h2v2H5v5a2%202%200%200%201-2%202%202%202%200%200%201%202%202v5h2v2H5c-1.07-.27-2-.9-2-2v-4a2%202%200%200%200-2-2H0v-2h1a2%202%200%200%200%202-2V5a2%202%200%200%201%202-2m14%200a2%202%200%200%201%202%202v4a2%202%200%200%200%202%202h1v2h-1a2%202%200%200%200-2%202v4a2%202%200%200%201-2%202h-2v-2h2v-5a2%202%200%200%201%202-2%202%202%200%200%201-2-2V5h-2V3zm-7%2012a1%201%200%200%201%201%201%201%201%200%200%201-1%201%201%201%200%200%201-1-1%201%201%200%200%201%201-1m-4%200a1%201%200%200%201%201%201%201%201%200%200%201-1%201%201%201%200%200%201-1-1%201%201%200%200%201%201-1m8%200a1%201%200%200%201%201%201%201%201%200%200%201-1%201%201%201%200%200%201-1-1%201%201%200%200%201%201-1%22/%3E%3C/svg%3E');}</style>
+
+
+
+    
+    
+      
+    
+    
+      
+    
+    
+      <link rel="stylesheet" href="../stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#flowx-framework-observability-aibi-genie" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow md-header--lifted" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="FlowX" class="md-header__button md-logo" aria-label="FlowX" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18 11h-3.18C14.4 9.84 13.3 9 12 9s-2.4.84-2.82 2H6c-.33 0-2-.1-2-2V8c0-1.83 1.54-2 2-2h10.18C16.6 7.16 17.7 8 19 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3c-1.3 0-2.4.84-2.82 2H6C4.39 4 2 5.06 2 8v1c0 2.94 2.39 4 4 4h3.18c.42 1.16 1.52 2 2.82 2s2.4-.84 2.82-2H18c.33 0 2 .1 2 2v1c0 1.83-1.54 2-2 2H7.82C7.4 16.84 6.3 16 5 16a3 3 0 0 0-3 3 3 3 0 0 0 3 3c1.3 0 2.4-.84 2.82-2H18c1.61 0 4-1.07 4-4v-1c0-2.93-2.39-4-4-4m1-7a1 1 0 0 1 1 1 1 1 0 0 1-1 1 1 1 0 0 1-1-1 1 1 0 0 1 1-1M5 20a1 1 0 0 1-1-1 1 1 0 0 1 1-1 1 1 0 0 1 1 1 1 1 0 0 1-1 1"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            FlowX
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Framework observability, AI/BI & Genie
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m14.3 16-.7-2h-3.2l-.7 2H7.8L11 7h2l3.2 9zM20 8.69V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12zm-9.15 3.96h2.3L12 9z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="deep-orange"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_2" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="deep-orange"  aria-label="Switch to system preference"  type="radio" name="__palette" id="__palette_2">
+    
+      <label class="md-header__button md-icon" title="Switch to system preference" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+          <a href="javascript:void(0)" class="md-search__icon md-icon" title="Share" aria-label="Share" data-clipboard data-clipboard-text="" data-md-component="search-share" tabindex="-1">
+            
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91s2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08"/></svg>
+          </a>
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/Madhan-RAGHU/NextGen_Metadata_Framework" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    NextGen_Metadata_Framework
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+    
+      
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href=".." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Spec Builder app
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../onboarding/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Get started
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../pillars/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Pillars
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../console/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Console
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../reference/json/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Configuration
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../01_platform_architecture/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Architecture
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../reference/code/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Code reference
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../faq/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Help
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../architecture_review/00_executive_summary/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Project record
+
+        </a>
+      </li>
+    
+  
+
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+    
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="FlowX" class="md-nav__button md-logo" aria-label="FlowX" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18 11h-3.18C14.4 9.84 13.3 9 12 9s-2.4.84-2.82 2H6c-.33 0-2-.1-2-2V8c0-1.83 1.54-2 2-2h10.18C16.6 7.16 17.7 8 19 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3c-1.3 0-2.4.84-2.82 2H6C4.39 4 2 5.06 2 8v1c0 2.94 2.39 4 4 4h3.18c.42 1.16 1.52 2 2.82 2s2.4-.84 2.82-2H18c.33 0 2 .1 2 2v1c0 1.83-1.54 2-2 2H7.82C7.4 16.84 6.3 16 5 16a3 3 0 0 0-3 3 3 3 0 0 0 3 3c1.3 0 2.4-.84 2.82-2H18c1.61 0 4-1.07 4-4v-1c0-2.93-2.39-4-4-4m1-7a1 1 0 0 1 1 1 1 1 0 0 1-1 1 1 1 0 0 1-1-1 1 1 0 0 1 1-1M5 20a1 1 0 0 1-1-1 1 1 0 0 1 1-1 1 1 0 0 1 1 1 1 1 0 0 1-1 1"/></svg>
+
+    </a>
+    FlowX
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/Madhan-RAGHU/NextGen_Metadata_Framework" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    NextGen_Metadata_Framework
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Spec Builder app
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../onboarding/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Get started
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_3" id="__nav_3_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Get started
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_2" id="__nav_3_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Step by step
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Step by step
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../onboarding/01_prerequisites/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    1 · Prerequisites
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../onboarding/02_first_pipeline/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    2 · Your first pipeline
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../onboarding/03_spec_builder_app/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    3 · Using the Spec Builder app
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../onboarding/04_deploying/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    4 · Deploying with DABs
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../onboarding/05_new_workspace_bootstrap/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    5 · New-workspace bootstrap
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../onboarding/06_bt_digital_poc_deployment_issues/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    6 · BT Digital POC deployment issues
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_3" id="__nav_3_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Going further
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Going further
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../09_developer_guide_and_recipes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Developer guide & recipes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../16_usecase_implementation_guide/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Use case implementation guide
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../pillars/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Pillars
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_4" id="__nav_4_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Pillars
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../pillars/ingestion/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    1 · Ingestion
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../pillars/transformation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    2 · Transformation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../pillars/reconciliation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    3 · Reconciliation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../pillars/observability/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    4 · Observability
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../console/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Console
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_5" id="__nav_5_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Console
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../console/spec_builder/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Spec Builder app · tab by tab
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../console/observability_dashboard/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Observability dashboard
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../console/control_dashboard/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Control metadata dashboard
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../console/genie/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Genie space
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../console/agent_skills/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Agent skills & tools
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../reference/json/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Configuration
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_6" id="__nav_6_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Configuration
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/json/tree/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Spec tree view
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_6_3" id="__nav_6_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Spec document
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Spec document
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/json/root/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Spec root
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/json/ingestion/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Ingestion flows
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/json/transformation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Transformation flows
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/json/reconciliation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reconciliation flows
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/json/observability/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Observability
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_6_4" id="__nav_6_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Shared blocks
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Shared blocks
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/json/ingestion-transformation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CDC / load strategy
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/json/other/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Other shared attributes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/json/removed/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Removed & rejected attributes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/sync/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Docs ↔ code synchronisation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../00_master_reference_index/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Full attribute dictionary
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../14_onboarding_restrictions_and_validation_rules/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Onboarding restrictions & validation rules
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../v1.4.0_attribute_delta/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    v1.4.0 attribute delta
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Architecture
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../01_platform_architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Platform architecture & core concepts
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_7_2" id="__nav_7_2_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data plane
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Data plane
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../02_ingestion_and_sources/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Ingestion & source readers
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../03_transformation_and_cdc/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Transformation & CDC
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../07_reconciliation_engine/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reconciliation & self-healing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../06_egress_and_lakeflow_sinks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Egress & Lakeflow sinks
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7_3" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_7_3" id="__nav_7_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cross-cutting concerns
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_3_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_7_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Cross-cutting concerns
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../04_data_quality_and_governance/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data quality & governance
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../05_security_and_cryptography/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Security & cryptography
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../08_observability_and_telemetry/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Observability & OpenTelemetry
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Framework observability, AI/BI & Genie
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Framework observability, AI/BI & Genie
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-why-this-exists" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Why this exists
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="1. Why this exists">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#11-the-division-of-labour-with-doc-08" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.1 The division of labour with doc 08
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#12-what-was-built" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.2 What was built
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-architecture-one-semantic-layer-three-consumers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Architecture: one semantic layer, three consumers
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2. Architecture: one semantic layer, three consumers">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#21-why-views-and-why-in-their-own-schema" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.1 Why views, and why in their own schema
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-the-join-key" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. The join key
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3. The join key">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#31-pipelines-free-because-the-configuration-block-already-carries-it" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.1 Pipelines: free, because the configuration block already carries it
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#32-jobs-not-free-and-why-a-tag-was-needed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.2 Jobs: not free, and why a tag was needed
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#33-event-log-location-is-discovered-not-constructed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.3 Event log location is discovered, not constructed
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-the-11-views" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. The 11 views
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="4. The 11 views">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#41-v_dataflow_group_catalog-the-dimension" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.1 v_dataflow_group_catalog — the dimension
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#42-v_flow_inventory-flat-across-all-three-flow-kinds" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.2 v_flow_inventory — flat, across all three flow kinds
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#43-v_pipeline_registry-the-bridge" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.3 v_pipeline_registry — the bridge
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#44-v_pipeline_updates-run-performance" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.4 v_pipeline_updates — run performance
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#45-v_job_runs-with-an-attribution-quality-column" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.5 v_job_runs — with an attribution-quality column
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#46-v_dataflow_cost-dbus-and-estimated-list-price-cost" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.6 v_dataflow_cost — DBUs and estimated list-price cost
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#47-v_flow_metrics-the-throughput-view" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.7 v_flow_metrics — the throughput view
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#48-v_dq_results-per-expectation-outcomes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.8 v_dq_results — per-expectation outcomes
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#49-v_reconciliation_health-and-has_run_history" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.9 v_reconciliation_health — and has_run_history
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#410-v_dataflow_lineage-observed-not-declared" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.10 v_dataflow_lineage — observed, not declared
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#411-v_group_health_summary-the-scorecard" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.11 v_group_health_summary — the scorecard
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-the-aibi-dashboard" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. The AI/BI dashboard
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="5. The AI/BI dashboard">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#51-dataset_schema-observability-and-the-two-part-name-subtlety" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.1 dataset_schema: observability, and the two-part-name subtlety
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-ai_forecast-the-four-rules-and-the-ten-billion-dbu-cautionary-tale" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. AI_FORECAST — the four rules, and the ten-billion-DBU cautionary tale
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="6. AI_FORECAST — the four rules, and the ten-billion-DBU cautionary tale">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#61-the-cautionary-tale" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.1 The cautionary tale
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#62-the-four-rules" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.2 The four rules
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#63-how-the-dashboard-sql-implements-them" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.3 How the dashboard SQL implements them
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#64-live-verification" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.4 Live verification
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7-the-genie-space" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. The Genie space
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="7. The Genie space">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#71-why-the-views-and-only-two-raw-system-tables" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7.1 Why the views, and only two raw system tables
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#72-the-serialized-format-three-hard-requirements" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7.2 The serialized format — three hard requirements
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#73-the-round-trip-workflow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7.3 The round-trip workflow
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#8-the-documentation-generator" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8. The documentation generator
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#9-prerequisites-and-exactly-what-breaks-when-they-are-unmet" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9. Prerequisites, and exactly what breaks when they are unmet
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="9. Prerequisites, and exactly what breaks when they are unmet">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#91-re-provisioning" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9.1 Re-provisioning
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#10-gotchas-six-bugs-live-data-caught" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        10. Gotchas — six bugs live data caught
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="10. Gotchas — six bugs live data caught">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#101-has_cdc-was-always-false-case" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        10.1 has_cdc was always FALSE — case
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#102-a-leading-on-every-aggregated-list-split-is-not-empty" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        10.2 A leading ", " on every aggregated list — SPLIT('') is not empty
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#103-has_dq-was-true-for-every-group-is-a-non-empty-string" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        10.3 has_dq was TRUE for every group — '{}' is a non-empty string
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#104-flow_status-running-with-a-partial-row-count-newest-terminal" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        10.4 flow_status = RUNNING with a partial row count — newest ≠ terminal
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#105-field_not_found-on-settingscatalog" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        10.5 FIELD_NOT_FOUND on settings.catalog
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#106-the-repos-brace-trap-again" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        10.6 The repo's brace trap, again
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#11-tests" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        11. Tests
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_7_4" id="__nav_7_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Design guarantees
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Design guarantees
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../11_hashing_and_determinism/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Deterministic hashing standard
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../12_module_permutation_matrix/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Module permutation matrix
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../reference/code/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Code reference
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_8" id="__nav_8_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_8">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Code reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_8_2" id="__nav_8_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Pipeline engine
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_8_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_8_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Pipeline engine
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/code/engine/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    engine
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/code/ingestion/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ingestion
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/code/transformation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    transformation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/code/cdc/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    cdc
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/code/reconciliation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    reconciliation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_8_3" id="__nav_8_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Platform services
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_8_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_8_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Platform services
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/code/control_plane/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    control_plane
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/code/onboarding/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    onboarding
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/code/storage/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    storage
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/code/observability/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    observability
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_8_4" id="__nav_8_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data handling
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_8_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_8_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Data handling
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/code/crypto/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    crypto
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/code/dq/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    dq
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/code/governance/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    governance
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/code/asn1/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    asn1
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_8_5" id="__nav_8_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Other
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_8_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_8_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Other
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/code/lakeflow_framework/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    lakeflow_framework
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/code/archive/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    archive
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_9" >
+        
+          
+          <label class="md-nav__link" for="__nav_9" id="__nav_9_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Help
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_9_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_9">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Help
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../faq/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    FAQ
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../10_multi_role_faqs/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Multi-role FAQs
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../13_known_limitations_and_gotchas/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Known limitations & gotchas
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../15_agent_skills_and_prompts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Agent skills & prompt library
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_9_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_9_5" id="__nav_9_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Use cases
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_9_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_9_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Use cases
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../UC3/UC3_MASTER_DOCUMENT/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    UC3 Excalibur master document
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../UC6/UC6_MASTER_DOCUMENT/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    UC6 Flood Warning master document
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../UC7/UC7_MASTER_DOCUMENT/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    UC7 CDR ASN.1 master document
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../UC7/UC7_PLAIN_ENGLISH_GUIDE/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    UC7 CDR ASN.1 plain-English guide
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../UC7/UC7_ANALYSIS_AND_JOIN_GUIDE/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    UC7 CDR ASN.1 analysis and join guide
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+          
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_10" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../archive/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Project record
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_10" id="__nav_10_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_10_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_10">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Project record
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_10_1" >
+        
+          
+          <label class="md-nav__link" for="__nav_10_1" id="__nav_10_1_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture review (Aug 2026 audit)
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_10_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_10_1">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Architecture review (Aug 2026 audit)
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../architecture_review/00_executive_summary/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Executive summary
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../architecture_review/01_architecture_and_design_principles/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture & design principles
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../architecture_review/02_distributed_processing_and_performance/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Distributed processing & performance
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../architecture_review/03_code_quality_and_antipatterns/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Code quality & antipatterns
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../architecture_review/04_security_governance_and_compliance/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Security, governance & compliance
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../architecture_review/05_observability_dq_and_reconciliation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Observability, DQ & reconciliation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../architecture_review/06_scalability_resiliency_and_migration_roadmap/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Scalability, resiliency & migration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../architecture_review/07_code_structure_extensibility_and_future_proofing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Code structure & future proofing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../architecture_review/08_control_metadata_schema_and_onboarding_audit/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Control metadata & onboarding audit
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-why-this-exists" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Why this exists
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="1. Why this exists">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#11-the-division-of-labour-with-doc-08" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.1 The division of labour with doc 08
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#12-what-was-built" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.2 What was built
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-architecture-one-semantic-layer-three-consumers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Architecture: one semantic layer, three consumers
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2. Architecture: one semantic layer, three consumers">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#21-why-views-and-why-in-their-own-schema" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.1 Why views, and why in their own schema
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-the-join-key" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. The join key
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3. The join key">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#31-pipelines-free-because-the-configuration-block-already-carries-it" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.1 Pipelines: free, because the configuration block already carries it
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#32-jobs-not-free-and-why-a-tag-was-needed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.2 Jobs: not free, and why a tag was needed
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#33-event-log-location-is-discovered-not-constructed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.3 Event log location is discovered, not constructed
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-the-11-views" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. The 11 views
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="4. The 11 views">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#41-v_dataflow_group_catalog-the-dimension" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.1 v_dataflow_group_catalog — the dimension
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#42-v_flow_inventory-flat-across-all-three-flow-kinds" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.2 v_flow_inventory — flat, across all three flow kinds
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#43-v_pipeline_registry-the-bridge" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.3 v_pipeline_registry — the bridge
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#44-v_pipeline_updates-run-performance" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.4 v_pipeline_updates — run performance
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#45-v_job_runs-with-an-attribution-quality-column" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.5 v_job_runs — with an attribution-quality column
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#46-v_dataflow_cost-dbus-and-estimated-list-price-cost" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.6 v_dataflow_cost — DBUs and estimated list-price cost
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#47-v_flow_metrics-the-throughput-view" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.7 v_flow_metrics — the throughput view
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#48-v_dq_results-per-expectation-outcomes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.8 v_dq_results — per-expectation outcomes
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#49-v_reconciliation_health-and-has_run_history" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.9 v_reconciliation_health — and has_run_history
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#410-v_dataflow_lineage-observed-not-declared" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.10 v_dataflow_lineage — observed, not declared
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#411-v_group_health_summary-the-scorecard" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.11 v_group_health_summary — the scorecard
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-the-aibi-dashboard" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. The AI/BI dashboard
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="5. The AI/BI dashboard">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#51-dataset_schema-observability-and-the-two-part-name-subtlety" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.1 dataset_schema: observability, and the two-part-name subtlety
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-ai_forecast-the-four-rules-and-the-ten-billion-dbu-cautionary-tale" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. AI_FORECAST — the four rules, and the ten-billion-DBU cautionary tale
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="6. AI_FORECAST — the four rules, and the ten-billion-DBU cautionary tale">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#61-the-cautionary-tale" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.1 The cautionary tale
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#62-the-four-rules" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.2 The four rules
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#63-how-the-dashboard-sql-implements-them" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.3 How the dashboard SQL implements them
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#64-live-verification" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6.4 Live verification
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7-the-genie-space" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. The Genie space
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="7. The Genie space">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#71-why-the-views-and-only-two-raw-system-tables" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7.1 Why the views, and only two raw system tables
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#72-the-serialized-format-three-hard-requirements" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7.2 The serialized format — three hard requirements
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#73-the-round-trip-workflow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7.3 The round-trip workflow
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#8-the-documentation-generator" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8. The documentation generator
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#9-prerequisites-and-exactly-what-breaks-when-they-are-unmet" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9. Prerequisites, and exactly what breaks when they are unmet
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="9. Prerequisites, and exactly what breaks when they are unmet">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#91-re-provisioning" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9.1 Re-provisioning
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#10-gotchas-six-bugs-live-data-caught" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        10. Gotchas — six bugs live data caught
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="10. Gotchas — six bugs live data caught">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#101-has_cdc-was-always-false-case" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        10.1 has_cdc was always FALSE — case
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#102-a-leading-on-every-aggregated-list-split-is-not-empty" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        10.2 A leading ", " on every aggregated list — SPLIT('') is not empty
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#103-has_dq-was-true-for-every-group-is-a-non-empty-string" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        10.3 has_dq was TRUE for every group — '{}' is a non-empty string
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#104-flow_status-running-with-a-partial-row-count-newest-terminal" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        10.4 flow_status = RUNNING with a partial row count — newest ≠ terminal
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#105-field_not_found-on-settingscatalog" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        10.5 FIELD_NOT_FOUND on settings.catalog
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#106-the-repos-brace-trap-again" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        10.6 The repo's brace trap, again
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#11-tests" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        11. Tests
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+                
+
+
+
+  
+
+
+  <nav class="md-path" aria-label="Navigation" >
+    <ol class="md-path__list">
+      
+        
+  
+  
+    <li class="md-path__item">
+      <a href=".." class="md-path__link">
+        
+  <span class="md-ellipsis">
+    Home
+  </span>
+
+      </a>
+    </li>
+  
+
+      
+      
+        
+  
+  
+    
+    
+      <li class="md-path__item">
+        <a href="../01_platform_architecture/" class="md-path__link">
+          
+  <span class="md-ellipsis">
+    Architecture
+  </span>
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+    
+    
+      <li class="md-path__item">
+        <a href="../04_data_quality_and_governance/" class="md-path__link">
+          
+  <span class="md-ellipsis">
+    Cross-cutting concerns
+  </span>
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ol>
+  </nav>
+
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="flowx-framework-observability-aibi-genie">🔭 FlowX — Framework Observability, AI/BI &amp; Genie<a class="headerlink" href="#flowx-framework-observability-aibi-genie" title="Permanent link">&para;</a></h1>
+<blockquote>
+<p><strong>Audience</strong>: Platform engineers who maintain the framework's own observability surface, SREs
+who answer "how is everything doing", FinOps analysts attributing DBU spend to a dataflow
+group, and anyone pointing an LLM at FlowX metadata.</p>
+<p><strong>Companion page</strong>: <a href="../08_observability_and_telemetry/"><code>08_observability_and_telemetry.md</code></a> is
+the <strong>export-out</strong> half — OTLP payloads, Volume archives and driver logs. This page is the
+<strong>store-and-query</strong> half. See §1.1 for why both exist.</p>
+</blockquote>
+<hr />
+<h2 id="1-why-this-exists">1. Why this exists<a class="headerlink" href="#1-why-this-exists" title="Permanent link">&para;</a></h2>
+<p>FlowX has measured itself accurately since v1.0. It has never been able to <em>answer questions
+about</em> itself.</p>
+<p>Every runtime number the framework computes — per-flow <code>num_output_rows</code>, per-expectation
+pass/fail counts, DQ quarantine counts, SCD upsert and delete counts — is computed and then
+<strong>shipped out</strong>: as OTel <code>ResourceLogs</code> to an OTLP collector, as JSONL/GZIP files to a Unity
+Catalog Volume, or as structured JSON into the driver log. That is the right architecture for
+alerting and for a customer's existing observability estate. It is the wrong architecture for a
+question, because none of it lands in a queryable Delta table. Asking "which DQ rule failed most
+often last week" meant reading Volume files with Spark; asking "what did <code>dfg_uc6_ea_flood_warning</code>
+cost" meant nothing at all, because cost was never in the export in the first place.</p>
+<p>Meanwhile the platform has been recording the operational half all along, in tables nobody was
+joining to:</p>
+<table>
+<thead>
+<tr>
+<th>System table</th>
+<th>What it knows</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>system.lakeflow.pipelines</code></td>
+<td>Every pipeline, its settings, and its <code>configuration</code> MAP</td>
+</tr>
+<tr>
+<td><code>system.lakeflow.pipeline_update_timeline</code></td>
+<td>Every update: start, end, result state, trigger type</td>
+</tr>
+<tr>
+<td><code>system.lakeflow.jobs</code> / <code>job_run_timeline</code></td>
+<td>Every job and job run, with the queue/setup/execution duration split</td>
+</tr>
+<tr>
+<td><code>system.billing.usage</code> / <code>list_prices</code></td>
+<td>DBUs per pipeline id and job id; current list price per SKU</td>
+</tr>
+<tr>
+<td><code>system.access.table_lineage</code></td>
+<td>Which entity read what and wrote what, observed rather than declared</td>
+</tr>
+<tr>
+<td><code>&lt;catalog&gt;.&lt;schema&gt;.event_log_&lt;pipeline_id&gt;</code></td>
+<td>Per-flow row counts and per-expectation DQ results, when published to UC</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Neither half is useful alone.</strong> The system tables know a pipeline ran for 94 seconds; they do
+not know it is <code>dfg_uc6_ea_flood_warning</code>, implementing 11 flows, with 5 DQ rules and two
+reconciliations. The control tables know exactly that, and know nothing about the 94 seconds.</p>
+<p>This feature set is the join, expressed once, as a semantic layer.</p>
+<h3 id="11-the-division-of-labour-with-doc-08">1.1 The division of labour with doc 08<a class="headerlink" href="#11-the-division-of-labour-with-doc-08" title="Permanent link">&para;</a></h3>
+<p>The two are complementary, not overlapping, and the distinction is worth keeping straight because
+they answer different questions from different data:</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>Doc 08 — telemetry export</th>
+<th>Doc 17 — observability semantic layer</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Direction</td>
+<td>Out of the platform</td>
+<td>Stays in the platform</td>
+</tr>
+<tr>
+<td>Mechanism</td>
+<td><code>observability[]</code> destinations; OTLP HTTP, Volume files</td>
+<td>Views in <code>&lt;catalog&gt;.observability</code> over system tables</td>
+</tr>
+<tr>
+<td>Grain</td>
+<td>Per event, per update</td>
+<td>Per group, per update, per flow, per rule, per day</td>
+</tr>
+<tr>
+<td>Consumers</td>
+<td>Dynatrace / Datadog / Splunk / an OTel collector</td>
+<td>AI/BI dashboard, Genie space, documentation job, ad-hoc SQL</td>
+</tr>
+<tr>
+<td>Configuration</td>
+<td>Onboarding spec (<code>observability[]</code>)</td>
+<td>None — provisioned by <code>01_setup</code>, no spec attribute</td>
+</tr>
+<tr>
+<td>Cost data</td>
+<td>Absent</td>
+<td>First-class (<code>v_dataflow_cost</code>)</td>
+</tr>
+<tr>
+<td>Answers</td>
+<td>"Page me when a pipeline fails"</td>
+<td>"What did this group cost, and is its DQ passing"</td>
+</tr>
+</tbody>
+</table>
+<p>Nothing in this page replaces doc 08. A customer running Dynatrace still wants the OTLP export;
+they <em>also</em> want to be able to ask a question in SQL.</p>
+<h3 id="12-what-was-built">1.2 What was built<a class="headerlink" href="#12-what-was-built" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Asset</th>
+<th>Path</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>View DDL builders (pure strings)</td>
+<td><code>src/flowx/lakeflow_framework/control_plane/observability_views.py</code></td>
+</tr>
+<tr>
+<td>Provisioning (section 5, non-fatal)</td>
+<td><code>notebooks/01_setup/01_setup_control_tables.py</code></td>
+</tr>
+<tr>
+<td>AI/BI dashboard</td>
+<td><code>databricks-bi/flowx_observability_dashboard.lvdash.json</code> + <code>resources/flowx_bi/flowx_observability_dashboard.yml</code></td>
+</tr>
+<tr>
+<td>Genie space</td>
+<td><code>databricks-genie/flowx_observability.geniespace.json</code> + <code>resources/flowx_genie/flowx_observability_genie_space.yml</code></td>
+</tr>
+<tr>
+<td>Documentation renderer (pure functions)</td>
+<td><code>src/flowx/lakeflow_framework/observability/dataflow_documenter.py</code></td>
+</tr>
+<tr>
+<td>Documentation job + notebook + Volume</td>
+<td><code>resources/flowx_docs/*.yml</code>, <code>notebooks/09_documentation/09_dataflow_documentation.py</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>No onboarding spec attribute was added or removed.</strong> <code>onboarding/spec_validator.py</code>,
+<code>onboarding_templates/onboarding_spec.schema.json</code> and the Spec Builder app's registry are
+deliberately untouched: nothing here is configured through a spec. The join key was already being
+written by every pipeline resource (§3), so there was nothing new for an author to declare. That
+also means there is no removal to reject, and no attribute delta document for this release.</p>
+<hr />
+<h2 id="2-architecture-one-semantic-layer-three-consumers">2. Architecture: one semantic layer, three consumers<a class="headerlink" href="#2-architecture-one-semantic-layer-three-consumers" title="Permanent link">&para;</a></h2>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>┌────────────────────────────┐        ┌──────────────────────────────────────┐
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>│  FlowX CONTROL TABLES      │        │  DATABRICKS SYSTEM TABLES            │
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>│  &lt;catalog&gt;.config          │        │  system.lakeflow.pipelines           │
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>│  • dataflow_group_spec     │        │  system.lakeflow.pipeline_update_    │
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>│  • ingestion_flow_spec     │        │      timeline                        │
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>│  • transformation_flow_spec│        │  system.lakeflow.jobs /              │
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>│  • reconciliation_flow_spec│        │      job_run_timeline                │
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>│  • reconciliation_run_log  │        │  system.billing.usage / list_prices  │
+</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>│  • onboarding_audit_log    │        │  system.access.table_lineage         │
+</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>└─────────────┬──────────────┘        └──────────────────┬───────────────────┘
+</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>              │                                          │
+</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>              │   configuration['dataflow.group.id']     │
+</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>              │   tags['dataflow_group_id']              │
+</span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>              └──────────────────┬───────────────────────┘
+</span><span id="__span-0-15"><a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>                                 ▼
+</span><span id="__span-0-16"><a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a>            ┌────────────────────────────────────────────────┐
+</span><span id="__span-0-17"><a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a>            │   &lt;catalog&gt;.observability   — 11 VIEWS         │
+</span><span id="__span-0-18"><a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a>            │   commented for humans AND for an LLM          │
+</span><span id="__span-0-19"><a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a>            └───────┬───────────────┬──────────────┬─────────┘
+</span><span id="__span-0-20"><a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a>                    ▼               ▼              ▼
+</span><span id="__span-0-21"><a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a>        ┌───────────────────┐ ┌───────────┐ ┌─────────────────────┐
+</span><span id="__span-0-22"><a id="__codelineno-0-22" name="__codelineno-0-22" href="#__codelineno-0-22"></a>        │  AI/BI dashboard  │ │  Genie    │ │ Documentation job   │
+</span><span id="__span-0-23"><a id="__codelineno-0-23" name="__codelineno-0-23" href="#__codelineno-0-23"></a>        │  10 pages, 116    │ │  space    │ │ one Markdown design │
+</span><span id="__span-0-24"><a id="__codelineno-0-24" name="__codelineno-0-24" href="#__codelineno-0-24"></a>        │  widgets          │ │  (Q&amp;A)    │ │ doc per group       │
+</span><span id="__span-0-25"><a id="__codelineno-0-25" name="__codelineno-0-25" href="#__codelineno-0-25"></a>        └───────────────────┘ └───────────┘ └─────────────────────┘
+</span><span id="__span-0-26"><a id="__codelineno-0-26" name="__codelineno-0-26" href="#__codelineno-0-26"></a>              ↑ plus per-pipeline UC EVENT LOG tables, for per-flow rows and DQ results
+</span></code></pre></div>
+<h3 id="21-why-views-and-why-in-their-own-schema">2.1 Why views, and why in their own schema<a class="headerlink" href="#21-why-views-and-why-in-their-own-schema" title="Permanent link">&para;</a></h3>
+<p><strong>Why views rather than materialized tables.</strong> The system tables are already materialized by the
+platform, on the platform's own refresh cadence. Copying them into FlowX-owned tables would add a
+refresh job to keep green, a storage cost, and a staleness window — in exchange for nothing, since
+these queries are dashboard-scale, not scan-the-lakehouse scale. A view is also cheap to fix: a
+corrected <code>has_cdc</code> predicate is one <code>CREATE OR REPLACE VIEW</code> away, with no backfill.</p>
+<p><strong>Why a separate <code>&lt;catalog&gt;.observability</code> schema rather than <code>&lt;catalog&gt;.config</code>.</strong> This is a
+grant boundary. The control tables carry <code>*_json</code> and <code>raw_spec_payload</code> columns holding connection
+strings and credential-shaped configuration. A BI user or a Genie space needs the <em>derived</em> facts,
+not those blobs. Putting the views in their own schema means <code>GRANT SELECT ON SCHEMA
+&lt;catalog&gt;.observability</code> gives a consumer the whole observability surface <strong>without</strong> granting read
+access to the control tables. Had the views lived in <code>config</code>, every dashboard viewer would have
+needed schema-level read on the secrets-adjacent columns too.</p>
+<p><strong>Why the SQL lives in a Python module and not in the dashboard.</strong> Two consumers need identical
+semantics: the AI/BI dashboard and the Genie space. A Genie space answers well only when pointed at
+a small set of well-named, well-commented objects rather than at raw system tables — and a
+dashboard whose SQL is copy-pasted into a Genie space drifts from it inside one release. Defining
+the join once, as commented views, gives both a single source of truth, and gives the documentation
+job the same facts for free. Consistent with <code>control_plane/ddl_definitions.py</code>, the module is
+<strong>pure string building</strong>: no <code>spark.sql</code> call happens in it. <code>01_setup_control_tables.py</code> is the
+only executor.</p>
+<p><strong>Column <code>COMMENT</code>s are load-bearing, not decoration.</strong> Genie reads them as its semantic model.
+They are written to be read by an LLM: they say what a column means, what to join on, what to
+<code>SUM</code>, and — importantly — what <em>not</em> to conclude (see <code>has_run_history</code> and <code>attribution</code>).</p>
+<blockquote>
+<p>[!WARNING]
+<strong>The brace trap applies here.</strong> As in <code>ddl_definitions.py</code>, any literal <code>{</code> or <code>}</code> inside these
+f-string DDL bodies — including inside a column <code>COMMENT</code> and including the JSON-empty-object
+literal <code>'{}'</code> — <strong>must</strong> be escaped as <code>{{ }}</code>. An unescaped brace is evaluated as a replacement
+field and breaks <em>every</em> statement in the module, not just the one it appears in. This module
+compares <code>TRIM(dq_config_json) NOT IN ('', '{{}}')</code> in four places for exactly this reason.</p>
+</blockquote>
+<hr />
+<h2 id="3-the-join-key">3. The join key<a class="headerlink" href="#3-the-join-key" title="Permanent link">&para;</a></h2>
+<h3 id="31-pipelines-free-because-the-configuration-block-already-carries-it">3.1 Pipelines: free, because the configuration block already carries it<a class="headerlink" href="#31-pipelines-free-because-the-configuration-block-already-carries-it" title="Permanent link">&para;</a></h3>
+<p><code>system.lakeflow.pipelines.configuration</code> is a <code>MAP&lt;STRING, STRING&gt;</code>, and <strong>every FlowX pipeline
+resource already sets <code>dataflow.group.id</code> in its <code>configuration:</code> block</strong> — it has to, because that
+is how a pipeline finds its own control rows at graph-definition time (see doc 08 §6.1). So:</p>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="n">p</span><span class="p">.</span><span class="n">configuration</span><span class="p">[</span><span class="s1">'dataflow.group.id'</span><span class="p">]</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="n">dataflow_group_id</span>
+</span></code></pre></div>
+<p>recovers the FlowX identity of any pipeline <strong>with no change to any pipeline, resource file, or
+spec</strong>. That single expression is the spine of the whole layer: <code>v_pipeline_registry</code> computes it
+once and every run, cost, metric, DQ and lineage view joins through that view rather than
+re-deriving it.</p>
+<p><code>v_pipeline_registry</code> also filters <code>configuration['dataflow.group.id'] IS NOT NULL</code>, which is what
+keeps non-FlowX pipelines in the workspace out of the layer entirely, and <code>delete_time IS NULL</code>,
+which drops deleted pipelines.</p>
+<h3 id="32-jobs-not-free-and-why-a-tag-was-needed">3.2 Jobs: not free, and why a tag was needed<a class="headerlink" href="#32-jobs-not-free-and-why-a-tag-was-needed" title="Permanent link">&para;</a></h3>
+<p>The job side looked like it should work the same way. It does not.</p>
+<p>The framework passes <code>dataflow_group_id</code> to its notebook tasks as a <strong><code>base_parameter</code></strong>. Those do
+<strong>not</strong> surface in <code>system.lakeflow.job_task_run_timeline.task_parameters</code> — verified empty on a
+live workspace, not inferred from documentation. There is therefore no platform-surfaced,
+per-run value carrying the FlowX identity of a job run.</p>
+<p>Two mechanisms, in priority order, and a third state that is deliberately <em>not</em> silence:</p>
+<table>
+<thead>
+<tr>
+<th>Priority</th>
+<th>Mechanism</th>
+<th><code>attribution</code></th>
+<th>Quality</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td><code>system.lakeflow.jobs.tags['dataflow_group_id']</code></td>
+<td><code>'tag'</code></td>
+<td><strong>Exact.</strong> Set declaratively on the job resource.</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Case-insensitive containment of a known group id in the job name</td>
+<td><code>'name_match'</code></td>
+<td><strong>Heuristic.</strong> Correct by convention, not by contract.</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Neither matched</td>
+<td><code>NULL</code> group, <code>NULL</code> attribution</td>
+<td>Row is still returned.</td>
+</tr>
+</tbody>
+</table>
+<p>A <code>dataflow_group_id</code> job tag was therefore added to <code>resources/{uc3,uc6,uc7}/*_job.yml</code>.</p>
+<p><strong>Why <code>attribution</code> is a column and not a filter.</strong> Blending an exact attribution with a heuristic
+one and reporting a single number is how a dashboard becomes untrustworthy: the reader cannot tell
+which figures are guaranteed. And dropping unattributable runs would hide every framework job that
+predates the tag — a <em>silent</em> undercount, which is worse than a visible one. So all three states
+are returned, and the reader is told which they are looking at. <code>v_dataflow_cost</code> takes the
+stricter line for money: <strong>job cost is attributed only by tag</strong>, never by name match, because a
+name-matched dollar figure invites arithmetic nobody should do.</p>
+<blockquote>
+<p>[!IMPORTANT]
+<strong>The tag only takes effect for runs that happen after the tagged jobs are redeployed.</strong>
+<code>system.lakeflow.jobs</code> records the job definition as it was; historical runs of an untagged job
+stay on the <code>name_match</code> path forever. Job-side cost attribution therefore has a start date, not
+a backfill.</p>
+</blockquote>
+<h3 id="33-event-log-location-is-discovered-not-constructed">3.3 Event log location is discovered, not constructed<a class="headerlink" href="#33-event-log-location-is-discovered-not-constructed" title="Permanent link">&para;</a></h3>
+<p>When a pipeline publishes its event log to Unity Catalog, the table is named
+<code>event_log_&lt;pipeline_id with hyphens replaced by underscores&gt;</code>. The catalog and schema, however,
+are <strong>not recoverable from <code>system.lakeflow.pipelines</code></strong>: the <code>settings</code> struct exposes only
+<code>photon</code>, <code>development</code>, <code>continuous</code>, <code>serverless</code>, <code>edition</code> and <code>channel</code>. There is no <code>catalog</code>
+and no <code>target</code> field. (This was found the hard way — see §8, defect 5.)</p>
+<p>So <code>v_pipeline_registry</code> matches the id-derived name against
+<code>system.information_schema.tables WHERE table_name LIKE 'event_log_%'</code>, taking whatever catalog and
+schema the table was actually published to and leaving <code>event_log_table</code> <strong>NULL</strong> for a pipeline
+that publishes no event log. A <code>ROW_NUMBER()</code> on <code>(table_catalog, table_schema)</code> keeps the join
+one-to-one if the same name somehow exists twice.</p>
+<hr />
+<h2 id="4-the-11-views">4. The 11 views<a class="headerlink" href="#4-the-11-views" title="Permanent link">&para;</a></h2>
+<p>Creation order is a dependency order, returned by
+<code>get_all_observability_view_ddls(observability_schema, control_schema, event_log_tables)</code>:
+<code>v_pipeline_registry</code> must exist before anything that joins to it, and <code>v_group_health_summary</code> is
+built on five of the others, so it is created last.</p>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>View</th>
+<th>Grain</th>
+<th>Reads</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td><code>v_dataflow_group_catalog</code></td>
+<td>one row per dataflow group</td>
+<td>control tables only</td>
+</tr>
+<tr>
+<td>2</td>
+<td><code>v_flow_inventory</code></td>
+<td>one row per flow (all 3 kinds)</td>
+<td>control tables only</td>
+</tr>
+<tr>
+<td>3</td>
+<td><code>v_pipeline_registry</code></td>
+<td>one row per FlowX pipeline</td>
+<td><code>system.lakeflow.pipelines</code> + <code>information_schema</code></td>
+</tr>
+<tr>
+<td>4</td>
+<td><code>v_pipeline_updates</code></td>
+<td>one row per pipeline update</td>
+<td><code>pipeline_update_timeline</code> ⋈ (3)</td>
+</tr>
+<tr>
+<td>5</td>
+<td><code>v_job_runs</code></td>
+<td>one row per job run</td>
+<td><code>jobs</code>, <code>job_run_timeline</code> + control</td>
+</tr>
+<tr>
+<td>6</td>
+<td><code>v_dataflow_cost</code></td>
+<td>group × date × workload × SKU</td>
+<td><code>system.billing.*</code> ⋈ (3)</td>
+</tr>
+<tr>
+<td>7</td>
+<td><code>v_flow_metrics</code></td>
+<td>update × flow</td>
+<td>UC event logs ⋈ (3)</td>
+</tr>
+<tr>
+<td>8</td>
+<td><code>v_dq_results</code></td>
+<td>update × flow × expectation</td>
+<td>UC event logs ⋈ (3)</td>
+</tr>
+<tr>
+<td>9</td>
+<td><code>v_reconciliation_health</code></td>
+<td>one row per recon run</td>
+<td><code>reconciliation_flow_spec</code> ⟕ <code>reconciliation_run_log</code></td>
+</tr>
+<tr>
+<td>10</td>
+<td><code>v_dataflow_lineage</code></td>
+<td>source→target edge</td>
+<td><code>system.access.table_lineage</code> ⟕ (3)</td>
+</tr>
+<tr>
+<td>11</td>
+<td><code>v_group_health_summary</code></td>
+<td>one row per dataflow group</td>
+<td>views 1, 4, 6, 7, 8, 9</td>
+</tr>
+</tbody>
+</table>
+<h3 id="41-v_dataflow_group_catalog-the-dimension">4.1 <code>v_dataflow_group_catalog</code> — the dimension<a class="headerlink" href="#41-v_dataflow_group_catalog-the-dimension" title="Permanent link">&para;</a></h3>
+<p>One row per dataflow group: what it contains, which framework features it exercises, and who
+onboarded it. This is the view that answers <em>"what is this dataflow group and what does it do"</em> —
+the single most common question asked of the Genie space.</p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>dataflow_group_id</code></td>
+<td>The primary business key for the whole schema. Join on this.</td>
+</tr>
+<tr>
+<td><code>environment</code>, <code>catalog_name</code>, <code>is_active</code></td>
+<td>Onboarded environment, target catalog, soft-disable flag</td>
+</tr>
+<tr>
+<td><code>ingestion_flow_count</code>, <code>transformation_flow_count</code>, <code>reconciliation_flow_count</code>, <code>total_flow_count</code></td>
+<td>Composition, and "how big is this group"</td>
+</tr>
+<tr>
+<td><code>source_types</code>, <code>target_types</code>, <code>cdc_load_strategies</code>, <code>target_tables</code></td>
+<td>Distinct values, comma-separated, sorted</td>
+</tr>
+<tr>
+<td><code>has_cdc</code>, <code>has_dq</code>, <code>has_quarantine</code>, <code>has_reconciliation</code>, <code>has_governance_tags</code></td>
+<td>Pre-computed feature flags</td>
+</tr>
+<tr>
+<td><code>feature_summary</code></td>
+<td>A human-readable sentence describing the group's capability footprint</td>
+</tr>
+<tr>
+<td><code>onboarded_by</code>, <code>last_onboarded_at</code>, <code>spec_version</code></td>
+<td>From the most recent <strong>SUCCESS</strong> row of <code>onboarding_audit_log</code></td>
+</tr>
+<tr>
+<td><code>created_at</code>, <code>updated_at</code></td>
+<td>Control-row lifecycle</td>
+</tr>
+</tbody>
+</table>
+<p>Two design decisions worth knowing:</p>
+<ul>
+<li><strong>The feature flags are pre-computed rather than left to the consumer.</strong> <code>has_dq</code> is a predicate
+  over <code>dq_config_json</code>; <code>has_cdc</code> is a pattern match over the load strategies. Leaving an LLM (or
+  a dashboard author) to infer them from raw JSON blobs is how you get five different, mutually
+  inconsistent definitions of "this group uses CDC".</li>
+<li><strong><code>feature_summary</code> exists because Genie reproduces a sentence far more reliably than it composes
+  one.</strong> It is a <code>CONCAT_WS(' ', ...)</code> of conditional clauses — flow counts, ingest types, load
+  strategies, and one clause each for DQ, quarantine, reconciliation, governance tags and
+  inactivity. Its column comment tells Genie to quote it directly.</li>
+<li><strong><code>onboarded_by</code>/<code>spec_version</code> come from a <code>ROW_NUMBER()</code>, not a <code>MAX() GROUP BY</code>.</strong> They must
+  come from the <em>same</em> audit row as the timestamp; <code>MAX()</code> on each column independently would
+  happily combine one person's identity with another's spec version.</li>
+</ul>
+<blockquote>
+<p>[!NOTE]
+<code>is_active = FALSE</code> means the group is soft-disabled and the engine skips it. <strong>Deleting a flow
+from a spec does not set this to <code>FALSE</code> by default</strong> — the removed flow's control row stays active
+and keeps driving the DAG. Both <code>v_dataflow_group_catalog.is_active</code> and <code>v_flow_inventory.is_active</code>
+carry that warning in their column comments, because it is the single most surprising fact about
+the control plane. Since v1.7.07 the onboarding job's opt-in <code>prune_missing_flows=true</code> parameter
+sets it for you (<code>onboarding/spec_pruning.py</code>); rows it deactivates show here with
+<code>is_active = FALSE</code> and a fresh <code>updated_at</code>.</p>
+</blockquote>
+<h3 id="42-v_flow_inventory-flat-across-all-three-flow-kinds">4.2 <code>v_flow_inventory</code> — flat, across all three flow kinds<a class="headerlink" href="#42-v_flow_inventory-flat-across-all-three-flow-kinds" title="Permanent link">&para;</a></h3>
+<p>A <code>UNION ALL</code> of the three flow-spec tables into one shape: <code>dataflow_group_id</code>, <code>flow_kind</code>
+(<code>INGESTION</code> / <code>TRANSFORMATION</code> / <code>RECONCILIATION</code>), <code>flow_id</code>, <code>source_description</code>,
+<code>target_table</code>, <code>target_type</code>, <code>cdc_load_strategy</code>, the three per-flow feature flags, <code>is_active</code>,
+and the two timestamps.</p>
+<p><code>flow_id</code> is whichever identifier the kind uses (<code>dataflow_id</code>, <code>flow_step_id</code>,
+<code>reconciliation_id</code>), and <code>source_description</code> is built per kind: <code>source_type=/system=/object=</code>
+for ingestion, <code>inputs=&lt;source_inputs_json&gt;</code> for a transformation, <code>compare=&lt;source_config_json&gt;</code>
+for a reconciliation. Reconciliation rows carry the synthetic <code>cdc_load_strategy</code> value
+<code>'reconciliation'</code> and <code>target_type</code> = the execution mode, since neither concept applies.</p>
+<p>It exists because the dashboard was building this shape inline in several queries. Centralising it
+means the Genie space and the documentation generator describe a flow <strong>identically</strong> to the
+dashboard.</p>
+<h3 id="43-v_pipeline_registry-the-bridge">4.3 <code>v_pipeline_registry</code> — the bridge<a class="headerlink" href="#43-v_pipeline_registry-the-bridge" title="Permanent link">&para;</a></h3>
+<p>Covered in §3. Beyond the join key it surfaces <code>pipeline_name</code>, <code>pipeline_type</code>, <code>control_catalog</code>
+(from <code>configuration['dataflow.control.catalog']</code>), the five settings booleans/enums
+(<code>is_serverless</code>, <code>is_continuous</code>, <code>is_development</code>, <code>is_photon</code>, <code>edition</code>, <code>channel</code>), <code>run_as</code>,
+<code>created_by</code>, the discovered <code>event_log_table</code>, and <code>create_time</code>/<code>change_time</code>.</p>
+<h3 id="44-v_pipeline_updates-run-performance">4.4 <code>v_pipeline_updates</code> — run performance<a class="headerlink" href="#44-v_pipeline_updates-run-performance" title="Permanent link">&para;</a></h3>
+<p>One row per update. Notable derivations:</p>
+<ul>
+<li><strong><code>duration_seconds</code> / <code>duration_minutes</code> are derived from the period bounds</strong>, because
+  <code>pipeline_update_timeline</code> carries <strong>no duration column</strong>.</li>
+<li><strong><code>is_retry</code> surfaces <code>trigger_type = 'RETRY_ON_FAILURE'</code> explicitly.</strong> A burst of retry rows is
+  the signature of a pipeline failing and auto-retrying; on a plain run-count chart it reads as
+  healthy activity.</li>
+<li><strong><code>is_full_refresh</code></strong> exists so a reader can exclude full refreshes before comparing durations. A
+  full refresh is legitimately far slower, and averaging it in makes a healthy pipeline look like
+  it regressed on whatever day it was rebuilt.</li>
+<li><code>result_state</code> is <code>NULL</code> while an update is still running, so <code>is_success</code>/<code>is_failure</code> are the
+  columns to do arithmetic on.</li>
+</ul>
+<h3 id="45-v_job_runs-with-an-attribution-quality-column">4.5 <code>v_job_runs</code> — with an attribution-quality column<a class="headerlink" href="#45-v_job_runs-with-an-attribution-quality-column" title="Permanent link">&para;</a></h3>
+<p>One row per job run, with the platform's full duration breakdown: <code>run_duration_seconds</code>,
+<code>execution_duration_seconds</code>, <code>queue_duration_seconds</code>, <code>setup_duration_seconds</code>. The split
+matters diagnostically — persistently high <code>queue_duration_seconds</code> is contention, not slow code,
+and high <code>setup_duration_seconds</code> is compute provisioning.</p>
+<p><code>system.lakeflow.jobs</code> is slowly-changing, so the view keeps only the newest non-deleted definition
+per <code>job_id</code> via <code>ROW_NUMBER() OVER (PARTITION BY job_id ORDER BY change_time DESC)</code>. Without that,
+every run fans out across every historical version of its job. <code>attribution</code> is §3.2.</p>
+<h3 id="46-v_dataflow_cost-dbus-and-estimated-list-price-cost">4.6 <code>v_dataflow_cost</code> — DBUs and estimated list-price cost<a class="headerlink" href="#46-v_dataflow_cost-dbus-and-estimated-list-price-cost" title="Permanent link">&para;</a></h3>
+<p>Grain is <code>dataflow_group_id × usage_date × workload × entity × sku</code>.</p>
+<ul>
+<li><strong><code>workload</code></strong> is <code>'pipeline'</code> or <code>'job'</code>, so a reader can see which side of a group spends.</li>
+<li><strong>Pipeline usage attributes exactly</strong>, via <code>usage_metadata.dlt_pipeline_id</code> joined to
+  <code>v_pipeline_registry</code>.</li>
+<li><strong>Job usage requires the tag</strong> (§3.2).</li>
+<li><strong><code>estimated_cost_usd</code> is <code>dbus × current list price</code></strong>, from
+  <code>system.billing.list_prices WHERE price_end_time IS NULL</code>. The column is named "estimated" for a
+  reason: list price ignores negotiated discounts, commitments and promotional credits. Its comment
+  says so, and so does the dashboard.</li>
+<li><strong>Compare <code>dbus</code>, not dollars, across groups</strong> when regions differ — the column comment says
+  this too, because it is the mistake an LLM makes most readily.</li>
+</ul>
+<h3 id="47-v_flow_metrics-the-throughput-view">4.7 <code>v_flow_metrics</code> — the throughput view<a class="headerlink" href="#47-v_flow_metrics-the-throughput-view" title="Permanent link">&para;</a></h3>
+<p>Per-flow, per-update row counts from the pipelines' Unity Catalog event logs:
+<code>rows_written</code> (<code>num_output_rows</code>), <code>rows_upserted</code>, <code>rows_deleted</code>, <code>rows_dropped</code>, plus
+<code>flow_status</code>, <code>flow_name</code>, <code>dataset_name</code>, <code>event_time</code> and <code>run_date</code>.</p>
+<p>This is the view that makes the layer genuinely <strong>data</strong>-observable rather than merely
+operational. <code>num_output_rows</code> per flow per update is the only place the framework's actual
+throughput is queryable at all.</p>
+<p><strong>Why <code>event_log_tables</code> is a build-time argument.</strong> SQL cannot read a table whose name comes from
+another table's column. The event-log table names are therefore resolved at DDL-build time — by
+<code>01_setup</code> querying <code>v_pipeline_registry.event_log_table</code> — and baked into a <code>UNION ALL</code> over the
+concrete list. A pipeline that publishes no event log simply contributes no rows.</p>
+<p><strong>When the list is empty the view is still created</strong>, over a typed empty relation
+(<code>SELECT CAST(NULL AS ...) ... WHERE FALSE</code>). This is deliberate: dependent dashboard datasets, the
+Genie space and <code>v_group_health_summary</code> all resolve against a real object with the right column
+types, instead of erroring on a missing table. An empty chart is a correct answer; a broken
+dashboard is not.</p>
+<p><strong>One event per (update, flow), and the terminal one.</strong> A flow emits many <code>flow_progress</code> events
+per update, each carrying a <strong>cumulative</strong> count, so keeping them all multiplies throughput by the
+number of progress events. Deduplication is a <code>ROW_NUMBER()</code> — but ordering by <code>event_time DESC</code>
+alone is <em>wrong</em>, and was a shipped bug (§8, defect 4). Terminal statuses are ordered first:</p>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="k">ORDER</span><span class="w"> </span><span class="k">BY</span><span class="w"> </span><span class="k">CASE</span><span class="w"> </span><span class="k">WHEN</span><span class="w"> </span><span class="n">flow_status</span><span class="w"> </span><span class="k">IN</span><span class="w"> </span><span class="p">(</span><span class="s1">'COMPLETED'</span><span class="p">,</span><span class="s1">'FAILED'</span><span class="p">,</span><span class="s1">'EXCLUDED'</span><span class="p">,</span><span class="s1">'SKIPPED'</span><span class="p">)</span><span class="w"> </span><span class="k">THEN</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="k">ELSE</span><span class="w"> </span><span class="mi">1</span><span class="w"> </span><span class="k">END</span><span class="p">,</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="w">         </span><span class="n">event_time</span><span class="w"> </span><span class="k">DESC</span>
+</span></code></pre></div>
+<p><code>details</code> is a JSON <strong>string</strong> in the event log, hence the <code>details:flow_progress.metrics.*</code>
+path operator throughout.</p>
+<h3 id="48-v_dq_results-per-expectation-outcomes">4.8 <code>v_dq_results</code> — per-expectation outcomes<a class="headerlink" href="#48-v_dq_results-per-expectation-outcomes" title="Permanent link">&para;</a></h3>
+<p><code>details:flow_progress.data_quality.expectations</code> is a JSON array of
+<code>{name, dataset, passed_records, failed_records}</code>. <code>FROM_JSON</code> + <code>LATERAL VIEW EXPLODE</code> gives one
+row per <strong>rule per flow per update</strong> — the grain a customer actually wants ("which rule failed, on
+what, how often"), and one the framework does not otherwise persist anywhere.</p>
+<p>Derived columns: <code>total_records</code> (passed + failed), <code>pass_rate_pct</code> (<code>NULL</code> when nothing was
+evaluated, never a spurious 0 or 100), and <code>has_failures</code> to filter to rules that are actually
+failing. <code>rule_name</code> is the expectation name as declared in the FlowX <code>dq_config</code>, so a dashboard
+row points straight back at a spec line.</p>
+<p>The same cumulative-count deduplication as <code>v_flow_metrics</code> applies, for the same reason.</p>
+<h3 id="49-v_reconciliation_health-and-has_run_history">4.9 <code>v_reconciliation_health</code> — and <code>has_run_history</code><a class="headerlink" href="#49-v_reconciliation_health-and-has_run_history" title="Permanent link">&para;</a></h3>
+<p><code>reconciliation_flow_spec</code> <strong>LEFT JOIN</strong> <code>reconciliation_run_log</code>, so a reconciliation that has
+never run still appears. Derived: <code>total_discrepancies</code> (missing-in-target + missing-in-source +
+value-drift), <code>match_rate_pct</code>, and <code>is_clean</code> (<code>SUCCESS</code> <strong>and</strong> all three discrepancy counts
+zero).</p>
+<blockquote>
+<p>[!WARNING]
+<strong><code>has_run_history</code> is the important column.</strong> <code>reconciliation_run_log</code> is written only when
+<code>logging_config.run_log_capture</code> is enabled. So <strong>absence of rows is not evidence of a healthy
+reconciliation</strong> — it may mean the flow never ran, or it may mean logging is switched off.
+<code>has_run_history = FALSE</code> says "I cannot tell you", which is a different and more honest answer
+than an empty discrepancy count. The column comment spells this out, because an LLM asked "are
+the reconciliations clean?" will otherwise read zero rows as zero problems.</p>
+</blockquote>
+<p><code>status</code> also carries <code>SKIPPED_ALREADY_PROCESSED</code>, the restartability guard finding a batch already
+reconciled — a success, not a failure, and not a run.</p>
+<h3 id="410-v_dataflow_lineage-observed-not-declared">4.10 <code>v_dataflow_lineage</code> — observed, not declared<a class="headerlink" href="#410-v_dataflow_lineage-observed-not-declared" title="Permanent link">&para;</a></h3>
+<p><code>system.access.table_lineage</code>, grouped to one row per <code>(source_table, target_table, entity)</code> edge
+with <code>edge_count</code>, <code>first_seen</code> and <code>last_seen</code>. It complements the <strong>declared</strong> lineage in
+<code>v_flow_inventory</code>: this is what actually read and wrote what, which is how you catch a flow
+reading something its spec never mentions.</p>
+<p><code>source_table</code> is <code>NULL</code> when the read was from a path or an external source rather than a UC
+table — that is normal for a Bronze ingestion node, not a defect. <code>edge_count</code> is an <strong>activity</strong>
+measure, not a row count.</p>
+<h3 id="411-v_group_health_summary-the-scorecard">4.11 <code>v_group_health_summary</code> — the scorecard<a class="headerlink" href="#411-v_group_health_summary-the-scorecard" title="Permanent link">&para;</a></h3>
+<p>One row per dataflow group, everything a KPI strip needs, over a <strong>rolling 30-day</strong> window:
+reliability (<code>total_updates</code>, <code>successful_updates</code>, <code>failed_updates</code>, <code>retry_updates</code>,
+<code>success_rate_pct</code>), duration (<code>avg_duration_minutes</code>, <code>p95_duration_minutes</code>, both excluding full
+refreshes), recency (<code>last_update_at</code>, <code>last_update_state</code>), throughput (<code>total_rows_written</code>),
+quality (<code>dq_rules_evaluated</code>, <code>dq_failed_records</code>, <code>dq_pass_rate_pct</code>), integrity
+(<code>recon_discrepancies</code>), spend (<code>estimated_cost_usd_30d</code>, <code>dbus_30d</code>), and the verdict.</p>
+<p><strong>It is a view over the other views, not a re-derivation from base tables.</strong> A fix to duration
+arithmetic or attribution logic propagates here instead of being reimplemented — and diverging.</p>
+<p><code>p95_duration_minutes</code> sits next to the mean because the mean is not the number a user
+experiences.</p>
+<p><strong><code>health_status</code> — and why the <code>CASE</code> order is the design:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Verdict</th>
+<th>Condition</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>INACTIVE</code></td>
+<td><code>NOT is_active</code></td>
+</tr>
+<tr>
+<td><code>NO_RUNS</code></td>
+<td>no updates in the window</td>
+</tr>
+<tr>
+<td><code>FAILING</code></td>
+<td>the <strong>most recent</strong> update failed</td>
+</tr>
+<tr>
+<td><code>DEGRADED</code></td>
+<td>any failed update, any DQ failed record, or any recon discrepancy in the window</td>
+</tr>
+<tr>
+<td><code>HEALTHY</code></td>
+<td>none of the above</td>
+</tr>
+</tbody>
+</table>
+<p>The order matters. <code>INACTIVE</code> is checked first so a group disabled <em>after</em> a bad run is not reported
+as <code>FAILING</code> for runs that happened before it was switched off. <code>NO_RUNS</code> is checked before
+<code>FAILING</code> because "nothing ran" is a distinct state from "it ran badly", and conflating them makes
+a never-deployed group look broken. <code>FAILING</code> outranks <code>DEGRADED</code> because the latest state is what
+an operator acts on.</p>
+<hr />
+<h2 id="5-the-aibi-dashboard">5. The AI/BI dashboard<a class="headerlink" href="#5-the-aibi-dashboard" title="Permanent link">&para;</a></h2>
+<p><code>databricks-bi/flowx_observability_dashboard.lvdash.json</code>, deployed by
+<code>resources/flowx_bi/flowx_observability_dashboard.yml</code>: <strong>15 datasets, 10 pages, 116 widgets,
+21 charts.</strong></p>
+<table>
+<thead>
+<tr>
+<th>Page</th>
+<th>Datasets</th>
+<th>What it answers</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Overview</strong></td>
+<td><code>group_scorecard</code>, <code>pipeline_updates</code>, <code>flow_throughput</code>, <code>flow_inventory</code></td>
+<td>8 counters (groups, flows, rows, 30d cost, updates, success rate, DQ pass rate, recon discrepancies) plus updates-per-day-by-outcome, rows-per-day-by-group, and the two at-a-glance tables.</td>
+</tr>
+<tr>
+<td><strong>Pipeline Performance</strong></td>
+<td><code>pipeline_updates</code></td>
+<td>Update volume vs average duration (combo), duration by group, what triggers updates, and every update in a table. Retries are counted separately from throughput.</td>
+</tr>
+<tr>
+<td><strong>Data Flow &amp; Throughput</strong></td>
+<td><code>flow_throughput</code></td>
+<td>Rows written / upserted / dropped-by-DQ; rows by dataset; daily throughput area by group; per-flow per-update detail.</td>
+</tr>
+<tr>
+<td><strong>Quality &amp; Reconciliation</strong></td>
+<td><code>dq_results</code>, <code>recon_health</code></td>
+<td>Passed vs failed per rule, a dataset × rule <strong>heatmap</strong> of failed records, reconciliation classification per flow, and the recon run table.</td>
+</tr>
+<tr>
+<td><strong>Cost &amp; Efficiency</strong></td>
+<td><code>cost_daily</code>, <code>group_scorecard</code></td>
+<td>Daily cost area by group, share-of-spend pie, cost-vs-rows combo (the efficiency question), and the daily usage records.</td>
+</tr>
+<tr>
+<td><strong>Framework &amp; Lineage</strong></td>
+<td><code>flow_inventory</code>, <code>lineage</code></td>
+<td>Flows per group by kind, load strategies in use, a <strong>sankey</strong> of source→target flow, and the full flow inventory.</td>
+</tr>
+<tr>
+<td><strong>AI Forecast</strong></td>
+<td><code>forecast_spend</code>, <code>forecast_runs</code>, <code>forecast_summary</code></td>
+<td>Two <code>forecast-line</code> charts (hourly spend, hourly updates) plus 4 counters including <strong>Hours of History</strong>. See §6 before trusting a number here.</td>
+</tr>
+<tr>
+<td><strong>Job Orchestration</strong></td>
+<td><code>job_runs</code></td>
+<td>Job success rate, average queue time, run time split by phase, and every run with its <code>attribution</code>.</td>
+</tr>
+<tr>
+<td><strong>Zerobus Streaming</strong></td>
+<td><code>zerobus_jobs</code>, <code>zerobus_updates</code></td>
+<td>Producer/consumer job runs by role and outcome, CDC pipeline update success rate and duration trend, every CDC update — the UC3 Zerobus topology on one page.</td>
+</tr>
+<tr>
+<td><strong>Global Filters</strong></td>
+<td><code>group_filter</code> + 9 others</td>
+<td>A multi-select <strong>Dataflow Group</strong> bound across 10 datasets, a <strong>Date range</strong> picker across the 6 time-series datasets, and an <strong>Environment</strong> single-select.</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>[!NOTE]
+<strong>The three forecast datasets are deliberately not filter-bound.</strong> A forecast fitted to a
+filtered subset of hours is a forecast of a different series than the one the chart claims to
+show, and <code>AI_FORECAST</code> will not tell you that. The AI Forecast page is workspace-wide by
+construction.</p>
+</blockquote>
+<h3 id="51-dataset_schema-observability-and-the-two-part-name-subtlety">5.1 <code>dataset_schema: observability</code>, and the two-part-name subtlety<a class="headerlink" href="#51-dataset_schema-observability-and-the-two-part-name-subtlety" title="Permanent link">&para;</a></h3>
+<p>The resource sets <code>dataset_schema: observability</code> — <strong>not</strong> <code>config</code>, which is what the existing
+<code>flowx_control_dashboard.yml</code> uses.</p>
+<p>The mechanism to understand: <code>dataset_catalog</code> / <code>dataset_schema</code> <strong>only fill in what a query
+omits.</strong> A bare <code>v_group_health_summary</code> resolves to
+<code>&lt;dataset_catalog&gt;.observability.v_group_health_summary</code>; a query that spells out more of the path
+keeps what it spelled. That gives three tiers, and this dashboard uses two of them:</p>
+<table>
+<thead>
+<tr>
+<th>Name form in the query</th>
+<th>Resolves to</th>
+<th>Used by</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Bare — <code>v_group_health_summary</code></td>
+<td><code>&lt;dataset_catalog&gt;.observability.&lt;name&gt;</code></td>
+<td>All 10 view-backed datasets</td>
+</tr>
+<tr>
+<td>Three-part — <code>system.billing.usage</code></td>
+<td>Itself, unchanged</td>
+<td>The 2 forecast datasets that need raw hourly usage</td>
+</tr>
+<tr>
+<td>Two-part — <code>config.&lt;table&gt;</code></td>
+<td><code>&lt;dataset_catalog&gt;.config.&lt;table&gt;</code></td>
+<td>Nothing, <strong>currently</strong></td>
+</tr>
+</tbody>
+</table>
+<p>The two-part form is the escape hatch for reaching a <strong>control table</strong> from a dashboard whose
+<code>dataset_schema</code> is <code>observability</code> — it overrides only the schema, leaving the catalog to be
+injected per target. As shipped, no dataset needs it: <code>v_dataflow_group_catalog</code> already surfaces
+the onboarding-audit facts a widget would otherwise have gone to <code>config.onboarding_audit_log</code> for.
+Use the two-part form if you add one; two unit tests
+(<code>test_no_dataset_query_hardcodes_a_catalog_or_the_control_schema</code> and
+<code>test_dataset_queries_only_read_known_observability_objects</code>) will reject a hard-coded catalog.</p>
+<p>This is the same pattern documented for <code>flowx_control_dashboard</code> (dashboard queries keep bare
+table names; <code>dataset_catalog</code>/<code>dataset_schema</code> inject them per target), applied with two schemas
+in play instead of one.</p>
+<hr />
+<h2 id="6-ai_forecast-the-four-rules-and-the-ten-billion-dbu-cautionary-tale">6. AI_FORECAST — the four rules, and the ten-billion-DBU cautionary tale<a class="headerlink" href="#6-ai_forecast-the-four-rules-and-the-ten-billion-dbu-cautionary-tale" title="Permanent link">&para;</a></h2>
+<p>The <strong>AI Forecast</strong> page uses <code>forecast-line</code> widgets over Databricks' <code>AI_FORECAST</code> table-valued
+function. It works well. It is also the one part of this feature set that will produce a
+<em>confidently absurd</em> number if the four rules below are not followed, so they are encoded in the
+dashboard SQL, in the Genie space instructions, and here.</p>
+<h3 id="61-the-cautionary-tale">6.1 The cautionary tale<a class="headerlink" href="#61-the-cautionary-tale" title="Permanent link">&para;</a></h3>
+<p>The first implementation forecast a <strong>daily</strong> series. On a young workspace only <strong>4 days</strong> of
+billing history existed, so <code>AI_FORECAST</code> was fitting a seasonal model to <strong>3 usable daily points</strong>
+— and projected:</p>
+<blockquote>
+<p><strong>10,257,538,803 DBUs by day 14.</strong></p>
+</blockquote>
+<p>Ten billion DBUs. The function did not error. It did not warn. It returned a well-formed number,
+with a confidence band, in a chart that looked exactly like a working forecast. That is the failure
+mode to internalise: <strong>an under-fed forecast fails plausibly, not loudly.</strong></p>
+<p>The fix is grain. <code>date_trunc('HOUR', ...)</code> over the same 14-day window gives <strong>73 points</strong> instead
+of 3, and a credible forecast.</p>
+<h3 id="62-the-four-rules">6.2 The four rules<a class="headerlink" href="#62-the-four-rules" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>#</th>
+<th>Rule</th>
+<th>Why</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>1</strong></td>
+<td><strong>Hourly grain, never daily.</strong> <code>date_trunc('HOUR', usage_start_time)</code> / <code>date_trunc('HOUR', started_at)</code>.</td>
+<td>A daily series on a young workspace has single-digit points. <code>AI_FORECAST</code> needs enough observations to fit anything; hourly buys ~24× the history from the same calendar window.</td>
+</tr>
+<tr>
+<td><strong>2</strong></td>
+<td><strong>Exclude the current, partly-elapsed bucket.</strong> <code>WHERE usage_start_time &lt; date_trunc('HOUR', current_timestamp())</code>.</td>
+<td>The in-flight hour is 5 minutes of usage sitting in a 60-minute bucket. Left in, it is the <em>most recent</em> point and reads as a collapse in spend — so the model extrapolates a decline that is purely an artefact of when you looked.</td>
+</tr>
+<tr>
+<td><strong>3</strong></td>
+<td><strong>Always pass <code>parameters =&gt; '{"global_floor": 0}'</code>.</strong></td>
+<td>Without a floor, the lower confidence band goes <strong>negative</strong> — negative DBUs, negative dollars. Cost and run counts are non-negative by construction; the model does not know that unless told.</td>
+</tr>
+<tr>
+<td><strong>4</strong></td>
+<td><strong>Report the band and the history depth, not just the point forecast.</strong></td>
+<td>A point forecast with no interval and no "fitted on N hours" is indistinguishable from a measurement. The <code>Forecast Summary</code> dataset returns <code>observed_hours</code>, <code>forecast_next_48h_low_usd</code> and <code>forecast_next_48h_high_usd</code> alongside the point value precisely so a widget cannot show the number without the caveat.</td>
+</tr>
+</tbody>
+</table>
+<p>And the framing rule that goes with them: <strong>say it is list price, and say it is a projection, not a
+commitment.</strong> <code>estimated_cost_usd</code> already carries the list-price caveat (§4.6); a forecast of it
+inherits that <em>plus</em> model uncertainty.</p>
+<h3 id="63-how-the-dashboard-sql-implements-them">6.3 How the dashboard SQL implements them<a class="headerlink" href="#63-how-the-dashboard-sql-implements-them" title="Permanent link">&para;</a></h3>
+<p>Every forecast dataset has the same four-part shape:</p>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="k">WITH</span><span class="w"> </span><span class="n">actuals</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="p">(</span><span class="w">   </span><span class="c1">-- hourly (rule 1), current bucket excluded (rule 2)</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="w">  </span><span class="k">SELECT</span><span class="w"> </span><span class="n">date_trunc</span><span class="p">(</span><span class="s1">'HOUR'</span><span class="p">,</span><span class="w"> </span><span class="n">s</span><span class="p">.</span><span class="n">usage_start_time</span><span class="p">)</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="n">usage_hour</span><span class="p">,</span><span class="w"> </span><span class="p">...</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="n">cost_usd</span>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="w">  </span><span class="k">FROM</span><span class="w"> </span><span class="n">scoped</span><span class="w"> </span><span class="n">s</span><span class="w"> </span><span class="k">LEFT</span><span class="w"> </span><span class="k">JOIN</span><span class="w"> </span><span class="n">prices</span><span class="w"> </span><span class="n">p</span><span class="w"> </span><span class="k">ON</span><span class="w"> </span><span class="n">s</span><span class="p">.</span><span class="n">sku_name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">p</span><span class="p">.</span><span class="n">sku_name</span>
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="w">  </span><span class="k">WHERE</span><span class="w"> </span><span class="n">s</span><span class="p">.</span><span class="n">usage_start_time</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">date_trunc</span><span class="p">(</span><span class="s1">'HOUR'</span><span class="p">,</span><span class="w"> </span><span class="k">current_timestamp</span><span class="p">())</span>
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="w">  </span><span class="k">GROUP</span><span class="w"> </span><span class="k">BY</span><span class="w"> </span><span class="mi">1</span>
+</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="p">),</span>
+</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="n">bounds</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="p">(</span><span class="k">SELECT</span><span class="w"> </span><span class="k">MAX</span><span class="p">(</span><span class="n">usage_hour</span><span class="p">)</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="n">max_h</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">actuals</span><span class="p">),</span>
+</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a><span class="n">forecast</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="p">(</span>
+</span><span id="__span-3-9"><a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a><span class="w">  </span><span class="k">SELECT</span><span class="w"> </span><span class="n">usage_hour</span><span class="p">,</span><span class="w"> </span><span class="n">cost_usd_forecast</span><span class="p">,</span><span class="w"> </span><span class="n">cost_usd_upper</span><span class="p">,</span><span class="w"> </span><span class="n">cost_usd_lower</span><span class="p">,</span><span class="w"> </span><span class="k">CAST</span><span class="p">(</span><span class="k">NULL</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="n">DOUBLE</span><span class="p">)</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="n">cost_usd</span>
+</span><span id="__span-3-10"><a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a><span class="w">  </span><span class="k">FROM</span><span class="w"> </span><span class="n">AI_FORECAST</span><span class="p">(</span>
+</span><span id="__span-3-11"><a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a><span class="w">    </span><span class="k">TABLE</span><span class="p">(</span><span class="n">actuals</span><span class="p">),</span>
+</span><span id="__span-3-12"><a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a><span class="w">    </span><span class="n">horizon</span><span class="w">    </span><span class="o">=&gt;</span><span class="w"> </span><span class="p">(</span><span class="k">SELECT</span><span class="w"> </span><span class="n">max_h</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">MAKE_DT_INTERVAL</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">48</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">bounds</span><span class="p">),</span><span class="w">   </span><span class="c1">-- +48h</span>
+</span><span id="__span-3-13"><a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a><span class="w">    </span><span class="n">time_col</span><span class="w">   </span><span class="o">=&gt;</span><span class="w"> </span><span class="s1">'usage_hour'</span><span class="p">,</span>
+</span><span id="__span-3-14"><a id="__codelineno-3-14" name="__codelineno-3-14" href="#__codelineno-3-14"></a><span class="w">    </span><span class="n">value_col</span><span class="w">  </span><span class="o">=&gt;</span><span class="w"> </span><span class="s1">'cost_usd'</span><span class="p">,</span>
+</span><span id="__span-3-15"><a id="__codelineno-3-15" name="__codelineno-3-15" href="#__codelineno-3-15"></a><span class="w">    </span><span class="k">parameters</span><span class="w"> </span><span class="o">=&gt;</span><span class="w"> </span><span class="s1">'{"global_floor": 0}'</span><span class="w">                                          </span><span class="c1">-- rule 3</span>
+</span><span id="__span-3-16"><a id="__codelineno-3-16" name="__codelineno-3-16" href="#__codelineno-3-16"></a><span class="w">  </span><span class="p">)</span>
+</span><span id="__span-3-17"><a id="__codelineno-3-17" name="__codelineno-3-17" href="#__codelineno-3-17"></a><span class="p">),</span>
+</span><span id="__span-3-18"><a id="__codelineno-3-18" name="__codelineno-3-18" href="#__codelineno-3-18"></a><span class="n">bridge</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="p">(...)</span><span class="w">     </span><span class="c1">-- the last actual point, duplicated into the forecast columns</span>
+</span><span id="__span-3-19"><a id="__codelineno-3-19" name="__codelineno-3-19" href="#__codelineno-3-19"></a><span class="k">SELECT</span><span class="w"> </span><span class="p">...</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">actuals</span><span class="w"> </span><span class="k">UNION</span><span class="w"> </span><span class="k">ALL</span><span class="w"> </span><span class="k">SELECT</span><span class="w"> </span><span class="p">...</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">bridge</span><span class="w"> </span><span class="k">UNION</span><span class="w"> </span><span class="k">ALL</span><span class="w"> </span><span class="k">SELECT</span><span class="w"> </span><span class="p">...</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">forecast</span>
+</span><span id="__span-3-20"><a id="__codelineno-3-20" name="__codelineno-3-20" href="#__codelineno-3-20"></a><span class="k">ORDER</span><span class="w"> </span><span class="k">BY</span><span class="w"> </span><span class="n">usage_hour</span>
+</span></code></pre></div>
+<p>Three details worth keeping when you edit this:</p>
+<ul>
+<li><strong><code>horizon</code> is an absolute timestamp</strong>, computed as <code>MAX(actual hour) + MAKE_DT_INTERVAL(0,48,0,0)</code>
+  — anchored to the last <em>observed</em> point, not to <code>current_timestamp()</code>, so a gap in billing
+  ingestion shortens the horizon rather than silently forecasting across the gap.</li>
+<li><strong>The <code>bridge</code> CTE</strong> emits the final actual point <em>again</em> with its value copied into
+  <code>cost_usd_forecast</code> / <code>_upper</code> / <code>_lower</code>. Without it the actual line and the forecast line do not
+  touch, and the chart shows a one-hour hole at the join.</li>
+<li><strong>Actuals and forecast are <code>UNION ALL</code>ed into one column set</strong>, each side <code>NULL</code>-padding the
+  other's columns. That is what lets a single <code>forecast-line</code> widget draw history and projection
+  together.</li>
+</ul>
+<p>The <code>Forecast Summary</code> dataset is rule 4 in SQL: <code>observed_hours</code>, <code>observed_cost_usd</code>,
+<code>observed_dbus</code>, <code>avg_hourly_cost_usd</code>, <code>forecast_next_48h_usd</code> with its low/high band,
+<code>projected_30d_run_rate_usd</code> (mean forecast hour × 24 × 30), and
+<code>forecast_vs_actual_delta_frac</code> — the last of these being the honest self-check: how far the
+forecast's mean hour sits from the observed mean hour.</p>
+<h3 id="64-live-verification">6.4 Live verification<a class="headerlink" href="#64-live-verification" title="Permanent link">&para;</a></h3>
+<p>Against <code>metaflow_v7</code> at the time of writing, with ~30 hours of billing history:</p>
+<table>
+<thead>
+<tr>
+<th>Figure</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Observed cost (14-day window, hourly)</td>
+<td><strong>$23.19</strong></td>
+</tr>
+<tr>
+<td>Forecast, next 48 hours</td>
+<td><strong>$18.94</strong></td>
+</tr>
+<tr>
+<td>Projected 30-day run rate</td>
+<td><strong>$290.08</strong></td>
+</tr>
+</tbody>
+</table>
+<p>Sane, mutually consistent, and — with 30 hours of history — still wide. Which is the point of rule 4.</p>
+<hr />
+<h2 id="7-the-genie-space">7. The Genie space<a class="headerlink" href="#7-the-genie-space" title="Permanent link">&para;</a></h2>
+<p><code>databricks-genie/flowx_observability.geniespace.json</code>, deployed by
+<code>resources/flowx_genie/flowx_observability_genie_space.yml</code>. It answers questions like:</p>
+<ul>
+<li><em>"Show me details of every dataflow group and what features they use"</em></li>
+<li><em>"Explain / document dataflow group X"</em></li>
+<li><em>"Forecast our spend"</em></li>
+</ul>
+<p><strong>15 data sources, 1 instruction block, 12 example question/SQL pairs, 12 sample questions,
+4 benchmarks.</strong></p>
+<h3 id="71-why-the-views-and-only-two-raw-system-tables">7.1 Why the views, and only two raw system tables<a class="headerlink" href="#71-why-the-views-and-only-two-raw-system-tables" title="Permanent link">&para;</a></h3>
+<p>The fifteen data sources are: the <strong>11 observability views</strong>, <strong>2 control tables</strong>
+(<code>config.onboarding_audit_log</code> and <code>config.reconciliation_mismatch_log</code> — the row-level detail the
+"who onboarded this" and "what exactly did not match" questions need), and <strong>2 raw system tables</strong>
+(<code>system.billing.usage</code>, <code>system.billing.list_prices</code>) — exposed <em>only</em> because <code>AI_FORECAST</code> needs
+the raw hourly usage grain that <code>v_dataflow_cost</code> has already aggregated to a day.</p>
+<blockquote>
+<p>[!NOTE]
+Unlike the dashboard, a Genie space's <code>data_sources.tables</code> carry <strong>fully-qualified three-part
+identifiers</strong> with the catalog spelled literally (<code>flowx.observability.v_...</code>). There is no
+<code>dataset_catalog</code> equivalent to inject it. Deploying this space to a differently-named catalog
+means editing those identifiers — and keeping them sorted (§7.2 rule 3).</p>
+</blockquote>
+<p>That restraint is the whole design. A Genie space pointed at raw <code>system.lakeflow.*</code> has to
+rediscover the <code>configuration['dataflow.group.id']</code> join, the slowly-changing-jobs
+deduplication, the cumulative-event-count trap and the terminal-status ordering <strong>on every
+question</strong>, and will get at least one of them wrong. Pointed at eleven views whose column comments
+state the join keys and the caveats, it mostly just reads the answer off.</p>
+<h3 id="72-the-serialized-format-three-hard-requirements">7.2 The serialized format — three hard requirements<a class="headerlink" href="#72-the-serialized-format-three-hard-requirements" title="Permanent link">&para;</a></h3>
+<p>The format was reverse-engineered from <code>databricks bundle generate genie-space</code>, and it is
+stricter than it looks. All three of these are <strong>API-enforced</strong>, not stylistic:</p>
+<ol>
+<li><strong><code>version: 2</code></strong> at the top level.</li>
+<li><strong>Every human-readable string is an ARRAY OF LINES</strong>, each element ending in <code>\n</code> <strong>except the
+   last</strong>. A plain string where the schema wants a line array is rejected.</li>
+<li><strong>Repeated blocks must be sorted.</strong> <code>data_sources.tables</code> must be sorted by <strong>identifier</strong>, and
+   every other repeated block must be sorted by <strong><code>id</code></strong>. The API <em>hard-rejects</em> an unsorted array
+   — it does not normalise it for you. This is the one that bites when you hand-add a table or an
+   example: append it and the deploy fails; insert it in sort position and it succeeds.</li>
+</ol>
+<h3 id="73-the-round-trip-workflow">7.3 The round-trip workflow<a class="headerlink" href="#73-the-round-trip-workflow" title="Permanent link">&para;</a></h3>
+<p>Genie spaces are edited in the UI in practice — someone adds an instruction, fixes an example's
+SQL, tunes a benchmark. Those edits must come <strong>back into the repo</strong>, or the next deploy silently
+reverts them:</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>databricks<span class="w"> </span>bundle<span class="w"> </span>generate<span class="w"> </span>genie-space<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="w">  </span>--resource<span class="w"> </span>flowx_observability_genie_space<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="w">  </span>--force
+</span></code></pre></div>
+<p><code>--force</code> overwrites the local JSON with the workspace's current definition, re-sorted and
+re-serialized in the canonical format. Run it after any UI edit, review the diff, commit. Going the
+other way — repo to workspace — is an ordinary <code>bundle deploy</code>.</p>
+<blockquote>
+<p>[!NOTE]
+Hand-editing the JSON is fine, and sometimes necessary (a new view means a new data source). Just
+respect §7.2's sorting, and prefer a <code>bundle generate</code> round-trip afterwards to normalise
+whatever you wrote.</p>
+</blockquote>
+<hr />
+<h2 id="8-the-documentation-generator">8. The documentation generator<a class="headerlink" href="#8-the-documentation-generator" title="Permanent link">&para;</a></h2>
+<p>Genie answers conversationally. Sometimes you need an artefact you can commit, attach to a ticket,
+or hand to a customer. That is what this is: <strong>the batch counterpart to the Genie space</strong>, reading
+the same views so the two cannot disagree about the facts.</p>
+<table>
+<thead>
+<tr>
+<th>Asset</th>
+<th>Role</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>src/flowx/lakeflow_framework/observability/dataflow_documenter.py</code></td>
+<td>Pure functions: plain Python data in, Markdown string out. No Spark, no I/O.</td>
+</tr>
+<tr>
+<td><code>notebooks/09_documentation/09_dataflow_documentation.py</code></td>
+<td>The only place that reads the views and writes files.</td>
+</tr>
+<tr>
+<td><code>resources/flowx_docs/dataflow_documentation_job.yml</code></td>
+<td>The job that runs it.</td>
+</tr>
+<tr>
+<td><code>resources/flowx_docs/framework_docs_volume.yml</code></td>
+<td>The Volume it writes into.</td>
+</tr>
+</tbody>
+</table>
+<p>Output: one Markdown design document per dataflow group, into
+<code>/Volumes/&lt;catalog&gt;/config/framework_docs/dataflow_groups/</code>, plus a <code>README.md</code> index. The job takes
+four parameters:</p>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Default</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>catalog</code></td>
+<td><code>${var.catalog}</code></td>
+<td>Which catalog's <code>observability</code> schema to read</td>
+</tr>
+<tr>
+<td><code>dataflow_group_id</code></td>
+<td><code>""</code></td>
+<td>A single group, or blank for <strong>all</strong> groups</td>
+</tr>
+<tr>
+<td><code>output_volume</code></td>
+<td><code>""</code></td>
+<td>Blank derives <code>/Volumes/&lt;catalog&gt;/config/framework_docs/dataflow_groups</code></td>
+</tr>
+<tr>
+<td><code>lookback_days</code></td>
+<td><code>"30"</code></td>
+<td>The reporting window for the operational sections</td>
+</tr>
+</tbody>
+</table>
+<p>Files are written with <code>dbutils.fs.put(..., overwrite=True)</code> — Volume paths are not writable
+through plain Python file IO on serverless compute.</p>
+<p><strong>The degrade-not-fail contract.</strong> Only a missing or empty <code>v_dataflow_group_catalog</code> is fatal (a
+<code>RuntimeError</code>: with no groups there is nothing to document). <code>v_flow_inventory</code> is likewise read
+directly. Everything else — <code>v_group_health_summary</code>, <code>v_dq_results</code>, <code>v_reconciliation_health</code>,
+<code>v_dataflow_lineage</code> — goes through an <code>optional_rows()</code> helper that logs a warning and returns
+<code>[]</code>. So on a workspace with no system-table grant the job still produces the <strong>declarative</strong>
+half of every document (composition, flows, features, targets) and simply omits the operational
+sections, rather than producing nothing. <code>dbutils.fs.mkdirs</code> on the output path is itself wrapped,
+because the Volume may already exist.</p>
+<p><strong>Eight sections per group</strong>, ordered the way a reader builds a mental model rather than
+alphabetically:</p>
+<ol>
+<li>Purpose and scale</li>
+<li>Framework capabilities exercised</li>
+<li>Flows — ingestion, then transformation, then reconciliation, each kind prefaced with what that
+   kind <em>is</em></li>
+<li>Data quality</li>
+<li>Reconciliation</li>
+<li>Operational behaviour</li>
+<li>Observed lineage</li>
+<li>Tables this group publishes</li>
+</ol>
+<p>Two decisions worth recording:</p>
+<ul>
+<li><strong>It reads the control tables, not the spec files.</strong> So the document describes the system <strong>as
+  onboarded and as running</strong> — not as some spec file on a laptop claims it should be. When the two
+  disagree, the document is right and the spec is stale, which is exactly the direction of trust
+  you want from generated documentation.</li>
+<li><strong>The pure-function boundary is a testability decision.</strong> There is no local Spark in this repo
+  (databricks-connect plus no Java), so anything that touches a session is untestable offline.
+  Keeping rendering in plain functions is what makes 31 unit tests possible without a cluster.</li>
+</ul>
+<hr />
+<h2 id="9-prerequisites-and-exactly-what-breaks-when-they-are-unmet">9. Prerequisites, and exactly what breaks when they are unmet<a class="headerlink" href="#9-prerequisites-and-exactly-what-breaks-when-they-are-unmet" title="Permanent link">&para;</a></h2>
+<p>Section 5 of <code>notebooks/01_setup/01_setup_control_tables.py</code> provisions the schema and the views. It
+is <strong>deliberately non-fatal</strong>: system-table access is a workspace grant the deploying principal may
+not hold, and observability is not a prerequisite for onboarding a pipeline. A failure logs a
+warning and setup continues.</p>
+<p>There are <strong>two nested guards</strong>, because the two failures are different:</p>
+<ul>
+<li><strong>Inner</strong> — event-log discovery fails. <code>event_log_tables</code> becomes <code>[]</code> and the two
+  event-log-backed views are created <strong>empty but resolvable</strong> (§4.7). Logged as: <em>"Could not
+  discover pipeline event log tables (…); creating the event-log-backed views empty but
+  resolvable."</em></li>
+<li><strong>Outer</strong> — the schema DDL or any view DDL fails. Nothing is re-raised, so onboarding never
+  fails on this step. Logged as: <em>"Observability semantic layer was NOT fully provisioned in
+  '<schema>': … The control tables are unaffected. Most often this means the deploying principal
+  lacks SELECT on the system catalog — grant it, then re-run this notebook."</em></li>
+</ul>
+<p>The discovery query is the concrete form of §3.3, joining candidate event-log table names back to
+live FlowX-tagged pipelines so it never picks up an unrelated <code>event_log_*</code> table:</p>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="k">SELECT</span><span class="w"> </span><span class="k">DISTINCT</span><span class="w"> </span><span class="n">concat</span><span class="p">(</span><span class="n">t</span><span class="p">.</span><span class="n">table_catalog</span><span class="p">,</span><span class="s1">'.'</span><span class="p">,</span><span class="n">t</span><span class="p">.</span><span class="n">table_schema</span><span class="p">,</span><span class="s1">'.'</span><span class="p">,</span><span class="n">t</span><span class="p">.</span><span class="k">table_name</span><span class="p">)</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="n">event_log_table</span>
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="k">FROM</span><span class="w"> </span><span class="k">system</span><span class="p">.</span><span class="n">information_schema</span><span class="p">.</span><span class="n">tables</span><span class="w"> </span><span class="n">t</span>
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="k">JOIN</span><span class="w"> </span><span class="k">system</span><span class="p">.</span><span class="n">lakeflow</span><span class="p">.</span><span class="n">pipelines</span><span class="w"> </span><span class="n">p</span>
+</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="w">  </span><span class="k">ON</span><span class="w"> </span><span class="k">replace</span><span class="p">(</span><span class="n">t</span><span class="p">.</span><span class="k">table_name</span><span class="p">,</span><span class="w"> </span><span class="s1">'event_log_'</span><span class="p">,</span><span class="w"> </span><span class="s1">''</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">replace</span><span class="p">(</span><span class="n">p</span><span class="p">.</span><span class="n">pipeline_id</span><span class="p">,</span><span class="w"> </span><span class="s1">'-'</span><span class="p">,</span><span class="w"> </span><span class="s1">'_'</span><span class="p">)</span>
+</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="k">WHERE</span><span class="w"> </span><span class="n">t</span><span class="p">.</span><span class="k">table_name</span><span class="w"> </span><span class="k">LIKE</span><span class="w"> </span><span class="s1">'event_log_%'</span>
+</span><span id="__span-5-6"><a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="w">  </span><span class="k">AND</span><span class="w"> </span><span class="n">p</span><span class="p">.</span><span class="n">delete_time</span><span class="w"> </span><span class="k">IS</span><span class="w"> </span><span class="k">NULL</span>
+</span><span id="__span-5-7"><a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="w">  </span><span class="k">AND</span><span class="w"> </span><span class="n">p</span><span class="p">.</span><span class="n">configuration</span><span class="p">[</span><span class="s1">'dataflow.group.id'</span><span class="p">]</span><span class="w"> </span><span class="k">IS</span><span class="w"> </span><span class="k">NOT</span><span class="w"> </span><span class="k">NULL</span>
+</span></code></pre></div>
+<table>
+<thead>
+<tr>
+<th>Prerequisite</th>
+<th>Needed for</th>
+<th>What happens without it</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>SELECT</code> on <code>system.lakeflow.*</code>, <code>system.billing.*</code>, <code>system.access.table_lineage</code></td>
+<td>Every view except <code>v_dataflow_group_catalog</code> and <code>v_flow_inventory</code></td>
+<td>Section 5 logs a <strong>warning</strong>; onboarding still succeeds. Views may be created but <strong>error at query time</strong>, so <strong>the dashboard's widgets error</strong> while the objects exist.</td>
+</tr>
+<tr>
+<td>A pipeline publishing its <strong>event log to Unity Catalog</strong></td>
+<td><code>v_flow_metrics</code>, <code>v_dq_results</code></td>
+<td>Views exist over a typed <strong>empty</strong> relation. Per-flow metrics and DQ results are <strong>empty, not broken</strong> — every dependent widget renders, showing nothing. <code>v_group_health_summary</code> reports 0 rows written and 0 DQ rules.</td>
+</tr>
+<tr>
+<td><code>dataflow_group_id</code> <strong>job tag</strong>, deployed</td>
+<td><code>v_job_runs.attribution = 'tag'</code>, all job-side cost</td>
+<td>Runs fall back to <code>name_match</code> (visible in the column); job <strong>cost is not attributed at all</strong> (cost is tag-only, §3.2). Historical runs never gain the tag.</td>
+</tr>
+<tr>
+<td><code>logging_config.run_log_capture</code> enabled</td>
+<td><code>v_reconciliation_health</code> run rows</td>
+<td><code>has_run_history = FALSE</code>. <strong>Do not read the zero discrepancy count as clean</strong> (§4.9).</td>
+</tr>
+<tr>
+<td><code>dataflow.group.id</code> in the pipeline <code>configuration:</code> block</td>
+<td>Everything</td>
+<td>The pipeline is invisible to the whole layer — <code>v_pipeline_registry</code> filters it out. Every FlowX pipeline resource already sets it.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>The one asymmetry to remember:</strong> a missing <em>grant</em> leaves you with views that exist and fail;
+a missing <em>event log</em> leaves you with views that exist and are empty. The first is a red widget,
+the second is a blank one, and they need different fixes.</p>
+<h3 id="91-re-provisioning">9.1 Re-provisioning<a class="headerlink" href="#91-re-provisioning" title="Permanent link">&para;</a></h3>
+<p>The view DDL is <code>CREATE OR REPLACE VIEW</code> throughout, and the schema DDL is
+<code>CREATE SCHEMA IF NOT EXISTS</code>. Re-running <code>01_setup</code> is therefore idempotent and is also how you
+pick up a corrected view definition — <strong>and how you pick up newly-published event logs</strong>, since
+<code>event_log_tables</code> is resolved at DDL-build time. Onboard a new group, run its pipeline once so it
+publishes an event log, then re-run <code>01_setup</code> for its rows to appear in <code>v_flow_metrics</code>.</p>
+<hr />
+<h2 id="10-gotchas-six-bugs-live-data-caught">10. Gotchas — six bugs live data caught<a class="headerlink" href="#10-gotchas-six-bugs-live-data-caught" title="Permanent link">&para;</a></h2>
+<p>Every one of these passed code review, produced <strong>no error</strong>, and returned a <strong>plausible wrong
+answer</strong>. That is the theme worth carrying away: a SQL semantic layer over metadata fails quietly,
+and the only thing that catches it is running it against real data and reading the output
+critically. All six are fixed; they are recorded because the <em>class</em> of each will recur.</p>
+<h3 id="101-has_cdc-was-always-false-case">10.1 <code>has_cdc</code> was always <code>FALSE</code> — case<a class="headerlink" href="#101-has_cdc-was-always-false-case" title="Permanent link">&para;</a></h3>
+<p>The control tables store load strategies <strong>UPPERCASE</strong> (<code>SCD1</code>, <code>SCD2</code>, <code>APPEND</code>,
+<code>TRUNCATE_AND_LOAD</code>). The predicate was a lowercase-only <code>RLIKE</code>. Every SCD group reported
+<code>has_cdc = false</code>, on a dashboard tile whose whole job was to say which groups do CDC.</p>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="k">LOWER</span><span class="p">(</span><span class="n">cdc_load_strategies</span><span class="p">)</span><span class="w"> </span><span class="n">RLIKE</span><span class="w"> </span><span class="s1">'(scd|cdc|merge|truncate)'</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="n">has_cdc</span>
+</span></code></pre></div>
+<p><strong>Lesson:</strong> these control-table enum values are <strong>not case-normalised</strong>. Fold the case explicitly
+in every predicate over them — do not assume the case you happened to see in one spec.</p>
+<h3 id="102-a-leading-on-every-aggregated-list-split-is-not-empty">10.2 A leading <code>", "</code> on every aggregated list — <code>SPLIT('')</code> is not empty<a class="headerlink" href="#102-a-leading-on-every-aggregated-list-split-is-not-empty" title="Permanent link">&para;</a></h3>
+<p>Merging the ingestion and transformation lists of target types looked simple:
+<code>SPLIT(COALESCE(a,''), ', ')</code> on each side, <code>FLATTEN</code>, <code>ARRAY_DISTINCT</code>, <code>CONCAT_WS</code>. But when one
+side has no rows, <code>COALESCE</code> yields <code>''</code> — and <strong><code>SPLIT('', ', ')</code> returns <code>['']</code>: an array with
+</strong>one EMPTY element<strong>, not an empty array.</strong> That element sorts first and <code>CONCAT_WS</code> renders it as
+a leading <code>", "</code>.</p>
+<p><strong><code>ARRAY_COMPACT</code> does not fix it</strong> — it removes <code>NULL</code>s, not empty strings. The fix is an explicit
+filter:</p>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="n">FILTER</span><span class="p">(</span><span class="n">FLATTEN</span><span class="p">(</span><span class="nb">ARRAY</span><span class="p">(</span><span class="n">SPLIT</span><span class="p">(...),</span><span class="w"> </span><span class="n">SPLIT</span><span class="p">(...))),</span><span class="w"> </span><span class="n">x</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="n">x</span><span class="w"> </span><span class="k">IS</span><span class="w"> </span><span class="k">NOT</span><span class="w"> </span><span class="k">NULL</span><span class="w"> </span><span class="k">AND</span><span class="w"> </span><span class="n">x</span><span class="w"> </span><span class="o">&lt;&gt;</span><span class="w"> </span><span class="s1">''</span><span class="p">)</span>
+</span></code></pre></div>
+<p><strong>Lesson:</strong> <code>SPLIT</code> of an empty string is a one-element array. Anywhere you <code>SPLIT</code> a
+possibly-empty aggregate, filter for non-empty rather than reaching for <code>ARRAY_COMPACT</code>.</p>
+<h3 id="103-has_dq-was-true-for-every-group-is-a-non-empty-string">10.3 <code>has_dq</code> was <code>TRUE</code> for every group — <code>'{}'</code> is a non-empty string<a class="headerlink" href="#103-has_dq-was-true-for-every-group-is-a-non-empty-string" title="Permanent link">&para;</a></h3>
+<p><code>dq_config_json</code> is literally the two characters <code>'{}'</code> on many onboarded flows — an <em>empty</em> DQ
+config, faithfully serialized. Testing <code>dq_config_json IS NOT NULL AND dq_config_json &lt;&gt; ''</code>
+reported "this group has data quality" for every group in the workspace.</p>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="n">dq_config_json</span><span class="w"> </span><span class="k">IS</span><span class="w"> </span><span class="k">NOT</span><span class="w"> </span><span class="k">NULL</span><span class="w"> </span><span class="k">AND</span><span class="w"> </span><span class="k">TRIM</span><span class="p">(</span><span class="n">dq_config_json</span><span class="p">)</span><span class="w"> </span><span class="k">NOT</span><span class="w"> </span><span class="k">IN</span><span class="w"> </span><span class="p">(</span><span class="s1">''</span><span class="p">,</span><span class="w"> </span><span class="s1">'{{}}'</span><span class="p">)</span>
+</span></code></pre></div>
+<p><strong>Lesson:</strong> for a JSON-in-a-string column, "present" and "non-empty" are different questions.
+Note the <code>{{}}</code> escaping — this predicate appears four times in the module and every one of them is
+a brace trap.</p>
+<h3 id="104-flow_status-running-with-a-partial-row-count-newest-terminal">10.4 <code>flow_status = RUNNING</code> with a partial row count — newest ≠ terminal<a class="headerlink" href="#104-flow_status-running-with-a-partial-row-count-newest-terminal" title="Permanent link">&para;</a></h3>
+<p>Deduplicating <code>flow_progress</code> events by <code>event_time DESC</code> alone looked obviously right. It is not:
+a streaming flow can sit in <code>RUNNING</code> and emit its last progress event <strong>mid-batch</strong>, so the newest
+event for a finished update carries a partial cumulative count and a <code>RUNNING</code> status. The
+dashboard showed completed updates as running, with understated throughput.</p>
+<p>The fix orders terminal statuses first, <em>then</em> by time (§4.7).</p>
+<p><strong>Lesson:</strong> in an event log, the last event you received is not the same thing as the event that
+concluded the thing. Order by state, then by time.</p>
+<h3 id="105-field_not_found-on-settingscatalog">10.5 <code>FIELD_NOT_FOUND</code> on <code>settings.catalog</code><a class="headerlink" href="#105-field_not_found-on-settingscatalog" title="Permanent link">&para;</a></h3>
+<p><code>v_pipeline_registry</code> originally constructed the event-log table name as
+<code>&lt;settings.catalog&gt;.&lt;settings.target&gt;.event_log_&lt;id&gt;</code>. <code>system.lakeflow.pipelines.settings</code> has no
+<code>catalog</code> and no <code>target</code> field — only <code>photon</code>, <code>development</code>, <code>continuous</code>, <code>serverless</code>,
+<code>edition</code>, <code>channel</code>. This one <em>did</em> error, loudly, at view-creation time, which is why it is the
+least expensive of the six. The fix is discovery via <code>system.information_schema.tables</code> (§3.3).</p>
+<p><strong>Lesson:</strong> verify a system table's actual schema before deriving anything from it. A struct's
+contents are not guessable from what the equivalent API response contains.</p>
+<h3 id="106-the-repos-brace-trap-again">10.6 The repo's brace trap, again<a class="headerlink" href="#106-the-repos-brace-trap-again" title="Permanent link">&para;</a></h3>
+<p><code>'{}'</code> inside an f-string DDL body must be written <code>'{{}}'</code>. This is the same trap
+<code>ddl_definitions.py</code> documents for column <code>COMMENT</code>s, and it now has a second home. An unescaped
+brace does not break one statement — Python fails to evaluate the f-string, so <strong>every</strong> DDL in the
+module breaks at import.</p>
+<p><strong>Lesson:</strong> <code>python -c "import ..."</code> on the module is the cheapest possible check, and it catches
+this instantly.</p>
+<hr />
+<h2 id="11-tests">11. Tests<a class="headerlink" href="#11-tests" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Suite</th>
+<th>Tests</th>
+<th>Covers</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>tests/unit/test_observability_views_ddl.py</code></td>
+<td>29 fns / 33 cases</td>
+<td>Every view's DDL builds; the brace escaping survives; column-comment presence; the empty-<code>event_log_tables</code> typed-empty-relation path; the six defects above pinned as regressions.</td>
+</tr>
+<tr>
+<td><code>tests/unit/test_dataflow_documenter.py</code></td>
+<td>28 fns / 31 cases</td>
+<td>Section ordering and presence; Markdown table escaping (a <code>|</code> in a value); <code>None</code>/<code>''</code>/<code>'{}'</code> collapsing to a dash; every <code>health_status</code> blurb.</td>
+</tr>
+<tr>
+<td><code>tests/unit/test_observability_dashboard_and_genie.py</code></td>
+<td>30 fns / 32 cases</td>
+<td>Dashboard/Genie JSON well-formedness; the four AI_FORECAST rules asserted in the SQL; Genie sort-order and line-array format requirements; <code>dataset_schema</code> and two-part-name conventions.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>96 new tests, all passing.</strong> The pre-existing offline baseline is confirmed unchanged at
+<strong>12 failed, 1262 passed, 2 skipped, 117 errors</strong> — the 117 errors being the known
+no-local-Spark/Java condition, and the 12 failures pre-dating this work
+(<code>test_config_validation_negative_spec</code> 3, <code>test_optional_fields_df_customer_ingest_spec</code> 5,
+<code>test_recon_backward_compatibility</code> 1, <code>test_source_plane_plan</code> 3).</p>
+<p><code>resources/flowx_genie/</code> and <code>resources/flowx_docs/</code> are registered in <strong>both</strong> <code>databricks.yml</code>'s
+<code>include:</code> list and <code>tests/unit/test_resource_layout.py</code>'s <code>EXPECTED_GROUPS</code> — that test enforces
+the pairing, so a new resource group cannot be added to one without the other.</p>
+<hr />
+<p><strong>See also:</strong>
+<a href="../08_observability_and_telemetry/"><code>08_observability_and_telemetry.md</code></a> for the export-out
+telemetry engines (OTLP, Volume, driver logs) — the complement to this page;
+<a href="../04_data_quality_and_governance/"><code>04_data_quality_and_governance.md</code></a> for how the expectations
+<code>v_dq_results</code> reports are declared;
+<a href="../07_reconciliation_engine/"><code>07_reconciliation_engine.md</code></a> for <code>logging_config.run_log_capture</code>,
+which decides whether <code>v_reconciliation_health</code> has anything to show;
+<a href="../13_known_limitations_and_gotchas/"><code>13_known_limitations_and_gotchas.md</code></a> for the wider gotcha
+catalogue.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+      
+      <nav class="md-footer__inner md-grid" aria-label="Footer" >
+        
+          
+          <a href="../08_observability_and_telemetry/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Observability &amp; OpenTelemetry">
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+            </div>
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Previous
+              </span>
+              <div class="md-ellipsis">
+                Observability & OpenTelemetry
+              </div>
+            </div>
+          </a>
+        
+        
+          
+          <a href="../11_hashing_and_determinism/" class="md-footer__link md-footer__link--next" aria-label="Next: Deterministic hashing standard">
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Next
+              </span>
+              <div class="md-ellipsis">
+                Deterministic hashing standard
+              </div>
+            </div>
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg>
+            </div>
+          </a>
+        
+      </nav>
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      FlowX · Data Platform Engineering
+    </div>
+  
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+      <div class="md-progress" data-md-component="progress" role="progressbar"></div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["announce.dismiss", "content.code.annotate", "content.code.copy", "content.tabs.link", "content.tooltips", "navigation.footer", "navigation.indexes", "navigation.instant", "navigation.instant.progress", "navigation.path", "navigation.sections", "navigation.tabs", "navigation.tabs.sticky", "navigation.top", "navigation.tracking", "search.highlight", "search.share", "search.suggest", "toc.follow"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+    
+  </body>
+</html>

@@ -26,7 +26,6 @@ FlowX supports Advanced Encryption Standard (AES) encryption across 3 cipher mod
   "encrypted_columns": [
     {
       "column_name": "customer_ssn",
-      "algorithm": "AES",
       "mode": "GCM",
       "secret": {
         "secret_catalog": "poc",
@@ -36,7 +35,6 @@ FlowX supports Advanced Encryption Standard (AES) encryption across 3 cipher mod
     },
     {
       "column_name": "card_number",
-      "algorithm": "AES",
       "mode": "CBC",
       "secret": {
         "secret_catalog": "poc",
@@ -63,18 +61,18 @@ When a downstream transformation flow needs to process previously encrypted colu
 ```json
 "transformation_flows": [
   {
+    "flow_step_id": "tf_customer_scoring_step",
     "dataflow_id": "tf_customer_scoring",
-    "flow_step_id": "step_score_calc",
     "source_inputs": [
       {
         "table": "poc.silver.customers_encrypted",
-        "alias": "cust",
+        "input_name": "cust",
         "decrypted_columns": [
           {
             "column_name": "customer_ssn",
-            "target_name": "decrypted_ssn",
-            "algorithm": "AES",
-            "mode": "GCM",
+            "output_column": "decrypted_ssn",
+            "cast_to_type": "string",
+                  "mode": "GCM",
             "secret": {
               "secret_catalog": "poc",
               "secret_schema": "security",

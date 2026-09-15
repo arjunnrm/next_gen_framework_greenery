@@ -1,0 +1,86 @@
+# Documentation hub CI: prove the docs describe the code that is actually committed.
+#
+# Four gates, all offline (no Spark, no Databricks connection):
+#   1. attribute_knowledge.json is a faithful derivation of registry.js
+#   2. docs/reference/** is a faithful derivation of knowledge + schema + validator
+#   3. the discoverable agent skill mirrors agent_skills/ byte for byte
+#   4. every attribute has its four FAQs, every nav entry resolves, and mkdocs builds with
+#      zero warnings outside the frozen archive/ tree
+name: docs
+
+on:
+  push:
+    branches: [main, "feature/**"]
+    paths:
+      - "docs/**"
+      - "mkdocs.yml"
+      - "scripts/build_docs_reference.py"
+      - "scripts/mkdocs_hooks.py"
+      - "scripts/check_docs_warnings.py"
+      - "scripts/sync_agent_skill.py"
+      - "databricks-app/config/**"
+      - "databricks-app/web/src/registry.js"
+      - "databricks-app/web/src/Builder.jsx"
+      - "databricks-app/scripts/build_attribute_knowledge.py"
+      - "onboarding_templates/onboarding_spec.schema.json"
+      - "src/flowx/lakeflow_framework/onboarding/spec_validator.py"
+      - "agent_skills/**"
+      - ".claude/skills/flowx-onboarding/**"
+      - "tests/unit/test_attribute_faqs.py"
+      - "tests/unit/test_docs_hub.py"
+      - ".github/workflows/docs.yml"
+  pull_request:
+    paths:
+      - "docs/**"
+      - "mkdocs.yml"
+      - "scripts/**"
+      - "databricks-app/config/**"
+      - "databricks-app/web/src/registry.js"
+      - "onboarding_templates/onboarding_spec.schema.json"
+      - "src/flowx/lakeflow_framework/onboarding/spec_validator.py"
+      - "agent_skills/**"
+
+jobs:
+  docs:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: docs/requirements.txt
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install the documentation toolchain
+        run: python -m pip install --upgrade pip && pip install -r docs/requirements.txt
+
+      - name: 1 · attribute_knowledge.json is derived from registry.js
+        run: python databricks-app/scripts/build_attribute_knowledge.py --check
+
+      - name: 2 · docs/reference/** is derived from knowledge + schema + validator
+        run: python scripts/build_docs_reference.py --check
+
+      - name: 3 · agent skill copies are byte-identical to their sources
+        run: python scripts/sync_agent_skill.py --check
+
+      - name: 4a · four FAQs per attribute, every nav page exists
+        run: python -m pytest tests/unit/test_attribute_faqs.py tests/unit/test_docs_hub.py -q --no-header -p no:cacheprovider
+
+      - name: 4b · mkdocs builds with zero warnings outside archive/
+        env:
+          # Step 2 already proved the committed reference current; do not regenerate again.
+          FLOWX_DOCS_SKIP_REGEN: "1"
+        run: python scripts/check_docs_warnings.py
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: site
+          path: site/
+          retention-days: 7

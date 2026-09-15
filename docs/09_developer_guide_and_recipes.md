@@ -345,7 +345,7 @@ Then decide **which** pipeline mode you need — this is the step people get wro
   from a table that is rewritten wholesale each update. This is checked at plan time — you get a
   `FrameworkConfigError` naming the locator, the producing flow and the correct
   `execution_mode` — but only *after* onboarding succeeds, so choose correctly up front. Full
-  matrix: [`12_module_permutation_matrix.md` §4.2](12_module_permutation_matrix.md#42-execution_mode--the-producing-strategy-of-the-recon-source-v150).
+  matrix: [`12_module_permutation_matrix.md` §4.1](12_module_permutation_matrix.md#41-execution_mode-what-is-legal-v150).
 
 #### D.1 — Run `setup_control_tables` FIRST if the workspace predates v1.5.0
 
@@ -499,7 +499,7 @@ v1.5.0. You still run `setup_control_tables` first — it is what creates the co
    `ensure_control_table_columns` as a no-op. Nothing downstream works before this: onboarding
    writes into these tables and the pipeline reads from them.
 2. **Onboard** — via the generic `onboarding_job` for a single spec, exactly as in
-   [D.3](#d3--onboard-via-the-generic-onboarding_job). For a whole **directory** of specs, use its
+   [D.3](#d3-onboard-via-the-generic-onboarding_job). For a whole **directory** of specs, use its
    sibling `resources/flowx_config_jobs/framework_config_onboarding_job.yml`, which takes a `spec_dir` rather than a
    `spec_file_path`. Do not inline `02_onboarding_engine.py` in a new job in either case.
 3. **Run the pipeline** for the `dataflow_group_id` you just onboarded.

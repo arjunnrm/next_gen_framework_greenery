@@ -11,20 +11,20 @@
 1. [Top-Level Spec Schema](#1-top-level-spec-schema)
 2. [Ingestion Flow Schema (`ingestion_flows[]`)](#2-ingestion-flow-schema)
 3. [Source Config Reference (`source_config`)](#3-source-config-reference)
-4. [Target Config & CDC Reference (`target_config`)](#4-target-config--cdc-reference)
+4. [Target Config & CDC Reference (`target_config`)](#4-target-config-cdc-reference)
 5. [Data Quality Config (`dq_config`)](#5-data-quality-config)
-6. [Governance & Tagging (`governance_tags`)](#6-governance--tagging)
+6. [Governance & Tagging (`governance_tags`)](#6-governance-tagging)
 7. [Transformation Flow Schema (`transformation_flows[]`)](#7-transformation-flow-schema)
 8. [Reconciliation Flow Schema (`reconciliation_flows[]`)](#8-reconciliation-flow-schema)
 9. [Observability Config Schema (`observability[]`)](#9-observability-config-schema)
 10. [Framework-Generated Columns](#10-framework-generated-columns)
-11. [Template Variables & Parameter Substitution](#11-template-variables--parameter-substitution)
+11. [Template Variables & Parameter Substitution](#11-template-variables-parameter-substitution)
 12. [CDC Load Strategies Quick Reference](#12-cdc-load-strategies-quick-reference)
 13. [Target Types Quick Reference](#13-target-types-quick-reference)
 14. [Official Databricks Documentation Index](#14-official-databricks-documentation-index)
 15. [**🔐 Deterministic Hashing & Determinism (v1.3.0)**](11_hashing_and_determinism.md) — the one canonical `__framework_hash_key`/`__framework_hash_value` construction, a reproducible Spark SQL snippet, and the breaking-change migration checklist.
 16. [**🧩 Module Permutation Matrix (v1.3.0)**](12_module_permutation_matrix.md) — which source types, CDC strategies, reconciliation scopes, and observability modes legally combine, plus a consolidated list of unsupported combinations.
-17. [**🔭 Framework Observability, AI/BI & Genie**](17_framework_observability_and_genie.md) — the `<catalog>.observability` semantic layer: 11 views joining FlowX control metadata to the Databricks system tables, the `configuration['dataflow.group.id']` join key and the `dataflow_group_id` job tag, the 9-page AI/BI dashboard, the four `AI_FORECAST` rules, the Genie space, and the per-group documentation generator. **No spec attribute** — nothing here is configured through an onboarding spec.
+17. [**🔭 Framework Observability, AI/BI & Genie**](17_framework_observability_and_genie.md) — the `<catalog>.observability` semantic layer: 11 views joining FlowX control metadata to the Databricks system tables, the `configuration['dataflow.group.id']` join key and the `dataflow_group_id` job tag, the 10-page AI/BI dashboard, the four `AI_FORECAST` rules, the Genie space, and the per-group documentation generator. **No spec attribute** — nothing here is configured through an onboarding spec.
 
 ---
 
@@ -36,7 +36,7 @@ The root structure of an onboarding JSON/YAML file:
 |---|---|---|---|---|---|---|
 | `dataflow_group_id` | `string` | **Yes** | — | Non-empty alphanumeric string + underscores (e.g. `"dfg_finance_txn_ingest"`) | Unique identifier for this pipeline group. All control-table rows in this spec are upserted under this ID. | — |
 | `pipeline_parameters` | `object` | No | `{}` | Key-value map (e.g. `{"filter_country": "US", "min_amount": "0"}`) | Runtime parameters substituted into `${param}` placeholders in SQL queries, conditions **and file paths** (`source_config.path`, `target_config`), resolved fresh on every pipeline update. | [Parameters Guide](03_transformation_and_cdc.md#5-parameter-substitution-param-catalog-env) |
-| `spark_config` | `object` | No | `{}` | Keys **must** start with `"spark."`; values `string`\|`number`\|`boolean` (e.g. `{"spark.sql.shuffle.partitions": "auto"}`) | **New in v1.3.0.** Group-scoped Spark session configuration, a sibling of `pipeline_parameters` (never nested inside a flow) — distinct from it: this calls `spark.conf.set(...)`, `pipeline_parameters` does `${param}` string substitution. Sits in the middle of a three-layer precedence chain: `engine/spark_config.py`'s `FRAMEWORK_SPARK_DEFAULTS` < this block < the pipeline resource's own `configuration: dataflow.spark.conf` (JSON-encoded string). A malformed key/value or a static Spark config is logged at `WARNING` and skipped, never fails the update. **Known gap:** `onboarding/metadata_upsert.py` does not yet persist this block to `dataflow_group_spec.spark_config_json`, so a validated `spark_config` currently has no effect through the standard onboarding flow — only the framework-default and pipeline-resource layers are live. | [Hierarchical Spark Configuration](01_platform_architecture.md#5-hierarchical-spark-configuration) |
+| `spark_config` | `object` | No | `{}` | Keys **must** start with `"spark."`; values `string`\|`number`\|`boolean` (e.g. `{"spark.sql.shuffle.partitions": "auto"}`) | **New in v1.3.0.** Group-scoped Spark session configuration, a sibling of `pipeline_parameters` (never nested inside a flow) — distinct from it: this calls `spark.conf.set(...)`, `pipeline_parameters` does `${param}` string substitution. Sits in the middle of a three-layer precedence chain: `engine/spark_config.py`'s `FRAMEWORK_SPARK_DEFAULTS` < this block < the pipeline resource's own `configuration: dataflow.spark.conf` (JSON-encoded string). A malformed key/value or a static Spark config is logged at `WARNING` and skipped, never fails the update. Persisted to `dataflow_group_spec.spark_config_json` by `onboarding/metadata_upsert.py` (schema field, row builder and `MERGE` map), so layer 2 is live for groups onboarded through the standard flow. | [Hierarchical Spark Configuration](01_platform_architecture.md#5-hierarchical-spark-configuration) |
 | `ingestion_flows` | `array` | At least 1 flow array must be non-empty | `[]` | Array of ingestion flow objects | Bronze-layer ingestion definitions. See [§2](#2-ingestion-flow-schema). | [Auto Loader](https://docs.databricks.com/en/ingestion/cloud-object-storage/auto-loader/index.html) |
 | `transformation_flows` | `array` | At least 1 flow array must be non-empty | `[]` | Array of transformation flow objects | Silver/Gold transformation definitions. See [§7](#7-transformation-flow-schema). | [apply_changes](https://docs.databricks.com/en/delta-live-tables/cdc.html) |
 | `reconciliation_flows` | `array` | At least 1 flow array must be non-empty | `[]` | Array of reconciliation flow objects | Cross-dataset comparison and self-healing definitions. See [§8](#8-reconciliation-flow-schema). | [Reconciliation Guide](07_reconciliation_engine.md) |
@@ -62,9 +62,9 @@ Objects inside `ingestion_flows[]`:
 | `target_table` | `string` | **Yes** | — | e.g. `"orders_raw"` | Target Delta table name. |
 | `target_type` | `string` | **Yes** | — | `"streaming_table"`, `"materialized_view"`, `"batch_table"`, `"external_sink"`, `"sink"` | Type of Lakeflow dataset or egress sink to register. |
 | `source_config` | `object` | No | `{}` | See [§3](#3-source-config-reference) | Source reader configuration. |
-| `target_config` | `object` | No | `{}` | See [§4](#4-target-config--cdc-reference) | Target storage, CDC, encryption, and sink configuration. |
+| `target_config` | `object` | No | `{}` | See [§4](#4-target-config-cdc-reference) | Target storage, CDC, encryption, and sink configuration. |
 | `dq_config` | `object` | No | `{}` | See [§5](#5-data-quality-config) | Data quality rules and quarantine settings. |
-| `governance_tags` | `object` | No | `{}` | See [§6](#6-governance--tagging) | Table and column governance tags. |
+| `governance_tags` | `object` | No | `{}` | See [§6](#6-governance-tagging) | Table and column governance tags. |
 
 ---
 
@@ -76,7 +76,7 @@ Fields within `source_config`:
 | Attribute | Type | Required | Default | Allowed Values | Description | Databricks Link |
 |---|---|---|---|---|---|---|
 | `capture_technical_metadata` | `boolean` | No | `true` | `true`, `false` | When `true`, automatically injects source file metadata (`__framework_source_file_name`, `__framework_source_file_size`, `__framework_source_file_modification_time`) and `__framework_ingestion_timestamp_utc`. | — |
-| `explode_columns` | `array<string>` | No | *(see Description — absent and `[]` are NOT equivalent)* | List of column names, or an explicit empty list | **ABSENT** (or explicit JSON `null`) is a schema-preserving pass-through — nothing exploded. **PRESENT-BUT-EMPTY (`[]`)** auto-flattens every nested struct and explodes every array (v1.3.0; equivalent to `auto_flatten_all: true`). A populated list scopes flattening to exactly those columns. This absent-vs-empty distinction is **load-bearing**: it is what prevents silent cartesian row explosion on an unconfigured source — see [§6](02_ingestion_and_sources.md#6-json-explode-auto-flatten--json-string-column-parsing). | — |
+| `explode_columns` | `array<string>` | No | *(see Description — absent and `[]` are NOT equivalent)* | List of column names, or an explicit empty list | **ABSENT** (or explicit JSON `null`) is a schema-preserving pass-through — nothing exploded. **PRESENT-BUT-EMPTY (`[]`)** auto-flattens every nested struct and explodes every array (v1.3.0; equivalent to `auto_flatten_all: true`). A populated list scopes flattening to exactly those columns. This absent-vs-empty distinction is **load-bearing**: it is what prevents silent cartesian row explosion on an unconfigured source — see [§6](02_ingestion_and_sources.md#6-json-explode-auto-flatten-json-string-column-parsing). | — |
 | `json_string_columns` | `array<string \| object>` | No | `[]` | `"col_name"` or `{"column": "col_name", "schema_ddl": "struct<...>"}` | **New in v1.3.0.** STRING columns holding a JSON document, parsed via `from_json` into a struct immediately before `explode_columns`/auto-flatten runs — gives Parquet/CSV/Delta/Zerobus sources the same struct-flatten/array-explode treatment native JSON sources get. `schema_ddl` is the recommended form (works batch and streaming); the no-`schema_ddl` shorthand needs Databricks' inferring `from_json` and only works on a **streaming** DataFrame with a checkpoint — it raises `FrameworkConfigError` on a batch/materialized source. | [§6](02_ingestion_and_sources.md#json-held-in-a-string-column-json_string_columns) |
 | `auto_flatten_all` | `boolean` | No | `false` | `true`, `false` | When `true`, recursively flattens all nested structs and explodes all arrays, regardless of `explode_columns`. Same effect as `explode_columns` being present-but-empty (see above). | — |
 | `remove_dups` | `boolean` | No | `false` | `true`, `false` | **New in v1.3.0.** Full-row `dropDuplicates` over every column except `__framework_*`-prefixed columns and `_rescued_data`/`_metadata`/`_object_metadata`/`_asn1_decode_error`. Runs after explode/auto-flatten, before `data_standardization_sql`. **On a streaming source with no `dedup_watermark`, this keeps unbounded state** — see [§7](02_ingestion_and_sources.md#7-full-row-streaming-deduplication-remove_dups). Ignored (INFO-logged) concern-free on a batch source. | — |
@@ -194,9 +194,9 @@ Objects inside `transformation_flows[]`:
 | `target_schema` | `string` | **Yes** | — | Target schema name | Schema for target table. |
 | `target_table` | `string` | **Yes** | — | Target table name | Target table name. |
 | `target_type` | `string` | **Yes** | — | `"streaming_table"`, `"materialized_view"`, `"batch_table"`, `"sink"`, `"external_sink"` | Output dataset type. |
-| `target_config` | `object` | No | `{}` | See [§4](#4-target-config--cdc-reference) | CDC, storage, and sink configuration. |
+| `target_config` | `object` | No | `{}` | See [§4](#4-target-config-cdc-reference) | CDC, storage, and sink configuration. |
 | `dq_config` | `object` | No | `{}` | See [§5](#5-data-quality-config) | Data quality rules and quarantine settings. |
-| `governance_tags` | `object` | No | `{}` | See [§6](#6-governance--tagging) | Governance tags applied to output table. |
+| `governance_tags` | `object` | No | `{}` | See [§6](#6-governance-tagging) | Governance tags applied to output table. |
 
 ---
 
@@ -231,8 +231,8 @@ Objects inside `reconciliation_flows[]`:
 | `dq_config` | `object` | No | SQL `NULL` | Same shape as an ingestion/transformation `dq_config` (see [§5](#5-data-quality-config)) | **New in v1.5.0.** Expectations attached to the one-row `__metrics` dataset — the first declarative way a reconciliation threshold can fail a pipeline update, e.g. `{"rules": [{"name": "no_value_drift", "expr": "value_drift_count = 0", "action": "fail"}]}`. Additive: it does not repurpose `error_handling.on_failure`. `action: "quarantine"` is rejected, and the block is **rejected on presence when `execution_mode` is `"job"`**. |
 | `two_tier_verification` | `boolean` | No | `true` | `true`, `false` | **New in v1.3.0.** A cheap Phase 1 per-side fingerprint (`row_count` + XOR-fold of `__framework_hash_key`/`__framework_hash_value`) short-circuits the whole comparison when both sides match; Phase 2 (full hash-key join + column-level drift) runs only on a Phase 1 mismatch. `false` always runs Phase 2. |
 | `logging_config.run_log_capture` / `.mismatch_log_capture` | `boolean` | No | `false` / `false` (**v1.7.3 breaking change** — both defaulted to `true` through v1.7.2; reconciliation is now silent by default and auditing is opt-in) | `true`, `false` | Per-flow log-write gates, overridable at runtime by the `recon_run_log_capture`/`recon_mismatch_log` job parameters (highest precedence). v1.6.0: `run_log_capture` also gates `reconciliation_result` and (pipeline mode) the `recon__*__metrics` dataset registration; `mismatch_log_capture` gates the `__mismatch` dataset. Both `false` == the flow persists only to its business targets. |
-| `source_config` | `object` | **Yes** | — | Dataset config | Baseline source dataset. See [§8.2](#82-per-side-dataset-fields-source_config--each-target_configs-entry). |
-| `target_configs` | `array<object>` (non-empty) | **Yes** | — | Dataset configs | One or more comparison targets. See [§8.2](#82-per-side-dataset-fields-source_config--each-target_configs-entry) + [§8.3](#83-target-only-fields). |
+| `source_config` | `object` | **Yes** | — | Dataset config | Baseline source dataset. See [§8.2](#82-per-side-dataset-fields-source_config-each-target_configs-entry). |
+| `target_configs` | `array<object>` (non-empty) | **Yes** | — | Dataset configs | One or more comparison targets. See [§8.2](#82-per-side-dataset-fields-source_config-each-target_configs-entry) + [§8.3](#83-target-only-fields). |
 | `match_keys` | `array<string>` | **Yes** | — | Column list | Join keys for row-level matching (renamed from the never-real `primary_keys`). |
 | `compare_columns` | `array<string>` | No | None (key-presence-only matching) | Column list | Columns evaluated for value drift once matched by key. |
 | `error_handling.on_failure` | `string` | No | `"fail"` | `"fail"`, `"warn"` | Evaluated per target. `"fail"` stops the run on the first target failure; `"warn"` logs it and continues to the next target. **v1.5.0:** semantics unchanged, blast radius larger under `execution_mode: "pipeline"` — re-raising fails the whole **pipeline update**, not just a job task. |

@@ -6,17 +6,17 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="Metadata-driven ingestion, transformation, reconciliation and observability pipelines on Databricks Lakeflow — architecture, attribute reference, onboarding guides and operational runbooks.">
+        <meta name="description" content="Metadata-driven ingestion, transformation, reconciliation and observability pipelines on Databricks Lakeflow — platform hub, four framework pillars, console walkthroughs, the master configuration reference and operational runbooks.">
       
       
         <meta name="author" content="Data Platform Engineering">
       
       
       
-        <link rel="prev" href="../15_agent_skills_and_prompts/">
+        <link rel="prev" href="../10_multi_role_faqs/">
       
       
-        <link rel="next" href="../architecture_review/00_executive_summary/">
+        <link rel="next" href="../15_agent_skills_and_prompts/">
       
       
         
@@ -37,21 +37,32 @@
         <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
       
       
+  
+  
+    
+      
+      
+    
+  
+    
+      
+      
+    
+  
+  
+  <style>:root{--md-admonition-icon--abstract:url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2024%2024%22%3E%3Cpath%20d%3D%22M10.59%2013.41c.41.39.41%201.03%200%201.42-.39.39-1.03.39-1.42%200a5.003%205.003%200%200%201%200-7.07l3.54-3.54a5.003%205.003%200%200%201%207.07%200%205.003%205.003%200%200%201%200%207.07l-1.49%201.49c.01-.82-.12-1.64-.4-2.42l.47-.48a2.98%202.98%200%200%200%200-4.24%202.98%202.98%200%200%200-4.24%200l-3.53%203.53a2.98%202.98%200%200%200%200%204.24m2.82-4.24c.39-.39%201.03-.39%201.42%200a5.003%205.003%200%200%201%200%207.07l-3.54%203.54a5.003%205.003%200%200%201-7.07%200%205.003%205.003%200%200%201%200-7.07l1.49-1.49c-.01.82.12%201.64.4%202.43l-.47.47a2.98%202.98%200%200%200%200%204.24%202.98%202.98%200%200%200%204.24%200l3.53-3.53a2.98%202.98%200%200%200%200-4.24.973.973%200%200%201%200-1.42%22/%3E%3C/svg%3E');--md-admonition-icon--example:url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2024%2024%22%3E%3Cpath%20d%3D%22M5%203h2v2H5v5a2%202%200%200%201-2%202%202%202%200%200%201%202%202v5h2v2H5c-1.07-.27-2-.9-2-2v-4a2%202%200%200%200-2-2H0v-2h1a2%202%200%200%200%202-2V5a2%202%200%200%201%202-2m14%200a2%202%200%200%201%202%202v4a2%202%200%200%200%202%202h1v2h-1a2%202%200%200%200-2%202v4a2%202%200%200%201-2%202h-2v-2h2v-5a2%202%200%200%201%202-2%202%202%200%200%201-2-2V5h-2V3zm-7%2012a1%201%200%200%201%201%201%201%201%200%200%201-1%201%201%201%200%200%201-1-1%201%201%200%200%201%201-1m-4%200a1%201%200%200%201%201%201%201%201%200%200%201-1%201%201%201%200%200%201-1-1%201%201%200%200%201%201-1m8%200a1%201%200%200%201%201%201%201%201%200%200%201-1%201%201%201%200%200%201-1-1%201%201%200%200%201%201-1%22/%3E%3C/svg%3E');}</style>
 
 
+
     
     
       
     
     
       
-        
-        
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
-        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
-      
     
+    
+      <link rel="stylesheet" href="../stylesheets/extra.css">
     
     <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
@@ -90,12 +101,14 @@
     
       
 
-<header class="md-header" data-md-component="header">
+  
+
+<header class="md-header md-header--shadow md-header--lifted" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
     <a href=".." title="FlowX" class="md-header__button md-logo" aria-label="FlowX" data-md-component="logo">
       
   
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18 11h-3.18C14.4 9.84 13.3 9 12 9s-2.4.84-2.82 2H6c-.33 0-2-.1-2-2V8c0-1.83 1.54-2 2-2h10.18C16.6 7.16 17.7 8 19 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3c-1.3 0-2.4.84-2.82 2H6C4.39 4 2 5.06 2 8v1c0 2.94 2.39 4 4 4h3.18c.42 1.16 1.52 2 2.82 2s2.4-.84 2.82-2H18c.33 0 2 .1 2 2v1c0 1.83-1.54 2-2 2H7.82C7.4 16.84 6.3 16 5 16a3 3 0 0 0-3 3 3 3 0 0 0 3 3c1.3 0 2.4-.84 2.82-2H18c1.61 0 4-1.07 4-4v-1c0-2.93-2.39-4-4-4m1-7a1 1 0 0 1 1 1 1 1 0 0 1-1 1 1 1 0 0 1-1-1 1 1 0 0 1 1-1M5 20a1 1 0 0 1-1-1 1 1 0 0 1 1-1 1 1 0 0 1 1 1 1 1 0 0 1-1 1"/></svg>
 
     </a>
     <label class="md-header__button md-icon" for="__drawer">
@@ -125,9 +138,19 @@
     
     
     
-    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    <input class="md-option" data-md-color-media="(prefers-color-scheme)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_0">
     
-      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m14.3 16-.7-2h-3.2l-.7 2H7.8L11 7h2l3.2 9zM20 8.69V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12zm-9.15 3.96h2.3L12 9z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="deep-orange"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_2" hidden>
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
       </label>
     
@@ -135,9 +158,9 @@
     
     
     
-    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="deep-orange"  aria-label="Switch to system preference"  type="radio" name="__palette" id="__palette_2">
     
-      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+      <label class="md-header__button md-icon" title="Switch to system preference" for="__palette_0" hidden>
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg>
       </label>
     
@@ -169,6 +192,11 @@
       </label>
       <nav class="md-search__options" aria-label="Search">
         
+          <a href="javascript:void(0)" class="md-search__icon md-icon" title="Share" aria-label="Share" data-clipboard data-clipboard-text="" data-md-component="search-share" tabindex="-1">
+            
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91s2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08"/></svg>
+          </a>
+        
         <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
           
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
@@ -193,16 +221,22 @@
       
     
     
+      <div class="md-header__source">
+        <a href="https://github.com/Madhan-RAGHU/NextGen_Metadata_Framework" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    NextGen_Metadata_Framework
+  </div>
+</a>
+      </div>
+    
   </nav>
   
-</header>
     
-    <div class="md-container" data-md-component="container">
       
-      
-        
-          
-            
 <nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
   <div class="md-grid">
     <ul class="md-tabs__list">
@@ -275,13 +309,35 @@
     
     
       <li class="md-tabs__item">
-        <a href="../01_platform_architecture/" class="md-tabs__link">
+        <a href="../pillars/" class="md-tabs__link">
           
   
   
     
   
-  Architecture
+  Pillars
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../console/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Console
 
         </a>
       </li>
@@ -303,7 +359,29 @@
   
     
   
-  JSON reference
+  Configuration
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../01_platform_architecture/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Architecture
 
         </a>
       </li>
@@ -392,7 +470,13 @@
     </ul>
   </div>
 </nav>
-          
+    
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
         
       
       <main class="md-main" data-md-component="main">
@@ -414,11 +498,23 @@
     <a href=".." title="FlowX" class="md-nav__button md-logo" aria-label="FlowX" data-md-component="logo">
       
   
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18 11h-3.18C14.4 9.84 13.3 9 12 9s-2.4.84-2.82 2H6c-.33 0-2-.1-2-2V8c0-1.83 1.54-2 2-2h10.18C16.6 7.16 17.7 8 19 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3c-1.3 0-2.4.84-2.82 2H6C4.39 4 2 5.06 2 8v1c0 2.94 2.39 4 4 4h3.18c.42 1.16 1.52 2 2.82 2s2.4-.84 2.82-2H18c.33 0 2 .1 2 2v1c0 1.83-1.54 2-2 2H7.82C7.4 16.84 6.3 16 5 16a3 3 0 0 0-3 3 3 3 0 0 0 3 3c1.3 0 2.4-.84 2.82-2H18c1.61 0 4-1.07 4-4v-1c0-2.93-2.39-4-4-4m1-7a1 1 0 0 1 1 1 1 1 0 0 1-1 1 1 1 0 0 1-1-1 1 1 0 0 1 1-1M5 20a1 1 0 0 1-1-1 1 1 0 0 1 1-1 1 1 0 0 1 1 1 1 1 0 0 1-1 1"/></svg>
 
     </a>
     FlowX
   </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/Madhan-RAGHU/NextGen_Metadata_Framework" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    NextGen_Metadata_Framework
+  </div>
+</a>
+    </div>
   
   <ul class="md-nav__list" data-md-scrollfix>
     
@@ -555,6 +651,8 @@
   
     
     
+      
+        
       
         
       
@@ -751,6 +849,34 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../onboarding/06_bt_digital_poc_deployment_issues/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    6 · BT Digital POC deployment issues
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -767,6 +893,8 @@
   
     
     
+      
+        
       
         
       
@@ -843,6 +971,34 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../16_usecase_implementation_guide/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Use case implementation guide
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -866,6 +1022,10 @@
   
     
     
+      
+        
+          
+        
       
         
       
@@ -891,14 +1051,15 @@
         <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
         
           
-          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
-            
+          <div class="md-nav__link md-nav__container">
+            <a href="../pillars/" class="md-nav__link ">
+              
   
   
   <span class="md-ellipsis">
     
   
-    Architecture
+    Pillars
   
 
     
@@ -906,109 +1067,27 @@
   
   
 
-            <span class="md-nav__icon md-icon"></span>
-          </label>
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_4" id="__nav_4_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
         
         <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_4">
             <span class="md-nav__icon md-icon"></span>
             
   
-    Architecture
+    Pillars
   
 
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
             
               
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../01_platform_architecture/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Platform architecture & core concepts
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    
-    
-      
-        
-      
-        
-      
-        
-      
-        
-      
-    
-    
-    
-      
-      
-        
-      
-    
-    
-    <li class="md-nav__item md-nav__item--nested">
-      
-        
-        
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_2" >
-        
-          
-          <label class="md-nav__link" for="__nav_4_2" id="__nav_4_2_label" tabindex="0">
-            
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Data plane
-  
-
-    
-  </span>
-  
-  
-
-            <span class="md-nav__icon md-icon"></span>
-          </label>
-        
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_2_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_4_2">
-            <span class="md-nav__icon md-icon"></span>
-            
-  
-    Data plane
-  
-
-          </label>
-          <ul class="md-nav__list" data-md-scrollfix>
             
               
                 
@@ -1017,14 +1096,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../02_ingestion_and_sources/" class="md-nav__link">
+      <a href="../pillars/ingestion/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    Ingestion & source readers
+    1 · Ingestion
   
 
     
@@ -1045,14 +1124,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../03_transformation_and_cdc/" class="md-nav__link">
+      <a href="../pillars/transformation/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    Transformation & CDC
+    2 · Transformation
   
 
     
@@ -1073,14 +1152,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../07_reconciliation_engine/" class="md-nav__link">
+      <a href="../pillars/reconciliation/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    Reconciliation & self-healing
+    3 · Reconciliation
   
 
     
@@ -1101,14 +1180,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../06_egress_and_lakeflow_sinks/" class="md-nav__link">
+      <a href="../pillars/observability/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    Egress & Lakeflow sinks
+    4 · Observability
   
 
     
@@ -1117,288 +1196,6 @@
   
 
       </a>
-    </li>
-  
-
-              
-            
-          </ul>
-        </nav>
-      
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    
-    
-      
-        
-      
-        
-      
-        
-      
-    
-    
-    
-      
-      
-        
-      
-    
-    
-    <li class="md-nav__item md-nav__item--nested">
-      
-        
-        
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_3" >
-        
-          
-          <label class="md-nav__link" for="__nav_4_3" id="__nav_4_3_label" tabindex="0">
-            
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Cross-cutting concerns
-  
-
-    
-  </span>
-  
-  
-
-            <span class="md-nav__icon md-icon"></span>
-          </label>
-        
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_3_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_4_3">
-            <span class="md-nav__icon md-icon"></span>
-            
-  
-    Cross-cutting concerns
-  
-
-          </label>
-          <ul class="md-nav__list" data-md-scrollfix>
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../04_data_quality_and_governance/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Data quality & governance
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../05_security_and_cryptography/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Security & cryptography
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../08_observability_and_telemetry/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Observability & OpenTelemetry
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-          </ul>
-        </nav>
-      
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    
-    
-      
-        
-      
-        
-      
-    
-    
-    
-      
-      
-        
-      
-    
-    
-    <li class="md-nav__item md-nav__item--nested">
-      
-        
-        
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_4" >
-        
-          
-          <label class="md-nav__link" for="__nav_4_4" id="__nav_4_4_label" tabindex="0">
-            
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Design guarantees
-  
-
-    
-  </span>
-  
-  
-
-            <span class="md-nav__icon md-icon"></span>
-          </label>
-        
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_4_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_4_4">
-            <span class="md-nav__icon md-icon"></span>
-            
-  
-    Design guarantees
-  
-
-          </label>
-          <ul class="md-nav__list" data-md-scrollfix>
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../11_hashing_and_determinism/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Deterministic hashing standard
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../12_module_permutation_matrix/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Module permutation matrix
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-          </ul>
-        </nav>
-      
     </li>
   
 
@@ -1451,14 +1248,14 @@
         
           
           <div class="md-nav__link md-nav__container">
-            <a href="../reference/json/" class="md-nav__link ">
+            <a href="../console/" class="md-nav__link ">
               
   
   
   <span class="md-ellipsis">
     
   
-    JSON reference
+    Console
   
 
     
@@ -1480,12 +1277,270 @@
             <span class="md-nav__icon md-icon"></span>
             
   
-    JSON reference
+    Console
   
 
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
             
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../console/spec_builder/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Spec Builder app · tab by tab
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../console/observability_dashboard/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Observability dashboard
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../console/control_dashboard/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Control metadata dashboard
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../console/genie/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Genie space
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../console/agent_skills/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Agent skills & tools
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../reference/json/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Configuration
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_6" id="__nav_6_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Configuration
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/json/tree/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Spec tree view
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
               
             
               
@@ -1520,10 +1575,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_2" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_3" >
         
           
-          <label class="md-nav__link" for="__nav_5_2" id="__nav_5_2_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_6_3" id="__nav_6_3_label" tabindex="0">
             
   
   
@@ -1541,8 +1596,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_5_2_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_5_2">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6_3">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -1726,10 +1781,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_3" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_4" >
         
           
-          <label class="md-nav__link" for="__nav_5_3" id="__nav_5_3_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_6_4" id="__nav_6_4_label" tabindex="0">
             
   
   
@@ -1747,8 +1802,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_5_3_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_5_3">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6_4">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -1817,6 +1872,62 @@
           </ul>
         </nav>
       
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/json/removed/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Removed & rejected attributes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/sync/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Docs ↔ code synchronisation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
     </li>
   
 
@@ -1923,6 +2034,589 @@
     
       
         
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Architecture
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../01_platform_architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Platform architecture & core concepts
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_7_2" id="__nav_7_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data plane
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Data plane
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../02_ingestion_and_sources/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Ingestion & source readers
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../03_transformation_and_cdc/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Transformation & CDC
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../07_reconciliation_engine/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reconciliation & self-healing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../06_egress_and_lakeflow_sinks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Egress & Lakeflow sinks
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_7_3" id="__nav_7_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cross-cutting concerns
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Cross-cutting concerns
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../04_data_quality_and_governance/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data quality & governance
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../05_security_and_cryptography/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Security & cryptography
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../08_observability_and_telemetry/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Observability & OpenTelemetry
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../17_framework_observability_and_genie/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Framework observability, AI/BI & Genie
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_7_4" id="__nav_7_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Design guarantees
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Design guarantees
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../11_hashing_and_determinism/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Deterministic hashing standard
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../12_module_permutation_matrix/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Module permutation matrix
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
           
         
       
@@ -1947,7 +2641,7 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8" >
         
           
           <div class="md-nav__link md-nav__container">
@@ -1969,14 +2663,14 @@
             </a>
             
               
-              <label class="md-nav__link " for="__nav_6" id="__nav_6_label" tabindex="0">
+              <label class="md-nav__link " for="__nav_8" id="__nav_8_label" tabindex="0">
                 <span class="md-nav__icon md-icon"></span>
               </label>
             
           </div>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_6">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_8">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -2020,10 +2714,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_2" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8_2" >
         
           
-          <label class="md-nav__link" for="__nav_6_2" id="__nav_6_2_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_8_2" id="__nav_8_2_label" tabindex="0">
             
   
   
@@ -2041,8 +2735,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_2_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_6_2">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_8_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_8_2">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -2230,10 +2924,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_3" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8_3" >
         
           
-          <label class="md-nav__link" for="__nav_6_3" id="__nav_6_3_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_8_3" id="__nav_8_3_label" tabindex="0">
             
   
   
@@ -2251,8 +2945,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_3_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_6_3">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_8_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_8_3">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -2412,10 +3106,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_4" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8_4" >
         
           
-          <label class="md-nav__link" for="__nav_6_4" id="__nav_6_4_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_8_4" id="__nav_8_4_label" tabindex="0">
             
   
   
@@ -2433,8 +3127,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_4_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_6_4">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_8_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_8_4">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -2590,10 +3284,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_5" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8_5" >
         
           
-          <label class="md-nav__link" for="__nav_6_5" id="__nav_6_5_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_8_5" id="__nav_8_5_label" tabindex="0">
             
   
   
@@ -2611,8 +3305,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_5_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_6_5">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_8_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_8_5">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -2714,16 +3408,6 @@
       
         
       
-        
-      
-        
-      
-        
-      
-        
-      
-        
-      
     
     
     
@@ -2740,10 +3424,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" checked>
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_9" checked>
         
           
-          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="">
+          <label class="md-nav__link" for="__nav_9" id="__nav_9_label" tabindex="">
             
   
   
@@ -2761,8 +3445,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="true">
-          <label class="md-nav__title" for="__nav_7">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_9_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_9">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -2815,202 +3499,6 @@
     
   
     Multi-role FAQs
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../16_usecase_implementation_guide/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Use case implementation guide
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../UC3/UC3_MASTER_DOCUMENT/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    UC3 Excalibur master document
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../UC6/UC6_MASTER_DOCUMENT/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    UC6 Flood Warning master document
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../UC7/UC7_MASTER_DOCUMENT/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    UC7 CDR ASN.1 master document
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../UC7/UC7_PLAIN_ENGLISH_GUIDE/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    UC7 CDR ASN.1 plain-English guide
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../UC7/UC7_ANALYSIS_AND_JOIN_GUIDE/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    UC7 CDR ASN.1 analysis and join guide
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../15_agent_skills_and_prompts/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Agent skills & prompt library
   
 
     
@@ -3783,10 +4271,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#r9-publish_schema-defaults-to-the-hosting-pipelines-own-schema" class="md-nav__link">
+  <a href="#r9-publish_schema-defaults-to-the-hosting-pipelines-own-schema-resolved-in-v1707" class="md-nav__link">
     <span class="md-ellipsis">
       
-        R9 🔵 publish_schema defaults to the hosting pipeline's own schema
+        R9 🔵 publish_schema defaults to the hosting pipeline's own schema — RESOLVED in v1.7.07
       
     </span>
   </a>
@@ -4194,6 +4682,249 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../15_agent_skills_and_prompts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Agent skills & prompt library
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_9_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_9_5" id="__nav_9_5_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Use cases
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_9_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_9_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Use cases
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../UC3/UC3_MASTER_DOCUMENT/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    UC3 Excalibur master document
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../UC6/UC6_MASTER_DOCUMENT/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    UC6 Flood Warning master document
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../UC7/UC7_MASTER_DOCUMENT/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    UC7 CDR ASN.1 master document
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../UC7/UC7_PLAIN_ENGLISH_GUIDE/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    UC7 CDR ASN.1 plain-English guide
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../UC7/UC7_ANALYSIS_AND_JOIN_GUIDE/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    UC7 CDR ASN.1 analysis and join guide
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -4229,7 +4960,7 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_10" >
         
           
           <div class="md-nav__link md-nav__container">
@@ -4251,14 +4982,14 @@
             </a>
             
               
-              <label class="md-nav__link " for="__nav_8" id="__nav_8_label" tabindex="0">
+              <label class="md-nav__link " for="__nav_10" id="__nav_10_label" tabindex="0">
                 <span class="md-nav__icon md-icon"></span>
               </label>
             
           </div>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_8">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_10_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_10">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -4308,10 +5039,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8_1" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_10_1" >
         
           
-          <label class="md-nav__link" for="__nav_8_1" id="__nav_8_1_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_10_1" id="__nav_10_1_label" tabindex="0">
             
   
   
@@ -4329,8 +5060,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_8_1_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_8_1">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_10_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_10_1">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -5328,10 +6059,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#r9-publish_schema-defaults-to-the-hosting-pipelines-own-schema" class="md-nav__link">
+  <a href="#r9-publish_schema-defaults-to-the-hosting-pipelines-own-schema-resolved-in-v1707" class="md-nav__link">
     <span class="md-ellipsis">
       
-        R9 🔵 publish_schema defaults to the hosting pipeline's own schema
+        R9 🔵 publish_schema defaults to the hosting pipeline's own schema — RESOLVED in v1.7.07
       
     </span>
   </a>
@@ -5741,10 +6472,61 @@
           
             <div class="md-content" data-md-component="content">
               
+                
+
+
+
+  
+
+
+  <nav class="md-path" aria-label="Navigation" >
+    <ol class="md-path__list">
+      
+        
+  
+  
+    <li class="md-path__item">
+      <a href=".." class="md-path__link">
+        
+  <span class="md-ellipsis">
+    Home
+  </span>
+
+      </a>
+    </li>
+  
+
+      
+      
+        
+  
+  
+    
+    
+      <li class="md-path__item">
+        <a href="../faq/" class="md-path__link">
+          
+  <span class="md-ellipsis">
+    Help
+  </span>
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ol>
+  </nav>
+
+              
               <article class="md-content__inner md-typeset">
                 
                   
 
+
+  
+  
 
 
 <h1 id="known-limitations-silent-traps-gotchas">⚠️ Known Limitations, Silent Traps &amp; Gotchas<a class="headerlink" href="#known-limitations-silent-traps-gotchas" title="Permanent link">&para;</a></h1>
@@ -6310,13 +7092,13 @@ inside a pipeline update or — worse — succeeds while producing the wrong dat
 <h3 id="s1-target_volume_path-and-path-must-point-at-the-same-directory"><a id="s1"></a>S1 🔴 <code>target_volume_path</code> and <code>path</code> must point at the same directory<a class="headerlink" href="#s1-target_volume_path-and-path-must-point-at-the-same-directory" title="Permanent link">&para;</a></h3>
 <p><strong>This is the single most common ZIP misconfiguration.</strong> They are two separate fields with no
 relationship enforced anywhere:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>"source_config": {
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>  "path": "/Volumes/cat/crm/landing_zip/extracted/customer/",       // where Auto Loader READS
-<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>  "source_zip_handling": {
-<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    "target_volume_path": "/Volumes/cat/crm/landing_zip/extracted/" // where the ZIP is UNPACKED
-<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>  }                                                    // ^^^ MISMATCH — note the missing /customer/
-<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>}
-</code></pre></div>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>"source_config": {
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>  "path": "/Volumes/cat/crm/landing_zip/extracted/customer/",       // where Auto Loader READS
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>  "source_zip_handling": {
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    "target_volume_path": "/Volumes/cat/crm/landing_zip/extracted/" // where the ZIP is UNPACKED
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>  }                                                    // ^^^ MISMATCH — note the missing /customer/
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>}
+</span></code></pre></div>
 <p><strong>What happens if they differ:</strong> the archive is found, decrypted, and extracted successfully.
 Auto Loader then reads a directory the members were never written to. The pipeline update
 <strong>succeeds</strong>, the target table gains <strong>zero rows</strong>, and nothing anywhere logs a problem. On a
@@ -6336,19 +7118,19 @@ whenever <code>source_zip_handling.enabled</code> is true.</p>
 <h3 id="s2-the-aes-zip-passphrase-lives-inside-pre_extraction_decryption"><a id="s2"></a>S2 🔴 The AES ZIP passphrase lives inside <code>pre_extraction_decryption</code><a class="headerlink" href="#s2-the-aes-zip-passphrase-lives-inside-pre_extraction_decryption" title="Permanent link">&para;</a></h3>
 <p>Two independent, <strong>combinable</strong> encryption layers exist, and they are configured in the same
 object:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>"source_zip_handling": {
-<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>  "enabled": true,
-<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>  "source_zip_path": "/Volumes/cat/fin/landing/incoming/",
-<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>  "zip_file_pattern": "*.zip.pgp",
-<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>  "target_volume_path": "/Volumes/cat/fin/landing/extracted/txns/",
-<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>  "pre_extraction_decryption": {
-<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>    "type": "pgp",                        // LAYER 1: outer envelope on the whole file
-<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>    "private_key_secret":  { "secret_catalog": "...", "secret_schema": "...", "secret_key": "..." },
-<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>    "passphrase_secret":   { ... },       //   optional: the PRIVATE KEY's own passphrase
-<a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a>    "secret_passphrase":   { ... }        // LAYER 2: the AES-256 password on the ZIP itself
-<a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a>  }
-<a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a>}
-</code></pre></div>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>"source_zip_handling": {
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>  "enabled": true,
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>  "source_zip_path": "/Volumes/cat/fin/landing/incoming/",
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>  "zip_file_pattern": "*.zip.pgp",
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>  "target_volume_path": "/Volumes/cat/fin/landing/extracted/txns/",
+</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>  "pre_extraction_decryption": {
+</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>    "type": "pgp",                        // LAYER 1: outer envelope on the whole file
+</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>    "private_key_secret":  { "secret_catalog": "...", "secret_schema": "...", "secret_key": "..." },
+</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>    "passphrase_secret":   { ... },       //   optional: the PRIVATE KEY's own passphrase
+</span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a>    "secret_passphrase":   { ... }        // LAYER 2: the AES-256 password on the ZIP itself
+</span><span id="__span-1-11"><a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a>  }
+</span><span id="__span-1-12"><a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a>}
+</span></code></pre></div>
 <p>Three easily-confused fields:</p>
 <table>
 <thead>
@@ -6467,15 +7249,15 @@ land every delivery under a <strong>new filename</strong>.</p>
 <p>A JSON source with a nested array reaches the framework as a <code>STRING</code> column unless
 <code>inferColumnTypes</code> is on. Declaring <code>"explode_columns": ["metrics"]</code> against it then fails at
 runtime:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>FrameworkConfigError: explode_columns names 'metrics', which is type string
-<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>-- only struct or array columns can be exploded/flattened
-</code></pre></div>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>FrameworkConfigError: explode_columns names 'metrics', which is type string
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>-- only struct or array columns can be exploded/flattened
+</span></code></pre></div>
 <p><strong>Fix — the supported one:</strong> declare the shape explicitly, which works on batch and streaming
 alike and does not depend on inference:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>"json_string_columns": [
-<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>  {"column": "metrics", "schema_ddl": "array&lt;struct&lt;sensor:string,val:double&gt;&gt;"}
-<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>]
-</code></pre></div>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>"json_string_columns": [
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>  {"column": "metrics", "schema_ddl": "array&lt;struct&lt;sensor:string,val:double&gt;&gt;"}
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>]
+</span></code></pre></div>
 <p><code>parse_json_string_columns</code> runs immediately <strong>before</strong> <code>apply_explode_columns</code>, so the parsed
 struct flows straight into the flatten pass. The no-<code>schema_ddl</code> form (a bare column name) falls
 back to Databricks' inferring <code>from_json</code> and therefore <strong>requires a streaming source with a
@@ -6484,8 +7266,8 @@ checkpoint</strong> — prefer the explicit <code>schema_ddl</code> form.</p>
 <h3 id="a3-cloudfilesfilenamepattern-does-not-exist-for-any-format"><a id="a3"></a>A3 🟠 <code>cloudFiles.fileNamePattern</code> does not exist — for any format<a class="headerlink" href="#a3-cloudfilesfilenamepattern-does-not-exist-for-any-format" title="Permanent link">&para;</a></h3>
 <p>Auto Loader validates <code>cloudFiles.</code>-prefixed keys against a closed whitelist <strong>without
 consulting <code>cloudFiles.format</code></strong>. Setting this option fails the update immediately:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>[CF_UNKNOWN_OPTION_KEYS_ERROR] Found unknown option keys: cloudFiles.filenamepattern
-</code></pre></div>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>[CF_UNKNOWN_OPTION_KEYS_ERROR] Found unknown option keys: cloudFiles.filenamepattern
+</span></code></pre></div>
 <p>Use the spec's own <code>source_config.file_pattern</code>, which the framework maps to the generic,
 un-prefixed <code>pathGlobFilter</code> for every format. Do <strong>not</strong> work around this with
 <code>cloudFiles.validateOptions=false</code> — that suppresses the validator instead of removing the
@@ -6503,9 +7285,9 @@ another feed, files that "were already processed" on their first-ever run.</p>
 <p>It maps to <code>cloudFiles.cleanSource</code>, which exists only on an Auto Loader file read. Setting it
 on a <code>zerobus</code> flow is a hard onboarding-time error — a <code>zerobus</code> source streams an existing
 Delta table and has no landing zone to clean:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>&lt;path&gt;.landing_retention_policy: only applicable to source_type 'autoloader'/'asn1'
-<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>(Auto Loader file ingestion), but this flow's source_type is 'zerobus'
-</code></pre></div>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>&lt;path&gt;.landing_retention_policy: only applicable to source_type 'autoloader'/'asn1'
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>(Auto Loader file ingestion), but this flow's source_type is 'zerobus'
+</span></code></pre></div>
 <p><code>archive_path</code> is never required; an empty one degrades the policy to off rather than failing.</p>
 <hr />
 <h2 id="schema-columns-normalization_1">Schema, columns &amp; normalization<a class="headerlink" href="#schema-columns-normalization_1" title="Permanent link">&para;</a></h2>
@@ -6513,9 +7295,9 @@ Delta table and has no landing zone to clean:</p>
 <p>This is the most commonly assumed capability the framework does <strong>not</strong> have.</p>
 <p><code>apply_schema_config</code> casts, renames, and comments the columns you declare — and then appends
 <strong>every column you did not declare</strong>, unchanged:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="n">passthrough_columns</span> <span class="o">=</span> <span class="p">[</span><span class="n">F</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="n">c</span><span class="p">)</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span> <span class="k">if</span> <span class="n">c</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">configured_source_names</span><span class="p">]</span>
-<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="n">result_df</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="o">*</span><span class="n">projected</span><span class="p">,</span> <span class="o">*</span><span class="n">passthrough_columns</span><span class="p">)</span>
-</code></pre></div>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="n">passthrough_columns</span> <span class="o">=</span> <span class="p">[</span><span class="n">F</span><span class="o">.</span><span class="n">col</span><span class="p">(</span><span class="n">c</span><span class="p">)</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">df</span><span class="o">.</span><span class="n">columns</span> <span class="k">if</span> <span class="n">c</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">configured_source_names</span><span class="p">]</span>
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="n">result_df</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">select</span><span class="p">(</span><span class="o">*</span><span class="n">projected</span><span class="p">,</span> <span class="o">*</span><span class="n">passthrough_columns</span><span class="p">)</span>
+</span></code></pre></div>
 <p>Its own docstring states it: <em>"Columns not named in <code>columns[]</code> pass through completely
 unchanged."</em> A 50-column source with a 4-column <code>schema_config</code> lands a <strong>50-column</strong> Bronze
 table, with 4 of them cast/renamed/commented.</p>
@@ -6530,15 +7312,15 @@ which is usually what you want anyway.</p>
 <h3 id="c2-every-column-referencing-field-must-use-the-final-post-transformation-name"><a id="c2"></a>C2 🔴 Every column-referencing field must use the FINAL, post-transformation name<a class="headerlink" href="#c2-every-column-referencing-field-must-use-the-final-post-transformation-name" title="Permanent link">&para;</a></h3>
 <p>This is the trap behind "I turned on column normalization and my transformation broke."</p>
 <p><strong>The actual runtime order</strong> (<code>notebooks/03_engine/03_lakeflow_declarative_pipeline.py</code>):</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>raw source read
-<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>  1. apply_schema_config            renames declared in the schema_config file
-<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>  2. column_normalization           trim · case-fold · [^A-Za-z0-9_] → _ · collapse _ · strip edge _
-<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a>  3. attach_technical_metadata      adds __framework_* columns
-<a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a>  4. parse_json_string_columns      STRING → struct
-<a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a>  5. apply_explode_columns          flatten / explode
-<a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a>  6. remove_dups                    full-row dedup
-<a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a>  7. apply_data_standardization_sql ← LAST. sees only the final names.
-</code></pre></div>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>raw source read
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>  1. apply_schema_config            renames declared in the schema_config file
+</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>  2. column_normalization           trim · case-fold · [^A-Za-z0-9_] → _ · collapse _ · strip edge _
+</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a>  3. attach_technical_metadata      adds __framework_* columns
+</span><span id="__span-7-5"><a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a>  4. parse_json_string_columns      STRING → struct
+</span><span id="__span-7-6"><a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a>  5. apply_explode_columns          flatten / explode
+</span><span id="__span-7-7"><a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a>  6. remove_dups                    full-row dedup
+</span><span id="__span-7-8"><a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a>  7. apply_data_standardization_sql ← LAST. sees only the final names.
+</span></code></pre></div>
 <p><strong>Every one of these spec fields is written against the names as they exist at step 7:</strong>
 <code>data_standardization_sql</code>, <code>dq_config.rules[].expression</code>, <code>dq_config.record_id_column</code>,
 <code>explode_columns</code>, <code>json_string_columns[].column</code>, <code>target_config.primary_keys</code>,
@@ -6587,18 +7369,18 @@ outside <code>[A-Za-z0-9_]</code> with an underscore:</p>
 </tr>
 </tbody>
 </table>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>// CORRECT — post-normalization names
-<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>"data_standardization_sql": [
-<a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a>  "TRIM(UPPER(region)) AS region",
-<a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a>  "LOWER(TRIM(e_mail_address)) AS e_mail_address"
-<a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a>]
-<a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a>
-<a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a>// WRONG — raw source names. Onboards cleanly. Fails at pipeline runtime.
-<a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a>"data_standardization_sql": [
-<a id="__codelineno-8-9" name="__codelineno-8-9" href="#__codelineno-8-9"></a>  "TRIM(UPPER(`Region `)) AS region",
-<a id="__codelineno-8-10" name="__codelineno-8-10" href="#__codelineno-8-10"></a>  "LOWER(TRIM(`E-Mail Address`)) AS email"
-<a id="__codelineno-8-11" name="__codelineno-8-11" href="#__codelineno-8-11"></a>]
-</code></pre></div>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>// CORRECT — post-normalization names
+</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>"data_standardization_sql": [
+</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a>  "TRIM(UPPER(region)) AS region",
+</span><span id="__span-8-4"><a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a>  "LOWER(TRIM(e_mail_address)) AS e_mail_address"
+</span><span id="__span-8-5"><a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a>]
+</span><span id="__span-8-6"><a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a>
+</span><span id="__span-8-7"><a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a>// WRONG — raw source names. Onboards cleanly. Fails at pipeline runtime.
+</span><span id="__span-8-8"><a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a>"data_standardization_sql": [
+</span><span id="__span-8-9"><a id="__codelineno-8-9" name="__codelineno-8-9" href="#__codelineno-8-9"></a>  "TRIM(UPPER(`Region `)) AS region",
+</span><span id="__span-8-10"><a id="__codelineno-8-10" name="__codelineno-8-10" href="#__codelineno-8-10"></a>  "LOWER(TRIM(`E-Mail Address`)) AS email"
+</span><span id="__span-8-11"><a id="__codelineno-8-11" name="__codelineno-8-11" href="#__codelineno-8-11"></a>]
+</span></code></pre></div>
 <p><strong>Why onboarding does not catch it:</strong> <code>spec_validator.py::_validate_data_standardization_sql</code>
 enforces <em>grammar only</em> — one column expression per entry, ending in <code>AS &lt;name&gt;</code>, no
 <code>SELECT</code>/<code>FROM</code>/<code>JOIN</code>/<code>;</code>. Column <strong>existence</strong> is a runtime fact resolved lazily by Spark. The
@@ -6671,9 +7453,9 @@ or a full refresh with downstream consumers notified — never as a config tweak
 <p>Whatever <code>case</code> you choose, the duplicate check runs over the <strong>lowercased</strong> projection of the
 produced names. Unity Catalog and Spark resolve column references case-insensitively, so two
 output names differing only by case would be an unusable table, not a valid one.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>Region  → Region      ┐ case: "preserve"
-<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>region  → region      ┘ → both fold to "region" → FrameworkConfigError
-</code></pre></div>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>Region  → Region      ┐ case: "preserve"
+</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>region  → region      ┘ → both fold to "region" → FrameworkConfigError
+</span></code></pre></div>
 <p>This means <code>case: "preserve"</code> and <code>case: "upper"</code> cannot be used to keep two columns that differ
 only by case. That is intentional: the framework proves the deterministic lowercase projection is
 unique before letting any casing reach the target.</p>
@@ -6684,10 +7466,10 @@ to <code>"_"</code>) is <strong>not</strong> configurable. Only the case-fold st
 <p>It is accepted, preserved as metadata, and <strong>never enforced</strong> — Spark's <code>.cast()</code> cannot force a
 column non-nullable independently of the data flowing through it.</p>
 <p>To genuinely enforce non-nullability, add a companion DQ rule:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>"dq_config": {"rules": [
-<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>  {"rule_id": "dq_customer_id_not_null", "expression": "customer_id IS NOT NULL", "action": "fail"}
-<a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a>]}
-</code></pre></div>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>"dq_config": {"rules": [
+</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>  {"rule_id": "dq_customer_id_not_null", "expression": "customer_id IS NOT NULL", "action": "fail"}
+</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a>]}
+</span></code></pre></div>
 <hr />
 <h3 id="c7-a-directory-schema_config_path-changes-behaviour-without-re-onboarding"><a id="c7"></a>C7 🔵 A directory <code>schema_config_path</code> changes behaviour without re-onboarding<a class="headerlink" href="#c7-a-directory-schema_config_path-changes-behaviour-without-re-onboarding" title="Permanent link">&para;</a></h3>
 <p><code>schema_config_path</code> accepts an exact file <strong>or</strong> a directory. Given a directory, the file with
@@ -6859,8 +7641,8 @@ the schema on the next rewrite. Harmless either way.</p>
 <hr />
 <h3 id="d5-v130-changed-the-hash-construction-every-existing-digest-changes-value"><a id="d5"></a>D5 🔴 v1.3.0 changed the hash construction — every existing digest changes value<a class="headerlink" href="#d5-v130-changed-the-hash-construction-every-existing-digest-changes-value" title="Permanent link">&para;</a></h3>
 <p>The canonical construction is now:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="n">sha2</span><span class="p">(</span><span class="w"> </span><span class="n">concat_ws</span><span class="p">(</span><span class="s1">'||'</span><span class="p">,</span><span class="w"> </span><span class="k">coalesce</span><span class="p">(</span><span class="k">trim</span><span class="p">(</span><span class="k">lower</span><span class="p">(</span><span class="k">cast</span><span class="p">(</span><span class="n">c1</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="n">string</span><span class="p">))),</span><span class="w"> </span><span class="s1">'__NULL__'</span><span class="p">),</span><span class="w"> </span><span class="p">...),</span><span class="w"> </span><span class="mi">256</span><span class="w"> </span><span class="p">)</span>
-</code></pre></div>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="n">sha2</span><span class="p">(</span><span class="w"> </span><span class="n">concat_ws</span><span class="p">(</span><span class="s1">'||'</span><span class="p">,</span><span class="w"> </span><span class="k">coalesce</span><span class="p">(</span><span class="k">trim</span><span class="p">(</span><span class="k">lower</span><span class="p">(</span><span class="k">cast</span><span class="p">(</span><span class="n">c1</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="n">string</span><span class="p">))),</span><span class="w"> </span><span class="s1">'__NULL__'</span><span class="p">),</span><span class="w"> </span><span class="p">...),</span><span class="w"> </span><span class="mi">256</span><span class="w"> </span><span class="p">)</span>
+</span></code></pre></div>
 <p>Before v1.3.0 this existed in <strong>three</strong> places (<code>cdc/hashing.py</code>, the since-deleted
 <code>crypto/hashing.py</code>, <code>reconciliation/appender.py</code>) that had already drifted apart in their exclusion sets — a drift
 that is <em>silently wrong</em> rather than loudly broken, because two sides of a reconciliation would
@@ -6885,10 +7667,18 @@ history table, which only makes sense downstream of a raw ingestion flow."</em><
 <p>SCD3 has no native Lakeflow equivalent — it is built by materializing full history into a hidden
 <code>_&lt;target&gt;_scd2_history</code> table and pivoting the two most recent versions per key into
 <code>current_&lt;col&gt;</code>/<code>previous_&lt;col&gt;</code>.</p>
-<p><strong>Related:</strong> SCD2 registers a companion <code>&lt;target_table&gt;_current</code> reporting dataset aliasing
-<code>__START_AT</code>/<code>__END_AT</code> to <code>valid_from</code>/<code>valid_to</code>/<code>is_current</code>. Despite the name, it is a real
-<code>@dlt.table</code>, not a view — a <code>@dlt.view</code> cannot take a multipart qualified name, and is not a
-durable, queryable catalog object once the defining update finishes.</p>
+<p><strong>Related — removed in v0.0.6:</strong> SCD2 used to register a companion <code>&lt;target_table&gt;_current</code>
+dataset aliasing <code>__START_AT</code>/<code>__END_AT</code> to <code>valid_from</code>/<code>valid_to</code>/<code>is_current</code>. It is gone. It
+materialized as a MATERIALIZED_VIEW holding a full copy of <strong>every</strong> row, history included,
+despite the <code>_current</code> name promising only current ones — doubling storage per SCD2 target and
+misleading anyone who trusted the name. <strong>An SCD2 flow now publishes exactly one dataset.</strong></p>
+<p>Those tracking columns <strong>cannot be renamed in place</strong>: <code>dlt.apply_changes</code> has no parameter for
+their names, and an SCD2 target is a <code>create_streaming_table</code> + <code>apply_changes</code> pair with no query
+body to project through — Lakeflow writes them itself. Alias them in your own query
+(<code>__START_AT AS valid_from</code>), or in a plain UC view created outside the pipeline, which costs no
+storage and can genuinely filter to current rows. Current rows are <code>WHERE __END_AT IS NULL</code>.
+Do <strong>not</strong> try to derive <code>valid_from</code>/<code>valid_to</code> in the staged view: they would be computed before
+<code>apply_changes</code> assigns versions, so they would not track the real version boundaries.</p>
 <hr />
 <h2 id="data-quality_1">Data quality<a class="headerlink" href="#data-quality_1" title="Permanent link">&para;</a></h2>
 <h3 id="q1-action-fail-fails-the-entire-pipeline-update"><a id="q1"></a>Q1 🟠 <code>action: "fail"</code> fails the entire pipeline update<a class="headerlink" href="#q1-action-fail-fails-the-entire-pipeline-update" title="Permanent link">&para;</a></h3>
@@ -6940,8 +7730,8 @@ of one flow's graph-definition call.</p>
 <h3 id="e2-secrets-are-unity-catalog-three-level-references"><a id="e2"></a>E2 🟠 Secrets are Unity Catalog three-level references<a class="headerlink" href="#e2-secrets-are-unity-catalog-three-level-references" title="Permanent link">&para;</a></h3>
 <p>Every <code>*_secret</code> block in a spec is a three-part UC reference, never a classic workspace-level
 secret scope:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>{"secret_catalog": "flowx", "secret_schema": "security", "secret_key": "pgp_private_key_finance"}
-</code></pre></div>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>{"secret_catalog": "flowx", "secret_schema": "security", "secret_key": "pgp_private_key_finance"}
+</span></code></pre></div>
 <p>Passphrases and keys must <strong>always</strong> be a genuine secret reference — an inline literal is
 rejected by <code>check_secret_ref</code>.</p>
 <hr />
@@ -6952,8 +7742,8 @@ safe <strong>only if that table is written append-only</strong>. If the target i
 another pipeline, any operation that rewrites an existing row (a <code>MERGE</code> with
 <code>whenMatchedUpdate()</code>, even when the values are byte-identical) permanently breaks the downstream
 stream:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>DELTA_SOURCE_TABLE_IGNORE_CHANGES / DELTA_MERGE_UNRESOLVED_EXPRESSION
-</code></pre></div>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>DELTA_SOURCE_TABLE_IGNORE_CHANGES / DELTA_MERGE_UNRESOLVED_EXPRESSION
+</span></code></pre></div>
 <p>This is not hypothetical: an idempotent seeder that MERGEd into <code>zerobus_source_bus</code> poisoned its
 consumer on the <strong>second</strong> run and required a full refresh to recover
 (<code>databricks pipelines start-update &lt;id&gt; --full-refresh</code> — note: <strong>not</strong> <code>--full-refresh-all</code>,
@@ -7120,13 +7910,24 @@ streaming read is illegal.</p>
 </table>
 <p><strong>The fix is one word: <code>execution_mode: "pipeline_audit_only"</code>.</strong> L3 and L4 still run in-update, so
 the comparison, <code>__metrics</code> and the <code>dq_config</code> expectation are unaffected; only the corrective
-append moves back to the standalone <code>05_reconciliation_engine.py</code> job task.</p>
+append moves back to the standalone <code>05_reconciliation_engine.py</code> job task. Add one such task per
+<code>reconciliation_id</code> when you do, because audit-only registers no heal sink and will otherwise
+compare and report forever without healing anything.</p>
+<blockquote>
+<p><strong>The fix was itself rejected until v1.7.11, so check your version.</strong> Through v1.7.10 the matching
+onboarding rule, <strong>V-CYC-7</strong>, fired under <em>both</em> pipeline modes, so a spec taking the advice above
+failed onboarding with the same message that recommended it. From <strong>v1.7.11</strong> V-CYC-7 is gated on
+<code>execution_mode == "pipeline"</code> alone and <code>"pipeline_audit_only"</code> is explicitly legal for exactly
+this case. On v1.7.10 and earlier the only accepted setting was <code>execution_mode: "job"</code>, which
+also moves the comparison out of the update. The change is a relaxation: nothing that validated
+before is rejected now.</p>
+</blockquote>
 <p><strong>Why this is graded 🟠 and not 🔵.</strong> <code>TRUNCATE_AND_LOAD</code> was <strong>missing</strong> from the plan-time guard
 (<code>engine/source_plane.py::_NON_APPEND_ONLY_CDC_STRATEGIES</code>, which listed only the four CDC
 strategies) — it dispatches to no CDC strategy at all, so it slipped through. Such a flow passed
 <strong>every</strong> onboarding and plan-time check and then failed at pipeline <strong>runtime</strong> with:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>DELTA_SOURCE_TABLE_IGNORE_CHANGES
-</code></pre></div>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>DELTA_SOURCE_TABLE_IGNORE_CHANGES
+</span></code></pre></div>
 <p><code>TRUNCATE_AND_LOAD</code> is now in the guard set, so the failure is a plan-time <code>FrameworkConfigError</code>
 naming the consumer, the locator, the producing flow and <code>'pipeline_audit_only'</code> as the setting to
 use. <strong>Delta's own escape hatch, <code>skipChangeCommits</code>, is refused outright</strong> — it silently drops
@@ -7138,6 +7939,11 @@ which is that same group's own <code>TRUNCATE_AND_LOAD</code> ingestion target �
 scenario is verified <strong>offline only</strong> (validator + <code>plan_source_plane</code>, pinned by
 <code>tests/unit/test_geneva_e41a47ba_topology.py</code>); it has never been confirmed by a live run, because
 its target table's grants block the pipeline's run-as identity — see <a href="#o6">O6</a>.</p>
+<p><strong>Second real instance (v1.7.11):</strong> UC3's batch lane. Its three reconciliation sources,
+<code>&lt;catalog&gt;.staging.{physical_device,customer,subscriber}_batch</code>, are that same group's own
+<code>TRUNCATE_AND_LOAD</code> materialized views, so all three flows declare <code>pipeline_audit_only</code> and
+<code>005_lfj_uc3_excalibur_batch_recon</code> carries one <code>05_reconciliation_engine.py</code> heal task per
+<code>reconciliation_id</code>. See <code>BT_Usecase/UC3/docs/UC3_MASTER_DOCUMENT.md</code> §7.2.</p>
 <hr />
 <h3 id="r8-a-leftover-job-mode-recon-task-beside-a-pipeline-mode-flow-runs-the-comparison-twice"><a id="r8"></a>R8 🔴 A leftover job-mode recon task beside a pipeline-mode flow runs the comparison twice<a class="headerlink" href="#r8-a-leftover-job-mode-recon-task-beside-a-pipeline-mode-flow-runs-the-comparison-twice" title="Permanent link">&para;</a></h3>
 <p>Flipping a reconciliation flow to <code>execution_mode: "pipeline"</code> (or <code>"pipeline_audit_only"</code>) changes
@@ -7158,13 +7964,20 @@ header already claimed the task had been removed — risking a double-append int
 standalone reconciliation task in the same commit. Grep the <code>resources/</code> tree for the
 <code>reconciliation_id</code> before you deploy.</p>
 <hr />
-<h3 id="r9-publish_schema-defaults-to-the-hosting-pipelines-own-schema"><a id="r9"></a>R9 🔵 <code>publish_schema</code> defaults to the hosting pipeline's own schema<a class="headerlink" href="#r9-publish_schema-defaults-to-the-hosting-pipelines-own-schema" title="Permanent link">&para;</a></h3>
+<h3 id="r9-publish_schema-defaults-to-the-hosting-pipelines-own-schema-resolved-in-v1707"><a id="r9"></a>R9 🔵 <code>publish_schema</code> defaults to the hosting pipeline's own schema — <strong>RESOLVED in v1.7.07</strong><a class="headerlink" href="#r9-publish_schema-defaults-to-the-hosting-pipelines-own-schema-resolved-in-v1707" title="Permanent link">&para;</a></h3>
+<blockquote>
+<p><strong>v1.7.07:</strong> an absent <code>publish_schema</code> now publishes <strong>nothing</strong>. <code>__metrics</code>/<code>__mismatch</code> are
+registered as pipeline-scoped temporary tables (a <code>dq_config</code> gate still fires), and a capture
+flag or a <code>"pipeline"</code>-mode healing flow without <code>publish_schema</code> is rejected at onboarding. The
+text below records the pre-v1.7.07 behaviour and explains the <code>recon__*__metrics</code> views a
+pre-v1.7.07 workspace may still carry in its business schemas.</p>
+</blockquote>
 <p>Under <code>execution_mode: "pipeline"</code> / <code>"pipeline_audit_only"</code> a flow publishes real, externally
 visible UC tables — since v1.6.0 that is <code>recon__&lt;rid&gt;__&lt;tid&gt;__metrics</code> / <code>__mismatch</code> (each
 registered only when its <code>logging_config</code> capture flag resolves true) plus a healing flow's
 <code>_recon__…__src</code>/healing <code>__tgt</code>; the classification and every other L3/L4 node are now
 pipeline-scoped temporary tables that publish nowhere (see
-<a href="../07_reconciliation_engine/#1110-v160--the-intermediate-object-rule-and-the-conditional-audit-datasets"><code>07</code> §11.10</a>).
+<a href="../07_reconciliation_engine/#1110-v160-the-intermediate-object-rule-and-the-conditional-audit-datasets"><code>07</code> §11.10</a>).
 Omitting <code>publish_schema</code> puts the published ones in the pipeline's <strong>own</strong> target schema, beside
 the business tables it publishes. That is legal, and rarely what anyone wanted.</p>
 <p><code>notebooks/03_engine/03_lakeflow_declarative_pipeline.py</code> resolves that default as
@@ -7181,8 +7994,8 @@ its datasets are named.</p>
 — just <code>currentDatabase()</code>. During <strong>graph definition</strong> the session's current database is <em>not</em> the
 pipeline's target schema, so it resolved to <code>None</code> even for a pipeline plainly declaring
 <code>schema: bronze_excalibur</code>, and the first node-naming call died with:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a>ValueError: Unsafe or malformed target_schema: None
-</code></pre></div>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a>ValueError: Unsafe or malformed target_schema: None
+</span></code></pre></div>
 <p>Observed live on 2026-08-31 (pipeline <code>be78d88d</code>). It affected <strong>only</strong> flows relying on the
 default; a flow setting an explicit <code>publish_schema</code> never went near that path. Setting
 <code>publish_schema</code> explicitly, to a dedicated audit schema in the pipeline's own catalog, is the
@@ -7383,7 +8196,7 @@ above still holds, but <strong>invisible in Unity Catalog</strong> unless the sp
 <code>source_plane.catalog</code> <em>and</em> <code>source_plane.schema</code> to publish them deliberately. The same
 Intermediate Object Rule makes a multi-reader <code>_&lt;target&gt;_staged</code> intermediate a temporary table
 rather than a published one, and does the same to the reconciliation L3/L4 plumbing (with the
-exceptions listed in <a href="../07_reconciliation_engine/#1110-v160--the-intermediate-object-rule-and-the-conditional-audit-datasets"><code>07_reconciliation_engine.md</code> §11.10</a>).
+exceptions listed in <a href="../07_reconciliation_engine/#1110-v160-the-intermediate-object-rule-and-the-conditional-audit-datasets"><code>07_reconciliation_engine.md</code> §11.10</a>).
 Never conclude from an empty catalog listing that the node was not materialized — check the
 pipeline's own graph/event log. Upgrading an existing deployment: see <a href="#o7">O7</a>.</p>
 <h3 id="l8-pipelinesincompatibleviewcheckenabledfalse-is-known-and-rejected"><a id="l8"></a>L8 🟠 <code>pipelines.incompatibleViewCheck.enabled=false</code> is known and rejected<a class="headerlink" href="#l8-pipelinesincompatibleviewcheckenabledfalse-is-known-and-rejected" title="Permanent link">&para;</a></h3>
@@ -7398,9 +8211,16 @@ reasons:</p>
 <li>It <strong>silences the check without making a streaming plan batch-readable.</strong> The incompatibility is
    in the plan, not in the warning.</li>
 </ol>
-<p>The supported resolution is structural, not a flag: a shared source-plane node is registered as a
-<strong>materialized streaming table whenever any consumer streams</strong>, and one such table is legally
-readable by <code>dlt.read_stream</code> <em>and</em> <code>dlt.read</code> in the same update. A view can serve neither pair.</p>
+<p>The supported resolution is structural, not a flag: since v1.7.3 source-plane nodes are keyed by
+<strong><code>(identity, mode)</code></strong>, so a consumer that wants a streaming read gets a node registered as a
+<strong>materialized streaming table</strong>, and a consumer that wants a batch read of the same locator gets
+its own materialized view — two nodes, each in the mode its consumers actually asked for. A view
+can serve neither streaming pair, which is exactly why the batch node is never substituted for the
+stream one.</p>
+<p>(Before v1.7.3 a single streaming node served both, on the true-but-incomplete reasoning that a
+materialized streaming table is legally readable by <code>dlt.read_stream</code> <em>and</em> <code>dlt.read</code> in one
+update. It is — but it also imposes that node's checkpoint-locking and full-refresh semantics on a
+consumer that only ever wanted a batch scan, which is why the mandate split them.)</p>
 <h3 id="l9-reading-a-pipeline-tables-backing-storage-path-is-forbidden"><a id="l9"></a>L9 🔴 Reading a pipeline table's backing storage path is forbidden<a class="headerlink" href="#l9-reading-a-pipeline-tables-backing-storage-path-is-forbidden" title="Permanent link">&para;</a></h3>
 <p>Because <a href="#l1">L1</a> blocks reading your own dataset by name, the tempting next move is to read its
 <strong>backing storage location</strong> instead — <code>spark.read.format("delta").load("&lt;the table's path&gt;")</code> —
@@ -7438,9 +8258,9 @@ ingestion row whose <code>cdc_load_strategy</code> is <code>FULL_SNAPSHOT_CDC</c
 <code>apply_changes_from_snapshot</code>'s lambda reads a <strong>path</strong>, never a pipeline dataset
 (<a href="#l3">L3</a>). The plan therefore holds no consumer under <code>"&lt;dataflow_id&gt;:source"</code>, and
 <code>engine/source_plane.py::bind</code> never guesses:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a>FrameworkConfigError: source_plane.bind: unknown consumer_id 'df_sample_01_part_snapshot_ingest:source'.
-<a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a>Known consumer ids: ['df_sample_01_customer_scd1_ingest:source', ...]
-</code></pre></div>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-16-1"><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a>FrameworkConfigError: source_plane.bind: unknown consumer_id 'df_sample_01_part_snapshot_ingest:source'.
+</span><span id="__span-16-2"><a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a>Known consumer ids: ['df_sample_01_customer_scd1_ingest:source', ...]
+</span></code></pre></div>
 <p>The part that is easy to get wrong is that the exclusion applies to the <strong>lambda</strong>, not to the
 whole flow. A snapshot flow still registers a staged view in the graph —
 <code>_&lt;t&gt;_staged</code> → <code>_&lt;t&gt;_clean</code> → <code>_&lt;t&gt;_snapshot_input</code> → target — and that view needs a real source
@@ -7450,13 +8270,14 @@ review because the v1.6.0 source-plane work was never deployed; Sample 01 hit it
 run (2026-09-01).</p>
 <p>The generator now branches on <code>source_plane.SNAPSHOT_EXCLUDED_FROM_SOURCE_PLANE</code> — the single
 exported constant both sides share, so the two can never disagree — and reads directly:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a><span class="k">if</span> <span class="n">is_snapshot_cdc</span><span class="p">:</span>
-<a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a>    <span class="n">staged_df</span> <span class="o">=</span> <span class="n">read_ingestion_source</span><span class="p">(</span><span class="n">spark</span><span class="p">,</span> <span class="n">flow_row</span><span class="o">.</span><span class="n">source_type</span><span class="p">,</span> <span class="n">source_config</span><span class="p">)</span>
-<a id="__codelineno-17-3" name="__codelineno-17-3" href="#__codelineno-17-3"></a><span class="k">else</span><span class="p">:</span>
-<a id="__codelineno-17-4" name="__codelineno-17-4" href="#__codelineno-17-4"></a>    <span class="n">staged_df</span> <span class="o">=</span> <span class="n">bind</span><span class="p">(</span><span class="n">plan</span><span class="p">,</span> <span class="n">source_consumer_id</span><span class="p">,</span> <span class="n">want_stream</span><span class="o">=</span><span class="n">is_streaming</span><span class="p">)</span>
-</code></pre></div>
-<p>That is a correct read-once outcome, not an exception to R2: the plane deduplicates a locator
-<em>shared between consumers</em>, and a snapshot source has exactly one consumer by construction. Every
+<div class="language-python highlight"><pre><span></span><code><span id="__span-17-1"><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a><span class="k">if</span> <span class="n">is_snapshot_cdc</span><span class="p">:</span>
+</span><span id="__span-17-2"><a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a>    <span class="n">staged_df</span> <span class="o">=</span> <span class="n">read_ingestion_source</span><span class="p">(</span><span class="n">spark</span><span class="p">,</span> <span class="n">flow_row</span><span class="o">.</span><span class="n">source_type</span><span class="p">,</span> <span class="n">source_config</span><span class="p">)</span>
+</span><span id="__span-17-3"><a id="__codelineno-17-3" name="__codelineno-17-3" href="#__codelineno-17-3"></a><span class="k">else</span><span class="p">:</span>
+</span><span id="__span-17-4"><a id="__codelineno-17-4" name="__codelineno-17-4" href="#__codelineno-17-4"></a>    <span class="n">staged_df</span> <span class="o">=</span> <span class="n">bind</span><span class="p">(</span><span class="n">plan</span><span class="p">,</span> <span class="n">source_consumer_id</span><span class="p">,</span> <span class="n">want_stream</span><span class="o">=</span><span class="n">is_streaming</span><span class="p">)</span>
+</span></code></pre></div>
+<p>That is a correct single-read outcome, not an exception to the mandate: the plane guarantees one
+external read per source table per execution mode, and a snapshot source has exactly one consumer
+by construction. Every
 other strategy still binds — pinned in both directions by <code>tests/unit/test_flow_generators.py</code> §6.</p>
 <p><strong>If you are adding a new CDC strategy</strong> that also sits outside the plane, add it to the exported
 constant and to the generator's branch together; a strategy excluded on one side only fails
@@ -7471,13 +8292,13 @@ previous wheel kills it with <code>ENVIRONMENT_PIP_INSTALL_ERROR</code>.</p>
 <p><strong>Enforce it rather than remembering it.</strong> <code>--fail-on-active-runs</code> refuses the deploy outright if
 any job or pipeline in the bundle is running, turning a silent mid-run kill into a clean upfront
 failure:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a>databricks<span class="w"> </span>bundle<span class="w"> </span>deploy<span class="w"> </span>-t<span class="w"> </span>&lt;target&gt;<span class="w"> </span>--fail-on-active-runs
-</code></pre></div>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-18-1"><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a>databricks<span class="w"> </span>bundle<span class="w"> </span>deploy<span class="w"> </span>-t<span class="w"> </span>&lt;target&gt;<span class="w"> </span>--fail-on-active-runs
+</span></code></pre></div>
 <p><strong>Keep a copy you can roll back to.</strong> <code>scripts/archive_deployed_wheel.py</code>, run <em>after</em> a successful
 deploy, copies the published wheel into <code>&lt;artifact_path&gt;/archive/</code>. DABs manages only <code>.internal/</code>,
 so archived wheels are never pruned:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a>python<span class="w"> </span>scripts/archive_deployed_wheel.py<span class="w"> </span>--profile<span class="w"> </span>&lt;profile&gt;<span class="w">   </span><span class="c1"># --prune-keep N to cap the archive</span>
-</code></pre></div>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-19-1"><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a>python<span class="w"> </span>scripts/archive_deployed_wheel.py<span class="w"> </span>--profile<span class="w"> </span>&lt;profile&gt;<span class="w">   </span><span class="c1"># --prune-keep N to cap the archive</span>
+</span></code></pre></div>
 <blockquote>
 <p>⚠️ The archive is <strong>recovery, not prevention</strong>. Deployed resources are pinned to the <em>absolute</em>
 <code>.internal/</code> path, so an archived copy does not repair a pin whose target was pruned mid-install —
@@ -7492,8 +8313,8 @@ used to state that a UC Volume never prunes. It does. Only files <em>outside</em
 run <em>looks</em> clean while the workspace keeps executing the <strong>old</strong> notebook.</p>
 <p><strong>Fix:</strong> <code>rm -rf .databricks/bundle/&lt;target&gt;/sync-snapshots</code> then redeploy.</p>
 <p><strong>Always verify a notebook edit landed</strong> before trusting a test result:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a>databricks<span class="w"> </span>workspace<span class="w"> </span><span class="nb">export</span><span class="w"> </span>&lt;file_path&gt;/notebooks/&lt;dir&gt;/&lt;name&gt;<span class="w"> </span>--format<span class="w"> </span>SOURCE<span class="w"> </span>-p<span class="w"> </span>&lt;profile&gt;
-</code></pre></div>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-20-1"><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a>databricks<span class="w"> </span>workspace<span class="w"> </span><span class="nb">export</span><span class="w"> </span>&lt;file_path&gt;/notebooks/&lt;dir&gt;/&lt;name&gt;<span class="w"> </span>--format<span class="w"> </span>SOURCE<span class="w"> </span>-p<span class="w"> </span>&lt;profile&gt;
+</span></code></pre></div>
 <p>Note the deployed notebook path has <strong>no <code>.py</code> extension</strong> — exporting <code>&lt;name&gt;.py</code> returns
 "Path doesn't exist", which reads exactly like an empty file if you pipe it to <code>grep -c</code>.</p>
 <h3 id="o3-flow-retries-default-to-5-a-flaky-flow-reports-success"><a id="o3"></a>O3 🟡 Flow retries default to 5 — a flaky flow reports SUCCESS<a class="headerlink" href="#o3-flow-retries-default-to-5-a-flaky-flow-reports-success" title="Permanent link">&para;</a></h3>
@@ -7501,9 +8322,9 @@ run <em>looks</em> clean while the workspace keeps executing the <strong>old</st
 transiently is retried and the update still reports SUCCESS, so intermittent instability is
 invisible in the run log.</p>
 <p>For any run whose purpose is to <strong>measure</strong> stability, set it explicitly:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a><span class="nt">configuration</span><span class="p">:</span>
-<a id="__codelineno-21-2" name="__codelineno-21-2" href="#__codelineno-21-2"></a><span class="w">  </span><span class="nt">pipelines.maxFlowRetryAttempts</span><span class="p">:</span><span class="w"> </span><span class="s">"0"</span>
-</code></pre></div>
+<div class="language-yaml highlight"><pre><span></span><code><span id="__span-21-1"><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a><span class="nt">configuration</span><span class="p">:</span>
+</span><span id="__span-21-2"><a id="__codelineno-21-2" name="__codelineno-21-2" href="#__codelineno-21-2"></a><span class="w">  </span><span class="nt">pipelines.maxFlowRetryAttempts</span><span class="p">:</span><span class="w"> </span><span class="s">"0"</span>
+</span></code></pre></div>
 <p>and <code>max_retries: 0</code> on every job task. Retries are not attempted for ad-hoc editor updates or
 Validate updates in any case.</p>
 <h3 id="o4-quota-and-concurrency-limits-produce-failures-that-look-like-framework-bugs"><a id="o4"></a>O4 🔵 Quota and concurrency limits produce failures that look like framework bugs<a class="headerlink" href="#o4-quota-and-concurrency-limits-produce-failures-that-look-like-framework-bugs" title="Permanent link">&para;</a></h3>
@@ -7556,8 +8377,8 @@ builds a <strong>new, uniquely-named</strong> wheel, <strong>prunes</strong> the
 only the pipelines <strong>that target owns</strong>.</p>
 <p>A pipeline that reads its wheel from another target's (or another principal's) artifact path is
 therefore left pointing at a wheel that no longer exists, and fails with:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a>ENVIRONMENT_PIP_INSTALL_ERROR
-</code></pre></div>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-22-1"><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a>ENVIRONMENT_PIP_INSTALL_ERROR
+</span></code></pre></div>
 <p><strong>No deploy of that target repairs it</strong> — the deploy that broke it does not know the pipeline
 exists, and a deploy of the pipeline's own bundle is not what is running. Unique per-deploy wheel
 filenames prevent overwrite-in-place, not removal.</p>
@@ -7571,8 +8392,8 @@ release.</p>
 <code>varadaraju@</code> only — <strong>not</strong> to <code>flowx@nrmanalytix.com</code>, which is the identity the pipeline runs
 as. Schema-level access is fine (the same identity reads <code>bronze_excalibur.autoload_bronze</code>), so
 this is a <strong>table-level grant gap</strong>:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a><span class="k">GRANT</span><span class="w"> </span><span class="k">SELECT</span><span class="w"> </span><span class="k">ON</span><span class="w"> </span><span class="k">TABLE</span><span class="w"> </span><span class="n">flowx</span><span class="p">.</span><span class="n">bronze_excalibur</span><span class="p">.</span><span class="n">bronze_tariffelementband</span><span class="w"> </span><span class="k">TO</span><span class="w"> </span><span class="o">`</span><span class="n">flowx</span><span class="o">@</span><span class="n">nrmanalytix</span><span class="p">.</span><span class="n">com</span><span class="o">`</span><span class="p">;</span>
-</code></pre></div>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-23-1"><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a><span class="k">GRANT</span><span class="w"> </span><span class="k">SELECT</span><span class="w"> </span><span class="k">ON</span><span class="w"> </span><span class="k">TABLE</span><span class="w"> </span><span class="n">flowx</span><span class="p">.</span><span class="n">bronze_excalibur</span><span class="p">.</span><span class="n">bronze_tariffelementband</span><span class="w"> </span><span class="k">TO</span><span class="w"> </span><span class="o">`</span><span class="n">flowx</span><span class="o">@</span><span class="n">nrmanalytix</span><span class="p">.</span><span class="n">com</span><span class="o">`</span><span class="p">;</span>
+</span></code></pre></div>
 <p>Until both are cleared, that scenario is verified <strong>offline only</strong> — validator plus
 <code>plan_source_plane</code>, pinned by <code>tests/unit/test_geneva_e41a47ba_topology.py</code> — and has never been
 confirmed by a live pipeline run. See <a href="#r7">R7</a>.</p>
@@ -7592,7 +8413,7 @@ pipeline has been maintaining. On the first update after deploying the v1.6.0 wh
   under the temporary re-registration.</li>
 <li><strong>Reconciliation</strong> L3/L4 plumbing is renamed/unpublished (<code>recon__…__classified</code> →
   <code>_recon__…__classified</code>, temporary), and <code>__metrics</code>/<code>__mismatch</code> exist only when their capture
-  flags are on — see <a href="../07_reconciliation_engine/#1110-v160--the-intermediate-object-rule-and-the-conditional-audit-datasets"><code>07</code> §11.10</a>.</li>
+  flags are on — see <a href="../07_reconciliation_engine/#1110-v160-the-intermediate-object-rule-and-the-conditional-audit-datasets"><code>07</code> §11.10</a>.</li>
 </ul>
 <p><strong>What to do, per pipeline, before the first post-upgrade update on anything that matters:</strong></p>
 <ol>
@@ -7612,10 +8433,10 @@ sample suite (<code>resources/sample_jobs/</code>) was born on v1.6.0 and is una
 <p><strong>Fixed in v1.6.1.</strong> <code>import dlt</code> is not free outside a Lakeflow pipeline. It calls into the
 runtime's notebook entry point, which in a plain <strong>job</strong> notebook task has no notebook id to
 return, and the import dies before any framework code runs:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-24-1" name="__codelineno-24-1" href="#__codelineno-24-1"></a>Py4JJavaError: An error occurred while calling o36.get.
-<a id="__codelineno-24-2" name="__codelineno-24-2" href="#__codelineno-24-2"></a>: java.util.NoSuchElementException: None.get
-<a id="__codelineno-24-3" name="__codelineno-24-3" href="#__codelineno-24-3"></a>    at scala.None$.get(Option.scala:627)
-</code></pre></div>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-24-1"><a id="__codelineno-24-1" name="__codelineno-24-1" href="#__codelineno-24-1"></a>Py4JJavaError: An error occurred while calling o36.get.
+</span><span id="__span-24-2"><a id="__codelineno-24-2" name="__codelineno-24-2" href="#__codelineno-24-2"></a>: java.util.NoSuchElementException: None.get
+</span><span id="__span-24-3"><a id="__codelineno-24-3" name="__codelineno-24-3" href="#__codelineno-24-3"></a>    at scala.None$.get(Option.scala:627)
+</span></code></pre></div>
 <p>Confirmed live 2026-09-01. <code>observability/reconciliation_export.py</code> imported one <em>pure</em>
 exception-inspection helper (<code>_is_table_not_found</code>) from <code>dq/quarantine.py</code>, which does a
 module-level <code>import dlt</code>. Sample 03's <code>observability_export</code> task failed at <strong>import time</strong> and
@@ -7747,9 +8568,53 @@ is correct under the code as it stands.</p>
       
         <footer class="md-footer">
   
+    
+      
+      <nav class="md-footer__inner md-grid" aria-label="Footer" >
+        
+          
+          <a href="../10_multi_role_faqs/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Multi-role FAQs">
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+            </div>
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Previous
+              </span>
+              <div class="md-ellipsis">
+                Multi-role FAQs
+              </div>
+            </div>
+          </a>
+        
+        
+          
+          <a href="../15_agent_skills_and_prompts/" class="md-footer__link md-footer__link--next" aria-label="Next: Agent skills &amp; prompt library">
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Next
+              </span>
+              <div class="md-ellipsis">
+                Agent skills & prompt library
+              </div>
+            </div>
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg>
+            </div>
+          </a>
+        
+      </nav>
+    
+  
   <div class="md-footer-meta md-typeset">
     <div class="md-footer-meta__inner md-grid">
       <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      FlowX · Data Platform Engineering
+    </div>
   
   
 </div>
@@ -7763,11 +8628,13 @@ is correct under the code as it stands.</p>
       <div class="md-dialog__inner md-typeset"></div>
     </div>
     
+      <div class="md-progress" data-md-component="progress" role="progressbar"></div>
+    
     
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.instant", "navigation.tracking", "navigation.tabs", "navigation.sections", "navigation.top", "navigation.indexes", "toc.follow", "search.suggest", "search.highlight", "content.code.copy", "content.tabs.link"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["announce.dismiss", "content.code.annotate", "content.code.copy", "content.tabs.link", "content.tooltips", "navigation.footer", "navigation.indexes", "navigation.instant", "navigation.instant.progress", "navigation.path", "navigation.sections", "navigation.tabs", "navigation.tabs.sticky", "navigation.top", "navigation.tracking", "search.highlight", "search.share", "search.suggest", "toc.follow"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
     
     
       <script src="../assets/javascripts/bundle.d7400e89.min.js"></script>

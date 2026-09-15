@@ -10,6 +10,10 @@
 
 ---
 
+!!! info "What an agent surface is and is not"
+    For the operator's view (the six tools, the validate loop, and why there is no "agent console" tab)
+    see [Console → Agent skills & tools](console/agent_skills.md).
+
 ## 1. What lives in `agent_skills/`
 
 The `agent_skills/` directory is this repository's agent-facing knowledge pack: a

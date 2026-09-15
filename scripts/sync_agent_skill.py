@@ -4,9 +4,11 @@ The discoverable skill carries copies so an agent can load them without knowing 
 layout. Copies drift; ``tests/unit/test_agent_skill_layout.py`` fails when they do, and this
 script is the fix. Run it after changing anything under ``agent_skills/``.
 
-    python scripts/sync_agent_skill.py
+    python scripts/sync_agent_skill.py            # refresh the copies
+    python scripts/sync_agent_skill.py --check    # CI / pre-commit: exit 1 if any copy is stale
 """
 
+import argparse
 import shutil
 import sys
 from pathlib import Path
@@ -23,12 +25,30 @@ MIRRORED = {
 
 
 def main() -> int:
-    REFS.mkdir(parents=True, exist_ok=True)
+    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("--check", action="store_true", help="report stale copies and exit 1; write nothing")
+    args = ap.parse_args()
+
     missing = [str(src) for src in MIRRORED.values() if not src.is_file()]
     if missing:
         print("ERROR: canonical source(s) missing:", ", ".join(missing), file=sys.stderr)
         return 1
 
+    if args.check:
+        stale = [
+            f"{copy_path}  <- {source_path}"
+            for copy_path, source_path in MIRRORED.items()
+            if not copy_path.is_file() or copy_path.read_bytes() != source_path.read_bytes()
+        ]
+        if stale:
+            print("stale agent-skill copies (run `python scripts/sync_agent_skill.py`):", file=sys.stderr)
+            for entry in stale:
+                print("  " + entry, file=sys.stderr)
+            return 1
+        print("agent-skill copies are up to date.")
+        return 0
+
+    REFS.mkdir(parents=True, exist_ok=True)
     changed = 0
     for copy_path, source_path in MIRRORED.items():
         source_bytes = source_path.read_bytes()

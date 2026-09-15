@@ -1,0 +1,52 @@
+# Pre-commit hooks that keep the documentation hub 1:1 with the code it describes.
+#
+#   pip install pre-commit && pre-commit install
+#
+# Every hook below is a --check: it fails the commit and names the regeneration command,
+# it never rewrites files behind your back. The regeneration commands are, in order:
+#
+#   python databricks-app/scripts/build_attribute_knowledge.py   # registry.js  -> attribute_knowledge.json
+#   python scripts/build_docs_reference.py                        # knowledge + schema + validator -> docs/reference/**
+#   python scripts/sync_agent_skill.py                            # agent_skills/ -> .claude/skills/flowx-onboarding/references/
+#
+# See docs/reference/sync.md for the full derivation graph.
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: check-json
+        exclude: ^(databricks-app/web/dist/|databricks-app/docs_site/|databricks-genie/.*\.geniespace\.json$)
+      - id: check-yaml
+        # mkdocs.yml uses !!python/name tags for pymdownx; --unsafe parses without resolving them.
+        args: [--unsafe]
+        exclude: ^(databricks-app/docs_site/)
+
+  - repo: local
+    hooks:
+      - id: flowx-attribute-knowledge-fresh
+        name: attribute_knowledge.json is derived from registry.js (needs node)
+        entry: python databricks-app/scripts/build_attribute_knowledge.py --check
+        language: system
+        pass_filenames: false
+        files: ^(databricks-app/web/src/registry\.js|databricks-app/web/src/Builder\.jsx|databricks-app/config/attribute_knowledge.*\.json|databricks-app/scripts/build_attribute_knowledge\.py)$
+
+      - id: flowx-docs-reference-fresh
+        name: docs/reference/** is derived from knowledge + schema + validator
+        entry: python scripts/build_docs_reference.py --check
+        language: system
+        pass_filenames: false
+        files: ^(databricks-app/config/attribute_knowledge\.json|databricks-app/config/attribute_faqs\.json|onboarding_templates/onboarding_spec\.schema\.json|src/flowx/lakeflow_framework/onboarding/spec_validator\.py|src/flowx/.*\.py|docs/reference/.*|docs/v.*_json_attribute_delta\.json|scripts/build_docs_reference\.py|BT_Usecase/.*/docs/.*)$
+
+      - id: flowx-agent-skill-synced
+        name: .claude/skills/flowx-onboarding/references are byte-identical to agent_skills/
+        entry: python scripts/sync_agent_skill.py --check
+        language: system
+        pass_filenames: false
+        files: ^(agent_skills/.*|\.claude/skills/flowx-onboarding/.*)$
+
+      - id: flowx-docs-hub-tests
+        name: every registry attribute has its four FAQs and every nav page exists
+        entry: python -m pytest tests/unit/test_attribute_faqs.py tests/unit/test_docs_hub.py -q --no-header -p no:cacheprovider
+        language: system
+        pass_filenames: false
+        files: ^(databricks-app/config/attribute_(knowledge|faqs)\.json|docs/.*\.md|mkdocs\.yml|tests/unit/test_(attribute_faqs|docs_hub)\.py)$

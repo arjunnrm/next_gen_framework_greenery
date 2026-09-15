@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="Metadata-driven ingestion, transformation, reconciliation and observability pipelines on Databricks Lakeflow — architecture, attribute reference, onboarding guides and operational runbooks.">
+        <meta name="description" content="Metadata-driven ingestion, transformation, reconciliation and observability pipelines on Databricks Lakeflow — platform hub, four framework pillars, console walkthroughs, the master configuration reference and operational runbooks.">
       
       
         <meta name="author" content="Data Platform Engineering">
@@ -37,21 +37,32 @@
         <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
       
       
+  
+  
+    
+      
+      
+    
+  
+    
+      
+      
+    
+  
+  
+  <style>:root{--md-admonition-icon--abstract:url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2024%2024%22%3E%3Cpath%20d%3D%22M10.59%2013.41c.41.39.41%201.03%200%201.42-.39.39-1.03.39-1.42%200a5.003%205.003%200%200%201%200-7.07l3.54-3.54a5.003%205.003%200%200%201%207.07%200%205.003%205.003%200%200%201%200%207.07l-1.49%201.49c.01-.82-.12-1.64-.4-2.42l.47-.48a2.98%202.98%200%200%200%200-4.24%202.98%202.98%200%200%200-4.24%200l-3.53%203.53a2.98%202.98%200%200%200%200%204.24m2.82-4.24c.39-.39%201.03-.39%201.42%200a5.003%205.003%200%200%201%200%207.07l-3.54%203.54a5.003%205.003%200%200%201-7.07%200%205.003%205.003%200%200%201%200-7.07l1.49-1.49c-.01.82.12%201.64.4%202.43l-.47.47a2.98%202.98%200%200%200%200%204.24%202.98%202.98%200%200%200%204.24%200l3.53-3.53a2.98%202.98%200%200%200%200-4.24.973.973%200%200%201%200-1.42%22/%3E%3C/svg%3E');--md-admonition-icon--example:url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2024%2024%22%3E%3Cpath%20d%3D%22M5%203h2v2H5v5a2%202%200%200%201-2%202%202%202%200%200%201%202%202v5h2v2H5c-1.07-.27-2-.9-2-2v-4a2%202%200%200%200-2-2H0v-2h1a2%202%200%200%200%202-2V5a2%202%200%200%201%202-2m14%200a2%202%200%200%201%202%202v4a2%202%200%200%200%202%202h1v2h-1a2%202%200%200%200-2%202v4a2%202%200%200%201-2%202h-2v-2h2v-5a2%202%200%200%201%202-2%202%202%200%200%201-2-2V5h-2V3zm-7%2012a1%201%200%200%201%201%201%201%201%200%200%201-1%201%201%201%200%200%201-1-1%201%201%200%200%201%201-1m-4%200a1%201%200%200%201%201%201%201%201%200%200%201-1%201%201%201%200%200%201-1-1%201%201%200%200%201%201-1m8%200a1%201%200%200%201%201%201%201%201%200%200%201-1%201%201%201%200%200%201-1-1%201%201%200%200%201%201-1%22/%3E%3C/svg%3E');}</style>
 
 
+
     
     
       
     
     
       
-        
-        
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
-        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
-      
     
+    
+      <link rel="stylesheet" href="../stylesheets/extra.css">
     
     <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
@@ -90,12 +101,14 @@
     
       
 
-<header class="md-header" data-md-component="header">
+  
+
+<header class="md-header md-header--shadow md-header--lifted" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
     <a href=".." title="FlowX" class="md-header__button md-logo" aria-label="FlowX" data-md-component="logo">
       
   
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18 11h-3.18C14.4 9.84 13.3 9 12 9s-2.4.84-2.82 2H6c-.33 0-2-.1-2-2V8c0-1.83 1.54-2 2-2h10.18C16.6 7.16 17.7 8 19 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3c-1.3 0-2.4.84-2.82 2H6C4.39 4 2 5.06 2 8v1c0 2.94 2.39 4 4 4h3.18c.42 1.16 1.52 2 2.82 2s2.4-.84 2.82-2H18c.33 0 2 .1 2 2v1c0 1.83-1.54 2-2 2H7.82C7.4 16.84 6.3 16 5 16a3 3 0 0 0-3 3 3 3 0 0 0 3 3c1.3 0 2.4-.84 2.82-2H18c1.61 0 4-1.07 4-4v-1c0-2.93-2.39-4-4-4m1-7a1 1 0 0 1 1 1 1 1 0 0 1-1 1 1 1 0 0 1-1-1 1 1 0 0 1 1-1M5 20a1 1 0 0 1-1-1 1 1 0 0 1 1-1 1 1 0 0 1 1 1 1 1 0 0 1-1 1"/></svg>
 
     </a>
     <label class="md-header__button md-icon" for="__drawer">
@@ -125,9 +138,19 @@
     
     
     
-    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    <input class="md-option" data-md-color-media="(prefers-color-scheme)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_0">
     
-      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m14.3 16-.7-2h-3.2l-.7 2H7.8L11 7h2l3.2 9zM20 8.69V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12zm-9.15 3.96h2.3L12 9z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="deep-orange"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_2" hidden>
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
       </label>
     
@@ -135,9 +158,9 @@
     
     
     
-    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="deep-orange"  aria-label="Switch to system preference"  type="radio" name="__palette" id="__palette_2">
     
-      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+      <label class="md-header__button md-icon" title="Switch to system preference" for="__palette_0" hidden>
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg>
       </label>
     
@@ -169,6 +192,11 @@
       </label>
       <nav class="md-search__options" aria-label="Search">
         
+          <a href="javascript:void(0)" class="md-search__icon md-icon" title="Share" aria-label="Share" data-clipboard data-clipboard-text="" data-md-component="search-share" tabindex="-1">
+            
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91s2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08"/></svg>
+          </a>
+        
         <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
           
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
@@ -193,16 +221,22 @@
       
     
     
+      <div class="md-header__source">
+        <a href="https://github.com/Madhan-RAGHU/NextGen_Metadata_Framework" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    NextGen_Metadata_Framework
+  </div>
+</a>
+      </div>
+    
   </nav>
   
-</header>
     
-    <div class="md-container" data-md-component="container">
       
-      
-        
-          
-            
 <nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
   <div class="md-grid">
     <ul class="md-tabs__list">
@@ -271,19 +305,39 @@
   
   
   
-    
-  
   
     
     
-      <li class="md-tabs__item md-tabs__item--active">
-        <a href="../01_platform_architecture/" class="md-tabs__link">
+      <li class="md-tabs__item">
+        <a href="../pillars/" class="md-tabs__link">
           
   
   
     
   
-  Architecture
+  Pillars
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../console/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Console
 
         </a>
       </li>
@@ -305,7 +359,31 @@
   
     
   
-  JSON reference
+  Configuration
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../01_platform_architecture/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Architecture
 
         </a>
       </li>
@@ -392,7 +470,13 @@
     </ul>
   </div>
 </nav>
-          
+    
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
         
       
       <main class="md-main" data-md-component="main">
@@ -414,11 +498,23 @@
     <a href=".." title="FlowX" class="md-nav__button md-logo" aria-label="FlowX" data-md-component="logo">
       
   
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18 11h-3.18C14.4 9.84 13.3 9 12 9s-2.4.84-2.82 2H6c-.33 0-2-.1-2-2V8c0-1.83 1.54-2 2-2h10.18C16.6 7.16 17.7 8 19 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3c-1.3 0-2.4.84-2.82 2H6C4.39 4 2 5.06 2 8v1c0 2.94 2.39 4 4 4h3.18c.42 1.16 1.52 2 2.82 2s2.4-.84 2.82-2H18c.33 0 2 .1 2 2v1c0 1.83-1.54 2-2 2H7.82C7.4 16.84 6.3 16 5 16a3 3 0 0 0-3 3 3 3 0 0 0 3 3c1.3 0 2.4-.84 2.82-2H18c1.61 0 4-1.07 4-4v-1c0-2.93-2.39-4-4-4m1-7a1 1 0 0 1 1 1 1 1 0 0 1-1 1 1 1 0 0 1-1-1 1 1 0 0 1 1-1M5 20a1 1 0 0 1-1-1 1 1 0 0 1 1-1 1 1 0 0 1 1 1 1 1 0 0 1-1 1"/></svg>
 
     </a>
     FlowX
   </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/Madhan-RAGHU/NextGen_Metadata_Framework" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    NextGen_Metadata_Framework
+  </div>
+</a>
+    </div>
   
   <ul class="md-nav__list" data-md-scrollfix>
     
@@ -555,6 +651,8 @@
   
     
     
+      
+        
       
         
       
@@ -751,6 +849,34 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../onboarding/06_bt_digital_poc_deployment_issues/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    6 · BT Digital POC deployment issues
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -767,6 +893,8 @@
   
     
     
+      
+        
       
         
       
@@ -843,9 +971,1047 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../16_usecase_implementation_guide/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Use case implementation guide
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../pillars/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Pillars
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_4" id="__nav_4_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Pillars
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../pillars/ingestion/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    1 · Ingestion
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../pillars/transformation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    2 · Transformation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../pillars/reconciliation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    3 · Reconciliation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../pillars/observability/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    4 · Observability
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../console/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Console
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_5" id="__nav_5_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Console
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../console/spec_builder/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Spec Builder app · tab by tab
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../console/observability_dashboard/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Observability dashboard
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../console/control_dashboard/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Control metadata dashboard
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../console/genie/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Genie space
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../console/agent_skills/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Agent skills & tools
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../reference/json/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Configuration
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_6" id="__nav_6_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Configuration
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/json/tree/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Spec tree view
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_6_3" id="__nav_6_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Spec document
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Spec document
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/json/root/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Spec root
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/json/ingestion/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Ingestion flows
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/json/transformation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Transformation flows
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/json/reconciliation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reconciliation flows
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/json/observability/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Observability
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_6_4" id="__nav_6_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Shared blocks
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Shared blocks
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/json/ingestion-transformation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CDC / load strategy
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/json/other/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Other shared attributes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/json/removed/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Removed & rejected attributes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/sync/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Docs ↔ code synchronisation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../00_master_reference_index/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Full attribute dictionary
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../14_onboarding_restrictions_and_validation_rules/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Onboarding restrictions & validation rules
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../v1.4.0_attribute_delta/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    v1.4.0 attribute delta
+  
+
+    
+  </span>
+  
+  
+
+      </a>
     </li>
   
 
@@ -893,10 +2059,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" checked>
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" checked>
         
           
-          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="">
             
   
   
@@ -914,8 +2080,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="true">
-          <label class="md-nav__title" for="__nav_4">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_7">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -988,10 +2154,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_2" checked>
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7_2" checked>
         
           
-          <label class="md-nav__link" for="__nav_4_2" id="__nav_4_2_label" tabindex="">
+          <label class="md-nav__link" for="__nav_7_2" id="__nav_7_2_label" tabindex="">
             
   
   
@@ -1009,8 +2175,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_2_label" aria-expanded="true">
-          <label class="md-nav__title" for="__nav_4_2">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_2_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_7_2">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -1595,6 +2761,8 @@
       
         
       
+        
+      
     
     
     
@@ -1611,10 +2779,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_3" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7_3" >
         
           
-          <label class="md-nav__link" for="__nav_4_3" id="__nav_4_3_label" tabindex="">
+          <label class="md-nav__link" for="__nav_7_3" id="__nav_7_3_label" tabindex="">
             
   
   
@@ -1632,8 +2800,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_3_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_4_3">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7_3">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -1727,6 +2895,34 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../17_framework_observability_and_genie/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Framework observability, AI/BI & Genie
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -1764,10 +2960,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_4" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7_4" >
         
           
-          <label class="md-nav__link" for="__nav_4_4" id="__nav_4_4_label" tabindex="">
+          <label class="md-nav__link" for="__nav_7_4" id="__nav_7_4_label" tabindex="">
             
   
   
@@ -1785,8 +2981,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_4_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_4_4">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7_4">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -1888,8 +3084,6 @@
       
         
       
-        
-      
     
     
     
@@ -1903,507 +3097,7 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
-        
-          
-          <div class="md-nav__link md-nav__container">
-            <a href="../reference/json/" class="md-nav__link ">
-              
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    JSON reference
-  
-
-    
-  </span>
-  
-  
-
-            </a>
-            
-              
-              <label class="md-nav__link " for="__nav_5" id="__nav_5_label" tabindex="0">
-                <span class="md-nav__icon md-icon"></span>
-              </label>
-            
-          </div>
-        
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_5">
-            <span class="md-nav__icon md-icon"></span>
-            
-  
-    JSON reference
-  
-
-          </label>
-          <ul class="md-nav__list" data-md-scrollfix>
-            
-              
-            
-              
-                
-  
-  
-  
-  
-    
-    
-      
-        
-      
-        
-      
-        
-      
-        
-      
-        
-      
-    
-    
-    
-      
-      
-        
-      
-    
-    
-    <li class="md-nav__item md-nav__item--nested">
-      
-        
-        
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_2" >
-        
-          
-          <label class="md-nav__link" for="__nav_5_2" id="__nav_5_2_label" tabindex="0">
-            
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Spec document
-  
-
-    
-  </span>
-  
-  
-
-            <span class="md-nav__icon md-icon"></span>
-          </label>
-        
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_5_2_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_5_2">
-            <span class="md-nav__icon md-icon"></span>
-            
-  
-    Spec document
-  
-
-          </label>
-          <ul class="md-nav__list" data-md-scrollfix>
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../reference/json/root/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Spec root
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../reference/json/ingestion/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Ingestion flows
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../reference/json/transformation/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Transformation flows
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../reference/json/reconciliation/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Reconciliation flows
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../reference/json/observability/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Observability
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-          </ul>
-        </nav>
-      
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    
-    
-      
-        
-      
-        
-      
-    
-    
-    
-      
-      
-        
-      
-    
-    
-    <li class="md-nav__item md-nav__item--nested">
-      
-        
-        
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_3" >
-        
-          
-          <label class="md-nav__link" for="__nav_5_3" id="__nav_5_3_label" tabindex="0">
-            
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Shared blocks
-  
-
-    
-  </span>
-  
-  
-
-            <span class="md-nav__icon md-icon"></span>
-          </label>
-        
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_5_3_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_5_3">
-            <span class="md-nav__icon md-icon"></span>
-            
-  
-    Shared blocks
-  
-
-          </label>
-          <ul class="md-nav__list" data-md-scrollfix>
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../reference/json/ingestion-transformation/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    CDC / load strategy
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../reference/json/other/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Other shared attributes
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-          </ul>
-        </nav>
-      
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../00_master_reference_index/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Full attribute dictionary
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../14_onboarding_restrictions_and_validation_rules/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Onboarding restrictions & validation rules
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../v1.4.0_attribute_delta/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    v1.4.0 attribute delta
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-          </ul>
-        </nav>
-      
-    </li>
-  
-
-    
-      
-      
-  
-  
-  
-  
-    
-    
-      
-        
-          
-        
-      
-        
-      
-        
-      
-        
-      
-        
-      
-    
-    
-    
-      
-      
-        
-      
-    
-    
-    <li class="md-nav__item md-nav__item--nested">
-      
-        
-        
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8" >
         
           
           <div class="md-nav__link md-nav__container">
@@ -2425,14 +3119,14 @@
             </a>
             
               
-              <label class="md-nav__link " for="__nav_6" id="__nav_6_label" tabindex="0">
+              <label class="md-nav__link " for="__nav_8" id="__nav_8_label" tabindex="0">
                 <span class="md-nav__icon md-icon"></span>
               </label>
             
           </div>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_6">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_8">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -2476,10 +3170,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_2" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8_2" >
         
           
-          <label class="md-nav__link" for="__nav_6_2" id="__nav_6_2_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_8_2" id="__nav_8_2_label" tabindex="0">
             
   
   
@@ -2497,8 +3191,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_2_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_6_2">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_8_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_8_2">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -2686,10 +3380,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_3" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8_3" >
         
           
-          <label class="md-nav__link" for="__nav_6_3" id="__nav_6_3_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_8_3" id="__nav_8_3_label" tabindex="0">
             
   
   
@@ -2707,8 +3401,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_3_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_6_3">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_8_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_8_3">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -2868,10 +3562,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_4" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8_4" >
         
           
-          <label class="md-nav__link" for="__nav_6_4" id="__nav_6_4_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_8_4" id="__nav_8_4_label" tabindex="0">
             
   
   
@@ -2889,8 +3583,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_4_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_6_4">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_8_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_8_4">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -3046,10 +3740,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_5" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8_5" >
         
           
-          <label class="md-nav__link" for="__nav_6_5" id="__nav_6_5_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_8_5" id="__nav_8_5_label" tabindex="0">
             
   
   
@@ -3067,8 +3761,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_5_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_6_5">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_8_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_8_5">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -3168,16 +3862,6 @@
       
         
       
-        
-      
-        
-      
-        
-      
-        
-      
-        
-      
     
     
     
@@ -3191,10 +3875,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_9" >
         
           
-          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_9" id="__nav_9_label" tabindex="0">
             
   
   
@@ -3212,8 +3896,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_7">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_9_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_9">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -3286,14 +3970,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../16_usecase_implementation_guide/" class="md-nav__link">
+      <a href="../13_known_limitations_and_gotchas/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    Use case implementation guide
+    Known limitations & gotchas
   
 
     
@@ -3306,6 +3990,98 @@
   
 
               
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../15_agent_skills_and_prompts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Agent skills & prompt library
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_9_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_9_5" id="__nav_9_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Use cases
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_9_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_9_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Use cases
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
             
               
                 
@@ -3447,57 +4223,9 @@
 
               
             
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../15_agent_skills_and_prompts/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Agent skills & prompt library
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../13_known_limitations_and_gotchas/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Known limitations & gotchas
-  
-
-    
-  </span>
-  
-  
-
-      </a>
+          </ul>
+        </nav>
+      
     </li>
   
 
@@ -3538,7 +4266,7 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_10" >
         
           
           <div class="md-nav__link md-nav__container">
@@ -3560,14 +4288,14 @@
             </a>
             
               
-              <label class="md-nav__link " for="__nav_8" id="__nav_8_label" tabindex="0">
+              <label class="md-nav__link " for="__nav_10" id="__nav_10_label" tabindex="0">
                 <span class="md-nav__icon md-icon"></span>
               </label>
             
           </div>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_8">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_10_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_10">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -3617,10 +4345,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8_1" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_10_1" >
         
           
-          <label class="md-nav__link" for="__nav_8_1" id="__nav_8_1_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_10_1" id="__nav_10_1_label" tabindex="0">
             
   
   
@@ -3638,8 +4366,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_8_1_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_8_1">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_10_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_10_1">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -4348,10 +5076,79 @@
           
             <div class="md-content" data-md-component="content">
               
+                
+
+
+
+  
+
+
+  <nav class="md-path" aria-label="Navigation" >
+    <ol class="md-path__list">
+      
+        
+  
+  
+    <li class="md-path__item">
+      <a href=".." class="md-path__link">
+        
+  <span class="md-ellipsis">
+    Home
+  </span>
+
+      </a>
+    </li>
+  
+
+      
+      
+        
+  
+  
+    
+    
+      <li class="md-path__item">
+        <a href="../01_platform_architecture/" class="md-path__link">
+          
+  <span class="md-ellipsis">
+    Architecture
+  </span>
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+    
+    
+      <li class="md-path__item">
+        <a href="../02_ingestion_and_sources/" class="md-path__link">
+          
+  <span class="md-ellipsis">
+    Data plane
+  </span>
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ol>
+  </nav>
+
+              
               <article class="md-content__inner md-typeset">
                 
                   
 
+
+  
+  
 
 
 <h1 id="flowx-reconciliation-self-healing-engine">⚖️ FlowX — Reconciliation &amp; Self-Healing Engine<a class="headerlink" href="#flowx-reconciliation-self-healing-engine" title="Permanent link">&para;</a></h1>
@@ -4370,94 +5167,94 @@
 <li><strong>Per-Record Mismatch Audit Logging</strong>: Stores detailed mismatch records in <code>{catalog}.config.reconciliation_mismatch_log</code>, including a full column-by-column <code>differing_columns_json</code> for every <code>VALUE_DRIFT</code> record.</li>
 <li><strong>Delta Tables Only (v1.3.0, breaking)</strong>: reconciliation is supported for Delta tables (<code>type: "table"</code>) only. <code>file</code> and <code>sink</code> dataset types, previously accepted, are now rejected at both onboarding and runtime. See <a href="#7-delta-tables-only-scope-breaking-change-in-v130">§7</a>.</li>
 <li><strong>In-pipeline reconciliation (v1.5.0)</strong>: <code>execution_mode</code> promotes a reconciliation flow to a <strong>third flow type inside the dataflow group's own Lakeflow pipeline update</strong>, materializing the comparison as real Lakeflow datasets (<code>__classified</code> / <code>__metrics</code> / <code>__mismatch</code>) and re-hosting the imperative append inside one <code>foreach_batch_sink</code> handler. It defaults to <code>"job"</code>, so nothing already deployed changes until an author opts in. <strong>Proven live on 2026-08-31</strong> — one update of pipeline <code>be78d88d-6064-414d-a10c-2aacd900fa86</code> registered ingestion, the L3/L4 comparison datasets, the L5 pulse, the heal flow <em>and</em> the <code>foreach_batch_sink</code> handler in a single DAG (the exact node list is in <a href="#111-the-l0l5-node-map">§11.1</a>). See <a href="#11-execution-modes-job-pipeline-pipeline_audit_only">§11</a>, and — before switching any flow to <code>"pipeline"</code> — <a href="#117-the-reconciliation-source-must-be-append-only-in-pipeline-mode">§11.7</a>.</li>
-<li><strong>The Intermediate Object Rule + a tightened logging contract (v1.6.0)</strong>: every true reconciliation intermediate (<code>_recon__*__src</code>/<code>__tgt</code>/<code>__classified</code>/<code>__missing</code>/pulse) is now a pipeline-scoped <strong>temporary</strong> table — materialized once per update, never published to Unity Catalog — and the two published audit datasets, <code>recon__*__metrics</code> / <code>recon__*__mismatch</code>, are registered <strong>only when their capture flag resolves true</strong>. <code>logging_config.run_log_capture</code> now also gates <code>reconciliation_result</code> (previously unconditional). See <a href="#6-runtime-log-controls">§6</a>, <a href="#111-the-l0l5-node-map">§11.1</a> and <a href="#1110-v160--the-intermediate-object-rule-and-the-conditional-audit-datasets">§11.10</a>; <strong>before upgrading an already-deployed pipeline</strong>, read the migration trap <a href="../13_known_limitations_and_gotchas/#o7"><code>13_known_limitations_and_gotchas.md</code> O7</a>.</li>
+<li><strong>The Intermediate Object Rule + a tightened logging contract (v1.6.0)</strong>: every true reconciliation intermediate (<code>_recon__*__src</code>/<code>__tgt</code>/<code>__classified</code>/<code>__missing</code>/pulse) is now a pipeline-scoped <strong>temporary</strong> table — materialized once per update, never published to Unity Catalog — and the two published audit datasets, <code>recon__*__metrics</code> / <code>recon__*__mismatch</code>, are registered <strong>only when their capture flag resolves true</strong>. <code>logging_config.run_log_capture</code> now also gates <code>reconciliation_result</code> (previously unconditional). See <a href="#6-runtime-log-controls">§6</a>, <a href="#111-the-l0l5-node-map">§11.1</a> and <a href="#1110-v160-the-intermediate-object-rule-and-the-conditional-audit-datasets">§11.10</a>; <strong>before upgrading an already-deployed pipeline</strong>, read the migration trap <a href="../13_known_limitations_and_gotchas/#o7"><code>13_known_limitations_and_gotchas.md</code> O7</a>.</li>
 <li><strong>Self-Healing Append</strong>: for a target configured with <code>comparison_direction: "source_to_target"</code> or <code>"both"</code>, missing/drifted records are automatically appended into that target's <code>append_target_table</code>, so a subsequent pipeline run picks the correction up. See <a href="#8-self-healing-append-behavior">§8</a>.</li>
 </ul>
 <hr />
 <h2 id="2-reconciliation-flow-architecture">2. Reconciliation Flow Architecture<a class="headerlink" href="#2-reconciliation-flow-architecture" title="Permanent link">&para;</a></h2>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>┌─────────────────────────────────────────────────────────────┐
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>│                    SOURCE BASELINE DATASET                  │
-<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>│         source_config: { type: "table", table: ... }        │
-<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>└──────────────────────────────┬──────────────────────────────┘
-<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>                               │
-<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>                               ▼ prepare_dataset_for_matching()
-<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>                    (compute or trust __framework_hash_key /
-<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>                              __framework_hash_value)
-<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>                               │
-<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>                 ┌─────────────┴─────────────┐
-<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>                 ▼                           ▼
-<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>      ┌─────────────────────┐    ┌─────────────────────┐
-<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>      │   PHASE 1 (cheap)    │    │  one per target_configs[]  │
-<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>      │ compute_side_        │    │        entry                │
-<a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>      │ fingerprint()        │    └─────────────┬───────────────┘
-<a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a>      │ row_count + XOR fold │                  │
-<a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a>      │ of hash_key/         │                  ▼
-<a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a>      │ hash_value           │       fingerprints_match()?
-<a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a>      └──────────┬───────────┘                  │
-<a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a>                 │                    ┌──────────┴──────────┐
-<a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a>             match             no match / two_tier_verification: false
-<a id="__codelineno-0-22" name="__codelineno-0-22" href="#__codelineno-0-22"></a>                 │                    │
-<a id="__codelineno-0-23" name="__codelineno-0-23" href="#__codelineno-0-23"></a>                 ▼                    ▼
-<a id="__codelineno-0-24" name="__codelineno-0-24" href="#__codelineno-0-24"></a>      ┌─────────────────────┐   ┌─────────────────────────────┐
-<a id="__codelineno-0-25" name="__codelineno-0-25" href="#__codelineno-0-25"></a>      │  EARLY-OUT (no join) │   │   PHASE 2: full outer join   │
-<a id="__codelineno-0-26" name="__codelineno-0-26" href="#__codelineno-0-26"></a>      │  status=SUCCESS,      │   │   on __framework_hash_key    │
-<a id="__codelineno-0-27" name="__codelineno-0-27" href="#__codelineno-0-27"></a>      │  matched=all rows     │   │   + per-key max_by collapse  │
-<a id="__codelineno-0-28" name="__codelineno-0-28" href="#__codelineno-0-28"></a>      └──────────┬───────────┘   │   + 4-way classification     │
-<a id="__codelineno-0-29" name="__codelineno-0-29" href="#__codelineno-0-29"></a>                 │                └───────────────┬──────────────┘
-<a id="__codelineno-0-30" name="__codelineno-0-30" href="#__codelineno-0-30"></a>                 │                                 │
-<a id="__codelineno-0-31" name="__codelineno-0-31" href="#__codelineno-0-31"></a>                 ▼                                 ▼
-<a id="__codelineno-0-32" name="__codelineno-0-32" href="#__codelineno-0-32"></a>      ┌──────────────────────────────────────────────────────────┐
-<a id="__codelineno-0-33" name="__codelineno-0-33" href="#__codelineno-0-33"></a>      │        RUN SUMMARY (reconciliation_run_log) +              │
-<a id="__codelineno-0-34" name="__codelineno-0-34" href="#__codelineno-0-34"></a>      │        RESULT (reconciliation_result) — both gated by      │
-<a id="__codelineno-0-35" name="__codelineno-0-35" href="#__codelineno-0-35"></a>      │        run_log_capture (v1.6.0, see §6)                    │
-<a id="__codelineno-0-36" name="__codelineno-0-36" href="#__codelineno-0-36"></a>      └──────────────────────────────┬───────────────────────────┘
-<a id="__codelineno-0-37" name="__codelineno-0-37" href="#__codelineno-0-37"></a>                                      │  (Phase 2 only, and only for
-<a id="__codelineno-0-38" name="__codelineno-0-38" href="#__codelineno-0-38"></a>                                      │   MISSING_IN_TARGET/VALUE_DRIFT/
-<a id="__codelineno-0-39" name="__codelineno-0-39" href="#__codelineno-0-39"></a>                                      │   MISSING_IN_SOURCE records)
-<a id="__codelineno-0-40" name="__codelineno-0-40" href="#__codelineno-0-40"></a>                       ┌──────────────┼──────────────────┐
-<a id="__codelineno-0-41" name="__codelineno-0-41" href="#__codelineno-0-41"></a>                       ▼              ▼                  ▼
-<a id="__codelineno-0-42" name="__codelineno-0-42" href="#__codelineno-0-42"></a>             ┌──────────────┐  ┌──────────────┐  ┌────────────────────┐
-<a id="__codelineno-0-43" name="__codelineno-0-43" href="#__codelineno-0-43"></a>             │ MISMATCH LOG │  │ SELF-HEALING │  │  AUDIT-ONLY LOGGING │
-<a id="__codelineno-0-44" name="__codelineno-0-44" href="#__codelineno-0-44"></a>             │ per-record   │  │ APPEND       │  │ MISSING_IN_SOURCE   │
-<a id="__codelineno-0-45" name="__codelineno-0-45" href="#__codelineno-0-45"></a>             │ diff detail  │  │ (source_to_  │  │ (target_to_source,  │
-<a id="__codelineno-0-46" name="__codelineno-0-46" href="#__codelineno-0-46"></a>             │              │  │  target/both)│  │  never appended)    │
-<a id="__codelineno-0-47" name="__codelineno-0-47" href="#__codelineno-0-47"></a>             └──────────────┘  └──────────────┘  └────────────────────┘
-</code></pre></div>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>┌─────────────────────────────────────────────────────────────┐
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>│                    SOURCE BASELINE DATASET                  │
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>│         source_config: { type: "table", table: ... }        │
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>└──────────────────────────────┬──────────────────────────────┘
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>                               │
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>                               ▼ prepare_dataset_for_matching()
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>                    (compute or trust __framework_hash_key /
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>                              __framework_hash_value)
+</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>                               │
+</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>                 ┌─────────────┴─────────────┐
+</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>                 ▼                           ▼
+</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>      ┌─────────────────────┐    ┌─────────────────────┐
+</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>      │   PHASE 1 (cheap)    │    │  one per target_configs[]  │
+</span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>      │ compute_side_        │    │        entry                │
+</span><span id="__span-0-15"><a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>      │ fingerprint()        │    └─────────────┬───────────────┘
+</span><span id="__span-0-16"><a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a>      │ row_count + XOR fold │                  │
+</span><span id="__span-0-17"><a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a>      │ of hash_key/         │                  ▼
+</span><span id="__span-0-18"><a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a>      │ hash_value           │       fingerprints_match()?
+</span><span id="__span-0-19"><a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a>      └──────────┬───────────┘                  │
+</span><span id="__span-0-20"><a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a>                 │                    ┌──────────┴──────────┐
+</span><span id="__span-0-21"><a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a>             match             no match / two_tier_verification: false
+</span><span id="__span-0-22"><a id="__codelineno-0-22" name="__codelineno-0-22" href="#__codelineno-0-22"></a>                 │                    │
+</span><span id="__span-0-23"><a id="__codelineno-0-23" name="__codelineno-0-23" href="#__codelineno-0-23"></a>                 ▼                    ▼
+</span><span id="__span-0-24"><a id="__codelineno-0-24" name="__codelineno-0-24" href="#__codelineno-0-24"></a>      ┌─────────────────────┐   ┌─────────────────────────────┐
+</span><span id="__span-0-25"><a id="__codelineno-0-25" name="__codelineno-0-25" href="#__codelineno-0-25"></a>      │  EARLY-OUT (no join) │   │   PHASE 2: full outer join   │
+</span><span id="__span-0-26"><a id="__codelineno-0-26" name="__codelineno-0-26" href="#__codelineno-0-26"></a>      │  status=SUCCESS,      │   │   on __framework_hash_key    │
+</span><span id="__span-0-27"><a id="__codelineno-0-27" name="__codelineno-0-27" href="#__codelineno-0-27"></a>      │  matched=all rows     │   │   + per-key max_by collapse  │
+</span><span id="__span-0-28"><a id="__codelineno-0-28" name="__codelineno-0-28" href="#__codelineno-0-28"></a>      └──────────┬───────────┘   │   + 4-way classification     │
+</span><span id="__span-0-29"><a id="__codelineno-0-29" name="__codelineno-0-29" href="#__codelineno-0-29"></a>                 │                └───────────────┬──────────────┘
+</span><span id="__span-0-30"><a id="__codelineno-0-30" name="__codelineno-0-30" href="#__codelineno-0-30"></a>                 │                                 │
+</span><span id="__span-0-31"><a id="__codelineno-0-31" name="__codelineno-0-31" href="#__codelineno-0-31"></a>                 ▼                                 ▼
+</span><span id="__span-0-32"><a id="__codelineno-0-32" name="__codelineno-0-32" href="#__codelineno-0-32"></a>      ┌──────────────────────────────────────────────────────────┐
+</span><span id="__span-0-33"><a id="__codelineno-0-33" name="__codelineno-0-33" href="#__codelineno-0-33"></a>      │        RUN SUMMARY (reconciliation_run_log) +              │
+</span><span id="__span-0-34"><a id="__codelineno-0-34" name="__codelineno-0-34" href="#__codelineno-0-34"></a>      │        RESULT (reconciliation_result) — both gated by      │
+</span><span id="__span-0-35"><a id="__codelineno-0-35" name="__codelineno-0-35" href="#__codelineno-0-35"></a>      │        run_log_capture (v1.6.0, see §6)                    │
+</span><span id="__span-0-36"><a id="__codelineno-0-36" name="__codelineno-0-36" href="#__codelineno-0-36"></a>      └──────────────────────────────┬───────────────────────────┘
+</span><span id="__span-0-37"><a id="__codelineno-0-37" name="__codelineno-0-37" href="#__codelineno-0-37"></a>                                      │  (Phase 2 only, and only for
+</span><span id="__span-0-38"><a id="__codelineno-0-38" name="__codelineno-0-38" href="#__codelineno-0-38"></a>                                      │   MISSING_IN_TARGET/VALUE_DRIFT/
+</span><span id="__span-0-39"><a id="__codelineno-0-39" name="__codelineno-0-39" href="#__codelineno-0-39"></a>                                      │   MISSING_IN_SOURCE records)
+</span><span id="__span-0-40"><a id="__codelineno-0-40" name="__codelineno-0-40" href="#__codelineno-0-40"></a>                       ┌──────────────┼──────────────────┐
+</span><span id="__span-0-41"><a id="__codelineno-0-41" name="__codelineno-0-41" href="#__codelineno-0-41"></a>                       ▼              ▼                  ▼
+</span><span id="__span-0-42"><a id="__codelineno-0-42" name="__codelineno-0-42" href="#__codelineno-0-42"></a>             ┌──────────────┐  ┌──────────────┐  ┌────────────────────┐
+</span><span id="__span-0-43"><a id="__codelineno-0-43" name="__codelineno-0-43" href="#__codelineno-0-43"></a>             │ MISMATCH LOG │  │ SELF-HEALING │  │  AUDIT-ONLY LOGGING │
+</span><span id="__span-0-44"><a id="__codelineno-0-44" name="__codelineno-0-44" href="#__codelineno-0-44"></a>             │ per-record   │  │ APPEND       │  │ MISSING_IN_SOURCE   │
+</span><span id="__span-0-45"><a id="__codelineno-0-45" name="__codelineno-0-45" href="#__codelineno-0-45"></a>             │ diff detail  │  │ (source_to_  │  │ (target_to_source,  │
+</span><span id="__span-0-46"><a id="__codelineno-0-46" name="__codelineno-0-46" href="#__codelineno-0-46"></a>             │              │  │  target/both)│  │  never appended)    │
+</span><span id="__span-0-47"><a id="__codelineno-0-47" name="__codelineno-0-47" href="#__codelineno-0-47"></a>             └──────────────┘  └──────────────┘  └────────────────────┘
+</span></code></pre></div>
 <p>The whole comparison above runs once per <code>target_configs[]</code> entry (<code>reconciliation/appender.py::run_target_reconciliation</code>, or its streaming counterpart <code>reconciliation/streaming.py::run_streaming_target_reconciliation</code>), driven by <code>notebooks/05_reconciliation/05_reconciliation_engine.py</code>.</p>
 <hr />
 <h2 id="3-configuration-schema">3. Configuration Schema<a class="headerlink" href="#3-configuration-schema" title="Permanent link">&para;</a></h2>
 <p>Field names below are verified against <code>onboarding/spec_validator.py::_validate_reconciliation_flows</code> / <code>_validate_reconciliation_dataset_config</code> / <code>_validate_reconciliation_target_configs</code> / <code>_validate_logging_config</code> and <code>control_plane/ddl_definitions.py::get_reconciliation_flow_spec_ddl</code>. <strong>This replaces the pre-v1.3.0 schema wholesale</strong> — the old field names (<code>source_dataset</code>, <code>target_datasets</code>, <code>dataset_type</code>, <code>table_name</code>, <code>primary_keys</code>) never matched the actual validator and should not be carried forward from any earlier version of this document.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="p">{</span>
-<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="w">  </span><span class="nt">"reconciliation_flows"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
-<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="w">    </span><span class="p">{</span>
-<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="w">      </span><span class="nt">"reconciliation_id"</span><span class="p">:</span><span class="w"> </span><span class="s2">"recon_orders_daily"</span><span class="p">,</span>
-<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="w">      </span><span class="nt">"two_tier_verification"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
-<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="w">      </span><span class="nt">"logging_config"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nt">"run_log_capture"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span><span class="w"> </span><span class="nt">"mismatch_log_capture"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="w"> </span><span class="p">},</span>
-<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="w">      </span><span class="nt">"source_config"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="w">        </span><span class="nt">"type"</span><span class="p">:</span><span class="w"> </span><span class="s2">"table"</span><span class="p">,</span>
-<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="w">        </span><span class="nt">"table"</span><span class="p">:</span><span class="w"> </span><span class="s2">"poc.bronze_sales.orders_raw"</span><span class="p">,</span>
-<a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="w">        </span><span class="nt">"read_mode"</span><span class="p">:</span><span class="w"> </span><span class="s2">"batch"</span><span class="p">,</span>
-<a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="w">        </span><span class="nt">"task_run_id_column"</span><span class="p">:</span><span class="w"> </span><span class="s2">"__framework_pipeline_run_id"</span><span class="p">,</span>
-<a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a><span class="w">        </span><span class="nt">"hash_precomputed"</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span>
-<a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a><span class="w">      </span><span class="p">},</span>
-<a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a><span class="w">      </span><span class="nt">"target_configs"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
-<a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a><span class="w">        </span><span class="p">{</span>
-<a id="__codelineno-1-16" name="__codelineno-1-16" href="#__codelineno-1-16"></a><span class="w">          </span><span class="nt">"target_id"</span><span class="p">:</span><span class="w"> </span><span class="s2">"orders_silver"</span><span class="p">,</span>
-<a id="__codelineno-1-17" name="__codelineno-1-17" href="#__codelineno-1-17"></a><span class="w">          </span><span class="nt">"type"</span><span class="p">:</span><span class="w"> </span><span class="s2">"table"</span><span class="p">,</span>
-<a id="__codelineno-1-18" name="__codelineno-1-18" href="#__codelineno-1-18"></a><span class="w">          </span><span class="nt">"table"</span><span class="p">:</span><span class="w"> </span><span class="s2">"poc.silver_sales.orders"</span><span class="p">,</span>
-<a id="__codelineno-1-19" name="__codelineno-1-19" href="#__codelineno-1-19"></a><span class="w">          </span><span class="nt">"read_mode"</span><span class="p">:</span><span class="w"> </span><span class="s2">"batch"</span><span class="p">,</span>
-<a id="__codelineno-1-20" name="__codelineno-1-20" href="#__codelineno-1-20"></a><span class="w">          </span><span class="nt">"hash_precomputed"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
-<a id="__codelineno-1-21" name="__codelineno-1-21" href="#__codelineno-1-21"></a><span class="w">          </span><span class="nt">"comparison_direction"</span><span class="p">:</span><span class="w"> </span><span class="s2">"both"</span><span class="p">,</span>
-<a id="__codelineno-1-22" name="__codelineno-1-22" href="#__codelineno-1-22"></a><span class="w">          </span><span class="nt">"append_target_table"</span><span class="p">:</span><span class="w"> </span><span class="s2">"poc.bronze_sales.orders_raw"</span>
-<a id="__codelineno-1-23" name="__codelineno-1-23" href="#__codelineno-1-23"></a><span class="w">        </span><span class="p">}</span>
-<a id="__codelineno-1-24" name="__codelineno-1-24" href="#__codelineno-1-24"></a><span class="w">      </span><span class="p">],</span>
-<a id="__codelineno-1-25" name="__codelineno-1-25" href="#__codelineno-1-25"></a><span class="w">      </span><span class="nt">"match_keys"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">"order_id"</span><span class="p">],</span>
-<a id="__codelineno-1-26" name="__codelineno-1-26" href="#__codelineno-1-26"></a><span class="w">      </span><span class="nt">"compare_columns"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">"status"</span><span class="p">,</span><span class="w"> </span><span class="s2">"total"</span><span class="p">],</span>
-<a id="__codelineno-1-27" name="__codelineno-1-27" href="#__codelineno-1-27"></a><span class="w">      </span><span class="nt">"error_handling"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nt">"on_failure"</span><span class="p">:</span><span class="w"> </span><span class="s2">"fail"</span><span class="w"> </span><span class="p">}</span>
-<a id="__codelineno-1-28" name="__codelineno-1-28" href="#__codelineno-1-28"></a><span class="w">    </span><span class="p">}</span>
-<a id="__codelineno-1-29" name="__codelineno-1-29" href="#__codelineno-1-29"></a><span class="w">  </span><span class="p">]</span>
-<a id="__codelineno-1-30" name="__codelineno-1-30" href="#__codelineno-1-30"></a><span class="p">}</span>
-</code></pre></div>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="p">{</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="w">  </span><span class="nt">"reconciliation_flows"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="w">    </span><span class="p">{</span>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="w">      </span><span class="nt">"reconciliation_id"</span><span class="p">:</span><span class="w"> </span><span class="s2">"recon_orders_daily"</span><span class="p">,</span>
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="w">      </span><span class="nt">"two_tier_verification"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="w">      </span><span class="nt">"logging_config"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nt">"run_log_capture"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span><span class="w"> </span><span class="nt">"mismatch_log_capture"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="w"> </span><span class="p">},</span>
+</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="w">      </span><span class="nt">"source_config"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="w">        </span><span class="nt">"type"</span><span class="p">:</span><span class="w"> </span><span class="s2">"table"</span><span class="p">,</span>
+</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a><span class="w">        </span><span class="nt">"table"</span><span class="p">:</span><span class="w"> </span><span class="s2">"poc.bronze_sales.orders_raw"</span><span class="p">,</span>
+</span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="w">        </span><span class="nt">"read_mode"</span><span class="p">:</span><span class="w"> </span><span class="s2">"batch"</span><span class="p">,</span>
+</span><span id="__span-1-11"><a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="w">        </span><span class="nt">"task_run_id_column"</span><span class="p">:</span><span class="w"> </span><span class="s2">"__framework_pipeline_run_id"</span><span class="p">,</span>
+</span><span id="__span-1-12"><a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a><span class="w">        </span><span class="nt">"hash_precomputed"</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span>
+</span><span id="__span-1-13"><a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a><span class="w">      </span><span class="p">},</span>
+</span><span id="__span-1-14"><a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a><span class="w">      </span><span class="nt">"target_configs"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+</span><span id="__span-1-15"><a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a><span class="w">        </span><span class="p">{</span>
+</span><span id="__span-1-16"><a id="__codelineno-1-16" name="__codelineno-1-16" href="#__codelineno-1-16"></a><span class="w">          </span><span class="nt">"target_id"</span><span class="p">:</span><span class="w"> </span><span class="s2">"orders_silver"</span><span class="p">,</span>
+</span><span id="__span-1-17"><a id="__codelineno-1-17" name="__codelineno-1-17" href="#__codelineno-1-17"></a><span class="w">          </span><span class="nt">"type"</span><span class="p">:</span><span class="w"> </span><span class="s2">"table"</span><span class="p">,</span>
+</span><span id="__span-1-18"><a id="__codelineno-1-18" name="__codelineno-1-18" href="#__codelineno-1-18"></a><span class="w">          </span><span class="nt">"table"</span><span class="p">:</span><span class="w"> </span><span class="s2">"poc.silver_sales.orders"</span><span class="p">,</span>
+</span><span id="__span-1-19"><a id="__codelineno-1-19" name="__codelineno-1-19" href="#__codelineno-1-19"></a><span class="w">          </span><span class="nt">"read_mode"</span><span class="p">:</span><span class="w"> </span><span class="s2">"batch"</span><span class="p">,</span>
+</span><span id="__span-1-20"><a id="__codelineno-1-20" name="__codelineno-1-20" href="#__codelineno-1-20"></a><span class="w">          </span><span class="nt">"hash_precomputed"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+</span><span id="__span-1-21"><a id="__codelineno-1-21" name="__codelineno-1-21" href="#__codelineno-1-21"></a><span class="w">          </span><span class="nt">"comparison_direction"</span><span class="p">:</span><span class="w"> </span><span class="s2">"both"</span><span class="p">,</span>
+</span><span id="__span-1-22"><a id="__codelineno-1-22" name="__codelineno-1-22" href="#__codelineno-1-22"></a><span class="w">          </span><span class="nt">"append_target_table"</span><span class="p">:</span><span class="w"> </span><span class="s2">"poc.bronze_sales.orders_raw"</span>
+</span><span id="__span-1-23"><a id="__codelineno-1-23" name="__codelineno-1-23" href="#__codelineno-1-23"></a><span class="w">        </span><span class="p">}</span>
+</span><span id="__span-1-24"><a id="__codelineno-1-24" name="__codelineno-1-24" href="#__codelineno-1-24"></a><span class="w">      </span><span class="p">],</span>
+</span><span id="__span-1-25"><a id="__codelineno-1-25" name="__codelineno-1-25" href="#__codelineno-1-25"></a><span class="w">      </span><span class="nt">"match_keys"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">"order_id"</span><span class="p">],</span>
+</span><span id="__span-1-26"><a id="__codelineno-1-26" name="__codelineno-1-26" href="#__codelineno-1-26"></a><span class="w">      </span><span class="nt">"compare_columns"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">"status"</span><span class="p">,</span><span class="w"> </span><span class="s2">"total"</span><span class="p">],</span>
+</span><span id="__span-1-27"><a id="__codelineno-1-27" name="__codelineno-1-27" href="#__codelineno-1-27"></a><span class="w">      </span><span class="nt">"error_handling"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nt">"on_failure"</span><span class="p">:</span><span class="w"> </span><span class="s2">"fail"</span><span class="w"> </span><span class="p">}</span>
+</span><span id="__span-1-28"><a id="__codelineno-1-28" name="__codelineno-1-28" href="#__codelineno-1-28"></a><span class="w">    </span><span class="p">}</span>
+</span><span id="__span-1-29"><a id="__codelineno-1-29" name="__codelineno-1-29" href="#__codelineno-1-29"></a><span class="w">  </span><span class="p">]</span>
+</span><span id="__span-1-30"><a id="__codelineno-1-30" name="__codelineno-1-30" href="#__codelineno-1-30"></a><span class="p">}</span>
+</span></code></pre></div>
 <h3 id="31-flow-level-fields">3.1 Flow-level fields<a class="headerlink" href="#31-flow-level-fields" title="Permanent link">&para;</a></h3>
 <table>
 <thead>
@@ -4496,8 +5293,8 @@
 <tr>
 <td><code>publish_schema</code></td>
 <td><code>string</code></td>
-<td>the hosting pipeline's own schema</td>
-<td><strong>New in v1.5.0.</strong> Schema (inside the pipeline's own catalog) that this flow's <strong>published</strong> datasets land in — since v1.6.0 that is <code>recon__&lt;rid&gt;__&lt;tid&gt;__metrics</code> / <code>__mismatch</code> (each registered only when its capture flag is on) plus a healing flow's <code>_src</code>/healing <code>_tgt</code>; every other recon dataset is a pipeline-scoped temporary table and is never published anywhere (<a href="#1110-v160--the-intermediate-object-rule-and-the-conditional-audit-datasets">§11.10</a>). They are real, externally visible UC tables, so the default — the pipeline's own schema — is often not where you want reconciliation output to land. Persisted to <code>reconciliation_flow_spec.publish_schema</code>. <strong>Rejected on presence when <code>execution_mode</code> is <code>"job"</code></strong>, which publishes no datasets. How the default is actually resolved, and why it used to resolve to <code>None</code>: <a href="#119-where-the-published-datasets-land--publish_schema-resolution">§11.9</a>.</td>
+<td>none — absent means <strong>publish nothing</strong> (since v1.7.07)</td>
+<td><strong>New in v1.5.0; semantics changed in v1.7.07.</strong> Schema (inside the pipeline's own catalog) that this flow's <strong>published</strong> datasets land in — since v1.6.0 that is <code>recon__&lt;rid&gt;__&lt;tid&gt;__metrics</code> / <code>__mismatch</code> (each registered only when its capture flag is on) plus a healing flow's <code>_src</code>/healing <code>_tgt</code>; every other recon dataset is a pipeline-scoped temporary table and is never published anywhere (<a href="#1110-v160-the-intermediate-object-rule-and-the-conditional-audit-datasets">§11.10</a>). They are real, externally visible UC tables. <strong>Since v1.7.07 this key is the only thing that publishes:</strong> omit it and <code>__metrics</code>/<code>__mismatch</code> are registered as pipeline-scoped temporary tables instead — a <code>dq_config</code> gate still fails the update, but no <code>reconciliation_run_log</code>/<code>reconciliation_mismatch_log</code> row can be exported, so <code>run_log_capture</code>/<code>mismatch_log_capture: true</code> without it is rejected at onboarding, as is a <code>"pipeline"</code>-mode healing flow (its prepared <code>_src</code>/<code>_tgt</code> must be published). Persisted to <code>reconciliation_flow_spec.publish_schema</code>. <strong>Rejected on presence when <code>execution_mode</code> is <code>"job"</code></strong>, which publishes no datasets. History of the pre-v1.7.07 fallback: <a href="#119-where-the-published-datasets-land-publish_schema-resolution">§11.9</a>.</td>
 </tr>
 <tr>
 <td><code>dq_config</code></td>
@@ -4639,10 +5436,10 @@
 <h2 id="4-two-tier-verification-phase-1-phase-2">4. Two-Tier Verification: Phase 1 + Phase 2<a class="headerlink" href="#4-two-tier-verification-phase-1-phase-2" title="Permanent link">&para;</a></h2>
 <p><strong>Phase 2 is not new</strong> — it is the pre-v1.3.0 matching engine, unchanged: a full outer join on <code>__framework_hash_key</code>, a per-key <code>F.max_by</code> collapse (MATCHED beats VALUE_DRIFT beats MISSING_<em>, so a key counts as matched as soon as </em>any* target-side row for it matches — this protects against an append-only target legitimately holding more than one historical row for the same key), and four-way classification. <code>mismatch_logging.py</code> already produces full column-by-column <code>differing_columns_json</code> for every <code>VALUE_DRIFT</code> record.</p>
 <p><strong>Phase 1 is genuinely new in v1.3.0</strong>: a cheap, shuffle-free, per-side aggregate computed <em>before</em> the join, used purely as an early-out.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>row_count       = count(1)
-<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>hash_key_xor    = order-independent bitwise-XOR fold of __framework_hash_key   across all rows
-<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>hash_value_xor  = order-independent bitwise-XOR fold of __framework_hash_value across all rows
-</code></pre></div>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>row_count       = count(1)
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>hash_key_xor    = order-independent bitwise-XOR fold of __framework_hash_key   across all rows
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>hash_value_xor  = order-independent bitwise-XOR fold of __framework_hash_value across all rows
+</span></code></pre></div>
 <p>Both folds run inside the <em>same</em> <code>.agg(...)</code> as <code>row_count</code> — one scan of the side's hash columns, no <code>groupBy</code>, no <code>orderBy</code>, no join. XOR's commutativity/associativity means the fold does not depend on row or partition order.</p>
 <blockquote>
 <p><strong>What a Phase-1 match skips, precisely (clarified in v1.5.0).</strong> It skips <strong>the join and the append</strong> — and <em>never</em> the log writes. <code>_complete_phase_1_match</code> exists exactly to write the same <code>reconciliation_run_log</code> / <code>reconciliation_result</code> rows a Phase-2 run would have written, subject to the usual <a href="#6-runtime-log-controls">§6</a> gates. The semantics are identical under <code>execution_mode: "pipeline"</code>: the fingerprint short-circuit lives in the <code>foreach_batch_sink</code> handler, where <code>.collect()</code> is legal, so it genuinely still skips the join and the append there too.</p>
@@ -4651,8 +5448,8 @@
 <p><strong>Early-out bookkeeping.</strong> On a Phase 1 match, <code>reconciliation_run_log</code>/<code>reconciliation_result</code> are still written exactly as any other run: <code>matched_count = source_record_count</code>, all four discrepancy counts <code>= 0</code>, <code>appended_count = 0</code>, <code>failed_count = 0</code>, <code>status = "SUCCESS"</code>, and <code>fingerprint</code> is written as the <strong>source-side</strong> <code>hash_key_xor</code> digest (there is no miss set to fingerprint the usual way). The structured <code>reconciliation_match</code> log event carries <code>phase="PHASE_1_MATCH"</code> on an early-out vs. <code>phase="PHASE_2_DETAIL"</code> on a run that actually joined — this field exists specifically so an operator reading the event stream can tell "skipped the join" apart from "joined and found everything matched," which would otherwise be indistinguishable.</p>
 <blockquote>
 <p><strong>Accepted probabilistic property (documented in <code>reconciliation/matcher.py</code>'s module docstring).</strong> A bitwise XOR fold cancels in pairs (<code>x XOR x == 0</code>), so two datasets differing by an even number of <em>identical duplicate</em> rows can fold to the same digest. Including <code>row_count</code> in the fingerprint catches every case where the cardinalities differ — i.e. every duplicate-count drift — so what remains is the narrow same-cardinality, even-multiplicity permutation case, the same collision class <code>appender.py::compute_batch_fingerprint</code>'s restartability fingerprint has always accepted. Concretely: <strong>Phase 1 can produce a false "equal," but it can never produce a false "different."</strong> A flow that cannot tolerate the false-equal case should set:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="p">{</span><span class="w"> </span><span class="nt">"two_tier_verification"</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="w"> </span><span class="p">}</span>
-</code></pre></div>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="p">{</span><span class="w"> </span><span class="nt">"two_tier_verification"</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="w"> </span><span class="p">}</span>
+</span></code></pre></div>
 <p>which always runs Phase 2 and pays the join cost on every run.</p>
 </blockquote>
 <p>A key-presence-only flow (<code>compare_columns</code> absent/empty) still benefits correctly from Phase 1: <code>__framework_hash_value</code> is NULL throughout on both sides in that configuration, and a side with no rows or an all-NULL hash-value column folds to <code>"0" * 64</code> on both sides identically — so Phase 1's comparison correctly reduces to "same keys, same cardinality," exactly what Phase 2 would have concluded for it anyway (<code>matcher.py</code> forces <code>hash_equal = True</code> when <code>compare_columns</code> is empty).</p>
@@ -4674,8 +5471,8 @@
 <strong>BREAKING (v1.4.0): <code>recon_mode</code> is removed</strong> — from the spec, the JSON schema, the
 <code>reconciliation_flow_spec</code> DDL, the validator, and the <code>05_reconciliation_engine.py</code> widgets.
 Onboarding rejects it:
-<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>reconciliation_flow[&lt;id&gt;].recon_mode: removed in v1.4.0 -- reconciliation is triggered-only. Every run is a bounded job task: batch reads, and trigger(availableNow=True) for a read_mode 'streaming' side, so the run drains its backlog and finishes. There is no continuous reconciliation mode and no recon_mode widget; delete the key. For continuous coverage, schedule the reconciliation job on the cadence you need.
-</code></pre></div>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>reconciliation_flow[&lt;id&gt;].recon_mode: removed in v1.4.0 -- reconciliation is triggered-only. Every run is a bounded job task: batch reads, and trigger(availableNow=True) for a read_mode 'streaming' side, so the run drains its backlog and finishes. There is no continuous reconciliation mode and no recon_mode widget; delete the key. For continuous coverage, schedule the reconciliation job on the cadence you need.
+</span></code></pre></div>
 Both former values are rejected, <code>"triggered"</code> included — it is removed as an <em>attribute</em>, so a
 spec asserting the surviving behaviour still names a field that no longer exists.</p>
 </blockquote>
@@ -4747,6 +5544,15 @@ classification. Configure the non-streaming side as <code>read_mode: "batch"</co
 <p>One asymmetry remains and is deliberate: in a mixed batch/streaming comparison, only the <strong>static</strong> side is narrowed. The streaming side's own micro-batch offsets already are the batch boundary, and filtering it by a single producing-run id would silently discard every offset belonging to any other one — data the checkpoint then advances past and never re-offers.</p>
 <hr />
 <h2 id="6-runtime-log-controls">6. Runtime Log Controls<a class="headerlink" href="#6-runtime-log-controls" title="Permanent link">&para;</a></h2>
+<div class="admonition danger">
+<p class="admonition-title">v1.7.3 BREAKING CHANGE — reconciliation is now SILENT BY DEFAULT</p>
+<p>Both log-capture flags now fall back to <strong><code>false</code></strong> when neither the job parameter nor the flow's own <code>logging_config</code> sets them. Through v1.7.2 that fallback was <code>true</code>.</p>
+<p><strong>A reconciliation flow that does not mention logging now writes nothing</strong> — no <code>reconciliation_run_log</code>, no <code>reconciliation_result</code>, no <code>reconciliation_mismatch_log</code> rows, and in pipeline mode neither the <code>recon__*__metrics</code> nor the <code>recon__*__mismatch</code> dataset is registered. Auditing is opt-in.</p>
+<p><strong>Migration.</strong> To keep the pre-v1.7.3 behaviour, add the opt-in explicitly to every flow that needs it:</p>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="p">{</span><span class="w"> </span><span class="nt">"logging_config"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nt">"run_log_capture"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span><span class="w"> </span><span class="nt">"mismatch_log_capture"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">}</span>
+</span></code></pre></div>
+<p>Only the <em>implicit</em> fallback moved. A flow that already writes an explicit <code>true</code> or <code>false</code> — and any run that sets the <code>recon_run_log_capture</code>/<code>recon_mismatch_log</code> job parameters — resolves exactly as it did before. <strong>Anything reading the reconciliation control tables (BI dashboards, alerting, the observability export) will go empty for flows that have not opted in.</strong></p>
+</div>
 <p>Two independent layers control whether a run's log rows get written. <strong>What the flags gate widened in v1.6.0</strong>:</p>
 <table>
 <thead>
@@ -4769,25 +5575,27 @@ classification. Configure the non-streaming side as <code>read_mode: "batch"</co
 </tr>
 </tbody>
 </table>
-<p><strong>Both flags resolved <code>false</code> means reconciliation persists to NOTHING but its business targets</strong> — no metric/log dataset is created, no control-table row is written (a failed run included), and the run's job/pipeline state plus the structured log events are the only failure signal. That is the deliberate v1.6.0 contract: <code>logging_config</code> is a real off-switch, not a partial one. Two contradictory configurations are rejected — at onboarding (<code>spec_validator.py::_validate_logging_config</code>) <em>and</em> again at graph definition (<code>graph_registration.py</code>, catching runtime pipeline-conf overrides):</p>
+<p><strong>Both flags resolved <code>false</code> means reconciliation persists to NOTHING but its business targets</strong> — no metric/log dataset is created, no control-table row is written (a failed run included), and the run's job/pipeline state plus the structured log events are the only failure signal. That is the deliberate v1.6.0 contract: <code>logging_config</code> is a real off-switch, not a partial one. <strong>Since v1.7.3 this is also the <em>default</em> state</strong>, reached by saying nothing at all.</p>
+<p>Two contradictory configurations are rejected — at onboarding (<code>spec_validator.py::_validate_logging_config</code>) <em>and</em> again at graph definition (<code>graph_registration.py</code>, catching runtime pipeline-conf overrides):</p>
 <ul>
 <li><code>dq_config.rules</code> while <code>run_log_capture</code> resolves <code>false</code> — the flow's expectations attach to its <code>__metrics</code> dataset, which would not exist, silently dropping declared data-quality checks.</li>
-<li><code>execution_mode: "pipeline_audit_only"</code> with <strong>both</strong> flags <code>false</code> — audit-only exists solely to produce the metrics/mismatch datasets and their control-table exports, so this combination registers compute with no output at all.</li>
+<li><code>execution_mode: "pipeline_audit_only"</code> with <strong>both</strong> flags resolving <code>false</code> — audit-only exists solely to produce the metrics/mismatch datasets and their control-table exports, so this combination registers compute with no output at all.</li>
 </ul>
+<p><strong>v1.7.3 note on these two rejections.</strong> Both were previously reachable only when an author explicitly wrote <code>false</code>. Because the default flipped, they are now reachable by <em>omission</em> — a flow that declares <code>dq_config.rules</code> and no <code>logging_config</code> at all is rejected, as is a <code>pipeline_audit_only</code> flow with no <code>logging_config</code>. They remain rejections rather than silent downgrades (an expectation with nothing to attach to is still dropped data quality; audit-only with no output is still compute for nothing), but the error message now names <strong>how the flag got its value</strong> — written <code>false</code>, defaulted <code>false</code>, or overridden <code>false</code> by a pipeline-conf key — and tells you to set <code>run_log_capture: true</code>. An error that told you to remove a <code>false</code> you never wrote would be a bad error.</p>
 <p>The two layers:</p>
 <ol>
-<li><strong>Onboarded, per-flow layer</strong>: <code>logging_config.run_log_capture</code> / <code>logging_config.mismatch_log_capture</code>, both default <code>true</code>. Persisted as <code>reconciliation_flow_spec.logging_config_json</code>.</li>
+<li><strong>Onboarded, per-flow layer</strong>: <code>logging_config.run_log_capture</code> / <code>logging_config.mismatch_log_capture</code>, <strong>both default <code>false</code> since v1.7.3</strong> (they defaulted to <code>true</code> through v1.7.2). Persisted as <code>reconciliation_flow_spec.logging_config_json</code>.</li>
 <li><strong>Runtime, job-parameter layer</strong> (v1.3.0): the notebook widgets <code>recon_run_log_capture</code> / <code>recon_mismatch_log</code>. Each is <strong>tri-state</strong>: <code>""</code> (default — defer to <code>logging_config</code>), <code>"true"</code>, <code>"false"</code>. In pipeline mode the equivalents are the pipeline-conf keys <code>dataflow.recon.run_log_capture</code> / <code>dataflow.recon.mismatch_log</code>, and since v1.6.0 they participate in the graph-definition decision (which datasets exist), not just the write decision.</li>
 </ol>
 <p><strong>Precedence, highest first</strong> (<code>reconciliation/appender.py::resolve_log_capture_flags</code>, the single function that decides this — pure, no Spark, unit-tested with plain dicts):</p>
 <ol>
 <li><code>recon_run_log_capture</code> / <code>recon_mismatch_log</code> job parameter, when set to <code>"true"</code>/<code>"false"</code>.</li>
 <li><code>logging_config.run_log_capture</code> / <code>logging_config.mismatch_log_capture</code> from the flow spec.</li>
-<li><code>true</code>.</li>
+<li><code>false</code> — <strong>v1.7.3 breaking change; this fallback was <code>true</code> through v1.7.2.</strong> Layers 1 and 2 are unchanged.</li>
 </ol>
 <p>The two naming schemes are deliberately distinct rather than unified: <code>recon_*</code> names a runtime job/pipeline parameter that lives on one job run and evaporates afterward; <code>logging_config.*</code> names onboarded flow metadata that persists and is reviewed like any other spec field. An operator firefighting a runaway continuous flow needs to silence log writes for one run without re-onboarding the flow, and needs to be able to tell at a glance whether a value came from metadata or from the run they just launched — a plain boolean widget cannot express "I am not expressing an opinion," which is why the widgets are tri-state dropdowns rather than plain booleans.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="p">{</span><span class="w"> </span><span class="nt">"logging_config"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nt">"run_log_capture"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span><span class="w"> </span><span class="nt">"mismatch_log_capture"</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">}</span>
-</code></pre></div>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="p">{</span><span class="w"> </span><span class="nt">"logging_config"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nt">"run_log_capture"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span><span class="w"> </span><span class="nt">"mismatch_log_capture"</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="w"> </span><span class="p">}</span><span class="w"> </span><span class="p">}</span>
+</span></code></pre></div>
 <blockquote>
 <p><strong>Note:</strong> <code>logging_config</code> was already read by the validator and persisted to <code>reconciliation_flow_spec.logging_config_json</code> before v1.3.0, but it was never actually present in <code>onboarding_spec.schema.json</code> — it validated only because the reconciliation flow schema allowed additional properties. v1.3.0 adds it to the JSON Schema explicitly.</p>
 </blockquote>
@@ -4795,14 +5603,14 @@ classification. Configure the non-streaming side as <code>read_mode: "batch"</co
 <h2 id="7-delta-tables-only-scope-breaking-change-in-v130">7. Delta-Tables-Only Scope (Breaking Change in v1.3.0)<a class="headerlink" href="#7-delta-tables-only-scope-breaking-change-in-v130" title="Permanent link">&para;</a></h2>
 <p><code>ALLOWED_RECON_DATASET_TYPES</code> narrows from <code>{"table", "file", "sink"}</code> to <code>{"table"}</code>. <code>file</code> and <code>sink</code> are rejected both at onboarding (<code>spec_validator.py</code>) and at runtime (<code>dataset_reader.py</code>) — there is no grace period or silent fallback.</p>
 <p><strong>Onboarding-time error</strong> (<code>onboarding/spec_validator.py::_validate_reconciliation_dataset_config</code>, verbatim):</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>&lt;path&gt;.type: reconciliation is supported for Delta tables only -- type must be 'table', got 'file'. Read the file/sink output into a Delta table first, then reconcile against that table.
-</code></pre></div>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>&lt;path&gt;.type: reconciliation is supported for Delta tables only -- type must be 'table', got 'file'. Read the file/sink output into a Delta table first, then reconcile against that table.
+</span></code></pre></div>
 <p><strong>Runtime error</strong> (<code>reconciliation/dataset_reader.py::read_reconciliation_dataset</code>, verbatim — the defense-in-depth check for a hand-edited control-table row):</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>Unsupported reconciliation dataset type 'file' -- reconciliation is supported for Delta tables only ('table'). Read the file/sink output into a Delta table first, then reconcile against that table.
-</code></pre></div>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>Unsupported reconciliation dataset type 'file' -- reconciliation is supported for Delta tables only ('table'). Read the file/sink output into a Delta table first, then reconcile against that table.
+</span></code></pre></div>
 <p><code>type: "table"</code> alone does not prove the table is Delta — Unity Catalog also holds foreign/federated tables, Parquet/CSV external tables, and views. <code>dataset_reader.py</code> additionally resolves the table's provider via <code>DESCRIBE TABLE EXTENDED</code> and raises if it is a determinable, non-Delta provider:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>Reconciliation dataset table 'poc.bronze.orders_raw' is not a Delta table (provider='parquet') -- reconciliation is supported for Delta tables only.
-</code></pre></div>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>Reconciliation dataset table 'poc.bronze.orders_raw' is not a Delta table (provider='parquet') -- reconciliation is supported for Delta tables only.
+</span></code></pre></div>
 <p>If the provider genuinely cannot be determined (a temporary view, or a catalog that doesn't answer <code>DESCRIBE TABLE EXTENDED</code>), the read proceeds with a logged <code>WARNING</code> rather than failing — refusing to read something merely because its metadata was unreadable would fail runs that work today, which is judged a worse failure mode than the one this check guards against.</p>
 <p><strong>Why the narrowing.</strong> The dropped <code>type: "file"</code>/<code>"sink"</code> path read a raw location with <code>spark.read.format(...).load(path)</code>. That path could never carry precomputed <code>__framework_hash_key</code>/<code>__framework_hash_value</code> (forcing an inline re-hash of a whole file tree on every run), had no transaction boundary (a file landing mid-run could silently change what "the source" meant between the fingerprint and the append), and gave the matcher no file skipping to make its documented multiple re-reads of each side affordable. Every one of those problems disappears once the location has been ingested into a Delta table first — which every deployment of this framework is already set up to do. <strong>Migration path</strong>: land the file/sink output into a Delta table (via an ingestion flow, or any other means), then point <code>source_config</code>/<code>target_configs[].table</code> at that table.</p>
 <hr />
@@ -4858,8 +5666,8 @@ with <code>generate_hash_columns</code> enabled — the default — writes both 
 materialization time via <code>dq/quarantine.py::_apply_hash_columns</code>. See
 <a href="../03_transformation_and_cdc/"><code>03_transformation_and_cdc.md</code></a> §4.</p>
 <p>A <code>true</code> on a dataset that never went through such a flow is a hard error, not a silent recompute:
-<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>hash_precomputed=True but dataset is missing ['__framework_hash_key', '__framework_hash_value'] -- this dataset was not actually produced by a CDC-dispatched flow with generate_hash_columns enabled (see cdc/hashing.py), so its __framework_hash_key/__framework_hash_value cannot be trusted for reconciliation matching
-</code></pre></div>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>hash_precomputed=True but dataset is missing ['__framework_hash_key', '__framework_hash_value'] -- this dataset was not actually produced by a CDC-dispatched flow with generate_hash_columns enabled (see cdc/hashing.py), so its __framework_hash_key/__framework_hash_value cannot be trusted for reconciliation matching
+</span></code></pre></div>
 <code>hash_precomputed: true</code> is also rejected at onboarding for any dataset whose <code>type</code> is not
 <code>"table"</code> — only a framework-managed table can carry pre-built hash columns.</p>
 <h3 id="the-precondition-that-makes-the-trust-safe">The precondition that makes the trust safe<a class="headerlink" href="#the-precondition-that-makes-the-trust-safe" title="Permanent link">&para;</a></h3>
@@ -5133,7 +5941,7 @@ flow types; L3–L5 are what <code>execution_mode: "pipeline"</code> adds.</p>
 <code>@dlt.table(temporary=True)</code> under the node's bare, pipeline-local name: materialized once per
 update (the read-once guarantee is intact) but never published to Unity Catalog. Only the two
 audit datasets — <code>__metrics</code>/<code>__mismatch</code>, each conditional on its capture flag — and a healing
-flow's <code>_src</code>/healing <code>_tgt</code> remain published. See <a href="#1110-v160--the-intermediate-object-rule-and-the-conditional-audit-datasets">§11.10</a>
+flow's <code>_src</code>/healing <code>_tgt</code> remain published. See <a href="#1110-v160-the-intermediate-object-rule-and-the-conditional-audit-datasets">§11.10</a>
 for what this means for existing deployments and external consumers.</p>
 </blockquote>
 <h4 id="verified-live-the-exact-graph-one-update-registered">Verified live — the exact graph one update registered<a class="headerlink" href="#verified-live-the-exact-graph-one-update-registered" title="Permanent link">&para;</a></h4>
@@ -5231,39 +6039,39 @@ leading underscore and became temporary in v1.6.0, so on a v1.6.0 runtime only <
 <code>__mismatch</code> — when their flags are on — and a healing flow's <code>_src</code>/<code>_tgt</code> appear in Unity
 Catalog.)</p>
 <h3 id="112-the-dag">11.2 The DAG<a class="headerlink" href="#112-the-dag" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>                          ┌───────────────────────────────────────┐
-<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>   external locator  ───► │ L0  _src__…__stream / __batch         │  read ONCE per update
-<a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a>   (table / path)         │     (or inline / in-graph sibling)    │
-<a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a>                          └───────┬───────────────┬───────────────┘
-<a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a>                                  │               │
-<a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a>                ┌─────────────────▼──┐        ┌───▼────────────────────┐
-<a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a>        L1      │ _&lt;target&gt;_staged   │   L2   │ &lt;input_name&gt; view      │
-<a id="__codelineno-10-8" name="__codelineno-10-8" href="#__codelineno-10-8"></a>                └─────────┬──────────┘        └───┬────────────────────┘
-<a id="__codelineno-10-9" name="__codelineno-10-9" href="#__codelineno-10-9"></a>                          ▼                       ▼
-<a id="__codelineno-10-10" name="__codelineno-10-10" href="#__codelineno-10-10"></a>                  bronze target table      silver/gold CDC target
-<a id="__codelineno-10-11" name="__codelineno-10-11" href="#__codelineno-10-11"></a>                          │                       │
-<a id="__codelineno-10-12" name="__codelineno-10-12" href="#__codelineno-10-12"></a>                          └───────────┬───────────┘
-<a id="__codelineno-10-13" name="__codelineno-10-13" href="#__codelineno-10-13"></a>                                      ▼
-<a id="__codelineno-10-14" name="__codelineno-10-14" href="#__codelineno-10-14"></a>                     ┌────────────────────────────────┐
-<a id="__codelineno-10-15" name="__codelineno-10-15" href="#__codelineno-10-15"></a>              L3     │ _recon__&lt;rid&gt;__src             │
-<a id="__codelineno-10-16" name="__codelineno-10-16" href="#__codelineno-10-16"></a>                     │ _recon__&lt;rid&gt;__&lt;tid&gt;__tgt      │
-<a id="__codelineno-10-17" name="__codelineno-10-17" href="#__codelineno-10-17"></a>                     └───────────────┬────────────────┘
-<a id="__codelineno-10-18" name="__codelineno-10-18" href="#__codelineno-10-18"></a>                                     ▼   FULL OUTER on __framework_hash_key
-<a id="__codelineno-10-19" name="__codelineno-10-19" href="#__codelineno-10-19"></a>                     ┌────────────────────────────────┐
-<a id="__codelineno-10-20" name="__codelineno-10-20" href="#__codelineno-10-20"></a>              L4     │ recon__…__classified   (pub)   │
-<a id="__codelineno-10-21" name="__codelineno-10-21" href="#__codelineno-10-21"></a>                     │ recon__…__metrics (pub, 1 row) │──► dq_config expectations
-<a id="__codelineno-10-22" name="__codelineno-10-22" href="#__codelineno-10-22"></a>                     │ recon__…__mismatch     (pub)   │
-<a id="__codelineno-10-23" name="__codelineno-10-23" href="#__codelineno-10-23"></a>                     │ _recon__…__missing             │
-<a id="__codelineno-10-24" name="__codelineno-10-24" href="#__codelineno-10-24"></a>                     └───────┬────────────────┬───────┘
-<a id="__codelineno-10-25" name="__codelineno-10-25" href="#__codelineno-10-25"></a>                             │ ordering edge  │
-<a id="__codelineno-10-26" name="__codelineno-10-26" href="#__codelineno-10-26"></a>   _recon__&lt;rid&gt;__pulse ─────┼────────────────┘
-<a id="__codelineno-10-27" name="__codelineno-10-27" href="#__codelineno-10-27"></a>      (streaming, lit(1))    ▼
-<a id="__codelineno-10-28" name="__codelineno-10-28" href="#__codelineno-10-28"></a>                     ┌────────────────────────────────┐
-<a id="__codelineno-10-29" name="__codelineno-10-29" href="#__codelineno-10-29"></a>              L5     │ recon__…__heal_flow            │
-<a id="__codelineno-10-30" name="__codelineno-10-30" href="#__codelineno-10-30"></a>                     │   └► _recon__…__heal_sink      │  foreach_batch_sink:
-<a id="__codelineno-10-31" name="__codelineno-10-31" href="#__codelineno-10-31"></a>                     └────────────────────────────────┘  fingerprint ledger, append,
-<a id="__codelineno-10-32" name="__codelineno-10-32" href="#__codelineno-10-32"></a>                                                         run_log / mismatch / result
-</code></pre></div>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>                          ┌───────────────────────────────────────┐
+</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>   external locator  ───► │ L0  _src__…__stream / __batch         │  read ONCE per update
+</span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a>   (table / path)         │     (or inline / in-graph sibling)    │
+</span><span id="__span-11-4"><a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a>                          └───────┬───────────────┬───────────────┘
+</span><span id="__span-11-5"><a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a>                                  │               │
+</span><span id="__span-11-6"><a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a>                ┌─────────────────▼──┐        ┌───▼────────────────────┐
+</span><span id="__span-11-7"><a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a>        L1      │ _&lt;target&gt;_staged   │   L2   │ &lt;input_name&gt; view      │
+</span><span id="__span-11-8"><a id="__codelineno-11-8" name="__codelineno-11-8" href="#__codelineno-11-8"></a>                └─────────┬──────────┘        └───┬────────────────────┘
+</span><span id="__span-11-9"><a id="__codelineno-11-9" name="__codelineno-11-9" href="#__codelineno-11-9"></a>                          ▼                       ▼
+</span><span id="__span-11-10"><a id="__codelineno-11-10" name="__codelineno-11-10" href="#__codelineno-11-10"></a>                  bronze target table      silver/gold CDC target
+</span><span id="__span-11-11"><a id="__codelineno-11-11" name="__codelineno-11-11" href="#__codelineno-11-11"></a>                          │                       │
+</span><span id="__span-11-12"><a id="__codelineno-11-12" name="__codelineno-11-12" href="#__codelineno-11-12"></a>                          └───────────┬───────────┘
+</span><span id="__span-11-13"><a id="__codelineno-11-13" name="__codelineno-11-13" href="#__codelineno-11-13"></a>                                      ▼
+</span><span id="__span-11-14"><a id="__codelineno-11-14" name="__codelineno-11-14" href="#__codelineno-11-14"></a>                     ┌────────────────────────────────┐
+</span><span id="__span-11-15"><a id="__codelineno-11-15" name="__codelineno-11-15" href="#__codelineno-11-15"></a>              L3     │ _recon__&lt;rid&gt;__src             │
+</span><span id="__span-11-16"><a id="__codelineno-11-16" name="__codelineno-11-16" href="#__codelineno-11-16"></a>                     │ _recon__&lt;rid&gt;__&lt;tid&gt;__tgt      │
+</span><span id="__span-11-17"><a id="__codelineno-11-17" name="__codelineno-11-17" href="#__codelineno-11-17"></a>                     └───────────────┬────────────────┘
+</span><span id="__span-11-18"><a id="__codelineno-11-18" name="__codelineno-11-18" href="#__codelineno-11-18"></a>                                     ▼   FULL OUTER on __framework_hash_key
+</span><span id="__span-11-19"><a id="__codelineno-11-19" name="__codelineno-11-19" href="#__codelineno-11-19"></a>                     ┌────────────────────────────────┐
+</span><span id="__span-11-20"><a id="__codelineno-11-20" name="__codelineno-11-20" href="#__codelineno-11-20"></a>              L4     │ recon__…__classified   (pub)   │
+</span><span id="__span-11-21"><a id="__codelineno-11-21" name="__codelineno-11-21" href="#__codelineno-11-21"></a>                     │ recon__…__metrics (pub, 1 row) │──► dq_config expectations
+</span><span id="__span-11-22"><a id="__codelineno-11-22" name="__codelineno-11-22" href="#__codelineno-11-22"></a>                     │ recon__…__mismatch     (pub)   │
+</span><span id="__span-11-23"><a id="__codelineno-11-23" name="__codelineno-11-23" href="#__codelineno-11-23"></a>                     │ _recon__…__missing             │
+</span><span id="__span-11-24"><a id="__codelineno-11-24" name="__codelineno-11-24" href="#__codelineno-11-24"></a>                     └───────┬────────────────┬───────┘
+</span><span id="__span-11-25"><a id="__codelineno-11-25" name="__codelineno-11-25" href="#__codelineno-11-25"></a>                             │ ordering edge  │
+</span><span id="__span-11-26"><a id="__codelineno-11-26" name="__codelineno-11-26" href="#__codelineno-11-26"></a>   _recon__&lt;rid&gt;__pulse ─────┼────────────────┘
+</span><span id="__span-11-27"><a id="__codelineno-11-27" name="__codelineno-11-27" href="#__codelineno-11-27"></a>      (streaming, lit(1))    ▼
+</span><span id="__span-11-28"><a id="__codelineno-11-28" name="__codelineno-11-28" href="#__codelineno-11-28"></a>                     ┌────────────────────────────────┐
+</span><span id="__span-11-29"><a id="__codelineno-11-29" name="__codelineno-11-29" href="#__codelineno-11-29"></a>              L5     │ recon__…__heal_flow            │
+</span><span id="__span-11-30"><a id="__codelineno-11-30" name="__codelineno-11-30" href="#__codelineno-11-30"></a>                     │   └► _recon__…__heal_sink      │  foreach_batch_sink:
+</span><span id="__span-11-31"><a id="__codelineno-11-31" name="__codelineno-11-31" href="#__codelineno-11-31"></a>                     └────────────────────────────────┘  fingerprint ledger, append,
+</span><span id="__span-11-32"><a id="__codelineno-11-32" name="__codelineno-11-32" href="#__codelineno-11-32"></a>                                                         run_log / mismatch / result
+</span></code></pre></div>
 <p>Everything above the sink is a graph node. <strong>The sink is not</strong>, which is exactly how the
 append-back edge into <code>append_target_table</code> is broken — and exactly why the <em>framework</em>, not
 Lakeflow, has to police feedback loops (see
@@ -5414,15 +6222,15 @@ drops every changed row rather than failing, which is strictly worse than failin
 <p><strong>Where the guard lives, and what it says.</strong> <code>engine/source_plane.py</code>'s plan-time <strong>G-STREAM</strong> check
 (<code>_NON_APPEND_ONLY_CDC_STRATEGIES</code>) rejects the request before a single <code>dlt</code> call is made, naming
 the consumer, the locator, the producing flow, and the setting to use instead:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>Consumer '&lt;consumer_id&gt;' requested a streaming read of '&lt;catalog.schema.table&gt;', which is produced
-<a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>in this same pipeline by flow '&lt;flow_id&gt;' with cdc_load_strategy='TRUNCATE_AND_LOAD' /
-<a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a>target_type='streaming_table'. A streaming read of a MERGE-written, snapshot-applied,
-<a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a>fully-recomputed (TRUNCATE_AND_LOAD) or materialized-view target raises Delta's
-<a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a>DELTA_SOURCE_TABLE_IGNORE_CHANGES at execution time. skipChangeCommits is refused as a workaround
-<a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a>because it silently drops changed rows rather than failing loudly -- read '&lt;...&gt;' as a batch
-<a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a>(dlt.read) consumer instead. For a reconciliation flow, that means execution_mode
-<a id="__codelineno-11-8" name="__codelineno-11-8" href="#__codelineno-11-8"></a>'pipeline_audit_only' (which reads its source as a batch) rather than 'pipeline'.
-</code></pre></div>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>Consumer '&lt;consumer_id&gt;' requested a streaming read of '&lt;catalog.schema.table&gt;', which is produced
+</span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>in this same pipeline by flow '&lt;flow_id&gt;' with cdc_load_strategy='TRUNCATE_AND_LOAD' /
+</span><span id="__span-12-3"><a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a>target_type='streaming_table'. A streaming read of a MERGE-written, snapshot-applied,
+</span><span id="__span-12-4"><a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a>fully-recomputed (TRUNCATE_AND_LOAD) or materialized-view target raises Delta's
+</span><span id="__span-12-5"><a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a>DELTA_SOURCE_TABLE_IGNORE_CHANGES at execution time. skipChangeCommits is refused as a workaround
+</span><span id="__span-12-6"><a id="__codelineno-12-6" name="__codelineno-12-6" href="#__codelineno-12-6"></a>because it silently drops changed rows rather than failing loudly -- read '&lt;...&gt;' as a batch
+</span><span id="__span-12-7"><a id="__codelineno-12-7" name="__codelineno-12-7" href="#__codelineno-12-7"></a>(dlt.read) consumer instead. For a reconciliation flow, that means execution_mode
+</span><span id="__span-12-8"><a id="__codelineno-12-8" name="__codelineno-12-8" href="#__codelineno-12-8"></a>'pipeline_audit_only' (which reads its source as a batch) rather than 'pipeline'.
+</span></code></pre></div>
 <blockquote>
 <p><strong><code>TRUNCATE_AND_LOAD</code> was the gap, and it was found the hard way.</strong> The guard originally listed
 only <code>SCD1</code>/<code>SCD2</code>/<code>SCD3</code>/<code>FULL_SNAPSHOT_CDC</code>. <code>TRUNCATE_AND_LOAD</code> dispatches to no CDC strategy
@@ -5439,6 +6247,24 @@ pinned by <code>tests/unit/test_geneva_e41a47ba_topology.py</code>.</p>
 L4 still run in-update, so <code>__classified</code> / <code>__metrics</code> / <code>__mismatch</code> are recomputed on every
 update and the <code>dq_config</code> expectation still evaluates; the corrective append moves back to the
 standalone <code>05_reconciliation_engine.py</code> job task on its own cadence.</p>
+<blockquote>
+<p><strong>v1.7.11: the onboarding validator now agrees with this section.</strong> Through v1.7.10 the
+matching onboarding rule, <strong>V-CYC-7</strong> in <code>onboarding/spec_validator.py</code>, fired under <strong>both</strong>
+pipeline modes, so the very setting this section, <a href="../13_known_limitations_and_gotchas/#r7"><code>13_known_limitations_and_gotchas.md</code> R7</a>
+and the G-STREAM message all named as the fix was itself rejected at onboarding, leaving a
+MERGE-written or fully-recomputed source with no legal in-pipeline setting at all. From v1.7.11
+the rule is gated on <code>execution_mode == "pipeline"</code> alone, and <code>"pipeline_audit_only"</code> is
+explicitly legal for exactly this case, because it binds <code>_recon__&lt;rid&gt;__src</code> with
+<code>want_stream=False</code> (a batch <code>dlt.read</code>) and returns before registering any heal lane, so the
+streaming hazard does not exist for it. This is a relaxation only: every spec that validated
+before still validates, and no onboarded control-table row changes shape. The surviving
+<code>"pipeline"</code> rejection now names <code>pipeline_audit_only</code> as the in-pipeline fix and <code>job</code> as the
+alternative.</p>
+<p><strong>If you take <code>"pipeline_audit_only"</code>, add the heal task yourself.</strong> Audit-only registers no
+heal sink at all, so without one <code>05_reconciliation_engine.py</code> job task per <code>reconciliation_id</code>
+the flow compares and reports forever while never healing anything. UC3's batch lane is the
+worked example: see <code>BT_Usecase/UC3/docs/UC3_MASTER_DOCUMENT.md</code> §8.3 and §9.2.</p>
+</blockquote>
 <h3 id="118-validator-severity-the-v-cyc-append-loop-rules-are-mode-dependent">11.8 Validator severity — the V-CYC append-loop rules are mode-dependent<a class="headerlink" href="#118-validator-severity-the-v-cyc-append-loop-rules-are-mode-dependent" title="Permanent link">&para;</a></h3>
 <p>The <code>V-CYC</code> rules in <code>onboarding/spec_validator.py</code> that describe an <strong>append loop</strong> —
 <code>V-CYC-2</code> (appending into this group's own target), <code>V-CYC-3</code> (appending into the raw ingestion
@@ -5479,17 +6305,31 @@ explicitly, and states that the same finding <em>would</em> be rejected under <c
 <blockquote>
 <p><strong>Not in this group:</strong> <code>V-CYC-1</code>, <code>V-CYC-6</code> and <code>V-CYC-7</code> (source must be a dataset this group
 publishes; <code>dataflow_group_id</code> required; producer must be append-only) are unconditional errors
-<em>in pipeline mode only</em> and are not evaluated at all under <code>"job"</code> — they are placement rules, not
-loop rules. <code>V-CYC-8</code> is a pure <strong>ingestion</strong> rule (two flows landing on one raw path while
+in pipeline mode and are not evaluated at all under <code>"job"</code>; they are placement rules, not
+loop rules. <strong>Their mode scoping is not identical, though.</strong> <code>V-CYC-1</code> and <code>V-CYC-6</code> fire under
+<strong>both</strong> <code>"pipeline"</code> and <code>"pipeline_audit_only"</code>. Since <strong>v1.7.11</strong>, <code>V-CYC-7</code> fires under
+<code>"pipeline"</code> <strong>only</strong>: audit-only reads its source as a batch and registers no heal lane, so it
+is the documented fix for a non-append-only producer rather than a second way to hit the same
+rule (see <a href="#117-the-reconciliation-source-must-be-append-only-in-pipeline-mode">§11.7</a>). <code>V-CYC-8</code> is a pure <strong>ingestion</strong> rule (two flows landing on one raw path while
 disagreeing about <code>landing_retention_policy</code> / <code>source_zip_handling</code>) and is invoked from
 <code>validate_spec</code> directly. It had been called from inside the reconciliation placement validator,
 which early-returns when a spec declares no reconciliation flows — so the rule was <strong>dead</strong> for
 exactly the ordinary Auto Loader spec it exists to protect. It now runs for every spec.</p>
 </blockquote>
 <h3 id="119-where-the-published-datasets-land-publish_schema-resolution">11.9 Where the published datasets land — <code>publish_schema</code> resolution<a class="headerlink" href="#119-where-the-published-datasets-land-publish_schema-resolution" title="Permanent link">&para;</a></h3>
-<p><code>publish_schema</code> is optional, and its default is <em>"the hosting pipeline's own schema."</em> That
-sentence hides a resolution chain worth knowing, because a wrong answer here does not produce a
-misplaced table — it produces a failed update.</p>
+<p><strong>Since v1.7.07, <code>publish_schema</code> is the only thing that publishes.</strong> A flow without it registers
+its <code>__metrics</code>/<code>__mismatch</code> datasets as pipeline-scoped temporary tables with the bare
+<code>_recon__&lt;rid&gt;__&lt;tid&gt;__metrics</code> spelling — a <code>dq_config</code> gate still fires, nothing lands in any
+schema, and nothing can be exported to the reconciliation control tables (so a capture flag
+without <code>publish_schema</code>, or a <code>"pipeline"</code>-mode healing flow without one, is rejected at onboarding
+and again at graph definition). The <code>publish_schema</code> argument the pipeline notebook still passes to
+<code>register_reconciliation_flow</code> is retained for call-site compatibility and is not consulted.</p>
+<p>Everything below describes the <strong>pre-v1.7.07</strong> behaviour, kept because the resolution chain it
+documents still exists in <code>resolve_pipeline_schema</code> and because it explains the tables you will
+find in <code>bronze</code> on any workspace that ran an audit-only flow before the change.</p>
+<p><code>publish_schema</code> was optional, and its default was <em>"the hosting pipeline's own schema."</em> That
+sentence hid a resolution chain worth knowing, because a wrong answer there did not produce a
+misplaced table — it produced a failed update.</p>
 <p>The node namer (<code>reconciliation/graph_registration.py::_node_name</code>) needs a concrete, safe schema
 for every L3/L4/L5 node. <code>notebooks/03_engine/03_lakeflow_declarative_pipeline.py</code> resolves
 <code>PIPELINE_SCHEMA</code> in this order, first non-empty wins:</p>
@@ -5512,11 +6352,13 @@ with <code>ValueError: Unsafe or malformed target_schema: None</code>. Observed 
 pipeline <code>be78d88d</code>. <strong>Anyone relying on the default is affected</strong> — a flow that sets an explicit
 <code>publish_schema</code> never went near this path.</p>
 </blockquote>
-<p><strong>Practical guidance.</strong> The default puts the published reconciliation datasets — since v1.6.0 that
-is <code>__metrics</code>/<code>__mismatch</code> (when their capture flags are on) plus a healing flow's <code>_src</code>/healing
-<code>_tgt</code>, no longer the whole L3/L4 set — into the same schema your pipeline publishes its business
-tables into. That is rarely where reconciliation output belongs. Set <code>publish_schema</code> explicitly —
-to a dedicated audit schema in the pipeline's own catalog — for anything beyond a test fixture.</p>
+<p><strong>Practical guidance (v1.7.07).</strong> Decide what the flow is for. A presence or threshold <strong>gate</strong>
+(<code>dq_config</code> only) needs no <code>publish_schema</code> and leaves nothing behind. An <strong>audit</strong> (a
+<code>reconciliation_run_log</code> row per update) or a <strong>healing</strong> flow needs <code>publish_schema</code> set to a
+dedicated reconciliation schema in the pipeline's own catalog; the pipeline's business schema is
+never used implicitly any more. Pre-v1.7.07 workspaces may still hold <code>recon__*__metrics</code> views in
+their business schemas — they were published by the old fallback and are dropped on the next
+update after the flow either sets <code>publish_schema</code> or stops capturing.</p>
 <h3 id="1110-v160-the-intermediate-object-rule-and-the-conditional-audit-datasets">11.10 v1.6.0 — the Intermediate Object Rule and the conditional audit datasets<a class="headerlink" href="#1110-v160-the-intermediate-object-rule-and-the-conditional-audit-datasets" title="Permanent link">&para;</a></h3>
 <p>v1.6.0 applies one framework-wide design standard — the <strong>Intermediate Object Rule</strong> — to the
 reconciliation graph: <em>an intermediate is a <code>@dlt.view</code> when it has a single reader and a
@@ -5594,9 +6436,53 @@ over a production pipeline.</p>
       
         <footer class="md-footer">
   
+    
+      
+      <nav class="md-footer__inner md-grid" aria-label="Footer" >
+        
+          
+          <a href="../03_transformation_and_cdc/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Transformation &amp; CDC">
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+            </div>
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Previous
+              </span>
+              <div class="md-ellipsis">
+                Transformation & CDC
+              </div>
+            </div>
+          </a>
+        
+        
+          
+          <a href="../06_egress_and_lakeflow_sinks/" class="md-footer__link md-footer__link--next" aria-label="Next: Egress &amp; Lakeflow sinks">
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Next
+              </span>
+              <div class="md-ellipsis">
+                Egress & Lakeflow sinks
+              </div>
+            </div>
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg>
+            </div>
+          </a>
+        
+      </nav>
+    
+  
   <div class="md-footer-meta md-typeset">
     <div class="md-footer-meta__inner md-grid">
       <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      FlowX · Data Platform Engineering
+    </div>
   
   
 </div>
@@ -5610,11 +6496,13 @@ over a production pipeline.</p>
       <div class="md-dialog__inner md-typeset"></div>
     </div>
     
+      <div class="md-progress" data-md-component="progress" role="progressbar"></div>
+    
     
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.instant", "navigation.tracking", "navigation.tabs", "navigation.sections", "navigation.top", "navigation.indexes", "toc.follow", "search.suggest", "search.highlight", "content.code.copy", "content.tabs.link"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["announce.dismiss", "content.code.annotate", "content.code.copy", "content.tabs.link", "content.tooltips", "navigation.footer", "navigation.indexes", "navigation.instant", "navigation.instant.progress", "navigation.path", "navigation.sections", "navigation.tabs", "navigation.tabs.sticky", "navigation.top", "navigation.tracking", "search.highlight", "search.share", "search.suggest", "toc.follow"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
     
     
       <script src="../assets/javascripts/bundle.d7400e89.min.js"></script>

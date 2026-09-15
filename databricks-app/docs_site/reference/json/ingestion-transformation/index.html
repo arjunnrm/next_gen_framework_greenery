@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="Metadata-driven ingestion, transformation, reconciliation and observability pipelines on Databricks Lakeflow — architecture, attribute reference, onboarding guides and operational runbooks.">
+        <meta name="description" content="Metadata-driven ingestion, transformation, reconciliation and observability pipelines on Databricks Lakeflow — platform hub, four framework pillars, console walkthroughs, the master configuration reference and operational runbooks.">
       
       
         <meta name="author" content="Data Platform Engineering">
@@ -37,21 +37,32 @@
         <link rel="stylesheet" href="../../../assets/stylesheets/palette.ab4e12ef.min.css">
       
       
+  
+  
+    
+      
+      
+    
+  
+    
+      
+      
+    
+  
+  
+  <style>:root{--md-admonition-icon--abstract:url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2024%2024%22%3E%3Cpath%20d%3D%22M10.59%2013.41c.41.39.41%201.03%200%201.42-.39.39-1.03.39-1.42%200a5.003%205.003%200%200%201%200-7.07l3.54-3.54a5.003%205.003%200%200%201%207.07%200%205.003%205.003%200%200%201%200%207.07l-1.49%201.49c.01-.82-.12-1.64-.4-2.42l.47-.48a2.98%202.98%200%200%200%200-4.24%202.98%202.98%200%200%200-4.24%200l-3.53%203.53a2.98%202.98%200%200%200%200%204.24m2.82-4.24c.39-.39%201.03-.39%201.42%200a5.003%205.003%200%200%201%200%207.07l-3.54%203.54a5.003%205.003%200%200%201-7.07%200%205.003%205.003%200%200%201%200-7.07l1.49-1.49c-.01.82.12%201.64.4%202.43l-.47.47a2.98%202.98%200%200%200%200%204.24%202.98%202.98%200%200%200%204.24%200l3.53-3.53a2.98%202.98%200%200%200%200-4.24.973.973%200%200%201%200-1.42%22/%3E%3C/svg%3E');--md-admonition-icon--example:url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2024%2024%22%3E%3Cpath%20d%3D%22M5%203h2v2H5v5a2%202%200%200%201-2%202%202%202%200%200%201%202%202v5h2v2H5c-1.07-.27-2-.9-2-2v-4a2%202%200%200%200-2-2H0v-2h1a2%202%200%200%200%202-2V5a2%202%200%200%201%202-2m14%200a2%202%200%200%201%202%202v4a2%202%200%200%200%202%202h1v2h-1a2%202%200%200%200-2%202v4a2%202%200%200%201-2%202h-2v-2h2v-5a2%202%200%200%201%202-2%202%202%200%200%201-2-2V5h-2V3zm-7%2012a1%201%200%200%201%201%201%201%201%200%200%201-1%201%201%201%200%200%201-1-1%201%201%200%200%201%201-1m-4%200a1%201%200%200%201%201%201%201%201%200%200%201-1%201%201%201%200%200%201-1-1%201%201%200%200%201%201-1m8%200a1%201%200%200%201%201%201%201%201%200%200%201-1%201%201%201%200%200%201-1-1%201%201%200%200%201%201-1%22/%3E%3C/svg%3E');}</style>
 
 
+
     
     
       
     
     
       
-        
-        
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
-        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
-      
     
+    
+      <link rel="stylesheet" href="../../../stylesheets/extra.css">
     
     <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
@@ -90,12 +101,14 @@
     
       
 
-<header class="md-header" data-md-component="header">
+  
+
+<header class="md-header md-header--shadow md-header--lifted" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
     <a href="../../.." title="FlowX" class="md-header__button md-logo" aria-label="FlowX" data-md-component="logo">
       
   
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18 11h-3.18C14.4 9.84 13.3 9 12 9s-2.4.84-2.82 2H6c-.33 0-2-.1-2-2V8c0-1.83 1.54-2 2-2h10.18C16.6 7.16 17.7 8 19 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3c-1.3 0-2.4.84-2.82 2H6C4.39 4 2 5.06 2 8v1c0 2.94 2.39 4 4 4h3.18c.42 1.16 1.52 2 2.82 2s2.4-.84 2.82-2H18c.33 0 2 .1 2 2v1c0 1.83-1.54 2-2 2H7.82C7.4 16.84 6.3 16 5 16a3 3 0 0 0-3 3 3 3 0 0 0 3 3c1.3 0 2.4-.84 2.82-2H18c1.61 0 4-1.07 4-4v-1c0-2.93-2.39-4-4-4m1-7a1 1 0 0 1 1 1 1 1 0 0 1-1 1 1 1 0 0 1-1-1 1 1 0 0 1 1-1M5 20a1 1 0 0 1-1-1 1 1 0 0 1 1-1 1 1 0 0 1 1 1 1 1 0 0 1-1 1"/></svg>
 
     </a>
     <label class="md-header__button md-icon" for="__drawer">
@@ -125,9 +138,19 @@
     
     
     
-    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    <input class="md-option" data-md-color-media="(prefers-color-scheme)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_0">
     
-      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m14.3 16-.7-2h-3.2l-.7 2H7.8L11 7h2l3.2 9zM20 8.69V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12zm-9.15 3.96h2.3L12 9z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="deep-orange"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_2" hidden>
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
       </label>
     
@@ -135,9 +158,9 @@
     
     
     
-    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="deep-orange"  aria-label="Switch to system preference"  type="radio" name="__palette" id="__palette_2">
     
-      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+      <label class="md-header__button md-icon" title="Switch to system preference" for="__palette_0" hidden>
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg>
       </label>
     
@@ -169,6 +192,11 @@
       </label>
       <nav class="md-search__options" aria-label="Search">
         
+          <a href="javascript:void(0)" class="md-search__icon md-icon" title="Share" aria-label="Share" data-clipboard data-clipboard-text="" data-md-component="search-share" tabindex="-1">
+            
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91s2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08"/></svg>
+          </a>
+        
         <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
           
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
@@ -193,16 +221,22 @@
       
     
     
+      <div class="md-header__source">
+        <a href="https://github.com/Madhan-RAGHU/NextGen_Metadata_Framework" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    NextGen_Metadata_Framework
+  </div>
+</a>
+      </div>
+    
   </nav>
   
-</header>
     
-    <div class="md-container" data-md-component="container">
       
-      
-        
-          
-            
 <nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
   <div class="md-grid">
     <ul class="md-tabs__list">
@@ -275,13 +309,35 @@
     
     
       <li class="md-tabs__item">
-        <a href="../../../01_platform_architecture/" class="md-tabs__link">
+        <a href="../../../pillars/" class="md-tabs__link">
           
   
   
     
   
-  Architecture
+  Pillars
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../console/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Console
 
         </a>
       </li>
@@ -305,7 +361,29 @@
   
     
   
-  JSON reference
+  Configuration
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../01_platform_architecture/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Architecture
 
         </a>
       </li>
@@ -392,7 +470,13 @@
     </ul>
   </div>
 </nav>
-          
+    
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
         
       
       <main class="md-main" data-md-component="main">
@@ -414,11 +498,23 @@
     <a href="../../.." title="FlowX" class="md-nav__button md-logo" aria-label="FlowX" data-md-component="logo">
       
   
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18 11h-3.18C14.4 9.84 13.3 9 12 9s-2.4.84-2.82 2H6c-.33 0-2-.1-2-2V8c0-1.83 1.54-2 2-2h10.18C16.6 7.16 17.7 8 19 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3c-1.3 0-2.4.84-2.82 2H6C4.39 4 2 5.06 2 8v1c0 2.94 2.39 4 4 4h3.18c.42 1.16 1.52 2 2.82 2s2.4-.84 2.82-2H18c.33 0 2 .1 2 2v1c0 1.83-1.54 2-2 2H7.82C7.4 16.84 6.3 16 5 16a3 3 0 0 0-3 3 3 3 0 0 0 3 3c1.3 0 2.4-.84 2.82-2H18c1.61 0 4-1.07 4-4v-1c0-2.93-2.39-4-4-4m1-7a1 1 0 0 1 1 1 1 1 0 0 1-1 1 1 1 0 0 1-1-1 1 1 0 0 1 1-1M5 20a1 1 0 0 1-1-1 1 1 0 0 1 1-1 1 1 0 0 1 1 1 1 1 0 0 1-1 1"/></svg>
 
     </a>
     FlowX
   </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/Madhan-RAGHU/NextGen_Metadata_Framework" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    NextGen_Metadata_Framework
+  </div>
+</a>
+    </div>
   
   <ul class="md-nav__list" data-md-scrollfix>
     
@@ -555,6 +651,8 @@
   
     
     
+      
+        
       
         
       
@@ -751,6 +849,34 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../onboarding/06_bt_digital_poc_deployment_issues/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    6 · BT Digital POC deployment issues
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -767,6 +893,8 @@
   
     
     
+      
+        
       
         
       
@@ -843,6 +971,34 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../16_usecase_implementation_guide/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Use case implementation guide
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -866,6 +1022,10 @@
   
     
     
+      
+        
+          
+        
       
         
       
@@ -891,14 +1051,15 @@
         <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
         
           
-          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
-            
+          <div class="md-nav__link md-nav__container">
+            <a href="../../../pillars/" class="md-nav__link ">
+              
   
   
   <span class="md-ellipsis">
     
   
-    Architecture
+    Pillars
   
 
     
@@ -906,19 +1067,27 @@
   
   
 
-            <span class="md-nav__icon md-icon"></span>
-          </label>
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_4" id="__nav_4_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
         
         <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_4">
             <span class="md-nav__icon md-icon"></span>
             
   
-    Architecture
+    Pillars
   
 
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
+            
+              
             
               
                 
@@ -927,14 +1096,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../01_platform_architecture/" class="md-nav__link">
+      <a href="../../../pillars/ingestion/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    Platform architecture & core concepts
+    1 · Ingestion
   
 
     
@@ -954,8 +1123,105 @@
   
   
   
+    <li class="md-nav__item">
+      <a href="../../../pillars/transformation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    2 · Transformation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../pillars/reconciliation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    3 · Reconciliation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../pillars/observability/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    4 · Observability
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
     
     
+      
+        
+          
+        
+      
+        
       
         
       
@@ -978,17 +1244,18 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_2" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
         
           
-          <label class="md-nav__link" for="__nav_4_2" id="__nav_4_2_label" tabindex="0">
-            
+          <div class="md-nav__link md-nav__container">
+            <a href="../../../console/" class="md-nav__link ">
+              
   
   
   <span class="md-ellipsis">
     
   
-    Data plane
+    Console
   
 
     
@@ -996,35 +1263,43 @@
   
   
 
-            <span class="md-nav__icon md-icon"></span>
-          </label>
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_5" id="__nav_5_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_2_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_4_2">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
             <span class="md-nav__icon md-icon"></span>
             
   
-    Data plane
+    Console
   
 
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
             
               
+            
+              
                 
   
   
   
   
     <li class="md-nav__item">
-      <a href="../../../02_ingestion_and_sources/" class="md-nav__link">
+      <a href="../../../console/spec_builder/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    Ingestion & source readers
+    Spec Builder app · tab by tab
   
 
     
@@ -1045,14 +1320,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../03_transformation_and_cdc/" class="md-nav__link">
+      <a href="../../../console/observability_dashboard/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    Transformation & CDC
+    Observability dashboard
   
 
     
@@ -1073,14 +1348,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../07_reconciliation_engine/" class="md-nav__link">
+      <a href="../../../console/control_dashboard/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    Reconciliation & self-healing
+    Control metadata dashboard
   
 
     
@@ -1101,110 +1376,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../06_egress_and_lakeflow_sinks/" class="md-nav__link">
+      <a href="../../../console/genie/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    Egress & Lakeflow sinks
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-          </ul>
-        </nav>
-      
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    
-    
-      
-        
-      
-        
-      
-        
-      
-    
-    
-    
-      
-      
-        
-      
-    
-    
-    <li class="md-nav__item md-nav__item--nested">
-      
-        
-        
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_3" >
-        
-          
-          <label class="md-nav__link" for="__nav_4_3" id="__nav_4_3_label" tabindex="0">
-            
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Cross-cutting concerns
-  
-
-    
-  </span>
-  
-  
-
-            <span class="md-nav__icon md-icon"></span>
-          </label>
-        
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_3_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_4_3">
-            <span class="md-nav__icon md-icon"></span>
-            
-  
-    Cross-cutting concerns
-  
-
-          </label>
-          <ul class="md-nav__list" data-md-scrollfix>
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../../04_data_quality_and_governance/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Data quality & governance
+    Genie space
   
 
     
@@ -1225,14 +1404,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../05_security_and_cryptography/" class="md-nav__link">
+      <a href="../../../console/agent_skills/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    Security & cryptography
+    Agent skills & tools
   
 
     
@@ -1241,164 +1420,6 @@
   
 
       </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../../08_observability_and_telemetry/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Observability & OpenTelemetry
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-          </ul>
-        </nav>
-      
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    
-    
-      
-        
-      
-        
-      
-    
-    
-    
-      
-      
-        
-      
-    
-    
-    <li class="md-nav__item md-nav__item--nested">
-      
-        
-        
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_4" >
-        
-          
-          <label class="md-nav__link" for="__nav_4_4" id="__nav_4_4_label" tabindex="0">
-            
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Design guarantees
-  
-
-    
-  </span>
-  
-  
-
-            <span class="md-nav__icon md-icon"></span>
-          </label>
-        
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_4_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_4_4">
-            <span class="md-nav__icon md-icon"></span>
-            
-  
-    Design guarantees
-  
-
-          </label>
-          <ul class="md-nav__list" data-md-scrollfix>
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../../11_hashing_and_determinism/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Deterministic hashing standard
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../../12_module_permutation_matrix/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Module permutation matrix
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-          </ul>
-        </nav>
-      
     </li>
   
 
@@ -1424,6 +1445,12 @@
       
         
           
+        
+      
+        
+      
+        
+      
         
       
         
@@ -1452,7 +1479,7 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" checked>
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" checked>
         
           
           <div class="md-nav__link md-nav__container">
@@ -1463,7 +1490,7 @@
   <span class="md-ellipsis">
     
   
-    JSON reference
+    Configuration
   
 
     
@@ -1474,23 +1501,51 @@
             </a>
             
               
-              <label class="md-nav__link " for="__nav_5" id="__nav_5_label" tabindex="">
+              <label class="md-nav__link " for="__nav_6" id="__nav_6_label" tabindex="">
                 <span class="md-nav__icon md-icon"></span>
               </label>
             
           </div>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="true">
-          <label class="md-nav__title" for="__nav_5">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_6">
             <span class="md-nav__icon md-icon"></span>
             
   
-    JSON reference
+    Configuration
   
 
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
             
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tree/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Spec tree view
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
               
             
               
@@ -1528,10 +1583,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_2" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_3" >
         
           
-          <label class="md-nav__link" for="__nav_5_2" id="__nav_5_2_label" tabindex="">
+          <label class="md-nav__link" for="__nav_6_3" id="__nav_6_3_label" tabindex="">
             
   
   
@@ -1549,8 +1604,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_5_2_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_5_2">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6_3">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -1739,10 +1794,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_3" checked>
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_4" checked>
         
           
-          <label class="md-nav__link" for="__nav_5_3" id="__nav_5_3_label" tabindex="">
+          <label class="md-nav__link" for="__nav_6_4" id="__nav_6_4_label" tabindex="">
             
   
   
@@ -1760,8 +1815,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_5_3_label" aria-expanded="true">
-          <label class="md-nav__title" for="__nav_5_3">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_4_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_6_4">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -2027,6 +2082,62 @@
   
   
     <li class="md-nav__item">
+      <a href="../removed/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Removed & rejected attributes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../sync/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Docs ↔ code synchronisation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../../00_master_reference_index/" class="md-nav__link">
         
   
@@ -2121,6 +2232,589 @@
     
       
         
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Architecture
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../01_platform_architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Platform architecture & core concepts
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_7_2" id="__nav_7_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data plane
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Data plane
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../02_ingestion_and_sources/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Ingestion & source readers
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../03_transformation_and_cdc/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Transformation & CDC
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../07_reconciliation_engine/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reconciliation & self-healing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../06_egress_and_lakeflow_sinks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Egress & Lakeflow sinks
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_7_3" id="__nav_7_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cross-cutting concerns
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Cross-cutting concerns
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../04_data_quality_and_governance/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data quality & governance
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../05_security_and_cryptography/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Security & cryptography
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../08_observability_and_telemetry/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Observability & OpenTelemetry
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../17_framework_observability_and_genie/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Framework observability, AI/BI & Genie
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_7_4" id="__nav_7_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Design guarantees
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Design guarantees
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../11_hashing_and_determinism/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Deterministic hashing standard
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../12_module_permutation_matrix/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Module permutation matrix
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
           
         
       
@@ -2145,7 +2839,7 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8" >
         
           
           <div class="md-nav__link md-nav__container">
@@ -2167,14 +2861,14 @@
             </a>
             
               
-              <label class="md-nav__link " for="__nav_6" id="__nav_6_label" tabindex="0">
+              <label class="md-nav__link " for="__nav_8" id="__nav_8_label" tabindex="0">
                 <span class="md-nav__icon md-icon"></span>
               </label>
             
           </div>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_6">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_8">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -2218,10 +2912,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_2" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8_2" >
         
           
-          <label class="md-nav__link" for="__nav_6_2" id="__nav_6_2_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_8_2" id="__nav_8_2_label" tabindex="0">
             
   
   
@@ -2239,8 +2933,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_2_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_6_2">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_8_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_8_2">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -2428,10 +3122,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_3" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8_3" >
         
           
-          <label class="md-nav__link" for="__nav_6_3" id="__nav_6_3_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_8_3" id="__nav_8_3_label" tabindex="0">
             
   
   
@@ -2449,8 +3143,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_3_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_6_3">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_8_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_8_3">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -2610,10 +3304,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_4" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8_4" >
         
           
-          <label class="md-nav__link" for="__nav_6_4" id="__nav_6_4_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_8_4" id="__nav_8_4_label" tabindex="0">
             
   
   
@@ -2631,8 +3325,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_4_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_6_4">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_8_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_8_4">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -2788,10 +3482,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_5" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8_5" >
         
           
-          <label class="md-nav__link" for="__nav_6_5" id="__nav_6_5_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_8_5" id="__nav_8_5_label" tabindex="0">
             
   
   
@@ -2809,8 +3503,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_5_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_6_5">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_8_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_8_5">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -2910,16 +3604,6 @@
       
         
       
-        
-      
-        
-      
-        
-      
-        
-      
-        
-      
     
     
     
@@ -2933,10 +3617,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_9" >
         
           
-          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_9" id="__nav_9_label" tabindex="0">
             
   
   
@@ -2954,8 +3638,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_7">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_9_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_9">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -3028,14 +3712,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../../../16_usecase_implementation_guide/" class="md-nav__link">
+      <a href="../../../13_known_limitations_and_gotchas/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    Use case implementation guide
+    Known limitations & gotchas
   
 
     
@@ -3048,6 +3732,98 @@
   
 
               
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../15_agent_skills_and_prompts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Agent skills & prompt library
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_9_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_9_5" id="__nav_9_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Use cases
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_9_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_9_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Use cases
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
             
               
                 
@@ -3189,57 +3965,9 @@
 
               
             
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../../15_agent_skills_and_prompts/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Agent skills & prompt library
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../../13_known_limitations_and_gotchas/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Known limitations & gotchas
-  
-
-    
-  </span>
-  
-  
-
-      </a>
+          </ul>
+        </nav>
+      
     </li>
   
 
@@ -3280,7 +4008,7 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_10" >
         
           
           <div class="md-nav__link md-nav__container">
@@ -3302,14 +4030,14 @@
             </a>
             
               
-              <label class="md-nav__link " for="__nav_8" id="__nav_8_label" tabindex="0">
+              <label class="md-nav__link " for="__nav_10" id="__nav_10_label" tabindex="0">
                 <span class="md-nav__icon md-icon"></span>
               </label>
             
           </div>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_8">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_10_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_10">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -3359,10 +4087,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8_1" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_10_1" >
         
           
-          <label class="md-nav__link" for="__nav_8_1" id="__nav_8_1_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_10_1" id="__nav_10_1_label" tabindex="0">
             
   
   
@@ -3380,8 +4108,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_8_1_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_8_1">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_10_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_10_1">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -3835,10 +4563,79 @@
           
             <div class="md-content" data-md-component="content">
               
+                
+
+
+
+  
+
+
+  <nav class="md-path" aria-label="Navigation" >
+    <ol class="md-path__list">
+      
+        
+  
+  
+    <li class="md-path__item">
+      <a href="../../.." class="md-path__link">
+        
+  <span class="md-ellipsis">
+    Home
+  </span>
+
+      </a>
+    </li>
+  
+
+      
+      
+        
+  
+  
+    
+    
+      <li class="md-path__item">
+        <a href="../" class="md-path__link">
+          
+  <span class="md-ellipsis">
+    Configuration
+  </span>
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+    
+    
+      <li class="md-path__item">
+        <a href="./" class="md-path__link">
+          
+  <span class="md-ellipsis">
+    Shared blocks
+  </span>
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ol>
+  </nav>
+
+              
               <article class="md-content__inner md-typeset">
                 
                   
 
+
+  
+  
 
 
 <!-- GENERATED FILE — do not edit.
@@ -3847,11 +4644,12 @@
 <h1 id="cdc-load-strategy">CDC / load strategy<a class="headerlink" href="#cdc-load-strategy" title="Permanent link">&para;</a></h1>
 <p>Attributes under <code>target_config</code> that only apply to particular CDC load strategies. The Spec Builder shows these on the <strong>Load strategy</strong> step and hides the ones the selected strategy does not use.</p>
 <div class="admonition info">
-<p class="admonition-title">10 attributes</p>
+<p class="admonition-title">10 attributes · 43 FAQs</p>
 <p>Every attribute below is also available in the Spec Builder's attribute
 inspector — click the <strong>i</strong> beside any field to see this same content
-without leaving the form.</p>
+without leaving the form. Badges: <span class="fx-badge fx-req">Required</span> <span class="fx-badge fx-opt">Optional</span> <span class="fx-badge fx-flow">Flow kind</span> <span class="fx-badge fx-ver">vX.Y+ added in</span> <span class="fx-badge fx-only">Spec Builder section</span>.</p>
 </div>
+<p><strong>Recipes and deep dive:</strong> <a href="../../../pillars/transformation/#load-strategies">Pillar 2 · Transformation (load strategies)</a> · <a href="../tree/">Schema tree</a> · <a href="../removed/">Removed &amp; rejected</a></p>
 <h2 id="summary">Summary<a class="headerlink" href="#summary" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
@@ -3860,6 +4658,7 @@ without leaving the form.</p>
 <th>Type</th>
 <th>Required</th>
 <th>Default</th>
+<th>Since</th>
 </tr>
 </thead>
 <tbody>
@@ -3868,11 +4667,13 @@ without leaving the form.</p>
 <td>string</td>
 <td>no</td>
 <td>—</td>
+<td>—</td>
 </tr>
 <tr>
 <td><a href="#target-configcdc-operation-column"><code>target_config.cdc_operation_column</code></a></td>
 <td>string</td>
 <td>no</td>
+<td>—</td>
 <td>—</td>
 </tr>
 <tr>
@@ -3880,11 +4681,13 @@ without leaving the form.</p>
 <td>array<string></td>
 <td><strong>yes</strong></td>
 <td>—</td>
+<td>—</td>
 </tr>
 <tr>
 <td><a href="#target-configcolumns-to-check"><code>target_config.columns_to_check</code></a></td>
 <td>array<string></td>
 <td>no</td>
+<td>—</td>
 <td>—</td>
 </tr>
 <tr>
@@ -3892,11 +4695,13 @@ without leaving the form.</p>
 <td>array<string></td>
 <td>no</td>
 <td>—</td>
+<td>—</td>
 </tr>
 <tr>
 <td><a href="#target-configempty-target-if-source-empty"><code>target_config.empty_target_if_source_empty</code></a></td>
 <td>boolean</td>
 <td>no</td>
+<td><code>false</code></td>
 <td>—</td>
 </tr>
 <tr>
@@ -3904,11 +4709,13 @@ without leaving the form.</p>
 <td>boolean</td>
 <td>no</td>
 <td>—</td>
+<td>—</td>
 </tr>
 <tr>
 <td><a href="#target-configprimary-keys"><code>target_config.primary_keys</code></a></td>
 <td>array<string></td>
 <td><strong>yes</strong></td>
+<td>—</td>
 <td>—</td>
 </tr>
 <tr>
@@ -3916,27 +4723,87 @@ without leaving the form.</p>
 <td>string</td>
 <td>no</td>
 <td>—</td>
+<td>—</td>
 </tr>
 <tr>
 <td><a href="#target-configsink-configpost-export-archivepgp-encryptionpassphrase-secret"><code>target_config.sink_config.post_export_archive.pgp_encryption.passphrase_secret</code></a></td>
 <td>string</td>
 <td>no</td>
 <td>—</td>
+<td>v1.7.4</td>
 </tr>
 </tbody>
 </table>
 <h2 id="attributes">Attributes<a class="headerlink" href="#attributes" title="Permanent link">&para;</a></h2>
 <h3 id="target-configcdc-load-strategy"><code>target_config.cdc_load_strategy</code><a class="headerlink" href="#target-configcdc-load-strategy" title="Permanent link">&para;</a></h3>
+<p><span class="fx-badge fx-opt">Optional</span> <span class="fx-badge fx-flow">Ingestion · Transformation</span></p>
 <p>How rows are merged into the target table.</p>
 <p>This single choice decides which other target_config attributes are meaningful; the strategy tabs re-scope the form around it. Two families: APPEND and TRUNCATE_AND_LOAD need no key and skip the CDC dispatcher entirely, while SCD1, SCD2, SCD3 and FULL_SNAPSHOT_CDC all merge on primary_keys. Choose by asking three things about the SOURCE, in order -- does each row have a business key, does the source deliver every live row on every run, and how much history the business actually needs.</p>
-<p><strong>Type</strong> <code>string</code> · <strong>Required</strong> no</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nt">"target_config"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="w">  </span><span class="nt">"cdc_load_strategy"</span><span class="p">:</span><span class="w"> </span><span class="s2">"SCD2"</span><span class="p">,</span>
-<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="w">  </span><span class="nt">"primary_keys"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">"customer_id"</span><span class="p">],</span>
-<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="w">  </span><span class="nt">"sequence_by_column"</span><span class="p">:</span><span class="w"> </span><span class="s2">"updated_at"</span><span class="p">,</span>
-<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="w">  </span><span class="nt">"columns_to_check"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">"status"</span><span class="p">,</span><span class="w"> </span><span class="s2">"tier"</span><span class="p">]</span>
-<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="p">}</span>
-</code></pre></div>
+<p><strong>Type &amp; constraints</strong></p>
+<table>
+<thead>
+<tr>
+<th>Type</th>
+<th>Default</th>
+<th>Allowed values</th>
+<th>Constraints</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>string</code></td>
+<td>—</td>
+<td><code>APPEND</code>, <code>TRUNCATE_AND_LOAD</code>, <code>SCD1</code>, <code>SCD2</code>, <code>SCD3</code>, <code>FULL_SNAPSHOT_CDC</code></td>
+<td>—</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Persisted in</strong> <code>config.ingestion_flow_spec / transformation_flow_spec.cdc_load_strategy</code> · <strong>Behaviour changed in</strong> v1.7.07</p>
+<div class="tabbed-set tabbed-alternate" data-tabs="1:4"><input checked="checked" id="json" name="__tabbed_1" type="radio" /><input id="validate-offline" name="__tabbed_1" type="radio" /><input id="onboard-cli" name="__tabbed_1" type="radio" /><input id="verify-sql" name="__tabbed_1" type="radio" /><div class="tabbed-labels"><label for="json">JSON</label><label for="validate-offline">Validate offline</label><label for="onboard-cli">Onboard (CLI)</label><label for="verify-sql">Verify (SQL)</label></div>
+<div class="tabbed-content">
+<div class="tabbed-block">
+<div class="language-json highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nt">"target_config"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="w">  </span><span class="nt">"cdc_load_strategy"</span><span class="p">:</span><span class="w"> </span><span class="s2">"SCD2"</span><span class="p">,</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="w">  </span><span class="nt">"primary_keys"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">"customer_id"</span><span class="p">],</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="w">  </span><span class="nt">"sequence_by_column"</span><span class="p">:</span><span class="w"> </span><span class="s2">"updated_at"</span><span class="p">,</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="w">  </span><span class="nt">"columns_to_check"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">"status"</span><span class="p">,</span><span class="w"> </span><span class="s2">"tier"</span><span class="p">]</span>
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="p">}</span>
+</span></code></pre></div>
+</div>
+<div class="tabbed-block">
+<div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">flowx.lakeflow_framework.onboarding.agent_tools</span><span class="w"> </span><span class="kn">import</span> <span class="n">validate_json</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s2">"dfg_orders.json"</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">"utf-8"</span><span class="p">)</span> <span class="k">as</span> <span class="n">fh</span><span class="p">:</span>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>    <span class="n">result</span> <span class="o">=</span> <span class="n">validate_json</span><span class="p">(</span><span class="n">fh</span><span class="o">.</span><span class="n">read</span><span class="p">(),</span> <span class="n">catalog</span><span class="o">=</span><span class="s2">"&lt;catalog&gt;"</span><span class="p">,</span> <span class="n">env</span><span class="o">=</span><span class="s2">"dev"</span><span class="p">)</span>
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>
+</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="p">[</span><span class="s2">"summary"</span><span class="p">])</span>        <span class="c1"># PASSED, or FAILED with the error count</span>
+</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="k">for</span> <span class="n">err</span> <span class="ow">in</span> <span class="n">result</span><span class="p">[</span><span class="s2">"errors"</span><span class="p">]:</span>    <span class="c1"># each error names the offending spec path</span>
+</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>    <span class="nb">print</span><span class="p">(</span><span class="n">err</span><span class="p">)</span>
+</span></code></pre></div>
+<p>No cluster, sub-second. The same <code>spec_validator.py</code> that the onboarding job runs.</p>
+</div>
+<div class="tabbed-block">
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="c1"># 1. Dry run against the live catalog: validates, writes nothing</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>databricks<span class="w"> </span>bundle<span class="w"> </span>run<span class="w"> </span>onboarding_job<span class="w"> </span>-t<span class="w"> </span>&lt;target&gt;<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="w">  </span>--params<span class="w"> </span><span class="nv">spec_file_path</span><span class="o">=</span>/Volumes/&lt;catalog&gt;/config/onboarding_specs/dfg_orders.json,catalog<span class="o">=</span>&lt;catalog&gt;,env<span class="o">=</span>&lt;target&gt;,action_type<span class="o">=</span>VALIDATE_ONLY
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="c1"># 2. Onboard: CREATE for a new group, UPDATE to upsert an existing one</span>
+</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>databricks<span class="w"> </span>bundle<span class="w"> </span>run<span class="w"> </span>onboarding_job<span class="w"> </span>-t<span class="w"> </span>&lt;target&gt;<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="w">  </span>--params<span class="w"> </span><span class="nv">spec_file_path</span><span class="o">=</span>/Volumes/&lt;catalog&gt;/config/onboarding_specs/dfg_orders.json,catalog<span class="o">=</span>&lt;catalog&gt;,env<span class="o">=</span>&lt;target&gt;,action_type<span class="o">=</span>CREATE
+</span></code></pre></div>
+<p>Onboarding writes control-table rows only. The pipeline picks the change up on its next update.</p>
+</div>
+<div class="tabbed-block">
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="c1">-- target_config.cdc_load_strategy is persisted as its own column</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="k">SELECT</span><span class="w"> </span><span class="n">dataflow_id</span><span class="p">,</span>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="w">       </span><span class="n">cdc_load_strategy</span><span class="p">,</span>
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="w">       </span><span class="n">is_active</span><span class="p">,</span><span class="w"> </span><span class="n">updated_at</span>
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="k">FROM</span><span class="w">   </span><span class="o">&lt;</span><span class="k">catalog</span><span class="o">&gt;</span><span class="p">.</span><span class="n">config</span><span class="p">.</span><span class="n">ingestion_flow_spec</span>
+</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="k">WHERE</span><span class="w">  </span><span class="n">dataflow_group_id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">'&lt;dataflow_group_id&gt;'</span><span class="p">;</span>
+</span></code></pre></div>
+</div>
+</div>
+</div>
 <div class="admonition tip">
 <p class="admonition-title">Best practice</p>
 <ul>
@@ -3976,18 +4843,98 @@ without leaving the form.</p>
 <em>Cause:</em> Partitioning is silently skipped for CDC-dispatched strategies.<br />
 <em>Fix:</em> Expected behaviour -- use APPEND/TRUNCATE_AND_LOAD, or accept an unpartitioned CDC target.</p>
 </div>
+<p><strong>FAQs</strong> (5)</p>
+<details class="question">
+<summary>If omitted · What happens if cdc_load_strategy is not set at all?</summary>
+<p>Onboarding rejects the flow — <code>_validate_target_config</code> calls <code>check_string(..., required=True)</code> for <code>cdc_load_strategy</code>, so it is mandatory whenever <code>target_config</code> is present; there is no implicit default strategy.</p>
+</details>
+<details class="question">
+<summary>Format gotcha · Are the strategy names case-sensitive, e.g. can I write scd2 or Append?</summary>
+<p>Yes, case-sensitive uppercase only — the enum is exactly <code>["APPEND", "TRUNCATE_AND_LOAD", "SCD1", "SCD2", "SCD3", "FULL_SNAPSHOT_CDC"]</code>; anything else, including lowercase, fails the <code>allowed_values</code> check.</p>
+</details>
+<details class="question">
+<summary>Performance impact · Which cdc_load_strategy is cheapest to run at scale?</summary>
+<p>APPEND is cheapest (no merge, pure append). TRUNCATE_AND_LOAD costs scale with full table size regardless of how much changed (docs/03 §2.0). SCD2 is the most expensive to query historically since it retains every version; SCD3 is flagged in docs/03 as having the 'slow recompute' failure mode since it rebuilds from a hidden history table each run.</p>
+</details>
+<details class="question">
+<summary>Edge case · Can I use SCD3 on an ingestion flow?</summary>
+<p>No — SCD3 is transformation-flows-only, enforced as a hard error at the ingestion-flow level (not inside <code>_validate_target_config</code> itself, which accepts the transformation superset). Docs/03 §2.5 confirms it is 'Allowed only in transformation_flows (never in ingestion_flows)'.</p>
+</details>
+<details class="question">
+<summary>Edge case · I set partition_columns alongside an SCD2 strategy — why is the table still unpartitioned?</summary>
+<p>Partitioning and liquid clustering only take effect for APPEND and TRUNCATE_AND_LOAD. For SCD1/SCD2/SCD3/FULL_SNAPSHOT_CDC, <code>apply_changes</code>/<code>apply_changes_from_snapshot</code> do not accept <code>partition_cols</code>/<code>cluster_by</code> at all, so the fields are silently inert, not rejected. See docs/03 §3.</p>
+</details>
+<p><strong>See also:</strong> <a href="../../../pillars/transformation/#load-strategies">Pillar 2 · Transformation (load strategies)</a> · <a href="../../../00_master_reference_index/#4-target-config-cdc-reference">Attribute dictionary</a> · <a href="../tree/#tree-ingestion-target-configcdc-load-strategy">Schema tree</a> · <a href="../../../console/spec_builder/#ingestion-tab">Spec Builder · Load strategy step</a> · <a href="../../../console/observability_dashboard/#framework-lineage">Observability dashboard · Framework &amp; Lineage</a> · <a href="../../../13_known_limitations_and_gotchas/">Gotchas</a></p>
 <p><strong>Databricks documentation:</strong> <a href="https://docs.databricks.com/delta-live-tables/cdc.html">apply changes</a></p>
 <hr />
 <h3 id="target-configcdc-operation-column"><code>target_config.cdc_operation_column</code><a class="headerlink" href="#target-configcdc-operation-column" title="Permanent link">&para;</a></h3>
+<p><span class="fx-badge fx-opt">Optional</span> <span class="fx-badge fx-flow">Ingestion · Transformation</span> <span class="fx-badge fx-only">Load strategy</span></p>
 <p>Column carrying the source's insert/update/delete indicator.</p>
 <p>Without it, SCD1 and SCD2 have no delete signal at all and their targets only ever grow. Optional regardless of primary_keys -- a source can have a real key and no delete marker.</p>
-<p><strong>Type</strong> <code>string</code> · <strong>Required</strong> no · <strong>Section</strong> Load strategy</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="p">{</span>
-<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="w">  </span><span class="nt">"target_config"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="w">    </span><span class="nt">"cdc_operation_column"</span><span class="p">:</span><span class="w"> </span><span class="s2">"op"</span>
-<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="w">  </span><span class="p">}</span>
-<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="p">}</span>
-</code></pre></div>
+<p><strong>Type &amp; constraints</strong></p>
+<table>
+<thead>
+<tr>
+<th>Type</th>
+<th>Default</th>
+<th>Allowed values</th>
+<th>Constraints</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>string</code></td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Persisted in</strong> <code>config.ingestion_flow_spec / transformation_flow_spec.target_config_json</code> · <strong>Behaviour changed in</strong> v1.4.0</p>
+<div class="tabbed-set tabbed-alternate" data-tabs="2:4"><input checked="checked" id="json_1" name="__tabbed_2" type="radio" /><input id="validate-offline_1" name="__tabbed_2" type="radio" /><input id="onboard-cli_1" name="__tabbed_2" type="radio" /><input id="verify-sql_1" name="__tabbed_2" type="radio" /><div class="tabbed-labels"><label for="json_1">JSON</label><label for="validate-offline_1">Validate offline</label><label for="onboard-cli_1">Onboard (CLI)</label><label for="verify-sql_1">Verify (SQL)</label></div>
+<div class="tabbed-content">
+<div class="tabbed-block">
+<div class="language-json highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="p">{</span>
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="w">  </span><span class="nt">"target_config"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="w">    </span><span class="nt">"cdc_operation_column"</span><span class="p">:</span><span class="w"> </span><span class="s2">"op"</span>
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="w">  </span><span class="p">}</span>
+</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="p">}</span>
+</span></code></pre></div>
+</div>
+<div class="tabbed-block">
+<div class="language-python highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">flowx.lakeflow_framework.onboarding.agent_tools</span><span class="w"> </span><span class="kn">import</span> <span class="n">validate_json</span>
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s2">"dfg_orders.json"</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">"utf-8"</span><span class="p">)</span> <span class="k">as</span> <span class="n">fh</span><span class="p">:</span>
+</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>    <span class="n">result</span> <span class="o">=</span> <span class="n">validate_json</span><span class="p">(</span><span class="n">fh</span><span class="o">.</span><span class="n">read</span><span class="p">(),</span> <span class="n">catalog</span><span class="o">=</span><span class="s2">"&lt;catalog&gt;"</span><span class="p">,</span> <span class="n">env</span><span class="o">=</span><span class="s2">"dev"</span><span class="p">)</span>
+</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>
+</span><span id="__span-5-6"><a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="p">[</span><span class="s2">"summary"</span><span class="p">])</span>        <span class="c1"># PASSED, or FAILED with the error count</span>
+</span><span id="__span-5-7"><a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="k">for</span> <span class="n">err</span> <span class="ow">in</span> <span class="n">result</span><span class="p">[</span><span class="s2">"errors"</span><span class="p">]:</span>    <span class="c1"># each error names the offending spec path</span>
+</span><span id="__span-5-8"><a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a>    <span class="nb">print</span><span class="p">(</span><span class="n">err</span><span class="p">)</span>
+</span></code></pre></div>
+<p>No cluster, sub-second. The same <code>spec_validator.py</code> that the onboarding job runs.</p>
+</div>
+<div class="tabbed-block">
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="c1"># 1. Dry run against the live catalog: validates, writes nothing</span>
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>databricks<span class="w"> </span>bundle<span class="w"> </span>run<span class="w"> </span>onboarding_job<span class="w"> </span>-t<span class="w"> </span>&lt;target&gt;<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="w">  </span>--params<span class="w"> </span><span class="nv">spec_file_path</span><span class="o">=</span>/Volumes/&lt;catalog&gt;/config/onboarding_specs/dfg_orders.json,catalog<span class="o">=</span>&lt;catalog&gt;,env<span class="o">=</span>&lt;target&gt;,action_type<span class="o">=</span>VALIDATE_ONLY
+</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>
+</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="c1"># 2. Onboard: CREATE for a new group, UPDATE to upsert an existing one</span>
+</span><span id="__span-6-6"><a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a>databricks<span class="w"> </span>bundle<span class="w"> </span>run<span class="w"> </span>onboarding_job<span class="w"> </span>-t<span class="w"> </span>&lt;target&gt;<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-6-7"><a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a><span class="w">  </span>--params<span class="w"> </span><span class="nv">spec_file_path</span><span class="o">=</span>/Volumes/&lt;catalog&gt;/config/onboarding_specs/dfg_orders.json,catalog<span class="o">=</span>&lt;catalog&gt;,env<span class="o">=</span>&lt;target&gt;,action_type<span class="o">=</span>CREATE
+</span></code></pre></div>
+<p>Onboarding writes control-table rows only. The pipeline picks the change up on its next update.</p>
+</div>
+<div class="tabbed-block">
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="c1">-- target_config.cdc_operation_column lives inside the target_config_json JSON document; inspect it with from_json / get_json_object</span>
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="k">SELECT</span><span class="w"> </span><span class="n">dataflow_id</span><span class="p">,</span>
+</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="w">       </span><span class="n">target_config_json</span><span class="p">,</span>
+</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="w">       </span><span class="n">is_active</span><span class="p">,</span><span class="w"> </span><span class="n">updated_at</span>
+</span><span id="__span-7-5"><a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="k">FROM</span><span class="w">   </span><span class="o">&lt;</span><span class="k">catalog</span><span class="o">&gt;</span><span class="p">.</span><span class="n">config</span><span class="p">.</span><span class="n">ingestion_flow_spec</span>
+</span><span id="__span-7-6"><a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a><span class="k">WHERE</span><span class="w">  </span><span class="n">dataflow_group_id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">'&lt;dataflow_group_id&gt;'</span><span class="p">;</span>
+</span></code></pre></div>
+</div>
+</div>
+</div>
 <div class="admonition tip">
 <p class="admonition-title">Best practice</p>
 <ul>
@@ -3997,21 +4944,97 @@ without leaving the form.</p>
 <li>A validation error on SCD3, which has no delete path at all.</li>
 </ul>
 </div>
+<p><strong>FAQs</strong> (4)</p>
+<details class="question">
+<summary>If omitted · What happens if cdc_operation_column is not set on an SCD1 target?</summary>
+<p>Deletes never propagate — the target only ever grows. This is a valid, common configuration (a source can have a real primary key with no explicit delete marker); it is not an onboarding error.</p>
+</details>
+<details class="question">
+<summary>Format gotcha · Does cdc_operation_column need to match a specific value type like a single character code?</summary>
+<p>No fixed format — it is validated only as a non-empty column name string. The actual delete-indicating values it carries are declared separately in <code>cdc_operation_mapping.delete_values</code>.</p>
+</details>
+<details class="question">
+<summary>Performance impact · Does configuring a delete-marker column add noticeable overhead to the merge?</summary>
+<p>Negligible — <code>_build_apply_as_deletes_expr</code> in <code>cdc/scd.py</code> just derives one extra predicate column passed to <code>dlt.apply_changes</code>'s native <code>apply_as_deletes</code> parameter; it does not add a separate scan or pass.</p>
+</details>
+<details class="question">
+<summary>Edge case · Can I set cdc_operation_column on an SCD3 target?</summary>
+<p>No — the validator confirms this is a validation error on SCD3, which has no delete path at all. It is only meaningful for SCD1, SCD2 and FULL_SNAPSHOT_CDC, per <code>_validate_target_config</code>'s <code>strategies_supporting_delete_marker</code> set.</p>
+</details>
+<p><strong>See also:</strong> <a href="../../../pillars/transformation/#load-strategies">Pillar 2 · Transformation (load strategies)</a> · <a href="../../../00_master_reference_index/#4-target-config-cdc-reference">Attribute dictionary</a> · <a href="../tree/#tree-ingestion-target-configcdc-operation-column">Schema tree</a> · <a href="../../../console/spec_builder/#ingestion-tab">Spec Builder · Load strategy step</a> · <a href="../../../console/observability_dashboard/#framework-lineage">Observability dashboard · Framework &amp; Lineage</a> · <a href="../../../13_known_limitations_and_gotchas/">Gotchas</a></p>
 <p><strong>Databricks documentation:</strong> <a href="https://docs.databricks.com/delta-live-tables/cdc.html">apply changes</a> · <a href="https://docs.databricks.com/delta/delta-change-data-feed.html">delta change data feed</a></p>
 <hr />
 <h3 id="target-configcdc-operation-mappingdelete-values"><code>target_config.cdc_operation_mapping.delete_values</code><a class="headerlink" href="#target-configcdc-operation-mappingdelete-values" title="Permanent link">&para;</a></h3>
+<p><span class="fx-badge fx-req">Required</span> <span class="fx-badge fx-flow">Ingestion · Transformation</span> <span class="fx-badge fx-only">Load strategy</span></p>
 <p>Values in cdc_operation_column meaning this row is a delete.</p>
-<p><strong>Type</strong> <code>array&lt;string&gt;</code> · <strong>Required</strong> yes · <strong>Section</strong> Load strategy</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="p">{</span>
-<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="w">  </span><span class="nt">"target_config"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="w">    </span><span class="nt">"cdc_operation_mapping"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="w">      </span><span class="nt">"delete_values"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
-<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="w">        </span><span class="s2">"D"</span>
-<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="w">      </span><span class="p">]</span>
-<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="w">    </span><span class="p">}</span>
-<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="w">  </span><span class="p">}</span>
-<a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a><span class="p">}</span>
-</code></pre></div>
+<p><strong>Type &amp; constraints</strong></p>
+<table>
+<thead>
+<tr>
+<th>Type</th>
+<th>Default</th>
+<th>Allowed values</th>
+<th>Constraints</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>array&lt;string&gt;</code></td>
+<td>—</td>
+<td>—</td>
+<td>min items <code>1</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Persisted in</strong> <code>config.ingestion_flow_spec / transformation_flow_spec.target_config_json</code></p>
+<div class="tabbed-set tabbed-alternate" data-tabs="3:4"><input checked="checked" id="json_2" name="__tabbed_3" type="radio" /><input id="validate-offline_2" name="__tabbed_3" type="radio" /><input id="onboard-cli_2" name="__tabbed_3" type="radio" /><input id="verify-sql_2" name="__tabbed_3" type="radio" /><div class="tabbed-labels"><label for="json_2">JSON</label><label for="validate-offline_2">Validate offline</label><label for="onboard-cli_2">Onboard (CLI)</label><label for="verify-sql_2">Verify (SQL)</label></div>
+<div class="tabbed-content">
+<div class="tabbed-block">
+<div class="language-json highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="p">{</span>
+</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="w">  </span><span class="nt">"target_config"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="w">    </span><span class="nt">"cdc_operation_mapping"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-8-4"><a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a><span class="w">      </span><span class="nt">"delete_values"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+</span><span id="__span-8-5"><a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a><span class="w">        </span><span class="s2">"D"</span>
+</span><span id="__span-8-6"><a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a><span class="w">      </span><span class="p">]</span>
+</span><span id="__span-8-7"><a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a><span class="w">    </span><span class="p">}</span>
+</span><span id="__span-8-8"><a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a><span class="w">  </span><span class="p">}</span>
+</span><span id="__span-8-9"><a id="__codelineno-8-9" name="__codelineno-8-9" href="#__codelineno-8-9"></a><span class="p">}</span>
+</span></code></pre></div>
+</div>
+<div class="tabbed-block">
+<div class="language-python highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">flowx.lakeflow_framework.onboarding.agent_tools</span><span class="w"> </span><span class="kn">import</span> <span class="n">validate_json</span>
+</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>
+</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s2">"dfg_orders.json"</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">"utf-8"</span><span class="p">)</span> <span class="k">as</span> <span class="n">fh</span><span class="p">:</span>
+</span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a>    <span class="n">result</span> <span class="o">=</span> <span class="n">validate_json</span><span class="p">(</span><span class="n">fh</span><span class="o">.</span><span class="n">read</span><span class="p">(),</span> <span class="n">catalog</span><span class="o">=</span><span class="s2">"&lt;catalog&gt;"</span><span class="p">,</span> <span class="n">env</span><span class="o">=</span><span class="s2">"dev"</span><span class="p">)</span>
+</span><span id="__span-9-5"><a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a>
+</span><span id="__span-9-6"><a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a><span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="p">[</span><span class="s2">"summary"</span><span class="p">])</span>        <span class="c1"># PASSED, or FAILED with the error count</span>
+</span><span id="__span-9-7"><a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a><span class="k">for</span> <span class="n">err</span> <span class="ow">in</span> <span class="n">result</span><span class="p">[</span><span class="s2">"errors"</span><span class="p">]:</span>    <span class="c1"># each error names the offending spec path</span>
+</span><span id="__span-9-8"><a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a>    <span class="nb">print</span><span class="p">(</span><span class="n">err</span><span class="p">)</span>
+</span></code></pre></div>
+<p>No cluster, sub-second. The same <code>spec_validator.py</code> that the onboarding job runs.</p>
+</div>
+<div class="tabbed-block">
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="c1"># 1. Dry run against the live catalog: validates, writes nothing</span>
+</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>databricks<span class="w"> </span>bundle<span class="w"> </span>run<span class="w"> </span>onboarding_job<span class="w"> </span>-t<span class="w"> </span>&lt;target&gt;<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="w">  </span>--params<span class="w"> </span><span class="nv">spec_file_path</span><span class="o">=</span>/Volumes/&lt;catalog&gt;/config/onboarding_specs/dfg_orders.json,catalog<span class="o">=</span>&lt;catalog&gt;,env<span class="o">=</span>&lt;target&gt;,action_type<span class="o">=</span>VALIDATE_ONLY
+</span><span id="__span-10-4"><a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a>
+</span><span id="__span-10-5"><a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a><span class="c1"># 2. Onboard: CREATE for a new group, UPDATE to upsert an existing one</span>
+</span><span id="__span-10-6"><a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a>databricks<span class="w"> </span>bundle<span class="w"> </span>run<span class="w"> </span>onboarding_job<span class="w"> </span>-t<span class="w"> </span>&lt;target&gt;<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-10-7"><a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a><span class="w">  </span>--params<span class="w"> </span><span class="nv">spec_file_path</span><span class="o">=</span>/Volumes/&lt;catalog&gt;/config/onboarding_specs/dfg_orders.json,catalog<span class="o">=</span>&lt;catalog&gt;,env<span class="o">=</span>&lt;target&gt;,action_type<span class="o">=</span>CREATE
+</span></code></pre></div>
+<p>Onboarding writes control-table rows only. The pipeline picks the change up on its next update.</p>
+</div>
+<div class="tabbed-block">
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="c1">-- target_config.cdc_operation_mapping.delete_values lives inside the target_config_json JSON document; inspect it with from_json / get_json_object</span>
+</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="k">SELECT</span><span class="w"> </span><span class="n">dataflow_id</span><span class="p">,</span>
+</span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a><span class="w">       </span><span class="n">target_config_json</span><span class="p">,</span>
+</span><span id="__span-11-4"><a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a><span class="w">       </span><span class="n">is_active</span><span class="p">,</span><span class="w"> </span><span class="n">updated_at</span>
+</span><span id="__span-11-5"><a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a><span class="k">FROM</span><span class="w">   </span><span class="o">&lt;</span><span class="k">catalog</span><span class="o">&gt;</span><span class="p">.</span><span class="n">config</span><span class="p">.</span><span class="n">ingestion_flow_spec</span>
+</span><span id="__span-11-6"><a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a><span class="k">WHERE</span><span class="w">  </span><span class="n">dataflow_group_id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">'&lt;dataflow_group_id&gt;'</span><span class="p">;</span>
+</span></code></pre></div>
+</div>
+</div>
+</div>
 <div class="admonition tip">
 <p class="admonition-title">Best practice</p>
 <ul>
@@ -4020,21 +5043,97 @@ without leaving the form.</p>
 <li>Entered as a comma-separated list; written to the spec as a JSON array of strings.</li>
 </ul>
 </div>
+<p><strong>FAQs</strong> (4)</p>
+<details class="question">
+<summary>If omitted · What error do I get if I set cdc_operation_column but leave out delete_values?</summary>
+<p>Onboarding rejects it — <code>_validate_target_config</code> requires <code>cdc_operation_mapping</code> as a dict (<code>required=True</code>) whenever <code>cdc_operation_column</code> is set, and within it <code>check_list_of_str(..., required=True)</code> for <code>delete_values</code>, so one without the other is a hard error.</p>
+</details>
+<details class="question">
+<summary>Format gotcha · Is delete_values a JSON array or a comma-separated string in the spec?</summary>
+<p>A JSON array of strings, e.g. <code>["D"]</code>. Per the inspector tip, the Databricks App UI accepts it as a comma-separated list in the form and serializes it to a JSON array — but the underlying spec attribute itself is always an array.</p>
+</details>
+<details class="question">
+<summary>Performance impact · Does listing multiple delete_values slow down the CDC merge?</summary>
+<p>Negligible — it becomes one <code>isin(...)</code>-style predicate passed as <code>apply_as_deletes</code> to <code>dlt.apply_changes</code>, evaluated once per row alongside the merge itself.</p>
+</details>
+<details class="question">
+<summary>Edge case · On FULL_SNAPSHOT_CDC, how does delete_values interact with the snapshot diff?</summary>
+<p>Per the inspector tip, on FULL_SNAPSHOT_CDC flagged rows are filtered out of the snapshot before the diff runs, so they are deleted by absence rather than by an explicit apply_as_deletes predicate — the same end result reached by a different mechanism than SCD1/SCD2.</p>
+</details>
+<p><strong>See also:</strong> <a href="../../../pillars/transformation/#load-strategies">Pillar 2 · Transformation (load strategies)</a> · <a href="../../../00_master_reference_index/#4-target-config-cdc-reference">Attribute dictionary</a> · <a href="../tree/#tree-ingestion-target-configcdc-operation-mappingdelete-values">Schema tree</a> · <a href="../../../console/spec_builder/#ingestion-tab">Spec Builder · Load strategy step</a> · <a href="../../../console/observability_dashboard/#framework-lineage">Observability dashboard · Framework &amp; Lineage</a> · <a href="../../../13_known_limitations_and_gotchas/">Gotchas</a></p>
 <p><strong>Databricks documentation:</strong> <a href="https://docs.databricks.com/delta-live-tables/cdc.html">apply changes</a> · <a href="https://docs.databricks.com/delta/delta-change-data-feed.html">delta change data feed</a></p>
 <hr />
 <h3 id="target-configcolumns-to-check"><code>target_config.columns_to_check</code><a class="headerlink" href="#target-configcolumns-to-check" title="Permanent link">&para;</a></h3>
+<p><span class="fx-badge fx-opt">Optional</span> <span class="fx-badge fx-flow">Ingestion · Transformation</span> <span class="fx-badge fx-only">Load strategy</span></p>
 <p>Limits which columns count as a change.</p>
 <p>It means something different per strategy: SCD2 tracks history only on these columns, SCD3 pivots exactly these into current_/previous_ pairs, and SCD1 uses them only to narrow the change-detection hash -- the merge itself is unaffected, so an unchanged row still costs a write.</p>
-<p><strong>Type</strong> <code>array&lt;string&gt;</code> · <strong>Required</strong> no · <strong>Section</strong> Load strategy</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="p">{</span>
-<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="w">  </span><span class="nt">"target_config"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="w">    </span><span class="nt">"columns_to_check"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
-<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="w">      </span><span class="s2">"column_a"</span><span class="p">,</span>
-<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="w">      </span><span class="s2">"column_b"</span>
-<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="w">    </span><span class="p">]</span>
-<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="w">  </span><span class="p">}</span>
-<a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a><span class="p">}</span>
-</code></pre></div>
+<p><strong>Type &amp; constraints</strong></p>
+<table>
+<thead>
+<tr>
+<th>Type</th>
+<th>Default</th>
+<th>Allowed values</th>
+<th>Constraints</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>array&lt;string&gt;</code></td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Persisted in</strong> <code>config.ingestion_flow_spec / transformation_flow_spec.target_config_json</code></p>
+<div class="tabbed-set tabbed-alternate" data-tabs="4:4"><input checked="checked" id="json_3" name="__tabbed_4" type="radio" /><input id="validate-offline_3" name="__tabbed_4" type="radio" /><input id="onboard-cli_3" name="__tabbed_4" type="radio" /><input id="verify-sql_3" name="__tabbed_4" type="radio" /><div class="tabbed-labels"><label for="json_3">JSON</label><label for="validate-offline_3">Validate offline</label><label for="onboard-cli_3">Onboard (CLI)</label><label for="verify-sql_3">Verify (SQL)</label></div>
+<div class="tabbed-content">
+<div class="tabbed-block">
+<div class="language-json highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="p">{</span>
+</span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a><span class="w">  </span><span class="nt">"target_config"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-12-3"><a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a><span class="w">    </span><span class="nt">"columns_to_check"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+</span><span id="__span-12-4"><a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a><span class="w">      </span><span class="s2">"column_a"</span><span class="p">,</span>
+</span><span id="__span-12-5"><a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a><span class="w">      </span><span class="s2">"column_b"</span>
+</span><span id="__span-12-6"><a id="__codelineno-12-6" name="__codelineno-12-6" href="#__codelineno-12-6"></a><span class="w">    </span><span class="p">]</span>
+</span><span id="__span-12-7"><a id="__codelineno-12-7" name="__codelineno-12-7" href="#__codelineno-12-7"></a><span class="w">  </span><span class="p">}</span>
+</span><span id="__span-12-8"><a id="__codelineno-12-8" name="__codelineno-12-8" href="#__codelineno-12-8"></a><span class="p">}</span>
+</span></code></pre></div>
+</div>
+<div class="tabbed-block">
+<div class="language-python highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">flowx.lakeflow_framework.onboarding.agent_tools</span><span class="w"> </span><span class="kn">import</span> <span class="n">validate_json</span>
+</span><span id="__span-13-2"><a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a>
+</span><span id="__span-13-3"><a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a><span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s2">"dfg_orders.json"</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">"utf-8"</span><span class="p">)</span> <span class="k">as</span> <span class="n">fh</span><span class="p">:</span>
+</span><span id="__span-13-4"><a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a>    <span class="n">result</span> <span class="o">=</span> <span class="n">validate_json</span><span class="p">(</span><span class="n">fh</span><span class="o">.</span><span class="n">read</span><span class="p">(),</span> <span class="n">catalog</span><span class="o">=</span><span class="s2">"&lt;catalog&gt;"</span><span class="p">,</span> <span class="n">env</span><span class="o">=</span><span class="s2">"dev"</span><span class="p">)</span>
+</span><span id="__span-13-5"><a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a>
+</span><span id="__span-13-6"><a id="__codelineno-13-6" name="__codelineno-13-6" href="#__codelineno-13-6"></a><span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="p">[</span><span class="s2">"summary"</span><span class="p">])</span>        <span class="c1"># PASSED, or FAILED with the error count</span>
+</span><span id="__span-13-7"><a id="__codelineno-13-7" name="__codelineno-13-7" href="#__codelineno-13-7"></a><span class="k">for</span> <span class="n">err</span> <span class="ow">in</span> <span class="n">result</span><span class="p">[</span><span class="s2">"errors"</span><span class="p">]:</span>    <span class="c1"># each error names the offending spec path</span>
+</span><span id="__span-13-8"><a id="__codelineno-13-8" name="__codelineno-13-8" href="#__codelineno-13-8"></a>    <span class="nb">print</span><span class="p">(</span><span class="n">err</span><span class="p">)</span>
+</span></code></pre></div>
+<p>No cluster, sub-second. The same <code>spec_validator.py</code> that the onboarding job runs.</p>
+</div>
+<div class="tabbed-block">
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="c1"># 1. Dry run against the live catalog: validates, writes nothing</span>
+</span><span id="__span-14-2"><a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a>databricks<span class="w"> </span>bundle<span class="w"> </span>run<span class="w"> </span>onboarding_job<span class="w"> </span>-t<span class="w"> </span>&lt;target&gt;<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-14-3"><a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a><span class="w">  </span>--params<span class="w"> </span><span class="nv">spec_file_path</span><span class="o">=</span>/Volumes/&lt;catalog&gt;/config/onboarding_specs/dfg_orders.json,catalog<span class="o">=</span>&lt;catalog&gt;,env<span class="o">=</span>&lt;target&gt;,action_type<span class="o">=</span>VALIDATE_ONLY
+</span><span id="__span-14-4"><a id="__codelineno-14-4" name="__codelineno-14-4" href="#__codelineno-14-4"></a>
+</span><span id="__span-14-5"><a id="__codelineno-14-5" name="__codelineno-14-5" href="#__codelineno-14-5"></a><span class="c1"># 2. Onboard: CREATE for a new group, UPDATE to upsert an existing one</span>
+</span><span id="__span-14-6"><a id="__codelineno-14-6" name="__codelineno-14-6" href="#__codelineno-14-6"></a>databricks<span class="w"> </span>bundle<span class="w"> </span>run<span class="w"> </span>onboarding_job<span class="w"> </span>-t<span class="w"> </span>&lt;target&gt;<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-14-7"><a id="__codelineno-14-7" name="__codelineno-14-7" href="#__codelineno-14-7"></a><span class="w">  </span>--params<span class="w"> </span><span class="nv">spec_file_path</span><span class="o">=</span>/Volumes/&lt;catalog&gt;/config/onboarding_specs/dfg_orders.json,catalog<span class="o">=</span>&lt;catalog&gt;,env<span class="o">=</span>&lt;target&gt;,action_type<span class="o">=</span>CREATE
+</span></code></pre></div>
+<p>Onboarding writes control-table rows only. The pipeline picks the change up on its next update.</p>
+</div>
+<div class="tabbed-block">
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a><span class="c1">-- target_config.columns_to_check lives inside the target_config_json JSON document; inspect it with from_json / get_json_object</span>
+</span><span id="__span-15-2"><a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a><span class="k">SELECT</span><span class="w"> </span><span class="n">dataflow_id</span><span class="p">,</span>
+</span><span id="__span-15-3"><a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a><span class="w">       </span><span class="n">target_config_json</span><span class="p">,</span>
+</span><span id="__span-15-4"><a id="__codelineno-15-4" name="__codelineno-15-4" href="#__codelineno-15-4"></a><span class="w">       </span><span class="n">is_active</span><span class="p">,</span><span class="w"> </span><span class="n">updated_at</span>
+</span><span id="__span-15-5"><a id="__codelineno-15-5" name="__codelineno-15-5" href="#__codelineno-15-5"></a><span class="k">FROM</span><span class="w">   </span><span class="o">&lt;</span><span class="k">catalog</span><span class="o">&gt;</span><span class="p">.</span><span class="n">config</span><span class="p">.</span><span class="n">ingestion_flow_spec</span>
+</span><span id="__span-15-6"><a id="__codelineno-15-6" name="__codelineno-15-6" href="#__codelineno-15-6"></a><span class="k">WHERE</span><span class="w">  </span><span class="n">dataflow_group_id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">'&lt;dataflow_group_id&gt;'</span><span class="p">;</span>
+</span></code></pre></div>
+</div>
+</div>
+</div>
 <div class="admonition tip">
 <p class="admonition-title">Best practice</p>
 <ul>
@@ -4045,40 +5144,196 @@ without leaving the form.</p>
 <li>Rejected on APPEND, TRUNCATE_AND_LOAD and FULL_SNAPSHOT_CDC.</li>
 </ul>
 </div>
+<p><strong>FAQs</strong> (5)</p>
+<details class="question">
+<summary>If omitted · What happens if I don't set columns_to_check on an SCD2 flow?</summary>
+<p>Every applicable column is compared for change detection. Per docs/03 §2.0, leaving it empty on SCD2 means one volatile source column (a load timestamp, a batch id) can version every row on every run — scope it deliberately.</p>
+</details>
+<details class="question">
+<summary>Format gotcha · Is columns_to_check a list of column names or SQL expressions?</summary>
+<p>A plain JSON array of column name strings, validated by <code>check_list_of_str</code>. It does not accept SQL expressions.</p>
+</details>
+<details class="question">
+<summary>Performance impact · Does a narrow columns_to_check list reduce merge cost on SCD1?</summary>
+<p>Not the merge cost itself — per the attribute's rationale, on SCD1 it only narrows the change-detection hash basis; the merge is unaffected, so an unchanged row still costs a write. The savings are in avoiding false-positive 'changed' detections, not I/O.</p>
+</details>
+<details class="question">
+<summary>Edge case · Is columns_to_check accepted on an APPEND or TRUNCATE_AND_LOAD target?</summary>
+<p>No — the validator rules state it is rejected on APPEND, TRUNCATE_AND_LOAD and FULL_SNAPSHOT_CDC. It is meaningful only where a comparison basis exists: SCD1, SCD2 (history scoping) and SCD3 (which requires it to pivot into current_/previous_ column pairs — registration fails without it).</p>
+</details>
+<details class="question">
+<summary>Edge case · Can I include an AES-GCM encrypted column in columns_to_check?</summary>
+<p>Never do this — AES-GCM uses a random IV, so ciphertext differs every run even when the plaintext hasn't changed, making every row look changed on every run. This is a documented trap, not currently caught by onboarding validation.</p>
+</details>
+<p><strong>See also:</strong> <a href="../../../pillars/transformation/#load-strategies">Pillar 2 · Transformation (load strategies)</a> · <a href="../../../00_master_reference_index/#4-target-config-cdc-reference">Attribute dictionary</a> · <a href="../tree/#tree-ingestion-target-configcolumns-to-check">Schema tree</a> · <a href="../../../console/spec_builder/#ingestion-tab">Spec Builder · Load strategy step</a> · <a href="../../../console/observability_dashboard/#framework-lineage">Observability dashboard · Framework &amp; Lineage</a> · <a href="../../../13_known_limitations_and_gotchas/">Gotchas</a></p>
 <p><strong>Databricks documentation:</strong> <a href="https://docs.databricks.com/delta-live-tables/cdc.html">apply changes</a></p>
 <hr />
 <h3 id="target-configcolumns-to-exclude"><code>target_config.columns_to_exclude</code><a class="headerlink" href="#target-configcolumns-to-exclude" title="Permanent link">&para;</a></h3>
+<p><span class="fx-badge fx-opt">Optional</span> <span class="fx-badge fx-flow">Ingestion · Transformation</span> <span class="fx-badge fx-only">Load strategy</span></p>
 <p>Columns that should not participate in change comparison.</p>
 <p>Aimed at technical columns a source stamps on every row -- load timestamps, batch ids, checksums -- which would otherwise make every row look changed on every run.</p>
-<p><strong>Type</strong> <code>array&lt;string&gt;</code> · <strong>Required</strong> no · <strong>Section</strong> Load strategy</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="p">{</span>
-<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="w">  </span><span class="nt">"target_config"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="w">    </span><span class="nt">"columns_to_exclude"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
-<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="w">      </span><span class="s2">"column_a"</span><span class="p">,</span>
-<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="w">      </span><span class="s2">"column_b"</span>
-<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="w">    </span><span class="p">]</span>
-<a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a><span class="w">  </span><span class="p">}</span>
-<a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a><span class="p">}</span>
-</code></pre></div>
+<p><strong>Type &amp; constraints</strong></p>
+<table>
+<thead>
+<tr>
+<th>Type</th>
+<th>Default</th>
+<th>Allowed values</th>
+<th>Constraints</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>array&lt;string&gt;</code></td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Persisted in</strong> <code>config.ingestion_flow_spec / transformation_flow_spec.target_config_json</code></p>
+<div class="tabbed-set tabbed-alternate" data-tabs="5:4"><input checked="checked" id="json_4" name="__tabbed_5" type="radio" /><input id="validate-offline_4" name="__tabbed_5" type="radio" /><input id="onboard-cli_4" name="__tabbed_5" type="radio" /><input id="verify-sql_4" name="__tabbed_5" type="radio" /><div class="tabbed-labels"><label for="json_4">JSON</label><label for="validate-offline_4">Validate offline</label><label for="onboard-cli_4">Onboard (CLI)</label><label for="verify-sql_4">Verify (SQL)</label></div>
+<div class="tabbed-content">
+<div class="tabbed-block">
+<div class="language-json highlight"><pre><span></span><code><span id="__span-16-1"><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a><span class="p">{</span>
+</span><span id="__span-16-2"><a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a><span class="w">  </span><span class="nt">"target_config"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-16-3"><a id="__codelineno-16-3" name="__codelineno-16-3" href="#__codelineno-16-3"></a><span class="w">    </span><span class="nt">"columns_to_exclude"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+</span><span id="__span-16-4"><a id="__codelineno-16-4" name="__codelineno-16-4" href="#__codelineno-16-4"></a><span class="w">      </span><span class="s2">"column_a"</span><span class="p">,</span>
+</span><span id="__span-16-5"><a id="__codelineno-16-5" name="__codelineno-16-5" href="#__codelineno-16-5"></a><span class="w">      </span><span class="s2">"column_b"</span>
+</span><span id="__span-16-6"><a id="__codelineno-16-6" name="__codelineno-16-6" href="#__codelineno-16-6"></a><span class="w">    </span><span class="p">]</span>
+</span><span id="__span-16-7"><a id="__codelineno-16-7" name="__codelineno-16-7" href="#__codelineno-16-7"></a><span class="w">  </span><span class="p">}</span>
+</span><span id="__span-16-8"><a id="__codelineno-16-8" name="__codelineno-16-8" href="#__codelineno-16-8"></a><span class="p">}</span>
+</span></code></pre></div>
+</div>
+<div class="tabbed-block">
+<div class="language-python highlight"><pre><span></span><code><span id="__span-17-1"><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">flowx.lakeflow_framework.onboarding.agent_tools</span><span class="w"> </span><span class="kn">import</span> <span class="n">validate_json</span>
+</span><span id="__span-17-2"><a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a>
+</span><span id="__span-17-3"><a id="__codelineno-17-3" name="__codelineno-17-3" href="#__codelineno-17-3"></a><span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s2">"dfg_orders.json"</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">"utf-8"</span><span class="p">)</span> <span class="k">as</span> <span class="n">fh</span><span class="p">:</span>
+</span><span id="__span-17-4"><a id="__codelineno-17-4" name="__codelineno-17-4" href="#__codelineno-17-4"></a>    <span class="n">result</span> <span class="o">=</span> <span class="n">validate_json</span><span class="p">(</span><span class="n">fh</span><span class="o">.</span><span class="n">read</span><span class="p">(),</span> <span class="n">catalog</span><span class="o">=</span><span class="s2">"&lt;catalog&gt;"</span><span class="p">,</span> <span class="n">env</span><span class="o">=</span><span class="s2">"dev"</span><span class="p">)</span>
+</span><span id="__span-17-5"><a id="__codelineno-17-5" name="__codelineno-17-5" href="#__codelineno-17-5"></a>
+</span><span id="__span-17-6"><a id="__codelineno-17-6" name="__codelineno-17-6" href="#__codelineno-17-6"></a><span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="p">[</span><span class="s2">"summary"</span><span class="p">])</span>        <span class="c1"># PASSED, or FAILED with the error count</span>
+</span><span id="__span-17-7"><a id="__codelineno-17-7" name="__codelineno-17-7" href="#__codelineno-17-7"></a><span class="k">for</span> <span class="n">err</span> <span class="ow">in</span> <span class="n">result</span><span class="p">[</span><span class="s2">"errors"</span><span class="p">]:</span>    <span class="c1"># each error names the offending spec path</span>
+</span><span id="__span-17-8"><a id="__codelineno-17-8" name="__codelineno-17-8" href="#__codelineno-17-8"></a>    <span class="nb">print</span><span class="p">(</span><span class="n">err</span><span class="p">)</span>
+</span></code></pre></div>
+<p>No cluster, sub-second. The same <code>spec_validator.py</code> that the onboarding job runs.</p>
+</div>
+<div class="tabbed-block">
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-18-1"><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a><span class="c1"># 1. Dry run against the live catalog: validates, writes nothing</span>
+</span><span id="__span-18-2"><a id="__codelineno-18-2" name="__codelineno-18-2" href="#__codelineno-18-2"></a>databricks<span class="w"> </span>bundle<span class="w"> </span>run<span class="w"> </span>onboarding_job<span class="w"> </span>-t<span class="w"> </span>&lt;target&gt;<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-18-3"><a id="__codelineno-18-3" name="__codelineno-18-3" href="#__codelineno-18-3"></a><span class="w">  </span>--params<span class="w"> </span><span class="nv">spec_file_path</span><span class="o">=</span>/Volumes/&lt;catalog&gt;/config/onboarding_specs/dfg_orders.json,catalog<span class="o">=</span>&lt;catalog&gt;,env<span class="o">=</span>&lt;target&gt;,action_type<span class="o">=</span>VALIDATE_ONLY
+</span><span id="__span-18-4"><a id="__codelineno-18-4" name="__codelineno-18-4" href="#__codelineno-18-4"></a>
+</span><span id="__span-18-5"><a id="__codelineno-18-5" name="__codelineno-18-5" href="#__codelineno-18-5"></a><span class="c1"># 2. Onboard: CREATE for a new group, UPDATE to upsert an existing one</span>
+</span><span id="__span-18-6"><a id="__codelineno-18-6" name="__codelineno-18-6" href="#__codelineno-18-6"></a>databricks<span class="w"> </span>bundle<span class="w"> </span>run<span class="w"> </span>onboarding_job<span class="w"> </span>-t<span class="w"> </span>&lt;target&gt;<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-18-7"><a id="__codelineno-18-7" name="__codelineno-18-7" href="#__codelineno-18-7"></a><span class="w">  </span>--params<span class="w"> </span><span class="nv">spec_file_path</span><span class="o">=</span>/Volumes/&lt;catalog&gt;/config/onboarding_specs/dfg_orders.json,catalog<span class="o">=</span>&lt;catalog&gt;,env<span class="o">=</span>&lt;target&gt;,action_type<span class="o">=</span>CREATE
+</span></code></pre></div>
+<p>Onboarding writes control-table rows only. The pipeline picks the change up on its next update.</p>
+</div>
+<div class="tabbed-block">
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-19-1"><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a><span class="c1">-- target_config.columns_to_exclude lives inside the target_config_json JSON document; inspect it with from_json / get_json_object</span>
+</span><span id="__span-19-2"><a id="__codelineno-19-2" name="__codelineno-19-2" href="#__codelineno-19-2"></a><span class="k">SELECT</span><span class="w"> </span><span class="n">dataflow_id</span><span class="p">,</span>
+</span><span id="__span-19-3"><a id="__codelineno-19-3" name="__codelineno-19-3" href="#__codelineno-19-3"></a><span class="w">       </span><span class="n">target_config_json</span><span class="p">,</span>
+</span><span id="__span-19-4"><a id="__codelineno-19-4" name="__codelineno-19-4" href="#__codelineno-19-4"></a><span class="w">       </span><span class="n">is_active</span><span class="p">,</span><span class="w"> </span><span class="n">updated_at</span>
+</span><span id="__span-19-5"><a id="__codelineno-19-5" name="__codelineno-19-5" href="#__codelineno-19-5"></a><span class="k">FROM</span><span class="w">   </span><span class="o">&lt;</span><span class="k">catalog</span><span class="o">&gt;</span><span class="p">.</span><span class="n">config</span><span class="p">.</span><span class="n">ingestion_flow_spec</span>
+</span><span id="__span-19-6"><a id="__codelineno-19-6" name="__codelineno-19-6" href="#__codelineno-19-6"></a><span class="k">WHERE</span><span class="w">  </span><span class="n">dataflow_group_id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">'&lt;dataflow_group_id&gt;'</span><span class="p">;</span>
+</span></code></pre></div>
+</div>
+</div>
+</div>
 <div class="admonition tip">
 <p class="admonition-title">Best practice</p>
 <ul>
 <li>SCD1, SCD2 and SCD3 only; a validation error on APPEND, TRUNCATE_AND_LOAD and FULL_SNAPSHOT_CDC.</li>
 <li>primary_keys and the framework's own technical columns are excluded automatically -- you do not need to list them.</li>
-<li>Whether the listed columns are also dropped from the target's schema is currently inconsistent between the validator and the SCD registrar. Do not rely on this field to shape the target schema; use it for comparison scoping only.</li>
+<li>This field does TWO things: it narrows change comparison AND it is passed to apply_changes's except_column_list, which DROPS the listed columns from the target table's schema. It is the only way to keep a column out of a CDC target -- data_standardization_sql can only add or replace a column, never remove one.</li>
 </ul>
 </div>
+<p><strong>FAQs</strong> (4)</p>
+<details class="question">
+<summary>If omitted · What happens if columns_to_exclude is not set on an SCD1 target?</summary>
+<p>All resolved columns participate in comparison, and nothing is dropped from the target schema via <code>except_column_list</code>. This is the default, inert state — no columns are excluded unless you list them.</p>
+</details>
+<details class="question">
+<summary>Format gotcha · Is columns_to_exclude a list of column names, same shape as columns_to_check?</summary>
+<p>Yes — both are plain JSON arrays of strings, validated by <code>check_list_of_str</code>. Do not list <code>primary_keys</code> or framework technical columns here; they are excluded automatically.</p>
+</details>
+<details class="question">
+<summary>Performance impact · Does excluding columns reduce the size of the target table?</summary>
+<p>Yes, meaningfully for wide sources — <code>cdc/scd.py::_build_except_column_list</code> passes it straight to <code>dlt.apply_changes</code>'s native <code>except_column_list</code>, which drops those columns from the target's physical schema entirely (per row and per version on SCD2), not just from comparison.</p>
+</details>
+<details class="question">
+<summary>Edge case · Is columns_to_exclude valid on APPEND or FULL_SNAPSHOT_CDC?</summary>
+<p>No — <code>_validate_target_config</code> only allows it for SCD1, SCD2 and SCD3 (<code>strategies_supporting_comparison_exclusion</code>); on any other strategy it is a hard onboarding error: 'only meaningful for cdc_load_strategy in [...]'.</p>
+</details>
+<p><strong>See also:</strong> <a href="../../../pillars/transformation/#load-strategies">Pillar 2 · Transformation (load strategies)</a> · <a href="../../../00_master_reference_index/#4-target-config-cdc-reference">Attribute dictionary</a> · <a href="../tree/#tree-ingestion-target-configcolumns-to-exclude">Schema tree</a> · <a href="../../../console/spec_builder/#ingestion-tab">Spec Builder · Load strategy step</a> · <a href="../../../console/observability_dashboard/#framework-lineage">Observability dashboard · Framework &amp; Lineage</a> · <a href="../../../13_known_limitations_and_gotchas/">Gotchas</a></p>
 <hr />
 <h3 id="target-configempty-target-if-source-empty"><code>target_config.empty_target_if_source_empty</code><a class="headerlink" href="#target-configempty-target-if-source-empty" title="Permanent link">&para;</a></h3>
+<p><span class="fx-badge fx-opt">Optional</span> <span class="fx-badge fx-flow">Ingestion · Transformation</span> <span class="fx-badge fx-only">Load strategy</span></p>
 <p>Whether a zero-row TRUNCATE_AND_LOAD source is allowed to blank the target.</p>
 <p>WITHDRAWN -- this field currently has no runtime effect. It still validates so existing specs stay valid, but nothing reads it, and a zero-row source blanks the target either way.</p>
-<p><strong>Type</strong> <code>boolean</code> · <strong>Required</strong> no · <strong>Section</strong> Load strategy</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="p">{</span>
-<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="w">  </span><span class="nt">"target_config"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="w">    </span><span class="nt">"empty_target_if_source_empty"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span>
-<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="w">  </span><span class="p">}</span>
-<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="p">}</span>
-</code></pre></div>
+<p><strong>Type &amp; constraints</strong></p>
+<table>
+<thead>
+<tr>
+<th>Type</th>
+<th>Default</th>
+<th>Allowed values</th>
+<th>Constraints</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>boolean</code></td>
+<td><code>false</code></td>
+<td>—</td>
+<td>—</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Persisted in</strong> <code>config.ingestion_flow_spec / transformation_flow_spec.target_config_json</code></p>
+<div class="tabbed-set tabbed-alternate" data-tabs="6:4"><input checked="checked" id="json_5" name="__tabbed_6" type="radio" /><input id="validate-offline_5" name="__tabbed_6" type="radio" /><input id="onboard-cli_5" name="__tabbed_6" type="radio" /><input id="verify-sql_5" name="__tabbed_6" type="radio" /><div class="tabbed-labels"><label for="json_5">JSON</label><label for="validate-offline_5">Validate offline</label><label for="onboard-cli_5">Onboard (CLI)</label><label for="verify-sql_5">Verify (SQL)</label></div>
+<div class="tabbed-content">
+<div class="tabbed-block">
+<div class="language-json highlight"><pre><span></span><code><span id="__span-20-1"><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a><span class="p">{</span>
+</span><span id="__span-20-2"><a id="__codelineno-20-2" name="__codelineno-20-2" href="#__codelineno-20-2"></a><span class="w">  </span><span class="nt">"target_config"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-20-3"><a id="__codelineno-20-3" name="__codelineno-20-3" href="#__codelineno-20-3"></a><span class="w">    </span><span class="nt">"empty_target_if_source_empty"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span>
+</span><span id="__span-20-4"><a id="__codelineno-20-4" name="__codelineno-20-4" href="#__codelineno-20-4"></a><span class="w">  </span><span class="p">}</span>
+</span><span id="__span-20-5"><a id="__codelineno-20-5" name="__codelineno-20-5" href="#__codelineno-20-5"></a><span class="p">}</span>
+</span></code></pre></div>
+</div>
+<div class="tabbed-block">
+<div class="language-python highlight"><pre><span></span><code><span id="__span-21-1"><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">flowx.lakeflow_framework.onboarding.agent_tools</span><span class="w"> </span><span class="kn">import</span> <span class="n">validate_json</span>
+</span><span id="__span-21-2"><a id="__codelineno-21-2" name="__codelineno-21-2" href="#__codelineno-21-2"></a>
+</span><span id="__span-21-3"><a id="__codelineno-21-3" name="__codelineno-21-3" href="#__codelineno-21-3"></a><span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s2">"dfg_orders.json"</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">"utf-8"</span><span class="p">)</span> <span class="k">as</span> <span class="n">fh</span><span class="p">:</span>
+</span><span id="__span-21-4"><a id="__codelineno-21-4" name="__codelineno-21-4" href="#__codelineno-21-4"></a>    <span class="n">result</span> <span class="o">=</span> <span class="n">validate_json</span><span class="p">(</span><span class="n">fh</span><span class="o">.</span><span class="n">read</span><span class="p">(),</span> <span class="n">catalog</span><span class="o">=</span><span class="s2">"&lt;catalog&gt;"</span><span class="p">,</span> <span class="n">env</span><span class="o">=</span><span class="s2">"dev"</span><span class="p">)</span>
+</span><span id="__span-21-5"><a id="__codelineno-21-5" name="__codelineno-21-5" href="#__codelineno-21-5"></a>
+</span><span id="__span-21-6"><a id="__codelineno-21-6" name="__codelineno-21-6" href="#__codelineno-21-6"></a><span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="p">[</span><span class="s2">"summary"</span><span class="p">])</span>        <span class="c1"># PASSED, or FAILED with the error count</span>
+</span><span id="__span-21-7"><a id="__codelineno-21-7" name="__codelineno-21-7" href="#__codelineno-21-7"></a><span class="k">for</span> <span class="n">err</span> <span class="ow">in</span> <span class="n">result</span><span class="p">[</span><span class="s2">"errors"</span><span class="p">]:</span>    <span class="c1"># each error names the offending spec path</span>
+</span><span id="__span-21-8"><a id="__codelineno-21-8" name="__codelineno-21-8" href="#__codelineno-21-8"></a>    <span class="nb">print</span><span class="p">(</span><span class="n">err</span><span class="p">)</span>
+</span></code></pre></div>
+<p>No cluster, sub-second. The same <code>spec_validator.py</code> that the onboarding job runs.</p>
+</div>
+<div class="tabbed-block">
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-22-1"><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a><span class="c1"># 1. Dry run against the live catalog: validates, writes nothing</span>
+</span><span id="__span-22-2"><a id="__codelineno-22-2" name="__codelineno-22-2" href="#__codelineno-22-2"></a>databricks<span class="w"> </span>bundle<span class="w"> </span>run<span class="w"> </span>onboarding_job<span class="w"> </span>-t<span class="w"> </span>&lt;target&gt;<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-22-3"><a id="__codelineno-22-3" name="__codelineno-22-3" href="#__codelineno-22-3"></a><span class="w">  </span>--params<span class="w"> </span><span class="nv">spec_file_path</span><span class="o">=</span>/Volumes/&lt;catalog&gt;/config/onboarding_specs/dfg_orders.json,catalog<span class="o">=</span>&lt;catalog&gt;,env<span class="o">=</span>&lt;target&gt;,action_type<span class="o">=</span>VALIDATE_ONLY
+</span><span id="__span-22-4"><a id="__codelineno-22-4" name="__codelineno-22-4" href="#__codelineno-22-4"></a>
+</span><span id="__span-22-5"><a id="__codelineno-22-5" name="__codelineno-22-5" href="#__codelineno-22-5"></a><span class="c1"># 2. Onboard: CREATE for a new group, UPDATE to upsert an existing one</span>
+</span><span id="__span-22-6"><a id="__codelineno-22-6" name="__codelineno-22-6" href="#__codelineno-22-6"></a>databricks<span class="w"> </span>bundle<span class="w"> </span>run<span class="w"> </span>onboarding_job<span class="w"> </span>-t<span class="w"> </span>&lt;target&gt;<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-22-7"><a id="__codelineno-22-7" name="__codelineno-22-7" href="#__codelineno-22-7"></a><span class="w">  </span>--params<span class="w"> </span><span class="nv">spec_file_path</span><span class="o">=</span>/Volumes/&lt;catalog&gt;/config/onboarding_specs/dfg_orders.json,catalog<span class="o">=</span>&lt;catalog&gt;,env<span class="o">=</span>&lt;target&gt;,action_type<span class="o">=</span>CREATE
+</span></code></pre></div>
+<p>Onboarding writes control-table rows only. The pipeline picks the change up on its next update.</p>
+</div>
+<div class="tabbed-block">
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-23-1"><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a><span class="c1">-- target_config.empty_target_if_source_empty lives inside the target_config_json JSON document; inspect it with from_json / get_json_object</span>
+</span><span id="__span-23-2"><a id="__codelineno-23-2" name="__codelineno-23-2" href="#__codelineno-23-2"></a><span class="k">SELECT</span><span class="w"> </span><span class="n">dataflow_id</span><span class="p">,</span>
+</span><span id="__span-23-3"><a id="__codelineno-23-3" name="__codelineno-23-3" href="#__codelineno-23-3"></a><span class="w">       </span><span class="n">target_config_json</span><span class="p">,</span>
+</span><span id="__span-23-4"><a id="__codelineno-23-4" name="__codelineno-23-4" href="#__codelineno-23-4"></a><span class="w">       </span><span class="n">is_active</span><span class="p">,</span><span class="w"> </span><span class="n">updated_at</span>
+</span><span id="__span-23-5"><a id="__codelineno-23-5" name="__codelineno-23-5" href="#__codelineno-23-5"></a><span class="k">FROM</span><span class="w">   </span><span class="o">&lt;</span><span class="k">catalog</span><span class="o">&gt;</span><span class="p">.</span><span class="n">config</span><span class="p">.</span><span class="n">ingestion_flow_spec</span>
+</span><span id="__span-23-6"><a id="__codelineno-23-6" name="__codelineno-23-6" href="#__codelineno-23-6"></a><span class="k">WHERE</span><span class="w">  </span><span class="n">dataflow_group_id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">'&lt;dataflow_group_id&gt;'</span><span class="p">;</span>
+</span></code></pre></div>
+</div>
+</div>
+</div>
 <div class="admonition tip">
 <p class="admonition-title">Best practice</p>
 <ul>
@@ -4095,17 +5350,93 @@ without leaving the form.</p>
 <em>Cause:</em> The guard is withdrawn and unwired; the value is not read at runtime.<br />
 <em>Fix:</em> Treat every TRUNCATE_AND_LOAD target as unprotected against an empty source and add a row-count check in a post-update job task.</p>
 </div>
+<p><strong>FAQs</strong> (4)</p>
+<details class="question">
+<summary>If omitted · What is the effective default for empty_target_if_source_empty if I don't set it?</summary>
+<p>Schema default is <code>false</code> — but the field is WITHDRAWN with no runtime effect since 2026-08-29 regardless of its value. A zero-row TRUNCATE_AND_LOAD source blanks the target either way; the in-graph guard cannot run because preserving contents would make the target read itself, which Lakeflow rejects as a cycle.</p>
+</details>
+<details class="question">
+<summary>Format gotcha · Is empty_target_if_source_empty a boolean or does it take an object like delete_source_after_extract?</summary>
+<p>A plain boolean (<code>true</code>/<code>false</code>), validated by <code>check_bool</code> — unlike some other withdrawn/legacy fields in this framework, it has no object form.</p>
+</details>
+<details class="question">
+<summary>Performance impact · Does setting this flag add any evaluation cost since it's a no-op?</summary>
+<p>Negligible — the value is validated at onboarding but never read at runtime; it costs nothing beyond the one-time validation check.</p>
+</details>
+<details class="question">
+<summary>Edge case · If I set empty_target_if_source_empty to false, is my TRUNCATE_AND_LOAD target protected from a zero-row source?</summary>
+<p>No. Per docs/03 §2.2 and the documented known errors, the guard has no runtime effect regardless of the value set. Treat every TRUNCATE_AND_LOAD target as unprotected and add a row-count check in a post-update job task outside the pipeline graph instead.</p>
+</details>
+<p><strong>See also:</strong> <a href="../../../pillars/transformation/#load-strategies">Pillar 2 · Transformation (load strategies)</a> · <a href="../../../00_master_reference_index/#4-target-config-cdc-reference">Attribute dictionary</a> · <a href="../tree/#tree-ingestion-target-configempty-target-if-source-empty">Schema tree</a> · <a href="../../../console/spec_builder/#ingestion-tab">Spec Builder · Load strategy step</a> · <a href="../../../console/observability_dashboard/#framework-lineage">Observability dashboard · Framework &amp; Lineage</a> · <a href="../../../13_known_limitations_and_gotchas/">Gotchas</a></p>
 <hr />
 <h3 id="target-configgenerate-hash-columns"><code>target_config.generate_hash_columns</code><a class="headerlink" href="#target-configgenerate-hash-columns" title="Permanent link">&para;</a></h3>
+<p><span class="fx-badge fx-opt">Optional</span> <span class="fx-badge fx-flow">Ingestion · Transformation</span> <span class="fx-badge fx-only">Load strategy</span></p>
 <p>Adds __framework_hash_key and __framework_hash_value to a CDC target.</p>
 <p>Two SHA-256 columns -- one over the ordered primary keys, one over the resolved comparison columns -- that let reconciliation match rows and detect drift without comparing every column on both sides.</p>
-<p><strong>Type</strong> <code>boolean</code> · <strong>Required</strong> no · <strong>Section</strong> Load strategy</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="p">{</span>
-<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="w">  </span><span class="nt">"target_config"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="w">    </span><span class="nt">"generate_hash_columns"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span>
-<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="w">  </span><span class="p">}</span>
-<a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="p">}</span>
-</code></pre></div>
+<p><strong>Type &amp; constraints</strong></p>
+<table>
+<thead>
+<tr>
+<th>Type</th>
+<th>Default</th>
+<th>Allowed values</th>
+<th>Constraints</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>boolean</code></td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Persisted in</strong> <code>config.ingestion_flow_spec / transformation_flow_spec.target_config_json</code></p>
+<div class="tabbed-set tabbed-alternate" data-tabs="7:4"><input checked="checked" id="json_6" name="__tabbed_7" type="radio" /><input id="validate-offline_6" name="__tabbed_7" type="radio" /><input id="onboard-cli_6" name="__tabbed_7" type="radio" /><input id="verify-sql_6" name="__tabbed_7" type="radio" /><div class="tabbed-labels"><label for="json_6">JSON</label><label for="validate-offline_6">Validate offline</label><label for="onboard-cli_6">Onboard (CLI)</label><label for="verify-sql_6">Verify (SQL)</label></div>
+<div class="tabbed-content">
+<div class="tabbed-block">
+<div class="language-json highlight"><pre><span></span><code><span id="__span-24-1"><a id="__codelineno-24-1" name="__codelineno-24-1" href="#__codelineno-24-1"></a><span class="p">{</span>
+</span><span id="__span-24-2"><a id="__codelineno-24-2" name="__codelineno-24-2" href="#__codelineno-24-2"></a><span class="w">  </span><span class="nt">"target_config"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-24-3"><a id="__codelineno-24-3" name="__codelineno-24-3" href="#__codelineno-24-3"></a><span class="w">    </span><span class="nt">"generate_hash_columns"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span>
+</span><span id="__span-24-4"><a id="__codelineno-24-4" name="__codelineno-24-4" href="#__codelineno-24-4"></a><span class="w">  </span><span class="p">}</span>
+</span><span id="__span-24-5"><a id="__codelineno-24-5" name="__codelineno-24-5" href="#__codelineno-24-5"></a><span class="p">}</span>
+</span></code></pre></div>
+</div>
+<div class="tabbed-block">
+<div class="language-python highlight"><pre><span></span><code><span id="__span-25-1"><a id="__codelineno-25-1" name="__codelineno-25-1" href="#__codelineno-25-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">flowx.lakeflow_framework.onboarding.agent_tools</span><span class="w"> </span><span class="kn">import</span> <span class="n">validate_json</span>
+</span><span id="__span-25-2"><a id="__codelineno-25-2" name="__codelineno-25-2" href="#__codelineno-25-2"></a>
+</span><span id="__span-25-3"><a id="__codelineno-25-3" name="__codelineno-25-3" href="#__codelineno-25-3"></a><span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s2">"dfg_orders.json"</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">"utf-8"</span><span class="p">)</span> <span class="k">as</span> <span class="n">fh</span><span class="p">:</span>
+</span><span id="__span-25-4"><a id="__codelineno-25-4" name="__codelineno-25-4" href="#__codelineno-25-4"></a>    <span class="n">result</span> <span class="o">=</span> <span class="n">validate_json</span><span class="p">(</span><span class="n">fh</span><span class="o">.</span><span class="n">read</span><span class="p">(),</span> <span class="n">catalog</span><span class="o">=</span><span class="s2">"&lt;catalog&gt;"</span><span class="p">,</span> <span class="n">env</span><span class="o">=</span><span class="s2">"dev"</span><span class="p">)</span>
+</span><span id="__span-25-5"><a id="__codelineno-25-5" name="__codelineno-25-5" href="#__codelineno-25-5"></a>
+</span><span id="__span-25-6"><a id="__codelineno-25-6" name="__codelineno-25-6" href="#__codelineno-25-6"></a><span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="p">[</span><span class="s2">"summary"</span><span class="p">])</span>        <span class="c1"># PASSED, or FAILED with the error count</span>
+</span><span id="__span-25-7"><a id="__codelineno-25-7" name="__codelineno-25-7" href="#__codelineno-25-7"></a><span class="k">for</span> <span class="n">err</span> <span class="ow">in</span> <span class="n">result</span><span class="p">[</span><span class="s2">"errors"</span><span class="p">]:</span>    <span class="c1"># each error names the offending spec path</span>
+</span><span id="__span-25-8"><a id="__codelineno-25-8" name="__codelineno-25-8" href="#__codelineno-25-8"></a>    <span class="nb">print</span><span class="p">(</span><span class="n">err</span><span class="p">)</span>
+</span></code></pre></div>
+<p>No cluster, sub-second. The same <code>spec_validator.py</code> that the onboarding job runs.</p>
+</div>
+<div class="tabbed-block">
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-26-1"><a id="__codelineno-26-1" name="__codelineno-26-1" href="#__codelineno-26-1"></a><span class="c1"># 1. Dry run against the live catalog: validates, writes nothing</span>
+</span><span id="__span-26-2"><a id="__codelineno-26-2" name="__codelineno-26-2" href="#__codelineno-26-2"></a>databricks<span class="w"> </span>bundle<span class="w"> </span>run<span class="w"> </span>onboarding_job<span class="w"> </span>-t<span class="w"> </span>&lt;target&gt;<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-26-3"><a id="__codelineno-26-3" name="__codelineno-26-3" href="#__codelineno-26-3"></a><span class="w">  </span>--params<span class="w"> </span><span class="nv">spec_file_path</span><span class="o">=</span>/Volumes/&lt;catalog&gt;/config/onboarding_specs/dfg_orders.json,catalog<span class="o">=</span>&lt;catalog&gt;,env<span class="o">=</span>&lt;target&gt;,action_type<span class="o">=</span>VALIDATE_ONLY
+</span><span id="__span-26-4"><a id="__codelineno-26-4" name="__codelineno-26-4" href="#__codelineno-26-4"></a>
+</span><span id="__span-26-5"><a id="__codelineno-26-5" name="__codelineno-26-5" href="#__codelineno-26-5"></a><span class="c1"># 2. Onboard: CREATE for a new group, UPDATE to upsert an existing one</span>
+</span><span id="__span-26-6"><a id="__codelineno-26-6" name="__codelineno-26-6" href="#__codelineno-26-6"></a>databricks<span class="w"> </span>bundle<span class="w"> </span>run<span class="w"> </span>onboarding_job<span class="w"> </span>-t<span class="w"> </span>&lt;target&gt;<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-26-7"><a id="__codelineno-26-7" name="__codelineno-26-7" href="#__codelineno-26-7"></a><span class="w">  </span>--params<span class="w"> </span><span class="nv">spec_file_path</span><span class="o">=</span>/Volumes/&lt;catalog&gt;/config/onboarding_specs/dfg_orders.json,catalog<span class="o">=</span>&lt;catalog&gt;,env<span class="o">=</span>&lt;target&gt;,action_type<span class="o">=</span>CREATE
+</span></code></pre></div>
+<p>Onboarding writes control-table rows only. The pipeline picks the change up on its next update.</p>
+</div>
+<div class="tabbed-block">
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-27-1"><a id="__codelineno-27-1" name="__codelineno-27-1" href="#__codelineno-27-1"></a><span class="c1">-- target_config.generate_hash_columns lives inside the target_config_json JSON document; inspect it with from_json / get_json_object</span>
+</span><span id="__span-27-2"><a id="__codelineno-27-2" name="__codelineno-27-2" href="#__codelineno-27-2"></a><span class="k">SELECT</span><span class="w"> </span><span class="n">dataflow_id</span><span class="p">,</span>
+</span><span id="__span-27-3"><a id="__codelineno-27-3" name="__codelineno-27-3" href="#__codelineno-27-3"></a><span class="w">       </span><span class="n">target_config_json</span><span class="p">,</span>
+</span><span id="__span-27-4"><a id="__codelineno-27-4" name="__codelineno-27-4" href="#__codelineno-27-4"></a><span class="w">       </span><span class="n">is_active</span><span class="p">,</span><span class="w"> </span><span class="n">updated_at</span>
+</span><span id="__span-27-5"><a id="__codelineno-27-5" name="__codelineno-27-5" href="#__codelineno-27-5"></a><span class="k">FROM</span><span class="w">   </span><span class="o">&lt;</span><span class="k">catalog</span><span class="o">&gt;</span><span class="p">.</span><span class="n">config</span><span class="p">.</span><span class="n">ingestion_flow_spec</span>
+</span><span id="__span-27-6"><a id="__codelineno-27-6" name="__codelineno-27-6" href="#__codelineno-27-6"></a><span class="k">WHERE</span><span class="w">  </span><span class="n">dataflow_group_id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">'&lt;dataflow_group_id&gt;'</span><span class="p">;</span>
+</span></code></pre></div>
+</div>
+</div>
+</div>
 <div class="admonition tip">
 <p class="admonition-title">Best practice</p>
 <ul>
@@ -4114,20 +5445,96 @@ without leaving the form.</p>
 <li>Reconciliation flows using hash_precomputed: true depend on these columns existing on the target.</li>
 </ul>
 </div>
+<p><strong>FAQs</strong> (4)</p>
+<details class="question">
+<summary>If omitted · What is the default for generate_hash_columns if I don't set it on an SCD2 flow?</summary>
+<p>Defaults to <code>true</code> for every CDC-dispatched strategy (SCD1/SCD2/SCD3/FULL_SNAPSHOT_CDC) per docs/03 §4 — <code>__framework_hash_key</code> and <code>__framework_hash_value</code> are added automatically unless explicitly disabled.</p>
+</details>
+<details class="question">
+<summary>Format gotcha · Is generate_hash_columns a boolean or does it accept a list of columns to hash?</summary>
+<p>A plain boolean, validated by <code>check_bool</code>. It only toggles the two fixed columns <code>__framework_hash_key</code>/<code>__framework_hash_value</code>; which source columns feed the value hash is controlled separately via <code>columns_to_check</code>/<code>columns_to_exclude</code>.</p>
+</details>
+<details class="question">
+<summary>Performance impact · Does generating hash columns add meaningful compute per row?</summary>
+<p>A SHA-256 computation per row, over the primary keys and the resolved comparison columns — cheap per row but scales with row count on every run, since both columns are recomputed each update, not incrementally.</p>
+</details>
+<details class="question">
+<summary>Edge case · What happens if generate_hash_columns is true but no primary_keys are configured?</summary>
+<p>Both hash columns are skipped with a <code>WARNING</code> (docs/03 §4) — but this path is unreachable through normal onboarding, since <code>primary_keys</code> is required for every CDC-dispatched strategy; it only fires for a hand-edited control-table row bypassing the validator. Also note: changing <code>columns_to_check</code>/<code>columns_to_exclude</code> re-hashes every row on the next run, reporting everything as changed once — expected, not a bug.</p>
+</details>
+<p><strong>See also:</strong> <a href="../../../pillars/transformation/#load-strategies">Pillar 2 · Transformation (load strategies)</a> · <a href="../../../00_master_reference_index/#4-target-config-cdc-reference">Attribute dictionary</a> · <a href="../tree/#tree-ingestion-target-configgenerate-hash-columns">Schema tree</a> · <a href="../../../console/spec_builder/#ingestion-tab">Spec Builder · Load strategy step</a> · <a href="../../../console/observability_dashboard/#framework-lineage">Observability dashboard · Framework &amp; Lineage</a> · <a href="../../../13_known_limitations_and_gotchas/">Gotchas</a></p>
 <hr />
 <h3 id="target-configprimary-keys"><code>target_config.primary_keys</code><a class="headerlink" href="#target-configprimary-keys" title="Permanent link">&para;</a></h3>
+<p><span class="fx-badge fx-req">Required</span> <span class="fx-badge fx-flow">Ingestion · Transformation</span> <span class="fx-badge fx-only">Load strategy</span></p>
 <p>The business key apply_changes uses to match an incoming row to an existing one.</p>
 <p>Without it, CDC cannot tell an update from an insert.</p>
-<p><strong>Type</strong> <code>array&lt;string&gt;</code> · <strong>Required</strong> yes · <strong>Section</strong> Load strategy</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="nt">"primary_keys"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">"customer_id"</span><span class="p">,</span><span class="w"> </span><span class="s2">"region"</span><span class="p">]</span>
-</code></pre></div>
+<p><strong>Type &amp; constraints</strong></p>
+<table>
+<thead>
+<tr>
+<th>Type</th>
+<th>Default</th>
+<th>Allowed values</th>
+<th>Constraints</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>array&lt;string&gt;</code></td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Persisted in</strong> <code>config.ingestion_flow_spec / transformation_flow_spec.target_config_json</code> · <strong>Behaviour changed in</strong> v1.4.0</p>
+<div class="tabbed-set tabbed-alternate" data-tabs="8:4"><input checked="checked" id="json_7" name="__tabbed_8" type="radio" /><input id="validate-offline_7" name="__tabbed_8" type="radio" /><input id="onboard-cli_7" name="__tabbed_8" type="radio" /><input id="verify-sql_7" name="__tabbed_8" type="radio" /><div class="tabbed-labels"><label for="json_7">JSON</label><label for="validate-offline_7">Validate offline</label><label for="onboard-cli_7">Onboard (CLI)</label><label for="verify-sql_7">Verify (SQL)</label></div>
+<div class="tabbed-content">
+<div class="tabbed-block">
+<div class="language-json highlight"><pre><span></span><code><span id="__span-28-1"><a id="__codelineno-28-1" name="__codelineno-28-1" href="#__codelineno-28-1"></a><span class="nt">"primary_keys"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">"customer_id"</span><span class="p">,</span><span class="w"> </span><span class="s2">"region"</span><span class="p">]</span>
+</span></code></pre></div>
+</div>
+<div class="tabbed-block">
+<div class="language-python highlight"><pre><span></span><code><span id="__span-29-1"><a id="__codelineno-29-1" name="__codelineno-29-1" href="#__codelineno-29-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">flowx.lakeflow_framework.onboarding.agent_tools</span><span class="w"> </span><span class="kn">import</span> <span class="n">validate_json</span>
+</span><span id="__span-29-2"><a id="__codelineno-29-2" name="__codelineno-29-2" href="#__codelineno-29-2"></a>
+</span><span id="__span-29-3"><a id="__codelineno-29-3" name="__codelineno-29-3" href="#__codelineno-29-3"></a><span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s2">"dfg_orders.json"</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">"utf-8"</span><span class="p">)</span> <span class="k">as</span> <span class="n">fh</span><span class="p">:</span>
+</span><span id="__span-29-4"><a id="__codelineno-29-4" name="__codelineno-29-4" href="#__codelineno-29-4"></a>    <span class="n">result</span> <span class="o">=</span> <span class="n">validate_json</span><span class="p">(</span><span class="n">fh</span><span class="o">.</span><span class="n">read</span><span class="p">(),</span> <span class="n">catalog</span><span class="o">=</span><span class="s2">"&lt;catalog&gt;"</span><span class="p">,</span> <span class="n">env</span><span class="o">=</span><span class="s2">"dev"</span><span class="p">)</span>
+</span><span id="__span-29-5"><a id="__codelineno-29-5" name="__codelineno-29-5" href="#__codelineno-29-5"></a>
+</span><span id="__span-29-6"><a id="__codelineno-29-6" name="__codelineno-29-6" href="#__codelineno-29-6"></a><span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="p">[</span><span class="s2">"summary"</span><span class="p">])</span>        <span class="c1"># PASSED, or FAILED with the error count</span>
+</span><span id="__span-29-7"><a id="__codelineno-29-7" name="__codelineno-29-7" href="#__codelineno-29-7"></a><span class="k">for</span> <span class="n">err</span> <span class="ow">in</span> <span class="n">result</span><span class="p">[</span><span class="s2">"errors"</span><span class="p">]:</span>    <span class="c1"># each error names the offending spec path</span>
+</span><span id="__span-29-8"><a id="__codelineno-29-8" name="__codelineno-29-8" href="#__codelineno-29-8"></a>    <span class="nb">print</span><span class="p">(</span><span class="n">err</span><span class="p">)</span>
+</span></code></pre></div>
+<p>No cluster, sub-second. The same <code>spec_validator.py</code> that the onboarding job runs.</p>
+</div>
+<div class="tabbed-block">
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-30-1"><a id="__codelineno-30-1" name="__codelineno-30-1" href="#__codelineno-30-1"></a><span class="c1"># 1. Dry run against the live catalog: validates, writes nothing</span>
+</span><span id="__span-30-2"><a id="__codelineno-30-2" name="__codelineno-30-2" href="#__codelineno-30-2"></a>databricks<span class="w"> </span>bundle<span class="w"> </span>run<span class="w"> </span>onboarding_job<span class="w"> </span>-t<span class="w"> </span>&lt;target&gt;<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-30-3"><a id="__codelineno-30-3" name="__codelineno-30-3" href="#__codelineno-30-3"></a><span class="w">  </span>--params<span class="w"> </span><span class="nv">spec_file_path</span><span class="o">=</span>/Volumes/&lt;catalog&gt;/config/onboarding_specs/dfg_orders.json,catalog<span class="o">=</span>&lt;catalog&gt;,env<span class="o">=</span>&lt;target&gt;,action_type<span class="o">=</span>VALIDATE_ONLY
+</span><span id="__span-30-4"><a id="__codelineno-30-4" name="__codelineno-30-4" href="#__codelineno-30-4"></a>
+</span><span id="__span-30-5"><a id="__codelineno-30-5" name="__codelineno-30-5" href="#__codelineno-30-5"></a><span class="c1"># 2. Onboard: CREATE for a new group, UPDATE to upsert an existing one</span>
+</span><span id="__span-30-6"><a id="__codelineno-30-6" name="__codelineno-30-6" href="#__codelineno-30-6"></a>databricks<span class="w"> </span>bundle<span class="w"> </span>run<span class="w"> </span>onboarding_job<span class="w"> </span>-t<span class="w"> </span>&lt;target&gt;<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-30-7"><a id="__codelineno-30-7" name="__codelineno-30-7" href="#__codelineno-30-7"></a><span class="w">  </span>--params<span class="w"> </span><span class="nv">spec_file_path</span><span class="o">=</span>/Volumes/&lt;catalog&gt;/config/onboarding_specs/dfg_orders.json,catalog<span class="o">=</span>&lt;catalog&gt;,env<span class="o">=</span>&lt;target&gt;,action_type<span class="o">=</span>CREATE
+</span></code></pre></div>
+<p>Onboarding writes control-table rows only. The pipeline picks the change up on its next update.</p>
+</div>
+<div class="tabbed-block">
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-31-1"><a id="__codelineno-31-1" name="__codelineno-31-1" href="#__codelineno-31-1"></a><span class="c1">-- target_config.primary_keys lives inside the target_config_json JSON document; inspect it with from_json / get_json_object</span>
+</span><span id="__span-31-2"><a id="__codelineno-31-2" name="__codelineno-31-2" href="#__codelineno-31-2"></a><span class="k">SELECT</span><span class="w"> </span><span class="n">dataflow_id</span><span class="p">,</span>
+</span><span id="__span-31-3"><a id="__codelineno-31-3" name="__codelineno-31-3" href="#__codelineno-31-3"></a><span class="w">       </span><span class="n">target_config_json</span><span class="p">,</span>
+</span><span id="__span-31-4"><a id="__codelineno-31-4" name="__codelineno-31-4" href="#__codelineno-31-4"></a><span class="w">       </span><span class="n">is_active</span><span class="p">,</span><span class="w"> </span><span class="n">updated_at</span>
+</span><span id="__span-31-5"><a id="__codelineno-31-5" name="__codelineno-31-5" href="#__codelineno-31-5"></a><span class="k">FROM</span><span class="w">   </span><span class="o">&lt;</span><span class="k">catalog</span><span class="o">&gt;</span><span class="p">.</span><span class="n">config</span><span class="p">.</span><span class="n">ingestion_flow_spec</span>
+</span><span id="__span-31-6"><a id="__codelineno-31-6" name="__codelineno-31-6" href="#__codelineno-31-6"></a><span class="k">WHERE</span><span class="w">  </span><span class="n">dataflow_group_id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">'&lt;dataflow_group_id&gt;'</span><span class="p">;</span>
+</span></code></pre></div>
+</div>
+</div>
+</div>
 <div class="admonition tip">
 <p class="admonition-title">Best practice</p>
 <ul>
 <li>Use the natural business key, not a surrogate generated downstream.</li>
 <li>FULL_SNAPSHOT_CDC requires one too, as of v1.4.0 -- the keyless variant was withdrawn along with the surrogate-key engine that stood in for the missing key.</li>
 <li>On FULL_SNAPSHOT_CDC this is the diff key: a key present in the target but absent from the incoming snapshot is deleted.</li>
-<li>A key that never reaches the clean upstream -- renamed by column_normalization, projected away by data_standardization_sql -- is only caught once the graph executes.</li>
+<li>A key that never reaches the clean upstream -- renamed by column_normalization, or never present in the source (data_standardization_sql cannot remove a column: it is a withColumn loop that only adds or replaces) -- is only caught once the graph executes.</li>
 </ul>
 </div>
 <div class="admonition warning">
@@ -4136,18 +5543,94 @@ without leaving the form.</p>
 <em>Cause:</em> The declared key is not actually unique in the source.<br />
 <em>Fix:</em> Add the missing key column, or deduplicate upstream with source_config.remove_dups.</p>
 </div>
+<p><strong>FAQs</strong> (4)</p>
+<details class="question">
+<summary>If omitted · What happens if primary_keys is missing on an SCD1 flow?</summary>
+<p>Onboarding rejects the flow — <code>check_list_of_str(..., required=True)</code> fires for <code>cdc_load_strategy</code> in <code>{SCD1, SCD2, SCD3, FULL_SNAPSHOT_CDC}</code>. It is not required for APPEND/TRUNCATE_AND_LOAD, which need no key at all.</p>
+</details>
+<details class="question">
+<summary>Format gotcha · Should primary_keys be a single string or always a list, even for one column?</summary>
+<p>Always a JSON array of strings, even for a single-column key: <code>["customer_id"]</code>, validated by <code>check_list_of_str</code>. A bare string is rejected.</p>
+</details>
+<details class="question">
+<summary>Performance impact · Does a composite (multi-column) primary_keys list cost more at merge time?</summary>
+<p>Marginally — <code>apply_changes</code> matches on the full composite key, and <code>__framework_hash_key</code> hashes the ordered keys joined by <code>||</code>. Not separately benchmarked here, but a composite key is standard practice for a genuine composite business key, not a performance anti-pattern.</p>
+</details>
+<details class="question">
+<summary>Edge case · What happens if the declared primary_keys column is renamed by column_normalization before it reaches the target?</summary>
+<p>This is only caught once the graph executes, not at onboarding — a key that never reaches the clean upstream (renamed by <code>column_normalization</code>, or never present in the source, since <code>data_standardization_sql</code> can only add/replace columns, never remove them) surfaces as a runtime failure, not a validation error.</p>
+</details>
+<p><strong>See also:</strong> <a href="../../../pillars/transformation/#load-strategies">Pillar 2 · Transformation (load strategies)</a> · <a href="../../../00_master_reference_index/#4-target-config-cdc-reference">Attribute dictionary</a> · <a href="../tree/#tree-ingestion-target-configprimary-keys">Schema tree</a> · <a href="../../../console/spec_builder/#ingestion-tab">Spec Builder · Load strategy step</a> · <a href="../../../console/observability_dashboard/#framework-lineage">Observability dashboard · Framework &amp; Lineage</a> · <a href="../../../13_known_limitations_and_gotchas/">Gotchas</a></p>
 <p><strong>Databricks documentation:</strong> <a href="https://docs.databricks.com/delta-live-tables/cdc.html">apply changes</a></p>
 <hr />
 <h3 id="target-configsequence-by-column"><code>target_config.sequence_by_column</code><a class="headerlink" href="#target-configsequence-by-column" title="Permanent link">&para;</a></h3>
+<p><span class="fx-badge fx-opt">Optional</span> <span class="fx-badge fx-flow">Ingestion · Transformation</span> <span class="fx-badge fx-only">Load strategy</span></p>
 <p>Ordering column that decides which version of a key wins.</p>
 <p>apply_changes always needs a sequencer. Omit this and the framework sequences by __framework_ingestion_timestamp_utc, which is current_timestamp() evaluated once per batch -- monotonic and correct across runs, but tied within a single one.</p>
-<p><strong>Type</strong> <code>string</code> · <strong>Required</strong> no · <strong>Section</strong> Load strategy</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="p">{</span>
-<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="w">  </span><span class="nt">"target_config"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="w">    </span><span class="nt">"sequence_by_column"</span><span class="p">:</span><span class="w"> </span><span class="s2">"__framework_ingestion_timestamp_utc"</span>
-<a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a><span class="w">  </span><span class="p">}</span>
-<a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a><span class="p">}</span>
-</code></pre></div>
+<p><strong>Type &amp; constraints</strong></p>
+<table>
+<thead>
+<tr>
+<th>Type</th>
+<th>Default</th>
+<th>Allowed values</th>
+<th>Constraints</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>string</code></td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Persisted in</strong> <code>config.ingestion_flow_spec / transformation_flow_spec.target_config_json</code></p>
+<div class="tabbed-set tabbed-alternate" data-tabs="9:4"><input checked="checked" id="json_8" name="__tabbed_9" type="radio" /><input id="validate-offline_8" name="__tabbed_9" type="radio" /><input id="onboard-cli_8" name="__tabbed_9" type="radio" /><input id="verify-sql_8" name="__tabbed_9" type="radio" /><div class="tabbed-labels"><label for="json_8">JSON</label><label for="validate-offline_8">Validate offline</label><label for="onboard-cli_8">Onboard (CLI)</label><label for="verify-sql_8">Verify (SQL)</label></div>
+<div class="tabbed-content">
+<div class="tabbed-block">
+<div class="language-json highlight"><pre><span></span><code><span id="__span-32-1"><a id="__codelineno-32-1" name="__codelineno-32-1" href="#__codelineno-32-1"></a><span class="p">{</span>
+</span><span id="__span-32-2"><a id="__codelineno-32-2" name="__codelineno-32-2" href="#__codelineno-32-2"></a><span class="w">  </span><span class="nt">"target_config"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-32-3"><a id="__codelineno-32-3" name="__codelineno-32-3" href="#__codelineno-32-3"></a><span class="w">    </span><span class="nt">"sequence_by_column"</span><span class="p">:</span><span class="w"> </span><span class="s2">"__framework_ingestion_timestamp_utc"</span>
+</span><span id="__span-32-4"><a id="__codelineno-32-4" name="__codelineno-32-4" href="#__codelineno-32-4"></a><span class="w">  </span><span class="p">}</span>
+</span><span id="__span-32-5"><a id="__codelineno-32-5" name="__codelineno-32-5" href="#__codelineno-32-5"></a><span class="p">}</span>
+</span></code></pre></div>
+</div>
+<div class="tabbed-block">
+<div class="language-python highlight"><pre><span></span><code><span id="__span-33-1"><a id="__codelineno-33-1" name="__codelineno-33-1" href="#__codelineno-33-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">flowx.lakeflow_framework.onboarding.agent_tools</span><span class="w"> </span><span class="kn">import</span> <span class="n">validate_json</span>
+</span><span id="__span-33-2"><a id="__codelineno-33-2" name="__codelineno-33-2" href="#__codelineno-33-2"></a>
+</span><span id="__span-33-3"><a id="__codelineno-33-3" name="__codelineno-33-3" href="#__codelineno-33-3"></a><span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s2">"dfg_orders.json"</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">"utf-8"</span><span class="p">)</span> <span class="k">as</span> <span class="n">fh</span><span class="p">:</span>
+</span><span id="__span-33-4"><a id="__codelineno-33-4" name="__codelineno-33-4" href="#__codelineno-33-4"></a>    <span class="n">result</span> <span class="o">=</span> <span class="n">validate_json</span><span class="p">(</span><span class="n">fh</span><span class="o">.</span><span class="n">read</span><span class="p">(),</span> <span class="n">catalog</span><span class="o">=</span><span class="s2">"&lt;catalog&gt;"</span><span class="p">,</span> <span class="n">env</span><span class="o">=</span><span class="s2">"dev"</span><span class="p">)</span>
+</span><span id="__span-33-5"><a id="__codelineno-33-5" name="__codelineno-33-5" href="#__codelineno-33-5"></a>
+</span><span id="__span-33-6"><a id="__codelineno-33-6" name="__codelineno-33-6" href="#__codelineno-33-6"></a><span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="p">[</span><span class="s2">"summary"</span><span class="p">])</span>        <span class="c1"># PASSED, or FAILED with the error count</span>
+</span><span id="__span-33-7"><a id="__codelineno-33-7" name="__codelineno-33-7" href="#__codelineno-33-7"></a><span class="k">for</span> <span class="n">err</span> <span class="ow">in</span> <span class="n">result</span><span class="p">[</span><span class="s2">"errors"</span><span class="p">]:</span>    <span class="c1"># each error names the offending spec path</span>
+</span><span id="__span-33-8"><a id="__codelineno-33-8" name="__codelineno-33-8" href="#__codelineno-33-8"></a>    <span class="nb">print</span><span class="p">(</span><span class="n">err</span><span class="p">)</span>
+</span></code></pre></div>
+<p>No cluster, sub-second. The same <code>spec_validator.py</code> that the onboarding job runs.</p>
+</div>
+<div class="tabbed-block">
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-34-1"><a id="__codelineno-34-1" name="__codelineno-34-1" href="#__codelineno-34-1"></a><span class="c1"># 1. Dry run against the live catalog: validates, writes nothing</span>
+</span><span id="__span-34-2"><a id="__codelineno-34-2" name="__codelineno-34-2" href="#__codelineno-34-2"></a>databricks<span class="w"> </span>bundle<span class="w"> </span>run<span class="w"> </span>onboarding_job<span class="w"> </span>-t<span class="w"> </span>&lt;target&gt;<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-34-3"><a id="__codelineno-34-3" name="__codelineno-34-3" href="#__codelineno-34-3"></a><span class="w">  </span>--params<span class="w"> </span><span class="nv">spec_file_path</span><span class="o">=</span>/Volumes/&lt;catalog&gt;/config/onboarding_specs/dfg_orders.json,catalog<span class="o">=</span>&lt;catalog&gt;,env<span class="o">=</span>&lt;target&gt;,action_type<span class="o">=</span>VALIDATE_ONLY
+</span><span id="__span-34-4"><a id="__codelineno-34-4" name="__codelineno-34-4" href="#__codelineno-34-4"></a>
+</span><span id="__span-34-5"><a id="__codelineno-34-5" name="__codelineno-34-5" href="#__codelineno-34-5"></a><span class="c1"># 2. Onboard: CREATE for a new group, UPDATE to upsert an existing one</span>
+</span><span id="__span-34-6"><a id="__codelineno-34-6" name="__codelineno-34-6" href="#__codelineno-34-6"></a>databricks<span class="w"> </span>bundle<span class="w"> </span>run<span class="w"> </span>onboarding_job<span class="w"> </span>-t<span class="w"> </span>&lt;target&gt;<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-34-7"><a id="__codelineno-34-7" name="__codelineno-34-7" href="#__codelineno-34-7"></a><span class="w">  </span>--params<span class="w"> </span><span class="nv">spec_file_path</span><span class="o">=</span>/Volumes/&lt;catalog&gt;/config/onboarding_specs/dfg_orders.json,catalog<span class="o">=</span>&lt;catalog&gt;,env<span class="o">=</span>&lt;target&gt;,action_type<span class="o">=</span>CREATE
+</span></code></pre></div>
+<p>Onboarding writes control-table rows only. The pipeline picks the change up on its next update.</p>
+</div>
+<div class="tabbed-block">
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-35-1"><a id="__codelineno-35-1" name="__codelineno-35-1" href="#__codelineno-35-1"></a><span class="c1">-- target_config.sequence_by_column lives inside the target_config_json JSON document; inspect it with from_json / get_json_object</span>
+</span><span id="__span-35-2"><a id="__codelineno-35-2" name="__codelineno-35-2" href="#__codelineno-35-2"></a><span class="k">SELECT</span><span class="w"> </span><span class="n">dataflow_id</span><span class="p">,</span>
+</span><span id="__span-35-3"><a id="__codelineno-35-3" name="__codelineno-35-3" href="#__codelineno-35-3"></a><span class="w">       </span><span class="n">target_config_json</span><span class="p">,</span>
+</span><span id="__span-35-4"><a id="__codelineno-35-4" name="__codelineno-35-4" href="#__codelineno-35-4"></a><span class="w">       </span><span class="n">is_active</span><span class="p">,</span><span class="w"> </span><span class="n">updated_at</span>
+</span><span id="__span-35-5"><a id="__codelineno-35-5" name="__codelineno-35-5" href="#__codelineno-35-5"></a><span class="k">FROM</span><span class="w">   </span><span class="o">&lt;</span><span class="k">catalog</span><span class="o">&gt;</span><span class="p">.</span><span class="n">config</span><span class="p">.</span><span class="n">ingestion_flow_spec</span>
+</span><span id="__span-35-6"><a id="__codelineno-35-6" name="__codelineno-35-6" href="#__codelineno-35-6"></a><span class="k">WHERE</span><span class="w">  </span><span class="n">dataflow_group_id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">'&lt;dataflow_group_id&gt;'</span><span class="p">;</span>
+</span></code></pre></div>
+</div>
+</div>
+</div>
 <div class="admonition tip">
 <p class="admonition-title">Best practice</p>
 <ul>
@@ -4163,22 +5646,98 @@ without leaving the form.</p>
 <em>Cause:</em> capture_technical_metadata is false and sequence_by_column was left unset, so the fallback sequencer does not exist on the flow.<br />
 <em>Fix:</em> Set sequence_by_column explicitly, or leave capture_technical_metadata at its default.</p>
 </div>
+<p><strong>FAQs</strong> (4)</p>
+<details class="question">
+<summary>If omitted · What sequencer is used if sequence_by_column is not set?</summary>
+<p>Falls back to <code>__framework_ingestion_timestamp_utc</code>, which is <code>current_timestamp()</code> evaluated once per batch — monotonic and correct across runs, but tied within a single batch, so two versions of the same key in one batch resolve non-deterministically.</p>
+</details>
+<details class="question">
+<summary>Format gotcha · Can sequence_by_column reference more than one column, like a tie-breaker pair?</summary>
+<p>No — it is a single string column name, validated by <code>check_string</code>. There is no composite/multi-column sequencer support in this field.</p>
+</details>
+<details class="question">
+<summary>Performance impact · Does declaring a real sequence_by_column add overhead compared to the fallback?</summary>
+<p>Negligible — <code>apply_changes</code> always needs some sequencer; supplying a real source column instead of the batch-timestamp fallback costs nothing extra and simply gives a more precise ordering.</p>
+</details>
+<details class="question">
+<summary>Edge case · Does sequence_by_column have any effect on a FULL_SNAPSHOT_CDC flow?</summary>
+<p>No — it is silently discarded. <code>apply_changes_from_snapshot</code> has no <code>sequence_by</code> parameter at all, so a value here passes validation and is then never read. Also note: setting <code>capture_technical_metadata</code> to <code>false</code> removes the fallback column, making this field effectively mandatory on APPEND/TRUNCATE_AND_LOAD-style flows that rely on the default sequencer.</p>
+</details>
+<p><strong>See also:</strong> <a href="../../../pillars/transformation/#load-strategies">Pillar 2 · Transformation (load strategies)</a> · <a href="../../../00_master_reference_index/#4-target-config-cdc-reference">Attribute dictionary</a> · <a href="../tree/#tree-ingestion-target-configsequence-by-column">Schema tree</a> · <a href="../../../console/spec_builder/#ingestion-tab">Spec Builder · Load strategy step</a> · <a href="../../../console/observability_dashboard/#framework-lineage">Observability dashboard · Framework &amp; Lineage</a> · <a href="../../../13_known_limitations_and_gotchas/">Gotchas</a></p>
 <p><strong>Databricks documentation:</strong> <a href="https://docs.databricks.com/delta-live-tables/cdc.html">apply changes</a></p>
 <hr />
 <h3 id="target-configsink-configpost-export-archivepgp-encryptionpassphrase-secret"><code>target_config.sink_config.post_export_archive.pgp_encryption.passphrase_secret</code><a class="headerlink" href="#target-configsink-configpost-export-archivepgp-encryptionpassphrase-secret" title="Permanent link">&para;</a></h3>
+<p><span class="fx-badge fx-opt">Optional</span> <span class="fx-badge fx-flow">Ingestion · Transformation</span> <span class="fx-badge fx-ver">v1.7.4+</span></p>
 <p>Encrypt the export with a SHARED PASSPHRASE instead of a recipient's public key.</p>
 <p>Egress encryption previously required a recipient keypair. Where two parties already share a passphrase — as UC6 does, using the same secret that decrypts the inbound request — demanding a keypair means managing one purely as ceremony.</p>
-<p><strong>Type</strong> <code>string</code> · <strong>Required</strong> no</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="nt">"pgp_encryption"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="w">  </span><span class="nt">"enabled"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
-<a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="w">  </span><span class="nt">"passphrase_secret"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="w">    </span><span class="nt">"secret_catalog"</span><span class="p">:</span><span class="w"> </span><span class="s2">"{{catalog}}"</span><span class="p">,</span>
-<a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a><span class="w">    </span><span class="nt">"secret_schema"</span><span class="p">:</span><span class="w"> </span><span class="s2">"config"</span><span class="p">,</span>
-<a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a><span class="w">    </span><span class="nt">"secret_key"</span><span class="p">:</span><span class="w"> </span><span class="s2">"pgpkey"</span>
-<a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a><span class="w">  </span><span class="p">}</span>
-<a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a><span class="p">}</span>
-<a id="__codelineno-9-9" name="__codelineno-9-9" href="#__codelineno-9-9"></a><span class="c1">// AES256. Decrypts with: gpg --decrypt file.csv.gz.gpg</span>
-</code></pre></div>
+<p><strong>Type &amp; constraints</strong></p>
+<table>
+<thead>
+<tr>
+<th>Type</th>
+<th>Default</th>
+<th>Allowed values</th>
+<th>Constraints</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>string</code></td>
+<td>—</td>
+<td>—</td>
+<td>no unknown keys</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Persisted in</strong> <code>config.ingestion_flow_spec / transformation_flow_spec.target_config_json</code></p>
+<div class="tabbed-set tabbed-alternate" data-tabs="10:4"><input checked="checked" id="json_9" name="__tabbed_10" type="radio" /><input id="validate-offline_9" name="__tabbed_10" type="radio" /><input id="onboard-cli_9" name="__tabbed_10" type="radio" /><input id="verify-sql_9" name="__tabbed_10" type="radio" /><div class="tabbed-labels"><label for="json_9">JSON</label><label for="validate-offline_9">Validate offline</label><label for="onboard-cli_9">Onboard (CLI)</label><label for="verify-sql_9">Verify (SQL)</label></div>
+<div class="tabbed-content">
+<div class="tabbed-block">
+<div class="language-json highlight"><pre><span></span><code><span id="__span-36-1"><a id="__codelineno-36-1" name="__codelineno-36-1" href="#__codelineno-36-1"></a><span class="nt">"pgp_encryption"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-36-2"><a id="__codelineno-36-2" name="__codelineno-36-2" href="#__codelineno-36-2"></a><span class="w">  </span><span class="nt">"enabled"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
+</span><span id="__span-36-3"><a id="__codelineno-36-3" name="__codelineno-36-3" href="#__codelineno-36-3"></a><span class="w">  </span><span class="nt">"passphrase_secret"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-36-4"><a id="__codelineno-36-4" name="__codelineno-36-4" href="#__codelineno-36-4"></a><span class="w">    </span><span class="nt">"secret_catalog"</span><span class="p">:</span><span class="w"> </span><span class="s2">"{{catalog}}"</span><span class="p">,</span>
+</span><span id="__span-36-5"><a id="__codelineno-36-5" name="__codelineno-36-5" href="#__codelineno-36-5"></a><span class="w">    </span><span class="nt">"secret_schema"</span><span class="p">:</span><span class="w"> </span><span class="s2">"config"</span><span class="p">,</span>
+</span><span id="__span-36-6"><a id="__codelineno-36-6" name="__codelineno-36-6" href="#__codelineno-36-6"></a><span class="w">    </span><span class="nt">"secret_key"</span><span class="p">:</span><span class="w"> </span><span class="s2">"pgpkey"</span>
+</span><span id="__span-36-7"><a id="__codelineno-36-7" name="__codelineno-36-7" href="#__codelineno-36-7"></a><span class="w">  </span><span class="p">}</span>
+</span><span id="__span-36-8"><a id="__codelineno-36-8" name="__codelineno-36-8" href="#__codelineno-36-8"></a><span class="p">}</span>
+</span><span id="__span-36-9"><a id="__codelineno-36-9" name="__codelineno-36-9" href="#__codelineno-36-9"></a><span class="c1">// AES256. Decrypts with: gpg --decrypt file.csv.gz.gpg</span>
+</span></code></pre></div>
+</div>
+<div class="tabbed-block">
+<div class="language-python highlight"><pre><span></span><code><span id="__span-37-1"><a id="__codelineno-37-1" name="__codelineno-37-1" href="#__codelineno-37-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">flowx.lakeflow_framework.onboarding.agent_tools</span><span class="w"> </span><span class="kn">import</span> <span class="n">validate_json</span>
+</span><span id="__span-37-2"><a id="__codelineno-37-2" name="__codelineno-37-2" href="#__codelineno-37-2"></a>
+</span><span id="__span-37-3"><a id="__codelineno-37-3" name="__codelineno-37-3" href="#__codelineno-37-3"></a><span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s2">"dfg_orders.json"</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s2">"utf-8"</span><span class="p">)</span> <span class="k">as</span> <span class="n">fh</span><span class="p">:</span>
+</span><span id="__span-37-4"><a id="__codelineno-37-4" name="__codelineno-37-4" href="#__codelineno-37-4"></a>    <span class="n">result</span> <span class="o">=</span> <span class="n">validate_json</span><span class="p">(</span><span class="n">fh</span><span class="o">.</span><span class="n">read</span><span class="p">(),</span> <span class="n">catalog</span><span class="o">=</span><span class="s2">"&lt;catalog&gt;"</span><span class="p">,</span> <span class="n">env</span><span class="o">=</span><span class="s2">"dev"</span><span class="p">)</span>
+</span><span id="__span-37-5"><a id="__codelineno-37-5" name="__codelineno-37-5" href="#__codelineno-37-5"></a>
+</span><span id="__span-37-6"><a id="__codelineno-37-6" name="__codelineno-37-6" href="#__codelineno-37-6"></a><span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="p">[</span><span class="s2">"summary"</span><span class="p">])</span>        <span class="c1"># PASSED, or FAILED with the error count</span>
+</span><span id="__span-37-7"><a id="__codelineno-37-7" name="__codelineno-37-7" href="#__codelineno-37-7"></a><span class="k">for</span> <span class="n">err</span> <span class="ow">in</span> <span class="n">result</span><span class="p">[</span><span class="s2">"errors"</span><span class="p">]:</span>    <span class="c1"># each error names the offending spec path</span>
+</span><span id="__span-37-8"><a id="__codelineno-37-8" name="__codelineno-37-8" href="#__codelineno-37-8"></a>    <span class="nb">print</span><span class="p">(</span><span class="n">err</span><span class="p">)</span>
+</span></code></pre></div>
+<p>No cluster, sub-second. The same <code>spec_validator.py</code> that the onboarding job runs.</p>
+</div>
+<div class="tabbed-block">
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-38-1"><a id="__codelineno-38-1" name="__codelineno-38-1" href="#__codelineno-38-1"></a><span class="c1"># 1. Dry run against the live catalog: validates, writes nothing</span>
+</span><span id="__span-38-2"><a id="__codelineno-38-2" name="__codelineno-38-2" href="#__codelineno-38-2"></a>databricks<span class="w"> </span>bundle<span class="w"> </span>run<span class="w"> </span>onboarding_job<span class="w"> </span>-t<span class="w"> </span>&lt;target&gt;<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-38-3"><a id="__codelineno-38-3" name="__codelineno-38-3" href="#__codelineno-38-3"></a><span class="w">  </span>--params<span class="w"> </span><span class="nv">spec_file_path</span><span class="o">=</span>/Volumes/&lt;catalog&gt;/config/onboarding_specs/dfg_orders.json,catalog<span class="o">=</span>&lt;catalog&gt;,env<span class="o">=</span>&lt;target&gt;,action_type<span class="o">=</span>VALIDATE_ONLY
+</span><span id="__span-38-4"><a id="__codelineno-38-4" name="__codelineno-38-4" href="#__codelineno-38-4"></a>
+</span><span id="__span-38-5"><a id="__codelineno-38-5" name="__codelineno-38-5" href="#__codelineno-38-5"></a><span class="c1"># 2. Onboard: CREATE for a new group, UPDATE to upsert an existing one</span>
+</span><span id="__span-38-6"><a id="__codelineno-38-6" name="__codelineno-38-6" href="#__codelineno-38-6"></a>databricks<span class="w"> </span>bundle<span class="w"> </span>run<span class="w"> </span>onboarding_job<span class="w"> </span>-t<span class="w"> </span>&lt;target&gt;<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-38-7"><a id="__codelineno-38-7" name="__codelineno-38-7" href="#__codelineno-38-7"></a><span class="w">  </span>--params<span class="w"> </span><span class="nv">spec_file_path</span><span class="o">=</span>/Volumes/&lt;catalog&gt;/config/onboarding_specs/dfg_orders.json,catalog<span class="o">=</span>&lt;catalog&gt;,env<span class="o">=</span>&lt;target&gt;,action_type<span class="o">=</span>CREATE
+</span></code></pre></div>
+<p>Onboarding writes control-table rows only. The pipeline picks the change up on its next update.</p>
+</div>
+<div class="tabbed-block">
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-39-1"><a id="__codelineno-39-1" name="__codelineno-39-1" href="#__codelineno-39-1"></a><span class="c1">-- target_config.sink_config.post_export_archive.pgp_encryption.passphrase_secret lives inside the target_config_json JSON document; inspect it with from_json / get_json_object</span>
+</span><span id="__span-39-2"><a id="__codelineno-39-2" name="__codelineno-39-2" href="#__codelineno-39-2"></a><span class="k">SELECT</span><span class="w"> </span><span class="n">dataflow_id</span><span class="p">,</span>
+</span><span id="__span-39-3"><a id="__codelineno-39-3" name="__codelineno-39-3" href="#__codelineno-39-3"></a><span class="w">       </span><span class="n">target_config_json</span><span class="p">,</span>
+</span><span id="__span-39-4"><a id="__codelineno-39-4" name="__codelineno-39-4" href="#__codelineno-39-4"></a><span class="w">       </span><span class="n">is_active</span><span class="p">,</span><span class="w"> </span><span class="n">updated_at</span>
+</span><span id="__span-39-5"><a id="__codelineno-39-5" name="__codelineno-39-5" href="#__codelineno-39-5"></a><span class="k">FROM</span><span class="w">   </span><span class="o">&lt;</span><span class="k">catalog</span><span class="o">&gt;</span><span class="p">.</span><span class="n">config</span><span class="p">.</span><span class="n">ingestion_flow_spec</span>
+</span><span id="__span-39-6"><a id="__codelineno-39-6" name="__codelineno-39-6" href="#__codelineno-39-6"></a><span class="k">WHERE</span><span class="w">  </span><span class="n">dataflow_group_id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">'&lt;dataflow_group_id&gt;'</span><span class="p">;</span>
+</span></code></pre></div>
+</div>
+</div>
+</div>
 <div class="admonition tip">
 <p class="admonition-title">Best practice</p>
 <ul>
@@ -4193,6 +5752,28 @@ without leaving the form.</p>
 <em>Cause:</em> Both passphrase_secret and recipient_public_key_secret are present.<br />
 <em>Fix:</em> Delete whichever you are not using. Leaving both is ambiguous rather than additive.</p>
 </div>
+<p><strong>FAQs</strong> (5)</p>
+<details class="question">
+<summary>If omitted · What happens if pgp_encryption is enabled and I don't set passphrase_secret or recipient_public_key_secret?</summary>
+<p>Onboarding treats the recipient-key path as required by default and rejects the flow for a missing <code>recipient_public_key_secret</code>, since neither secret was supplied. There is no default encryption key -- one of the two must be explicit.</p>
+</details>
+<details class="question">
+<summary>Format gotcha · Can I set both passphrase_secret and recipient_public_key_secret at once for extra safety?</summary>
+<p>No -- they are mutually exclusive; a PGP message is encrypted either to a recipient key or under a shared passphrase, never both. Onboarding rejects the flow verbatim: 'passphrase_secret (symmetric) and recipient_public_key_secret (asymmetric) are mutually exclusive -- set exactly one.'</p>
+</details>
+<details class="question">
+<summary>Performance impact · Is symmetric passphrase encryption faster than encrypting to a recipient key?</summary>
+<p>Not documented as meaningfully different -- both are a single AES256 encryption pass over the archive per micro-batch/update (<code>crypto/pgp.py::pgp_encrypt_symmetric</code>); the difference is cryptographic mode (shared secret vs public key), not measured throughput.</p>
+</details>
+<details class="question">
+<summary>Edge case · Can I sign the export if I use passphrase_secret instead of a recipient key?</summary>
+<p>No -- signing (<code>sign_with_private_key_secret</code>) requires a sender keypair, which symmetric encryption has none of. Setting <code>sign_with_private_key_secret</code> or <code>sign_passphrase_secret</code> alongside <code>passphrase_secret</code> is rejected: 'signing requires a sender keypair and is not available for symmetric (passphrase_secret) encryption.'</p>
+</details>
+<details class="question">
+<summary>Edge case · Since anyone with the passphrase can decrypt, can they also forge a file that looks like it came from us?</summary>
+<p>Yes -- with symmetric encryption the same secret both encrypts and decrypts, so anyone holding the passphrase can produce an identical, indistinguishable file. Use a recipient key plus a signature (<code>sign_with_private_key_secret</code>) wherever the receiver must be able to prove who sent the file. See docs/05 section 4.1.</p>
+</details>
+<p><strong>See also:</strong> <a href="../../../pillars/transformation/#load-strategies">Pillar 2 · Transformation (load strategies)</a> · <a href="../../../00_master_reference_index/#4-target-config-cdc-reference">Attribute dictionary</a> · <a href="../tree/#tree-ingestion-target-configsink-configpost-export-archivepgp-encryptionpassphrase-secret">Schema tree</a> · <a href="../../../console/spec_builder/#ingestion-tab">Spec Builder · Load strategy step</a> · <a href="../../../console/observability_dashboard/#framework-lineage">Observability dashboard · Framework &amp; Lineage</a> · <a href="../../../13_known_limitations_and_gotchas/">Gotchas</a></p>
 <p><strong>Databricks documentation:</strong> <a href="https://docs.databricks.com/security/secrets/index.html">secrets</a> · <a href="https://docs.databricks.com/data-governance/unity-catalog/manage-privileges/privileges.html">uc privileges</a></p>
 <hr />
 
@@ -4227,9 +5808,53 @@ without leaving the form.</p>
       
         <footer class="md-footer">
   
+    
+      
+      <nav class="md-footer__inner md-grid" aria-label="Footer" >
+        
+          
+          <a href="../observability/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Observability">
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+            </div>
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Previous
+              </span>
+              <div class="md-ellipsis">
+                Observability
+              </div>
+            </div>
+          </a>
+        
+        
+          
+          <a href="../other/" class="md-footer__link md-footer__link--next" aria-label="Next: Other shared attributes">
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Next
+              </span>
+              <div class="md-ellipsis">
+                Other shared attributes
+              </div>
+            </div>
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg>
+            </div>
+          </a>
+        
+      </nav>
+    
+  
   <div class="md-footer-meta md-typeset">
     <div class="md-footer-meta__inner md-grid">
       <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      FlowX · Data Platform Engineering
+    </div>
   
   
 </div>
@@ -4243,11 +5868,13 @@ without leaving the form.</p>
       <div class="md-dialog__inner md-typeset"></div>
     </div>
     
+      <div class="md-progress" data-md-component="progress" role="progressbar"></div>
+    
     
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["navigation.instant", "navigation.tracking", "navigation.tabs", "navigation.sections", "navigation.top", "navigation.indexes", "toc.follow", "search.suggest", "search.highlight", "content.code.copy", "content.tabs.link"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["announce.dismiss", "content.code.annotate", "content.code.copy", "content.tabs.link", "content.tooltips", "navigation.footer", "navigation.indexes", "navigation.instant", "navigation.instant.progress", "navigation.path", "navigation.sections", "navigation.tabs", "navigation.tabs.sticky", "navigation.top", "navigation.tracking", "search.highlight", "search.share", "search.suggest", "toc.follow"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
     
     
       <script src="../../../assets/javascripts/bundle.d7400e89.min.js"></script>

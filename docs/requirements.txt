@@ -1,0 +1,12 @@
+# Documentation toolchain — pinned to the versions the hub is verified against.
+#   pip install -r docs/requirements.txt
+#   mkdocs serve          # live reload at http://127.0.0.1:8000 (uses committed reference pages)
+#   mkdocs build          # regenerates docs/reference/** via scripts/mkdocs_hooks.py, then builds site/
+mkdocs==1.6.1
+mkdocs-material==9.7.7
+mkdocs-material-extensions==1.3.1
+pymdown-extensions==11.0.2
+# Used by the reference generator and the docs-hub unit tests (no Spark needed).
+jsonschema>=4.23,<5.0
+pyyaml>=6.0,<7.0
+pytest>=8.3

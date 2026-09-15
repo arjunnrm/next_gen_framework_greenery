@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="Metadata-driven ingestion, transformation, reconciliation and observability pipelines on Databricks Lakeflow — architecture, attribute reference, onboarding guides and operational runbooks.">
+        <meta name="description" content="Metadata-driven ingestion, transformation, reconciliation and observability pipelines on Databricks Lakeflow — platform hub, four framework pillars, console walkthroughs, the master configuration reference and operational runbooks.">
       
       
         <meta name="author" content="Data Platform Engineering">
@@ -37,21 +37,32 @@
         <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
       
       
+  
+  
+    
+      
+      
+    
+  
+    
+      
+      
+    
+  
+  
+  <style>:root{--md-admonition-icon--abstract:url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2024%2024%22%3E%3Cpath%20d%3D%22M10.59%2013.41c.41.39.41%201.03%200%201.42-.39.39-1.03.39-1.42%200a5.003%205.003%200%200%201%200-7.07l3.54-3.54a5.003%205.003%200%200%201%207.07%200%205.003%205.003%200%200%201%200%207.07l-1.49%201.49c.01-.82-.12-1.64-.4-2.42l.47-.48a2.98%202.98%200%200%200%200-4.24%202.98%202.98%200%200%200-4.24%200l-3.53%203.53a2.98%202.98%200%200%200%200%204.24m2.82-4.24c.39-.39%201.03-.39%201.42%200a5.003%205.003%200%200%201%200%207.07l-3.54%203.54a5.003%205.003%200%200%201-7.07%200%205.003%205.003%200%200%201%200-7.07l1.49-1.49c-.01.82.12%201.64.4%202.43l-.47.47a2.98%202.98%200%200%200%200%204.24%202.98%202.98%200%200%200%204.24%200l3.53-3.53a2.98%202.98%200%200%200%200-4.24.973.973%200%200%201%200-1.42%22/%3E%3C/svg%3E');--md-admonition-icon--example:url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2024%2024%22%3E%3Cpath%20d%3D%22M5%203h2v2H5v5a2%202%200%200%201-2%202%202%202%200%200%201%202%202v5h2v2H5c-1.07-.27-2-.9-2-2v-4a2%202%200%200%200-2-2H0v-2h1a2%202%200%200%200%202-2V5a2%202%200%200%201%202-2m14%200a2%202%200%200%201%202%202v4a2%202%200%200%200%202%202h1v2h-1a2%202%200%200%200-2%202v4a2%202%200%200%201-2%202h-2v-2h2v-5a2%202%200%200%201%202-2%202%202%200%200%201-2-2V5h-2V3zm-7%2012a1%201%200%200%201%201%201%201%201%200%200%201-1%201%201%201%200%200%201-1-1%201%201%200%200%201%201-1m-4%200a1%201%200%200%201%201%201%201%201%200%200%201-1%201%201%201%200%200%201-1-1%201%201%200%200%201%201-1m8%200a1%201%200%200%201%201%201%201%201%200%200%201-1%201%201%201%200%200%201-1-1%201%201%200%200%201%201-1%22/%3E%3C/svg%3E');}</style>
 
 
+
     
     
       
     
     
       
-        
-        
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
-        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
-      
     
+    
+      <link rel="stylesheet" href="../../stylesheets/extra.css">
     
     <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
@@ -90,12 +101,14 @@
     
       
 
-<header class="md-header" data-md-component="header">
+  
+
+<header class="md-header md-header--shadow md-header--lifted" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
     <a href="../.." title="FlowX" class="md-header__button md-logo" aria-label="FlowX" data-md-component="logo">
       
   
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18 11h-3.18C14.4 9.84 13.3 9 12 9s-2.4.84-2.82 2H6c-.33 0-2-.1-2-2V8c0-1.83 1.54-2 2-2h10.18C16.6 7.16 17.7 8 19 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3c-1.3 0-2.4.84-2.82 2H6C4.39 4 2 5.06 2 8v1c0 2.94 2.39 4 4 4h3.18c.42 1.16 1.52 2 2.82 2s2.4-.84 2.82-2H18c.33 0 2 .1 2 2v1c0 1.83-1.54 2-2 2H7.82C7.4 16.84 6.3 16 5 16a3 3 0 0 0-3 3 3 3 0 0 0 3 3c1.3 0 2.4-.84 2.82-2H18c1.61 0 4-1.07 4-4v-1c0-2.93-2.39-4-4-4m1-7a1 1 0 0 1 1 1 1 1 0 0 1-1 1 1 1 0 0 1-1-1 1 1 0 0 1 1-1M5 20a1 1 0 0 1-1-1 1 1 0 0 1 1-1 1 1 0 0 1 1 1 1 1 0 0 1-1 1"/></svg>
 
     </a>
     <label class="md-header__button md-icon" for="__drawer">
@@ -125,9 +138,19 @@
     
     
     
-    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    <input class="md-option" data-md-color-media="(prefers-color-scheme)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_0">
     
-      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m14.3 16-.7-2h-3.2l-.7 2H7.8L11 7h2l3.2 9zM20 8.69V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12zm-9.15 3.96h2.3L12 9z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="deep-orange"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_2" hidden>
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
       </label>
     
@@ -135,9 +158,9 @@
     
     
     
-    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="deep-orange"  aria-label="Switch to system preference"  type="radio" name="__palette" id="__palette_2">
     
-      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+      <label class="md-header__button md-icon" title="Switch to system preference" for="__palette_0" hidden>
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg>
       </label>
     
@@ -169,6 +192,11 @@
       </label>
       <nav class="md-search__options" aria-label="Search">
         
+          <a href="javascript:void(0)" class="md-search__icon md-icon" title="Share" aria-label="Share" data-clipboard data-clipboard-text="" data-md-component="search-share" tabindex="-1">
+            
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91s2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08"/></svg>
+          </a>
+        
         <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
           
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
@@ -193,16 +221,22 @@
       
     
     
+      <div class="md-header__source">
+        <a href="https://github.com/Madhan-RAGHU/NextGen_Metadata_Framework" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    NextGen_Metadata_Framework
+  </div>
+</a>
+      </div>
+    
   </nav>
   
-</header>
     
-    <div class="md-container" data-md-component="container">
       
-      
-        
-          
-            
 <nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
   <div class="md-grid">
     <ul class="md-tabs__list">
@@ -275,13 +309,35 @@
     
     
       <li class="md-tabs__item">
-        <a href="../../01_platform_architecture/" class="md-tabs__link">
+        <a href="../../pillars/" class="md-tabs__link">
           
   
   
     
   
-  Architecture
+  Pillars
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../console/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Console
 
         </a>
       </li>
@@ -303,7 +359,29 @@
   
     
   
-  JSON reference
+  Configuration
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../01_platform_architecture/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Architecture
 
         </a>
       </li>
@@ -392,7 +470,13 @@
     </ul>
   </div>
 </nav>
-          
+    
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
         
       
       <main class="md-main" data-md-component="main">
@@ -414,11 +498,23 @@
     <a href="../.." title="FlowX" class="md-nav__button md-logo" aria-label="FlowX" data-md-component="logo">
       
   
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18 11h-3.18C14.4 9.84 13.3 9 12 9s-2.4.84-2.82 2H6c-.33 0-2-.1-2-2V8c0-1.83 1.54-2 2-2h10.18C16.6 7.16 17.7 8 19 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3c-1.3 0-2.4.84-2.82 2H6C4.39 4 2 5.06 2 8v1c0 2.94 2.39 4 4 4h3.18c.42 1.16 1.52 2 2.82 2s2.4-.84 2.82-2H18c.33 0 2 .1 2 2v1c0 1.83-1.54 2-2 2H7.82C7.4 16.84 6.3 16 5 16a3 3 0 0 0-3 3 3 3 0 0 0 3 3c1.3 0 2.4-.84 2.82-2H18c1.61 0 4-1.07 4-4v-1c0-2.93-2.39-4-4-4m1-7a1 1 0 0 1 1 1 1 1 0 0 1-1 1 1 1 0 0 1-1-1 1 1 0 0 1 1-1M5 20a1 1 0 0 1-1-1 1 1 0 0 1 1-1 1 1 0 0 1 1 1 1 1 0 0 1-1 1"/></svg>
 
     </a>
     FlowX
   </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/Madhan-RAGHU/NextGen_Metadata_Framework" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    NextGen_Metadata_Framework
+  </div>
+</a>
+    </div>
   
   <ul class="md-nav__list" data-md-scrollfix>
     
@@ -555,6 +651,8 @@
   
     
     
+      
+        
       
         
       
@@ -751,6 +849,34 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../onboarding/06_bt_digital_poc_deployment_issues/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    6 · BT Digital POC deployment issues
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -767,6 +893,8 @@
   
     
     
+      
+        
       
         
       
@@ -843,6 +971,34 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../16_usecase_implementation_guide/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Use case implementation guide
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -866,6 +1022,10 @@
   
     
     
+      
+        
+          
+        
       
         
       
@@ -891,14 +1051,15 @@
         <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
         
           
-          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
-            
+          <div class="md-nav__link md-nav__container">
+            <a href="../../pillars/" class="md-nav__link ">
+              
   
   
   <span class="md-ellipsis">
     
   
-    Architecture
+    Pillars
   
 
     
@@ -906,109 +1067,27 @@
   
   
 
-            <span class="md-nav__icon md-icon"></span>
-          </label>
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_4" id="__nav_4_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
         
         <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_4">
             <span class="md-nav__icon md-icon"></span>
             
   
-    Architecture
+    Pillars
   
 
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
             
               
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../01_platform_architecture/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Platform architecture & core concepts
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    
-    
-      
-        
-      
-        
-      
-        
-      
-        
-      
-    
-    
-    
-      
-      
-        
-      
-    
-    
-    <li class="md-nav__item md-nav__item--nested">
-      
-        
-        
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_2" >
-        
-          
-          <label class="md-nav__link" for="__nav_4_2" id="__nav_4_2_label" tabindex="0">
-            
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Data plane
-  
-
-    
-  </span>
-  
-  
-
-            <span class="md-nav__icon md-icon"></span>
-          </label>
-        
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_2_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_4_2">
-            <span class="md-nav__icon md-icon"></span>
-            
-  
-    Data plane
-  
-
-          </label>
-          <ul class="md-nav__list" data-md-scrollfix>
             
               
                 
@@ -1017,14 +1096,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../../02_ingestion_and_sources/" class="md-nav__link">
+      <a href="../../pillars/ingestion/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    Ingestion & source readers
+    1 · Ingestion
   
 
     
@@ -1045,14 +1124,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../../03_transformation_and_cdc/" class="md-nav__link">
+      <a href="../../pillars/transformation/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    Transformation & CDC
+    2 · Transformation
   
 
     
@@ -1073,14 +1152,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../../07_reconciliation_engine/" class="md-nav__link">
+      <a href="../../pillars/reconciliation/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    Reconciliation & self-healing
+    3 · Reconciliation
   
 
     
@@ -1101,14 +1180,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../../06_egress_and_lakeflow_sinks/" class="md-nav__link">
+      <a href="../../pillars/observability/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    Egress & Lakeflow sinks
+    4 · Observability
   
 
     
@@ -1117,288 +1196,6 @@
   
 
       </a>
-    </li>
-  
-
-              
-            
-          </ul>
-        </nav>
-      
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    
-    
-      
-        
-      
-        
-      
-        
-      
-    
-    
-    
-      
-      
-        
-      
-    
-    
-    <li class="md-nav__item md-nav__item--nested">
-      
-        
-        
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_3" >
-        
-          
-          <label class="md-nav__link" for="__nav_4_3" id="__nav_4_3_label" tabindex="0">
-            
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Cross-cutting concerns
-  
-
-    
-  </span>
-  
-  
-
-            <span class="md-nav__icon md-icon"></span>
-          </label>
-        
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_3_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_4_3">
-            <span class="md-nav__icon md-icon"></span>
-            
-  
-    Cross-cutting concerns
-  
-
-          </label>
-          <ul class="md-nav__list" data-md-scrollfix>
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../04_data_quality_and_governance/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Data quality & governance
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../05_security_and_cryptography/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Security & cryptography
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../08_observability_and_telemetry/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Observability & OpenTelemetry
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-          </ul>
-        </nav>
-      
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    
-    
-      
-        
-      
-        
-      
-    
-    
-    
-      
-      
-        
-      
-    
-    
-    <li class="md-nav__item md-nav__item--nested">
-      
-        
-        
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_4" >
-        
-          
-          <label class="md-nav__link" for="__nav_4_4" id="__nav_4_4_label" tabindex="0">
-            
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Design guarantees
-  
-
-    
-  </span>
-  
-  
-
-            <span class="md-nav__icon md-icon"></span>
-          </label>
-        
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_4_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_4_4">
-            <span class="md-nav__icon md-icon"></span>
-            
-  
-    Design guarantees
-  
-
-          </label>
-          <ul class="md-nav__list" data-md-scrollfix>
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../11_hashing_and_determinism/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Deterministic hashing standard
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../12_module_permutation_matrix/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Module permutation matrix
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-          </ul>
-        </nav>
-      
     </li>
   
 
@@ -1451,14 +1248,14 @@
         
           
           <div class="md-nav__link md-nav__container">
-            <a href="../../reference/json/" class="md-nav__link ">
+            <a href="../../console/" class="md-nav__link ">
               
   
   
   <span class="md-ellipsis">
     
   
-    JSON reference
+    Console
   
 
     
@@ -1480,12 +1277,270 @@
             <span class="md-nav__icon md-icon"></span>
             
   
-    JSON reference
+    Console
   
 
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
             
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../console/spec_builder/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Spec Builder app · tab by tab
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../console/observability_dashboard/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Observability dashboard
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../console/control_dashboard/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Control metadata dashboard
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../console/genie/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Genie space
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../console/agent_skills/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Agent skills & tools
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../reference/json/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Configuration
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_6" id="__nav_6_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Configuration
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/json/tree/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Spec tree view
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
               
             
               
@@ -1520,10 +1575,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_2" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_3" >
         
           
-          <label class="md-nav__link" for="__nav_5_2" id="__nav_5_2_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_6_3" id="__nav_6_3_label" tabindex="0">
             
   
   
@@ -1541,8 +1596,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_5_2_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_5_2">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6_3">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -1726,10 +1781,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_3" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_4" >
         
           
-          <label class="md-nav__link" for="__nav_5_3" id="__nav_5_3_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_6_4" id="__nav_6_4_label" tabindex="0">
             
   
   
@@ -1747,8 +1802,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_5_3_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_5_3">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6_4">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -1817,6 +1872,62 @@
           </ul>
         </nav>
       
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/json/removed/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Removed & rejected attributes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/sync/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Docs ↔ code synchronisation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
     </li>
   
 
@@ -1923,6 +2034,589 @@
     
       
         
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Architecture
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../01_platform_architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Platform architecture & core concepts
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_7_2" id="__nav_7_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data plane
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Data plane
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../02_ingestion_and_sources/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Ingestion & source readers
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../03_transformation_and_cdc/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Transformation & CDC
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../07_reconciliation_engine/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reconciliation & self-healing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../06_egress_and_lakeflow_sinks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Egress & Lakeflow sinks
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_7_3" id="__nav_7_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cross-cutting concerns
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Cross-cutting concerns
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../04_data_quality_and_governance/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data quality & governance
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../05_security_and_cryptography/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Security & cryptography
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../08_observability_and_telemetry/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Observability & OpenTelemetry
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../17_framework_observability_and_genie/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Framework observability, AI/BI & Genie
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_7_4" id="__nav_7_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Design guarantees
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Design guarantees
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../11_hashing_and_determinism/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Deterministic hashing standard
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../12_module_permutation_matrix/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Module permutation matrix
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
           
         
       
@@ -1947,7 +2641,7 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8" >
         
           
           <div class="md-nav__link md-nav__container">
@@ -1969,14 +2663,14 @@
             </a>
             
               
-              <label class="md-nav__link " for="__nav_6" id="__nav_6_label" tabindex="0">
+              <label class="md-nav__link " for="__nav_8" id="__nav_8_label" tabindex="0">
                 <span class="md-nav__icon md-icon"></span>
               </label>
             
           </div>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_6">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_8">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -2020,10 +2714,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_2" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8_2" >
         
           
-          <label class="md-nav__link" for="__nav_6_2" id="__nav_6_2_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_8_2" id="__nav_8_2_label" tabindex="0">
             
   
   
@@ -2041,8 +2735,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_2_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_6_2">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_8_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_8_2">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -2230,10 +2924,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_3" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8_3" >
         
           
-          <label class="md-nav__link" for="__nav_6_3" id="__nav_6_3_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_8_3" id="__nav_8_3_label" tabindex="0">
             
   
   
@@ -2251,8 +2945,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_3_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_6_3">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_8_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_8_3">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -2412,10 +3106,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_4" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8_4" >
         
           
-          <label class="md-nav__link" for="__nav_6_4" id="__nav_6_4_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_8_4" id="__nav_8_4_label" tabindex="0">
             
   
   
@@ -2433,8 +3127,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_4_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_6_4">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_8_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_8_4">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -2590,10 +3284,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_5" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8_5" >
         
           
-          <label class="md-nav__link" for="__nav_6_5" id="__nav_6_5_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_8_5" id="__nav_8_5_label" tabindex="0">
             
   
   
@@ -2611,8 +3305,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_5_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_6_5">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_8_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_8_5">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -2714,16 +3408,6 @@
       
         
       
-        
-      
-        
-      
-        
-      
-        
-      
-        
-      
     
     
     
@@ -2740,10 +3424,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" checked>
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_9" checked>
         
           
-          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="">
+          <label class="md-nav__link" for="__nav_9" id="__nav_9_label" tabindex="">
             
   
   
@@ -2761,8 +3445,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="true">
-          <label class="md-nav__title" for="__nav_7">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_9_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_9">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -2835,14 +3519,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../../16_usecase_implementation_guide/" class="md-nav__link">
+      <a href="../../13_known_limitations_and_gotchas/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    Use case implementation guide
+    Known limitations & gotchas
   
 
     
@@ -2855,6 +3539,103 @@
   
 
               
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../15_agent_skills_and_prompts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Agent skills & prompt library
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_9_5" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_9_5" id="__nav_9_5_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Use cases
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_9_5_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_9_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Use cases
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
             
               
                 
@@ -3695,10 +4476,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#135-key-reconciliation-attributes" class="md-nav__link">
+  <a href="#135-the-presence-gate-a-transformation-flow-since-2026-09-08" class="md-nav__link">
     <span class="md-ellipsis">
       
-        13.5 Key reconciliation attributes
+        13.5 The presence gate (a transformation flow, since 2026-09-08)
       
     </span>
   </a>
@@ -4396,57 +5177,9 @@
 
               
             
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../15_agent_skills_and_prompts/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Agent skills & prompt library
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../13_known_limitations_and_gotchas/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Known limitations & gotchas
-  
-
-    
-  </span>
-  
-  
-
-      </a>
+          </ul>
+        </nav>
+      
     </li>
   
 
@@ -4487,7 +5220,7 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_10" >
         
           
           <div class="md-nav__link md-nav__container">
@@ -4509,14 +5242,14 @@
             </a>
             
               
-              <label class="md-nav__link " for="__nav_8" id="__nav_8_label" tabindex="0">
+              <label class="md-nav__link " for="__nav_10" id="__nav_10_label" tabindex="0">
                 <span class="md-nav__icon md-icon"></span>
               </label>
             
           </div>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_8">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_10_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_10">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -4566,10 +5299,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8_1" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_10_1" >
         
           
-          <label class="md-nav__link" for="__nav_8_1" id="__nav_8_1_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_10_1" id="__nav_10_1_label" tabindex="0">
             
   
   
@@ -4587,8 +5320,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_8_1_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_8_1">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_10_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_10_1">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -5638,10 +6371,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#135-key-reconciliation-attributes" class="md-nav__link">
+  <a href="#135-the-presence-gate-a-transformation-flow-since-2026-09-08" class="md-nav__link">
     <span class="md-ellipsis">
       
-        13.5 Key reconciliation attributes
+        13.5 The presence gate (a transformation flow, since 2026-09-08)
       
     </span>
   </a>
@@ -6257,10 +6990,79 @@
           
             <div class="md-content" data-md-component="content">
               
+                
+
+
+
+  
+
+
+  <nav class="md-path" aria-label="Navigation" >
+    <ol class="md-path__list">
+      
+        
+  
+  
+    <li class="md-path__item">
+      <a href="../.." class="md-path__link">
+        
+  <span class="md-ellipsis">
+    Home
+  </span>
+
+      </a>
+    </li>
+  
+
+      
+      
+        
+  
+  
+    
+    
+      <li class="md-path__item">
+        <a href="../../faq/" class="md-path__link">
+          
+  <span class="md-ellipsis">
+    Help
+  </span>
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+    
+    
+      <li class="md-path__item">
+        <a href="../../UC3/UC3_MASTER_DOCUMENT/" class="md-path__link">
+          
+  <span class="md-ellipsis">
+    Use cases
+  </span>
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ol>
+  </nav>
+
+              
               <article class="md-content__inner md-typeset">
                 
                   
 
+
+  
+  
 
 
 <style>
@@ -6626,23 +7428,23 @@ body, .md-typeset, .md-typeset table, .md-typeset h1, .md-typeset h2,
 <hr />
 <h2 id="4-to-be-the-databricks-implementation">4. To-Be, the Databricks Implementation<a class="headerlink" href="#4-to-be-the-databricks-implementation" title="Permanent link">&para;</a></h2>
 <h3 id="41-the-architecture-in-one-picture">4.1 The architecture in one picture<a class="headerlink" href="#41-the-architecture-in-one-picture" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>   /Volumes/flowx/staging/uc_6/raw/        6 source files land here
-<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>                 |
-<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>                 v
-<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>   [ 1 ] BRONZE  6 streaming tables         faithful copy of each source
-<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>                 |
-<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>                 v
-<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>   [ 2 ] SILVER  4 materialized views        normalise, union, match
-<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>                 |
-<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>                 v
-<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>   [ 3 ] GOLD    2 materialized views        the business answer
-<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>                 |
-<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>                 v
-<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>   [ 4 ] SINKS   4 export files              2 plain, 2 GPG-encrypted
-<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>                 |
-<a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>                 v
-<a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a>   /Volumes/flowx/staging/uc_6/output/
-</code></pre></div>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>   /Volumes/br_digital_poc/staging/uc_6/raw/        6 source files land here
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>                 |
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>                 v
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>   [ 1 ] BRONZE  6 streaming tables         faithful copy of each source
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>                 |
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>                 v
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>   [ 2 ] SILVER  4 materialized views        normalise, union, match
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>                 |
+</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>                 v
+</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>   [ 3 ] GOLD    2 materialized views        the business answer
+</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>                 |
+</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>                 v
+</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>   [ 4 ] SINKS   4 export files              2 plain, 2 GPG-encrypted
+</span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>                 |
+</span><span id="__span-0-15"><a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>                 v
+</span><span id="__span-0-16"><a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a>   /Volumes/br_digital_poc/staging/uc_6/output/
+</span></code></pre></div>
 <h3 id="42-what-changed-against-the-as-is">4.2 What changed against the As-Is<a class="headerlink" href="#42-what-changed-against-the-as-is" title="Permanent link">&para;</a></h3>
 <table>
 <thead>
@@ -6732,37 +7534,37 @@ body, .md-typeset, .md-typeset table, .md-typeset h1, .md-typeset h2,
 <tbody>
 <tr>
 <td><code>EE_*-REQUEST_*.csv.gz.gpg</code></td>
-<td><code>uc6_ea_request</code></td>
+<td><code>ea_request</code></td>
 <td><strong>The trigger.</strong> EA target areas and addresses</td>
 <td>Pipe</td>
 </tr>
 <tr>
 <td><code>CSS_account_[0-9]*.dat.gz</code></td>
-<td><code>uc6_css_account</code></td>
+<td><code>css_account</code></td>
 <td>Date of birth, business-unit code</td>
 <td>Pipe</td>
 </tr>
 <tr>
 <td><code>CSS_account_address_*.dat.gz</code></td>
-<td><code>uc6_css_account_address</code></td>
+<td><code>css_account_address</code></td>
 <td>The customer address</td>
 <td>Pipe</td>
 </tr>
 <tr>
 <td><code>CSS_subscription_*.dat.gz</code></td>
-<td><code>uc6_css_subscription</code></td>
+<td><code>css_subscription</code></td>
 <td>The MSISDN, the phone number</td>
 <td>Pipe</td>
 </tr>
 <tr>
 <td><code>CM_JT_Customer_Details_*.dat.gz</code></td>
-<td><code>uc6_jt_customer</code></td>
+<td><code>jt_customer</code></td>
 <td>PAYG customers, a separate channel</td>
 <td>Pipe</td>
 </tr>
 <tr>
 <td><code>CM_EXCALIBUR_ADDRESS_*.dat.gz</code></td>
-<td><code>uc6_excalibur_address</code></td>
+<td><code>excalibur_address</code></td>
 <td>EE and TMUK legacy addresses</td>
 <td><strong>Comma</strong></td>
 </tr>
@@ -6804,32 +7606,32 @@ produces zero matches. See Appendix B.4 for why both are kept.</p>
 </thead>
 <tbody>
 <tr>
-<td><code>uc6_ea_request</code></td>
+<td><code>ea_request</code></td>
 <td>7</td>
 <td>Seven EA addresses across four areas</td>
 </tr>
 <tr>
-<td><code>uc6_css_account</code></td>
+<td><code>css_account</code></td>
 <td>5</td>
 <td>Five CSS customers</td>
 </tr>
 <tr>
-<td><code>uc6_css_account_address</code></td>
+<td><code>css_account_address</code></td>
 <td>5</td>
 <td>One address each</td>
 </tr>
 <tr>
-<td><code>uc6_css_subscription</code></td>
+<td><code>css_subscription</code></td>
 <td>5</td>
 <td>One MSISDN each</td>
 </tr>
 <tr>
-<td><code>uc6_jt_customer</code></td>
+<td><code>jt_customer</code></td>
 <td>1</td>
 <td>The deliberate under-17 record</td>
 </tr>
 <tr>
-<td><code>uc6_excalibur_address</code></td>
+<td><code>excalibur_address</code></td>
 <td>1</td>
 <td>The deliberate postcode-match-only record</td>
 </tr>
@@ -6882,34 +7684,34 @@ produces zero matches. See Appendix B.4 for why both are kept.</p>
 </thead>
 <tbody>
 <tr>
-<td><code>/Volumes/flowx/staging/uc_6/raw/</code></td>
+<td><code>/Volumes/br_digital_poc/staging/uc_6/raw/</code></td>
 <td>Where the six source files land</td>
 </tr>
 <tr>
-<td><code>/Volumes/flowx/staging/uc_6/_extracted/ea_request/</code></td>
+<td><code>/Volumes/br_digital_poc/staging/uc_6/_extracted/ea_request/</code></td>
 <td>Where the decrypted EA file is written</td>
 </tr>
 <tr>
-<td><code>/Volumes/flowx/staging/uc_6/_schema_configs/</code></td>
+<td><code>/Volumes/br_digital_poc/staging/uc_6/_schema_configs/</code></td>
 <td>The five schema-config JSON files</td>
 </tr>
 <tr>
-<td><code>/Volumes/flowx/staging/uc_6/output/</code></td>
+<td><code>/Volumes/br_digital_poc/staging/uc_6/output/</code></td>
 <td><strong>The four export files</strong></td>
 </tr>
 <tr>
-<td><code>/Volumes/flowx/staging/uc_6/output/_staging/</code></td>
+<td><code>/Volumes/br_digital_poc/staging/uc_6/output/_staging/</code></td>
 <td>Per-sink staging. Ignore</td>
 </tr>
 <tr>
-<td><code>/Volumes/flowx/observability/app_logs/uc6/</code></td>
+<td><code>/Volumes/br_digital_poc/observability/app_logs/uc6/</code></td>
 <td>Telemetry export</td>
 </tr>
 </tbody>
 </table>
 <h3 id="63-a-critical-operational-note">6.3 A critical operational note<a class="headerlink" href="#63-a-critical-operational-note" title="Permanent link">&para;</a></h3>
 <blockquote>
-<p><strong>The EA request file is consumed on every run.</strong> Its <code>delete_source_after_extract</code> action is <code>delete_now</code>. You must re-upload it from the fixture before each run. The other five files remain in place.</p>
+<p><strong>The EA request file is retained after extraction</strong> (<code>delete_source_after_extract: false</code> since 2026-09-08; it was <code>delete_now</code> before, which consumed the <code>.gpg</code> on every run). The extractor drops a sidecar marker <code>.EE_...csv.gz.gpg.__framework_extracted__</code> beside it and skips the archive on later updates unless the archive's modification time is newer than the marker, so a re-delivered file with the same name is still re-extracted. No re-upload is needed between runs; all six files stay in <code>raw/</code>.</p>
 </blockquote>
 <hr />
 <h2 id="7-step-by-step-pipeline-walkthrough">7. Step-by-Step Pipeline Walkthrough<a class="headerlink" href="#7-step-by-step-pipeline-walkthrough" title="Permanent link">&para;</a></h2>
@@ -6963,31 +7765,31 @@ produces zero matches. See Appendix B.4 for why both are kept.</p>
 <tr>
 <td><strong>7</strong></td>
 <td>Six bronze tables are published</td>
-<td><code>flowx.bronze.uc6_*</code></td>
+<td><code>br_digital_poc.bronze.uc6_*</code></td>
 <td>Query T1</td>
 </tr>
 <tr>
 <td><strong>8</strong></td>
 <td>EA rows are normalised, deduplicated per OSAPR</td>
-<td><code>silver.uc6_ea_base</code>, <code>uc6_ea_address</code></td>
+<td><code>silver.ea_request_base</code>, <code>ea_request_address</code></td>
 <td>Query T2</td>
 </tr>
 <tr>
 <td><strong>9</strong></td>
 <td>EE customers are unioned across three channels</td>
-<td><code>silver.uc6_ee_address_paf</code></td>
+<td><code>silver.ee_customer_address_paf</code></td>
 <td>Query T3</td>
 </tr>
 <tr>
 <td><strong>10</strong></td>
 <td><strong>The join.</strong> EA addresses meet EE addresses on postcode</td>
-<td><code>silver.uc6_matched_address</code></td>
+<td><code>silver.flood_area_matched_address</code></td>
 <td>Query T4</td>
 </tr>
 <tr>
 <td><strong>11</strong></td>
 <td>Statuses are decided, telephone list is filtered</td>
-<td><code>gold.uc6_osapr_output</code>, <code>uc6_telephone_output</code></td>
+<td><code>gold.flood_warning_osapr</code>, <code>flood_warning_telephone</code></td>
 <td>Query T5, T6</td>
 </tr>
 <tr>
@@ -7034,32 +7836,32 @@ produces zero matches. See Appendix B.4 for why both are kept.</p>
 </thead>
 <tbody>
 <tr>
-<td><code>uc6_ea_request</code></td>
+<td><code>ea_request</code></td>
 <td>Faithful copy of the EA flood-warning request</td>
 <td>Silver normalisation</td>
 </tr>
 <tr>
-<td><code>uc6_css_account</code></td>
+<td><code>css_account</code></td>
 <td>CSS customer master. <strong>Supplies date of birth and business-unit code</strong></td>
 <td>The age filter and BS exclusion</td>
 </tr>
 <tr>
-<td><code>uc6_css_account_address</code></td>
+<td><code>css_account_address</code></td>
 <td>CSS postal addresses</td>
 <td>Address matching</td>
 </tr>
 <tr>
-<td><code>uc6_css_subscription</code></td>
+<td><code>css_subscription</code></td>
 <td>CSS MSISDNs, the phone numbers</td>
 <td>The final output</td>
 </tr>
 <tr>
-<td><code>uc6_jt_customer</code></td>
+<td><code>jt_customer</code></td>
 <td>PAYG customers, a self-contained channel</td>
 <td>Union branch 2</td>
 </tr>
 <tr>
-<td><code>uc6_excalibur_address</code></td>
+<td><code>excalibur_address</code></td>
 <td>Legacy EE and TMUK addresses</td>
 <td>Union branch 3</td>
 </tr>
@@ -7077,22 +7879,22 @@ produces zero matches. See Appendix B.4 for why both are kept.</p>
 </thead>
 <tbody>
 <tr>
-<td><code>uc6_ea_base</code></td>
+<td><code>ea_request_base</code></td>
 <td>One row per OSAPR, deduplicated. <strong>The audit spine</strong></td>
 <td>7</td>
 </tr>
 <tr>
-<td><code>uc6_ea_address</code></td>
+<td><code>ea_request_address</code></td>
 <td>EA addresses normalised for matching</td>
 <td>7</td>
 </tr>
 <tr>
-<td><code>uc6_ee_address_paf</code></td>
+<td><code>ee_customer_address_paf</code></td>
 <td><strong>The union.</strong> All EE customers from three channels, PAF-normalised, age-filtered</td>
 <td>6</td>
 </tr>
 <tr>
-<td><code>uc6_matched_address</code></td>
+<td><code>flood_area_matched_address</code></td>
 <td><strong>The join result.</strong> Every EA-to-EE candidate pair with a score</td>
 <td>11</td>
 </tr>
@@ -7109,12 +7911,12 @@ produces zero matches. See Appendix B.4 for why both are kept.</p>
 </thead>
 <tbody>
 <tr>
-<td><code>uc6_osapr_output</code></td>
+<td><code>flood_warning_osapr</code></td>
 <td><strong>The audit answer.</strong> One row per EA address, with its status</td>
 <td>7</td>
 </tr>
 <tr>
-<td><code>uc6_telephone_output</code></td>
+<td><code>flood_warning_telephone</code></td>
 <td><strong>The action list.</strong> Only numbers safe to warn</td>
 <td>2</td>
 </tr>
@@ -7131,17 +7933,17 @@ produces zero matches. See Appendix B.4 for why both are kept.</p>
 </thead>
 <tbody>
 <tr>
-<td><code>uc6_matched_address</code></td>
+<td><code>flood_area_matched_address</code></td>
 <td>11</td>
 <td>Every candidate pair. One EA address can match several customers</td>
 </tr>
 <tr>
-<td><code>uc6_osapr_output</code></td>
+<td><code>flood_warning_osapr</code></td>
 <td>7</td>
 <td>Aggregated back to one row per EA address</td>
 </tr>
 <tr>
-<td><code>uc6_telephone_output</code></td>
+<td><code>flood_warning_telephone</code></td>
 <td>2</td>
 <td>Only areas that passed <strong>both</strong> the strength and privacy rules</td>
 </tr>
@@ -7165,8 +7967,8 @@ produces zero matches. See Appendix B.4 for why both are kept.</p>
 <tr>
 <td><strong>J1</strong></td>
 <td>Customer assembly</td>
-<td><code>uc6_css_sub</code></td>
-<td><code>uc6_css_acct</code></td>
+<td><code>css_subscription_in</code></td>
+<td><code>css_account_in</code></td>
 <td><code>customerid</code></td>
 <td>INNER</td>
 </tr>
@@ -7174,23 +7976,23 @@ produces zero matches. See Appendix B.4 for why both are kept.</p>
 <td><strong>J2</strong></td>
 <td>Address attachment</td>
 <td>(J1 result)</td>
-<td><code>uc6_css_addr</code></td>
+<td><code>css_account_address_in</code></td>
 <td><code>customerid</code></td>
 <td>INNER</td>
 </tr>
 <tr>
 <td><strong>J3</strong></td>
 <td><strong>The matching join</strong></td>
-<td><code>uc6_ee_paf_match</code></td>
-<td><code>uc6_ea_addr_match</code></td>
+<td><code>ee_paf_in</code></td>
+<td><code>ea_address_in</code></td>
 <td><code>postcode_norm</code></td>
 <td>INNER</td>
 </tr>
 <tr>
 <td><strong>J4</strong></td>
 <td>Score aggregation</td>
-<td><code>uc6_ea_base_osapr</code></td>
-<td><code>uc6_matched_osapr</code></td>
+<td><code>ea_base_in</code></td>
+<td><code>matched_for_osapr</code></td>
 <td><code>osapr</code></td>
 <td>LEFT</td>
 </tr>
@@ -7205,20 +8007,20 @@ produces zero matches. See Appendix B.4 for why both are kept.</p>
 <tr>
 <td><strong>J6</strong></td>
 <td>Telephone filter</td>
-<td><code>uc6_matched_tel</code></td>
-<td><code>uc6_osapr_tel</code></td>
+<td><code>matched_for_telephone</code></td>
+<td><code>osapr_for_telephone</code></td>
 <td><code>targetAreaID</code> + <code>osapr</code></td>
 <td>INNER</td>
 </tr>
 </tbody>
 </table>
 <h3 id="92-j3-the-matching-join-explained-line-by-line">9.2 J3, the matching join, explained line by line<a class="headerlink" href="#92-j3-the-matching-join-explained-line-by-line" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="k">FROM</span><span class="w">   </span><span class="n">uc6_ee_paf_match</span><span class="w"> </span><span class="n">ee</span>
-<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="k">INNER</span><span class="w">  </span><span class="k">JOIN</span><span class="w"> </span><span class="n">uc6_ea_addr_match</span><span class="w"> </span><span class="n">ea</span>
-<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="w">       </span><span class="k">ON</span><span class="w"> </span><span class="n">ee</span><span class="p">.</span><span class="n">postcode_norm</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ea</span><span class="p">.</span><span class="n">postcode_norm</span>
-<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="k">WHERE</span><span class="w">  </span><span class="n">ea</span><span class="p">.</span><span class="n">has_po_box</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">false</span>
-<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="w">  </span><span class="k">AND</span><span class="w">  </span><span class="n">ee</span><span class="p">.</span><span class="n">has_po_box</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">false</span>
-</code></pre></div>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="k">FROM</span><span class="w">   </span><span class="n">ee_paf_in</span><span class="w"> </span><span class="n">ee</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="k">INNER</span><span class="w">  </span><span class="k">JOIN</span><span class="w"> </span><span class="n">ea_address_in</span><span class="w"> </span><span class="n">ea</span>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="w">       </span><span class="k">ON</span><span class="w"> </span><span class="n">ee</span><span class="p">.</span><span class="n">postcode_norm</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ea</span><span class="p">.</span><span class="n">postcode_norm</span>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="k">WHERE</span><span class="w">  </span><span class="n">ea</span><span class="p">.</span><span class="n">has_po_box</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">false</span>
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="w">  </span><span class="k">AND</span><span class="w">  </span><span class="n">ee</span><span class="p">.</span><span class="n">has_po_box</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">false</span>
+</span></code></pre></div>
 <table>
 <thead>
 <tr>
@@ -7252,9 +8054,9 @@ produces zero matches. See Appendix B.4 for why both are kept.</p>
 <li><strong>This is intentional.</strong> The score in Section 10 then decides which pairs are good enough.</li>
 </ul>
 <h3 id="94-j4-and-why-it-must-be-a-left-join">9.4 J4, and why it must be a LEFT JOIN<a class="headerlink" href="#94-j4-and-why-it-must-be-a-left-join" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="k">FROM</span><span class="w">   </span><span class="n">uc6_ea_base_osapr</span><span class="w"> </span><span class="n">b</span>
-<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="k">LEFT</span><span class="w">   </span><span class="k">JOIN</span><span class="w"> </span><span class="n">uc6_matched_osapr</span><span class="w"> </span><span class="n">m</span><span class="w"> </span><span class="k">ON</span><span class="w"> </span><span class="n">b</span><span class="p">.</span><span class="n">osapr</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">m</span><span class="p">.</span><span class="n">osapr</span>
-</code></pre></div>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="k">FROM</span><span class="w">   </span><span class="n">ea_base_in</span><span class="w"> </span><span class="n">b</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="k">LEFT</span><span class="w">   </span><span class="k">JOIN</span><span class="w"> </span><span class="n">matched_for_osapr</span><span class="w"> </span><span class="n">m</span><span class="w"> </span><span class="k">ON</span><span class="w"> </span><span class="n">b</span><span class="p">.</span><span class="n">osapr</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">m</span><span class="p">.</span><span class="n">osapr</span>
+</span></code></pre></div>
 <table>
 <thead>
 <tr>
@@ -7277,13 +8079,13 @@ produces zero matches. See Appendix B.4 for why both are kept.</p>
 <p><strong>This is the single most important join decision in UC6.</strong> LEFT JOIN is what guarantees every EA address gets a status, matched or not.</p>
 </blockquote>
 <h3 id="95-j6-the-privacy-join">9.5 J6, the privacy join<a class="headerlink" href="#95-j6-the-privacy-join" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="k">FROM</span><span class="w">   </span><span class="n">uc6_matched_tel</span><span class="w"> </span><span class="n">m</span>
-<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="k">INNER</span><span class="w">  </span><span class="k">JOIN</span><span class="w"> </span><span class="n">uc6_osapr_tel</span><span class="w"> </span><span class="n">o</span>
-<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="w">       </span><span class="k">ON</span><span class="w">  </span><span class="n">m</span><span class="p">.</span><span class="n">targetAreaID</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">o</span><span class="p">.</span><span class="n">targetAreaID</span>
-<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="w">       </span><span class="k">AND</span><span class="w"> </span><span class="n">m</span><span class="p">.</span><span class="n">osapr</span><span class="w">        </span><span class="o">=</span><span class="w"> </span><span class="n">o</span><span class="p">.</span><span class="n">osapr</span>
-<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="k">WHERE</span><span class="w">  </span><span class="n">m</span><span class="p">.</span><span class="n">match_strength</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="mi">50</span>
-<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="w">  </span><span class="k">AND</span><span class="w">  </span><span class="n">o</span><span class="p">.</span><span class="n">count_of_osapr</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="mi">1</span>
-</code></pre></div>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="k">FROM</span><span class="w">   </span><span class="n">matched_for_telephone</span><span class="w"> </span><span class="n">m</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="k">INNER</span><span class="w">  </span><span class="k">JOIN</span><span class="w"> </span><span class="n">osapr_for_telephone</span><span class="w"> </span><span class="n">o</span>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="w">       </span><span class="k">ON</span><span class="w">  </span><span class="n">m</span><span class="p">.</span><span class="n">targetAreaID</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">o</span><span class="p">.</span><span class="n">targetAreaID</span>
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="w">       </span><span class="k">AND</span><span class="w"> </span><span class="n">m</span><span class="p">.</span><span class="n">osapr</span><span class="w">        </span><span class="o">=</span><span class="w"> </span><span class="n">o</span><span class="p">.</span><span class="n">osapr</span>
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="k">WHERE</span><span class="w">  </span><span class="n">o</span><span class="p">.</span><span class="k">count</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span>
+</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="w">  </span><span class="k">AND</span><span class="w">  </span><span class="n">m</span><span class="p">.</span><span class="n">match_strength</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="mi">50</span>
+</span></code></pre></div>
 <table>
 <thead>
 <tr>
@@ -7309,12 +8111,12 @@ produces zero matches. See Appendix B.4 for why both are kept.</p>
 <hr />
 <h2 id="10-the-matching-algorithm-explained-with-real-data">10. The Matching Algorithm, Explained With Real Data<a class="headerlink" href="#10-the-matching-algorithm-explained-with-real-data" title="Permanent link">&para;</a></h2>
 <h3 id="101-the-scoring-formula">10.1 The scoring formula<a class="headerlink" href="#101-the-scoring-formula" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="k">CASE</span><span class="w"> </span><span class="k">WHEN</span><span class="w"> </span><span class="n">ea</span><span class="p">.</span><span class="n">address_norm</span><span class="w"> </span><span class="k">IS</span><span class="w"> </span><span class="k">NULL</span><span class="w"> </span><span class="k">OR</span><span class="w"> </span><span class="n">ee</span><span class="p">.</span><span class="n">address_norm</span><span class="w"> </span><span class="k">IS</span><span class="w"> </span><span class="k">NULL</span><span class="w"> </span><span class="k">THEN</span><span class="w"> </span><span class="mi">0</span>
-<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="w">     </span><span class="k">ELSE</span><span class="w"> </span><span class="k">cast</span><span class="p">(</span><span class="n">round</span><span class="p">(</span><span class="mi">100</span><span class="p">.</span><span class="mi">0</span><span class="w"> </span><span class="o">*</span>
-<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="w">            </span><span class="k">size</span><span class="p">(</span><span class="n">array_intersect</span><span class="p">(</span><span class="n">split</span><span class="p">(</span><span class="n">ea</span><span class="p">.</span><span class="n">address_norm</span><span class="p">,</span><span class="s1">' '</span><span class="p">),</span><span class="w"> </span><span class="n">split</span><span class="p">(</span><span class="n">ee</span><span class="p">.</span><span class="n">address_norm</span><span class="p">,</span><span class="s1">' '</span><span class="p">)))</span>
-<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="w">            </span><span class="o">/</span><span class="w"> </span><span class="n">greatest</span><span class="p">(</span><span class="k">size</span><span class="p">(</span><span class="n">split</span><span class="p">(</span><span class="n">ea</span><span class="p">.</span><span class="n">address_norm</span><span class="p">,</span><span class="s1">' '</span><span class="p">)),</span><span class="w"> </span><span class="mi">1</span><span class="p">))</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="nb">INT</span><span class="p">)</span>
-<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="k">END</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="n">match_strength</span>
-</code></pre></div>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="k">CASE</span><span class="w"> </span><span class="k">WHEN</span><span class="w"> </span><span class="n">ea</span><span class="p">.</span><span class="n">address_norm</span><span class="w"> </span><span class="k">IS</span><span class="w"> </span><span class="k">NULL</span><span class="w"> </span><span class="k">OR</span><span class="w"> </span><span class="n">ee</span><span class="p">.</span><span class="n">address_norm</span><span class="w"> </span><span class="k">IS</span><span class="w"> </span><span class="k">NULL</span><span class="w"> </span><span class="k">THEN</span><span class="w"> </span><span class="mi">0</span>
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="w">     </span><span class="k">ELSE</span><span class="w"> </span><span class="k">cast</span><span class="p">(</span><span class="n">round</span><span class="p">(</span><span class="mi">100</span><span class="p">.</span><span class="mi">0</span><span class="w"> </span><span class="o">*</span>
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="w">            </span><span class="k">size</span><span class="p">(</span><span class="n">array_intersect</span><span class="p">(</span><span class="n">split</span><span class="p">(</span><span class="n">ea</span><span class="p">.</span><span class="n">address_norm</span><span class="p">,</span><span class="s1">' '</span><span class="p">),</span><span class="w"> </span><span class="n">split</span><span class="p">(</span><span class="n">ee</span><span class="p">.</span><span class="n">address_norm</span><span class="p">,</span><span class="s1">' '</span><span class="p">)))</span>
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="w">            </span><span class="o">/</span><span class="w"> </span><span class="n">greatest</span><span class="p">(</span><span class="k">size</span><span class="p">(</span><span class="n">split</span><span class="p">(</span><span class="n">ea</span><span class="p">.</span><span class="n">address_norm</span><span class="p">,</span><span class="s1">' '</span><span class="p">)),</span><span class="w"> </span><span class="mi">1</span><span class="p">))</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="nb">INT</span><span class="p">)</span>
+</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="k">END</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="n">match_strength</span>
+</span></code></pre></div>
 <h3 id="102-in-plain-words-five-steps">10.2 In plain words, five steps<a class="headerlink" href="#102-in-plain-words-five-steps" title="Permanent link">&para;</a></h3>
 <table>
 <thead>
@@ -7484,12 +8286,12 @@ produces zero matches. See Appendix B.4 for why both are kept.</p>
 <hr />
 <h2 id="11-the-four-statuses-decision-table">11. The Four Statuses, Decision Table<a class="headerlink" href="#11-the-four-statuses-decision-table" title="Permanent link">&para;</a></h2>
 <h3 id="111-the-decision-logic">11.1 The decision logic<a class="headerlink" href="#111-the-decision-logic" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="k">CASE</span><span class="w"> </span><span class="k">WHEN</span><span class="w"> </span><span class="n">a</span><span class="p">.</span><span class="n">candidate_osapr_count</span><span class="w"> </span><span class="o">&lt;=</span><span class="w"> </span><span class="mi">1</span><span class="w">        </span><span class="k">THEN</span><span class="w"> </span><span class="s1">'Single Addr'</span>
-<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="w">     </span><span class="k">WHEN</span><span class="w"> </span><span class="n">s</span><span class="p">.</span><span class="n">best_match_strength</span><span class="w">  </span><span class="o">&lt;=</span><span class="w"> </span><span class="mi">50</span><span class="w">        </span><span class="k">THEN</span><span class="w"> </span><span class="s1">'Bad OSAPR'</span>
-<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="w">     </span><span class="k">WHEN</span><span class="w"> </span><span class="n">a</span><span class="p">.</span><span class="n">matched_osapr_count</span><span class="w">  </span><span class="o">&gt;</span><span class="w">  </span><span class="mi">1</span><span class="w">         </span><span class="k">THEN</span><span class="w"> </span><span class="s1">'Found'</span>
-<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="w">     </span><span class="k">ELSE</span><span class="w">                                          </span><span class="s1">'Not Found'</span>
-<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="k">END</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="n">status</span>
-</code></pre></div>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="k">CASE</span><span class="w"> </span><span class="k">WHEN</span><span class="w"> </span><span class="n">a</span><span class="p">.</span><span class="n">candidate_osapr_count</span><span class="w"> </span><span class="o">&lt;=</span><span class="w"> </span><span class="mi">1</span><span class="w">        </span><span class="k">THEN</span><span class="w"> </span><span class="s1">'Single Addr'</span>
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="w">     </span><span class="k">WHEN</span><span class="w"> </span><span class="n">s</span><span class="p">.</span><span class="n">best_match_strength</span><span class="w">  </span><span class="o">&lt;=</span><span class="w"> </span><span class="mi">50</span><span class="w">        </span><span class="k">THEN</span><span class="w"> </span><span class="s1">'Bad OSAPR'</span>
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="w">     </span><span class="k">WHEN</span><span class="w"> </span><span class="n">a</span><span class="p">.</span><span class="n">matched_osapr_count</span><span class="w">  </span><span class="o">&gt;</span><span class="w">  </span><span class="mi">1</span><span class="w">         </span><span class="k">THEN</span><span class="w"> </span><span class="s1">'Found'</span>
+</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="w">     </span><span class="k">ELSE</span><span class="w">                                          </span><span class="s1">'Not Found'</span>
+</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="k">END</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="n">status</span>
+</span></code></pre></div>
 <h3 id="112-evaluated-in-order-first-match-wins">11.2 Evaluated in order, first match wins<a class="headerlink" href="#112-evaluated-in-order-first-match-wins" title="Permanent link">&para;</a></h3>
 <table>
 <thead>
@@ -7635,8 +8437,8 @@ produces zero matches. See Appendix B.4 for why both are kept.</p>
 <hr />
 <h2 id="12-business-rules-age-privacy-and-exclusions">12. Business Rules, Age, Privacy and Exclusions<a class="headerlink" href="#12-business-rules-age-privacy-and-exclusions" title="Permanent link">&para;</a></h2>
 <h3 id="121-the-age-filter-fr5">12.1 The age filter, FR5<a class="headerlink" href="#121-the-age-filter-fr5" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="n">floor</span><span class="p">((</span><span class="n">months_between</span><span class="p">(</span><span class="k">current_date</span><span class="p">(),</span><span class="w"> </span><span class="n">to_date</span><span class="p">(</span><span class="n">dateofbirth</span><span class="p">,</span><span class="s1">'yyyy-MM-dd'</span><span class="p">)))</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="mi">12</span><span class="p">)</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="mi">17</span>
-</code></pre></div>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="n">floor</span><span class="p">((</span><span class="n">months_between</span><span class="p">(</span><span class="k">current_date</span><span class="p">(),</span><span class="w"> </span><span class="n">to_date</span><span class="p">(</span><span class="n">dateofbirth</span><span class="p">,</span><span class="s1">'yyyy-MM-dd'</span><span class="p">)))</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="mi">12</span><span class="p">)</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="mi">17</span>
+</span></code></pre></div>
 <table>
 <thead>
 <tr>
@@ -7781,13 +8583,13 @@ These are the repository copies; the spec points at their <strong>deployed</stro
 </tr>
 <tr>
 <td><code>transformation_flows</code></td>
-<td>10</td>
-<td>6 business logic, 4 export sinks</td>
+<td>11</td>
+<td>1 presence gate, 6 business logic, 4 export sinks. Since 2026-09-08 every SQL is written as named CTEs and the PAF normalisation is applied once to the assembled address, not once per component</td>
 </tr>
 <tr>
 <td><code>reconciliation_flows</code></td>
-<td>6</td>
-<td>Presence gates</td>
+<td>0</td>
+<td><strong>Removed 2026-09-08.</strong> The six self-reconciliation presence gates became the single <code>ts_uc6_source_presence_gate</code> transformation flow (see 13.5 and 17.3)</td>
 </tr>
 <tr>
 <td><code>observability</code></td>
@@ -7832,12 +8634,6 @@ These are the repository copies; the spec points at their <strong>deployed</stro
 <td>Bronze appends; no merge, no dedupe. All six flows</td>
 </tr>
 <tr>
-<td><code>target_config.storage_format</code></td>
-<td>string</td>
-<td><code>delta</code></td>
-<td>The bronze table is Delta</td>
-</tr>
-<tr>
 <td><code>source_config.format</code></td>
 <td>string</td>
 <td><code>csv</code></td>
@@ -7875,15 +8671,15 @@ These are the repository copies; the spec points at their <strong>deployed</stro
 </tr>
 <tr>
 <td><code>reader_options.mode</code></td>
-<td>string</td>
-<td><code>PERMISSIVE</code></td>
-<td>A malformed row is nulled, not fatal. All six flows</td>
+<td>—</td>
+<td><em>(omitted since 2026-09-08)</em></td>
+<td>Spark's CSV default is already <code>PERMISSIVE</code> (a malformed row is nulled, not fatal); restating a default was noise</td>
 </tr>
 <tr>
 <td><code>source_config.capture_technical_metadata</code></td>
-<td>boolean</td>
-<td><code>true</code></td>
-<td>Adds the <code>__framework_*</code> lineage columns. All six flows</td>
+<td>—</td>
+<td><em>(omitted since 2026-09-08; default <code>true</code>)</em></td>
+<td>Adds the <code>__framework_*</code> lineage columns, including <code>__framework_ingestion_timestamp_utc</code> that <code>ea_request_base</code> orders by. All six flows</td>
 </tr>
 <tr>
 <td><code>source_config.schema_config_path</code></td>
@@ -7934,10 +8730,10 @@ These are the repository copies; the spec points at their <strong>deployed</stro
 <td>Resolves the passphrase at run time. Never stored in the spec</td>
 </tr>
 <tr>
-<td><code>delete_source_after_extract.action</code></td>
-<td>string</td>
-<td><code>delete_now</code></td>
-<td><strong>The EA <code>.gpg</code> is consumed on every run.</strong> Re-upload it before the next one. See 6.3</td>
+<td><code>delete_source_after_extract</code></td>
+<td>boolean</td>
+<td><code>false</code></td>
+<td>The EA <code>.gpg</code> is <strong>retained</strong>; a <code>.__framework_extracted__</code> sidecar marker makes later updates skip it until a newer copy lands. Was <code>{"action": "delete_now"}</code> (consumed on every run) before 2026-09-08. See 6.3</td>
 </tr>
 <tr>
 <td><code>dq_config.rules[]</code></td>
@@ -7954,8 +8750,8 @@ These are the repository copies; the spec points at their <strong>deployed</stro
 </tbody>
 </table>
 <h3 id="133-key-transformation-attributes">13.3 Key transformation attributes<a class="headerlink" href="#133-key-transformation-attributes" title="Permanent link">&para;</a></h3>
-<p>The ten transformation flows are <strong>not</strong> uniform: six build tables, four are export sinks. The attributes
-differ accordingly.</p>
+<p>The eleven transformation flows are <strong>not</strong> uniform: one is the presence gate, six build business tables,
+four are export sinks. The attributes differ accordingly.</p>
 <table>
 <thead>
 <tr>
@@ -7975,26 +8771,26 @@ differ accordingly.</p>
 <tr>
 <td><code>dataflow_id</code></td>
 <td>string</td>
-<td><code>df_uc6_ea_request_ingest</code> on <strong>all ten</strong></td>
+<td><code>df_uc6_ea_request_ingest</code> on <strong>all eleven</strong></td>
 <td>Every transformation hangs off the EA ingestion flow, so the whole chain is one group</td>
 </tr>
 <tr>
 <td><code>target_type</code></td>
 <td>string</td>
-<td><code>materialized_view</code> on <strong>six</strong>, <code>sink</code> on <strong>four</strong></td>
-<td>The six build tables; the four sinks write files and materialise nothing</td>
+<td><code>materialized_view</code> on <strong>seven</strong>, <code>sink</code> on <strong>four</strong></td>
+<td>The gate and six business tables; the four sinks write files and materialise nothing</td>
 </tr>
 <tr>
 <td><code>target_config.cdc_load_strategy</code></td>
 <td>string</td>
-<td><code>TRUNCATE_AND_LOAD</code> on the six MVs, <code>APPEND</code> on the four sinks</td>
-<td>The MVs recompute from scratch each run; a sink only ever appends</td>
+<td><code>TRUNCATE_AND_LOAD</code> on the seven MVs, <code>APPEND</code> on the four sinks</td>
+<td>The MVs recompute from scratch each run; a sink only ever appends (the value is required but inert on a sink)</td>
 </tr>
 <tr>
 <td><code>source_inputs[].input_name</code></td>
 <td>string</td>
-<td>e.g. <code>uc6_css_sub</code></td>
-<td>The alias the <code>transformation_sql</code> selects <strong>FROM</strong>. Never the real table name</td>
+<td><code>&lt;table&gt;_in</code> for a plain read, <code>&lt;table&gt;_for_&lt;consumer&gt;</code> where the same table feeds several flows, <code>gate_*</code> for the presence gate</td>
+<td>The alias the <code>transformation_sql</code> selects <strong>FROM</strong>. Unique across the spec and never equal to a table name — aliases share the pipeline namespace with tables</td>
 </tr>
 <tr>
 <td><code>source_inputs[].table</code></td>
@@ -8113,7 +8909,7 @@ differ accordingly.</p>
 </tr>
 <tr>
 <td><strong>A streaming union is illegal</strong></td>
-<td><code>uc6_ee_address_paf</code> unions three branches. Spark rejects mixing streaming and batch</td>
+<td><code>ee_customer_address_paf</code> unions three branches. Spark rejects mixing streaming and batch</td>
 </tr>
 <tr>
 <td><strong>Windows need watermarks</strong></td>
@@ -8122,105 +8918,67 @@ differ accordingly.</p>
 </tbody>
 </table>
 <p><strong>All four of these were discovered at runtime</strong>, not at validation. See Appendix A.</p>
-<h3 id="135-key-reconciliation-attributes">13.5 Key reconciliation attributes<a class="headerlink" href="#135-key-reconciliation-attributes" title="Permanent link">&para;</a></h3>
-<p>All six reconciliation flows are structurally identical presence gates. Each compares a bronze table
-<strong>against itself</strong>; the comparison is a vehicle for the row-count assertion, not a real reconciliation.</p>
+<h3 id="135-the-presence-gate-a-transformation-flow-since-2026-09-08">13.5 The presence gate (a transformation flow, since 2026-09-08)<a class="headerlink" href="#135-the-presence-gate-a-transformation-flow-since-2026-09-08" title="Permanent link">&para;</a></h3>
+<p>Until 2026-09-08 UC6 carried six <code>reconciliation_flows</code>, each comparing a bronze table <strong>against
+itself</strong> so that a <code>source_record_count &gt; 0</code> expectation could fire on the recon engine's one-row
+metrics dataset. That bought a working gate at the price of 24 graph nodes, a full-outer self-join
+per source, six <code>recon__*__metrics</code> materialized views published beside the business tables, and no
+upstream edge to the flows it was meant to protect. It was replaced by one ordinary transformation
+flow.</p>
 <table>
 <thead>
 <tr>
 <th>Attribute</th>
-<th>Type</th>
 <th>Value in UC6</th>
 <th>Runtime effect</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><code>reconciliation_id</code></td>
-<td>string</td>
-<td><code>rf_uc6_*_presence</code></td>
+<td><code>flow_step_id</code></td>
+<td><code>ts_uc6_source_presence_gate</code></td>
 <td>Identifies the gate in the control tables</td>
 </tr>
 <tr>
-<td><code>dataflow_group_id</code></td>
-<td>string</td>
-<td><code>dfg_uc6_ea_flood_warning</code></td>
-<td>Binds the gate to the group</td>
+<td><code>target_table</code></td>
+<td><code>silver.flood_warning_source_presence</code></td>
+<td>One row per required source: <code>source_name</code>, <code>row_count</code></td>
 </tr>
 <tr>
-<td><code>source_config.type</code> / <code>.table</code></td>
-<td>string</td>
-<td><code>table</code>, the bronze table</td>
-<td>What is counted</td>
+<td><code>target_type</code> / <code>cdc_load_strategy</code></td>
+<td><code>materialized_view</code> / <code>TRUNCATE_AND_LOAD</code></td>
+<td>Fully recomputed every update</td>
 </tr>
 <tr>
-<td><code>source_config.read_mode</code></td>
-<td>string</td>
-<td><code>batch</code></td>
-<td>Point-in-time count, not a stream</td>
+<td><code>source_inputs[]</code></td>
+<td>the six bronze tables, <code>is_streaming: false</code></td>
+<td>Batch counts; the source plane shares the base reads with the business flows</td>
 </tr>
 <tr>
-<td><code>source_config.hash_precomputed</code></td>
-<td>boolean</td>
-<td><code>false</code></td>
-<td>The framework computes the match hash itself</td>
-</tr>
-<tr>
-<td><code>target_configs[].table</code></td>
-<td>string</td>
-<td><strong>The same bronze table</strong></td>
-<td>Self-comparison. See the note below</td>
-</tr>
-<tr>
-<td><code>target_configs[].comparison_direction</code></td>
-<td>string</td>
-<td><code>target_to_source</code></td>
-<td>Direction of the comparison</td>
-</tr>
-<tr>
-<td><code>match_keys</code></td>
-<td>array</td>
-<td>A real business key per flow, e.g. <code>customerid</code></td>
-<td><strong>Never <code>__framework_hash_key</code></strong> — the matcher hashes real columns <em>into</em> that field, so using it is circular. See Appendix A, defect 8</td>
-</tr>
-<tr>
-<td><code>compare_columns</code></td>
-<td>array</td>
-<td><code>[]</code> (empty) on all six</td>
-<td>Nothing is value-compared. Only the count matters</td>
-</tr>
-<tr>
-<td><code>execution_mode</code></td>
-<td>string</td>
-<td><code>pipeline_audit_only</code></td>
-<td>Runs inside the pipeline update, audits only</td>
+<td><code>transformation_sql</code></td>
+<td><code>SELECT 'ea_request' AS source_name, count(*) AS row_count FROM gate_ea_request UNION ALL …</code></td>
+<td>A groupBy-less <code>count(*)</code> is <strong>one row even over an empty table</strong>, so every source always has a row to evaluate</td>
 </tr>
 <tr>
 <td><code>dq_config.rules[]</code></td>
-<td>array</td>
-<td>One rule: <code>source_record_count &gt; 0</code>, action <code>fail</code></td>
-<td><strong>The gate itself.</strong> It attaches to a one-row metrics dataset where the count is a real column. See 17.3</td>
+<td><code>row_count &gt; 0</code>, action <code>fail</code></td>
+<td><strong>The gate itself.</strong> A missing or empty file fails the update</td>
 </tr>
 <tr>
-<td><code>error_handling.on_failure</code></td>
-<td>string</td>
-<td><code>fail</code></td>
-<td>A missing or empty source fails the update loudly</td>
-</tr>
-<tr>
-<td><code>logging_config.run_log_capture</code></td>
-<td>boolean</td>
-<td><code>true</code></td>
-<td>A control-table row is written for alerting</td>
-</tr>
-<tr>
-<td><code>logging_config.mismatch_log_capture</code></td>
-<td>boolean</td>
-<td><code>false</code></td>
-<td>No mismatch rows. There is nothing to mismatch in a self-comparison</td>
+<td>consumers</td>
+<td><code>ts_uc6_ea_base</code>, <code>ts_uc6_ea_address</code>, <code>ts_uc6_ee_address_paf</code></td>
+<td>Each adds the gate as a <code>source_inputs[]</code> entry and <code>CROSS JOIN</code>s its matching row(s), so the gate is evaluated <strong>before</strong> any silver/gold MV recomputes — an empty delivery can no longer blank the outputs first</td>
 </tr>
 </tbody>
 </table>
+<p>What was lost and accepted: the <code>reconciliation_run_log</code> row per source per update. It was
+written only by the post-pipeline export task, only on a passing update, and never on the failing
+one an operator would actually want — the expectation's pass/fail counts in the pipeline event log,
+already exported by <code>observability_export</code>, are the audit trail now.</p>
+<p><strong>Control tables.</strong> Removing a flow from a spec does not deactivate its row. The six
+<code>reconciliation_flow_spec</code> rows for <code>dfg_uc6_ea_flood_warning</code> must be soft-disabled or they keep
+registering the old gates; the UC6 job's <code>onboard_uc6</code> task passes <code>prune_missing_flows: "true"</code> to
+the onboarding job, which does exactly that after the upsert (<code>onboarding/spec_pruning.py</code>).</p>
 <h3 id="136-observability-attributes">13.6 Observability attributes<a class="headerlink" href="#136-observability-attributes" title="Permanent link">&para;</a></h3>
 <p>One destination, <code>dest_uc6_triggered_volume</code>.</p>
 <table>
@@ -8437,7 +9195,7 @@ differ accordingly.</p>
 </tr>
 <tr>
 <td><strong>On this workspace</strong></td>
-<td>Unity Catalog secrets are <strong>disabled</strong>, so the framework falls back to a classic scope named <code>flowx.config</code></td>
+<td>Unity Catalog secrets are <strong>disabled</strong>, so the framework falls back to a classic scope named <code>br_digital_poc.config</code></td>
 </tr>
 <tr>
 <td><strong>Cipher</strong></td>
@@ -8453,34 +9211,34 @@ differ accordingly.</p>
 <h2 id="16-testing-sql-for-business-users">16. Testing SQL for Business Users<a class="headerlink" href="#16-testing-sql-for-business-users" title="Permanent link">&para;</a></h2>
 <p><strong>All queries are read-only.</strong> Open a Databricks SQL editor, attach any warehouse, and run.</p>
 <h3 id="t1-row-counts-at-every-layer">T1 — Row counts at every layer<a class="headerlink" href="#t1-row-counts-at-every-layer" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="k">SELECT</span><span class="w"> </span><span class="s1">'bronze.uc6_ea_request'</span><span class="w">  </span><span class="k">AS</span><span class="w"> </span><span class="k">table_name</span><span class="p">,</span><span class="w"> </span><span class="k">count</span><span class="p">(</span><span class="o">*</span><span class="p">)</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="k">rows</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">flowx</span><span class="p">.</span><span class="n">bronze</span><span class="p">.</span><span class="n">uc6_ea_request</span>
-<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="k">UNION</span><span class="w"> </span><span class="k">ALL</span><span class="w"> </span><span class="k">SELECT</span><span class="w"> </span><span class="s1">'bronze.uc6_css_account'</span><span class="p">,</span><span class="w">         </span><span class="k">count</span><span class="p">(</span><span class="o">*</span><span class="p">)</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">flowx</span><span class="p">.</span><span class="n">bronze</span><span class="p">.</span><span class="n">uc6_css_account</span>
-<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="k">UNION</span><span class="w"> </span><span class="k">ALL</span><span class="w"> </span><span class="k">SELECT</span><span class="w"> </span><span class="s1">'bronze.uc6_css_account_address'</span><span class="p">,</span><span class="w"> </span><span class="k">count</span><span class="p">(</span><span class="o">*</span><span class="p">)</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">flowx</span><span class="p">.</span><span class="n">bronze</span><span class="p">.</span><span class="n">uc6_css_account_address</span>
-<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="k">UNION</span><span class="w"> </span><span class="k">ALL</span><span class="w"> </span><span class="k">SELECT</span><span class="w"> </span><span class="s1">'bronze.uc6_css_subscription'</span><span class="p">,</span><span class="w">    </span><span class="k">count</span><span class="p">(</span><span class="o">*</span><span class="p">)</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">flowx</span><span class="p">.</span><span class="n">bronze</span><span class="p">.</span><span class="n">uc6_css_subscription</span>
-<a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="k">UNION</span><span class="w"> </span><span class="k">ALL</span><span class="w"> </span><span class="k">SELECT</span><span class="w"> </span><span class="s1">'bronze.uc6_jt_customer'</span><span class="p">,</span><span class="w">         </span><span class="k">count</span><span class="p">(</span><span class="o">*</span><span class="p">)</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">flowx</span><span class="p">.</span><span class="n">bronze</span><span class="p">.</span><span class="n">uc6_jt_customer</span>
-<a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a><span class="k">UNION</span><span class="w"> </span><span class="k">ALL</span><span class="w"> </span><span class="k">SELECT</span><span class="w"> </span><span class="s1">'bronze.uc6_excalibur_address'</span><span class="p">,</span><span class="w">   </span><span class="k">count</span><span class="p">(</span><span class="o">*</span><span class="p">)</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">flowx</span><span class="p">.</span><span class="n">bronze</span><span class="p">.</span><span class="n">uc6_excalibur_address</span>
-<a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a><span class="k">UNION</span><span class="w"> </span><span class="k">ALL</span><span class="w"> </span><span class="k">SELECT</span><span class="w"> </span><span class="s1">'silver.uc6_ea_base'</span><span class="p">,</span><span class="w">             </span><span class="k">count</span><span class="p">(</span><span class="o">*</span><span class="p">)</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">flowx</span><span class="p">.</span><span class="n">silver</span><span class="p">.</span><span class="n">uc6_ea_base</span>
-<a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a><span class="k">UNION</span><span class="w"> </span><span class="k">ALL</span><span class="w"> </span><span class="k">SELECT</span><span class="w"> </span><span class="s1">'silver.uc6_ea_address'</span><span class="p">,</span><span class="w">          </span><span class="k">count</span><span class="p">(</span><span class="o">*</span><span class="p">)</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">flowx</span><span class="p">.</span><span class="n">silver</span><span class="p">.</span><span class="n">uc6_ea_address</span>
-<a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a><span class="k">UNION</span><span class="w"> </span><span class="k">ALL</span><span class="w"> </span><span class="k">SELECT</span><span class="w"> </span><span class="s1">'silver.uc6_ee_address_paf'</span><span class="p">,</span><span class="w">      </span><span class="k">count</span><span class="p">(</span><span class="o">*</span><span class="p">)</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">flowx</span><span class="p">.</span><span class="n">silver</span><span class="p">.</span><span class="n">uc6_ee_address_paf</span>
-<a id="__codelineno-7-10" name="__codelineno-7-10" href="#__codelineno-7-10"></a><span class="k">UNION</span><span class="w"> </span><span class="k">ALL</span><span class="w"> </span><span class="k">SELECT</span><span class="w"> </span><span class="s1">'silver.uc6_matched_address'</span><span class="p">,</span><span class="w">     </span><span class="k">count</span><span class="p">(</span><span class="o">*</span><span class="p">)</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">flowx</span><span class="p">.</span><span class="n">silver</span><span class="p">.</span><span class="n">uc6_matched_address</span>
-<a id="__codelineno-7-11" name="__codelineno-7-11" href="#__codelineno-7-11"></a><span class="k">UNION</span><span class="w"> </span><span class="k">ALL</span><span class="w"> </span><span class="k">SELECT</span><span class="w"> </span><span class="s1">'gold.uc6_osapr_output'</span><span class="p">,</span><span class="w">          </span><span class="k">count</span><span class="p">(</span><span class="o">*</span><span class="p">)</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">flowx</span><span class="p">.</span><span class="n">gold</span><span class="p">.</span><span class="n">uc6_osapr_output</span>
-<a id="__codelineno-7-12" name="__codelineno-7-12" href="#__codelineno-7-12"></a><span class="k">UNION</span><span class="w"> </span><span class="k">ALL</span><span class="w"> </span><span class="k">SELECT</span><span class="w"> </span><span class="s1">'gold.uc6_telephone_output'</span><span class="p">,</span><span class="w">      </span><span class="k">count</span><span class="p">(</span><span class="o">*</span><span class="p">)</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">flowx</span><span class="p">.</span><span class="n">gold</span><span class="p">.</span><span class="n">uc6_telephone_output</span><span class="p">;</span>
-</code></pre></div>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="k">SELECT</span><span class="w"> </span><span class="s1">'bronze.ea_request'</span><span class="w">  </span><span class="k">AS</span><span class="w"> </span><span class="k">table_name</span><span class="p">,</span><span class="w"> </span><span class="k">count</span><span class="p">(</span><span class="o">*</span><span class="p">)</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="k">rows</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">br_digital_poc</span><span class="p">.</span><span class="n">bronze</span><span class="p">.</span><span class="n">ea_request</span>
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="k">UNION</span><span class="w"> </span><span class="k">ALL</span><span class="w"> </span><span class="k">SELECT</span><span class="w"> </span><span class="s1">'bronze.css_account'</span><span class="p">,</span><span class="w">         </span><span class="k">count</span><span class="p">(</span><span class="o">*</span><span class="p">)</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">br_digital_poc</span><span class="p">.</span><span class="n">bronze</span><span class="p">.</span><span class="n">css_account</span>
+</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="k">UNION</span><span class="w"> </span><span class="k">ALL</span><span class="w"> </span><span class="k">SELECT</span><span class="w"> </span><span class="s1">'bronze.css_account_address'</span><span class="p">,</span><span class="w"> </span><span class="k">count</span><span class="p">(</span><span class="o">*</span><span class="p">)</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">br_digital_poc</span><span class="p">.</span><span class="n">bronze</span><span class="p">.</span><span class="n">css_account_address</span>
+</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="k">UNION</span><span class="w"> </span><span class="k">ALL</span><span class="w"> </span><span class="k">SELECT</span><span class="w"> </span><span class="s1">'bronze.css_subscription'</span><span class="p">,</span><span class="w">    </span><span class="k">count</span><span class="p">(</span><span class="o">*</span><span class="p">)</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">br_digital_poc</span><span class="p">.</span><span class="n">bronze</span><span class="p">.</span><span class="n">css_subscription</span>
+</span><span id="__span-7-5"><a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="k">UNION</span><span class="w"> </span><span class="k">ALL</span><span class="w"> </span><span class="k">SELECT</span><span class="w"> </span><span class="s1">'bronze.jt_customer'</span><span class="p">,</span><span class="w">         </span><span class="k">count</span><span class="p">(</span><span class="o">*</span><span class="p">)</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">br_digital_poc</span><span class="p">.</span><span class="n">bronze</span><span class="p">.</span><span class="n">jt_customer</span>
+</span><span id="__span-7-6"><a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a><span class="k">UNION</span><span class="w"> </span><span class="k">ALL</span><span class="w"> </span><span class="k">SELECT</span><span class="w"> </span><span class="s1">'bronze.excalibur_address'</span><span class="p">,</span><span class="w">   </span><span class="k">count</span><span class="p">(</span><span class="o">*</span><span class="p">)</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">br_digital_poc</span><span class="p">.</span><span class="n">bronze</span><span class="p">.</span><span class="n">excalibur_address</span>
+</span><span id="__span-7-7"><a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a><span class="k">UNION</span><span class="w"> </span><span class="k">ALL</span><span class="w"> </span><span class="k">SELECT</span><span class="w"> </span><span class="s1">'silver.ea_request_base'</span><span class="p">,</span><span class="w">             </span><span class="k">count</span><span class="p">(</span><span class="o">*</span><span class="p">)</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">br_digital_poc</span><span class="p">.</span><span class="n">silver</span><span class="p">.</span><span class="n">ea_request_base</span>
+</span><span id="__span-7-8"><a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a><span class="k">UNION</span><span class="w"> </span><span class="k">ALL</span><span class="w"> </span><span class="k">SELECT</span><span class="w"> </span><span class="s1">'silver.ea_request_address'</span><span class="p">,</span><span class="w">          </span><span class="k">count</span><span class="p">(</span><span class="o">*</span><span class="p">)</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">br_digital_poc</span><span class="p">.</span><span class="n">silver</span><span class="p">.</span><span class="n">ea_request_address</span>
+</span><span id="__span-7-9"><a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a><span class="k">UNION</span><span class="w"> </span><span class="k">ALL</span><span class="w"> </span><span class="k">SELECT</span><span class="w"> </span><span class="s1">'silver.ee_customer_address_paf'</span><span class="p">,</span><span class="w">      </span><span class="k">count</span><span class="p">(</span><span class="o">*</span><span class="p">)</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">br_digital_poc</span><span class="p">.</span><span class="n">silver</span><span class="p">.</span><span class="n">ee_customer_address_paf</span>
+</span><span id="__span-7-10"><a id="__codelineno-7-10" name="__codelineno-7-10" href="#__codelineno-7-10"></a><span class="k">UNION</span><span class="w"> </span><span class="k">ALL</span><span class="w"> </span><span class="k">SELECT</span><span class="w"> </span><span class="s1">'silver.flood_area_matched_address'</span><span class="p">,</span><span class="w">     </span><span class="k">count</span><span class="p">(</span><span class="o">*</span><span class="p">)</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">br_digital_poc</span><span class="p">.</span><span class="n">silver</span><span class="p">.</span><span class="n">flood_area_matched_address</span>
+</span><span id="__span-7-11"><a id="__codelineno-7-11" name="__codelineno-7-11" href="#__codelineno-7-11"></a><span class="k">UNION</span><span class="w"> </span><span class="k">ALL</span><span class="w"> </span><span class="k">SELECT</span><span class="w"> </span><span class="s1">'gold.flood_warning_osapr'</span><span class="p">,</span><span class="w">          </span><span class="k">count</span><span class="p">(</span><span class="o">*</span><span class="p">)</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">br_digital_poc</span><span class="p">.</span><span class="n">gold</span><span class="p">.</span><span class="n">flood_warning_osapr</span>
+</span><span id="__span-7-12"><a id="__codelineno-7-12" name="__codelineno-7-12" href="#__codelineno-7-12"></a><span class="k">UNION</span><span class="w"> </span><span class="k">ALL</span><span class="w"> </span><span class="k">SELECT</span><span class="w"> </span><span class="s1">'gold.flood_warning_telephone'</span><span class="p">,</span><span class="w">      </span><span class="k">count</span><span class="p">(</span><span class="o">*</span><span class="p">)</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">br_digital_poc</span><span class="p">.</span><span class="n">gold</span><span class="p">.</span><span class="n">flood_warning_telephone</span><span class="p">;</span>
+</span></code></pre></div>
 <p><strong>Expected:</strong> bronze 7, 5, 5, 5, 1, 1. Silver 7, 7, 6, 11. Gold 7, 2.</p>
 <h3 id="t2-the-ea-request-as-received">T2 — The EA request, as received<a class="headerlink" href="#t2-the-ea-request-as-received" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="k">SELECT</span><span class="w"> </span><span class="n">targetAreaID</span><span class="p">,</span><span class="w"> </span><span class="n">osapr</span><span class="p">,</span><span class="w"> </span><span class="n">postcode</span><span class="p">,</span><span class="w"> </span><span class="n">address_norm</span>
-<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="k">FROM</span><span class="w">   </span><span class="n">flowx</span><span class="p">.</span><span class="n">silver</span><span class="p">.</span><span class="n">uc6_ea_address</span>
-<a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="k">ORDER</span><span class="w">  </span><span class="k">BY</span><span class="w"> </span><span class="n">targetAreaID</span><span class="p">,</span><span class="w"> </span><span class="n">osapr</span><span class="p">;</span>
-</code></pre></div>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="k">SELECT</span><span class="w"> </span><span class="n">targetAreaID</span><span class="p">,</span><span class="w"> </span><span class="n">osapr</span><span class="p">,</span><span class="w"> </span><span class="n">postcode</span><span class="p">,</span><span class="w"> </span><span class="n">address_norm</span>
+</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="k">FROM</span><span class="w">   </span><span class="n">br_digital_poc</span><span class="p">.</span><span class="n">silver</span><span class="p">.</span><span class="n">ea_request_address</span>
+</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="k">ORDER</span><span class="w">  </span><span class="k">BY</span><span class="w"> </span><span class="n">targetAreaID</span><span class="p">,</span><span class="w"> </span><span class="n">osapr</span><span class="p">;</span>
+</span></code></pre></div>
 <p><strong>Expected:</strong> 7 rows across 4 target areas.</p>
 <h3 id="t3-the-ee-customer-union-by-channel">T3 — The EE customer union, by channel<a class="headerlink" href="#t3-the-ee-customer-union-by-channel" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="k">SELECT</span><span class="w"> </span><span class="n">source_system</span><span class="p">,</span><span class="w"> </span><span class="k">count</span><span class="p">(</span><span class="o">*</span><span class="p">)</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="n">customers</span><span class="p">,</span><span class="w"> </span><span class="k">count</span><span class="p">(</span><span class="k">DISTINCT</span><span class="w"> </span><span class="n">msisdn</span><span class="p">)</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="n">distinct_msisdn</span>
-<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="k">FROM</span><span class="w">   </span><span class="n">flowx</span><span class="p">.</span><span class="n">silver</span><span class="p">.</span><span class="n">uc6_ee_address_paf</span>
-<a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="k">GROUP</span><span class="w">  </span><span class="k">BY</span><span class="w"> </span><span class="n">source_system</span>
-<a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="k">ORDER</span><span class="w">  </span><span class="k">BY</span><span class="w"> </span><span class="n">customers</span><span class="w"> </span><span class="k">DESC</span><span class="p">;</span>
-</code></pre></div>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="k">SELECT</span><span class="w"> </span><span class="n">source_system</span><span class="p">,</span><span class="w"> </span><span class="k">count</span><span class="p">(</span><span class="o">*</span><span class="p">)</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="n">customers</span><span class="p">,</span><span class="w"> </span><span class="k">count</span><span class="p">(</span><span class="k">DISTINCT</span><span class="w"> </span><span class="n">msisdn</span><span class="p">)</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="n">distinct_msisdn</span>
+</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="k">FROM</span><span class="w">   </span><span class="n">br_digital_poc</span><span class="p">.</span><span class="n">silver</span><span class="p">.</span><span class="n">ee_customer_address_paf</span>
+</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="k">GROUP</span><span class="w">  </span><span class="k">BY</span><span class="w"> </span><span class="n">source_system</span>
+</span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="k">ORDER</span><span class="w">  </span><span class="k">BY</span><span class="w"> </span><span class="n">customers</span><span class="w"> </span><span class="k">DESC</span><span class="p">;</span>
+</span></code></pre></div>
 <p><strong>Expected on the current fixture:</strong> <code>css</code> 5 customers, <code>excalibur</code> 1 customer. <strong>The <code>jt</code> channel returns no rows at all.</strong></p>
-<p><strong>This is the age filter working, not a defect.</strong> The bronze table <code>uc6_jt_customer</code> holds exactly one record, MSISDN <code>07700900999</code> with a date of birth of <code>20150101</code>. That customer is under 17, so the JT branch of the union filters them out entirely and the channel disappears from the result. Compare the bronze count against this query to see the filter take effect:</p>
+<p><strong>This is the age filter working, not a defect.</strong> The bronze table <code>jt_customer</code> holds exactly one record, MSISDN <code>07700900999</code> with a date of birth of <code>20150101</code>. That customer is under 17, so the JT branch of the union filters them out entirely and the channel disappears from the result. Compare the bronze count against this query to see the filter take effect:</p>
 <table>
 <thead>
 <tr>
@@ -8508,82 +9266,82 @@ differ accordingly.</p>
 </tbody>
 </table>
 <h3 id="t4-the-matching-join-every-candidate-pair">T4 — The matching join, every candidate pair<a class="headerlink" href="#t4-the-matching-join-every-candidate-pair" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="k">SELECT</span><span class="w"> </span><span class="n">targetAreaID</span><span class="p">,</span><span class="w"> </span><span class="n">osapr</span><span class="p">,</span><span class="w"> </span><span class="n">postcode</span><span class="p">,</span><span class="w"> </span><span class="n">source_system</span><span class="p">,</span><span class="w"> </span><span class="n">msisdn</span><span class="p">,</span><span class="w"> </span><span class="n">match_strength</span>
-<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="k">FROM</span><span class="w">   </span><span class="n">flowx</span><span class="p">.</span><span class="n">silver</span><span class="p">.</span><span class="n">uc6_matched_address</span>
-<a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="k">ORDER</span><span class="w">  </span><span class="k">BY</span><span class="w"> </span><span class="n">targetAreaID</span><span class="p">,</span><span class="w"> </span><span class="n">osapr</span><span class="p">,</span><span class="w"> </span><span class="n">match_strength</span><span class="w"> </span><span class="k">DESC</span><span class="p">;</span>
-</code></pre></div>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="k">SELECT</span><span class="w"> </span><span class="n">targetAreaID</span><span class="p">,</span><span class="w"> </span><span class="n">osapr</span><span class="p">,</span><span class="w"> </span><span class="n">postcode</span><span class="p">,</span><span class="w"> </span><span class="n">source_system</span><span class="p">,</span><span class="w"> </span><span class="n">msisdn</span><span class="p">,</span><span class="w"> </span><span class="n">match_strength</span>
+</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="k">FROM</span><span class="w">   </span><span class="n">br_digital_poc</span><span class="p">.</span><span class="n">silver</span><span class="p">.</span><span class="n">flood_area_matched_address</span>
+</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="k">ORDER</span><span class="w">  </span><span class="k">BY</span><span class="w"> </span><span class="n">targetAreaID</span><span class="p">,</span><span class="w"> </span><span class="n">osapr</span><span class="p">,</span><span class="w"> </span><span class="n">match_strength</span><span class="w"> </span><span class="k">DESC</span><span class="p">;</span>
+</span></code></pre></div>
 <p><strong>Expected:</strong> 11 rows. Compare against the table in Section 10.4.</p>
 <h3 id="t5-the-audit-answer-the-osapr-decision-table">T5 — The audit answer, the OSAPR decision table<a class="headerlink" href="#t5-the-audit-answer-the-osapr-decision-table" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="k">SELECT</span><span class="w"> </span><span class="n">targetAreaID</span><span class="p">,</span><span class="w"> </span><span class="n">osapr</span><span class="p">,</span><span class="w"> </span><span class="n">status</span><span class="p">,</span><span class="w"> </span><span class="k">count</span><span class="p">,</span>
-<a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="w">       </span><span class="n">count_of_msisdn</span><span class="p">,</span><span class="w"> </span><span class="n">count_of_osapr</span><span class="p">,</span><span class="w"> </span><span class="n">match_strength</span>
-<a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a><span class="k">FROM</span><span class="w">   </span><span class="n">flowx</span><span class="p">.</span><span class="n">gold</span><span class="p">.</span><span class="n">uc6_osapr_output</span>
-<a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a><span class="k">ORDER</span><span class="w">  </span><span class="k">BY</span><span class="w"> </span><span class="n">targetAreaID</span><span class="p">,</span><span class="w"> </span><span class="n">osapr</span><span class="p">;</span>
-</code></pre></div>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="k">SELECT</span><span class="w"> </span><span class="n">targetAreaID</span><span class="p">,</span><span class="w"> </span><span class="n">osapr</span><span class="p">,</span><span class="w"> </span><span class="n">status</span><span class="p">,</span><span class="w"> </span><span class="k">count</span><span class="p">,</span>
+</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="w">       </span><span class="n">count_of_msisdn</span><span class="p">,</span><span class="w"> </span><span class="n">count_of_osapr</span><span class="p">,</span><span class="w"> </span><span class="n">match_strength</span>
+</span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a><span class="k">FROM</span><span class="w">   </span><span class="n">br_digital_poc</span><span class="p">.</span><span class="n">gold</span><span class="p">.</span><span class="n">flood_warning_osapr</span>
+</span><span id="__span-11-4"><a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a><span class="k">ORDER</span><span class="w">  </span><span class="k">BY</span><span class="w"> </span><span class="n">targetAreaID</span><span class="p">,</span><span class="w"> </span><span class="n">osapr</span><span class="p">;</span>
+</span></code></pre></div>
 <p><strong>Expected:</strong> 7 rows. All four statuses present. Compare against Section 11.3.</p>
 <h3 id="t6-the-action-list-numbers-to-warn">T6 — The action list, numbers to warn<a class="headerlink" href="#t6-the-action-list-numbers-to-warn" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="k">SELECT</span><span class="w"> </span><span class="n">targetAreaID</span><span class="p">,</span><span class="w"> </span><span class="n">telephone</span>
-<a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a><span class="k">FROM</span><span class="w">   </span><span class="n">flowx</span><span class="p">.</span><span class="n">gold</span><span class="p">.</span><span class="n">uc6_telephone_output</span>
-<a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a><span class="k">ORDER</span><span class="w">  </span><span class="k">BY</span><span class="w"> </span><span class="n">targetAreaID</span><span class="p">,</span><span class="w"> </span><span class="n">telephone</span><span class="p">;</span>
-</code></pre></div>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="k">SELECT</span><span class="w"> </span><span class="n">targetAreaID</span><span class="p">,</span><span class="w"> </span><span class="n">telephone</span>
+</span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a><span class="k">FROM</span><span class="w">   </span><span class="n">br_digital_poc</span><span class="p">.</span><span class="n">gold</span><span class="p">.</span><span class="n">flood_warning_telephone</span>
+</span><span id="__span-12-3"><a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a><span class="k">ORDER</span><span class="w">  </span><span class="k">BY</span><span class="w"> </span><span class="n">targetAreaID</span><span class="p">,</span><span class="w"> </span><span class="n">telephone</span><span class="p">;</span>
+</span></code></pre></div>
 <p><strong>Expected:</strong> exactly 2 rows, both AREA_FOUND.</p>
 <h3 id="t7-prove-the-privacy-rule-worked">T7 — Prove the privacy rule worked<a class="headerlink" href="#t7-prove-the-privacy-rule-worked" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="k">SELECT</span><span class="w"> </span><span class="s1">'07700900003 must be ABSENT (privacy rule)'</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="n">check_name</span><span class="p">,</span>
-<a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a><span class="w">       </span><span class="k">CASE</span><span class="w"> </span><span class="k">WHEN</span><span class="w"> </span><span class="k">count</span><span class="p">(</span><span class="o">*</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="k">THEN</span><span class="w"> </span><span class="s1">'PASS'</span><span class="w"> </span><span class="k">ELSE</span><span class="w"> </span><span class="s1">'FAIL'</span><span class="w"> </span><span class="k">END</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="k">result</span>
-<a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a><span class="k">FROM</span><span class="w">   </span><span class="n">flowx</span><span class="p">.</span><span class="n">gold</span><span class="p">.</span><span class="n">uc6_telephone_output</span>
-<a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a><span class="k">WHERE</span><span class="w">  </span><span class="n">telephone</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">'07700900003'</span><span class="p">;</span>
-</code></pre></div>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="k">SELECT</span><span class="w"> </span><span class="s1">'07700900003 must be ABSENT (privacy rule)'</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="n">check_name</span><span class="p">,</span>
+</span><span id="__span-13-2"><a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a><span class="w">       </span><span class="k">CASE</span><span class="w"> </span><span class="k">WHEN</span><span class="w"> </span><span class="k">count</span><span class="p">(</span><span class="o">*</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="k">THEN</span><span class="w"> </span><span class="s1">'PASS'</span><span class="w"> </span><span class="k">ELSE</span><span class="w"> </span><span class="s1">'FAIL'</span><span class="w"> </span><span class="k">END</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="k">result</span>
+</span><span id="__span-13-3"><a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a><span class="k">FROM</span><span class="w">   </span><span class="n">br_digital_poc</span><span class="p">.</span><span class="n">gold</span><span class="p">.</span><span class="n">flood_warning_telephone</span>
+</span><span id="__span-13-4"><a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a><span class="k">WHERE</span><span class="w">  </span><span class="n">telephone</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">'07700900003'</span><span class="p">;</span>
+</span></code></pre></div>
 <p><strong>Why:</strong> <code>07700900003</code> matched at strength 100, but its area had only one matched address. It must be withheld.</p>
 <h3 id="t8-prove-the-age-filter-worked">T8 — Prove the age filter worked<a class="headerlink" href="#t8-prove-the-age-filter-worked" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="k">SELECT</span><span class="w"> </span><span class="s1">'07700900999 must be ABSENT (under-17)'</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="n">check_name</span><span class="p">,</span>
-<a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a><span class="w">       </span><span class="k">CASE</span><span class="w"> </span><span class="k">WHEN</span><span class="w"> </span><span class="k">count</span><span class="p">(</span><span class="o">*</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="k">THEN</span><span class="w"> </span><span class="s1">'PASS'</span><span class="w"> </span><span class="k">ELSE</span><span class="w"> </span><span class="s1">'FAIL'</span><span class="w"> </span><span class="k">END</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="k">result</span>
-<a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a><span class="k">FROM</span><span class="w">   </span><span class="n">flowx</span><span class="p">.</span><span class="n">gold</span><span class="p">.</span><span class="n">uc6_telephone_output</span>
-<a id="__codelineno-14-4" name="__codelineno-14-4" href="#__codelineno-14-4"></a><span class="k">WHERE</span><span class="w">  </span><span class="n">telephone</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">'07700900999'</span><span class="p">;</span>
-</code></pre></div>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="k">SELECT</span><span class="w"> </span><span class="s1">'07700900999 must be ABSENT (under-17)'</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="n">check_name</span><span class="p">,</span>
+</span><span id="__span-14-2"><a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a><span class="w">       </span><span class="k">CASE</span><span class="w"> </span><span class="k">WHEN</span><span class="w"> </span><span class="k">count</span><span class="p">(</span><span class="o">*</span><span class="p">)</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="k">THEN</span><span class="w"> </span><span class="s1">'PASS'</span><span class="w"> </span><span class="k">ELSE</span><span class="w"> </span><span class="s1">'FAIL'</span><span class="w"> </span><span class="k">END</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="k">result</span>
+</span><span id="__span-14-3"><a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a><span class="k">FROM</span><span class="w">   </span><span class="n">br_digital_poc</span><span class="p">.</span><span class="n">gold</span><span class="p">.</span><span class="n">flood_warning_telephone</span>
+</span><span id="__span-14-4"><a id="__codelineno-14-4" name="__codelineno-14-4" href="#__codelineno-14-4"></a><span class="k">WHERE</span><span class="w">  </span><span class="n">telephone</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s1">'07700900999'</span><span class="p">;</span>
+</span></code></pre></div>
 <h3 id="t9-prove-the-four-export-files-exist">T9 — Prove the four export files exist<a class="headerlink" href="#t9-prove-the-four-export-files-exist" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a><span class="n">LIST</span><span class="w"> </span><span class="s1">'/Volumes/flowx/staging/uc_6/output/'</span><span class="p">;</span>
-</code></pre></div>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a><span class="n">LIST</span><span class="w"> </span><span class="s1">'/Volumes/br_digital_poc/staging/uc_6/output/'</span><span class="p">;</span>
+</span></code></pre></div>
 <p><strong>Expected:</strong> four files, two <code>.csv.gz</code> and two <code>.csv.gz.gpg</code>, plus a <code>_staging</code> folder you can ignore.</p>
 <h3 id="t10-verify-the-scoring-by-hand">T10 — Verify the scoring by hand<a class="headerlink" href="#t10-verify-the-scoring-by-hand" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a><span class="k">SELECT</span><span class="w"> </span><span class="n">ea</span><span class="p">.</span><span class="n">osapr</span><span class="p">,</span>
-<a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a><span class="w">       </span><span class="n">ea</span><span class="p">.</span><span class="n">address_norm</span><span class="w">                        </span><span class="k">AS</span><span class="w"> </span><span class="n">ea_address</span><span class="p">,</span>
-<a id="__codelineno-16-3" name="__codelineno-16-3" href="#__codelineno-16-3"></a><span class="w">       </span><span class="n">ee</span><span class="p">.</span><span class="n">address_norm</span><span class="w">                        </span><span class="k">AS</span><span class="w"> </span><span class="n">ee_address</span><span class="p">,</span>
-<a id="__codelineno-16-4" name="__codelineno-16-4" href="#__codelineno-16-4"></a><span class="w">       </span><span class="k">size</span><span class="p">(</span><span class="n">split</span><span class="p">(</span><span class="n">ea</span><span class="p">.</span><span class="n">address_norm</span><span class="p">,</span><span class="w"> </span><span class="s1">' '</span><span class="p">))</span><span class="w">      </span><span class="k">AS</span><span class="w"> </span><span class="n">ea_words</span><span class="p">,</span>
-<a id="__codelineno-16-5" name="__codelineno-16-5" href="#__codelineno-16-5"></a><span class="w">       </span><span class="k">size</span><span class="p">(</span><span class="n">array_intersect</span><span class="p">(</span><span class="n">split</span><span class="p">(</span><span class="n">ea</span><span class="p">.</span><span class="n">address_norm</span><span class="p">,</span><span class="s1">' '</span><span class="p">),</span><span class="w"> </span><span class="n">split</span><span class="p">(</span><span class="n">ee</span><span class="p">.</span><span class="n">address_norm</span><span class="p">,</span><span class="s1">' '</span><span class="p">)))</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="n">shared_words</span><span class="p">,</span>
-<a id="__codelineno-16-6" name="__codelineno-16-6" href="#__codelineno-16-6"></a><span class="w">       </span><span class="k">cast</span><span class="p">(</span><span class="n">round</span><span class="p">(</span><span class="mi">100</span><span class="p">.</span><span class="mi">0</span><span class="w"> </span><span class="o">*</span>
-<a id="__codelineno-16-7" name="__codelineno-16-7" href="#__codelineno-16-7"></a><span class="w">            </span><span class="k">size</span><span class="p">(</span><span class="n">array_intersect</span><span class="p">(</span><span class="n">split</span><span class="p">(</span><span class="n">ea</span><span class="p">.</span><span class="n">address_norm</span><span class="p">,</span><span class="s1">' '</span><span class="p">),</span><span class="w"> </span><span class="n">split</span><span class="p">(</span><span class="n">ee</span><span class="p">.</span><span class="n">address_norm</span><span class="p">,</span><span class="s1">' '</span><span class="p">)))</span>
-<a id="__codelineno-16-8" name="__codelineno-16-8" href="#__codelineno-16-8"></a><span class="w">            </span><span class="o">/</span><span class="w"> </span><span class="n">greatest</span><span class="p">(</span><span class="k">size</span><span class="p">(</span><span class="n">split</span><span class="p">(</span><span class="n">ea</span><span class="p">.</span><span class="n">address_norm</span><span class="p">,</span><span class="s1">' '</span><span class="p">)),</span><span class="w"> </span><span class="mi">1</span><span class="p">))</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="nb">INT</span><span class="p">)</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="n">recomputed_score</span>
-<a id="__codelineno-16-9" name="__codelineno-16-9" href="#__codelineno-16-9"></a><span class="k">FROM</span><span class="w">   </span><span class="n">flowx</span><span class="p">.</span><span class="n">silver</span><span class="p">.</span><span class="n">uc6_ea_address</span><span class="w"> </span><span class="n">ea</span>
-<a id="__codelineno-16-10" name="__codelineno-16-10" href="#__codelineno-16-10"></a><span class="k">JOIN</span><span class="w">   </span><span class="n">flowx</span><span class="p">.</span><span class="n">silver</span><span class="p">.</span><span class="n">uc6_ee_address_paf</span><span class="w"> </span><span class="n">ee</span><span class="w"> </span><span class="k">ON</span><span class="w"> </span><span class="n">ea</span><span class="p">.</span><span class="n">postcode_norm</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ee</span><span class="p">.</span><span class="n">postcode_norm</span>
-<a id="__codelineno-16-11" name="__codelineno-16-11" href="#__codelineno-16-11"></a><span class="k">ORDER</span><span class="w">  </span><span class="k">BY</span><span class="w"> </span><span class="n">recomputed_score</span><span class="w"> </span><span class="k">DESC</span><span class="p">;</span>
-</code></pre></div>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-16-1"><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a><span class="k">SELECT</span><span class="w"> </span><span class="n">ea</span><span class="p">.</span><span class="n">osapr</span><span class="p">,</span>
+</span><span id="__span-16-2"><a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a><span class="w">       </span><span class="n">ea</span><span class="p">.</span><span class="n">address_norm</span><span class="w">                        </span><span class="k">AS</span><span class="w"> </span><span class="n">ea_address</span><span class="p">,</span>
+</span><span id="__span-16-3"><a id="__codelineno-16-3" name="__codelineno-16-3" href="#__codelineno-16-3"></a><span class="w">       </span><span class="n">ee</span><span class="p">.</span><span class="n">address_norm</span><span class="w">                        </span><span class="k">AS</span><span class="w"> </span><span class="n">ee_address</span><span class="p">,</span>
+</span><span id="__span-16-4"><a id="__codelineno-16-4" name="__codelineno-16-4" href="#__codelineno-16-4"></a><span class="w">       </span><span class="k">size</span><span class="p">(</span><span class="n">split</span><span class="p">(</span><span class="n">ea</span><span class="p">.</span><span class="n">address_norm</span><span class="p">,</span><span class="w"> </span><span class="s1">' '</span><span class="p">))</span><span class="w">      </span><span class="k">AS</span><span class="w"> </span><span class="n">ea_words</span><span class="p">,</span>
+</span><span id="__span-16-5"><a id="__codelineno-16-5" name="__codelineno-16-5" href="#__codelineno-16-5"></a><span class="w">       </span><span class="k">size</span><span class="p">(</span><span class="n">array_intersect</span><span class="p">(</span><span class="n">split</span><span class="p">(</span><span class="n">ea</span><span class="p">.</span><span class="n">address_norm</span><span class="p">,</span><span class="s1">' '</span><span class="p">),</span><span class="w"> </span><span class="n">split</span><span class="p">(</span><span class="n">ee</span><span class="p">.</span><span class="n">address_norm</span><span class="p">,</span><span class="s1">' '</span><span class="p">)))</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="n">shared_words</span><span class="p">,</span>
+</span><span id="__span-16-6"><a id="__codelineno-16-6" name="__codelineno-16-6" href="#__codelineno-16-6"></a><span class="w">       </span><span class="k">cast</span><span class="p">(</span><span class="n">round</span><span class="p">(</span><span class="mi">100</span><span class="p">.</span><span class="mi">0</span><span class="w"> </span><span class="o">*</span>
+</span><span id="__span-16-7"><a id="__codelineno-16-7" name="__codelineno-16-7" href="#__codelineno-16-7"></a><span class="w">            </span><span class="k">size</span><span class="p">(</span><span class="n">array_intersect</span><span class="p">(</span><span class="n">split</span><span class="p">(</span><span class="n">ea</span><span class="p">.</span><span class="n">address_norm</span><span class="p">,</span><span class="s1">' '</span><span class="p">),</span><span class="w"> </span><span class="n">split</span><span class="p">(</span><span class="n">ee</span><span class="p">.</span><span class="n">address_norm</span><span class="p">,</span><span class="s1">' '</span><span class="p">)))</span>
+</span><span id="__span-16-8"><a id="__codelineno-16-8" name="__codelineno-16-8" href="#__codelineno-16-8"></a><span class="w">            </span><span class="o">/</span><span class="w"> </span><span class="n">greatest</span><span class="p">(</span><span class="k">size</span><span class="p">(</span><span class="n">split</span><span class="p">(</span><span class="n">ea</span><span class="p">.</span><span class="n">address_norm</span><span class="p">,</span><span class="s1">' '</span><span class="p">)),</span><span class="w"> </span><span class="mi">1</span><span class="p">))</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="nb">INT</span><span class="p">)</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="n">recomputed_score</span>
+</span><span id="__span-16-9"><a id="__codelineno-16-9" name="__codelineno-16-9" href="#__codelineno-16-9"></a><span class="k">FROM</span><span class="w">   </span><span class="n">br_digital_poc</span><span class="p">.</span><span class="n">silver</span><span class="p">.</span><span class="n">ea_request_address</span><span class="w"> </span><span class="n">ea</span>
+</span><span id="__span-16-10"><a id="__codelineno-16-10" name="__codelineno-16-10" href="#__codelineno-16-10"></a><span class="k">JOIN</span><span class="w">   </span><span class="n">br_digital_poc</span><span class="p">.</span><span class="n">silver</span><span class="p">.</span><span class="n">ee_customer_address_paf</span><span class="w"> </span><span class="n">ee</span><span class="w"> </span><span class="k">ON</span><span class="w"> </span><span class="n">ea</span><span class="p">.</span><span class="n">postcode_norm</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ee</span><span class="p">.</span><span class="n">postcode_norm</span>
+</span><span id="__span-16-11"><a id="__codelineno-16-11" name="__codelineno-16-11" href="#__codelineno-16-11"></a><span class="k">ORDER</span><span class="w">  </span><span class="k">BY</span><span class="w"> </span><span class="n">recomputed_score</span><span class="w"> </span><span class="k">DESC</span><span class="p">;</span>
+</span></code></pre></div>
 <p><strong>Why:</strong> recomputes <code>match_strength</code> from first principles so you can confirm the algorithm by eye.</p>
 <h3 id="t11-governance-tags">T11 — Governance tags<a class="headerlink" href="#t11-governance-tags" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a><span class="k">SELECT</span><span class="w"> </span><span class="k">schema_name</span><span class="p">,</span><span class="w"> </span><span class="k">table_name</span><span class="p">,</span><span class="w"> </span><span class="n">tag_name</span><span class="p">,</span><span class="w"> </span><span class="n">tag_value</span>
-<a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a><span class="k">FROM</span><span class="w">   </span><span class="n">flowx</span><span class="p">.</span><span class="n">information_schema</span><span class="p">.</span><span class="n">table_tags</span>
-<a id="__codelineno-17-3" name="__codelineno-17-3" href="#__codelineno-17-3"></a><span class="k">WHERE</span><span class="w">  </span><span class="k">table_name</span><span class="w"> </span><span class="k">LIKE</span><span class="w"> </span><span class="s1">'uc6_%'</span>
-<a id="__codelineno-17-4" name="__codelineno-17-4" href="#__codelineno-17-4"></a><span class="k">ORDER</span><span class="w">  </span><span class="k">BY</span><span class="w"> </span><span class="k">schema_name</span><span class="p">,</span><span class="w"> </span><span class="k">table_name</span><span class="p">,</span><span class="w"> </span><span class="n">tag_name</span><span class="p">;</span>
-</code></pre></div>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-17-1"><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a><span class="k">SELECT</span><span class="w"> </span><span class="k">schema_name</span><span class="p">,</span><span class="w"> </span><span class="k">table_name</span><span class="p">,</span><span class="w"> </span><span class="n">tag_name</span><span class="p">,</span><span class="w"> </span><span class="n">tag_value</span>
+</span><span id="__span-17-2"><a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a><span class="k">FROM</span><span class="w">   </span><span class="n">br_digital_poc</span><span class="p">.</span><span class="n">information_schema</span><span class="p">.</span><span class="n">table_tags</span>
+</span><span id="__span-17-3"><a id="__codelineno-17-3" name="__codelineno-17-3" href="#__codelineno-17-3"></a><span class="k">WHERE</span><span class="w">  </span><span class="k">table_name</span><span class="w"> </span><span class="k">LIKE</span><span class="w"> </span><span class="s1">'uc6_%'</span>
+</span><span id="__span-17-4"><a id="__codelineno-17-4" name="__codelineno-17-4" href="#__codelineno-17-4"></a><span class="k">ORDER</span><span class="w">  </span><span class="k">BY</span><span class="w"> </span><span class="k">schema_name</span><span class="p">,</span><span class="w"> </span><span class="k">table_name</span><span class="p">,</span><span class="w"> </span><span class="n">tag_name</span><span class="p">;</span>
+</span></code></pre></div>
 <p><strong>Expected:</strong> 72 rows across 12 tables.</p>
-<p><strong>Important:</strong> <code>information_schema</code> is catalog-scoped. The three-part name <code>flowx.information_schema</code> is mandatory. An unqualified query returns rows for the wrong catalog and looks convincingly like "tags are not supported here".</p>
+<p><strong>Important:</strong> <code>information_schema</code> is catalog-scoped. The three-part name <code>br_digital_poc.information_schema</code> is mandatory. An unqualified query returns rows for the wrong catalog and looks convincingly like "tags are not supported here".</p>
 <h3 id="t12-full-data-quality-scorecard-run-this-for-a-demonstration">T12 — Full data-quality scorecard, run this for a demonstration<a class="headerlink" href="#t12-full-data-quality-scorecard-run-this-for-a-demonstration" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a><span class="k">WITH</span><span class="w"> </span><span class="n">checks</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="p">(</span>
-<a id="__codelineno-18-2" name="__codelineno-18-2" href="#__codelineno-18-2"></a><span class="w">    </span><span class="k">SELECT</span><span class="w"> </span><span class="s1">'OSAPR output has 7 rows'</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="n">check_name</span><span class="p">,</span>
-<a id="__codelineno-18-3" name="__codelineno-18-3" href="#__codelineno-18-3"></a><span class="w">           </span><span class="p">(</span><span class="k">SELECT</span><span class="w"> </span><span class="k">count</span><span class="p">(</span><span class="o">*</span><span class="p">)</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">flowx</span><span class="p">.</span><span class="n">gold</span><span class="p">.</span><span class="n">uc6_osapr_output</span><span class="p">)</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="n">actual</span><span class="p">,</span><span class="w"> </span><span class="mi">7</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="n">expected</span>
-<a id="__codelineno-18-4" name="__codelineno-18-4" href="#__codelineno-18-4"></a><span class="w">    </span><span class="k">UNION</span><span class="w"> </span><span class="k">ALL</span><span class="w"> </span><span class="k">SELECT</span><span class="w"> </span><span class="s1">'Telephone output has 2 rows'</span><span class="p">,</span>
-<a id="__codelineno-18-5" name="__codelineno-18-5" href="#__codelineno-18-5"></a><span class="w">           </span><span class="p">(</span><span class="k">SELECT</span><span class="w"> </span><span class="k">count</span><span class="p">(</span><span class="o">*</span><span class="p">)</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">flowx</span><span class="p">.</span><span class="n">gold</span><span class="p">.</span><span class="n">uc6_telephone_output</span><span class="p">),</span><span class="w"> </span><span class="mi">2</span>
-<a id="__codelineno-18-6" name="__codelineno-18-6" href="#__codelineno-18-6"></a><span class="w">    </span><span class="k">UNION</span><span class="w"> </span><span class="k">ALL</span><span class="w"> </span><span class="k">SELECT</span><span class="w"> </span><span class="s1">'All four statuses are present'</span><span class="p">,</span>
-<a id="__codelineno-18-7" name="__codelineno-18-7" href="#__codelineno-18-7"></a><span class="w">           </span><span class="p">(</span><span class="k">SELECT</span><span class="w"> </span><span class="k">count</span><span class="p">(</span><span class="k">DISTINCT</span><span class="w"> </span><span class="n">status</span><span class="p">)</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">flowx</span><span class="p">.</span><span class="n">gold</span><span class="p">.</span><span class="n">uc6_osapr_output</span><span class="p">),</span><span class="w"> </span><span class="mi">4</span>
-<a id="__codelineno-18-8" name="__codelineno-18-8" href="#__codelineno-18-8"></a><span class="w">    </span><span class="k">UNION</span><span class="w"> </span><span class="k">ALL</span><span class="w"> </span><span class="k">SELECT</span><span class="w"> </span><span class="s1">'Privacy rule held (07700900003 absent)'</span><span class="p">,</span>
-<a id="__codelineno-18-9" name="__codelineno-18-9" href="#__codelineno-18-9"></a><span class="w">           </span><span class="p">(</span><span class="k">SELECT</span><span class="w"> </span><span class="k">count</span><span class="p">(</span><span class="o">*</span><span class="p">)</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">flowx</span><span class="p">.</span><span class="n">gold</span><span class="p">.</span><span class="n">uc6_telephone_output</span><span class="w"> </span><span class="k">WHERE</span><span class="w"> </span><span class="n">telephone</span><span class="o">=</span><span class="s1">'07700900003'</span><span class="p">),</span><span class="w"> </span><span class="mi">0</span>
-<a id="__codelineno-18-10" name="__codelineno-18-10" href="#__codelineno-18-10"></a><span class="w">    </span><span class="k">UNION</span><span class="w"> </span><span class="k">ALL</span><span class="w"> </span><span class="k">SELECT</span><span class="w"> </span><span class="s1">'Age filter held (07700900999 absent)'</span><span class="p">,</span>
-<a id="__codelineno-18-11" name="__codelineno-18-11" href="#__codelineno-18-11"></a><span class="w">           </span><span class="p">(</span><span class="k">SELECT</span><span class="w"> </span><span class="k">count</span><span class="p">(</span><span class="o">*</span><span class="p">)</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">flowx</span><span class="p">.</span><span class="n">gold</span><span class="p">.</span><span class="n">uc6_telephone_output</span><span class="w"> </span><span class="k">WHERE</span><span class="w"> </span><span class="n">telephone</span><span class="o">=</span><span class="s1">'07700900999'</span><span class="p">),</span><span class="w"> </span><span class="mi">0</span>
-<a id="__codelineno-18-12" name="__codelineno-18-12" href="#__codelineno-18-12"></a><span class="w">    </span><span class="k">UNION</span><span class="w"> </span><span class="k">ALL</span><span class="w"> </span><span class="k">SELECT</span><span class="w"> </span><span class="s1">'Governance tags applied'</span><span class="p">,</span>
-<a id="__codelineno-18-13" name="__codelineno-18-13" href="#__codelineno-18-13"></a><span class="w">           </span><span class="p">(</span><span class="k">SELECT</span><span class="w"> </span><span class="k">count</span><span class="p">(</span><span class="o">*</span><span class="p">)</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">flowx</span><span class="p">.</span><span class="n">information_schema</span><span class="p">.</span><span class="n">table_tags</span><span class="w"> </span><span class="k">WHERE</span><span class="w"> </span><span class="k">table_name</span><span class="w"> </span><span class="k">LIKE</span><span class="w"> </span><span class="s1">'uc6_%'</span><span class="p">),</span><span class="w"> </span><span class="mi">72</span>
-<a id="__codelineno-18-14" name="__codelineno-18-14" href="#__codelineno-18-14"></a><span class="p">)</span>
-<a id="__codelineno-18-15" name="__codelineno-18-15" href="#__codelineno-18-15"></a><span class="k">SELECT</span><span class="w"> </span><span class="n">check_name</span><span class="p">,</span><span class="w"> </span><span class="n">expected</span><span class="p">,</span><span class="w"> </span><span class="n">actual</span><span class="p">,</span>
-<a id="__codelineno-18-16" name="__codelineno-18-16" href="#__codelineno-18-16"></a><span class="w">       </span><span class="k">CASE</span><span class="w"> </span><span class="k">WHEN</span><span class="w"> </span><span class="n">actual</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">expected</span><span class="w"> </span><span class="k">THEN</span><span class="w"> </span><span class="s1">'PASS'</span><span class="w"> </span><span class="k">ELSE</span><span class="w"> </span><span class="s1">'FAIL'</span><span class="w"> </span><span class="k">END</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="k">result</span>
-<a id="__codelineno-18-17" name="__codelineno-18-17" href="#__codelineno-18-17"></a><span class="k">FROM</span><span class="w">   </span><span class="n">checks</span><span class="w"> </span><span class="k">ORDER</span><span class="w"> </span><span class="k">BY</span><span class="w"> </span><span class="k">result</span><span class="w"> </span><span class="k">DESC</span><span class="p">,</span><span class="w"> </span><span class="n">check_name</span><span class="p">;</span>
-</code></pre></div>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-18-1"><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a><span class="k">WITH</span><span class="w"> </span><span class="n">checks</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="p">(</span>
+</span><span id="__span-18-2"><a id="__codelineno-18-2" name="__codelineno-18-2" href="#__codelineno-18-2"></a><span class="w">    </span><span class="k">SELECT</span><span class="w"> </span><span class="s1">'OSAPR output has 7 rows'</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="n">check_name</span><span class="p">,</span>
+</span><span id="__span-18-3"><a id="__codelineno-18-3" name="__codelineno-18-3" href="#__codelineno-18-3"></a><span class="w">           </span><span class="p">(</span><span class="k">SELECT</span><span class="w"> </span><span class="k">count</span><span class="p">(</span><span class="o">*</span><span class="p">)</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">br_digital_poc</span><span class="p">.</span><span class="n">gold</span><span class="p">.</span><span class="n">flood_warning_osapr</span><span class="p">)</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="n">actual</span><span class="p">,</span><span class="w"> </span><span class="mi">7</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="n">expected</span>
+</span><span id="__span-18-4"><a id="__codelineno-18-4" name="__codelineno-18-4" href="#__codelineno-18-4"></a><span class="w">    </span><span class="k">UNION</span><span class="w"> </span><span class="k">ALL</span><span class="w"> </span><span class="k">SELECT</span><span class="w"> </span><span class="s1">'Telephone output has 2 rows'</span><span class="p">,</span>
+</span><span id="__span-18-5"><a id="__codelineno-18-5" name="__codelineno-18-5" href="#__codelineno-18-5"></a><span class="w">           </span><span class="p">(</span><span class="k">SELECT</span><span class="w"> </span><span class="k">count</span><span class="p">(</span><span class="o">*</span><span class="p">)</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">br_digital_poc</span><span class="p">.</span><span class="n">gold</span><span class="p">.</span><span class="n">flood_warning_telephone</span><span class="p">),</span><span class="w"> </span><span class="mi">2</span>
+</span><span id="__span-18-6"><a id="__codelineno-18-6" name="__codelineno-18-6" href="#__codelineno-18-6"></a><span class="w">    </span><span class="k">UNION</span><span class="w"> </span><span class="k">ALL</span><span class="w"> </span><span class="k">SELECT</span><span class="w"> </span><span class="s1">'All four statuses are present'</span><span class="p">,</span>
+</span><span id="__span-18-7"><a id="__codelineno-18-7" name="__codelineno-18-7" href="#__codelineno-18-7"></a><span class="w">           </span><span class="p">(</span><span class="k">SELECT</span><span class="w"> </span><span class="k">count</span><span class="p">(</span><span class="k">DISTINCT</span><span class="w"> </span><span class="n">status</span><span class="p">)</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">br_digital_poc</span><span class="p">.</span><span class="n">gold</span><span class="p">.</span><span class="n">flood_warning_osapr</span><span class="p">),</span><span class="w"> </span><span class="mi">4</span>
+</span><span id="__span-18-8"><a id="__codelineno-18-8" name="__codelineno-18-8" href="#__codelineno-18-8"></a><span class="w">    </span><span class="k">UNION</span><span class="w"> </span><span class="k">ALL</span><span class="w"> </span><span class="k">SELECT</span><span class="w"> </span><span class="s1">'Privacy rule held (07700900003 absent)'</span><span class="p">,</span>
+</span><span id="__span-18-9"><a id="__codelineno-18-9" name="__codelineno-18-9" href="#__codelineno-18-9"></a><span class="w">           </span><span class="p">(</span><span class="k">SELECT</span><span class="w"> </span><span class="k">count</span><span class="p">(</span><span class="o">*</span><span class="p">)</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">br_digital_poc</span><span class="p">.</span><span class="n">gold</span><span class="p">.</span><span class="n">flood_warning_telephone</span><span class="w"> </span><span class="k">WHERE</span><span class="w"> </span><span class="n">telephone</span><span class="o">=</span><span class="s1">'07700900003'</span><span class="p">),</span><span class="w"> </span><span class="mi">0</span>
+</span><span id="__span-18-10"><a id="__codelineno-18-10" name="__codelineno-18-10" href="#__codelineno-18-10"></a><span class="w">    </span><span class="k">UNION</span><span class="w"> </span><span class="k">ALL</span><span class="w"> </span><span class="k">SELECT</span><span class="w"> </span><span class="s1">'Age filter held (07700900999 absent)'</span><span class="p">,</span>
+</span><span id="__span-18-11"><a id="__codelineno-18-11" name="__codelineno-18-11" href="#__codelineno-18-11"></a><span class="w">           </span><span class="p">(</span><span class="k">SELECT</span><span class="w"> </span><span class="k">count</span><span class="p">(</span><span class="o">*</span><span class="p">)</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">br_digital_poc</span><span class="p">.</span><span class="n">gold</span><span class="p">.</span><span class="n">flood_warning_telephone</span><span class="w"> </span><span class="k">WHERE</span><span class="w"> </span><span class="n">telephone</span><span class="o">=</span><span class="s1">'07700900999'</span><span class="p">),</span><span class="w"> </span><span class="mi">0</span>
+</span><span id="__span-18-12"><a id="__codelineno-18-12" name="__codelineno-18-12" href="#__codelineno-18-12"></a><span class="w">    </span><span class="k">UNION</span><span class="w"> </span><span class="k">ALL</span><span class="w"> </span><span class="k">SELECT</span><span class="w"> </span><span class="s1">'Governance tags applied'</span><span class="p">,</span>
+</span><span id="__span-18-13"><a id="__codelineno-18-13" name="__codelineno-18-13" href="#__codelineno-18-13"></a><span class="w">           </span><span class="p">(</span><span class="k">SELECT</span><span class="w"> </span><span class="k">count</span><span class="p">(</span><span class="o">*</span><span class="p">)</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">br_digital_poc</span><span class="p">.</span><span class="n">information_schema</span><span class="p">.</span><span class="n">table_tags</span><span class="w"> </span><span class="k">WHERE</span><span class="w"> </span><span class="k">table_name</span><span class="w"> </span><span class="k">LIKE</span><span class="w"> </span><span class="s1">'uc6_%'</span><span class="p">),</span><span class="w"> </span><span class="mi">72</span>
+</span><span id="__span-18-14"><a id="__codelineno-18-14" name="__codelineno-18-14" href="#__codelineno-18-14"></a><span class="p">)</span>
+</span><span id="__span-18-15"><a id="__codelineno-18-15" name="__codelineno-18-15" href="#__codelineno-18-15"></a><span class="k">SELECT</span><span class="w"> </span><span class="n">check_name</span><span class="p">,</span><span class="w"> </span><span class="n">expected</span><span class="p">,</span><span class="w"> </span><span class="n">actual</span><span class="p">,</span>
+</span><span id="__span-18-16"><a id="__codelineno-18-16" name="__codelineno-18-16" href="#__codelineno-18-16"></a><span class="w">       </span><span class="k">CASE</span><span class="w"> </span><span class="k">WHEN</span><span class="w"> </span><span class="n">actual</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">expected</span><span class="w"> </span><span class="k">THEN</span><span class="w"> </span><span class="s1">'PASS'</span><span class="w"> </span><span class="k">ELSE</span><span class="w"> </span><span class="s1">'FAIL'</span><span class="w"> </span><span class="k">END</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="k">result</span>
+</span><span id="__span-18-17"><a id="__codelineno-18-17" name="__codelineno-18-17" href="#__codelineno-18-17"></a><span class="k">FROM</span><span class="w">   </span><span class="n">checks</span><span class="w"> </span><span class="k">ORDER</span><span class="w"> </span><span class="k">BY</span><span class="w"> </span><span class="k">result</span><span class="w"> </span><span class="k">DESC</span><span class="p">,</span><span class="w"> </span><span class="n">check_name</span><span class="p">;</span>
+</span></code></pre></div>
 <p><strong>Expected:</strong> every line reads PASS.</p>
 <hr />
 <h2 id="17-data-quality-and-presence-gates">17. Data Quality and Presence Gates<a class="headerlink" href="#17-data-quality-and-presence-gates" title="Permanent link">&para;</a></h2>
@@ -8626,23 +9384,27 @@ differ accordingly.</p>
 <tbody>
 <tr>
 <td><strong>Mechanism</strong></td>
-<td>Six reconciliation flows, one per source</td>
+<td>One transformation flow, <code>ts_uc6_source_presence_gate</code> → <code>silver.flood_warning_source_presence</code>, one row per source with its <code>count(*)</code></td>
 </tr>
 <tr>
 <td><strong>Assertion</strong></td>
-<td><code>source_record_count &gt; 0</code></td>
+<td><code>row_count &gt; 0</code>, action <code>fail</code></td>
 </tr>
 <tr>
 <td><strong>Why it works</strong></td>
-<td>It attaches to a one-row metrics dataset, where the count is a real column</td>
+<td>A groupBy-less aggregate yields exactly one row even over an empty table, so the expectation always evaluates — unlike a per-row rule on the ingestion flow</td>
 </tr>
 <tr>
-<td><strong>Execution mode</strong></td>
-<td><code>pipeline_audit_only</code></td>
+<td><strong>Why it protects the outputs</strong></td>
+<td>The three flows that read bronze directly <code>CROSS JOIN</code> the gate, so it sits upstream of them; the update fails before any silver/gold MV is recomputed to zero rows</td>
 </tr>
 <tr>
 <td><strong>Effect on failure</strong></td>
-<td>The pipeline update fails, and a row is left in the control tables for alerting</td>
+<td>The pipeline update fails; the expectation's pass/fail counts land in the pipeline event log and are exported by <code>observability_export</code></td>
+</tr>
+<tr>
+<td><strong>History</strong></td>
+<td>Until 2026-09-08 this was six <code>pipeline_audit_only</code> reconciliation flows, each comparing a bronze table against itself (24 graph nodes, six published <code>recon__*__metrics</code> views). See 13.5</td>
 </tr>
 </tbody>
 </table>
@@ -8730,7 +9492,7 @@ differ accordingly.</p>
 <tbody>
 <tr>
 <td><strong>Destination</strong></td>
-<td><code>/Volumes/flowx/observability/app_logs/uc6/</code></td>
+<td><code>/Volumes/br_digital_poc/observability/app_logs/uc6/</code></td>
 </tr>
 <tr>
 <td><strong>Format</strong></td>
@@ -8943,20 +9705,20 @@ differ accordingly.</p>
 <hr />
 <h2 id="appendix-b-operational-runbook">Appendix B — Operational Runbook<a class="headerlink" href="#appendix-b-operational-runbook" title="Permanent link">&para;</a></h2>
 <h3 id="b1-running-uc6-from-scratch">B.1 Running UC6 from scratch<a class="headerlink" href="#b1-running-uc6-from-scratch" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a><span class="c1"># 1. Re-upload the EA request file. It is CONSUMED on every run.</span>
-<a id="__codelineno-19-2" name="__codelineno-19-2" href="#__codelineno-19-2"></a>databricks<span class="w"> </span>fs<span class="w"> </span>cp<span class="w"> </span>BT_Usecase/UC6/data/test_fixture/EE_2026-08-20-REQUEST_1OF1.csv.gz.gpg<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-19-3" name="__codelineno-19-3" href="#__codelineno-19-3"></a><span class="w">  </span>dbfs:/Volumes/flowx/staging/uc_6/raw/EE_2026-08-20-REQUEST_1OF1.csv.gz.gpg<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-19-4" name="__codelineno-19-4" href="#__codelineno-19-4"></a><span class="w">  </span>-p<span class="w"> </span>metaflow_v7<span class="w"> </span>--overwrite
-<a id="__codelineno-19-5" name="__codelineno-19-5" href="#__codelineno-19-5"></a>
-<a id="__codelineno-19-6" name="__codelineno-19-6" href="#__codelineno-19-6"></a><span class="c1"># 2. Deploy. NEVER do this while a pipeline is running.</span>
-<a id="__codelineno-19-7" name="__codelineno-19-7" href="#__codelineno-19-7"></a>databricks<span class="w"> </span>bundle<span class="w"> </span>deploy<span class="w"> </span>-t<span class="w"> </span>metaflow_v7
-<a id="__codelineno-19-8" name="__codelineno-19-8" href="#__codelineno-19-8"></a>
-<a id="__codelineno-19-9" name="__codelineno-19-9" href="#__codelineno-19-9"></a><span class="c1"># 3. Run the job.</span>
-<a id="__codelineno-19-10" name="__codelineno-19-10" href="#__codelineno-19-10"></a>databricks<span class="w"> </span>bundle<span class="w"> </span>run<span class="w"> </span>uc6_ea_flood_warning_job<span class="w"> </span>-t<span class="w"> </span>metaflow_v7
-<a id="__codelineno-19-11" name="__codelineno-19-11" href="#__codelineno-19-11"></a>
-<a id="__codelineno-19-12" name="__codelineno-19-12" href="#__codelineno-19-12"></a><span class="c1"># 4. Validate the output against the specification.</span>
-<a id="__codelineno-19-13" name="__codelineno-19-13" href="#__codelineno-19-13"></a>python<span class="w"> </span>scripts/validate_uc6_pipeline_output.py
-</code></pre></div>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-19-1"><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a><span class="c1"># 1. (Only needed the first time, or to deliver a new request.) Upload the EA request file. Since 2026-09-08 it is RETAINED after extraction, not consumed.</span>
+</span><span id="__span-19-2"><a id="__codelineno-19-2" name="__codelineno-19-2" href="#__codelineno-19-2"></a>databricks<span class="w"> </span>fs<span class="w"> </span>cp<span class="w"> </span>BT_Usecase/UC6/data/test_fixture/EE_2026-08-20-REQUEST_1OF1.csv.gz.gpg<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-19-3"><a id="__codelineno-19-3" name="__codelineno-19-3" href="#__codelineno-19-3"></a><span class="w">  </span>dbfs:/Volumes/br_digital_poc/staging/uc_6/raw/EE_2026-08-20-REQUEST_1OF1.csv.gz.gpg<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-19-4"><a id="__codelineno-19-4" name="__codelineno-19-4" href="#__codelineno-19-4"></a><span class="w">  </span>-p<span class="w"> </span>metaflow_v7<span class="w"> </span>--overwrite
+</span><span id="__span-19-5"><a id="__codelineno-19-5" name="__codelineno-19-5" href="#__codelineno-19-5"></a>
+</span><span id="__span-19-6"><a id="__codelineno-19-6" name="__codelineno-19-6" href="#__codelineno-19-6"></a><span class="c1"># 2. Deploy. NEVER do this while a pipeline is running.</span>
+</span><span id="__span-19-7"><a id="__codelineno-19-7" name="__codelineno-19-7" href="#__codelineno-19-7"></a>databricks<span class="w"> </span>bundle<span class="w"> </span>deploy<span class="w"> </span>-t<span class="w"> </span>metaflow_v7
+</span><span id="__span-19-8"><a id="__codelineno-19-8" name="__codelineno-19-8" href="#__codelineno-19-8"></a>
+</span><span id="__span-19-9"><a id="__codelineno-19-9" name="__codelineno-19-9" href="#__codelineno-19-9"></a><span class="c1"># 3. Run the job.</span>
+</span><span id="__span-19-10"><a id="__codelineno-19-10" name="__codelineno-19-10" href="#__codelineno-19-10"></a>databricks<span class="w"> </span>bundle<span class="w"> </span>run<span class="w"> </span>uc6_ea_flood_warning_job<span class="w"> </span>-t<span class="w"> </span>metaflow_v7
+</span><span id="__span-19-11"><a id="__codelineno-19-11" name="__codelineno-19-11" href="#__codelineno-19-11"></a>
+</span><span id="__span-19-12"><a id="__codelineno-19-12" name="__codelineno-19-12" href="#__codelineno-19-12"></a><span class="c1"># 4. Validate the output against the specification.</span>
+</span><span id="__span-19-13"><a id="__codelineno-19-13" name="__codelineno-19-13" href="#__codelineno-19-13"></a>python<span class="w"> </span>scripts/validate_uc6_pipeline_output.py
+</span></code></pre></div>
 <h3 id="b2-prerequisites-that-must-exist">B.2 Prerequisites that must exist<a class="headerlink" href="#b2-prerequisites-that-must-exist" title="Permanent link">&para;</a></h3>
 <table>
 <thead>
@@ -8968,7 +9730,7 @@ differ accordingly.</p>
 <tbody>
 <tr>
 <td>Six files in <code>raw/</code></td>
-<td><code>databricks fs ls dbfs:/Volumes/flowx/staging/uc_6/raw/</code></td>
+<td><code>databricks fs ls dbfs:/Volumes/br_digital_poc/staging/uc_6/raw/</code></td>
 </tr>
 <tr>
 <td>Five schema configs in <code>_schema_configs/</code></td>
@@ -8976,15 +9738,15 @@ differ accordingly.</p>
 </tr>
 <tr>
 <td>The passphrase secret</td>
-<td><code>databricks secrets list-secrets flowx.config</code></td>
+<td><code>databricks secrets list-secrets br_digital_poc.config</code></td>
 </tr>
 <tr>
 <td>Schemas <code>bronze</code>, <code>silver</code>, <code>gold</code>, <code>staging</code></td>
 <td><code>databricks schemas list flowx</code></td>
 </tr>
 <tr>
-<td>Volume <code>flowx.observability.app_logs</code></td>
-<td><code>databricks volumes read flowx.observability.app_logs</code></td>
+<td>Volume <code>br_digital_poc.observability.app_logs</code></td>
+<td><code>databricks volumes read br_digital_poc.observability.app_logs</code></td>
 </tr>
 </tbody>
 </table>
@@ -9170,11 +9932,11 @@ the <strong>decision table</strong>. Neither replaces the other.</p>
 </tr>
 <tr>
 <td>The decision table, all 7 rows</td>
-<td>Read from <code>flowx.gold.uc6_osapr_output</code></td>
+<td>Read from <code>br_digital_poc.gold.flood_warning_osapr</code></td>
 </tr>
 <tr>
 <td>The join output, all 11 rows</td>
-<td>Read from <code>flowx.silver.uc6_matched_address</code></td>
+<td>Read from <code>br_digital_poc.silver.flood_area_matched_address</code></td>
 </tr>
 <tr>
 <td>Join SQL and business rules</td>
@@ -9182,7 +9944,7 @@ the <strong>decision table</strong>. Neither replaces the other.</p>
 </tr>
 <tr>
 <td>Governance tag count</td>
-<td>Counted in <code>flowx.information_schema.table_tags</code></td>
+<td>Counted in <code>br_digital_poc.information_schema.table_tags</code></td>
 </tr>
 <tr>
 <td>Export file names and sizes</td>
@@ -9227,9 +9989,53 @@ the <strong>decision table</strong>. Neither replaces the other.</p>
       
         <footer class="md-footer">
   
+    
+      
+      <nav class="md-footer__inner md-grid" aria-label="Footer" >
+        
+          
+          <a href="../../UC3/UC3_MASTER_DOCUMENT/" class="md-footer__link md-footer__link--prev" aria-label="Previous: UC3 Excalibur master document">
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+            </div>
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Previous
+              </span>
+              <div class="md-ellipsis">
+                UC3 Excalibur master document
+              </div>
+            </div>
+          </a>
+        
+        
+          
+          <a href="../../UC7/UC7_MASTER_DOCUMENT/" class="md-footer__link md-footer__link--next" aria-label="Next: UC7 CDR ASN.1 master document">
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Next
+              </span>
+              <div class="md-ellipsis">
+                UC7 CDR ASN.1 master document
+              </div>
+            </div>
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"/></svg>
+            </div>
+          </a>
+        
+      </nav>
+    
+  
   <div class="md-footer-meta md-typeset">
     <div class="md-footer-meta__inner md-grid">
       <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      FlowX · Data Platform Engineering
+    </div>
   
   
 </div>
@@ -9243,11 +10049,13 @@ the <strong>decision table</strong>. Neither replaces the other.</p>
       <div class="md-dialog__inner md-typeset"></div>
     </div>
     
+      <div class="md-progress" data-md-component="progress" role="progressbar"></div>
+    
     
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.instant", "navigation.tracking", "navigation.tabs", "navigation.sections", "navigation.top", "navigation.indexes", "toc.follow", "search.suggest", "search.highlight", "content.code.copy", "content.tabs.link"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["announce.dismiss", "content.code.annotate", "content.code.copy", "content.tabs.link", "content.tooltips", "navigation.footer", "navigation.indexes", "navigation.instant", "navigation.instant.progress", "navigation.path", "navigation.sections", "navigation.tabs", "navigation.tabs.sticky", "navigation.top", "navigation.tracking", "search.highlight", "search.share", "search.suggest", "toc.follow"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
     
     
       <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>

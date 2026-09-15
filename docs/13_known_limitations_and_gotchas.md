@@ -1045,7 +1045,7 @@ visible UC tables — since v1.6.0 that is `recon__<rid>__<tid>__metrics` / `__m
 registered only when its `logging_config` capture flag resolves true) plus a healing flow's
 `_recon__…__src`/healing `__tgt`; the classification and every other L3/L4 node are now
 pipeline-scoped temporary tables that publish nowhere (see
-[`07` §11.10](07_reconciliation_engine.md#1110-v160--the-intermediate-object-rule-and-the-conditional-audit-datasets)).
+[`07` §11.10](07_reconciliation_engine.md#1110-v160-the-intermediate-object-rule-and-the-conditional-audit-datasets)).
 Omitting `publish_schema` puts the published ones in the pipeline's **own** target schema, beside
 the business tables it publishes. That is legal, and rarely what anyone wanted.
 
@@ -1283,7 +1283,7 @@ above still holds, but **invisible in Unity Catalog** unless the spec sets both
 `source_plane.catalog` *and* `source_plane.schema` to publish them deliberately. The same
 Intermediate Object Rule makes a multi-reader `_<target>_staged` intermediate a temporary table
 rather than a published one, and does the same to the reconciliation L3/L4 plumbing (with the
-exceptions listed in [`07_reconciliation_engine.md` §11.10](07_reconciliation_engine.md#1110-v160--the-intermediate-object-rule-and-the-conditional-audit-datasets)).
+exceptions listed in [`07_reconciliation_engine.md` §11.10](07_reconciliation_engine.md#1110-v160-the-intermediate-object-rule-and-the-conditional-audit-datasets)).
 Never conclude from an empty catalog listing that the node was not materialized — check the
 pipeline's own graph/event log. Upgrading an existing deployment: see [O7](#o7).
 
@@ -1560,7 +1560,7 @@ pipeline has been maintaining. On the first update after deploying the v1.6.0 wh
   under the temporary re-registration.
 * **Reconciliation** L3/L4 plumbing is renamed/unpublished (`recon__…__classified` →
   `_recon__…__classified`, temporary), and `__metrics`/`__mismatch` exist only when their capture
-  flags are on — see [`07` §11.10](07_reconciliation_engine.md#1110-v160--the-intermediate-object-rule-and-the-conditional-audit-datasets).
+  flags are on — see [`07` §11.10](07_reconciliation_engine.md#1110-v160-the-intermediate-object-rule-and-the-conditional-audit-datasets).
 
 **What to do, per pipeline, before the first post-upgrade update on anything that matters:**
 

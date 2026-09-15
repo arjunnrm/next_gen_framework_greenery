@@ -252,17 +252,11 @@ under `spark_config`, is a no-op at best and a validation error at worst — kee
 even though both are top-level, group-scoped objects.
 
 > [!NOTE]
-> **Current persistence gap (code vs. contract).** `engine/spark_config.py`, the notebook wiring
-> in `03_lakeflow_declarative_pipeline.py`, the `spark_config_json` column in
-> `control_plane/ddl_definitions.py`, and the `spark_config` validation in `spec_validator.py` are
-> all implemented and consistent with the design above. However, as of this release
-> `onboarding/metadata_upsert.py`'s `_DATAFLOW_GROUP_SPEC_SCHEMA`, its `group_row` builder, and its
-> `MERGE` update map do **not** include `spark_config_json` — a validated `spark_config` block is
-> never written to the control table by the onboarding engine. Until that gap is closed, layer 2
-> of the chain resolves to `{}` for every group onboarded through the standard flow (the pipeline
-> notebook's `getattr(GROUP_ROW, "spark_config_json", None)` degrades gracefully to "no group-level
-> config" rather than failing), and only layers 1 and 3 are effective in practice. The frozen
-> v1.3.0 contract calls for `metadata_upsert.py` to be updated; the code does not yet reflect that.
+> **Persistence (verified 2026-09-15).** `onboarding/metadata_upsert.py` declares `spark_config_json` in
+> `_DATAFLOW_GROUP_SPEC_SCHEMA`, writes it in the group row (`json.dumps(spec.get("spark_config", {}))`) and
+> carries it in the `MERGE` update map, so a validated `spark_config` block reaches
+> `dataflow_group_spec.spark_config_json` and layer 2 of the chain is live for every group onboarded through
+> the standard flow. An earlier release documented this as a gap; it is closed.
 
 ---
 
@@ -506,7 +500,7 @@ Two consequences of living in the graph, both real constraints rather than footn
   that is not append-only — `TRUNCATE_AND_LOAD`, `SCD1`/`SCD2`/`SCD3`, `FULL_SNAPSHOT_CDC`, or any
   `materialized_view` — cannot be streamed from, so the L5 heal lane is unavailable and the flow
   must use `execution_mode: "pipeline_audit_only"`. See
-  [`12_module_permutation_matrix.md` §4.2](12_module_permutation_matrix.md#42-execution_mode--the-producing-strategy-of-the-recon-source-v150).
+  [`12_module_permutation_matrix.md` §4.1](12_module_permutation_matrix.md#41-execution_mode-what-is-legal-v150).
 
 Layer-by-layer node names, the full DAG picture, and the heal-lane ordering edge:
 [`07_reconciliation_engine.md` §11.1–§11.2](07_reconciliation_engine.md#111-the-l0l5-node-map).

@@ -770,6 +770,17 @@ doc, not just this table, before making a non-trivial change in its area.
 | [**`08_observability_and_telemetry.md`**](../docs/08_observability_and_telemetry.md) | DLT Event Log extraction, OTel payload builder, Volume and OTLP HTTP dispatchers, Error Handling Matrix. |
 | [**`09_developer_guide_and_recipes.md`**](../docs/09_developer_guide_and_recipes.md) | 11-step onboarding walkthrough, copy-paste recipes, local testing with pytest, troubleshooting runbook. |
 | [**`10_multi_role_faqs.md`**](../docs/10_multi_role_faqs.md) | Dedicated Developer FAQ, Data Architect FAQ, and Project Manager FAQ. |
+| [**`11_hashing_and_determinism.md`**](../docs/11_hashing_and_determinism.md) | The one canonical `__framework_hash_key`/`__framework_hash_value` construction and its migration checklist. |
+| [**`12_module_permutation_matrix.md`**](../docs/12_module_permutation_matrix.md) | Which `source_type` x `target_type` x `cdc_load_strategy` x reconciliation x observability combinations are legal. |
+| [**`13_known_limitations_and_gotchas.md`**](../docs/13_known_limitations_and_gotchas.md) | ~50 verified traps the validator cannot catch, graded Silent / Late failure / Inert / Operational. |
+| [**`14_onboarding_restrictions_and_validation_rules.md`**](../docs/14_onboarding_restrictions_and_validation_rules.md) | Every validation rule: mandatory fields, enumerations, forbidden and mode-incompatible configurations. |
+| [**`15_agent_skills_and_prompts.md`**](../docs/15_agent_skills_and_prompts.md) | This skill pack from the user's side: task-to-tool table and paste-ready prompts. |
+| [**`16_usecase_implementation_guide.md`**](../docs/16_usecase_implementation_guide.md) | How the BT use cases (UC3, UC6, UC7) are laid out and implemented end to end. |
+| [**`17_framework_observability_and_genie.md`**](../docs/17_framework_observability_and_genie.md) | The `<catalog>.observability` semantic layer (11 views), the AI/BI dashboard, `AI_FORECAST` rules, the Genie space, the documentation job. |
+| [**`pillars/*.md`**](../docs/pillars/index.md) | The four pillar deep dives (Ingestion, Transformation, Reconciliation, Observability): capabilities, validator-correct JSON/YAML samples, runbooks, gotchas. Start here for a capability question. |
+| [**`console/*.md`**](../docs/console/index.md) | The Spec Builder app tab by tab, both AI/BI dashboards page by page, the Genie space, and what the agent tooling is and is not. |
+| [**`reference/json/index.md`**](../docs/reference/json/index.md) | Generated master configuration reference: every attribute with type, default, sample, offline validation, CLI onboarding, SQL verification, persisted column and FAQs; plus the schema tree (`tree.md`) and removed/rejected attributes (`removed.md`). |
+| [**`reference/sync.md`**](../docs/reference/sync.md) | How registry, schema, validator, control tables and these docs derive from each other, and the `--check` hooks that keep them equal. |
 
 ---
 

@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="Metadata-driven ingestion, transformation, reconciliation and observability pipelines on Databricks Lakeflow — architecture, attribute reference, onboarding guides and operational runbooks.">
+        <meta name="description" content="Metadata-driven ingestion, transformation, reconciliation and observability pipelines on Databricks Lakeflow — platform hub, four framework pillars, console walkthroughs, the master configuration reference and operational runbooks.">
       
       
         <meta name="author" content="Data Platform Engineering">
@@ -33,21 +33,32 @@
         <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
       
       
+  
+  
+    
+      
+      
+    
+  
+    
+      
+      
+    
+  
+  
+  <style>:root{--md-admonition-icon--abstract:url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2024%2024%22%3E%3Cpath%20d%3D%22M10.59%2013.41c.41.39.41%201.03%200%201.42-.39.39-1.03.39-1.42%200a5.003%205.003%200%200%201%200-7.07l3.54-3.54a5.003%205.003%200%200%201%207.07%200%205.003%205.003%200%200%201%200%207.07l-1.49%201.49c.01-.82-.12-1.64-.4-2.42l.47-.48a2.98%202.98%200%200%200%200-4.24%202.98%202.98%200%200%200-4.24%200l-3.53%203.53a2.98%202.98%200%200%200%200%204.24m2.82-4.24c.39-.39%201.03-.39%201.42%200a5.003%205.003%200%200%201%200%207.07l-3.54%203.54a5.003%205.003%200%200%201-7.07%200%205.003%205.003%200%200%201%200-7.07l1.49-1.49c-.01.82.12%201.64.4%202.43l-.47.47a2.98%202.98%200%200%200%200%204.24%202.98%202.98%200%200%200%204.24%200l3.53-3.53a2.98%202.98%200%200%200%200-4.24.973.973%200%200%201%200-1.42%22/%3E%3C/svg%3E');--md-admonition-icon--example:url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2024%2024%22%3E%3Cpath%20d%3D%22M5%203h2v2H5v5a2%202%200%200%201-2%202%202%202%200%200%201%202%202v5h2v2H5c-1.07-.27-2-.9-2-2v-4a2%202%200%200%200-2-2H0v-2h1a2%202%200%200%200%202-2V5a2%202%200%200%201%202-2m14%200a2%202%200%200%201%202%202v4a2%202%200%200%200%202%202h1v2h-1a2%202%200%200%200-2%202v4a2%202%200%200%201-2%202h-2v-2h2v-5a2%202%200%200%201%202-2%202%202%200%200%201-2-2V5h-2V3zm-7%2012a1%201%200%200%201%201%201%201%201%200%200%201-1%201%201%201%200%200%201-1-1%201%201%200%200%201%201-1m-4%200a1%201%200%200%201%201%201%201%201%200%200%201-1%201%201%201%200%200%201-1-1%201%201%200%200%201%201-1m8%200a1%201%200%200%201%201%201%201%201%200%200%201-1%201%201%201%200%200%201-1-1%201%201%200%200%201%201-1%22/%3E%3C/svg%3E');}</style>
 
 
+
     
     
       
     
     
       
-        
-        
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
-        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
-      
     
+    
+      <link rel="stylesheet" href="../../stylesheets/extra.css">
     
     <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
@@ -86,12 +97,14 @@
     
       
 
-<header class="md-header" data-md-component="header">
+  
+
+<header class="md-header md-header--shadow md-header--lifted" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
     <a href="../.." title="FlowX" class="md-header__button md-logo" aria-label="FlowX" data-md-component="logo">
       
   
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18 11h-3.18C14.4 9.84 13.3 9 12 9s-2.4.84-2.82 2H6c-.33 0-2-.1-2-2V8c0-1.83 1.54-2 2-2h10.18C16.6 7.16 17.7 8 19 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3c-1.3 0-2.4.84-2.82 2H6C4.39 4 2 5.06 2 8v1c0 2.94 2.39 4 4 4h3.18c.42 1.16 1.52 2 2.82 2s2.4-.84 2.82-2H18c.33 0 2 .1 2 2v1c0 1.83-1.54 2-2 2H7.82C7.4 16.84 6.3 16 5 16a3 3 0 0 0-3 3 3 3 0 0 0 3 3c1.3 0 2.4-.84 2.82-2H18c1.61 0 4-1.07 4-4v-1c0-2.93-2.39-4-4-4m1-7a1 1 0 0 1 1 1 1 1 0 0 1-1 1 1 1 0 0 1-1-1 1 1 0 0 1 1-1M5 20a1 1 0 0 1-1-1 1 1 0 0 1 1-1 1 1 0 0 1 1 1 1 1 0 0 1-1 1"/></svg>
 
     </a>
     <label class="md-header__button md-icon" for="__drawer">
@@ -121,9 +134,19 @@
     
     
     
-    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    <input class="md-option" data-md-color-media="(prefers-color-scheme)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_0">
     
-      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m14.3 16-.7-2h-3.2l-.7 2H7.8L11 7h2l3.2 9zM20 8.69V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12zm-9.15 3.96h2.3L12 9z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="deep-orange"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_2" hidden>
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
       </label>
     
@@ -131,9 +154,9 @@
     
     
     
-    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="deep-orange"  aria-label="Switch to system preference"  type="radio" name="__palette" id="__palette_2">
     
-      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+      <label class="md-header__button md-icon" title="Switch to system preference" for="__palette_0" hidden>
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg>
       </label>
     
@@ -165,6 +188,11 @@
       </label>
       <nav class="md-search__options" aria-label="Search">
         
+          <a href="javascript:void(0)" class="md-search__icon md-icon" title="Share" aria-label="Share" data-clipboard data-clipboard-text="" data-md-component="search-share" tabindex="-1">
+            
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91s2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08"/></svg>
+          </a>
+        
         <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
           
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
@@ -189,16 +217,22 @@
       
     
     
+      <div class="md-header__source">
+        <a href="https://github.com/Madhan-RAGHU/NextGen_Metadata_Framework" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    NextGen_Metadata_Framework
+  </div>
+</a>
+      </div>
+    
   </nav>
   
-</header>
     
-    <div class="md-container" data-md-component="container">
       
-      
-        
-          
-            
 <nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
   <div class="md-grid">
     <ul class="md-tabs__list">
@@ -271,13 +305,35 @@
     
     
       <li class="md-tabs__item">
-        <a href="../../01_platform_architecture/" class="md-tabs__link">
+        <a href="../../pillars/" class="md-tabs__link">
           
   
   
     
   
-  Architecture
+  Pillars
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../console/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Console
 
         </a>
       </li>
@@ -299,7 +355,29 @@
   
     
   
-  JSON reference
+  Configuration
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../01_platform_architecture/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Architecture
 
         </a>
       </li>
@@ -386,7 +464,13 @@
     </ul>
   </div>
 </nav>
-          
+    
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
         
       
       <main class="md-main" data-md-component="main">
@@ -408,11 +492,23 @@
     <a href="../.." title="FlowX" class="md-nav__button md-logo" aria-label="FlowX" data-md-component="logo">
       
   
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18 11h-3.18C14.4 9.84 13.3 9 12 9s-2.4.84-2.82 2H6c-.33 0-2-.1-2-2V8c0-1.83 1.54-2 2-2h10.18C16.6 7.16 17.7 8 19 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3c-1.3 0-2.4.84-2.82 2H6C4.39 4 2 5.06 2 8v1c0 2.94 2.39 4 4 4h3.18c.42 1.16 1.52 2 2.82 2s2.4-.84 2.82-2H18c.33 0 2 .1 2 2v1c0 1.83-1.54 2-2 2H7.82C7.4 16.84 6.3 16 5 16a3 3 0 0 0-3 3 3 3 0 0 0 3 3c1.3 0 2.4-.84 2.82-2H18c1.61 0 4-1.07 4-4v-1c0-2.93-2.39-4-4-4m1-7a1 1 0 0 1 1 1 1 1 0 0 1-1 1 1 1 0 0 1-1-1 1 1 0 0 1 1-1M5 20a1 1 0 0 1-1-1 1 1 0 0 1 1-1 1 1 0 0 1 1 1 1 1 0 0 1-1 1"/></svg>
 
     </a>
     FlowX
   </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/Madhan-RAGHU/NextGen_Metadata_Framework" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    NextGen_Metadata_Framework
+  </div>
+</a>
+    </div>
   
   <ul class="md-nav__list" data-md-scrollfix>
     
@@ -549,6 +645,8 @@
   
     
     
+      
+        
       
         
       
@@ -745,6 +843,34 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../onboarding/06_bt_digital_poc_deployment_issues/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    6 · BT Digital POC deployment issues
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -761,6 +887,8 @@
   
     
     
+      
+        
       
         
       
@@ -837,6 +965,34 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../16_usecase_implementation_guide/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Use case implementation guide
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -860,6 +1016,10 @@
   
     
     
+      
+        
+          
+        
       
         
       
@@ -885,14 +1045,15 @@
         <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
         
           
-          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
-            
+          <div class="md-nav__link md-nav__container">
+            <a href="../../pillars/" class="md-nav__link ">
+              
   
   
   <span class="md-ellipsis">
     
   
-    Architecture
+    Pillars
   
 
     
@@ -900,109 +1061,27 @@
   
   
 
-            <span class="md-nav__icon md-icon"></span>
-          </label>
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_4" id="__nav_4_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
         
         <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_4">
             <span class="md-nav__icon md-icon"></span>
             
   
-    Architecture
+    Pillars
   
 
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
             
               
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../01_platform_architecture/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Platform architecture & core concepts
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    
-    
-      
-        
-      
-        
-      
-        
-      
-        
-      
-    
-    
-    
-      
-      
-        
-      
-    
-    
-    <li class="md-nav__item md-nav__item--nested">
-      
-        
-        
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_2" >
-        
-          
-          <label class="md-nav__link" for="__nav_4_2" id="__nav_4_2_label" tabindex="0">
-            
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Data plane
-  
-
-    
-  </span>
-  
-  
-
-            <span class="md-nav__icon md-icon"></span>
-          </label>
-        
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_2_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_4_2">
-            <span class="md-nav__icon md-icon"></span>
-            
-  
-    Data plane
-  
-
-          </label>
-          <ul class="md-nav__list" data-md-scrollfix>
             
               
                 
@@ -1011,14 +1090,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../../02_ingestion_and_sources/" class="md-nav__link">
+      <a href="../../pillars/ingestion/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    Ingestion & source readers
+    1 · Ingestion
   
 
     
@@ -1039,14 +1118,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../../03_transformation_and_cdc/" class="md-nav__link">
+      <a href="../../pillars/transformation/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    Transformation & CDC
+    2 · Transformation
   
 
     
@@ -1067,14 +1146,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../../07_reconciliation_engine/" class="md-nav__link">
+      <a href="../../pillars/reconciliation/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    Reconciliation & self-healing
+    3 · Reconciliation
   
 
     
@@ -1095,14 +1174,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../../06_egress_and_lakeflow_sinks/" class="md-nav__link">
+      <a href="../../pillars/observability/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    Egress & Lakeflow sinks
+    4 · Observability
   
 
     
@@ -1111,288 +1190,6 @@
   
 
       </a>
-    </li>
-  
-
-              
-            
-          </ul>
-        </nav>
-      
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    
-    
-      
-        
-      
-        
-      
-        
-      
-    
-    
-    
-      
-      
-        
-      
-    
-    
-    <li class="md-nav__item md-nav__item--nested">
-      
-        
-        
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_3" >
-        
-          
-          <label class="md-nav__link" for="__nav_4_3" id="__nav_4_3_label" tabindex="0">
-            
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Cross-cutting concerns
-  
-
-    
-  </span>
-  
-  
-
-            <span class="md-nav__icon md-icon"></span>
-          </label>
-        
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_3_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_4_3">
-            <span class="md-nav__icon md-icon"></span>
-            
-  
-    Cross-cutting concerns
-  
-
-          </label>
-          <ul class="md-nav__list" data-md-scrollfix>
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../04_data_quality_and_governance/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Data quality & governance
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../05_security_and_cryptography/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Security & cryptography
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../08_observability_and_telemetry/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Observability & OpenTelemetry
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-          </ul>
-        </nav>
-      
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    
-    
-      
-        
-      
-        
-      
-    
-    
-    
-      
-      
-        
-      
-    
-    
-    <li class="md-nav__item md-nav__item--nested">
-      
-        
-        
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_4" >
-        
-          
-          <label class="md-nav__link" for="__nav_4_4" id="__nav_4_4_label" tabindex="0">
-            
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Design guarantees
-  
-
-    
-  </span>
-  
-  
-
-            <span class="md-nav__icon md-icon"></span>
-          </label>
-        
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_4_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_4_4">
-            <span class="md-nav__icon md-icon"></span>
-            
-  
-    Design guarantees
-  
-
-          </label>
-          <ul class="md-nav__list" data-md-scrollfix>
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../11_hashing_and_determinism/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Deterministic hashing standard
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../12_module_permutation_matrix/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Module permutation matrix
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-          </ul>
-        </nav>
-      
     </li>
   
 
@@ -1445,14 +1242,14 @@
         
           
           <div class="md-nav__link md-nav__container">
-            <a href="../../reference/json/" class="md-nav__link ">
+            <a href="../../console/" class="md-nav__link ">
               
   
   
   <span class="md-ellipsis">
     
   
-    JSON reference
+    Console
   
 
     
@@ -1474,12 +1271,270 @@
             <span class="md-nav__icon md-icon"></span>
             
   
-    JSON reference
+    Console
   
 
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
             
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../console/spec_builder/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Spec Builder app · tab by tab
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../console/observability_dashboard/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Observability dashboard
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../console/control_dashboard/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Control metadata dashboard
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../console/genie/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Genie space
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../console/agent_skills/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Agent skills & tools
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../reference/json/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Configuration
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_6" id="__nav_6_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Configuration
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/json/tree/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Spec tree view
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
               
             
               
@@ -1514,10 +1569,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_2" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_3" >
         
           
-          <label class="md-nav__link" for="__nav_5_2" id="__nav_5_2_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_6_3" id="__nav_6_3_label" tabindex="0">
             
   
   
@@ -1535,8 +1590,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_5_2_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_5_2">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6_3">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -1720,10 +1775,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_3" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_4" >
         
           
-          <label class="md-nav__link" for="__nav_5_3" id="__nav_5_3_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_6_4" id="__nav_6_4_label" tabindex="0">
             
   
   
@@ -1741,8 +1796,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_5_3_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_5_3">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6_4">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -1811,6 +1866,62 @@
           </ul>
         </nav>
       
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/json/removed/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Removed & rejected attributes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/sync/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Docs ↔ code synchronisation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
     </li>
   
 
@@ -1917,6 +2028,589 @@
     
       
         
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Architecture
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../01_platform_architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Platform architecture & core concepts
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_7_2" id="__nav_7_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data plane
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Data plane
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../02_ingestion_and_sources/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Ingestion & source readers
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../03_transformation_and_cdc/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Transformation & CDC
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../07_reconciliation_engine/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reconciliation & self-healing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../06_egress_and_lakeflow_sinks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Egress & Lakeflow sinks
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_7_3" id="__nav_7_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cross-cutting concerns
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Cross-cutting concerns
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../04_data_quality_and_governance/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data quality & governance
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../05_security_and_cryptography/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Security & cryptography
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../08_observability_and_telemetry/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Observability & OpenTelemetry
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../17_framework_observability_and_genie/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Framework observability, AI/BI & Genie
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_7_4" id="__nav_7_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Design guarantees
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Design guarantees
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../11_hashing_and_determinism/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Deterministic hashing standard
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../12_module_permutation_matrix/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Module permutation matrix
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
           
         
       
@@ -1941,7 +2635,7 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8" >
         
           
           <div class="md-nav__link md-nav__container">
@@ -1963,14 +2657,14 @@
             </a>
             
               
-              <label class="md-nav__link " for="__nav_6" id="__nav_6_label" tabindex="0">
+              <label class="md-nav__link " for="__nav_8" id="__nav_8_label" tabindex="0">
                 <span class="md-nav__icon md-icon"></span>
               </label>
             
           </div>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_6">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_8">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -2014,10 +2708,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_2" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8_2" >
         
           
-          <label class="md-nav__link" for="__nav_6_2" id="__nav_6_2_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_8_2" id="__nav_8_2_label" tabindex="0">
             
   
   
@@ -2035,8 +2729,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_2_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_6_2">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_8_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_8_2">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -2224,10 +2918,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_3" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8_3" >
         
           
-          <label class="md-nav__link" for="__nav_6_3" id="__nav_6_3_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_8_3" id="__nav_8_3_label" tabindex="0">
             
   
   
@@ -2245,8 +2939,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_3_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_6_3">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_8_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_8_3">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -2406,10 +3100,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_4" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8_4" >
         
           
-          <label class="md-nav__link" for="__nav_6_4" id="__nav_6_4_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_8_4" id="__nav_8_4_label" tabindex="0">
             
   
   
@@ -2427,8 +3121,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_4_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_6_4">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_8_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_8_4">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -2584,10 +3278,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_5" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8_5" >
         
           
-          <label class="md-nav__link" for="__nav_6_5" id="__nav_6_5_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_8_5" id="__nav_8_5_label" tabindex="0">
             
   
   
@@ -2605,8 +3299,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_5_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_6_5">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_8_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_8_5">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -2706,16 +3400,6 @@
       
         
       
-        
-      
-        
-      
-        
-      
-        
-      
-        
-      
     
     
     
@@ -2729,10 +3413,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_9" >
         
           
-          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_9" id="__nav_9_label" tabindex="0">
             
   
   
@@ -2750,8 +3434,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_7">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_9_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_9">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -2824,14 +3508,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../../16_usecase_implementation_guide/" class="md-nav__link">
+      <a href="../../13_known_limitations_and_gotchas/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    Use case implementation guide
+    Known limitations & gotchas
   
 
     
@@ -2844,6 +3528,98 @@
   
 
               
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../15_agent_skills_and_prompts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Agent skills & prompt library
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_9_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_9_5" id="__nav_9_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Use cases
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_9_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_9_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Use cases
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
             
               
                 
@@ -2985,57 +3761,9 @@
 
               
             
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../15_agent_skills_and_prompts/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Agent skills & prompt library
-  
-
-    
-  </span>
-  
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
-      <a href="../../13_known_limitations_and_gotchas/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Known limitations & gotchas
-  
-
-    
-  </span>
-  
-  
-
-      </a>
+          </ul>
+        </nav>
+      
     </li>
   
 
@@ -3076,7 +3804,7 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_10" >
         
           
           <div class="md-nav__link md-nav__container">
@@ -3098,14 +3826,14 @@
             </a>
             
               
-              <label class="md-nav__link " for="__nav_8" id="__nav_8_label" tabindex="0">
+              <label class="md-nav__link " for="__nav_10" id="__nav_10_label" tabindex="0">
                 <span class="md-nav__icon md-icon"></span>
               </label>
             
           </div>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_8">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_10_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_10">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -3155,10 +3883,10 @@
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8_1" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_10_1" >
         
           
-          <label class="md-nav__link" for="__nav_8_1" id="__nav_8_1_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_10_1" id="__nav_10_1_label" tabindex="0">
             
   
   
@@ -3176,8 +3904,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_8_1_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_8_1">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_10_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_10_1">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -3860,22 +4588,22 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#8-volume-move" class="md-nav__link">
+  <a href="#8-source-volume-location" class="md-nav__link">
     <span class="md-ellipsis">
       
-        8. Volume move
+        8. Source volume location
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="8. Volume move">
+    <nav class="md-nav" aria-label="8. Source volume location">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#81-verification" class="md-nav__link">
+  <a href="#81-inventory-of-the-source-tree" class="md-nav__link">
     <span class="md-ellipsis">
       
-        8.1 Verification
+        8.1 Inventory of the source tree
       
     </span>
   </a>
@@ -3883,10 +4611,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#82-post-move-path-re-validation" class="md-nav__link">
+  <a href="#82-path-validation" class="md-nav__link">
     <span class="md-ellipsis">
       
-        8.2 Post-move path re-validation
+        8.2 Path validation
       
     </span>
   </a>
@@ -3981,10 +4709,21 @@
           
             <div class="md-content" data-md-component="content">
               
+                
+
+
+
+  
+
+
+              
               <article class="md-content__inner md-typeset">
                 
                   
 
+
+  
+  
 
 
 <h1 id="uc_7-cdr-asn1-decoders-bronze-test-report">UC_7 CDR ASN.1 Decoders → Bronze — Test Report<a class="headerlink" href="#uc_7-cdr-asn1-decoders-bronze-test-report" title="Permanent link">&para;</a></h1>
@@ -3992,7 +4731,7 @@
 sources proven not to be ASN.1 (see §2.4). Four defects were found by running it; all four are
 fixed and re-verified. See the <a href="#9-run-log-chronological">Run log</a> for exactly what executed.
 <strong>Author:</strong> madhan@nrmanalytix.com
-<strong>Run date:</strong> 2026-09-05</p>
+<strong>Run date:</strong> 2026-09-08</p>
 <hr />
 <h2 id="1-scope-and-environment">1. Scope and environment<a class="headerlink" href="#1-scope-and-environment" title="Permanent link">&para;</a></h2>
 <p>Onboard the UC_7 CDR (Call Detail Record) ASN.1 decoder sources into the <code>bronze</code> layer using
@@ -4009,32 +4748,32 @@ observability task, and validate end to end.</p>
 <tbody>
 <tr>
 <td>Workspace</td>
-<td><code>dbc-bc553b65-f05f.cloud.databricks.com</code> (profile <code>metaflow_v7</code>)</td>
-<td>Only workspace of the four in <code>.databrickscfg</code> where <code>/Volumes/flowx/landing/uc_7/</code> exists; the other three return <code>no such directory</code></td>
+<td><code>8259560580035702.2.gcp.databricks.com</code> (profile <code>Hoonartek</code>, target <code>hoonartek</code>)</td>
+<td>UC_7 source data lives at <code>/Volumes/bt_digital_poc/staging/uc_7/</code>. This workspace has no <code>landing</code> schema at all -- see section 8 for the <code>landing</code>-&gt;<code>staging</code> repoint the spec required</td>
 </tr>
 <tr>
 <td>Target catalog</td>
-<td><code>flowx</code></td>
-<td><code>databricks.yml</code> sets <code>catalog: flowx</code> on every target</td>
+<td><code>bt_digital_poc</code></td>
+<td><code>databricks.yml</code> sets <code>catalog: bt_digital_poc</code> on the <code>hoonartek</code> target</td>
 </tr>
 <tr>
 <td>Target schema</td>
-<td><code>flowx.bronze</code></td>
-<td><code>databricks schemas list flowx</code> — a bare <code>bronze</code> schema exists; <strong>no env suffix</strong></td>
+<td><code>bt_digital_poc.bronze</code></td>
+<td><code>databricks schemas list bt_digital_poc</code> — a bare <code>bronze</code> schema exists; <strong>no env suffix</strong></td>
 </tr>
 <tr>
 <td>Env parameter</td>
-<td><code>metaflow_v7</code></td>
-<td>Existing "FlowX Config Onboarding" job's <code>env</code> parameter default</td>
+<td><code>hoonartek</code></td>
+<td>Passed to the generic "FlowX Config Onboarding" job as <code>env</code> (the bundle target name)</td>
 </tr>
 <tr>
 <td>Framework version</td>
-<td><strong>0.0.3</strong> (pinned)</td>
-<td><code>pyproject.toml:3</code>, <code>databricks.yml</code> <code>var.framework_version</code>, and <code>/Volumes/flowx/config/wheels/0.0.3/</code> already present</td>
+<td><strong>0.0.4</strong> (pinned)</td>
+<td><code>pyproject.toml:3</code>, <code>databricks.yml</code> <code>var.framework_version</code>, and <code>/Volumes/bt_digital_poc/config/wheels/0.0.4/</code> already present</td>
 </tr>
 <tr>
 <td>Wheel path</td>
-<td><code>/Volumes/flowx/config/wheels/0.0.3/.internal/flowx-0.0.3-py3-none-any.whl</code></td>
+<td><code>/Volumes/bt_digital_poc/config/wheels/0.0.4/.internal/flowx-0.0.4-py3-none-any.whl</code></td>
 <td>Read from the deployed onboarding job definition</td>
 </tr>
 <tr>
@@ -4055,12 +4794,13 @@ observability task, and validate end to end.</p>
 </tbody>
 </table>
 <h3 id="11-environment-prerequisites-discovered">1.1 Environment prerequisites discovered<a class="headerlink" href="#11-environment-prerequisites-discovered" title="Permanent link">&para;</a></h3>
-<p><code>flowx.config</code> contained <strong>no control tables</strong> and <code>flowx.bronze</code> / <code>flowx.observability</code> were
+<p><code>bt_digital_poc.config</code> contained <strong>no control tables</strong> and <code>bt_digital_poc.bronze</code> / <code>bt_digital_poc.observability</code> were
 empty at the start of this exercise — the framework had never been fully bootstrapped on this
-workspace. <code>bundle deploy</code> does <strong>not</strong> create control tables; the <code>setup_control_tables</code> task
-does. That task is therefore wired as the first task of the job rather than assumed.</p>
+workspace. <code>bundle deploy</code> does <strong>not</strong> create control tables; <code>01_setup_control_tables.py</code> does.
+That notebook is run as a separate operator action — it is <strong>not</strong> a task of this job, which now
+carries only <code>run_pipeline_update</code> and <code>observability_export</code>.</p>
 <h3 id="12-env-suffix-convention-question-raised-in-the-brief">1.2 Env-suffix convention (question raised in the brief)<a class="headerlink" href="#12-env-suffix-convention-question-raised-in-the-brief" title="Permanent link">&para;</a></h3>
-<p>The brief asked whether an env suffix applies to config keys (e.g. <code>flowx.bronze_&lt;env&gt;</code>).
+<p>The brief asked whether an env suffix applies to config keys (e.g. <code>bt_digital_poc.bronze_&lt;env&gt;</code>).
 <strong>It does not.</strong> Environment separation in this framework is by <strong>catalog</strong>, not by schema
 suffix. Every <code>target_schema</code> across all 71 specs in <code>flowx_testing/</code> is a bare literal, and a
 repo-wide search for <code>bronze_dev</code> / <code>_uat</code> / <code>_prod</code> suffixes returns nothing. <code>{{env}}</code> is
@@ -4069,7 +4809,7 @@ here is therefore plain <code>bronze</code>.</p>
 <hr />
 <h2 id="2-source-asn1-schema-mapping">2. Source → ASN.1 schema mapping<a class="headerlink" href="#2-source-asn1-schema-mapping" title="Permanent link">&para;</a></h2>
 <p><strong>Mappings were established by decoding real production bytes, not by matching filenames.</strong>
-Each raw payload was pulled from the landing Volume, walked as BER TLVs, and decoded against
+Each raw payload was pulled from the staging Volume, walked as BER TLVs, and decoded against
 its candidate module with <code>asn1tools</code> (the same library the framework uses).</p>
 <table>
 <thead>
@@ -4298,12 +5038,12 @@ carrying the extended members.</p>
 <p>The brief asked for six sources but required flagging anything unclear rather than picking a
 schema silently. Two sources are <strong>not ASN.1 at all</strong>:</p>
 <p><strong>SMSC</strong> — <code>raw/SMSC/SMSCWPTD01_201711301432</code>, 681 bytes, a single-line 48-field quoted CSV:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>"20171130143417","5","1","4C3F4F8ADBD5E761995F000002003267","","1","4","",...
-</code></pre></div>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>"20171130143417","5","1","4C3F4F8ADBD5E761995F000002003267","","1","4","",...
+</span></code></pre></div>
 <p><strong>MMSC</strong> — <code>raw/MMSC/vMMSC12_20200721013526Z_mediation_1a953ca07b.csv</code>, 73,689 bytes, a 70+
 column CSV with a <code>.csv</code> extension:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>1,"","4.6","vmmscld01","HTTP Retrieve",1004,1,"20180430013538Z",...
-</code></pre></div>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>1,"","4.6","vmmscld01","HTTP Retrieve",1004,1,"20180430013538Z",...
+</span></code></pre></div>
 <p>Negative control — both payloads were decoded against <strong>every</strong> available module:</p>
 <table>
 <thead>
@@ -4461,10 +5201,10 @@ records in <code>tap311_synthetic.ber</code> decode cleanly with contiguous reco
 strictly stronger.</p>
 <h3 id="35-second-defect-found-by-running-it-serverless-udf-memory-limit">3.5 Second defect, found by running it — serverless UDF memory limit<a class="headerlink" href="#35-second-defect-found-by-running-it-serverless-udf-memory-limit" title="Permanent link">&para;</a></h3>
 <p>The first pipeline run failed on the SGSN flow. Root cause from the pipeline event log:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>[UDF_PYSPARK_USER_CODE_ERROR.MEMORY_LIMIT_SERVERLESS] Execution failed.
-<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>Function exceeded the limit of 1024 megabytes.
-<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>  flow: flowx.bronze._src___volumes_flowx_landing_uc_7_raw_sgsn__ee25e3cc__stream
-</code></pre></div>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>[UDF_PYSPARK_USER_CODE_ERROR.MEMORY_LIMIT_SERVERLESS] Execution failed.
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>Function exceeded the limit of 1024 megabytes.
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>  flow: bt_digital_poc.bronze._src___volumes_bt_digital_poc_staging_uc_7_raw_sgsn__25bb6f8b__stream
+</span></code></pre></div>
 <p>Updates <code>d4f55a85</code> and <code>a9e11cfe</code> both FAILED this way (the flow retried 3 times, then the
 update gave up). EMSC, PSGW and TAP were <code>SKIPPED due to upstream failure(s)</code> — one failing flow
 fails the whole update.</p>
@@ -4595,25 +5335,25 @@ sources use <code>&lt;source&gt;_cdr_raw</code>, interchange formats use <code>&
 <tbody>
 <tr>
 <td>EMSC</td>
-<td><code>flowx.bronze.emsc_cdr_raw</code></td>
+<td><code>bt_digital_poc.bronze.emsc_cdr_raw</code></td>
 <td><code>emsc_cdr_raw_quarantine</code></td>
 <td><code>df_uc7_emsc_cdr_ingest</code></td>
 </tr>
 <tr>
 <td>PSGW</td>
-<td><code>flowx.bronze.psgw_cdr_raw</code></td>
+<td><code>bt_digital_poc.bronze.psgw_cdr_raw</code></td>
 <td><code>psgw_cdr_raw_quarantine</code></td>
 <td><code>df_uc7_psgw_cdr_ingest</code></td>
 </tr>
 <tr>
 <td>SGSN</td>
-<td><code>flowx.bronze.sgsn_cdr_raw</code></td>
+<td><code>bt_digital_poc.bronze.sgsn_cdr_raw</code></td>
 <td><code>sgsn_cdr_raw_quarantine</code></td>
 <td><code>df_uc7_sgsn_cdr_ingest</code></td>
 </tr>
 <tr>
 <td>TAP</td>
-<td><code>flowx.bronze.tap310_raw</code></td>
+<td><code>bt_digital_poc.bronze.tap310_raw</code></td>
 <td><code>tap310_raw_quarantine</code></td>
 <td><code>df_uc7_tap310_ingest</code></td>
 </tr>
@@ -4622,21 +5362,21 @@ sources use <code>&lt;source&gt;_cdr_raw</code>, interchange formats use <code>&
 <p>TAP keeps the version in its name (<code>tap310_raw</code>), matching the existing <code>v0_0_2_asn1_tap310</code>
 precedent — the version is a real property of the format and is proven from the data (§2.2).</p>
 <p>The existing specs put each source in its own <code>bronze_&lt;source&gt;</code> schema; this brief requires the
-<code>bronze</code> layer, so all four land in <code>flowx.bronze</code> with source-prefixed table names. That also
+<code>bronze</code> layer, so all four land in <code>bt_digital_poc.bronze</code> with source-prefixed table names. That also
 avoids colliding with the pre-existing <code>bronze_emsc.emsc_cdr_raw</code> / <code>bronze_psgw.psgw_cdr_raw</code>
 tables owned by other specs — two specs publishing the same three-part name would fight over one
 physical table, and nothing in <code>spec_validator.py</code> catches cross-spec collisions.</p>
 <h3 id="42-per-flow-configuration">4.2 Per-flow configuration<a class="headerlink" href="#42-per-flow-configuration" title="Permanent link">&para;</a></h3>
 <p>Each flow specifies source path, ASN.1 schema path, decoder options, and bronze target:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="nt">"source_config"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
-<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="w">  </span><span class="nt">"path"</span><span class="p">:</span><span class="w"> </span><span class="s2">"/Volumes/{{catalog}}/landing/uc_7/raw/SGSN/"</span><span class="p">,</span>
-<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="w">  </span><span class="nt">"schema_location"</span><span class="p">:</span><span class="w"> </span><span class="s2">"/Volumes/{{catalog}}/landing/uc_7/_schemas/sgsn_cdr_raw/"</span><span class="p">,</span>
-<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="w">  </span><span class="nt">"asn1_schema_path"</span><span class="p">:</span><span class="w"> </span><span class="s2">"/Volumes/{{catalog}}/landing/uc_7/asn_schema/SGSN.asn1"</span><span class="p">,</span>
-<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="w">  </span><span class="nt">"asn1_codec"</span><span class="p">:</span><span class="w"> </span><span class="s2">"ber"</span><span class="p">,</span>
-<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="w">  </span><span class="nt">"capture_technical_metadata"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span>
-<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="p">},</span>
-<a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a><span class="nt">"target_config"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nt">"cdc_load_strategy"</span><span class="p">:</span><span class="w"> </span><span class="s2">"APPEND"</span><span class="p">,</span><span class="w"> </span><span class="nt">"storage_format"</span><span class="p">:</span><span class="w"> </span><span class="s2">"delta"</span><span class="w"> </span><span class="p">}</span>
-</code></pre></div>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="nt">"source_config"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="w">  </span><span class="nt">"path"</span><span class="p">:</span><span class="w"> </span><span class="s2">"/Volumes/{{catalog}}/staging/uc_7/raw/SGSN/"</span><span class="p">,</span>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="w">  </span><span class="nt">"schema_location"</span><span class="p">:</span><span class="w"> </span><span class="s2">"/Volumes/{{catalog}}/staging/uc_7/_schemas/sgsn_cdr_raw/"</span><span class="p">,</span>
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="w">  </span><span class="nt">"asn1_schema_path"</span><span class="p">:</span><span class="w"> </span><span class="s2">"/Volumes/{{catalog}}/staging/uc_7/asn_schema/SGSN.asn1"</span><span class="p">,</span>
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="w">  </span><span class="nt">"asn1_codec"</span><span class="p">:</span><span class="w"> </span><span class="s2">"ber"</span><span class="p">,</span>
+</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="w">  </span><span class="nt">"capture_technical_metadata"</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span>
+</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="p">},</span>
+</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a><span class="nt">"target_config"</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nt">"cdc_load_strategy"</span><span class="p">:</span><span class="w"> </span><span class="s2">"APPEND"</span><span class="p">,</span><span class="w"> </span><span class="nt">"storage_format"</span><span class="p">:</span><span class="w"> </span><span class="s2">"delta"</span><span class="w"> </span><span class="p">}</span>
+</span></code></pre></div>
 <ul>
 <li><code>asn1_codec: "ber"</code> — confirmed from the payloads (definite and indefinite length forms both
   present; DER forbids indefinite length, so BER is correct).</li>
@@ -4685,9 +5425,9 @@ because it legitimately selects two different arms (<code>sGWRecord</code> and <
 column to be in <code>df.columns</code> and silently ignores a dotted struct path.</p>
 <h3 id="44-validation">4.4 Validation<a class="headerlink" href="#44-validation" title="Permanent link">&para;</a></h3>
 <p>Validated locally with the framework's own <code>spec_validator.validate_spec()</code> before onboarding:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>flows parsed: ing=4 trf=0 rec=0 obs=1
-<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>ERRORS: 0
-</code></pre></div>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>flows parsed: ing=4 trf=0 rec=0 obs=1
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>ERRORS: 0
+</span></code></pre></div>
 <hr />
 <h2 id="5-job-and-pipeline">5. Job and pipeline<a class="headerlink" href="#5-job-and-pipeline" title="Permanent link">&para;</a></h2>
 <p>Created as bundle resources in a new <code>resources/uc7/</code> directory, registered by adding
@@ -4709,56 +5449,56 @@ as a side effect.</p>
 <td>Pipeline</td>
 <td><code>resources/uc7/uc7_cdr_asn_pipeline.yml</code></td>
 <td><code>001_ldp_uc7_cdr_asn</code></td>
-<td><code>927a6e24-757f-495c-8a94-d807b74c4128</code></td>
+<td><code>527d1e89-1be2-43f7-baaa-2ca6331e7b3b</code></td>
 </tr>
 <tr>
 <td>Job</td>
 <td><code>resources/uc7/uc7_cdr_asn_job.yml</code></td>
 <td><code>001_lfj_uc7_cdr_asn</code></td>
-<td><code>843342822766009</code></td>
+<td><code>333146904292014</code></td>
 </tr>
 </tbody>
 </table>
-<p>Deployed environment dependency, read back from the live job definition — confirming the 0.0.3
+<p>Deployed environment dependency, read back from the live job definition — confirming the 0.0.4
 pin resolved as intended:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>/Volumes/flowx/config/wheels/0.0.3/.internal/flowx-0.0.3-py3-none-any.whl
-</code></pre></div>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>/Volumes/bt_digital_poc/config/wheels/0.0.4/.internal/flowx-0.0.4-py3-none-any.whl
+</span></code></pre></div>
 <p>Pipeline is wired to the group via the standard configuration keys (the convention used by 57 of
 58 existing pipelines):</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="nt">configuration</span><span class="p">:</span>
-<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="w">  </span><span class="nt">dataflow.group.id</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">dfg_uc7_cdr_asn</span>
-<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="w">  </span><span class="nt">dataflow.control.catalog</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">flowx</span>
-</code></pre></div>
-<p><strong>Version pinning to 0.0.3</strong> is by the <code>../../dist/*.whl</code> glob, which DABs rewrites at deploy
+<div class="language-yaml highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="nt">configuration</span><span class="p">:</span>
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="w">  </span><span class="nt">dataflow.group.id</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">dfg_uc7_cdr_asn</span>
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="w">  </span><span class="nt">dataflow.control.catalog</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">bt_digital_poc</span>
+</span></code></pre></div>
+<p><strong>Version pinning to 0.0.4</strong> is by the <code>../../dist/*.whl</code> glob, which DABs rewrites at deploy
 time to <code>&lt;artifact_path&gt;/.internal/</code>, where <code>artifact_path</code> is
-<code>${var.wheels_root}/${var.framework_version}</code> = <code>/Volumes/flowx/config/wheels/0.0.3</code>. No version
+<code>${var.wheels_root}/${var.framework_version}</code> = <code>/Volumes/bt_digital_poc/config/wheels/0.0.4</code>. No version
 string is hard-coded in the resource files — that is the repo's established mechanism, and
-<code>pyproject.toml</code> and <code>var.framework_version</code> are both already at 0.0.3.</p>
+<code>pyproject.toml</code> and <code>var.framework_version</code> are both already at 0.0.4.</p>
 <p>Job task chain:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>setup_control_tables → onboard_uc7 → run_pipeline_update → observability_export
-</code></pre></div>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>run_pipeline_update → observability_export
+</span></code></pre></div>
 <p><code>onboard_uc7</code> is a <code>run_job_task</code> delegating to the generic <code>onboarding_job</code> (the repo's
 preferred pattern) rather than inlining the onboarding notebook, which the repo explicitly calls
 legacy drift.</p>
 <p>Bundle validation:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>Name: flowx
-<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>Target: metaflow_v7
-<a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a>Validation OK!
-</code></pre></div>
-<p>Resolved resource names confirmed as <code>001_ldp_uc7_cdr_asn</code> (catalog <code>flowx</code>, schema <code>bronze</code>)
+<div class="language-text highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>Name: flowx
+</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>Target: hoonartek
+</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a>Validation OK!
+</span></code></pre></div>
+<p>Resolved resource names confirmed as <code>001_ldp_uc7_cdr_asn</code> (catalog <code>bt_digital_poc</code>, schema <code>bronze</code>)
 and <code>001_lfj_uc7_cdr_asn</code>.</p>
 <hr />
 <h2 id="6-per-source-validation">6. Per-source validation<a class="headerlink" href="#6-per-source-validation" title="Permanent link">&para;</a></h2>
 <p><em>(Populated from job run <code>242889856033876</code> — the first run with both decoder fixes in place.
 Run 1's numbers are deliberately not reported here: it failed before writing any rows.)</em></p>
 <p>Row counts are read back with:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="k">SELECT</span><span class="w"> </span><span class="s1">'emsc'</span><span class="w"> </span><span class="n">src</span><span class="p">,</span><span class="w"> </span><span class="k">count</span><span class="p">(</span><span class="o">*</span><span class="p">)</span><span class="w"> </span><span class="k">rows</span><span class="p">,</span><span class="w"> </span><span class="n">count_if</span><span class="p">(</span><span class="n">_asn1_decode_error</span><span class="w"> </span><span class="k">IS</span><span class="w"> </span><span class="k">NOT</span><span class="w"> </span><span class="k">NULL</span><span class="p">)</span><span class="w"> </span><span class="n">decode_errors</span><span class="p">,</span>
-<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="w">       </span><span class="k">count</span><span class="p">(</span><span class="k">DISTINCT</span><span class="w"> </span><span class="n">_choice</span><span class="p">)</span><span class="w"> </span><span class="n">arms</span><span class="p">,</span><span class="w"> </span><span class="k">max</span><span class="p">(</span><span class="n">_asn1_record_index</span><span class="p">)</span><span class="w"> </span><span class="n">max_idx</span>
-<a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="k">FROM</span><span class="w"> </span><span class="n">flowx</span><span class="p">.</span><span class="n">bronze</span><span class="p">.</span><span class="n">emsc_cdr_raw</span>
-<a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="k">UNION</span><span class="w"> </span><span class="k">ALL</span><span class="w"> </span><span class="k">SELECT</span><span class="w"> </span><span class="s1">'psgw'</span><span class="p">,</span><span class="w"> </span><span class="k">count</span><span class="p">(</span><span class="o">*</span><span class="p">),</span><span class="w"> </span><span class="n">count_if</span><span class="p">(</span><span class="n">_asn1_decode_error</span><span class="w"> </span><span class="k">IS</span><span class="w"> </span><span class="k">NOT</span><span class="w"> </span><span class="k">NULL</span><span class="p">),</span><span class="w"> </span><span class="k">count</span><span class="p">(</span><span class="k">DISTINCT</span><span class="w"> </span><span class="n">_choice</span><span class="p">),</span><span class="w"> </span><span class="k">max</span><span class="p">(</span><span class="n">_asn1_record_index</span><span class="p">)</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">flowx</span><span class="p">.</span><span class="n">bronze</span><span class="p">.</span><span class="n">psgw_cdr_raw</span>
-<a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a><span class="k">UNION</span><span class="w"> </span><span class="k">ALL</span><span class="w"> </span><span class="k">SELECT</span><span class="w"> </span><span class="s1">'sgsn'</span><span class="p">,</span><span class="w"> </span><span class="k">count</span><span class="p">(</span><span class="o">*</span><span class="p">),</span><span class="w"> </span><span class="n">count_if</span><span class="p">(</span><span class="n">_asn1_decode_error</span><span class="w"> </span><span class="k">IS</span><span class="w"> </span><span class="k">NOT</span><span class="w"> </span><span class="k">NULL</span><span class="p">),</span><span class="w"> </span><span class="k">count</span><span class="p">(</span><span class="k">DISTINCT</span><span class="w"> </span><span class="n">_choice</span><span class="p">),</span><span class="w"> </span><span class="k">max</span><span class="p">(</span><span class="n">_asn1_record_index</span><span class="p">)</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">flowx</span><span class="p">.</span><span class="n">bronze</span><span class="p">.</span><span class="n">sgsn_cdr_raw</span>
-<a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a><span class="k">UNION</span><span class="w"> </span><span class="k">ALL</span><span class="w"> </span><span class="k">SELECT</span><span class="w"> </span><span class="s1">'tap310'</span><span class="p">,</span><span class="w"> </span><span class="k">count</span><span class="p">(</span><span class="o">*</span><span class="p">),</span><span class="w"> </span><span class="n">count_if</span><span class="p">(</span><span class="n">_asn1_decode_error</span><span class="w"> </span><span class="k">IS</span><span class="w"> </span><span class="k">NOT</span><span class="w"> </span><span class="k">NULL</span><span class="p">),</span><span class="w"> </span><span class="k">count</span><span class="p">(</span><span class="k">DISTINCT</span><span class="w"> </span><span class="n">_choice</span><span class="p">),</span><span class="w"> </span><span class="k">max</span><span class="p">(</span><span class="n">_asn1_record_index</span><span class="p">)</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">flowx</span><span class="p">.</span><span class="n">bronze</span><span class="p">.</span><span class="n">tap310_raw</span><span class="p">;</span>
-</code></pre></div>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="k">SELECT</span><span class="w"> </span><span class="s1">'emsc'</span><span class="w"> </span><span class="n">src</span><span class="p">,</span><span class="w"> </span><span class="k">count</span><span class="p">(</span><span class="o">*</span><span class="p">)</span><span class="w"> </span><span class="k">rows</span><span class="p">,</span><span class="w"> </span><span class="n">count_if</span><span class="p">(</span><span class="n">_asn1_decode_error</span><span class="w"> </span><span class="k">IS</span><span class="w"> </span><span class="k">NOT</span><span class="w"> </span><span class="k">NULL</span><span class="p">)</span><span class="w"> </span><span class="n">decode_errors</span><span class="p">,</span>
+</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="w">       </span><span class="k">count</span><span class="p">(</span><span class="k">DISTINCT</span><span class="w"> </span><span class="n">_choice</span><span class="p">)</span><span class="w"> </span><span class="n">arms</span><span class="p">,</span><span class="w"> </span><span class="k">max</span><span class="p">(</span><span class="n">_asn1_record_index</span><span class="p">)</span><span class="w"> </span><span class="n">max_idx</span>
+</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="k">FROM</span><span class="w"> </span><span class="n">bt_digital_poc</span><span class="p">.</span><span class="n">bronze</span><span class="p">.</span><span class="n">emsc_cdr_raw</span>
+</span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="k">UNION</span><span class="w"> </span><span class="k">ALL</span><span class="w"> </span><span class="k">SELECT</span><span class="w"> </span><span class="s1">'psgw'</span><span class="p">,</span><span class="w"> </span><span class="k">count</span><span class="p">(</span><span class="o">*</span><span class="p">),</span><span class="w"> </span><span class="n">count_if</span><span class="p">(</span><span class="n">_asn1_decode_error</span><span class="w"> </span><span class="k">IS</span><span class="w"> </span><span class="k">NOT</span><span class="w"> </span><span class="k">NULL</span><span class="p">),</span><span class="w"> </span><span class="k">count</span><span class="p">(</span><span class="k">DISTINCT</span><span class="w"> </span><span class="n">_choice</span><span class="p">),</span><span class="w"> </span><span class="k">max</span><span class="p">(</span><span class="n">_asn1_record_index</span><span class="p">)</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">bt_digital_poc</span><span class="p">.</span><span class="n">bronze</span><span class="p">.</span><span class="n">psgw_cdr_raw</span>
+</span><span id="__span-9-5"><a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a><span class="k">UNION</span><span class="w"> </span><span class="k">ALL</span><span class="w"> </span><span class="k">SELECT</span><span class="w"> </span><span class="s1">'sgsn'</span><span class="p">,</span><span class="w"> </span><span class="k">count</span><span class="p">(</span><span class="o">*</span><span class="p">),</span><span class="w"> </span><span class="n">count_if</span><span class="p">(</span><span class="n">_asn1_decode_error</span><span class="w"> </span><span class="k">IS</span><span class="w"> </span><span class="k">NOT</span><span class="w"> </span><span class="k">NULL</span><span class="p">),</span><span class="w"> </span><span class="k">count</span><span class="p">(</span><span class="k">DISTINCT</span><span class="w"> </span><span class="n">_choice</span><span class="p">),</span><span class="w"> </span><span class="k">max</span><span class="p">(</span><span class="n">_asn1_record_index</span><span class="p">)</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">bt_digital_poc</span><span class="p">.</span><span class="n">bronze</span><span class="p">.</span><span class="n">sgsn_cdr_raw</span>
+</span><span id="__span-9-6"><a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a><span class="k">UNION</span><span class="w"> </span><span class="k">ALL</span><span class="w"> </span><span class="k">SELECT</span><span class="w"> </span><span class="s1">'tap310'</span><span class="p">,</span><span class="w"> </span><span class="k">count</span><span class="p">(</span><span class="o">*</span><span class="p">),</span><span class="w"> </span><span class="n">count_if</span><span class="p">(</span><span class="n">_asn1_decode_error</span><span class="w"> </span><span class="k">IS</span><span class="w"> </span><span class="k">NOT</span><span class="w"> </span><span class="k">NULL</span><span class="p">),</span><span class="w"> </span><span class="k">count</span><span class="p">(</span><span class="k">DISTINCT</span><span class="w"> </span><span class="n">_choice</span><span class="p">),</span><span class="w"> </span><span class="k">max</span><span class="p">(</span><span class="n">_asn1_record_index</span><span class="p">)</span><span class="w"> </span><span class="k">FROM</span><span class="w"> </span><span class="n">bt_digital_poc</span><span class="p">.</span><span class="n">bronze</span><span class="p">.</span><span class="n">tap310_raw</span><span class="p">;</span>
+</span></code></pre></div>
 <h3 id="61-results-pipeline-update-f2fb4218-4d88-4990-8257-f957c9055ee8-completed">6.1 Results — pipeline update <code>f2fb4218-4d88-4990-8257-f957c9055ee8</code> (COMPLETED)<a class="headerlink" href="#61-results-pipeline-update-f2fb4218-4d88-4990-8257-f957c9055ee8-completed" title="Permanent link">&para;</a></h3>
 <p>Expected counts were measured <strong>locally from the raw bytes before the pipeline ran</strong>, so the
 match below is a genuine independent prediction, not a restatement of the pipeline's output.</p>
@@ -4880,22 +5620,22 @@ rows proves the indices are contiguous from 0 — no record dropped at any chunk
 </tbody>
 </table>
 <h3 id="62-sample-decoded-record">6.2 Sample decoded record<a class="headerlink" href="#62-sample-decoded-record" title="Permanent link">&para;</a></h3>
-<p><code>flowx.bronze.sgsn_cdr_raw</code>, <code>_asn1_record_index = 0</code> (truncated):</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="p">{</span><span class="nt">"recordType"</span><span class="p">:</span><span class="mi">18</span><span class="p">,</span><span class="nt">"servedIMSI"</span><span class="p">:</span><span class="s2">"MjRAIQESEvM="</span><span class="p">,</span><span class="nt">"servedIMEI"</span><span class="p">:</span><span class="s2">"U0iTcJOFVhA="</span><span class="p">,</span>
-<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="w"> </span><span class="nt">"sgsnAddress"</span><span class="p">:{</span><span class="nt">"_choice"</span><span class="p">:</span><span class="s2">"iPBinaryAddress"</span><span class="p">,</span><span class="nt">"iPBinaryAddress"</span><span class="p">:{</span><span class="nt">"_choice"</span><span class="p">:</span><span class="s2">"iPBinV4Address"</span><span class="p">,</span><span class="nt">"iPBinV4Address"</span><span class="p">:</span><span class="s2">"lf6ASQ=="</span><span class="p">}},</span>
-<a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="w"> </span><span class="nt">"routingArea"</span><span class="p">:</span><span class="s2">"AQ=="</span><span class="p">,</span><span class="nt">"locationAreaCode"</span><span class="p">:</span><span class="s2">"BKQ="</span><span class="p">,</span><span class="nt">"cellIdentifier"</span><span class="p">:</span><span class="s2">"PL4="</span><span class="p">,</span><span class="nt">"chargingID"</span><span class="p">:</span><span class="mi">2504098619</span><span class="p">,</span>
-<a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a><span class="w"> </span><span class="nt">"ggsnAddressUsed"</span><span class="p">:{</span><span class="nt">"_choice"</span><span class="p">:</span><span class="s2">"iPBinaryAddress"</span><span class="p">,</span><span class="nt">"iPBinaryAddress"</span><span class="p">:{</span><span class="nt">"_choice"</span><span class="p">:</span><span class="s2">"iPBinV4Address"</span><span class="p">,</span><span class="nt">"iPBinV4Address"</span><span class="p">:</span><span class="s2">"lf7QYg=="</span><span class="p">}},</span>
-<a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a><span class="w"> </span><span class="nt">"accessPointNameNI"</span><span class="p">:</span><span class="s2">"everywhere"</span><span class="p">,</span><span class="nt">"pdpType"</span><span class="p">:</span><span class="s2">"8Vc="</span><span class="p">,</span>
-<a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a><span class="w"> </span><span class="nt">"servedPDPAddress"</span><span class="p">:{</span><span class="nt">"_choice"</span><span class="p">:</span><span class="s2">"iPAddress"</span><span class="p">,</span><span class="nt">"iPAddress"</span><span class="p">:{</span><span class="nt">"_choice"</span><span class="p">:</span><span class="s2">"iPBinaryAddress"</span><span class="p">,</span><span class="nt">"iPBinaryAddress"</span><span class="p">:{</span><span class="nt">"_choice"</span><span class="p">:</span><span class="s2">"iPBinV6Address"</span><span class="p">,</span><span class="nt">"iPBinV6Address"</span><span class="p">:</span><span class="s2">"KgEEyBQIHhIAAQACzU9vtw=="</span><span class="p">}}},</span>
-<a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a><span class="w"> </span><span class="nt">"listOfTrafficVolumes"</span><span class="p">:[{</span><span class="nt">"qosRequested"</span><span class="p">:</span><span class="s2">"ARuRH3GW/v50S/7+AJYA"</span><span class="p">,</span><span class="nt">"qosNegotiated"</span><span class="p">:</span><span class="s2">"AxuTH3OW/v50q/7+AGQA"</span><span class="p">,</span>
-<a id="__codelineno-10-8" name="__codelineno-10-8" href="#__codelineno-10-8"></a><span class="w">   </span><span class="nt">"dataVolumeGPRSUplink"</span><span class="p">:</span><span class="mi">6293</span><span class="p">,</span><span class="nt">"dataVolumeGPRSDownlink"</span><span class="p">:</span><span class="mi">21574</span><span class="p">,</span><span class="nt">"changeCondition"</span><span class="p">:</span><span class="s2">"recordClosure"</span><span class="p">,</span>
-<a id="__codelineno-10-9" name="__codelineno-10-9" href="#__codelineno-10-9"></a><span class="w">   </span><span class="nt">"changeTime"</span><span class="p">:</span><span class="s2">"FwgVEEZYKwEA"</span><span class="p">}],</span><span class="w"> </span><span class="err">...</span><span class="w"> </span><span class="p">}</span>
-</code></pre></div>
+<p><code>bt_digital_poc.bronze.sgsn_cdr_raw</code>, <code>_asn1_record_index = 0</code> (truncated):</p>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="p">{</span><span class="nt">"recordType"</span><span class="p">:</span><span class="mi">18</span><span class="p">,</span><span class="nt">"servedIMSI"</span><span class="p">:</span><span class="s2">"MjRAIQESEvM="</span><span class="p">,</span><span class="nt">"servedIMEI"</span><span class="p">:</span><span class="s2">"U0iTcJOFVhA="</span><span class="p">,</span>
+</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="w"> </span><span class="nt">"sgsnAddress"</span><span class="p">:{</span><span class="nt">"_choice"</span><span class="p">:</span><span class="s2">"iPBinaryAddress"</span><span class="p">,</span><span class="nt">"iPBinaryAddress"</span><span class="p">:{</span><span class="nt">"_choice"</span><span class="p">:</span><span class="s2">"iPBinV4Address"</span><span class="p">,</span><span class="nt">"iPBinV4Address"</span><span class="p">:</span><span class="s2">"lf6ASQ=="</span><span class="p">}},</span>
+</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="w"> </span><span class="nt">"routingArea"</span><span class="p">:</span><span class="s2">"AQ=="</span><span class="p">,</span><span class="nt">"locationAreaCode"</span><span class="p">:</span><span class="s2">"BKQ="</span><span class="p">,</span><span class="nt">"cellIdentifier"</span><span class="p">:</span><span class="s2">"PL4="</span><span class="p">,</span><span class="nt">"chargingID"</span><span class="p">:</span><span class="mi">2504098619</span><span class="p">,</span>
+</span><span id="__span-10-4"><a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a><span class="w"> </span><span class="nt">"ggsnAddressUsed"</span><span class="p">:{</span><span class="nt">"_choice"</span><span class="p">:</span><span class="s2">"iPBinaryAddress"</span><span class="p">,</span><span class="nt">"iPBinaryAddress"</span><span class="p">:{</span><span class="nt">"_choice"</span><span class="p">:</span><span class="s2">"iPBinV4Address"</span><span class="p">,</span><span class="nt">"iPBinV4Address"</span><span class="p">:</span><span class="s2">"lf7QYg=="</span><span class="p">}},</span>
+</span><span id="__span-10-5"><a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a><span class="w"> </span><span class="nt">"accessPointNameNI"</span><span class="p">:</span><span class="s2">"everywhere"</span><span class="p">,</span><span class="nt">"pdpType"</span><span class="p">:</span><span class="s2">"8Vc="</span><span class="p">,</span>
+</span><span id="__span-10-6"><a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a><span class="w"> </span><span class="nt">"servedPDPAddress"</span><span class="p">:{</span><span class="nt">"_choice"</span><span class="p">:</span><span class="s2">"iPAddress"</span><span class="p">,</span><span class="nt">"iPAddress"</span><span class="p">:{</span><span class="nt">"_choice"</span><span class="p">:</span><span class="s2">"iPBinaryAddress"</span><span class="p">,</span><span class="nt">"iPBinaryAddress"</span><span class="p">:{</span><span class="nt">"_choice"</span><span class="p">:</span><span class="s2">"iPBinV6Address"</span><span class="p">,</span><span class="nt">"iPBinV6Address"</span><span class="p">:</span><span class="s2">"KgEEyBQIHhIAAQACzU9vtw=="</span><span class="p">}}},</span>
+</span><span id="__span-10-7"><a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a><span class="w"> </span><span class="nt">"listOfTrafficVolumes"</span><span class="p">:[{</span><span class="nt">"qosRequested"</span><span class="p">:</span><span class="s2">"ARuRH3GW/v50S/7+AJYA"</span><span class="p">,</span><span class="nt">"qosNegotiated"</span><span class="p">:</span><span class="s2">"AxuTH3OW/v50q/7+AGQA"</span><span class="p">,</span>
+</span><span id="__span-10-8"><a id="__codelineno-10-8" name="__codelineno-10-8" href="#__codelineno-10-8"></a><span class="w">   </span><span class="nt">"dataVolumeGPRSUplink"</span><span class="p">:</span><span class="mi">6293</span><span class="p">,</span><span class="nt">"dataVolumeGPRSDownlink"</span><span class="p">:</span><span class="mi">21574</span><span class="p">,</span><span class="nt">"changeCondition"</span><span class="p">:</span><span class="s2">"recordClosure"</span><span class="p">,</span>
+</span><span id="__span-10-9"><a id="__codelineno-10-9" name="__codelineno-10-9" href="#__codelineno-10-9"></a><span class="w">   </span><span class="nt">"changeTime"</span><span class="p">:</span><span class="s2">"FwgVEEZYKwEA"</span><span class="p">}],</span><span class="w"> </span><span class="err">...</span><span class="w"> </span><span class="p">}</span>
+</span></code></pre></div>
 <p>Nested CHOICEs are resolved recursively (<code>sgsnAddress</code> → <code>iPBinaryAddress</code> → <code>iPBinV4Address</code>),
 <code>SEQUENCE OF</code> becomes an array, and OCTET STRINGs are base64 in JSON rendering. This is real
 decoded CDR content, not an all-NULL row.</p>
 <h3 id="63-resulting-bronze-table-schema">6.3 Resulting bronze table schema<a class="headerlink" href="#63-resulting-bronze-table-schema" title="Permanent link">&para;</a></h3>
-<p><code>DESCRIBE TABLE flowx.bronze.tap310_raw</code>:</p>
+<p><code>DESCRIBE TABLE bt_digital_poc.bronze.tap310_raw</code>:</p>
 <table>
 <thead>
 <tr>
@@ -4960,7 +5700,7 @@ decoded CDR content, not an all-NULL row.</p>
 <h3 id="64-idempotency-on-re-run">6.4 Idempotency on re-run<a class="headerlink" href="#64-idempotency-on-re-run" title="Permanent link">&para;</a></h3>
 <p>The job was run three times in total. After the second and third runs, <code>sgsn_cdr_raw</code> still held
 exactly <strong>175,048</strong> rows — not 350,096. Auto Loader's <code>schema_location</code> checkpoints
-(<code>/Volumes/flowx/landing/uc_7/_schemas/&lt;table&gt;/</code>) correctly record which files have been
+(<code>/Volumes/bt_digital_poc/staging/uc_7/_schemas/&lt;table&gt;/</code>) correctly record which files have been
 consumed, so a re-run of an <code>APPEND</code> bronze flow does not re-ingest already-seen files. This
 matters because the record-per-TLV change multiplies every file's row contribution: a
 double-ingestion bug would have been far more visible, and is demonstrably absent.</p>
@@ -4978,36 +5718,36 @@ decode — so a bad record costs one row, not the file and not the batch.</p>
 <p>Implemented as a <strong>triggered</strong> observability export, matching the existing implementation in
 <code>resources/observability/dlt_observability_job.yml</code> — same notebook, same parameter contract,
 same target destinations.</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">task_key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">observability_export</span>
-<a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="w">  </span><span class="nt">depends_on</span><span class="p">:</span>
-<a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a><span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">task_key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">run_pipeline_update</span>
-<a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a><span class="w">  </span><span class="nt">notebook_task</span><span class="p">:</span>
-<a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a><span class="w">    </span><span class="nt">notebook_path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">../../notebooks/08_observability/08_dlt_observability_engine.py</span>
-<a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a><span class="w">    </span><span class="nt">base_parameters</span><span class="p">:</span>
-<a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a><span class="w">      </span><span class="nt">dataflow_group_id</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">dfg_uc7_cdr_asn</span>
-<a id="__codelineno-11-8" name="__codelineno-11-8" href="#__codelineno-11-8"></a><span class="w">      </span><span class="nt">catalog</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">flowx</span>
-<a id="__codelineno-11-9" name="__codelineno-11-9" href="#__codelineno-11-9"></a><span class="w">      </span><span class="nt">env</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">${bundle.target}</span>
-<a id="__codelineno-11-10" name="__codelineno-11-10" href="#__codelineno-11-10"></a><span class="w">      </span><span class="nt">pipeline_task_run_id</span><span class="p">:</span><span class="w"> </span><span class="s">"{{tasks.run_pipeline_update.run_id}}"</span>
-<a id="__codelineno-11-11" name="__codelineno-11-11" href="#__codelineno-11-11"></a><span class="w">      </span><span class="nt">service_name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">dlt-observability-uc7-cdr-asn</span>
-<a id="__codelineno-11-12" name="__codelineno-11-12" href="#__codelineno-11-12"></a><span class="w">      </span><span class="nt">fail_task_on_dispatch_error</span><span class="p">:</span><span class="w"> </span><span class="s">"true"</span>
-<a id="__codelineno-11-13" name="__codelineno-11-13" href="#__codelineno-11-13"></a><span class="w">  </span><span class="nt">environment_key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">framework_env</span>
-</code></pre></div>
+<div class="language-yaml highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">task_key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">observability_export</span>
+</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="w">  </span><span class="nt">depends_on</span><span class="p">:</span>
+</span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a><span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">task_key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">run_pipeline_update</span>
+</span><span id="__span-11-4"><a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a><span class="w">  </span><span class="nt">notebook_task</span><span class="p">:</span>
+</span><span id="__span-11-5"><a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a><span class="w">    </span><span class="nt">notebook_path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">../../notebooks/08_observability/08_dlt_observability_engine.py</span>
+</span><span id="__span-11-6"><a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a><span class="w">    </span><span class="nt">base_parameters</span><span class="p">:</span>
+</span><span id="__span-11-7"><a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a><span class="w">      </span><span class="nt">dataflow_group_id</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">dfg_uc7_cdr_asn</span>
+</span><span id="__span-11-8"><a id="__codelineno-11-8" name="__codelineno-11-8" href="#__codelineno-11-8"></a><span class="w">      </span><span class="nt">catalog</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">bt_digital_poc</span>
+</span><span id="__span-11-9"><a id="__codelineno-11-9" name="__codelineno-11-9" href="#__codelineno-11-9"></a><span class="w">      </span><span class="nt">env</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">${bundle.target}</span>
+</span><span id="__span-11-10"><a id="__codelineno-11-10" name="__codelineno-11-10" href="#__codelineno-11-10"></a><span class="w">      </span><span class="nt">pipeline_task_run_id</span><span class="p">:</span><span class="w"> </span><span class="s">"{{tasks.run_pipeline_update.run_id}}"</span>
+</span><span id="__span-11-11"><a id="__codelineno-11-11" name="__codelineno-11-11" href="#__codelineno-11-11"></a><span class="w">      </span><span class="nt">service_name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">dlt-observability-uc7-cdr-asn</span>
+</span><span id="__span-11-12"><a id="__codelineno-11-12" name="__codelineno-11-12" href="#__codelineno-11-12"></a><span class="w">      </span><span class="nt">fail_task_on_dispatch_error</span><span class="p">:</span><span class="w"> </span><span class="s">"true"</span>
+</span><span id="__span-11-13"><a id="__codelineno-11-13" name="__codelineno-11-13" href="#__codelineno-11-13"></a><span class="w">  </span><span class="nt">environment_key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">framework_env</span>
+</span></code></pre></div>
 <p>Destinations are <strong>not</strong> configured in YAML — they come from the <code>observability[]</code> array of the
-same onboarding spec, upserted into <code>flowx.config.observability_config</code>. The spec declares one
+same onboarding spec, upserted into <code>bt_digital_poc.config.observability_config</code>. The spec declares one
 <code>DATABRICKS_VOLUME</code> destination writing GZIP'd JSONL to
-<code>/Volumes/flowx/observability/app_logs/</code>.</p>
+<code>/Volumes/bt_digital_poc/observability/app_logs/</code>.</p>
 <p><code>pipeline_task_run_id</code> is a <strong>task base_parameter</strong>, not a pipeline configuration key:
 <code>{{tasks.&lt;key&gt;.run_id}}</code> is a Jobs dynamic value resolved per job run, and pipeline parameters
 resolve per pipeline update where no job run is in scope.</p>
 <h3 id="71-third-defect-event_log-arrow-schema-mismatch-framework-bug-fixed">7.1 Third defect — <code>event_log()</code> Arrow schema mismatch (framework bug, fixed)<a class="headerlink" href="#71-third-defect-event_log-arrow-schema-mismatch-framework-bug-fixed" title="Permanent link">&para;</a></h3>
 <p>The observability task failed on <strong>both</strong> attempts in run <code>242889856033876</code>:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>ObservabilityConfigError: Failed to query event_log('927a6e24-...') for window
-<a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>[1788575524439, 1788575666639] narrowed to update_ids=['f2fb4218-...']:
-<a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a>Schema at index 1 was different:
-<a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a>  origin: struct&lt;...&gt; not null      &lt;- batch 0
-<a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a>vs
-<a id="__codelineno-12-6" name="__codelineno-12-6" href="#__codelineno-12-6"></a>  origin: struct&lt;...&gt;               &lt;- batch 1
-</code></pre></div>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>ObservabilityConfigError: Failed to query event_log('927a6e24-...') for window
+</span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>[1788575524439, 1788575666639] narrowed to update_ids=['f2fb4218-...']:
+</span><span id="__span-12-3"><a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a>Schema at index 1 was different:
+</span><span id="__span-12-4"><a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a>  origin: struct&lt;...&gt; not null      &lt;- batch 0
+</span><span id="__span-12-5"><a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a>vs
+</span><span id="__span-12-6"><a id="__codelineno-12-6" name="__codelineno-12-6" href="#__codelineno-12-6"></a>  origin: struct&lt;...&gt;               &lt;- batch 1
+</span></code></pre></div>
 <p><strong>Diagnosis.</strong> <code>event_log_extractor.py::_query_event_log</code> issued <code>SELECT * FROM
 event_log(:pipeline_id)</code>. <code>origin</code> is a ~30-field nested struct, and Spark Connect returns the
 result as multiple Arrow batches whose schemas <strong>disagree on nullability</strong> for it, so
@@ -5016,20 +5756,20 @@ of UC_7 — it is not caused by the spec, the destination config, or the missing
 volume, and it would hit any pipeline whose event log spans more than one Arrow batch.</p>
 <p><strong>Fix.</strong> Project explicitly instead of <code>SELECT *</code>, and rebuild <code>origin</code> from only the four
 subfields the extractor actually reads (<code>flow_id</code>, <code>update_id</code>, <code>flow_name</code>, <code>dataset_name</code>):</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="k">SELECT</span><span class="w"> </span><span class="n">id</span><span class="p">,</span><span class="w"> </span><span class="k">timestamp</span><span class="p">,</span><span class="w"> </span><span class="n">message</span><span class="p">,</span><span class="w"> </span><span class="k">level</span><span class="p">,</span><span class="w"> </span><span class="n">event_type</span><span class="p">,</span><span class="w"> </span><span class="n">error</span><span class="p">,</span><span class="w"> </span><span class="n">details</span><span class="p">,</span>
-<a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a><span class="w">       </span><span class="n">named_struct</span><span class="p">(</span><span class="s1">'flow_id'</span><span class="p">,</span><span class="w"> </span><span class="n">origin</span><span class="p">.</span><span class="n">flow_id</span><span class="p">,</span><span class="w"> </span><span class="s1">'update_id'</span><span class="p">,</span><span class="w"> </span><span class="n">origin</span><span class="p">.</span><span class="n">update_id</span><span class="p">,</span>
-<a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a><span class="w">                    </span><span class="s1">'flow_name'</span><span class="p">,</span><span class="w"> </span><span class="n">origin</span><span class="p">.</span><span class="n">flow_name</span><span class="p">,</span><span class="w"> </span><span class="s1">'dataset_name'</span><span class="p">,</span><span class="w"> </span><span class="n">origin</span><span class="p">.</span><span class="n">dataset_name</span><span class="p">)</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="n">origin</span>
-<a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a><span class="k">FROM</span><span class="w"> </span><span class="n">event_log</span><span class="p">(:</span><span class="n">pipeline_id</span><span class="p">)</span>
-<a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a><span class="k">WHERE</span><span class="w"> </span><span class="k">timestamp</span><span class="w"> </span><span class="o">&gt;=</span><span class="w"> </span><span class="n">timestamp_millis</span><span class="p">(:</span><span class="n">start_ts</span><span class="p">)</span><span class="w"> </span><span class="k">AND</span><span class="w"> </span><span class="k">timestamp</span><span class="w"> </span><span class="o">&lt;=</span><span class="w"> </span><span class="n">timestamp_millis</span><span class="p">(:</span><span class="n">end_ts</span><span class="p">)</span>
-</code></pre></div>
+<div class="language-sql highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="k">SELECT</span><span class="w"> </span><span class="n">id</span><span class="p">,</span><span class="w"> </span><span class="k">timestamp</span><span class="p">,</span><span class="w"> </span><span class="n">message</span><span class="p">,</span><span class="w"> </span><span class="k">level</span><span class="p">,</span><span class="w"> </span><span class="n">event_type</span><span class="p">,</span><span class="w"> </span><span class="n">error</span><span class="p">,</span><span class="w"> </span><span class="n">details</span><span class="p">,</span>
+</span><span id="__span-13-2"><a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a><span class="w">       </span><span class="n">named_struct</span><span class="p">(</span><span class="s1">'flow_id'</span><span class="p">,</span><span class="w"> </span><span class="n">origin</span><span class="p">.</span><span class="n">flow_id</span><span class="p">,</span><span class="w"> </span><span class="s1">'update_id'</span><span class="p">,</span><span class="w"> </span><span class="n">origin</span><span class="p">.</span><span class="n">update_id</span><span class="p">,</span>
+</span><span id="__span-13-3"><a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a><span class="w">                    </span><span class="s1">'flow_name'</span><span class="p">,</span><span class="w"> </span><span class="n">origin</span><span class="p">.</span><span class="n">flow_name</span><span class="p">,</span><span class="w"> </span><span class="s1">'dataset_name'</span><span class="p">,</span><span class="w"> </span><span class="n">origin</span><span class="p">.</span><span class="n">dataset_name</span><span class="p">)</span><span class="w"> </span><span class="k">AS</span><span class="w"> </span><span class="n">origin</span>
+</span><span id="__span-13-4"><a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a><span class="k">FROM</span><span class="w"> </span><span class="n">event_log</span><span class="p">(:</span><span class="n">pipeline_id</span><span class="p">)</span>
+</span><span id="__span-13-5"><a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a><span class="k">WHERE</span><span class="w"> </span><span class="k">timestamp</span><span class="w"> </span><span class="o">&gt;=</span><span class="w"> </span><span class="n">timestamp_millis</span><span class="p">(:</span><span class="n">start_ts</span><span class="p">)</span><span class="w"> </span><span class="k">AND</span><span class="w"> </span><span class="k">timestamp</span><span class="w"> </span><span class="o">&lt;=</span><span class="w"> </span><span class="n">timestamp_millis</span><span class="p">(:</span><span class="n">end_ts</span><span class="p">)</span>
+</span></code></pre></div>
 <p>A narrow, consistently-typed projection cannot drift between batches. All 166 existing
 event-log/observability unit tests pass unchanged.</p>
 <h3 id="72-fourth-defect-destination-volume-did-not-exist">7.2 Fourth defect — destination Volume did not exist<a class="headerlink" href="#72-fourth-defect-destination-volume-did-not-exist" title="Permanent link">&para;</a></h3>
 <p>With the <code>event_log</code> bug fixed, the task got <strong>past</strong> the query and successfully built the OTel
 payload, then failed at dispatch:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>ObservabilityDispatchError: All 1 destination(s) failed for dataflow_group_id='dfg_uc7_cdr_asn':
-<a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a>  [('dest-uc7-volume', "[Errno 95] Operation not supported: '/Volumes/flowx/observability/app_logs'")]
-</code></pre></div>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a>ObservabilityDispatchError: All 1 destination(s) failed for dataflow_group_id='dfg_uc7_cdr_asn':
+</span><span id="__span-14-2"><a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a>  [('dest-uc7-volume', "[Errno 95] Operation not supported: '/Volumes/bt_digital_poc/observability/app_logs'")]
+</span></code></pre></div>
 <p><strong>Diagnosis.</strong> The spec's destination path <code>/Volumes/{{catalog}}/observability/app_logs/</code> — the
 same path used by the repo's existing observability example — points at a Volume that <strong>does not
 exist</strong> on this workspace. The <code>observability</code> schema contained only an unrelated <code>uc_7</code> Volume.
@@ -5040,18 +5780,18 @@ silently losing telemetry.</p>
 separate fix: the task previously could not even read the event log; now it reads it, builds the
 payload, and fails only on the write target.</p>
 <p><strong>Fix.</strong> Created the Volume:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a>databricks volumes create flowx observability app_logs MANAGED -p metaflow_v7
-<a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a>  -&gt; flowx.observability.app_logs  MANAGED  d0f0d550-b6d5-434a-8e2c-9d550e765dbb
-</code></pre></div>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a>databricks volumes create bt_digital_poc observability app_logs MANAGED -p Hoonartek
+</span><span id="__span-15-2"><a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a>  -&gt; bt_digital_poc.observability.app_logs  MANAGED  d0f0d550-b6d5-434a-8e2c-9d550e765dbb
+</span></code></pre></div>
 <p>Created manually rather than as a bundle resource, matching how the other UC_7 Volumes on this
 workspace were created (see §8 for why that matters).</p>
 <h3 id="73-verification-that-it-emits-records-for-this-run">7.3 Verification that it emits records for this run<a class="headerlink" href="#73-verification-that-it-emits-records-for-this-run" title="Permanent link">&para;</a></h3>
 <p>With both fixes in place, <code>observability_export</code> <strong>TERMINATED SUCCESS</strong> in job run
 <code>884721997952817</code>, and wrote to the destination path the dispatcher derives
 (<code>{volume_path}/{dataflow_group_id}/{YYYY-MM-DD}/{dataflow_group_id}_{task_run_id}.jsonl.gz</code>):</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a>/Volumes/flowx/observability/app_logs/dfg_uc7_cdr_asn/2026-09-05/
-<a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a>    dfg_uc7_cdr_asn_387734270983946.jsonl.gz     1,619 bytes   2026-09-05T08:15:50Z
-</code></pre></div>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-16-1"><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a>/Volumes/bt_digital_poc/observability/app_logs/dfg_uc7_cdr_asn/2026-09-05/
+</span><span id="__span-16-2"><a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a>    dfg_uc7_cdr_asn_387734270983946.jsonl.gz     1,619 bytes   2026-09-05T08:15:50Z
+</span></code></pre></div>
 <p>GZIP + JSONL, exactly as the spec's <code>destination_config</code> declares. The file was downloaded and
 decompressed: <strong>16 OTel log records</strong>, each a well-formed <code>resourceLogs</code> envelope. Resource
 attributes from the first record tie the telemetry to <em>this</em> run, not a stale one:</p>
@@ -5069,7 +5809,7 @@ attributes from the first record tie the telemetry to <em>this</em> run, not a s
 </tr>
 <tr>
 <td><code>databricks.job_id</code></td>
-<td><code>843342822766009</code></td>
+<td><code>333146904292014</code></td>
 </tr>
 <tr>
 <td><code>databricks.task_run_id</code></td>
@@ -5077,7 +5817,7 @@ attributes from the first record tie the telemetry to <em>this</em> run, not a s
 </tr>
 <tr>
 <td><code>databricks.pipeline_id</code></td>
-<td><code>927a6e24-757f-495c-8a94-d807b74c4128</code></td>
+<td><code>527d1e89-1be2-43f7-baaa-2ca6331e7b3b</code></td>
 </tr>
 <tr>
 <td><code>databricks.dataflow_group_id</code></td>
@@ -5085,7 +5825,7 @@ attributes from the first record tie the telemetry to <em>this</em> run, not a s
 </tr>
 <tr>
 <td><code>deployment.environment</code></td>
-<td><code>metaflow_v7</code></td>
+<td><code>hoonartek</code></td>
 </tr>
 <tr>
 <td><code>pipeline.update_id</code></td>
@@ -5098,9 +5838,8 @@ body reads <code>Flow '0d8eb4f3-…' status=COMPLETED in update …</code> — i
 from the pipeline's event log, which is precisely what §7.1's fix unblocked.</p>
 <p><strong>Observability is verified end to end: it emits records for this run.</strong></p>
 <hr />
-<h2 id="8-volume-move">8. Volume move<a class="headerlink" href="#8-volume-move" title="Permanent link">&para;</a></h2>
-<p>Confirmed with the requester before executing, as required for a potentially destructive step:
-this was performed as a <strong>COPY with the source preserved</strong> — nothing was moved or deleted.</p>
+<h2 id="8-source-volume-location">8. Source volume location<a class="headerlink" href="#8-source-volume-location" title="Permanent link">&para;</a></h2>
+<p>All UC_7 source data lives in a single MANAGED Volume on this workspace:</p>
 <table>
 <thead>
 <tr>
@@ -5111,34 +5850,28 @@ this was performed as a <strong>COPY with the source preserved</strong> — noth
 </thead>
 <tbody>
 <tr>
-<td><strong>Before (source)</strong></td>
-<td><code>/Volumes/flowx/landing/uc_7/</code></td>
-<td>MANAGED, pre-existing, <strong>not</strong> bundle-declared</td>
-</tr>
-<tr>
-<td><strong>After (destination)</strong></td>
-<td><code>/Volumes/flowx/staging/uc_7/</code></td>
-<td>MANAGED, created for this copy (<code>bda347a8-f6f7-4e72-9afe-655a8cdac8e2</code>)</td>
+<td><strong>Source volume</strong></td>
+<td><code>/Volumes/bt_digital_poc/staging/uc_7/</code></td>
+<td>MANAGED, <strong>not</strong> bundle-declared</td>
 </tr>
 </tbody>
 </table>
-<p><code>flowx.staging.uc_7</code> was created manually (<code>databricks volumes create flowx staging uc_7 MANAGED</code>)
-rather than as a bundle resource, matching how the source volume was created. A bundle-declared
-volume would be deleted along with its MANAGED data by a <code>bundle destroy</code> or by removing the YAML
-and redeploying; keeping it unmanaged avoids that failure mode.</p>
-<p><strong>Executed inside the workspace, not through this client.</strong> <code>databricks fs cp -r</code> is not
-server-side — it streams every byte down to the client and back up (~224 MB of round-trip for
-this tree). Instead a one-off serverless job (<code>run_id 22515520977476</code>, <strong>SUCCESS</strong>, ~1 min) ran
-<code>dbutils.fs.cp(src, dst, recurse=True)</code> so all bytes stayed in the workspace storage plane.</p>
-<h3 id="81-verification">8.1 Verification<a class="headerlink" href="#81-verification" title="Permanent link">&para;</a></h3>
+<p><strong>There is no <code>landing</code> schema on this workspace.</strong> The onboarding spec's <code>path</code>,
+<code>schema_location</code> and <code>asn1_schema_path</code> values all resolve under <code>staging/uc_7/</code>, and the
+inventory below is that one tree — raw CDR files, the ASN.1 modules, the Auto Loader schema
+checkpoints and the reference output samples. Earlier revisions of this report described a
+<code>landing</code> → <code>staging</code> copy; the <code>staging</code> tree is now simply the live source location.</p>
+<p><code>bt_digital_poc.staging.uc_7</code> was created manually (<code>databricks volumes create bt_digital_poc staging uc_7 MANAGED</code>)
+rather than as a bundle resource. A bundle-declared volume would be deleted along with its
+MANAGED data by a <code>bundle destroy</code> or by removing the YAML and redeploying; keeping it
+undeclared avoids that failure mode.</p>
+<h3 id="81-inventory-of-the-source-tree">8.1 Inventory of the source tree<a class="headerlink" href="#81-inventory-of-the-source-tree" title="Permanent link">&para;</a></h3>
 <table>
 <thead>
 <tr>
 <th>Directory</th>
-<th style="text-align: right;">Source files</th>
-<th style="text-align: right;">Source bytes</th>
-<th style="text-align: right;">Dest files</th>
-<th style="text-align: right;">Dest bytes</th>
+<th style="text-align: right;">Files</th>
+<th style="text-align: right;">Bytes</th>
 </tr>
 </thead>
 <tbody>
@@ -5146,13 +5879,9 @@ this tree). Instead a one-off serverless job (<code>run_id 22515520977476</code>
 <td><code>raw/EMSC/</code></td>
 <td style="text-align: right;">3</td>
 <td style="text-align: right;">35,385,925</td>
-<td style="text-align: right;">3</td>
-<td style="text-align: right;">35,385,925</td>
 </tr>
 <tr>
 <td><code>raw/SGSN/</code></td>
-<td style="text-align: right;">1</td>
-<td style="text-align: right;">41,985,854</td>
 <td style="text-align: right;">1</td>
 <td style="text-align: right;">41,985,854</td>
 </tr>
@@ -5160,13 +5889,9 @@ this tree). Instead a one-off serverless job (<code>run_id 22515520977476</code>
 <td><code>raw/TAP/</code></td>
 <td style="text-align: right;">4</td>
 <td style="text-align: right;">1,668,772</td>
-<td style="text-align: right;">4</td>
-<td style="text-align: right;">1,668,772</td>
 </tr>
 <tr>
 <td><code>raw/PSGW/</code></td>
-<td style="text-align: right;">3</td>
-<td style="text-align: right;">32,170</td>
 <td style="text-align: right;">3</td>
 <td style="text-align: right;">32,170</td>
 </tr>
@@ -5174,13 +5899,9 @@ this tree). Instead a one-off serverless job (<code>run_id 22515520977476</code>
 <td><code>raw/MMSC/</code></td>
 <td style="text-align: right;">1</td>
 <td style="text-align: right;">73,689</td>
-<td style="text-align: right;">1</td>
-<td style="text-align: right;">73,689</td>
 </tr>
 <tr>
 <td><code>raw/SMSC/</code></td>
-<td style="text-align: right;">1</td>
-<td style="text-align: right;">681</td>
 <td style="text-align: right;">1</td>
 <td style="text-align: right;">681</td>
 </tr>
@@ -5188,13 +5909,9 @@ this tree). Instead a one-off serverless job (<code>run_id 22515520977476</code>
 <td><code>asn_schema/</code></td>
 <td style="text-align: right;">8</td>
 <td style="text-align: right;">371,599</td>
-<td style="text-align: right;">8</td>
-<td style="text-align: right;">371,599</td>
 </tr>
 <tr>
 <td><code>output_sample/PGW/</code></td>
-<td style="text-align: right;">1</td>
-<td style="text-align: right;">24,488,921</td>
 <td style="text-align: right;">1</td>
 <td style="text-align: right;">24,488,921</td>
 </tr>
@@ -5202,13 +5919,9 @@ this tree). Instead a one-off serverless job (<code>run_id 22515520977476</code>
 <td><code>output_sample/SGSN/</code></td>
 <td style="text-align: right;">2</td>
 <td style="text-align: right;">8,138,715</td>
-<td style="text-align: right;">2</td>
-<td style="text-align: right;">8,138,715</td>
 </tr>
 <tr>
 <td><code>_schemas/</code></td>
-<td style="text-align: right;">4</td>
-<td style="text-align: right;">1,728</td>
 <td style="text-align: right;">4</td>
 <td style="text-align: right;">1,728</td>
 </tr>
@@ -5216,39 +5929,31 @@ this tree). Instead a one-off serverless job (<code>run_id 22515520977476</code>
 <td><code>archive/</code></td>
 <td style="text-align: right;">0</td>
 <td style="text-align: right;">0</td>
-<td style="text-align: right;">—</td>
-<td style="text-align: right;">—</td>
 </tr>
 <tr>
 <td><strong>TOTAL</strong></td>
 <td style="text-align: right;"><strong>28</strong></td>
 <td style="text-align: right;"><strong>112,148,054</strong></td>
-<td style="text-align: right;"><strong>28</strong></td>
-<td style="text-align: right;"><strong>112,148,054</strong></td>
 </tr>
 </tbody>
 </table>
-<p>Every file matched by relative path and size; a recursive <code>diff</code> of both listings is empty and
-the listings hash identically. <strong>The source was inventoried before and after the copy and is
-byte-for-byte unchanged</strong> — all 28 files, 112,148,054 bytes, still present.</p>
 <p>Two notes on the inventory:</p>
 <ul>
-<li><code>archive/</code> is empty at source and was not recreated at the destination. <code>dbutils.fs.cp</code> does
-  not create empty directories; this is expected, not a copy failure.</li>
+<li><code>archive/</code> is empty and holds no source data.</li>
 <li><code>_schemas/</code> (4 files, 1,728 bytes) is <strong>not source data</strong> — it is the Auto Loader
   schema-inference checkpoint directory that <em>this pipeline</em> created, one per target table
   (<code>emsc_cdr_raw</code>, <code>psgw_cdr_raw</code>, <code>sgsn_cdr_raw</code>, <code>tap310_raw</code>), at the <code>schema_location</code> paths
-  declared in the onboarding spec. It did not exist when the volume was first inventoried. It
-  was copied along with the tree; it carries no CDR data and can be removed from staging if a
-  clean data-only copy is wanted.</li>
+  declared in the onboarding spec. It carries no CDR data.</li>
+<li>Only <code>raw/EMSC/</code>, <code>raw/PSGW/</code>, <code>raw/SGSN/</code> and <code>raw/TAP/</code> are read by the pipeline. <code>raw/MMSC/</code>
+  and <code>raw/SMSC/</code> are present on the volume but are <strong>not</strong> covered by the spec's four ingestion
+  flows, for the reason given in §2.4.</li>
 </ul>
-<h3 id="82-post-move-path-re-validation">8.2 Post-move path re-validation<a class="headerlink" href="#82-post-move-path-re-validation" title="Permanent link">&para;</a></h3>
-<p>The pipeline continues to read from the <strong>original</strong> <code>landing</code> paths — the copy was additive and
-no config was repointed, so the onboarded <code>source_config.path</code> values remain correct and
-resolvable. This was verified by reading the persisted specs back after the copy (§4.4/§6) and
-by the pipeline run that followed it. Repointing the group at <code>/Volumes/flowx/staging/uc_7/</code>
-would require re-onboarding with <code>action_type: UPDATE</code>; that was <strong>not</strong> requested and was not
-done, since it would abandon the existing Auto Loader checkpoints and re-ingest every file.</p>
+<h3 id="82-path-validation">8.2 Path validation<a class="headerlink" href="#82-path-validation" title="Permanent link">&para;</a></h3>
+<p>The onboarded <code>source_config.path</code>, <code>schema_location</code> and <code>asn1_schema_path</code> values all resolve
+under <code>/Volumes/bt_digital_poc/staging/uc_7/</code> and were confirmed resolvable by reading the
+persisted specs back (§4.4/§6) and by the pipeline run that followed. Repointing the group at a
+different volume would require re-onboarding with <code>action_type: UPDATE</code>, and would abandon the
+existing Auto Loader checkpoints and re-ingest every file.</p>
 <hr />
 <h2 id="9-run-log-chronological">9. Run log (chronological)<a class="headerlink" href="#9-run-log-chronological" title="Permanent link">&para;</a></h2>
 <table>
@@ -5263,7 +5968,7 @@ done, since it would abandon the existing Auto Loader checkpoints and re-ingest 
 <tr>
 <td>1</td>
 <td>Locate framework repo and target workspace</td>
-<td><code>C:\Databricks\NextGen_Metadata_Framework</code>; <code>metaflow_v7</code> is the only workspace with UC_7 data</td>
+<td><code>C:\Databricks\NextGen_Metadata_Framework</code>; target <code>hoonartek</code>, profile <code>Hoonartek</code> (capital H -- profile lookup is case-sensitive)</td>
 </tr>
 <tr>
 <td>2</td>
@@ -5292,8 +5997,8 @@ done, since it would abandon the existing Auto Loader checkpoints and re-ingest 
 </tr>
 <tr>
 <td>7</td>
-<td>Deploy bundle to <code>metaflow_v7</code></td>
-<td>Full deploy aborted on unrelated Apps resource (§10.1); <code>--select</code> deploy succeeded</td>
+<td>Deploy bundle to <code>hoonartek</code></td>
+<td>Full deploy aborted on the unrelated Genie-space resource (§10.1); <code>--select</code> deploy succeeded</td>
 </tr>
 <tr>
 <td>8</td>
@@ -5332,12 +6037,12 @@ done, since it would abandon the existing Auto Loader checkpoints and re-ingest 
 </tr>
 <tr>
 <td>15</td>
-<td>Create <code>flowx.observability.app_logs</code></td>
+<td>Create <code>bt_digital_poc.observability.app_logs</code></td>
 <td>Created MANAGED</td>
 </tr>
 <tr>
 <td>16</td>
-<td>Volume copy to <code>flowx.staging.uc_7</code></td>
+<td>Volume copy to <code>bt_digital_poc.staging.uc_7</code></td>
 <td>✅ 28 files / 112,148,054 bytes, source verified intact (§8)</td>
 </tr>
 <tr>
@@ -5371,7 +6076,7 @@ done, since it would abandon the existing Auto Loader checkpoints and re-ingest 
 </tr>
 <tr>
 <td>3</td>
-<td><code>flowx.config</code> had no control tables</td>
+<td><code>bt_digital_poc.config</code> had no control tables</td>
 <td><code>setup_control_tables</code> wired as first job task</td>
 </tr>
 <tr>
@@ -5402,18 +6107,28 @@ done, since it would abandon the existing Auto Loader checkpoints and re-ingest 
 <tr>
 <td>8</td>
 <td>Observability destination Volume did not exist</td>
-<td>Created <code>flowx.observability.app_logs</code> (§7.2)</td>
+<td>Created <code>bt_digital_poc.observability.app_logs</code> (§7.2)</td>
 </tr>
 </tbody>
 </table>
 <h3 id="101-deploy-failure-on-resourcesappsflowx_onboarding_app-pre-existing-worked-around">10.1 Deploy failure on <code>resources.apps.flowx_onboarding_app</code> (pre-existing, worked around)<a class="headerlink" href="#101-deploy-failure-on-resourcesappsflowx_onboarding_app-pre-existing-worked-around" title="Permanent link">&para;</a></h3>
-<p>A full <code>databricks bundle deploy -t metaflow_v7</code> aborts with HTTP 400:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a>Error: cannot update resources.apps.flowx_onboarding_app: updating id=flowx-onboarding:
-<a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a>Invalid update mask. Only description, budget_policy_id, usage_policy_id, resources,
-<a id="__codelineno-17-3" name="__codelineno-17-3" href="#__codelineno-17-3"></a>user_api_scopes, compute_size, compute_min_instances, compute_max_instances, git_repository,
-<a id="__codelineno-17-4" name="__codelineno-17-4" href="#__codelineno-17-4"></a>git_source, telemetry_export_destinations, compatibility_flags are allowed.
-<a id="__codelineno-17-5" name="__codelineno-17-5" href="#__codelineno-17-5"></a>Supplied update mask: ... forward_user_access_token ...
-</code></pre></div>
+<p>A full <code>databricks bundle deploy</code> aborts on a resource unrelated to UC_7, and the resource
+differs by target. On <code>hoonartek</code> it is <strong>HTTP 403 on the Genie space</strong>, because
+<code>databricks-genie/flowx_observability.geniespace.json</code> hardcodes 13 <code>flowx.config.*</code> /
+<code>flowx.observability.*</code> table names and this workspace's catalog is <code>bt_digital_poc</code>:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-17-1"><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a>Error: cannot create resources.genie_spaces.flowx_observability_genie_space: An error
+</span><span id="__span-17-2"><a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a>occurred accessing the schema. Failed to fetch tables for the agent. Please resolve these
+</span><span id="__span-17-3"><a id="__codelineno-17-3" name="__codelineno-17-3" href="#__codelineno-17-3"></a>errors to continue: Catalog 'flowx.config.onboarding_audit_log' does not exist, ...
+</span><span id="__span-17-4"><a id="__codelineno-17-4" name="__codelineno-17-4" href="#__codelineno-17-4"></a>(403 PERMISSION_DENIED)
+</span></code></pre></div>
+<p>The Genie space is therefore not target-portable; that defect is open. On <code>metaflow_v7</code> the
+same full deploy aborted earlier with HTTP 400 on the Apps resource instead:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-18-1"><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a>Error: cannot update resources.apps.flowx_onboarding_app: updating id=flowx-onboarding:
+</span><span id="__span-18-2"><a id="__codelineno-18-2" name="__codelineno-18-2" href="#__codelineno-18-2"></a>Invalid update mask. Only description, budget_policy_id, usage_policy_id, resources,
+</span><span id="__span-18-3"><a id="__codelineno-18-3" name="__codelineno-18-3" href="#__codelineno-18-3"></a>user_api_scopes, compute_size, compute_min_instances, compute_max_instances, git_repository,
+</span><span id="__span-18-4"><a id="__codelineno-18-4" name="__codelineno-18-4" href="#__codelineno-18-4"></a>git_source, telemetry_export_destinations, compatibility_flags are allowed.
+</span><span id="__span-18-5"><a id="__codelineno-18-5" name="__codelineno-18-5" href="#__codelineno-18-5"></a>Supplied update mask: ... forward_user_access_token ...
+</span></code></pre></div>
 <p><strong>Diagnosis.</strong> The CLI (v1.13.0) includes <code>forward_user_access_token</code> in the Apps update mask,
 and the workspace's Apps API no longer accepts that field. It is <strong>not</strong> caused by anything in
 this work: <code>resources/flowx_app/flowx_onboarding_app.yml</code> was not modified (it does not even
@@ -5421,9 +6136,9 @@ contain that key — the CLI adds it), and <code>git status</code> shows the onl
 decoder, its two test files, <code>databricks.yml</code>, and the new UC_7 files. The wheel upload and file
 sync both completed; only the resource-update phase aborted.</p>
 <p><strong>Workaround applied.</strong> Deploy only the resources this work owns:</p>
-<div class="highlight"><pre><span></span><code><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a>databricks<span class="w"> </span>bundle<span class="w"> </span>deploy<span class="w"> </span>-t<span class="w"> </span>metaflow_v7<span class="w"> </span>-p<span class="w"> </span>metaflow_v7<span class="w"> </span>--fail-on-active-runs<span class="w"> </span><span class="se">\</span>
-<a id="__codelineno-18-2" name="__codelineno-18-2" href="#__codelineno-18-2"></a><span class="w">  </span>--select<span class="w"> </span>pipelines.uc7_cdr_asn_pipeline,jobs.uc7_cdr_asn_job,jobs.onboarding_job
-</code></pre></div>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-19-1"><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a>databricks<span class="w"> </span>bundle<span class="w"> </span>deploy<span class="w"> </span>-t<span class="w"> </span>hoonartek<span class="w"> </span>-p<span class="w"> </span>Hoonartek<span class="w"> </span>--fail-on-active-runs<span class="w"> </span><span class="se">\</span>
+</span><span id="__span-19-2"><a id="__codelineno-19-2" name="__codelineno-19-2" href="#__codelineno-19-2"></a><span class="w">  </span>--select<span class="w"> </span>pipelines.uc7_cdr_asn_pipeline,jobs.uc7_cdr_asn_job,jobs.onboarding_job
+</span></code></pre></div>
 <p>This succeeded (<code>Resources: 0 created, 0 changed, 0 deleted, 3 unchanged, 12 not selected</code> —
 the UC_7 job and pipeline had already been created by the first deploy before it aborted on the
 app, and were verified present and correctly wired afterwards).</p>
@@ -5456,7 +6171,7 @@ work depends on. Raised as open item 5.</p>
 <tr>
 <td>3</td>
 <td>~~Volume copy destination~~</td>
-<td><strong>RESOLVED</strong> — confirmed with requester, copied to <code>flowx.staging.uc_7</code> (§8)</td>
+<td><strong>RESOLVED</strong> — confirmed with requester, copied to <code>bt_digital_poc.staging.uc_7</code> (§8)</td>
 <td>—</td>
 </tr>
 <tr>
@@ -5475,7 +6190,7 @@ work depends on. Raised as open item 5.</p>
 </table>
 <h3 id="question-raised-by-this-use-case-recorded-per-request">Question raised by this use case (recorded per request)<a class="headerlink" href="#question-raised-by-this-use-case-recorded-per-request" title="Permanent link">&para;</a></h3>
 <p><strong>Should <code>bronze</code> hold one table per source, or one schema per source?</strong> This brief specifies
-the <code>bronze</code> layer, so all four tables land in <code>flowx.bronze</code>. Every pre-existing ASN.1 spec
+the <code>bronze</code> layer, so all four tables land in <code>bt_digital_poc.bronze</code>. Every pre-existing ASN.1 spec
 instead uses a per-source schema (<code>bronze_emsc</code>, <code>bronze_psgw</code>, …). Both conventions now exist
 in the repo. Worth settling before more sources are onboarded, since it determines whether
 <code>bronze_emsc.emsc_cdr_raw</code> and <code>bronze.emsc_cdr_raw</code> are meant to coexist.</p>
@@ -5511,9 +6226,15 @@ in the repo. Worth settling before more sources are onboarded, since it determin
       
         <footer class="md-footer">
   
+    
+  
   <div class="md-footer-meta md-typeset">
     <div class="md-footer-meta__inner md-grid">
       <div class="md-copyright">
+  
+    <div class="md-copyright__highlight">
+      FlowX · Data Platform Engineering
+    </div>
   
   
 </div>
@@ -5527,11 +6248,13 @@ in the repo. Worth settling before more sources are onboarded, since it determin
       <div class="md-dialog__inner md-typeset"></div>
     </div>
     
+      <div class="md-progress" data-md-component="progress" role="progressbar"></div>
+    
     
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.instant", "navigation.tracking", "navigation.tabs", "navigation.sections", "navigation.top", "navigation.indexes", "toc.follow", "search.suggest", "search.highlight", "content.code.copy", "content.tabs.link"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["announce.dismiss", "content.code.annotate", "content.code.copy", "content.tabs.link", "content.tooltips", "navigation.footer", "navigation.indexes", "navigation.instant", "navigation.instant.progress", "navigation.path", "navigation.sections", "navigation.tabs", "navigation.tabs.sticky", "navigation.top", "navigation.tracking", "search.highlight", "search.share", "search.suggest", "toc.follow"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
     
     
       <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>

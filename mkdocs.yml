@@ -1,48 +1,78 @@
 site_name: FlowX
 site_description: >-
   Metadata-driven ingestion, transformation, reconciliation and observability
-  pipelines on Databricks Lakeflow — architecture, attribute reference, onboarding
-  guides and operational runbooks.
+  pipelines on Databricks Lakeflow — platform hub, four framework pillars, console
+  walkthroughs, the master configuration reference and operational runbooks.
 site_author: Data Platform Engineering
+repo_url: https://github.com/Madhan-RAGHU/NextGen_Metadata_Framework
+repo_name: NextGen_Metadata_Framework
+edit_uri: edit/main/docs/
+copyright: FlowX · Data Platform Engineering
 
 docs_dir: docs
 site_dir: site
 
 # ── Theme ────────────────────────────────────────────────────────────────────
-# Material is optional. If it is not installed, `mkdocs build` falls back with a
-# clear error naming the missing package; install with:
-#   pip install mkdocs mkdocs-material
+# Material for MkDocs. Pinned versions live in docs/requirements.txt:
+#   pip install -r docs/requirements.txt
 theme:
   name: material
+  language: en
+  icon:
+    logo: material/transit-connection-variant
+    repo: fontawesome/brands/github
+    admonition:
+      abstract: material/link-variant
+      example: material/code-json
+  # No Google Fonts: the site is also served from inside the Databricks App at /docs,
+  # where an external font fetch is a hard dependency the page must not have.
+  font: false
   features:
-    - navigation.instant
-    - navigation.tracking
-    - navigation.tabs
-    - navigation.sections
-    - navigation.top
-    - navigation.indexes
-    - toc.follow
-    - search.suggest
-    - search.highlight
+    - announce.dismiss
+    - content.code.annotate
     - content.code.copy
     - content.tabs.link
+    - content.tooltips
+    - navigation.footer
+    - navigation.indexes
+    - navigation.instant
+    - navigation.instant.progress
+    - navigation.path
+    - navigation.sections
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.top
+    - navigation.tracking
+    - search.highlight
+    - search.share
+    - search.suggest
+    - toc.follow
   palette:
+    - media: "(prefers-color-scheme)"
+      toggle:
+        icon: material/brightness-auto
+        name: Switch to light mode
     - media: "(prefers-color-scheme: light)"
       scheme: default
       primary: indigo
-      accent: indigo
+      accent: deep orange
       toggle:
         icon: material/weather-night
         name: Switch to dark mode
     - media: "(prefers-color-scheme: dark)"
       scheme: slate
       primary: indigo
-      accent: indigo
+      accent: deep orange
       toggle:
         icon: material/weather-sunny
-        name: Switch to light mode
+        name: Switch to system preference
 
+extra_css:
+  - stylesheets/extra.css
+
+# ── Markdown ─────────────────────────────────────────────────────────────────
 markdown_extensions:
+  - abbr
   - admonition
   - attr_list
   - def_list
@@ -53,29 +83,58 @@ markdown_extensions:
       permalink: true
       toc_depth: 3
   - pymdownx.details
-  - pymdownx.superfences
-  - pymdownx.tabbed:
-      alternate_style: true
   - pymdownx.highlight:
       anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
   - pymdownx.inlinehilite
+  - pymdownx.keys
+  - pymdownx.mark
   - pymdownx.snippets
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:
+      alternate_style: true
+      slugify: !!python/object/apply:pymdownx.slugs.slugify
+        kwds:
+          case: lower
+  - pymdownx.tasklist:
+      custom_checkbox: true
   - pymdownx.emoji:
       emoji_index: !!python/name:material.extensions.emoji.twemoji
       emoji_generator: !!python/name:material.extensions.emoji.to_svg
 
+# ── Plugins & hooks ──────────────────────────────────────────────────────────
 plugins:
-  - search
+  - search:
+      # Split on snake_case, dotted paths and camelCase so `source_config.schema_location`
+      # is findable by any of its parts.
+      separator: '[\s\-,:!=\[\]()"`/]+|\.(?!\d)|&[lg]t;|(?!\b)(?=[A-Z][a-z])|_'
+  # Optional plugins, not installed by default. Uncomment after `pip install <name>`:
+  #   - mkdocstrings:            # live docstring rendering (the AST-based code reference in
+  #       handlers:              # reference/code/ already covers signatures without a Spark import)
+  #         python:
+  #           options: { show_source: false }
+  #   - git-revision-date-localized: { enable_creation_date: true }
+  #   - minify: { minify_html: true }
+
+# scripts/mkdocs_hooks.py regenerates docs/reference/** on every `mkdocs build` so the
+# reference cannot drift from registry.js / the JSON schema / spec_validator.py.
+hooks:
+  - scripts/mkdocs_hooks.py
 
 # `archive/` and `architecture_review/` are NOT living documentation, but they are
 # built and navigable so the wiki is a complete account of the framework rather
 # than onboarding-only. Each is labelled in the nav and carries a banner saying so.
-# Only genuinely non-documentation files stay excluded.
 exclude_docs: |
   CODEBASE_CLEANUP_MANIFEST.md
   README.md
+  requirements.txt
 
-# The archive's 68 pages are reached from docs/archive/index.md (generated by
+# The archive's pages are reached from docs/archive/index.md (generated by
 # scripts/build_app_docs.py) rather than listed individually in the sidebar.
 validation:
   nav:
@@ -83,9 +142,15 @@ validation:
   links:
     anchors: warn
 
+extra:
+  generator: false
+  status:
+    new: Recently added
+    deprecated: Removed from the spec
+
 # ── Navigation ───────────────────────────────────────────────────────────────
-# One tab per audience journey: arrive, learn the platform, author a spec,
-# operate it, look something up.
+# One tab per audience journey: arrive · get started · learn a pillar · operate the
+# console · look up configuration · understand the architecture · read the code · get help.
 nav:
   - Home: index.md
 
@@ -104,6 +169,40 @@ nav:
           - 6 · BT Digital POC deployment issues: onboarding/06_bt_digital_poc_deployment_issues.md
       - Going further:
           - Developer guide & recipes: 09_developer_guide_and_recipes.md
+          - Use case implementation guide: 16_usecase_implementation_guide.md
+
+  - Pillars:
+      - Overview: pillars/index.md
+      - 1 · Ingestion: pillars/ingestion.md
+      - 2 · Transformation: pillars/transformation.md
+      - 3 · Reconciliation: pillars/reconciliation.md
+      - 4 · Observability: pillars/observability.md
+
+  - Console:
+      - Overview: console/index.md
+      - Spec Builder app · tab by tab: console/spec_builder.md
+      - Observability dashboard: console/observability_dashboard.md
+      - Control metadata dashboard: console/control_dashboard.md
+      - Genie space: console/genie.md
+      - Agent skills & tools: console/agent_skills.md
+
+  - Configuration:
+      - Master reference: reference/json/index.md
+      - Spec tree view: reference/json/tree.md
+      - Spec document:
+          - Spec root: reference/json/root.md
+          - Ingestion flows: reference/json/ingestion.md
+          - Transformation flows: reference/json/transformation.md
+          - Reconciliation flows: reference/json/reconciliation.md
+          - Observability: reference/json/observability.md
+      - Shared blocks:
+          - CDC / load strategy: reference/json/ingestion-transformation.md
+          - Other shared attributes: reference/json/other.md
+      - Removed & rejected attributes: reference/json/removed.md
+      - Docs ↔ code synchronisation: reference/sync.md
+      - Full attribute dictionary: 00_master_reference_index.md
+      - Onboarding restrictions & validation rules: 14_onboarding_restrictions_and_validation_rules.md
+      - v1.4.0 attribute delta: v1.4.0_attribute_delta.md
 
   - Architecture:
       - Platform architecture & core concepts: 01_platform_architecture.md
@@ -120,21 +219,6 @@ nav:
       - Design guarantees:
           - Deterministic hashing standard: 11_hashing_and_determinism.md
           - Module permutation matrix: 12_module_permutation_matrix.md
-
-  - JSON reference:
-      - Overview: reference/json/index.md
-      - Spec document:
-          - Spec root: reference/json/root.md
-          - Ingestion flows: reference/json/ingestion.md
-          - Transformation flows: reference/json/transformation.md
-          - Reconciliation flows: reference/json/reconciliation.md
-          - Observability: reference/json/observability.md
-      - Shared blocks:
-          - CDC / load strategy: reference/json/ingestion-transformation.md
-          - Other shared attributes: reference/json/other.md
-      - Full attribute dictionary: 00_master_reference_index.md
-      - Onboarding restrictions & validation rules: 14_onboarding_restrictions_and_validation_rules.md
-      - v1.4.0 attribute delta: v1.4.0_attribute_delta.md
 
   - Code reference:
       - Overview: reference/code/index.md
@@ -161,14 +245,14 @@ nav:
   - Help:
       - FAQ: faq.md
       - Multi-role FAQs: 10_multi_role_faqs.md
-      - Use case implementation guide: 16_usecase_implementation_guide.md
-      - UC3 Excalibur master document: UC3/UC3_MASTER_DOCUMENT.md
-      - UC6 Flood Warning master document: UC6/UC6_MASTER_DOCUMENT.md
-      - UC7 CDR ASN.1 master document: UC7/UC7_MASTER_DOCUMENT.md
-      - UC7 CDR ASN.1 plain-English guide: UC7/UC7_PLAIN_ENGLISH_GUIDE.md
-      - UC7 CDR ASN.1 analysis and join guide: UC7/UC7_ANALYSIS_AND_JOIN_GUIDE.md
-      - Agent skills & prompt library: 15_agent_skills_and_prompts.md
       - Known limitations & gotchas: 13_known_limitations_and_gotchas.md
+      - Agent skills & prompt library: 15_agent_skills_and_prompts.md
+      - Use cases:
+          - UC3 Excalibur master document: UC3/UC3_MASTER_DOCUMENT.md
+          - UC6 Flood Warning master document: UC6/UC6_MASTER_DOCUMENT.md
+          - UC7 CDR ASN.1 master document: UC7/UC7_MASTER_DOCUMENT.md
+          - UC7 CDR ASN.1 plain-English guide: UC7/UC7_PLAIN_ENGLISH_GUIDE.md
+          - UC7 CDR ASN.1 analysis and join guide: UC7/UC7_ANALYSIS_AND_JOIN_GUIDE.md
 
   - Project record:
       - Architecture review (Aug 2026 audit):
@@ -182,6 +266,3 @@ nav:
           - Code structure & future proofing: architecture_review/07_code_structure_extensibility_and_future_proofing.md
           - Control metadata & onboarding audit: architecture_review/08_control_metadata_schema_and_onboarding_audit.md
       - Archive (superseded): archive/index.md
-
-extra:
-  generator: false

@@ -104,7 +104,7 @@ also means there is no removal to reject, and no attribute delta document for th
                     ▼               ▼              ▼
         ┌───────────────────┐ ┌───────────┐ ┌─────────────────────┐
         │  AI/BI dashboard  │ │  Genie    │ │ Documentation job   │
-        │  9 pages, 103     │ │  space    │ │ one Markdown design │
+        │  10 pages, 116    │ │  space    │ │ one Markdown design │
         │  widgets          │ │  (Q&A)    │ │ doc per group       │
         └───────────────────┘ └───────────┘ └─────────────────────┘
               ↑ plus per-pipeline UC EVENT LOG tables, for per-flow rows and DQ results
@@ -457,8 +457,8 @@ an operator acts on.
 ## 5. The AI/BI dashboard
 
 `databricks-bi/flowx_observability_dashboard.lvdash.json`, deployed by
-`resources/flowx_bi/flowx_observability_dashboard.yml`: **13 datasets, 9 pages, 103 widgets,
-15 charts.**
+`resources/flowx_bi/flowx_observability_dashboard.yml`: **15 datasets, 10 pages, 116 widgets,
+21 charts.**
 
 | Page | Datasets | What it answers |
 |---|---|---|
@@ -470,6 +470,7 @@ an operator acts on.
 | **Framework & Lineage** | `flow_inventory`, `lineage` | Flows per group by kind, load strategies in use, a **sankey** of source→target flow, and the full flow inventory. |
 | **AI Forecast** | `forecast_spend`, `forecast_runs`, `forecast_summary` | Two `forecast-line` charts (hourly spend, hourly updates) plus 4 counters including **Hours of History**. See §6 before trusting a number here. |
 | **Job Orchestration** | `job_runs` | Job success rate, average queue time, run time split by phase, and every run with its `attribution`. |
+| **Zerobus Streaming** | `zerobus_jobs`, `zerobus_updates` | Producer/consumer job runs by role and outcome, CDC pipeline update success rate and duration trend, every CDC update — the UC3 Zerobus topology on one page. |
 | **Global Filters** | `group_filter` + 9 others | A multi-select **Dataflow Group** bound across 10 datasets, a **Date range** picker across the 6 time-series datasets, and an **Environment** single-select. |
 
 > [!NOTE]

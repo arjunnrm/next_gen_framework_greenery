@@ -3,6 +3,10 @@
 A Databricks App that renders the whole attribute registry as a guided form, validates as you go,
 and writes the spec where you tell it.
 
+!!! tip "Tab-by-tab walkthrough"
+    This page gets you running. Every tab, phase, action and mock screen is walked through in
+    [Console → Spec Builder app · tab by tab](../console/spec_builder.md).
+
 ## Run it locally
 
 ```bash

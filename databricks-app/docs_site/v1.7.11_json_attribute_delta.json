@@ -1,0 +1,65 @@
+{
+  "version": "1.7.11",
+  "summary": "NO spec attribute is added, removed or renamed. Two VALIDATION-BEHAVIOUR changes only: (1) V-CYC-7 (reconciliation source must have an append-only producer) is narrowed from both pipeline modes to execution_mode 'pipeline' alone, because 'pipeline_audit_only' reads its source as a batch and registers no heal lane -- the mode the guard's own message, docs/07 section 11.7 and docs/13 R7 have always named as the fix was itself rejected, leaving a MERGE-written source with no legal in-pipeline setting at all; (2) the onboarding preflight's append_schema check stops comparing source columns against append_target_table when the flow declares transform_sql, reporting the new advisory status SHAPE_DEFINED_BY_TRANSFORM_SQL instead of a false SCHEMA_MISMATCH. Both are relaxations: every spec that validated before still validates, and no onboarded control-table row changes shape.",
+  "breaking": false,
+  "removed_attributes": [],
+  "added_attributes": [],
+  "modified_attributes": [
+    {
+      "path": "reconciliation_flows[].execution_mode",
+      "type": "string",
+      "enum": ["job", "pipeline", "pipeline_audit_only"],
+      "default": "job",
+      "required": false,
+      "what_changed": "VALIDATION ONLY -- the field, its enum, its default and its control-table column are all unchanged. What changed is which values V-CYC-7 applies to. Through v1.7.10 a reconciliation flow whose source_config.table resolved to an in-spec target produced by SCD1/SCD2/SCD3/FULL_SNAPSHOT_CDC (or TRUNCATE_AND_LOAD into a materialized_view) was REJECTED under BOTH 'pipeline' and 'pipeline_audit_only'. From v1.7.11 it is rejected under 'pipeline' only.",
+      "why_it_changed": "The rule existed because execution_mode 'pipeline' STREAMS the reconciliation source: reconciliation/graph_registration.py binds the L3 _src node and the L5 heal pulse with want_stream=needs_heal, and needs_heal is only ever true under 'pipeline'. A Delta stream cannot read a MERGE-written table (DELTA_SOURCE_TABLE_IGNORE_CHANGES), and skipChangeCommits is refused framework-wide. 'pipeline_audit_only' binds the same node with want_stream=False -- a batch dlt.read -- and returns before registering any heal lane, so the hazard does not exist for it. The framework already said so in three places (engine/source_plane.py's G-STREAM message, docs/07 section 11.7, docs/13 R7) while the validator contradicted all three.",
+      "user_visible_effect": "A spec that was previously rejected now onboards. Nothing that previously onboarded is now rejected.",
+      "rejection_message_verbatim_pipeline_mode": "reconciliation_flow[<id>].source_config.table: is produced by cdc_load_strategy 'SCD1', which dispatches through dlt.apply_changes[_from_snapshot] (real MERGE/UPDATE/DELETE writes, not append-only) -- execution_mode 'pipeline' streams this source for the L5 heal pulse, so it requires an append-only producer. Set execution_mode to 'pipeline_audit_only' (the comparison stays in this pipeline as a batch read; healing moves to the 05_reconciliation_engine.py job task) or to 'job' to keep the standalone engine for this source.",
+      "rejection_message_verbatim_pipeline_mode_truncate_and_load": "reconciliation_flow[<id>].source_config.table: is produced by cdc_load_strategy 'TRUNCATE_AND_LOAD' into target_type 'materialized_view', which is fully refreshed (not append-only) on every update -- execution_mode 'pipeline' streams this source for the L5 heal pulse, so it requires an append-only producer. Set execution_mode to 'pipeline_audit_only' (the comparison stays in this pipeline as a batch read; healing moves to the 05_reconciliation_engine.py job task) or to 'job' to keep the standalone engine for this source.",
+      "migration": "None. No spec edit is required by this change. Authors who worked around the old behaviour by setting execution_mode 'job' MAY now move to 'pipeline_audit_only' to get the comparison, __metrics and dq_config expectations inside the pipeline update; if they do, they must add the matching 05_reconciliation_engine.py job task per reconciliation_id, because audit-only does not heal.",
+      "ui_action": "Text only -- no widget, option or visibility rule changes. In the reconciliation execution_mode help text, the sentence 'Both pipeline modes require dataflow_group_id, an append-only source producer, and read_mode batch on every side' is now WRONG and must be corrected to: 'Both pipeline modes require dataflow_group_id and read_mode batch on every side. Only pipeline additionally requires an append-only source producer, because it streams the source to drive the heal lane; pipeline_audit_only reads the source as a batch and is the correct mode when the source is written by SCD1/SCD2/SCD3/FULL_SNAPSHOT_CDC or is a fully refreshed materialized view.' Apply the identical correction everywhere that sentence is duplicated.",
+      "files_carrying_that_sentence": [
+        "databricks-app/config/registry/reconciliation.json (execution_mode.description)",
+        "databricks-app/config/attribute_knowledge.curated.json",
+        "databricks-app/config/attribute_knowledge.json",
+        "databricks-app/web/src/registry.js (the S(\"execution_mode\", ...) entry)"
+      ],
+      "validation": "No new rule. spec_validator.py::_validate_reconciliation_pipeline_placement now gates the V-CYC-7 block on `execution_mode == \"pipeline\"` instead of the `pipeline_mode` boolean. Every other V-CYC rule keeps its existing mode scoping: V-CYC-1 and V-CYC-6 stay on both pipeline modes, and the append-loop rules (V-CYC-2/3/5) stay error-in-pipeline-modes / warning-in-job.",
+      "source_of_truth": "src/flowx/lakeflow_framework/onboarding/spec_validator.py::_validate_reconciliation_pipeline_placement"
+    },
+    {
+      "path": "reconciliation_flows[].transform_sql",
+      "type": "string",
+      "required": false,
+      "what_changed": "VALIDATION ONLY -- the field is unchanged and still validated for parse-ability via the EXPLAIN-based check. What changed is the onboarding PREFLIGHT report (onboarding/uc_spec_preflight.py, the preflight_check_onboarding_spec UC function): when a reconciliation flow declares a non-blank transform_sql, the 'append_schema' existence check no longer compares the SOURCE table's columns against append_target_table's columns.",
+      "why_it_changed": "The check assumed the appended rows carry the source table's own columns. That is only true when transform_sql is absent. reconciliation/appender.py::apply_transform_sql runs the SQL over the miss set BEFORE append_missing_records writes it, so with transform_sql the appended shape is that SQL's SELECT list. The old check therefore reported SCHEMA_MISMATCH for every correctly written reshaping flow -- UC3's batch lane reshapes a 31/90/131-column staging row into the 9-column Debezium landing row, which would have been flagged as missing every business column.",
+      "new_status_value": "SHAPE_DEFINED_BY_TRANSFORM_SQL",
+      "new_status_note_verbatim": "append_target_table of reconciliation_flow[<flow_id>].target_configs[<target_id>] receives rows reshaped by this flow's transform_sql, so the appended shape is that SQL's SELECT list rather than the source table's columns and cannot be compared statically here -- verify the SELECT list against the table's columns yourself (the append runs with mergeSchema, so a misspelt alias ADDS a column rather than failing)",
+      "user_visible_effect": "An existence_checks entry of kind 'append_schema' may now carry status 'SHAPE_DEFINED_BY_TRANSFORM_SQL'. It is advisory and never affects `valid` (only MISSING_REQUIRED does). Flows WITHOUT transform_sql still get SCHEMA_OK / SCHEMA_MISMATCH exactly as before.",
+      "migration": "None.",
+      "ui_action": "Any consumer that renders or switches on existence_checks[].status must tolerate the new value. Render it as informational (not an error, not a success) -- the same weight as a note. No other change.",
+      "validation": "No spec-level rule added or removed; the preflight report is advisory by contract.",
+      "source_of_truth": "src/flowx/lakeflow_framework/onboarding/uc_spec_preflight.py::_check_append_target_schema_shape"
+    }
+  ],
+  "app_update_status": {
+    "state": "PENDING",
+    "required": [
+      "config/registry/reconciliation.json: correct the execution_mode description sentence (see modified_attributes[0].ui_action).",
+      "config/attribute_knowledge.curated.json + config/attribute_knowledge.json: same sentence.",
+      "web/src/registry.js: same sentence; then `npm run build` in databricks-app/web, because Databricks Apps does not build at deploy time.",
+      "Any status-rendering code path: accept SHAPE_DEFINED_BY_TRANSFORM_SQL.",
+      "server/settings.py: no change expected -- confirm, do not assume.",
+      "config/validation/rules.json: no change -- the app's bp_* rules do not encode V-CYC-7."
+    ]
+  },
+  "verification": {
+    "unit_tests_added": 5,
+    "suites": [
+      "tests/unit/test_spec_validator.py (3: audit-only accepted for a MERGE-written producer, audit-only accepted for TRUNCATE_AND_LOAD into an MV, and the surviving pipeline-mode rejection names pipeline_audit_only as the fix)",
+      "tests/unit/test_uc_spec_preflight.py (2: SCHEMA_MISMATCH still reported without transform_sql, SHAPE_DEFINED_BY_TRANSFORM_SQL reported with it)"
+    ],
+    "negative_control": "Each new test was re-run with its fix stashed (`git stash push -- <src file>`): the 3 validator tests and the transform_sql preflight test FAIL without the change and pass with it. The pre-existing SCHEMA_MISMATCH test passes in both states, proving the new branch does not swallow real findings.",
+    "gates": "tests/unit/test_spec_validator.py + test_uc_spec_preflight.py: 141 passed. tests/unit/test_uc3_specs.py: 21 passed. `databricks bundle validate` OK on both metaflow_v7 and hoonartek."
+  }
+}

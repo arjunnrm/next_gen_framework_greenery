@@ -185,3 +185,20 @@ def test_uc3_customer_target_still_filters_superseded_scd2_rows():
         f for f in spec["reconciliation_flows"] if f["reconciliation_id"].startswith("rf_uc3_customer")
     )
     assert customer["target_configs"][0]["filter_condition"] == "__END_AT IS NULL"
+
+
+def test_update_pulse_does_not_publish_the_src_node():
+    """The pulse path reads the miss set through dlt.read inside the graph, so `_src` needs
+    neither publishing nor streaming. Publishing it AND binding it as a stream is what made the
+    first live run fail with "Failed to resolve flow: ..._src" against a TRUNCATE_AND_LOAD
+    source -- the node had been registered into the pipeline's own schema as a streaming table."""
+    import inspect
+
+    from flowx.lakeflow_framework.reconciliation import graph_registration
+
+    source = inspect.getsource(graph_registration.register_reconciliation_flow)
+    # Both the publish decision and the stream decision must follow source_stream_heal, never
+    # needs_heal -- needs_heal is true for BOTH heal triggers.
+    assert "src_published = source_stream_heal" in source
+    assert "_want_stream=source_stream_heal" in source
+    assert "_want_stream=needs_heal" not in source

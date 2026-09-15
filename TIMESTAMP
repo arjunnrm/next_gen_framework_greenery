@@ -1,0 +1,11 @@
+{
+  "statement_id": "01f1b058-db97-198f-a687-f2fed9469a17",
+  "status": {
+    "error": {
+      "error_code": "BAD_REQUEST",
+      "message": "[DATATYPE_MISMATCH.BINARY_OP_DIFF_TYPES] Cannot resolve \"(TIMESTAMP '2026-09-14 16:18:00' AND (get_json_object(details, $.origin.flow_name) IS NOT NULL))\" due to data type mismatch: the left and right operands of the binary operator have incompatible types (\"TIMESTAMP\" and \"BOOLEAN\"). SQLSTATE: 42K09; line 1 pos 272"
+    },
+    "sql_state": "42K09",
+    "state": "FAILED"
+  }
+}

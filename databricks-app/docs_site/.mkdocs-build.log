@@ -1,0 +1,243 @@
+
+ \u2502  \u26a0  Warning from the Material for MkDocs team
+ \u2502
+ \u2502  MkDocs 2.0, the underlying framework of Material for MkDocs,
+ \u2502  will introduce backward-incompatible changes, including:
+ \u2502
+ \u2502  � All plugins will stop working � the plugin system has been removed
+ \u2502  � All theme overrides will break � the theming system has been rewritten
+ \u2502  � No migration path exists � existing projects cannot be upgraded
+ \u2502  � Closed contribution model � community members can't report bugs
+ \u2502  � Currently unlicensed � unsuitable for production use
+ \u2502
+ \u2502  Our full analysis:
+ \u2502
+ \u2502  https://squidfunk.github.io/mkdocs-material/blog/2026/02/18/mkdocs-2.0/
+
+INFO    -  [flowx] FLOWX_DOCS_SKIP_REGEN=1: using committed reference pages
+INFO    -  Cleaning site directory
+INFO    -  Building documentation to directory: C:\Databricks\NextGen_Metadata_Framework\site
+INFO    -  An absolute path to '/' is included in the 'nav' configuration, which presumably points to an external resource.
+INFO    -  Doc file 'index.md' contains an absolute link '/', it was left as is. Did you mean 'index.md'?
+INFO    -  Doc file 'index.md' contains an absolute link '/', it was left as is. Did you mean 'index.md'?
+WARNING -  Doc file 'archive/legacy_docs/01_control_metadata_schema.md' contains a link 'README.md', but the target 'archive/legacy_docs/README.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/02_cdc_load_strategies.md' contains a link 'README.md', but the target 'archive/legacy_docs/README.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/03_engine_execution_flow.md' contains a link 'README.md', but the target 'archive/legacy_docs/README.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/04_onboarding_validation.md' contains a link 'README.md', but the target 'archive/legacy_docs/README.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/05_deployment_guide.md' contains a link 'README.md', but the target 'archive/legacy_docs/README.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/06_governance_integration.md' contains a link 'README.md', but the target 'archive/legacy_docs/README.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/07_reconciliation.md' contains a link 'README.md', but the target 'archive/legacy_docs/README.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/08_test_pipeline_1_volume_scd.md' contains a link 'README.md', but the target 'archive/legacy_docs/README.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/09_onboarding_yaml_json.md' contains a link 'README.md', but the target 'archive/legacy_docs/README.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/10_test_pipeline_2_streaming_cdc.md' contains a link 'README.md', but the target 'archive/legacy_docs/README.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/12_zip_ingestion_pipeline.md' contains a link 'README.md', but the target 'archive/legacy_docs/README.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/13_asn1_dq_quarantine.md' contains a link 'README.md', but the target 'archive/legacy_docs/README.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/14_core_functionality_verification.md' contains a link 'README.md', but the target 'archive/legacy_docs/README.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/15_engine_refactor.md' contains a link 'README.md', but the target 'archive/legacy_docs/README.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/16_encryption_and_secrets.md' contains a link 'README.md', but the target 'archive/legacy_docs/README.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/17_onboarding_template_reference.md' contains a link 'README.md', but the target 'archive/legacy_docs/README.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/18_test_pipeline_scd1_wide_table_column_exclusion.md' contains a link 'README.md', but the target 'archive/legacy_docs/README.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/19_bt_group_test_suite.md' contains a link 'README.md', but the target 'archive/legacy_docs/README.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/20_crypto_abac_exhaustive_test_suite.md' contains a link 'README.md', but the target 'archive/legacy_docs/README.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/21_auto_ttl_row_expiration.md' contains a link 'README.md', but the target 'archive/legacy_docs/README.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/22_ingestion_pgp_zip_json_standardization.md' contains a link 'README.md', but the target 'archive/legacy_docs/README.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/23_lakeflow_sinks.md' contains a link 'README.md', but the target 'archive/legacy_docs/README.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/25_dlt_observability_module.md' contains a link 'README.md', but the target 'archive/legacy_docs/README.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/26_dlt_observability_testing_runbook.md' contains a link 'README.md', but the target 'archive/legacy_docs/README.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/27_dlt_observability_onboarding_reference.md' contains a link 'README.md', but the target 'archive/legacy_docs/README.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/27_dlt_observability_onboarding_reference.md' contains a link '../onboarding_templates/pipeline_onboarding_template.json', but the target 'archive/onboarding_templates/pipeline_onboarding_template.json' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/27_dlt_observability_onboarding_reference.md' contains a link '../onboarding_templates/pipeline_onboarding_template.yaml', but the target 'archive/onboarding_templates/pipeline_onboarding_template.yaml' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/27_dlt_observability_onboarding_reference.md' contains a link '../onboarding_templates/onboarding_spec.schema.json', but the target 'archive/onboarding_templates/onboarding_spec.schema.json' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/28_ingestion_schema_config.md' contains a link 'README.md', but the target 'archive/legacy_docs/README.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/28_ingestion_schema_config.md' contains a link '../onboarding_templates/schema_config_example.json', but the target 'archive/onboarding_templates/schema_config_example.json' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/28_ingestion_schema_config.md' contains a link '../onboarding_templates/schema_config_example.yaml', but the target 'archive/onboarding_templates/schema_config_example.yaml' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/29_test_pipeline_otel_streaming.md' contains a link 'README.md', but the target 'archive/legacy_docs/README.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/29_test_pipeline_otel_streaming.md' contains a link '../flowx_testing/TESTING_PLAN.md', but the target 'archive/flowx_testing/TESTING_PLAN.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/30_test_pipeline_recon_features.md' contains a link 'README.md', but the target 'archive/legacy_docs/README.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/30_test_pipeline_recon_features.md' contains a link '../flowx_testing/TESTING_PLAN.md', but the target 'archive/flowx_testing/TESTING_PLAN.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/30_test_pipeline_recon_features.md' contains a link '../flowx_testing/TESTING_STATUS.md', but the target 'archive/flowx_testing/TESTING_STATUS.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/30_test_pipeline_recon_features.md' contains a link '../flowx_testing/TESTING_STATUS.md', but the target 'archive/flowx_testing/TESTING_STATUS.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/31_tc_ing_001.md' contains a link 'README.md', but the target 'archive/legacy_docs/README.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/31_tc_ing_001.md' contains a link '../flowx_testing/TESTING_PLAN.md', but the target 'archive/flowx_testing/TESTING_PLAN.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/31_tc_ing_001.md' contains a link '../flowx_testing/TESTING_STATUS.md', but the target 'archive/flowx_testing/TESTING_STATUS.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/31_tc_ing_001.md' contains a link '../flowx_testing/TESTING_STATUS.md', but the target 'archive/flowx_testing/TESTING_STATUS.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/32_tc_ing_002.md' contains a link 'README.md', but the target 'archive/legacy_docs/README.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/32_tc_ing_002.md' contains a link '../flowx_testing/TESTING_STATUS.md', but the target 'archive/flowx_testing/TESTING_STATUS.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/32_tc_ing_002.md' contains a link '../flowx_testing/TESTING_STATUS.md', but the target 'archive/flowx_testing/TESTING_STATUS.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/33_tc_ing_003.md' contains a link 'README.md', but the target 'archive/legacy_docs/README.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/33_tc_ing_003.md' contains a link '../flowx_testing/TESTING_PLAN.md', but the target 'archive/flowx_testing/TESTING_PLAN.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/33_tc_ing_003.md' contains a link '../flowx_testing/TESTING_STATUS.md', but the target 'archive/flowx_testing/TESTING_STATUS.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/33_tc_ing_003.md' contains a link '../flowx_testing/TESTING_STATUS.md', but the target 'archive/flowx_testing/TESTING_STATUS.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/34_tc_ing_004.md' contains a link 'README.md', but the target 'archive/legacy_docs/README.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/34_tc_ing_004.md' contains a link '../flowx_testing/TESTING_PLAN.md', but the target 'archive/flowx_testing/TESTING_PLAN.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/34_tc_ing_004.md' contains a link '../flowx_testing/TESTING_STATUS.md', but the target 'archive/flowx_testing/TESTING_STATUS.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/34_tc_ing_004.md' contains a link '../flowx_testing/TESTING_STATUS.md', but the target 'archive/flowx_testing/TESTING_STATUS.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/35_tc_ing_005.md' contains a link 'README.md', but the target 'archive/legacy_docs/README.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/35_tc_ing_005.md' contains a link '../flowx_testing/TESTING_PLAN.md', but the target 'archive/flowx_testing/TESTING_PLAN.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/35_tc_ing_005.md' contains a link '../flowx_testing/TESTING_STATUS.md', but the target 'archive/flowx_testing/TESTING_STATUS.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/35_tc_ing_005.md' contains a link '../flowx_testing/TESTING_STATUS.md', but the target 'archive/flowx_testing/TESTING_STATUS.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/36_tc_ing_006.md' contains a link 'README.md', but the target 'archive/legacy_docs/README.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/36_tc_ing_006.md' contains a link '../flowx_testing/TESTING_PLAN.md', but the target 'archive/flowx_testing/TESTING_PLAN.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/36_tc_ing_006.md' contains a link '../flowx_testing/TESTING_STATUS.md', but the target 'archive/flowx_testing/TESTING_STATUS.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/36_tc_ing_006.md' contains a link '../src/flowx/lakeflow_framework/ingestion/json_flattening.py', but the target 'archive/src/flowx/lakeflow_framework/ingestion/json_flattening.py' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/36_tc_ing_006.md' contains a link '../flowx_testing/TESTING_STATUS.md', but the target 'archive/flowx_testing/TESTING_STATUS.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/37_tc_ing_007.md' contains a link 'README.md', but the target 'archive/legacy_docs/README.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/37_tc_ing_007.md' contains a link '../flowx_testing/TESTING_PLAN.md', but the target 'archive/flowx_testing/TESTING_PLAN.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/37_tc_ing_007.md' contains a link '../flowx_testing/TESTING_STATUS.md', but the target 'archive/flowx_testing/TESTING_STATUS.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/37_tc_ing_007.md' contains a link '../flowx_testing/TESTING_STATUS.md', but the target 'archive/flowx_testing/TESTING_STATUS.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/38_tc_ing_008.md' contains a link 'README.md', but the target 'archive/legacy_docs/README.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/38_tc_ing_008.md' contains a link '../flowx_testing/TESTING_PLAN.md', but the target 'archive/flowx_testing/TESTING_PLAN.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/38_tc_ing_008.md' contains a link '../flowx_testing/TESTING_STATUS.md', but the target 'archive/flowx_testing/TESTING_STATUS.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/38_tc_ing_008.md' contains a link '../src/flowx/lakeflow_framework/ingestion/technical_metadata.py', but the target 'archive/src/flowx/lakeflow_framework/ingestion/technical_metadata.py' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/38_tc_ing_008.md' contains a link '../src/flowx/lakeflow_framework/ingestion/technical_metadata.py', but the target 'archive/src/flowx/lakeflow_framework/ingestion/technical_metadata.py' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/38_tc_ing_008.md' contains a link '../src/flowx/lakeflow_framework/dq/quarantine.py', but the target 'archive/src/flowx/lakeflow_framework/dq/quarantine.py' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/38_tc_ing_008.md' contains a link '../src/flowx/lakeflow_framework/storage/column_ordering.py', but the target 'archive/src/flowx/lakeflow_framework/storage/column_ordering.py' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/38_tc_ing_008.md' contains a link '../flowx_testing/TESTING_STATUS.md', but the target 'archive/flowx_testing/TESTING_STATUS.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/39_tc_ing_009.md' contains a link 'README.md', but the target 'archive/legacy_docs/README.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/39_tc_ing_009.md' contains a link '../flowx_testing/TESTING_PLAN.md', but the target 'archive/flowx_testing/TESTING_PLAN.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/39_tc_ing_009.md' contains a link '../flowx_testing/TESTING_STATUS.md', but the target 'archive/flowx_testing/TESTING_STATUS.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/39_tc_ing_009.md' contains a link '../src/flowx/lakeflow_framework/ingestion/readers.py', but the target 'archive/src/flowx/lakeflow_framework/ingestion/readers.py' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/39_tc_ing_009.md' contains a link '../flowx_testing/TESTING_STATUS.md', but the target 'archive/flowx_testing/TESTING_STATUS.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/40_tc_cdc_001.md' contains a link 'README.md', but the target 'archive/legacy_docs/README.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/40_tc_cdc_001.md' contains a link '../flowx_testing/TESTING_PLAN.md', but the target 'archive/flowx_testing/TESTING_PLAN.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/40_tc_cdc_001.md' contains a link '../flowx_testing/TESTING_STATUS.md', but the target 'archive/flowx_testing/TESTING_STATUS.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/40_tc_cdc_001.md' contains a link '../flowx_testing/TESTING_STATUS.md', but the target 'archive/flowx_testing/TESTING_STATUS.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/41_tc_cdc_002.md' contains a link 'README.md', but the target 'archive/legacy_docs/README.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/41_tc_cdc_002.md' contains a link '../flowx_testing/TESTING_PLAN.md', but the target 'archive/flowx_testing/TESTING_PLAN.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/41_tc_cdc_002.md' contains a link '../flowx_testing/TESTING_STATUS.md', but the target 'archive/flowx_testing/TESTING_STATUS.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/41_tc_cdc_002.md' contains a link '../flowx_testing/TESTING_STATUS.md', but the target 'archive/flowx_testing/TESTING_STATUS.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/42_tc_cdc_003.md' contains a link 'README.md', but the target 'archive/legacy_docs/README.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/42_tc_cdc_003.md' contains a link '../flowx_testing/TESTING_PLAN.md', but the target 'archive/flowx_testing/TESTING_PLAN.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/42_tc_cdc_003.md' contains a link '../flowx_testing/TESTING_STATUS.md', but the target 'archive/flowx_testing/TESTING_STATUS.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/42_tc_cdc_003.md' contains a link '../flowx_testing/TESTING_STATUS.md', but the target 'archive/flowx_testing/TESTING_STATUS.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/43_tc_cdc_004.md' contains a link 'README.md', but the target 'archive/legacy_docs/README.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/43_tc_cdc_004.md' contains a link '../flowx_testing/TESTING_PLAN.md', but the target 'archive/flowx_testing/TESTING_PLAN.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/43_tc_cdc_004.md' contains a link '../flowx_testing/TESTING_STATUS.md', but the target 'archive/flowx_testing/TESTING_STATUS.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/43_tc_cdc_004.md' contains a link '../flowx_testing/TESTING_STATUS.md', but the target 'archive/flowx_testing/TESTING_STATUS.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/44_tc_cdc_005.md' contains a link 'README.md', but the target 'archive/legacy_docs/README.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/44_tc_cdc_005.md' contains a link '../flowx_testing/TESTING_PLAN.md', but the target 'archive/flowx_testing/TESTING_PLAN.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/44_tc_cdc_005.md' contains a link '../flowx_testing/TESTING_STATUS.md', but the target 'archive/flowx_testing/TESTING_STATUS.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/44_tc_cdc_005.md' contains a link '../flowx_testing/TESTING_STATUS.md', but the target 'archive/flowx_testing/TESTING_STATUS.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/45_tc_cdc_006.md' contains a link 'README.md', but the target 'archive/legacy_docs/README.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/45_tc_cdc_006.md' contains a link '../flowx_testing/TESTING_PLAN.md', but the target 'archive/flowx_testing/TESTING_PLAN.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/45_tc_cdc_006.md' contains a link '../flowx_testing/TESTING_STATUS.md', but the target 'archive/flowx_testing/TESTING_STATUS.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/45_tc_cdc_006.md' contains a link '../flowx_testing/TESTING_STATUS.md', but the target 'archive/flowx_testing/TESTING_STATUS.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/46_tc_cdc_007.md' contains a link 'README.md', but the target 'archive/legacy_docs/README.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/46_tc_cdc_007.md' contains a link '../flowx_testing/TESTING_PLAN.md', but the target 'archive/flowx_testing/TESTING_PLAN.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/46_tc_cdc_007.md' contains a link '../flowx_testing/TESTING_STATUS.md', but the target 'archive/flowx_testing/TESTING_STATUS.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/46_tc_cdc_007.md' contains a link '../flowx_testing/TESTING_STATUS.md', but the target 'archive/flowx_testing/TESTING_STATUS.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/47_tc_trf_001.md' contains a link 'README.md', but the target 'archive/legacy_docs/README.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/47_tc_trf_001.md' contains a link '../flowx_testing/TESTING_PLAN.md', but the target 'archive/flowx_testing/TESTING_PLAN.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/47_tc_trf_001.md' contains a link '../flowx_testing/TESTING_STATUS.md', but the target 'archive/flowx_testing/TESTING_STATUS.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/47_tc_trf_001.md' contains a link '../flowx_testing/TESTING_STATUS.md', but the target 'archive/flowx_testing/TESTING_STATUS.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/48_tc_trf_002.md' contains a link 'README.md', but the target 'archive/legacy_docs/README.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/48_tc_trf_002.md' contains a link '../flowx_testing/TESTING_PLAN.md', but the target 'archive/flowx_testing/TESTING_PLAN.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/48_tc_trf_002.md' contains a link '../flowx_testing/TESTING_STATUS.md', but the target 'archive/flowx_testing/TESTING_STATUS.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/48_tc_trf_002.md' contains a link '../flowx_testing/TESTING_STATUS.md', but the target 'archive/flowx_testing/TESTING_STATUS.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/49_tc_trf_003.md' contains a link 'README.md', but the target 'archive/legacy_docs/README.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/49_tc_trf_003.md' contains a link '../flowx_testing/TESTING_PLAN.md', but the target 'archive/flowx_testing/TESTING_PLAN.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/49_tc_trf_003.md' contains a link '../flowx_testing/TESTING_STATUS.md', but the target 'archive/flowx_testing/TESTING_STATUS.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/49_tc_trf_003.md' contains a link '../flowx_testing/TESTING_STATUS.md', but the target 'archive/flowx_testing/TESTING_STATUS.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/50_tc_dq_001.md' contains a link 'README.md', but the target 'archive/legacy_docs/README.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/50_tc_dq_001.md' contains a link '../flowx_testing/TESTING_PLAN.md', but the target 'archive/flowx_testing/TESTING_PLAN.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/50_tc_dq_001.md' contains a link '../flowx_testing/TESTING_STATUS.md', but the target 'archive/flowx_testing/TESTING_STATUS.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/50_tc_dq_001.md' contains a link '../flowx_testing/TESTING_STATUS.md', but the target 'archive/flowx_testing/TESTING_STATUS.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/51_tc_dq_002.md' contains a link 'README.md', but the target 'archive/legacy_docs/README.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/51_tc_dq_002.md' contains a link '../flowx_testing/TESTING_PLAN.md', but the target 'archive/flowx_testing/TESTING_PLAN.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/51_tc_dq_002.md' contains a link '../flowx_testing/TESTING_STATUS.md', but the target 'archive/flowx_testing/TESTING_STATUS.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/51_tc_dq_002.md' contains a link '../flowx_testing/TESTING_STATUS.md', but the target 'archive/flowx_testing/TESTING_STATUS.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/52_tc_dq_003.md' contains a link 'README.md', but the target 'archive/legacy_docs/README.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/52_tc_dq_003.md' contains a link '../flowx_testing/TESTING_PLAN.md', but the target 'archive/flowx_testing/TESTING_PLAN.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/52_tc_dq_003.md' contains a link '../flowx_testing/TESTING_STATUS.md', but the target 'archive/flowx_testing/TESTING_STATUS.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/52_tc_dq_003.md' contains a link '../flowx_testing/TESTING_STATUS.md', but the target 'archive/flowx_testing/TESTING_STATUS.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/53_tc_dq_004.md' contains a link 'README.md', but the target 'archive/legacy_docs/README.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/53_tc_dq_004.md' contains a link '../flowx_testing/TESTING_PLAN.md', but the target 'archive/flowx_testing/TESTING_PLAN.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/53_tc_dq_004.md' contains a link '../flowx_testing/TESTING_STATUS.md', but the target 'archive/flowx_testing/TESTING_STATUS.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/53_tc_dq_004.md' contains a link '../flowx_testing/TESTING_STATUS.md', but the target 'archive/flowx_testing/TESTING_STATUS.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/54_tc_sec_001.md' contains a link 'README.md', but the target 'archive/legacy_docs/README.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/54_tc_sec_001.md' contains a link '../flowx_testing/TESTING_PLAN.md', but the target 'archive/flowx_testing/TESTING_PLAN.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/54_tc_sec_001.md' contains a link '../flowx_testing/TESTING_STATUS.md', but the target 'archive/flowx_testing/TESTING_STATUS.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/54_tc_sec_001.md' contains a link '../flowx_testing/TESTING_STATUS.md', but the target 'archive/flowx_testing/TESTING_STATUS.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/55_tc_sec_002.md' contains a link 'README.md', but the target 'archive/legacy_docs/README.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/55_tc_sec_002.md' contains a link '../flowx_testing/TESTING_PLAN.md', but the target 'archive/flowx_testing/TESTING_PLAN.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/55_tc_sec_002.md' contains a link '../flowx_testing/TESTING_STATUS.md', but the target 'archive/flowx_testing/TESTING_STATUS.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/55_tc_sec_002.md' contains a link '../flowx_testing/TESTING_STATUS.md', but the target 'archive/flowx_testing/TESTING_STATUS.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/56_tc_sec_003.md' contains a link 'README.md', but the target 'archive/legacy_docs/README.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/56_tc_sec_003.md' contains a link '../flowx_testing/TESTING_PLAN.md', but the target 'archive/flowx_testing/TESTING_PLAN.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/56_tc_sec_003.md' contains a link '../flowx_testing/TESTING_STATUS.md', but the target 'archive/flowx_testing/TESTING_STATUS.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/56_tc_sec_003.md' contains a link '../flowx_testing/TESTING_STATUS.md', but the target 'archive/flowx_testing/TESTING_STATUS.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/57_tc_gov_001.md' contains a link 'README.md', but the target 'archive/legacy_docs/README.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/57_tc_gov_001.md' contains a link '../flowx_testing/TESTING_STATUS.md', but the target 'archive/flowx_testing/TESTING_STATUS.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/57_tc_gov_001.md' contains a link '../flowx_testing/TESTING_STATUS.md', but the target 'archive/flowx_testing/TESTING_STATUS.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/57_tc_gov_001.md' contains a link '../flowx_testing/TESTING_STATUS.md', but the target 'archive/flowx_testing/TESTING_STATUS.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/58_tc_gov_002.md' contains a link 'README.md', but the target 'archive/legacy_docs/README.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/58_tc_gov_002.md' contains a link '../flowx_testing/TESTING_PLAN.md', but the target 'archive/flowx_testing/TESTING_PLAN.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/58_tc_gov_002.md' contains a link '../flowx_testing/TESTING_STATUS.md', but the target 'archive/flowx_testing/TESTING_STATUS.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/58_tc_gov_002.md' contains a link '../flowx_testing/TESTING_STATUS.md', but the target 'archive/flowx_testing/TESTING_STATUS.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/59_tc_rec_002.md' contains a link 'README.md', but the target 'archive/legacy_docs/README.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/59_tc_rec_002.md' contains a link '../flowx_testing/TESTING_PLAN.md', but the target 'archive/flowx_testing/TESTING_PLAN.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/59_tc_rec_002.md' contains a link '../flowx_testing/TESTING_STATUS.md', but the target 'archive/flowx_testing/TESTING_STATUS.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/59_tc_rec_002.md' contains a link '../flowx_testing/TESTING_STATUS.md', but the target 'archive/flowx_testing/TESTING_STATUS.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/60_tc_rec_003.md' contains a link 'README.md', but the target 'archive/legacy_docs/README.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/60_tc_rec_003.md' contains a link '../flowx_testing/TESTING_PLAN.md', but the target 'archive/flowx_testing/TESTING_PLAN.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/60_tc_rec_003.md' contains a link '../flowx_testing/TESTING_STATUS.md', but the target 'archive/flowx_testing/TESTING_STATUS.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/60_tc_rec_003.md' contains a link '../flowx_testing/TESTING_STATUS.md', but the target 'archive/flowx_testing/TESTING_STATUS.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/61_tc_snk_001.md' contains a link 'README.md', but the target 'archive/legacy_docs/README.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/61_tc_snk_001.md' contains a link '../flowx_testing/TESTING_STATUS.md', but the target 'archive/flowx_testing/TESTING_STATUS.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/61_tc_snk_001.md' contains a link '../flowx_testing/TESTING_STATUS.md', but the target 'archive/flowx_testing/TESTING_STATUS.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/62_tc_snk_002.md' contains a link 'README.md', but the target 'archive/legacy_docs/README.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/62_tc_snk_002.md' contains a link '../flowx_testing/TESTING_PLAN.md', but the target 'archive/flowx_testing/TESTING_PLAN.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/62_tc_snk_002.md' contains a link '../flowx_testing/TESTING_STATUS.md', but the target 'archive/flowx_testing/TESTING_STATUS.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/62_tc_snk_002.md' contains a link '../flowx_testing/TESTING_STATUS.md', but the target 'archive/flowx_testing/TESTING_STATUS.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/63_tc_snk_003.md' contains a link 'README.md', but the target 'archive/legacy_docs/README.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/63_tc_snk_003.md' contains a link '../flowx_testing/TESTING_PLAN.md', but the target 'archive/flowx_testing/TESTING_PLAN.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/63_tc_snk_003.md' contains a link '../flowx_testing/TESTING_STATUS.md', but the target 'archive/flowx_testing/TESTING_STATUS.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/63_tc_snk_003.md' contains a link '../flowx_testing/TESTING_STATUS.md', but the target 'archive/flowx_testing/TESTING_STATUS.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/64_tc_obs_001.md' contains a link 'README.md', but the target 'archive/legacy_docs/README.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/64_tc_obs_001.md' contains a link '../flowx_testing/TESTING_PLAN.md', but the target 'archive/flowx_testing/TESTING_PLAN.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/64_tc_obs_001.md' contains a link '../flowx_testing/TESTING_STATUS.md', but the target 'archive/flowx_testing/TESTING_STATUS.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/64_tc_obs_001.md' contains a link '../flowx_testing/TESTING_STATUS.md', but the target 'archive/flowx_testing/TESTING_STATUS.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/65_tc_obs_003.md' contains a link 'README.md', but the target 'archive/legacy_docs/README.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/65_tc_obs_003.md' contains a link '../flowx_testing/TESTING_PLAN.md', but the target 'archive/flowx_testing/TESTING_PLAN.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/65_tc_obs_003.md' contains a link '../flowx_testing/TESTING_STATUS.md', but the target 'archive/flowx_testing/TESTING_STATUS.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/65_tc_obs_003.md' contains a link '../flowx_testing/TESTING_STATUS.md', but the target 'archive/flowx_testing/TESTING_STATUS.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/66_tc_flt_002.md' contains a link 'README.md', but the target 'archive/legacy_docs/README.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/66_tc_flt_002.md' contains a link '../flowx_testing/TESTING_PLAN.md', but the target 'archive/flowx_testing/TESTING_PLAN.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/66_tc_flt_002.md' contains a link '../flowx_testing/TESTING_STATUS.md', but the target 'archive/flowx_testing/TESTING_STATUS.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/66_tc_flt_002.md' contains a link '../flowx_testing/TESTING_STATUS.md', but the target 'archive/flowx_testing/TESTING_STATUS.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/67_tc_prm_001.md' contains a link 'README.md', but the target 'archive/legacy_docs/README.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/67_tc_prm_001.md' contains a link '../flowx_testing/TESTING_PLAN.md', but the target 'archive/flowx_testing/TESTING_PLAN.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/67_tc_prm_001.md' contains a link '../flowx_testing/TESTING_STATUS.md', but the target 'archive/flowx_testing/TESTING_STATUS.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/67_tc_prm_001.md' contains a link '../flowx_testing/TESTING_STATUS.md', but the target 'archive/flowx_testing/TESTING_STATUS.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/68_tc_prm_004.md' contains a link 'README.md', but the target 'archive/legacy_docs/README.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/68_tc_prm_004.md' contains a link '../flowx_testing/TESTING_PLAN.md', but the target 'archive/flowx_testing/TESTING_PLAN.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/68_tc_prm_004.md' contains a link '../flowx_testing/TESTING_STATUS.md', but the target 'archive/flowx_testing/TESTING_STATUS.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/68_tc_prm_004.md' contains a link '../flowx_testing/TESTING_STATUS.md', but the target 'archive/flowx_testing/TESTING_STATUS.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/69_tc_prm_005.md' contains a link 'README.md', but the target 'archive/legacy_docs/README.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/69_tc_prm_005.md' contains a link '../flowx_testing/TESTING_PLAN.md', but the target 'archive/flowx_testing/TESTING_PLAN.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/69_tc_prm_005.md' contains a link '../flowx_testing/TESTING_STATUS.md', but the target 'archive/flowx_testing/TESTING_STATUS.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/69_tc_prm_005.md' contains a link '../flowx_testing/TESTING_STATUS.md', but the target 'archive/flowx_testing/TESTING_STATUS.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/70_tc_prm_006.md' contains a link 'README.md', but the target 'archive/legacy_docs/README.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/70_tc_prm_006.md' contains a link '../flowx_testing/TESTING_PLAN.md', but the target 'archive/flowx_testing/TESTING_PLAN.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/70_tc_prm_006.md' contains a link '../flowx_testing/TESTING_STATUS.md', but the target 'archive/flowx_testing/TESTING_STATUS.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/70_tc_prm_006.md' contains a link '../flowx_testing/TESTING_STATUS.md', but the target 'archive/flowx_testing/TESTING_STATUS.md' is not found among documentation files.
+WARNING -  Doc file 'archive/legacy_docs/02_cdc_load_strategies.md' contains a link '#comparison-vs-storage-columns_to_check--columns_to_exclude', but there is no such anchor on this page.
+WARNING -  Doc file 'archive/legacy_docs/07_reconciliation.md' contains a link '#type-dispatch-table--file--sink', but there is no such anchor on this page.
+WARNING -  Doc file 'archive/legacy_docs/07_reconciliation.md' contains a link '#target_to_source-is-audit-only--a-hard-design-constraint', but there is no such anchor on this page.
+WARNING -  Doc file 'archive/legacy_docs/07_reconciliation.md' contains a link '01_control_metadata_schema.md#4a-hash-keyvalue--a-framework-design-principle', but the doc 'archive/legacy_docs/01_control_metadata_schema.md' does not contain an anchor '#4a-hash-keyvalue--a-framework-design-principle'.
+WARNING -  Doc file 'archive/legacy_docs/16_encryption_and_secrets.md' contains a link '01_control_metadata_schema.md#4a-hash-keyvalue--a-framework-design-principle', but the doc 'archive/legacy_docs/01_control_metadata_schema.md' does not contain an anchor '#4a-hash-keyvalue--a-framework-design-principle'.
+WARNING -  Doc file 'archive/legacy_docs/16_encryption_and_secrets.md' contains a link '01_control_metadata_schema.md#source_type--asn1', but the doc 'archive/legacy_docs/01_control_metadata_schema.md' does not contain an anchor '#source_type--asn1'.
+WARNING -  Doc file 'archive/legacy_docs/17_onboarding_template_reference.md' contains a link '#45-__framework_hash_key--__framework_hash_value--and-the-ingestion-timestamp', but there is no such anchor on this page.
+WARNING -  Doc file 'archive/legacy_docs/17_onboarding_template_reference.md' contains a link '07_reconciliation.md#type-dispatch-table--file--sink', but the doc 'archive/legacy_docs/07_reconciliation.md' does not contain an anchor '#type-dispatch-table--file--sink'.
+WARNING -  Doc file 'archive/legacy_docs/25_dlt_observability_module.md' contains a link '#error-handling-matrix--troubleshooting', but there is no such anchor on this page.
+WARNING -  Doc file 'archive/legacy_docs/26_dlt_observability_testing_runbook.md' contains a link '25_dlt_observability_module.md#error-handling-matrix--troubleshooting', but the doc 'archive/legacy_docs/25_dlt_observability_module.md' does not contain an anchor '#error-handling-matrix--troubleshooting'.
+WARNING -  Doc file 'archive/legacy_docs/27_dlt_observability_onboarding_reference.md' contains a link '#authentication-strategies--credential-sources', but there is no such anchor on this page.
+WARNING -  Doc file 'archive/legacy_docs/27_dlt_observability_onboarding_reference.md' contains a link '#retry--backoff-parameters-retry-otlp_consumer-only', but there is no such anchor on this page.
+WARNING -  Doc file 'archive/legacy_docs/35_tc_ing_005.md' contains a link '22_ingestion_pgp_zip_json_standardization.md#11-pre_extraction_decryption--a-type-registry-not-a-schema-field-per-algorithm', but the doc 'archive/legacy_docs/22_ingestion_pgp_zip_json_standardization.md' does not contain an anchor '#11-pre_extraction_decryption--a-type-registry-not-a-schema-field-per-algorithm'.
+WARNING -  Doc file 'archive/legacy_docs/37_tc_ing_007.md' contains a link '22_ingestion_pgp_zip_json_standardization.md#5-data_standardization_sql--a-column-expression-allowlist-deliberately-more-restricted-than-transformation_sql', but the doc 'archive/legacy_docs/22_ingestion_pgp_zip_json_standardization.md' does not contain an anchor '#5-data_standardization_sql--a-column-expression-allowlist-deliberately-more-restricted-than-transformation_sql'.
+WARNING -  Doc file 'archive/legacy_docs/39_tc_ing_009.md' contains a link '17_onboarding_template_reference.md#22-source_config--fields-common-to-every-source_type', but the doc 'archive/legacy_docs/17_onboarding_template_reference.md' does not contain an anchor '#22-source_config--fields-common-to-every-source_type'.
+WARNING -  Doc file 'archive/legacy_docs/54_tc_sec_001.md' contains a link '16_encryption_and_secrets.md#4-original_data_type-type-validation--current-implementation-status', but the doc 'archive/legacy_docs/16_encryption_and_secrets.md' does not contain an anchor '#4-original_data_type-type-validation--current-implementation-status'.
+WARNING -  Doc file 'archive/legacy_docs/55_tc_sec_002.md' contains a link '02_cdc_load_strategies.md#comparison-vs-storage-columns_to_check--columns_to_exclude', but the doc 'archive/legacy_docs/02_cdc_load_strategies.md' does not contain an anchor '#comparison-vs-storage-columns_to_check--columns_to_exclude'.
+WARNING -  Doc file 'archive/legacy_docs/55_tc_sec_002.md' contains a link '01_control_metadata_schema.md#4a-hash-keyvalue----a-framework-design-principle', but the doc 'archive/legacy_docs/01_control_metadata_schema.md' does not contain an anchor '#4a-hash-keyvalue----a-framework-design-principle'.
+WARNING -  Doc file 'archive/legacy_docs/60_tc_rec_003.md' contains a link '01_control_metadata_schema.md#4a-hash-keyvalue--a-framework-design-principle', but the doc 'archive/legacy_docs/01_control_metadata_schema.md' does not contain an anchor '#4a-hash-keyvalue--a-framework-design-principle'.
+INFO    -  Documentation built in 15.75 seconds
