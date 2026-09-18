@@ -1,4 +1,4 @@
-# FlowX Architecture Review — Pillar 3: Code Quality, Simplification & Anti-Patterns
+# Metaflow Architecture Review — Pillar 3: Code Quality, Simplification & Anti-Patterns
 
 **Evaluation Area:** Codebase Hygiene, Dead Code Identification, PySpark Idioms vs UDFs, Exception Hierarchy, and Type Safety  
 **Score:** 8.0 / 10  
@@ -8,7 +8,7 @@
 
 ## 1. Executive Code Quality Evaluation
 
-The FlowX codebase exhibits high engineering rigor. Code modules are well-structured, comprehensively documented with detailed module-level docstrings, strictly typed with Python 3.12 annotations, and utilize native Spark expressions rather than row-by-row Python UDFs. 
+The Metaflow codebase exhibits high engineering rigor. Code modules are well-structured, comprehensively documented with detailed module-level docstrings, strictly typed with Python 3.12 annotations, and utilize native Spark expressions rather than row-by-row Python UDFs. 
 
 However, two notable code quality risks require immediate remediation:
 1. **Unintended Automatic Array Exploding / Struct Flattening** in `json_flattening.py` when `explode_columns` is omitted.
@@ -72,9 +72,9 @@ However, two notable code quality risks require immediate remediation:
   - `main.py`: Imports `find_all_taxis()`, creates a dummy DataFrame, and prints rows.
   - `pyproject.toml`: Registers `main = "flowx.main:main"` as a CLI entry point.
 - **Architectural Impact:**
-  These files are completely disconnected from the actual FlowX framework, mislead external auditors and engineers, and clutter the built wheel distribution artifact.
+  These files are completely disconnected from the actual Metaflow framework, mislead external auditors and engineers, and clutter the built wheel distribution artifact.
 - **Refactoring:**
-  Delete `main.py` and `taxis.py`. Update `pyproject.toml` to remove the `[project.scripts]` reference or replace it with a genuine FlowX CLI tool entrypoint.
+  Delete `main.py` and `taxis.py`. Update `pyproject.toml` to remove the `[project.scripts]` reference or replace it with a genuine Metaflow CLI tool entrypoint.
 
 ---
 

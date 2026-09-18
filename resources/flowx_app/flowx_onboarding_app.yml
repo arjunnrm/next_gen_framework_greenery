@@ -1,9 +1,9 @@
-# Databricks App resource definition for FlowX Onboarding App
+# Databricks App resource definition for Metaflow Onboarding App
 #
 # PORTABILITY. Nothing workspace-specific is checked into databricks-app/config/index.json
 # any more. The workspace host, the onboarding job id and the spec-storage roots are all
 # injected here at deploy time from the bundle's own knowledge of the target, and the app
-# reads them via the FLOWX_* environment variables (see databricks-app/server/settings.py,
+# reads them via the METAFLOW_* environment variables (see databricks-app/server/settings.py,
 # `apply_env_overrides`). Deploying to a different workspace therefore needs no edit to any
 # tracked application file — only a target in databricks.yml.
 #
@@ -13,9 +13,9 @@
 resources:
   apps:
     flowx_onboarding_app:
-      name: "flowx-onboarding"
+      name: "metaflow-onboarding"
       description: >-
-        Self-service FlowX Onboarding Databricks App for authoring, validating,
+        Self-service Metaflow Onboarding Databricks App for authoring, validating,
         diffing, and deploying metadata-driven ingestion, transformation, and
         reconciliation pipelines (v1.3.0).
       source_code_path: "../../databricks-app"
@@ -32,7 +32,7 @@ resources:
       # which is what made every save fail with PERMISSION_DENIED on a fresh workspace.
       resources:
         - name: onboarding-job
-          description: The FlowX Config Onboarding job that the Onboard action triggers.
+          description: The Metaflow Config Onboarding job that the Onboard action triggers.
           job:
             id: ${resources.jobs.onboarding_job.id}
             permission: CAN_MANAGE_RUN
@@ -49,19 +49,19 @@ resources:
         # carry the command and every environment variable, not just the new ones.
         command: ["uvicorn", "server.app:app", "--host", "0.0.0.0", "--port", "8000"]
         env:
-          - name: FLOWX_APP_CONFIG
+          - name: METAFLOW_APP_CONFIG
             value: "./config/index.json"
-          - name: FLOWX_LOG_LEVEL
+          - name: METAFLOW_LOG_LEVEL
             value: "INFO"
 
           # ---- deploy-time workspace binding -------------------------------------------
           # The app builds every "open this run in Databricks" link from this host. A
           # checked-in host produces links into somebody else's workspace.
-          - name: FLOWX_WORKSPACE_HOST
+          - name: METAFLOW_WORKSPACE_HOST
             value: ${workspace.host}
 
           # The real job id for THIS target, resolved by DABs from the job it just deployed.
-          - name: FLOWX_ONBOARDING_JOB_ID
+          - name: METAFLOW_ONBOARDING_JOB_ID
             value: ${resources.jobs.onboarding_job.id}
           - name: ONBOARDING_JOB_ID
             value: ${resources.jobs.onboarding_job.id}
@@ -69,14 +69,14 @@ resources:
             value: ${resources.jobs.onboarding_job.id}
 
           # Template variables backing {{catalog}} / {{env}} in the spec-storage roots.
-          - name: FLOWX_SPEC_CATALOG
+          - name: METAFLOW_SPEC_CATALOG
             value: ${var.catalog}
-          - name: FLOWX_SPEC_ENV
+          - name: METAFLOW_SPEC_ENV
             value: ${bundle.target}
 
           # Fully-resolved storage roots. Set explicitly rather than left to the
           # {{catalog}} template so the schema and volume names are target-controlled too.
-          - name: FLOWX_SPEC_VOLUME_ROOT
+          - name: METAFLOW_SPEC_VOLUME_ROOT
             value: /Volumes/${var.catalog}/${var.spec_schema}/${var.spec_volume}/
-          - name: FLOWX_SPEC_WORKSPACE_ROOT
+          - name: METAFLOW_SPEC_WORKSPACE_ROOT
             value: ${workspace.file_path}/spec_library/

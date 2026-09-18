@@ -1,6 +1,6 @@
-# 🤖 FlowX AI Agent Skill & Tool Catalog
+# 🤖 Metaflow AI Agent Skill & Tool Catalog
 
-> **Purpose**: Single authoritative registry summarizing all AI Agent Skills, tool specifications, input/output schemas, error-handling behaviors, and integration patterns for the FlowX.
+> **Purpose**: Single authoritative registry summarizing all AI Agent Skills, tool specifications, input/output schemas, error-handling behaviors, and integration patterns for the Metaflow.
 
 ---
 
@@ -67,7 +67,7 @@ class ValidateJsonInput(BaseModel):
 validate_json_tool = StructuredTool.from_function(
     func=validate_json,
     name="validate_json",
-    description="Validates candidate FlowX onboarding specs immediately upon generation",
+    description="Validates candidate Metaflow onboarding specs immediately upon generation",
     args_schema=ValidateJsonInput,
 )
 ```
@@ -75,7 +75,7 @@ validate_json_tool = StructuredTool.from_function(
 ### 2. Semantic Kernel Integration
 ```csharp
 // Semantic Kernel KernelFunction Registration
-[KernelFunction, Description("Validates candidate FlowX onboarding specification")]
+[KernelFunction, Description("Validates candidate Metaflow onboarding specification")]
 public static string ValidateJson(
     [Description("Raw onboarding JSON/YAML string")] string spec_content,
     [Description("Target catalog")] string catalog = "poc",

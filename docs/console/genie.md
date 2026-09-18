@@ -1,6 +1,6 @@
 # :material-chat-question: Genie space · conversational diagnostics
 
-**The `FlowX Framework Observability` Genie space answers plain-language questions about what a dataflow group is supposed to do and how it is actually behaving, by reading the same eleven views the dashboard reads.** Source: `databricks-genie/flowx_observability.geniespace.json`, deployed by `resources/flowx_genie/flowx_observability_genie_space.yml`.
+**The `Metaflow Framework Observability` Genie space answers plain-language questions about what a dataflow group is supposed to do and how it is actually behaving, by reading the same eleven views the dashboard reads.** Source: `databricks-genie/flowx_observability.geniespace.json`, deployed by `resources/flowx_genie/flowx_observability_genie_space.yml`.
 
 !!! abstract "Quick links"
     - Why the views and only two raw system tables: [docs/17 §7](../17_framework_observability_and_genie.md#7-the-genie-space)

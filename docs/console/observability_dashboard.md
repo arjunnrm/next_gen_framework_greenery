@@ -1,6 +1,6 @@
 # :material-chart-box: Observability dashboard · page by page
 
-**The `FlowX Framework Observability` AI/BI dashboard is the operational console: ten pages over the `observability` semantic layer, joining what each dataflow group was onboarded to do with how it is actually running, what it costs, and what it will cost.** Source: `databricks-bi/flowx_observability_dashboard.lvdash.json`, deployed by `resources/flowx_bi/flowx_observability_dashboard.yml`.
+**The `Metaflow Framework Observability` AI/BI dashboard is the operational console: ten pages over the `observability` semantic layer, joining what each dataflow group was onboarded to do with how it is actually running, what it costs, and what it will cost.** Source: `databricks-bi/flowx_observability_dashboard.lvdash.json`, deployed by `resources/flowx_bi/flowx_observability_dashboard.yml`.
 
 !!! abstract "Quick links"
     - Deep dive on the views, the join key and the forecast rules: [docs/17](../17_framework_observability_and_genie.md)
@@ -101,7 +101,7 @@ Three filters, bound across pages. Set them first; every page below honours them
 
 - **Widgets:** Est. Cost (30d) · DBUs Consumed · Billed Entities · daily estimated cost by dataflow group (area) · share of spend by group (pie) · cost vs rows processed per group (combo) · daily usage records.
 - **Datasets:** Cost & DBUs (30d) on `v_dataflow_cost` (group × date × workload × SKU), Dataflow Group Scorecard.
-- **Reading it:** cost vs rows is the efficiency question. Cost attribution needs the `dataflow_group_id` job tag on every FlowX job and the `configuration['dataflow.group.id']` pipeline setting; a job without the tag is unattributed, not free.
+- **Reading it:** cost vs rows is the efficiency question. Cost attribution needs the `dataflow_group_id` job tag on every Metaflow job and the `configuration['dataflow.group.id']` pipeline setting; a job without the tag is unattributed, not free.
 
 ## Framework & Lineage
 

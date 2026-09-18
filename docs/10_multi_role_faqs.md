@@ -1,6 +1,6 @@
-# 💬 FlowX — Multi-Role FAQs
+# 💬 Metaflow — Multi-Role FAQs
 
-> **Audience**: Developers, Data Architects, and Project Managers evaluating, building, and operating FlowX pipelines.
+> **Audience**: Developers, Data Architects, and Project Managers evaluating, building, and operating Metaflow pipelines.
 
 ---
 
@@ -33,7 +33,7 @@ assert len(errors) == 0, f"Validation failed: {errors}"
 
 ### Q1.3: How does `schema_config_path` handle directory resolution and schema evolution?
 **Answer**:
-When `source_config.schema_config_path` points to a directory (e.g. `/Volumes/poc/schemas/orders/`), FlowX sorts all `.json` and `.yaml` files in that directory by modification timestamp and automatically loads the **latest file**. If new columns appear in the data that are not defined in `schema_config_path`, Auto Loader's `schema_evolution_mode` (e.g. `addNewColumns` or `rescue`) governs how unmapped columns are handled.
+When `source_config.schema_config_path` points to a directory (e.g. `/Volumes/poc/schemas/orders/`), Metaflow sorts all `.json` and `.yaml` files in that directory by modification timestamp and automatically loads the **latest file**. If new columns appear in the data that are not defined in `schema_config_path`, Auto Loader's `schema_evolution_mode` (e.g. `addNewColumns` or `rescue`) governs how unmapped columns are handled.
 
 ### Q1.4: How do I perform a dry-run validation without writing to control tables?
 **Answer**:
@@ -43,9 +43,9 @@ Use the `preflight_check_onboarding_spec` tool or run the onboarding engine note
 
 ## 🏛️ Section 2: Data Architect FAQ
 
-### Q2.1: How does FlowX achieve true decoupling between metadata and the Spark runtime?
+### Q2.1: How does Metaflow achieve true decoupling between metadata and the Spark runtime?
 **Answer**:
-FlowX implements a declarative compiler pattern:
+Metaflow implements a declarative compiler pattern:
 1. Business definitions (sources, joins, CDC rules, encryption, tags) reside purely in JSON/YAML specifications and are stored in standard Delta control tables.
 2. The runtime engine (`03_lakeflow_declarative_pipeline.py`) contains zero customer-specific business logic. It reads active rows for a `dataflow_group_id` and dynamically synthesizes the Databricks Lakeflow DAG (`@dlt.table`, `@dlt.view`, `dlt.create_sink`, `dlt.apply_changes`).
 3. This architecture guarantees that engine performance enhancements, security patches, or runtime upgrades apply instantaneously to all onboarded pipelines without refactoring individual business flows.
@@ -58,12 +58,12 @@ FlowX implements a declarative compiler pattern:
 
 ### Q2.3: What are the performance implications of SCD2 tracking and liquid clustering?
 **Answer**:
-- **Liquid Clustering**: FlowX supports native Delta Liquid Clustering via `target_config.liquid_clustering: ["col1", "col2"]`. This eliminates the pitfalls of static table partitioning (such as small-file skew and partition over-segmentation) and dynamically optimizes layout for CDC merge keys.
-- **CDF Change Capture**: For incremental downstream processing, FlowX leverages Delta Change Data Feed (CDF) to capture row change metrics without performing expensive full-table diffs.
+- **Liquid Clustering**: Metaflow supports native Delta Liquid Clustering via `target_config.liquid_clustering: ["col1", "col2"]`. This eliminates the pitfalls of static table partitioning (such as small-file skew and partition over-segmentation) and dynamically optimizes layout for CDC merge keys.
+- **CDF Change Capture**: For incremental downstream processing, Metaflow leverages Delta Change Data Feed (CDF) to capture row change metrics without performing expensive full-table diffs.
 
 ### Q2.4: How do in-graph Lakeflow sinks (`dlt.create_sink`) outperform traditional batch egress?
 **Answer**:
-Traditional batch egress approaches require separate post-deployment cron jobs that read target tables from scratch and write to external destinations, introducing latency and double-read compute costs. FlowX registers sinks directly into the Lakeflow DAG using `dlt.create_sink` + `@dlt.append_flow`. Data flows directly from the processing stage into external storage or Kafka within the same micro-batch checkpoint, guaranteeing exactly-once semantics and minimal end-to-end latency.
+Traditional batch egress approaches require separate post-deployment cron jobs that read target tables from scratch and write to external destinations, introducing latency and double-read compute costs. Metaflow registers sinks directly into the Lakeflow DAG using `dlt.create_sink` + `@dlt.append_flow`. Data flows directly from the processing stage into external storage or Kafka within the same micro-batch checkpoint, guaranteeing exactly-once semantics and minimal end-to-end latency.
 
 ---
 
@@ -84,9 +84,9 @@ Traditional batch egress approaches require separate post-deployment cron jobs t
   - **Quarantine Tables**: Setting `action: "quarantine"` on DQ rules routes invalid records to `{table}_quarantine` with full diagnostic metadata, keeping the main Silver table clean while preventing pipeline stoppage.
   - **Reconciliation Engine**: Automated daily reconciliation audits verify consistency between Bronze sources and Gold targets, automatically flagging or self-healing missing data.
 
-### Q3.3: How does FlowX accelerate delivery timelines and onboarding velocity?
+### Q3.3: How does Metaflow accelerate delivery timelines and onboarding velocity?
 **Answer**:
-- **From Days to Minutes**: Traditional pipeline development requires 3–5 days per data source (writing notebooks, configuring streaming checkpoints, coding SCD logic, implementing DQ). With FlowX, a developer completes an onboarding JSON/YAML template in **under 30 minutes**.
+- **From Days to Minutes**: Traditional pipeline development requires 3–5 days per data source (writing notebooks, configuring streaming checkpoints, coding SCD logic, implementing DQ). With Metaflow, a developer completes an onboarding JSON/YAML template in **under 30 minutes**.
 - **Standardized CI/CD**: Reusable Databricks Asset Bundles (DABs) automate packaging, wheel builds, deployment, and testing, drastically reducing deployment risk and operational toil.
 
 ### Q3.4: How do governance guardrails prevent non-compliant data promotion?

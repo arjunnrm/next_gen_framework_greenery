@@ -1,4 +1,4 @@
-# #️⃣ FlowX — Deterministic Hashing Standard
+# #️⃣ Metaflow — Deterministic Hashing Standard
 
 > **Audience**: Pipeline Developers & Data Stewards — anyone who needs to reason about, spot-check, or migrate `__framework_hash_key` or `__framework_hash_value`.
 

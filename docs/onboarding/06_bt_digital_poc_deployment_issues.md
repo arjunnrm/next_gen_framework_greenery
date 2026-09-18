@@ -122,8 +122,8 @@ Those views are created by `notebooks/01_setup/01_setup_control_tables.py` (sect
   `error_trace`. The notebook never reached user code — the failure is in compute
   provisioning, before execution.
 - **An unrelated team's job fails identically.** Run `996683975989971`, `copy-files`,
-  owned by `gopi.siripurapu@bt.com` — nothing to do with FlowX — failed at
-  **2026-09-13 15:59**, hours before any FlowX activity, with the same
+  owned by `gopi.siripurapu@bt.com` — nothing to do with Metaflow — failed at
+  **2026-09-13 15:59**, hours before any Metaflow activity, with the same
   `Cloud provider storage unavailable`. The condition pre-dates this deployment.
 - **Serverless SQL fails on a query touching no user table.** `SELECT 1` returns:
   ```

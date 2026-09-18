@@ -44,6 +44,20 @@ repos:
         pass_filenames: false
         files: ^(agent_skills/.*|\.claude/skills/flowx-onboarding/.*)$
 
+      - id: flowx-branding-artifacts-fresh
+        name: derived branding artifacts are current with branding/branding.json
+        entry: python scripts/apply_branding.py --check
+        language: system
+        pass_filenames: false
+        files: ^(branding/branding\.json|scripts/apply_branding\.py|databricks-app/web/src/branding\.js|databricks-app/server/branding_generated\.py|databricks-app/web/public/logo-(light|dark)\.png|docs/assets/logo\.png|logo/.*)$
+
+      - id: flowx-branding-propagation
+        name: every hand-edited branded surface still agrees with branding/branding.json
+        entry: python -m pytest tests/unit/test_branding.py -q --no-header -p no:cacheprovider
+        language: system
+        pass_filenames: false
+        files: ^(branding/.*|scripts/apply_branding\.py|tests/unit/test_branding\.py|mkdocs\.yml|databricks-app/(app\.yaml|config/index\.json|web/(index|preview)\.html|server/settings\.py)|resources/(flowx_app|flowx_bi|flowx_genie)/.*\.yml)$
+
       - id: flowx-docs-hub-tests
         name: every registry attribute has its four FAQs and every nav page exists
         entry: python -m pytest tests/unit/test_attribute_faqs.py tests/unit/test_docs_hub.py -q --no-header -p no:cacheprovider

@@ -1,6 +1,6 @@
-# :material-monitor-dashboard: The FlowX console
+# :material-monitor-dashboard: The Metaflow console
 
-**FlowX has no single monolithic UI. Its console is four surfaces that share one data source: the control tables plus the Databricks system tables.** This section walks each surface tab by tab, with the widgets you will see, the action you take on each, and the parameter filters that scope it.
+**Metaflow has no single monolithic UI. Its console is four surfaces that share one data source: the control tables plus the Databricks system tables.** This section walks each surface tab by tab, with the widgets you will see, the action you take on each, and the parameter filters that scope it.
 
 <div class="grid cards" markdown>
 
@@ -55,13 +55,13 @@ flowchart LR
 
 ## If you are looking for a tab called …
 
-The brief for this hub asked for four operational tabs. FlowX does not have them under those names. This is where each concern actually lives, and what is Databricks-native rather than FlowX.
+The brief for this hub asked for four operational tabs. Metaflow does not have them under those names. This is where each concern actually lives, and what is Databricks-native rather than Metaflow.
 
-| You expect | Where it is in FlowX | What is Databricks-native, not FlowX |
+| You expect | Where it is in Metaflow | What is Databricks-native, not Metaflow |
 |---|---|---|
-| **Pipeline Operations** — job runs, worker status, trigger buttons, run-duration charts | [Observability dashboard → Pipeline Performance](observability_dashboard.md#pipeline-performance) (update volume vs duration, retries, triggers) and [→ Job Orchestration](observability_dashboard.md#job-orchestration) (queue time, phase split, every run). Onboarding is triggered from the [Spec Builder](spec_builder.md#run-onboarding-from-the-app). | Starting or stopping a pipeline update, cluster/worker status and the update log live in the Databricks Pipelines UI or `databricks bundle run <pipeline>`. FlowX adds no trigger buttons of its own. |
+| **Pipeline Operations** — job runs, worker status, trigger buttons, run-duration charts | [Observability dashboard → Pipeline Performance](observability_dashboard.md#pipeline-performance) (update volume vs duration, retries, triggers) and [→ Job Orchestration](observability_dashboard.md#job-orchestration) (queue time, phase split, every run). Onboarding is triggered from the [Spec Builder](spec_builder.md#run-onboarding-from-the-app). | Starting or stopping a pipeline update, cluster/worker status and the update log live in the Databricks Pipelines UI or `databricks bundle run <pipeline>`. Metaflow adds no trigger buttons of its own. |
 | **Data Quality & Recon** — mismatch heatmaps, drill-downs, ad-hoc dispatchers | [Observability dashboard → Quality & Reconciliation](observability_dashboard.md#quality-reconciliation) (dataset × rule heatmap of failed records, classification per flow, run table); [Control dashboard → Reconciliation](control_dashboard.md#reconciliation); row-level detail in `config.reconciliation_mismatch_log`. An ad-hoc historical window is a `pipeline_parameters` change plus a job run: see [Pillar 3](../pillars/reconciliation.md#parameterised-sql-for-ad-hoc-historical-windows). | — |
-| **Telemetry & Logs** — stdout/stderr, Spark executor health, query profiles | Exported telemetry: [Pillar 4 → destinations](../pillars/observability.md#telemetry-destinations) (Volume JSONL or an OTLP collector); update outcomes in `v_pipeline_updates`; structured JSON log lines in the pipeline event log. | Driver stdout/stderr, executor health and query profiles are the Databricks pipeline event log, Spark UI and query history. FlowX does not proxy them. |
+| **Telemetry & Logs** — stdout/stderr, Spark executor health, query profiles | Exported telemetry: [Pillar 4 → destinations](../pillars/observability.md#telemetry-destinations) (Volume JSONL or an OTLP collector); update outcomes in `v_pipeline_updates`; structured JSON log lines in the pipeline event log. | Driver stdout/stderr, executor health and query profiles are the Databricks pipeline event log, Spark UI and query history. Metaflow does not proxy them. |
 | **Agent Console** — active skills, execution history, remediation audits | There is no agent UI. Skills are files and tool specs ([Agent skills & tools](agent_skills.md)); execution history is `config.onboarding_audit_log` (surfaced on the [Control dashboard → Observability & Audit](control_dashboard.md#observability-audit) page) plus `v_job_runs`. "Auto-healing" is the reconciliation engine's self-healing append, not an agent. | — |
 
 ## Deploying the console
@@ -85,7 +85,7 @@ databricks bundle run flowx_onboarding_app -t <target> -p <profile>
 | Views the dashboards and Genie read | created by the observability setup step (`get_all_observability_view_ddls`) | Prerequisites and exact failure modes: [docs/17 §9](../17_framework_observability_and_genie.md#9-prerequisites-and-exactly-what-breaks-when-they-are-unmet). |
 
 !!! warning "System-table grants decide how much of the console lights up"
-    The control-metadata dashboard and the declarative half of the observability views need only the control tables. Everything about runs, rows, DQ, cost and lineage needs `SELECT` on `system.lakeflow.*`, `system.billing.*` and `system.access.table_lineage`, plus the `dataflow_group_id` job tag on every FlowX job. Without them the pages render with empty counters, not errors.
+    The control-metadata dashboard and the declarative half of the observability views need only the control tables. Everything about runs, rows, DQ, cost and lineage needs `SELECT` on `system.lakeflow.*`, `system.billing.*` and `system.access.table_lineage`, plus the `dataflow_group_id` job tag on every Metaflow job. Without them the pages render with empty counters, not errors.
 
 ## Related
 

@@ -1,6 +1,6 @@
-# 🕵️ FlowX Agent Registry — Skill Gap Analysis & Audit Checklist
+# 🕵️ Metaflow Agent Registry — Skill Gap Analysis & Audit Checklist
 
-> **Purpose**: Systematic audit comparing the FlowX framework's consolidated capabilities against existing Agent Skills and Tool definitions, itemizing missing skills, behavioral modifications, and net-new capabilities.
+> **Purpose**: Systematic audit comparing the Metaflow framework's consolidated capabilities against existing Agent Skills and Tool definitions, itemizing missing skills, behavioral modifications, and net-new capabilities.
 
 ---
 

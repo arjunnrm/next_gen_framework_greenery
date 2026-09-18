@@ -29,7 +29,7 @@ resources:
     uc7_cdr_asn_job:
       name: 001_lfj_uc7_cdr_asn
 
-      # Job tags are the ONLY way a Lakeflow job run can be attributed back to its FlowX
+      # Job tags are the ONLY way a Lakeflow job run can be attributed back to its Metaflow
       # dataflow group in the system tables. The framework passes dataflow_group_id as a
       # notebook task base_parameter, and those do NOT surface in
       # system.lakeflow.job_task_run_timeline.task_parameters (verified empty on a live

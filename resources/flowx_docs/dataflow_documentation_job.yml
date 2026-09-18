@@ -1,4 +1,4 @@
-# Documentation generator: renders one Markdown design document per FlowX dataflow group from
+# Documentation generator: renders one Markdown design document per Metaflow dataflow group from
 # the control metadata and the Databricks system tables, into a Unity Catalog Volume.
 #
 # WHY A JOB AND NOT JUST THE GENIE SPACE. The Genie space in `resources/flowx_genie/` answers
@@ -34,7 +34,7 @@
 resources:
   jobs:
     dataflow_documentation_job:
-      name: FlowX Dataflow Documentation
+      name: Metaflow Dataflow Documentation
 
       tags:
         framework: flowx

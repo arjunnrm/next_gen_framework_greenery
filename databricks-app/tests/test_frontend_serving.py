@@ -3,9 +3,10 @@ import re
 
 from fastapi.testclient import TestClient
 
+from conftest import BRAND_NAME
 from server.app import app
 
-os.environ["FLOWX_FAKE_DBX"] = "1"
+os.environ["METAFLOW_FAKE_DBX"] = "1"
 client = TestClient(app)
 
 
@@ -13,7 +14,11 @@ def test_serve_spa_root():
     """The Vite shell is served at / and boots the React app."""
     res = client.get("/")
     assert res.status_code == 200
-    assert "FlowX" in res.text or "FlowX" in res.text
+    assert BRAND_NAME in res.text, (
+        f"the served Vite shell does not carry the brand {BRAND_NAME!r} "
+        "(branding/branding.json framework.display_name). Rebuild it with "
+        "`npm run build` in databricks-app/web; web/dist/ is git-tracked."
+    )
     # Vite shell: a root mount point plus at least one hashed bundle reference.
     assert 'id="root"' in res.text
     assert re.search(r'(?:src|href)="/assets/[^"]+"', res.text)
@@ -54,7 +59,12 @@ def test_serve_docs_site():
     """The wiki is served by MkDocs Material and carries its nav and search."""
     res_docs = client.get("/docs/")
     assert res_docs.status_code == 200
-    assert "FlowX" in res_docs.text
+    assert BRAND_NAME in res_docs.text, (
+        f"the served docs site does not carry the brand {BRAND_NAME!r} "
+        "(branding/branding.json framework.display_name, which mkdocs.yml site_name "
+        "must match). Rebuild with `python -m mkdocs build` then "
+        "`python scripts/build_app_docs.py`."
+    )
     # Material renders one tab per top-level nav section; their presence is what
     # makes /docs browsable rather than a single page.
     for tab in ["Get started", "Architecture", "JSON reference", "Help"]:

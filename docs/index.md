@@ -5,7 +5,7 @@ hide:
 
 <div class="fx-hero" markdown>
 
-# FlowX Documentation
+# Metaflow Documentation
 
 <p class="fx-lede">Metadata-driven ingestion, transformation, reconciliation and observability on Databricks Lakeflow. One JSON or YAML spec in, a governed pipeline out. Everything below is one click away.</p>
 
@@ -133,7 +133,7 @@ hide:
 </div>
 <div class="fx-panel" markdown>
 
-#### Extend FlowX
+#### Extend Metaflow
 
 - [Developer guide & recipes](09_developer_guide_and_recipes.md)
 - [Docs ↔ code synchronisation](reference/sync.md)
@@ -148,9 +148,9 @@ hide:
 
 ---
 
-## What FlowX solves
+## What Metaflow solves
 
-Enterprise data platforms drown in one-notebook-per-source pipelines: the same Auto Loader boilerplate, the same `MERGE`, the same hand-rolled row counts, copied a hundred times and drifting apart. FlowX replaces that with **one declarative spec per dataflow group**. The onboarding job validates the spec and writes control-table rows. One generic engine notebook reads those rows on every pipeline update and builds the Lakeflow graph at runtime: base ingestion nodes read each source exactly once, transformations chain through `dlt.read`, CDC strategies dispatch to `apply_changes`, reconciliation classifies every record, and telemetry leaves through OpenTelemetry. No per-source Python for the common cases. Framework Python only when a genuinely new capability arrives.
+Enterprise data platforms drown in one-notebook-per-source pipelines: the same Auto Loader boilerplate, the same `MERGE`, the same hand-rolled row counts, copied a hundred times and drifting apart. Metaflow replaces that with **one declarative spec per dataflow group**. The onboarding job validates the spec and writes control-table rows. One generic engine notebook reads those rows on every pipeline update and builds the Lakeflow graph at runtime: base ingestion nodes read each source exactly once, transformations chain through `dlt.read`, CDC strategies dispatch to `apply_changes`, reconciliation classifies every record, and telemetry leaves through OpenTelemetry. No per-source Python for the common cases. Framework Python only when a genuinely new capability arrives.
 
 <div class="grid cards" markdown>
 
@@ -186,7 +186,7 @@ Enterprise data platforms drown in one-notebook-per-source pipelines: the same A
 
     [Agent skills & tools](console/agent_skills.md) · [Prompt library](15_agent_skills_and_prompts.md)
 
-- :material-application-cog: **FlowX App · Spec Builder**
+- :material-application-cog: **Metaflow App · Spec Builder**
 
     ---
 

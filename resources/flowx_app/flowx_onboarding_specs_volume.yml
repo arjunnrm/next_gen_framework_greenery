@@ -1,4 +1,4 @@
-# UC Volume holding the onboarding specs authored in the FlowX Onboarding App.
+# UC Volume holding the onboarding specs authored in the Metaflow Onboarding App.
 #
 # Declared here so that deploying the bundle to a new workspace creates the app's storage
 # rather than leaving it to be made by hand. Before this existed, the app was configured
@@ -18,6 +18,6 @@ resources:
       name: ${var.spec_volume}
       volume_type: MANAGED
       comment: >-
-        Onboarding specs authored by the FlowX Onboarding App. The app's service
+        Onboarding specs authored by the Metaflow Onboarding App. The app's service
         principal is granted WRITE_VOLUME on this volume by the app resource in
         resources/flowx_app/flowx_onboarding_app.yml.

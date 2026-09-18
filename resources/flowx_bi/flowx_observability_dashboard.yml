@@ -1,4 +1,4 @@
-# AI/BI (Lakeview) observability dashboard: FlowX control metadata joined to the Databricks
+# AI/BI (Lakeview) observability dashboard: Metaflow control metadata joined to the Databricks
 # system tables.
 #
 # HOW THIS DIFFERS FROM flowx_control_dashboard.yml. That dashboard inventories what was
@@ -20,7 +20,7 @@
 # setup notebook, so nothing here is pinned to one workspace.
 #
 # THE JOIN KEY. Pipeline runs attribute to a dataflow group through
-# `system.lakeflow.pipelines.configuration['dataflow.group.id']`, which every FlowX pipeline
+# `system.lakeflow.pipelines.configuration['dataflow.group.id']`, which every Metaflow pipeline
 # resource already sets in its `configuration:` block -- no per-pipeline change was needed.
 # JOB runs are different: the framework passes `dataflow_group_id` as a notebook task
 # base_parameter and those do NOT surface in `job_task_run_timeline.task_parameters`, so job
@@ -43,7 +43,7 @@
 resources:
   dashboards:
     flowx_observability_dashboard:
-      display_name: "FlowX Framework Observability"
+      display_name: "Metaflow Framework Observability"
       warehouse_id: ${var.dashboard_warehouse_id}
       dataset_catalog: ${var.catalog}
       dataset_schema: observability

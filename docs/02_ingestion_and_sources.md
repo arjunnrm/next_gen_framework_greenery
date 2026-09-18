@@ -1,4 +1,4 @@
-# 📥 FlowX — Ingestion & Source Reader Engine
+# 📥 Metaflow — Ingestion & Source Reader Engine
 
 > **Audience**: Data engineers onboarding raw data into Bronze Delta tables using Auto Loader, streaming message buses, or binary protocols.
 
@@ -6,7 +6,7 @@
 
 ## 1. Overview of Ingestion Capabilities
 
-FlowX provides native, configuration-driven source readers for three primary ingestion modalities:
+Metaflow provides native, configuration-driven source readers for three primary ingestion modalities:
 1. **`autoloader`**: High-throughput cloud object storage ingestion (JSON, CSV, Parquet, Avro, Text, Binary) powered by [Databricks Auto Loader (`cloudFiles`)](https://docs.databricks.com/en/ingestion/cloud-object-storage/auto-loader/index.html).
 2. **`zerobus`**: Low-latency event streaming from Zerobus / Kafka / Delta streaming tables using Spark Structured Streaming.
 3. **`asn1`**: High-performance telecom CDR (Call Detail Record) decoding supporting ASN.1 BER and DER binary encodings via partitioned `mapInPandas`.
@@ -79,7 +79,7 @@ Auto Loader incrementally and efficiently processes billions of new files arrivi
 ```
 
 ### Schema Evolution Policies
-FlowX supports all native Auto Loader schema evolution modes via `schema_evolution_mode`:
+Metaflow supports all native Auto Loader schema evolution modes via `schema_evolution_mode`:
 - `"addNewColumns"` (Default): Automatically appends newly discovered columns to the Bronze Delta table.
 - `"addNewColumnsWithTypeWidening"`: Appends new columns and widens compatible types (e.g. `INT` to `BIGINT`).
 - `"rescue"`: Directs unparseable rows or unknown columns into a dedicated `_rescued_data` column without failing the stream.
@@ -145,7 +145,7 @@ For Kafka topics, event brokers, or Delta streaming sources, `zerobus` ingests r
 Telecom Call Detail Records (CDRs) and industrial telemetry often arrive as ASN.1 binary streams encoded in BER (Basic Encoding Rules) or DER (Distinguished Encoding Rules).
 
 ### High-Performance Partitioned Architecture
-FlowX compiles ASN.1 schemas **once per Spark partition** using `mapInPandas`, eliminating the severe performance bottleneck of compiling schemas per record:
+Metaflow compiles ASN.1 schemas **once per Spark partition** using `mapInPandas`, eliminating the severe performance bottleneck of compiling schemas per record:
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -235,7 +235,7 @@ every decoded column NULL, which is what makes `"expression": "_asn1_decode_erro
 
 ## 5. In-Flight PGP Decryption & ZIP Archive Handling
 
-FlowX can transparently decrypt PGP-encrypted files and extract ZIP archives before passing raw payloads to the downstream reader (`autoloader` or `asn1`). This all runs inside the reader function itself — at the pipeline's actual *execution* time, not merely graph-definition time — so decrypt → unzip → Auto Loader ingest → downstream transforms happen within one Lakeflow Declarative Pipeline update, with no separate job task required.
+Metaflow can transparently decrypt PGP-encrypted files and extract ZIP archives before passing raw payloads to the downstream reader (`autoloader` or `asn1`). This all runs inside the reader function itself — at the pipeline's actual *execution* time, not merely graph-definition time — so decrypt → unzip → Auto Loader ingest → downstream transforms happen within one Lakeflow Declarative Pipeline update, with no separate job task required.
 
 ```json
 {
@@ -445,7 +445,7 @@ Configuring `dedup_watermark` without `remove_dups: true` is rejected at onboard
 ## 8. Technical Metadata & Column Normalization
 
 ### Automatic Technical Metadata Injection
-When `capture_technical_metadata: true` is set, FlowX automatically enriches Bronze records with standard audit columns:
+When `capture_technical_metadata: true` is set, Metaflow automatically enriches Bronze records with standard audit columns:
 - `__framework_source_file_name`: Name and path of the ingested file.
 - `__framework_source_file_size`: Size in bytes.
 - `__framework_source_file_modification_time`: File timestamp on cloud storage.
@@ -528,4 +528,4 @@ columns:
     nullable: true
 ```
 > [!TIP]
-> If `schema_config_path` points to a directory (e.g. `/Volumes/catalog/schemas/orders/`), FlowX automatically resolves and loads the most recently modified file in that directory.
+> If `schema_config_path` points to a directory (e.g. `/Volumes/catalog/schemas/orders/`), Metaflow automatically resolves and loads the most recently modified file in that directory.

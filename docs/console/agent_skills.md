@@ -1,6 +1,6 @@
 # :material-robot: Agent skills & tools
 
-**FlowX ships a knowledge pack and six function-calling tools so an LLM agent can author, validate, onboard and diagnose specs without inventing attribute names. It does not ship an agent runtime or an "agent console" UI.** This page says exactly what exists, what each tool does, and where the execution history an operator would want actually lives.
+**Metaflow ships a knowledge pack and six function-calling tools so an LLM agent can author, validate, onboard and diagnose specs without inventing attribute names. It does not ship an agent runtime or an "agent console" UI.** This page says exactly what exists, what each tool does, and where the execution history an operator would want actually lives.
 
 !!! abstract "Quick links"
     - Prompt library and task-to-tool table: [Agent skills & prompt library](../15_agent_skills_and_prompts.md)
@@ -78,7 +78,7 @@ Since v1.7.2 an unrecognised attribute is a hard error, and the message names th
 
 | You might expect | Reality |
 |---|---|
-| A tab listing active autonomous skills | None. Skills are Markdown files loaded into an agent's context; nothing runs unattended inside FlowX. |
+| A tab listing active autonomous skills | None. Skills are Markdown files loaded into an agent's context; nothing runs unattended inside Metaflow. |
 | Execution history of agent actions | `config.onboarding_audit_log`: every onboarding, by a human or an agent, with `onboarded_by`, `action_type`, `status`, `error_message` and the `raw_spec_payload`. Shown on the [Control dashboard → Observability & Audit](control_dashboard.md#observability-audit) page; job runs are in `v_job_runs`. |
 | Pipeline auto-healing by an agent | Self-healing is the **reconciliation engine's** append of missing and drifted records to `append_target_table` ([Pillar 3](../pillars/reconciliation.md#self-healing-append)), a deterministic job or in-pipeline lane, not an LLM. |
 | SLA enforcement | DQ rules with `action: fail` stop an update; a reconciliation `dq_config` threshold fails an update; anything beyond that is a Databricks SQL alert over `v_group_health_summary` ([Pillar 4](../pillars/observability.md#heartbeats-thresholds-and-triage)). |

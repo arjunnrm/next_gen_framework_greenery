@@ -1,5 +1,5 @@
 """
-Main FastAPI Application for FlowX Onboarding App (§3 & §9).
+Main FastAPI Application for the Metaflow Onboarding App (§3 & §9).
 Serves /api/* endpoints, /docs/* static/proxy documentation, and the built SPA.
 """
 
@@ -20,6 +20,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
+from server.branding_generated import APP_RUNNING_MESSAGE, APP_TITLE
 from server.deps import get_app_settings, get_registry_manager
 from server.errors import AppException, format_error_response
 from server.logging_setup import setup_logging
@@ -48,11 +49,11 @@ async def lifespan(app: FastAPI):
     )
     reg.verify_integrity()
     yield
-    logger.info("FlowX Onboarding App shutdown complete.", extra={"event": "app_shutdown"})
+    logger.info(f"{APP_TITLE} App shutdown complete.", extra={"event": "app_shutdown"})
 
 
 app = FastAPI(
-    title="FlowX Onboarding App",
+    title=f"{APP_TITLE} App",
     version="1.3.0",
     docs_url="/api/swagger",
     redoc_url=None,
@@ -186,7 +187,7 @@ async def serve_root():
     index_file = dist / "index.html"
     if index_file.exists():
         return FileResponse(str(index_file))
-    return JSONResponse(status_code=200, content={"status": "FlowX Onboarding App is running"})
+    return JSONResponse(status_code=200, content={"status": APP_RUNNING_MESSAGE})
 
 
 @app.get("/{full_path:path}")
@@ -202,5 +203,5 @@ async def serve_spa(full_path: str):
         index_file = dist / "index.html"
         if index_file.exists():
             return FileResponse(str(index_file))
-    return JSONResponse(status_code=200, content={"status": "FlowX Onboarding App is running"})
+    return JSONResponse(status_code=200, content={"status": APP_RUNNING_MESSAGE})
 

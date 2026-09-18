@@ -1,4 +1,4 @@
-"""MkDocs hooks for the FlowX documentation hub.
+"""MkDocs hooks for the Metaflow documentation hub.
 
 Registered in ``mkdocs.yml`` under ``hooks:``. MkDocs imports this module and calls the
 ``on_*`` functions at the matching lifecycle points, so the derived reference pages are

@@ -1,13 +1,13 @@
-site_name: FlowX
+site_name: Metaflow
 site_description: >-
   Metadata-driven ingestion, transformation, reconciliation and observability
   pipelines on Databricks Lakeflow — platform hub, four framework pillars, console
   walkthroughs, the master configuration reference and operational runbooks.
-site_author: Data Platform Engineering
+site_author: NRM Analytix
 repo_url: https://github.com/Madhan-RAGHU/NextGen_Metadata_Framework
 repo_name: NextGen_Metadata_Framework
 edit_uri: edit/main/docs/
-copyright: FlowX · Data Platform Engineering
+copyright: Metaflow · NRM Analytix
 
 docs_dir: docs
 site_dir: site
@@ -18,8 +18,17 @@ site_dir: site
 theme:
   name: material
   language: en
+  # The NRM Analytix mark. Generated from branding/branding.json by
+  # `python scripts/apply_branding.py` -- do not hand-place a file here.
+  # `theme.logo` and `theme.icon.logo` are mutually exclusive: theme.logo wins
+  # silently, so the icon key is removed rather than left behind as a dead line.
+  # Path is relative to docs_dir.
+  # No `favicon:` key. The generated logo is a 674x303 wordmark (2.2:1) and would
+  # render as a squashed sliver in a square favicon slot. branding/branding.json
+  # records that an NRM-branded favicon is a NEW decision, not part of this rebrand,
+  # so the site keeps Material's default favicon until that decision is made.
+  logo: assets/logo.png
   icon:
-    logo: material/transit-connection-variant
     repo: fontawesome/brands/github
     admonition:
       abstract: material/link-variant

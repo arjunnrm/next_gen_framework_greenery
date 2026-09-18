@@ -1,4 +1,4 @@
-# FlowX Architecture Review — Pillar 7: Code Structure, Extensibility & Future-Proofing
+# Metaflow Architecture Review — Pillar 7: Code Structure, Extensibility & Future-Proofing
 
 **Evaluation Area:** Codebase Structure, Pluggable Registry Architecture, Open-Closed Principle (OCP), Component Decoupling, and Developer Ergonomics  
 **Score:** 7.5 / 10 (Current) ➔ **9.8 / 10 (Target Architecture)**  
@@ -14,9 +14,9 @@ A hallmark of a world-class, enterprise-grade data platform is **ease of modific
 - New egress sinks (e.g., Snowflake, AWS S3 Parquet, Azure EventHub, GCP Pub/Sub, Webhooks).
 - New telemetry exporters (e.g., Azure Monitor, AWS CloudWatch, Datadog direct, Prometheus).
 
-In the current FlowX implementation, adding any new capability requires modifying multiple core engine files (`readers.py`, `dispatcher.py`, `sink_registration.py`, `destination_dispatcher.py`, and `spec_validator.py`). This tight coupling creates regression risks and slows development velocity.
+In the current Metaflow implementation, adding any new capability requires modifying multiple core engine files (`readers.py`, `dispatcher.py`, `sink_registration.py`, `destination_dispatcher.py`, and `spec_validator.py`). This tight coupling creates regression risks and slows development velocity.
 
-This review provides a comprehensive blueprint to transform FlowX into an **Open-Closed, Plugin-Driven Architecture**.
+This review provides a comprehensive blueprint to transform Metaflow into an **Open-Closed, Plugin-Driven Architecture**.
 
 ---
 
@@ -51,7 +51,7 @@ This review provides a comprehensive blueprint to transform FlowX into an **Open
 
 ## 3. Target State: The Pluggable Registry Architecture
 
-To make FlowX effortlessly modifiable, the codebase should adopt a **Declarative Registry Pattern** powered by Python decorators and abstract base classes.
+To make Metaflow effortlessly modifiable, the codebase should adopt a **Declarative Registry Pattern** powered by Python decorators and abstract base classes.
 
 ```
 ┌──────────────────────────────────────────────────────────────────────────────────────────────────┐
@@ -92,7 +92,7 @@ from typing import Any, Dict
 from pyspark.sql import DataFrame, SparkSession
 
 class BaseReader(ABC):
-    """Abstract contract for all FlowX ingestion source readers."""
+    """Abstract contract for all Metaflow ingestion source readers."""
     
     @abstractmethod
     def read(self, spark: SparkSession, source_config: Dict[str, Any], parameters: Dict[str, Any]) -> DataFrame:

@@ -1,11 +1,11 @@
 ---
 name: flowx-governance
-description: Enforces standardized pipeline/workflow naming conventions, mandatory Unity Catalog resource tagging, and task/job-level observability naming standards across the FlowX framework.
+description: Enforces standardized pipeline/workflow naming conventions, mandatory Unity Catalog resource tagging, and task/job-level observability naming standards across the Metaflow framework.
 ---
 
-# 🛡️ FlowX Governance, Tagging & Observability Standards Skill
+# 🛡️ Metaflow Governance, Tagging & Observability Standards Skill
 
-This skill enforces enterprise governance policies, naming conventions, metadata attribution, and observability standards for all FlowX data pipelines.
+This skill enforces enterprise governance policies, naming conventions, metadata attribution, and observability standards for all Metaflow data pipelines.
 
 ---
 

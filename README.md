@@ -1,4 +1,4 @@
-# 🚀 FlowX
+# 🚀 Metaflow
 
 A metadata-driven, enterprise-grade data ingestion, transformation, reconciliation, and observability framework built on **Databricks Lakeflow Pipelines (Delta Live Tables)**, **Unity Catalog**, and **Databricks Asset Bundles (DABs)**.
 

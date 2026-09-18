@@ -11,12 +11,30 @@ Tests that assert "the shipped frontend contains X" must therefore read the shel
 those assertions keep testing what they were written to test.
 """
 
+import json
 import os
 import re
+from pathlib import Path
 
 import pytest
 
-os.environ.setdefault("FLOWX_FAKE_DBX", "1")
+os.environ.setdefault("METAFLOW_FAKE_DBX", "1")
+
+
+def _brand_name() -> str:
+    """The framework display name, from branding/branding.json.
+
+    Read from the repo root rather than hardcoded, so a brand change is made in one
+    place and these tests follow it. The app itself cannot import that file (only
+    ``databricks-app/`` is uploaded to Databricks Apps), but the test suite runs
+    from a checkout, where the repo root is two levels up from this file.
+    """
+    config = Path(__file__).resolve().parents[2] / "branding" / "branding.json"
+    return str(json.loads(config.read_text(encoding="utf-8"))["framework"]["display_name"])
+
+
+#: Framework display name asserted against the shipped frontend and docs site.
+BRAND_NAME = _brand_name()
 
 from fastapi.testclient import TestClient  # noqa: E402
 

@@ -1,11 +1,11 @@
 {
-  "$comment": "Master Declarative AI Agent Tool Specifications for FlowX. OpenAI Function-Calling / LangChain StructuredTool / Semantic Kernel compatible schema definitions.",
+  "$comment": "Master Declarative AI Agent Tool Specifications for Metaflow. OpenAI Function-Calling / LangChain StructuredTool / Semantic Kernel compatible schema definitions.",
   "tools": [
     {
       "type": "function",
       "function": {
         "name": "validate_json",
-        "description": "Validates a candidate FlowX onboarding specification (JSON or YAML) immediately after generation and before downstream execution. Runs OFFLINE -- no SparkSession, no cluster, sub-second -- so it is the mandatory last step of any spec-generation loop: generate, validate, fix from the error text, repeat until valid is true. Performs complete structural validation against control table contracts, allowed-value checks, CDC constraints (e.g. SCD3 transformation-only), restricted SQL grammar validation, secret path checks, governance tag rule verification, AND (v1.7.1) rejection of any attribute the framework does not read -- an unrecognised key is a hard error whose message names the correct attribute, because a silently ignored key onboards and runs while doing nothing. The only check needing a live session is the EXPLAIN-based structural validation of transformation_sql/transform_sql, which is skipped offline (parameter substitution is still checked) and runs at onboarding time on the cluster.",
+        "description": "Validates a candidate Metaflow onboarding specification (JSON or YAML) immediately after generation and before downstream execution. Runs OFFLINE -- no SparkSession, no cluster, sub-second -- so it is the mandatory last step of any spec-generation loop: generate, validate, fix from the error text, repeat until valid is true. Performs complete structural validation against control table contracts, allowed-value checks, CDC constraints (e.g. SCD3 transformation-only), restricted SQL grammar validation, secret path checks, governance tag rule verification, AND (v1.7.1) rejection of any attribute the framework does not read -- an unrecognised key is a hard error whose message names the correct attribute, because a silently ignored key onboards and runs while doing nothing. The only check needing a live session is the EXPLAIN-based structural validation of transformation_sql/transform_sql, which is skipped offline (parameter substitution is still checked) and runs at onboarding time on the cluster.",
         "implementation": "flowx.lakeflow_framework.onboarding.agent_tools.validate_json",
         "parameters": {
           "type": "object",
@@ -73,7 +73,7 @@
       "type": "function",
       "function": {
         "name": "onboard_entity",
-        "description": "Unified idempotent lifecycle execution tool supporting 'create' and 'update' actions for FlowX pipelines, jobs, and control table entities. Performs preflight validation, upserts control table records (dataflow_group_spec, ingestion_flow_spec, transformation_flow_spec, reconciliation_flow_spec), records audit logs, and optionally triggers initial pipeline graph deployment.",
+        "description": "Unified idempotent lifecycle execution tool supporting 'create' and 'update' actions for Metaflow pipelines, jobs, and control table entities. Performs preflight validation, upserts control table records (dataflow_group_spec, ingestion_flow_spec, transformation_flow_spec, reconciliation_flow_spec), records audit logs, and optionally triggers initial pipeline graph deployment.",
         "implementation": "flowx.lakeflow_framework.onboarding.agent_tools.onboard_entity",
         "parameters": {
           "type": "object",

@@ -1,6 +1,6 @@
 # :material-swap-horizontal: Pillar 2 · Transformation
 
-**One SQL statement, one declared load strategy, one Silver or Gold table: FlowX turns each `transformation_flows[]` entry into a Lakeflow graph node that reads every Bronze source exactly once and merges downstream through `apply_changes`, snapshot diffing, append or full recompute.**
+**One SQL statement, one declared load strategy, one Silver or Gold table: Metaflow turns each `transformation_flows[]` entry into a Lakeflow graph node that reads every Bronze source exactly once and merges downstream through `apply_changes`, snapshot diffing, append or full recompute.**
 
 !!! abstract "Quick links"
     - Attribute reference: [Transformation flows](../reference/json/transformation.md) · [CDC / load strategy](../reference/json/ingestion-transformation.md) · [Root attributes](../reference/json/root.md)

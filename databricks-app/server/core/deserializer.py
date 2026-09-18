@@ -1,5 +1,5 @@
 """
-Lossless Deserializer for FlowX Onboarding App.
+Lossless Deserializer for the Metaflow Onboarding App.
 Converts incoming framework JSON/YAML spec into Flow Document Store (SpecDoc) according to §8.5.
 """
 

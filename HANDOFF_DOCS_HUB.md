@@ -1,4 +1,4 @@
-# HANDOFF — FlowX documentation hub rebuild (v1.7.13 docs release)
+# HANDOFF — Metaflow documentation hub rebuild (v1.7.13 docs release)
 
 **Written 2026-09-14 20:45 IST on branch `feature/0.0.4`.** This note lets a fresh session (any
 account) continue the work without re-deriving it. Read it top to bottom once; then work the
@@ -37,7 +37,7 @@ Facts the brief got wrong, and how the pages handle them (keep this honest):
   real recipe (edit `pipeline_parameters` → onboarding `action_type=UPDATE` → run the job).
 - There is no "Agent Console" tab. Agent skills are files + tool specs + Genie. The console
   page says so plainly and maps the requested tabs onto the real surfaces.
-- FlowX has no SaaS "cloud-to-cloud connectors"; sources are Auto Loader files, Zerobus tables,
+- Metaflow has no SaaS "cloud-to-cloud connectors"; sources are Auto Loader files, Zerobus tables,
   ASN.1 files. Ingestion pillar states this.
 - Version badges use real framework versions (v1.4.0 … v1.7.5) from `docs/v*_json_attribute_delta.json`.
 
@@ -283,7 +283,7 @@ g4 27 (target_config core, dq_config, governance_tags), g5 30 (sink_config), g6 
 
 ## Appendix B — FAQ agent brief (use verbatim; substitute GROUP and OUTPUT)
 
-> You are a senior technical writer for FlowX, a metadata-driven Databricks Lakeflow framework in
+> You are a senior technical writer for Metaflow, a metadata-driven Databricks Lakeflow framework in
 > the repo at C:\Databricks\NextGen_Metadata_Framework. Author grounded FAQs for a group of
 > onboarding-spec attributes. Do NOT modify any file inside the repo. Write ONLY to OUTPUT.
 >

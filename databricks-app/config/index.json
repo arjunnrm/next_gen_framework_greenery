@@ -1,7 +1,6 @@
 {
   "schema_version": "1.0",
   "app": {
-    "title": "FlowX Onboarding",
     "framework_version": "1.3.0",
     "environment_label": "dev",
     "support_contact": "data-platform@example.com"
@@ -107,7 +106,7 @@
   "docs": {
     "mode": "embedded",
     "base_url": "/docs/",
-    "external_base_url": "https://docs.internal.example.com/flowx/",
+    "external_base_url": "https://docs.internal.example.com/metaflow/",
     "attribute_reference_page": "",
     "open_in": "panel"
   },

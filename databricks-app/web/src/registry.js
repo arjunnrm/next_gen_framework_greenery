@@ -1,4 +1,4 @@
-// FlowX v1.5.0 attribute registry, phases, templates and helpers.
+// Metaflow v1.5.0 attribute registry, phases, templates and helpers.
 // Lifted verbatim from the approved Spec Builder reference so the 219-attribute
 // inventory, every dependency predicate and every template stay byte-identical.
 /* eslint-disable */

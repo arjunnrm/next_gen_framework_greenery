@@ -450,7 +450,7 @@ def test_publish_job_targets_the_apps_spec_volume():
     """The job must publish into the same Volume the Onboarding App reads.
 
     The App's root is `/Volumes/${var.catalog}/${var.spec_schema}/${var.spec_volume}/` (set as
-    FLOWX_SPEC_VOLUME_ROOT in resources/flowx_app/flowx_onboarding_app.yml). If this job's
+    METAFLOW_SPEC_VOLUME_ROOT in resources/flowx_app/flowx_onboarding_app.yml). If this job's
     destination is spelled any other way, both sides still deploy and the specs land where the
     App will never list them."""
     expected = {

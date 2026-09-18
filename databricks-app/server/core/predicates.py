@@ -1,5 +1,5 @@
 """
-Predicate DSL Evaluator for FlowX Onboarding App.
+Predicate DSL Evaluator for the Metaflow Onboarding App.
 Implements the §5.4 Specification:
 Grammar:
   op := eq | ne | in | nin | gt | gte | lt | lte

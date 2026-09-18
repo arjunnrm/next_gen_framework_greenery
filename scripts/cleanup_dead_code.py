@@ -105,7 +105,7 @@ def cleanup_docv2():
 
 def main():
     print("========================================")
-    print("FlowX Dead-Code & Legacy Cleanup")
+    print("Metaflow Dead-Code & Legacy Cleanup")
     print("========================================")
     cleanup_dead_files()
     cleanup_empty_dirs()

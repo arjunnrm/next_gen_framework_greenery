@@ -1,0 +1,64 @@
+{
+  "$comment": "THE single source of truth for every user-visible brand string and logo asset in this repo. Edit this file, then run: python scripts/apply_branding.py. See branding/README.md for what is regenerated, what you must still edit by hand, and what is deliberately NOT configurable.",
+  "schema_version": "1.0",
+
+  "framework": {
+    "display_name": "Metaflow",
+    "slug": "metaflow",
+    "tagline": "Metadata-driven ingestion, transformation and reconciliation on Databricks Lakeflow",
+    "builder_subtitle": "Spec Builder"
+  },
+
+  "vendor": {
+    "display_name": "NRM Analytix",
+    "slug": "nrm-analytix"
+  },
+
+  "app": {
+    "title": "Metaflow Onboarding",
+    "deployed_name": "metaflow-onboarding",
+    "description": "Self-service Metaflow Onboarding Databricks App for authoring, validating, diffing, and deploying metadata-driven ingestion, transformation, and reconciliation pipelines.",
+    "running_message": "Metaflow Onboarding App is running"
+  },
+
+  "env": {
+    "prefix": "METAFLOW"
+  },
+
+  "docs": {
+    "site_name": "Metaflow",
+    "site_description": "Metadata-driven ingestion, transformation, reconciliation and observability on Databricks Lakeflow Declarative Pipelines.",
+    "copyright": "Metaflow · NRM Analytix",
+    "external_base_url": "https://docs.internal.example.com/metaflow/"
+  },
+
+  "consoles": {
+    "dashboard_prefix": "Metaflow",
+    "control_dashboard_title": "Metaflow Control Metadata",
+    "observability_dashboard_title": "Metaflow Framework Observability",
+    "genie_space_title": "Metaflow Framework Observability",
+    "genie_space_description": "Ask about Metaflow dataflow groups: what each one does, which framework features it uses, how healthy its pipelines are, and what it costs."
+  },
+
+  "logo": {
+    "source_dir": "logo",
+    "light": {
+      "source": "Logo White.PNG",
+      "published": "logo-light.png",
+      "background": [255, 255, 255],
+      "note": "White background, dark (59,56,56) wordmark text. Correct for the LIGHT theme."
+    },
+    "dark": {
+      "source": "Logo Black.PNG",
+      "published": "logo-dark.png",
+      "background": [0, 0, 0],
+      "note": "Black background, white wordmark text. Correct for the DARK theme."
+    },
+    "alt_text": "NRM Analytix",
+    "crop_to_content": true,
+    "background_to_alpha": true,
+    "alpha_tolerance": 24,
+    "favicon": "favicon.svg",
+    "favicon_note": "Unchanged. The existing databricks-app/web/public/favicon.svg carries no FlowX or hoonartek mark, so the rebrand as scoped does not require replacing it. An NRM-branded favicon is a NEW decision, not part of this rebrand."
+  }
+}

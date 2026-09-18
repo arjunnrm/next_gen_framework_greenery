@@ -26,7 +26,7 @@ import typing
 
 import pytest
 
-os.environ.setdefault("FLOWX_FAKE_DBX", "1")
+os.environ.setdefault("METAFLOW_FAKE_DBX", "1")
 
 from fastapi.testclient import TestClient  # noqa: E402
 
@@ -416,7 +416,7 @@ def test_real_client_failure_is_not_downgraded_to_the_fake(monkeypatch):
     """
     import server.clients.dbx as dbx
 
-    monkeypatch.delenv("FLOWX_FAKE_DBX", raising=False)
+    monkeypatch.delenv("METAFLOW_FAKE_DBX", raising=False)
 
     def _boom(*a, **k):
         raise RuntimeError("no credentials")

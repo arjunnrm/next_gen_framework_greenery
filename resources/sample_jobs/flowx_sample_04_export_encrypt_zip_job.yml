@@ -60,7 +60,7 @@
 resources:
   jobs:
     flowx_sample_04_export_encrypt_zip_job:
-      name: FlowX Sample 04 - Encrypted ZIP CSV Export Egress (AES-256 Passkey)
+      name: Metaflow Sample 04 - Encrypted ZIP CSV Export Egress (AES-256 Passkey)
 
       tasks:
         # 1/2 -- core pipeline / transformation logic.

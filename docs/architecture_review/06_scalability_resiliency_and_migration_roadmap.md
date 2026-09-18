@@ -1,4 +1,4 @@
-# FlowX Architecture Review — Pillar 6: Scalability, Resiliency & Migration Roadmap
+# Metaflow Architecture Review — Pillar 6: Scalability, Resiliency & Migration Roadmap
 
 **Evaluation Area:** Serverless / Photon Compute Compatibility, Failure Recovery, Cluster Rightsizing, and Prioritized 3-Phase Migration Roadmap  
 **Score:** 7.5 / 10  
@@ -8,7 +8,7 @@
 
 ## 1. Executive Scalability & Resiliency Evaluation
 
-FlowX is built for cloud-scale execution on Databricks. It aligns with modern platform paradigms:
+Metaflow is built for cloud-scale execution on Databricks. It aligns with modern platform paradigms:
 - **Serverless Compute Ready:** Strictly avoids unsupported `DataFrame.cache()` and `DataFrame.persist()` APIs, relying on Delta Lake file skipping and intelligent predicate pushdown.
 - **Photon Engine Compatible:** Written using standard PySpark SQL column expressions, enabling 100% C++ vectorized acceleration on Photon runtime clusters.
 - **Idempotent by Design:** Employs Delta `MERGE INTO`, deterministic hash fingerprinting, and restartable streaming checkpoints to ensure pipelines can be safely retried upon failure.

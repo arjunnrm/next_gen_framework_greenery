@@ -1,5 +1,5 @@
 """
-Validation Engine for FlowX Onboarding App.
+Validation Engine for the Metaflow Onboarding App.
 Implements §12 Layer 1 (Registry-driven) + Layer 2 (Cross-field rules) + Secret Hygiene.
 """
 

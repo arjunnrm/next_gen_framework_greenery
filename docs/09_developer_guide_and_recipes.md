@@ -1,6 +1,6 @@
-# 🛠️ FlowX — Developer Step-by-Step Guide & Recipes
+# 🛠️ Metaflow — Developer Step-by-Step Guide & Recipes
 
-> **Audience**: Data engineers building, validating, and deploying data pipelines using the FlowX framework.
+> **Audience**: Data engineers building, validating, and deploying data pipelines using the Metaflow framework.
 
 ---
 

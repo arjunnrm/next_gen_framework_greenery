@@ -334,7 +334,7 @@ GENIE_ALLOWED_SYSTEM_TABLES = {"system.billing.usage", "system.billing.list_pric
 
 def test_genie_points_only_at_curated_views_and_two_billing_tables(genie):
     """Pointing the space at ``system.lakeflow`` directly would let it answer platform-wide
-    questions unrelated to FlowX and lose the dataflow_group_id framing. The billing pair is
+    questions unrelated to Metaflow and lose the dataflow_group_id framing. The billing pair is
     exempt because AI_FORECAST needs an hourly series the views do not expose."""
     for table in genie["data_sources"]["tables"]:
         ident = table["identifier"]

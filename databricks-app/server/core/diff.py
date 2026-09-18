@@ -1,5 +1,5 @@
 """
-Deep Structural Spec Diff Engine for FlowX Onboarding App.
+Deep Structural Spec Diff Engine for the Metaflow Onboarding App.
 Compares a newly authored/modified spec against an existing spec to compute
 added, removed, and changed attributes/flows for the confirm step before onboarding.
 """

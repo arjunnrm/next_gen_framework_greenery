@@ -1,4 +1,4 @@
-# AI/BI Genie space over the FlowX observability semantic layer.
+# AI/BI Genie space over the Metaflow observability semantic layer.
 #
 # WHAT THIS ANSWERS. Natural-language questions about the framework itself: "show me the details
 # of every dataflow group and what features they use", "explain what dfg_uc6_ea_flood_warning
@@ -6,7 +6,7 @@
 # engineer", "what did each group cost to run". The space is deliberately narrow: it is pointed
 # at the curated `<catalog>.observability` views, not at `system.lakeflow` directly, because a
 # space that can see the raw system tables answers platform-wide questions that have nothing to
-# do with FlowX and loses the dataflow_group_id framing that makes the answers useful.
+# do with Metaflow and loses the dataflow_group_id framing that makes the answers useful.
 #
 # WHY THE VIEWS AND NOT THE CONTROL TABLES. Genie reads column COMMENTs as its semantic model,
 # and the observability views are commented for exactly that purpose (see
@@ -40,9 +40,9 @@
 resources:
   genie_spaces:
     flowx_observability_genie_space:
-      title: "FlowX Framework Observability"
+      title: "Metaflow Framework Observability"
       description: >-
-        Ask about FlowX dataflow groups: what each one does, which framework features it uses,
+        Ask about Metaflow dataflow groups: what each one does, which framework features it uses,
         how its pipelines have been running, its data-quality and reconciliation posture, and
         what it costs. Backed by the framework control metadata joined to the Databricks system
         tables.

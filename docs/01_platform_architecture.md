@@ -1,12 +1,12 @@
-# 🏗️ FlowX — Platform Architecture & Core Concepts
+# 🏗️ Metaflow — Platform Architecture & Core Concepts
 
-> **Audience**: Solution architects, lead data engineers, and framework contributors who need to understand how FlowX compiles metadata into Databricks Lakeflow Declarative Pipelines.
+> **Audience**: Solution architects, lead data engineers, and framework contributors who need to understand how Metaflow compiles metadata into Databricks Lakeflow Declarative Pipelines.
 
 ---
 
 ## 1. Executive Summary & Problem Statement
 
-**FlowX** is an enterprise-grade, metadata-driven data framework built natively on [Databricks Lakeflow Declarative Pipelines](https://docs.databricks.com/aws/en/dlt/) (formerly Delta Live Tables / DLT).
+**Metaflow** is an enterprise-grade, metadata-driven data framework built natively on [Databricks Lakeflow Declarative Pipelines](https://docs.databricks.com/aws/en/dlt/) (formerly Delta Live Tables / DLT).
 
 ### The Challenge of Traditional Data Engineering
 In traditional Lakehouse implementations:
@@ -14,14 +14,14 @@ In traditional Lakehouse implementations:
 - **Inconsistent CDC & DQ**: Different developers implement Slowly Changing Dimensions (SCD), error handling, and quarantine routing in subtly conflicting ways.
 - **High Maintenance Overhead**: Upgrading security standards, schema evolution policies, or telemetry logging requires modifying dozens of individual pipeline notebooks.
 
-### The FlowX Solution
-FlowX decouples **Pipeline Definition** (declarative JSON/YAML onboarding specifications) from **Pipeline Execution** (a single, generic Lakeflow compilation engine). Adding a new ingestion flow, multi-table join, SCD2 dimension, or PGP-encrypted sink requires only configuration—**zero new Python code**.
+### The Metaflow Solution
+Metaflow decouples **Pipeline Definition** (declarative JSON/YAML onboarding specifications) from **Pipeline Execution** (a single, generic Lakeflow compilation engine). Adding a new ingestion flow, multi-table join, SCD2 dimension, or PGP-encrypted sink requires only configuration—**zero new Python code**.
 
 ---
 
 ## 2. Two-Phase Execution Model
 
-FlowX operates strictly on a two-phase execution lifecycle that prevents runtime data contamination and guarantees graph determinism:
+Metaflow operates strictly on a two-phase execution lifecycle that prevents runtime data contamination and guarantees graph determinism:
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
@@ -53,7 +53,7 @@ FlowX operates strictly on a two-phase execution lifecycle that prevents runtime
 
 ## 3. Medallion Architecture Implementation
 
-FlowX structures data processing across the standard Medallion layers while enforcing enterprise governance:
+Metaflow structures data processing across the standard Medallion layers while enforcing enterprise governance:
 
 ```
                   ┌──────────────────────────────┐

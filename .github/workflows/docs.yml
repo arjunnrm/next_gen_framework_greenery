@@ -15,6 +15,9 @@ on:
       - "docs/**"
       - "mkdocs.yml"
       - "scripts/build_docs_reference.py"
+      - "scripts/apply_branding.py"
+      - "branding/**"
+      - "tests/unit/test_branding.py"
       - "scripts/mkdocs_hooks.py"
       - "scripts/check_docs_warnings.py"
       - "scripts/sync_agent_skill.py"
@@ -68,6 +71,12 @@ jobs:
 
       - name: 3 · agent skill copies are byte-identical to their sources
         run: python scripts/sync_agent_skill.py --check
+
+      - name: 3b · derived branding artifacts are current with branding.json
+        run: python scripts/apply_branding.py --check
+
+      - name: 3c · every hand-edited branded surface agrees with branding.json
+        run: python -m pytest tests/unit/test_branding.py -q --no-header -p no:cacheprovider
 
       - name: 4a · four FAQs per attribute, every nav page exists
         run: python -m pytest tests/unit/test_attribute_faqs.py tests/unit/test_docs_hub.py -q --no-header -p no:cacheprovider

@@ -1,6 +1,6 @@
-# Implementing a Use Case on FlowX — End-to-End Guide
+# Implementing a Use Case on Metaflow — End-to-End Guide
 
-**Audience:** a data engineer onboarding a new source system onto Databricks with FlowX.
+**Audience:** a data engineer onboarding a new source system onto Databricks with Metaflow.
 **Scope:** the whole path from "here is a source system and a governance sheet" to
 "three governed Bronze tables with CDC, reconciliation and observability running on a schedule".
 
@@ -18,9 +18,9 @@ Companion documents:
 
 ---
 
-## 1. What FlowX actually buys you
+## 1. What Metaflow actually buys you
 
-FlowX is a **metadata-driven ingestion framework**: you declare *what* you want in an onboarding
+Metaflow is a **metadata-driven ingestion framework**: you declare *what* you want in an onboarding
 spec (JSON/YAML), and the framework generates and runs the Lakeflow Declarative Pipeline that
 does it. The unit of work is a **dataflow group** — one `dataflow_group_id` owning a set of
 ingestion, transformation and reconciliation flows, driven by one pipeline.
@@ -38,14 +38,14 @@ ingestion, transformation and reconciliation flows, driven by one pipeline.
 | **Single-Read DAG** | One external read per source per execution mode, enforced by the source plane. Five source tables means five base reads, no accidental re-scans at fanout. |
 | **Auditable by construction** | Every flow, its config JSON, its governance tags and its reconciliation results live in queryable control tables under `<catalog>.config`. |
 
-### 1.2 What FlowX does *not* do
+### 1.2 What Metaflow does *not* do
 
 Be clear about the boundary before you start:
 
 - **It does not create the catalog.** That is a one-time workspace prerequisite (see §3).
 - **It does not create schemas or volumes** — it creates *tables*. Provision schemas/volumes first.
 - **It does not administer masking or row-filter policies.** It applies *tags*; a workspace admin
-  binds enforcement to those tags. FlowX never issues `SET MASK`.
+  binds enforcement to those tags. Metaflow never issues `SET MASK`.
 - **It does not fake a source.** If you need a simulated feed for testing, that is your own job
   (UC3 wrote one — legitimately, since "pretend to be a message bus" is not an ingestion feature).
 

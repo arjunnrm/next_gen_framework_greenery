@@ -1,6 +1,12 @@
 """
-Application settings loader and schema for FlowX Onboarding App.
+Application settings loader and schema for the Metaflow Onboarding App.
 Loads config/index.json and validates all environment/integration properties.
+
+Brand strings and the environment-variable prefix come from
+``server/branding_generated.py``, which ``scripts/apply_branding.py`` emits from
+``branding/branding.json``. The repo-root ``branding/`` package is NOT uploaded to
+Databricks Apps (the app resource sets ``source_code_path: "../../databricks-app"``),
+so the generated in-app copy is the only thing that exists at runtime.
 """
 
 import json
@@ -9,9 +15,11 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 from pydantic import BaseModel, Field
 
+from server.branding_generated import APP_TITLE, DOCS_EXTERNAL_BASE_URL, env_var
+
 
 class AppInfo(BaseModel):
-    title: str = "FlowX Onboarding"
+    title: str = APP_TITLE
     framework_version: str = "1.5.0"
     environment_label: str = "dev"
     support_contact: str = "data-platform@example.com"
@@ -68,7 +76,7 @@ class ActionConfig(BaseModel):
 class DocsConfig(BaseModel):
     mode: str = "embedded"  # "embedded" | "external" | "proxy"
     base_url: str = "/docs/"
-    external_base_url: str = "https://docs.internal.example.com/flowx/"
+    external_base_url: str = DOCS_EXTERNAL_BASE_URL
     attribute_reference_page: str = "00_master_reference_index/"
     open_in: str = "panel"
 
@@ -113,13 +121,36 @@ class AppSettings(BaseModel):
 # ${resources.jobs.onboarding_job.id} and the target's own catalog/schema variables), so
 # the same source tree deploys unchanged to any workspace. Anything not set falls back to
 # config/index.json exactly as before.
-ENV_WORKSPACE_HOST = "FLOWX_WORKSPACE_HOST"
-ENV_ONBOARDING_JOB_ID = "FLOWX_ONBOARDING_JOB_ID"
-ENV_VALIDATE_JOB_ID = "FLOWX_VALIDATE_JOB_ID"
-ENV_SPEC_CATALOG = "FLOWX_SPEC_CATALOG"
-ENV_SPEC_ENV = "FLOWX_SPEC_ENV"
-ENV_SPEC_VOLUME_ROOT = "FLOWX_SPEC_VOLUME_ROOT"
-ENV_SPEC_WORKSPACE_ROOT = "FLOWX_SPEC_WORKSPACE_ROOT"
+#
+# The names are DERIVED from the brand, not pasted: env_var() prefixes each with
+# branding.json's env.prefix ("METAFLOW"), so a future customer rebrand moves every
+# variable by editing one config key instead of a dozen literals.
+#
+# There is deliberately NO fallback to the legacy FLOWX_* names. The bundle also
+# writes the unbranded aliases ONBOARDING_JOB_ID / DATABRICKS_ONBOARDING_JOB_ID and
+# this module falls back to DATABRICKS_HOST, so a half-finished rename ALREADY has
+# three ways to look like it worked. Adding a legacy-name fallback on top would mean
+# an app deployed with only FLOWX_* keeps serving happily while every operator, doc
+# and dashboard says METAFLOW_* — the silent-misconfiguration failure this rename
+# exists to eliminate. A missing METAFLOW_* variable must degrade the same way a
+# missing variable always has: to the checked-in config/index.json default, visibly.
+ENV_WORKSPACE_HOST = env_var("WORKSPACE_HOST")
+ENV_ONBOARDING_JOB_ID = env_var("ONBOARDING_JOB_ID")
+ENV_VALIDATE_JOB_ID = env_var("VALIDATE_JOB_ID")
+ENV_SPEC_CATALOG = env_var("SPEC_CATALOG")
+ENV_SPEC_ENV = env_var("SPEC_ENV")
+ENV_SPEC_VOLUME_ROOT = env_var("SPEC_VOLUME_ROOT")
+ENV_SPEC_WORKSPACE_ROOT = env_var("SPEC_WORKSPACE_ROOT")
+
+# Test-only hook. Read here and in deps.py / clients/dbx.py; set by the test suite.
+ENV_FAKE_DBX = env_var("FAKE_DBX")
+
+# The config-file pointer. Read in load_settings(); written by databricks-app/app.yaml
+# (local runs) and by the bundle app resource (deploy, which supersedes app.yaml).
+ENV_APP_CONFIG = env_var("APP_CONFIG")
+
+# Log level. Read by logging_setup.setup_logging(); same two writers as ENV_APP_CONFIG.
+ENV_LOG_LEVEL = env_var("LOG_LEVEL")
 
 
 def _env(name: str) -> Optional[str]:
@@ -155,7 +186,7 @@ def apply_env_overrides(settings: AppSettings) -> AppSettings:
                     f"{env_names[0]}={raw!r} is not a valid job id. It must be the numeric "
                     f"Databricks job id (bundle: ${{resources.jobs.<job>.id}})."
                 )
-        elif action_id in settings.actions and settings.actions[action_id].mode == "job" and settings.actions[action_id].job_id is None and os.environ.get("FLOWX_FAKE_DBX") == "1":
+        elif action_id in settings.actions and settings.actions[action_id].mode == "job" and settings.actions[action_id].job_id is None and os.environ.get(ENV_FAKE_DBX) == "1":
             settings.actions[action_id].job_id = 987654321098765
 
     for var_name, env_name in (("catalog", ENV_SPEC_CATALOG), ("env", ENV_SPEC_ENV)):
@@ -177,7 +208,7 @@ def apply_env_overrides(settings: AppSettings) -> AppSettings:
 def load_settings(config_path: Optional[Union[str, Path]] = None) -> AppSettings:
     """Load and validate config/index.json, then overlay deploy-time env overrides."""
     if config_path is None:
-        config_env = os.environ.get("FLOWX_APP_CONFIG")
+        config_env = os.environ.get(ENV_APP_CONFIG)
         if config_env:
             config_path = Path(config_env)
         else:
@@ -190,6 +221,14 @@ def load_settings(config_path: Optional[Union[str, Path]] = None) -> AppSettings
 
     with open(config_path, "r", encoding="utf-8") as f:
         data = json.load(f)
+
+    # The brand is owned by branding/branding.json, not by this config file. Pydantic's
+    # AppInfo.title default is only reached when the key is ABSENT, so a stale "title"
+    # left in index.json would silently shadow APP_TITLE -- branding.json could say one
+    # thing while the app served another, with nothing failing. Popping it here makes the
+    # branding value authoritative regardless of what the config file happens to carry.
+    if isinstance(data.get("app"), dict):
+        data["app"].pop("title", None)
 
     settings = AppSettings.model_validate(data)
     settings.config_dir = config_path.parent

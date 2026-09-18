@@ -1,4 +1,4 @@
-# 📊 FlowX — Observability & OpenTelemetry Engine
+# 📊 Metaflow — Observability & OpenTelemetry Engine
 
 > **Audience**: Site Reliability Engineers (SREs), DevOps teams, and platform architects responsible for monitoring Lakeflow pipeline health, SLA tracking, and OpenTelemetry integration.
 
@@ -6,7 +6,7 @@
 
 ## 1. Observability Architecture Overview
 
-FlowX includes an enterprise telemetry engine that captures pipeline lifecycle metrics, data quality statistics, and operational event logs from the native Databricks Lakeflow Event Log and formats them into OpenTelemetry (OTel) standard payloads.
+Metaflow includes an enterprise telemetry engine that captures pipeline lifecycle metrics, data quality statistics, and operational event logs from the native Databricks Lakeflow Event Log and formats them into OpenTelemetry (OTel) standard payloads.
 
 As of **v1.3.0** there are two independent export engines, and every destination is served by exactly one of them — never both, and there is no single entrypoint that switches between them. A bounded downstream job task and an always-on `continuous: true` pipeline have fundamentally different lifecycles, so which engine owns a destination is decided by the destination's own `mode` field, resolved once at read time:
 
@@ -484,7 +484,7 @@ per-flow `num_output_rows` that left as an OTLP attribute cannot be `SUM`ed; an 
 which rule fails most often; and **cost is not in the export at all**.
 
 That second half is [`17_framework_observability_and_genie.md`](17_framework_observability_and_genie.md):
-11 views in `<catalog>.observability` joining the FlowX control tables to `system.lakeflow`,
+11 views in `<catalog>.observability` joining the Metaflow control tables to `system.lakeflow`,
 `system.billing` and `system.access`, consumed by an AI/BI dashboard, a Genie space and a
 documentation job.
 

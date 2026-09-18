@@ -24,7 +24,7 @@
 resources:
   dashboards:
     flowx_control_dashboard:
-      display_name: "FlowX Control Metadata Dashboard"
+      display_name: "Metaflow Control Metadata Dashboard"
       warehouse_id: ${var.dashboard_warehouse_id}
       dataset_catalog: ${var.catalog}
       dataset_schema: config

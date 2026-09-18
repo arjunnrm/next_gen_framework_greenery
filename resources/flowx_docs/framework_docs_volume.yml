@@ -23,7 +23,7 @@ resources:
       name: framework_docs
       volume_type: MANAGED
       comment: >-
-        Generated FlowX framework documentation. `dataflow_documentation_job` renders one
+        Generated Metaflow framework documentation. `dataflow_documentation_job` renders one
         Markdown design document per dataflow group under dataflow_groups/, from the control
         metadata and the Databricks system tables. Regenerated on every run -- do not hand-edit
         anything here.

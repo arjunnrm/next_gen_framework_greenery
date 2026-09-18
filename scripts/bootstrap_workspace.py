@@ -1,4 +1,4 @@
-"""Bring up a FlowX target on a brand-new workspace in one command.
+"""Bring up a Metaflow target on a brand-new workspace in one command.
 
 **The problem this solves.** A first deploy to a workspace that has never held this bundle
 fails during *config resolution*, before a single resource is created::
@@ -65,6 +65,23 @@ import re
 import subprocess
 import sys
 from pathlib import Path
+
+# The brand name is display text, so it comes from branding/branding.json rather than a
+# pasted literal -- this banner and the --help description are the two operator-facing
+# strings this script prints. The repo root is not guaranteed to be on sys.path (only
+# ``src`` is, via the editable install), so the module is loaded by path. A bootstrap
+# script must not die because a branding file is missing, hence the fallback.
+try:  # pragma: no cover - exercised by scripts/, not by the unit suite
+    import importlib.util as _ilu
+
+    _spec = _ilu.spec_from_file_location(
+        "_branding", Path(__file__).resolve().parent.parent / "branding" / "branding.py"
+    )
+    _mod = _ilu.module_from_spec(_spec)
+    _spec.loader.exec_module(_mod)
+    _BRAND = _mod.framework_name()
+except Exception:  # noqa: BLE001 - any failure here must not block a bootstrap
+    _BRAND = "Metaflow"
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
@@ -175,7 +192,7 @@ def target_catalog(target: str, profile: str) -> str | None:
 
 def main() -> int:
     parser = argparse.ArgumentParser(
-        description="Bootstrap and deploy a FlowX target on a new workspace.",
+        description=f"Bootstrap and deploy a {_BRAND} target on a new workspace.",
     )
     parser.add_argument("-t", "--target", required=True, help="bundle target name")
     parser.add_argument("-p", "--profile", required=True, help="databricks CLI profile")
@@ -191,7 +208,7 @@ def main() -> int:
     )
     args = parser.parse_args()
 
-    print(f"FlowX workspace bootstrap -- target={args.target} profile={args.profile}")
+    print(f"{_BRAND} workspace bootstrap -- target={args.target} profile={args.profile}")
 
     # --- Prerequisite: the catalog. Not creatable from YAML on Default Storage accounts. ---
     catalog = target_catalog(args.target, args.profile)

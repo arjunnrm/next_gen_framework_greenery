@@ -1,4 +1,4 @@
-# FlowX Architecture Review — Pillar 8: Control Metadata Schema & Onboarding Audit
+# Metaflow Architecture Review — Pillar 8: Control Metadata Schema & Onboarding Audit
 
 **Evaluation Area:** Control Metadata Schema, Control Table DDLs, JSON Payload Evolution, Spec Validation Engine, and Unity Catalog Preflight Tooling  
 **Score:** 8.9 / 10  
@@ -8,7 +8,7 @@
 
 ## 1. Executive Summary & Control Plane Overview
 
-The FlowX control plane serves as the central brain of the platform. It persists pipeline metadata across 8 dedicated Delta Lake control tables housed within the `<catalog>.config` schema, decoupling pipeline orchestration from physical compute infrastructure.
+The Metaflow control plane serves as the central brain of the platform. It persists pipeline metadata across 8 dedicated Delta Lake control tables housed within the `<catalog>.config` schema, decoupling pipeline orchestration from physical compute infrastructure.
 
 Onboarding flows into the control plane is strictly governed by a dual-stage validation architecture:
 1. **Structural & Syntax Validation (`spec_validator.py`):** Enforces JSON Schema types, allowed enum values, SQL syntax parsing via active Spark sessions, and cross-flow topological references.

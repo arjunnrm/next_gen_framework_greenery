@@ -31,7 +31,7 @@
 resources:
   jobs:
     framework_config_onboarding_job:
-      name: FlowX Framework - Bulk Config Onboarding (All Specs)
+      name: Metaflow Framework - Bulk Config Onboarding (All Specs)
       description: >-
         Onboards every onboarding spec in `spec_dir` in one run (fail-soft, full per-spec
         report). Generic: point it at any directory of JSON/YAML onboarding specs.

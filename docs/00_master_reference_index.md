@@ -1,6 +1,6 @@
-# 📖 FlowX — Master Reference Index & Attribute Dictionary
+# 📖 Metaflow — Master Reference Index & Attribute Dictionary
 
-> **Purpose**: Single authoritative lookup dictionary indexing every configuration attribute, CDC strategy, target type, technical concept, error code, and framework-generated column across FlowX.
+> **Purpose**: Single authoritative lookup dictionary indexing every configuration attribute, CDC strategy, target type, technical concept, error code, and framework-generated column across Metaflow.
 >
 > **Navigation**: Use `Ctrl+F` to search for any attribute or concept keyword.
 
@@ -24,7 +24,7 @@
 14. [Official Databricks Documentation Index](#14-official-databricks-documentation-index)
 15. [**🔐 Deterministic Hashing & Determinism (v1.3.0)**](11_hashing_and_determinism.md) — the one canonical `__framework_hash_key`/`__framework_hash_value` construction, a reproducible Spark SQL snippet, and the breaking-change migration checklist.
 16. [**🧩 Module Permutation Matrix (v1.3.0)**](12_module_permutation_matrix.md) — which source types, CDC strategies, reconciliation scopes, and observability modes legally combine, plus a consolidated list of unsupported combinations.
-17. [**🔭 Framework Observability, AI/BI & Genie**](17_framework_observability_and_genie.md) — the `<catalog>.observability` semantic layer: 11 views joining FlowX control metadata to the Databricks system tables, the `configuration['dataflow.group.id']` join key and the `dataflow_group_id` job tag, the 10-page AI/BI dashboard, the four `AI_FORECAST` rules, the Genie space, and the per-group documentation generator. **No spec attribute** — nothing here is configured through an onboarding spec.
+17. [**🔭 Framework Observability, AI/BI & Genie**](17_framework_observability_and_genie.md) — the `<catalog>.observability` semantic layer: 11 views joining Metaflow control metadata to the Databricks system tables, the `configuration['dataflow.group.id']` join key and the `dataflow_group_id` job tag, the 10-page AI/BI dashboard, the four `AI_FORECAST` rules, the Genie space, and the per-group documentation generator. **No spec attribute** — nothing here is configured through an onboarding spec.
 
 ---
 

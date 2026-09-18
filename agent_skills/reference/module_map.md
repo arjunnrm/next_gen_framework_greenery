@@ -424,7 +424,7 @@ system-table `SELECT` is a workspace grant the deploying principal may not hold,
 control tables are the job's real contract. Five things to know:
 
 - **The join key is `system.lakeflow.pipelines.configuration['dataflow.group.id']`**, which
-  every FlowX pipeline resource already sets in its `configuration:` block — so pipeline
+  every Metaflow pipeline resource already sets in its `configuration:` block — so pipeline
   attribution needed no per-pipeline change. **Jobs are the gap**: `dataflow_group_id` is
   passed as a notebook task `base_parameter` and those do **not** surface in
   `system.lakeflow.job_task_run_timeline.task_parameters` (verified empty on a live

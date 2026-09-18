@@ -1,6 +1,6 @@
 # :material-table-cog: Control metadata dashboard · page by page
 
-**The `FlowX Control Metadata` dashboard shows the system as onboarded: every flow row in the control tables, its load strategy and configuration JSON, the audit trail of who onboarded what, and which framework wheel each group runs on.** It reads the `config` schema only, so it works before a single pipeline has run and needs no system-table grants. Source: `databricks-bi/flowx_control_metadata_dashboard.lvdash.json`, deployed by `resources/flowx_bi/flowx_control_dashboard.yml` with `dataset_schema: config`.
+**The `Metaflow Control Metadata` dashboard shows the system as onboarded: every flow row in the control tables, its load strategy and configuration JSON, the audit trail of who onboarded what, and which framework wheel each group runs on.** It reads the `config` schema only, so it works before a single pipeline has run and needs no system-table grants. Source: `databricks-bi/flowx_control_metadata_dashboard.lvdash.json`, deployed by `resources/flowx_bi/flowx_control_dashboard.yml` with `dataset_schema: config`.
 
 !!! abstract "Quick links"
     - The tables behind it: [Platform architecture §4, the control-plane ERD](../01_platform_architecture.md#4-control-plane-metadata-schema-erd)

@@ -1,4 +1,4 @@
-# FlowX Architecture Review — Pillar 4: Security, Access Control & Governance
+# Metaflow Architecture Review — Pillar 4: Security, Access Control & Governance
 
 **Evaluation Area:** Unity Catalog 3-Level Namespace, Secrets Management, Credential Protection, ABAC / RBAC Governance, and Cryptography  
 **Score:** 7.5 / 10  
@@ -8,7 +8,7 @@
 
 ## 1. Executive Security Evaluation
 
-FlowX is designed around **Unity Catalog** governance principles. It strictly enforces the 3-level namespace (`catalog.schema.table`), provides comprehensive identifier sanitization against SQL injection, implements an automated ABAC metadata tagging engine, and supports both AES column encryption and PGP asymmetric archive encryption.
+Metaflow is designed around **Unity Catalog** governance principles. It strictly enforces the 3-level namespace (`catalog.schema.table`), provides comprehensive identifier sanitization against SQL injection, implements an automated ABAC metadata tagging engine, and supports both AES column encryption and PGP asymmetric archive encryption.
 
 However, a critical security vulnerability exists in the column encryption module: **plaintext cryptographic secret keys are embedded directly into Spark DataFrame logical plans via `F.lit()`**, making keys readable in query plan dumps, the Spark UI, and cluster event logs.
 

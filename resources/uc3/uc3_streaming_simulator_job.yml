@@ -8,7 +8,7 @@
 # hand-written. It fakes a source system -- draining test CSVs on a timer to stand in for
 # ZeroBus/Kafka -- and there is no framework feature for "pretend to be a message bus".
 #
-# Everything else in UC3 is FlowX configuration. This job deliberately implements NO CDC,
+# Everything else in UC3 is Metaflow configuration. This job deliberately implements NO CDC,
 # NO hashing, NO tagging and NO SCD logic; those are Job 2's and Job 3's onboarding specs.
 # It only creates staging tables and moves rows into them.
 #

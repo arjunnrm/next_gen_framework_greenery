@@ -1,8 +1,8 @@
-# 🔭 FlowX — Framework Observability, AI/BI & Genie
+# 🔭 Metaflow — Framework Observability, AI/BI & Genie
 
 > **Audience**: Platform engineers who maintain the framework's own observability surface, SREs
 > who answer "how is everything doing", FinOps analysts attributing DBU spend to a dataflow
-> group, and anyone pointing an LLM at FlowX metadata.
+> group, and anyone pointing an LLM at Metaflow metadata.
 
 > **Companion page**: [`08_observability_and_telemetry.md`](08_observability_and_telemetry.md) is
 > the **export-out** half — OTLP payloads, Volume archives and driver logs. This page is the
@@ -12,7 +12,7 @@
 
 ## 1. Why this exists
 
-FlowX has measured itself accurately since v1.0. It has never been able to *answer questions
+Metaflow has measured itself accurately since v1.0. It has never been able to *answer questions
 about* itself.
 
 Every runtime number the framework computes — per-flow `num_output_rows`, per-expectation
@@ -83,7 +83,7 @@ also means there is no removal to reject, and no attribute delta document for th
 
 ```
 ┌────────────────────────────┐        ┌──────────────────────────────────────┐
-│  FlowX CONTROL TABLES      │        │  DATABRICKS SYSTEM TABLES            │
+│  METAFLOW CONTROL TABLES   │        │  DATABRICKS SYSTEM TABLES            │
 │  <catalog>.config          │        │  system.lakeflow.pipelines           │
 │  • dataflow_group_spec     │        │  system.lakeflow.pipeline_update_    │
 │  • ingestion_flow_spec     │        │      timeline                        │
@@ -113,7 +113,7 @@ also means there is no removal to reject, and no attribute delta document for th
 ### 2.1 Why views, and why in their own schema
 
 **Why views rather than materialized tables.** The system tables are already materialized by the
-platform, on the platform's own refresh cadence. Copying them into FlowX-owned tables would add a
+platform, on the platform's own refresh cadence. Copying them into Metaflow-owned tables would add a
 refresh job to keep green, a storage cost, and a staleness window — in exchange for nothing, since
 these queries are dashboard-scale, not scan-the-lakehouse scale. A view is also cheap to fix: a
 corrected `has_cdc` predicate is one `CREATE OR REPLACE VIEW` away, with no backfill.
@@ -152,7 +152,7 @@ They are written to be read by an LLM: they say what a column means, what to joi
 
 ### 3.1 Pipelines: free, because the configuration block already carries it
 
-`system.lakeflow.pipelines.configuration` is a `MAP<STRING, STRING>`, and **every FlowX pipeline
+`system.lakeflow.pipelines.configuration` is a `MAP<STRING, STRING>`, and **every Metaflow pipeline
 resource already sets `dataflow.group.id` in its `configuration:` block** — it has to, because that
 is how a pipeline finds its own control rows at graph-definition time (see doc 08 §6.1). So:
 
@@ -160,13 +160,13 @@ is how a pipeline finds its own control rows at graph-definition time (see doc 0
 p.configuration['dataflow.group.id'] AS dataflow_group_id
 ```
 
-recovers the FlowX identity of any pipeline **with no change to any pipeline, resource file, or
+recovers the Metaflow identity of any pipeline **with no change to any pipeline, resource file, or
 spec**. That single expression is the spine of the whole layer: `v_pipeline_registry` computes it
 once and every run, cost, metric, DQ and lineage view joins through that view rather than
 re-deriving it.
 
 `v_pipeline_registry` also filters `configuration['dataflow.group.id'] IS NOT NULL`, which is what
-keeps non-FlowX pipelines in the workspace out of the layer entirely, and `delete_time IS NULL`,
+keeps non-Metaflow pipelines in the workspace out of the layer entirely, and `delete_time IS NULL`,
 which drops deleted pipelines.
 
 ### 3.2 Jobs: not free, and why a tag was needed
@@ -176,7 +176,7 @@ The job side looked like it should work the same way. It does not.
 The framework passes `dataflow_group_id` to its notebook tasks as a **`base_parameter`**. Those do
 **not** surface in `system.lakeflow.job_task_run_timeline.task_parameters` — verified empty on a
 live workspace, not inferred from documentation. There is therefore no platform-surfaced,
-per-run value carrying the FlowX identity of a job run.
+per-run value carrying the Metaflow identity of a job run.
 
 Two mechanisms, in priority order, and a third state that is deliberately *not* silence:
 
@@ -229,7 +229,7 @@ built on five of the others, so it is created last.
 |---|---|---|---|
 | 1 | `v_dataflow_group_catalog` | one row per dataflow group | control tables only |
 | 2 | `v_flow_inventory` | one row per flow (all 3 kinds) | control tables only |
-| 3 | `v_pipeline_registry` | one row per FlowX pipeline | `system.lakeflow.pipelines` + `information_schema` |
+| 3 | `v_pipeline_registry` | one row per Metaflow pipeline | `system.lakeflow.pipelines` + `information_schema` |
 | 4 | `v_pipeline_updates` | one row per pipeline update | `pipeline_update_timeline` ⋈ (3) |
 | 5 | `v_job_runs` | one row per job run | `jobs`, `job_run_timeline` + control |
 | 6 | `v_dataflow_cost` | group × date × workload × SKU | `system.billing.*` ⋈ (3) |
@@ -387,7 +387,7 @@ what, how often"), and one the framework does not otherwise persist anywhere.
 
 Derived columns: `total_records` (passed + failed), `pass_rate_pct` (`NULL` when nothing was
 evaluated, never a spurious 0 or 100), and `has_failures` to filter to rules that are actually
-failing. `rule_name` is the expectation name as declared in the FlowX `dq_config`, so a dashboard
+failing. `rule_name` is the expectation name as declared in the Metaflow `dq_config`, so a dashboard
 row points straight back at a spec line.
 
 The same cumulative-count deduplication as `v_flow_metrics` applies, for the same reason.
@@ -751,7 +751,7 @@ There are **two nested guards**, because the two failures are different:
   lacks SELECT on the system catalog — grant it, then re-run this notebook."*
 
 The discovery query is the concrete form of §3.3, joining candidate event-log table names back to
-live FlowX-tagged pipelines so it never picks up an unrelated `event_log_*` table:
+live Metaflow-tagged pipelines so it never picks up an unrelated `event_log_*` table:
 
 ```sql
 SELECT DISTINCT concat(t.table_catalog,'.',t.table_schema,'.',t.table_name) AS event_log_table
@@ -769,7 +769,7 @@ WHERE t.table_name LIKE 'event_log_%'
 | A pipeline publishing its **event log to Unity Catalog** | `v_flow_metrics`, `v_dq_results` | Views exist over a typed **empty** relation. Per-flow metrics and DQ results are **empty, not broken** — every dependent widget renders, showing nothing. `v_group_health_summary` reports 0 rows written and 0 DQ rules. |
 | `dataflow_group_id` **job tag**, deployed | `v_job_runs.attribution = 'tag'`, all job-side cost | Runs fall back to `name_match` (visible in the column); job **cost is not attributed at all** (cost is tag-only, §3.2). Historical runs never gain the tag. |
 | `logging_config.run_log_capture` enabled | `v_reconciliation_health` run rows | `has_run_history = FALSE`. **Do not read the zero discrepancy count as clean** (§4.9). |
-| `dataflow.group.id` in the pipeline `configuration:` block | Everything | The pipeline is invisible to the whole layer — `v_pipeline_registry` filters it out. Every FlowX pipeline resource already sets it. |
+| `dataflow.group.id` in the pipeline `configuration:` block | Everything | The pipeline is invisible to the whole layer — `v_pipeline_registry` filters it out. Every Metaflow pipeline resource already sets it. |
 
 **The one asymmetry to remember:** a missing *grant* leaves you with views that exist and fail;
 a missing *event log* leaves you with views that exist and are empty. The first is a red widget,

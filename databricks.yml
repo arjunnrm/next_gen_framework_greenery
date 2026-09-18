@@ -1,4 +1,4 @@
-# This is a Declarative Automation Bundle definition for flowx.
+# This is a Declarative Automation Bundle definition for Metaflow.
 # See https://docs.databricks.com/dev-tools/bundles/index.html for documentation.
 bundle:
   name: flowx
@@ -37,7 +37,7 @@ bundle:
 #
 # Keep `volumes.onboarding_specs_volume` and `jobs.onboarding_job` in that list even when only
 # the app changed: the app resource resolves `${resources.jobs.onboarding_job.id}` into its
-# FLOWX_ONBOARDING_JOB_ID env var and binds the spec Volume to its service principal. Keep
+# METAFLOW_ONBOARDING_JOB_ID env var and binds the spec Volume to its service principal. Keep
 # `volumes.framework_wheels_volume` too: every target's `workspace.artifact_path` points into
 # that Volume, and selecting it keeps the Volume managed by the same deploy that uploads the
 # wheel into it.
@@ -221,7 +221,7 @@ variables:
     description: The catalog to use
   spec_schema:
     description: >-
-      Schema holding the UC Volume that the FlowX Onboarding App reads and writes
+      Schema holding the UC Volume that the Metaflow Onboarding App reads and writes
       authored onboarding specs to. Defaults to `config`, the framework's existing
       configuration schema, deliberately: creating a NEW schema per target is what the
       `dev` target cannot afford (its catalog is at 51 schemas and its metastore at its

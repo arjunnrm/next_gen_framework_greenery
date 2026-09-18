@@ -65,7 +65,7 @@
 resources:
   jobs:
     flowx_sample_01_multi_scd_job:
-      name: FlowX Sample 01 - Multi-Strategy SCD Dimensions (SCD1 + SCD2 + Snapshot CDC + SCD3)
+      name: Metaflow Sample 01 - Multi-Strategy SCD Dimensions (SCD1 + SCD2 + Snapshot CDC + SCD3)
 
       tasks:
         # 1/2 -- core pipeline / transformation logic.

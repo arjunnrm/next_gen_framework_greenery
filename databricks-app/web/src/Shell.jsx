@@ -1,17 +1,20 @@
 import React from "react";
 import { sx } from "./sx.js";
+import { branding } from "./branding.js";
 
-// Faithful JSX port of the FlowX Spec Builder v4 reference. Every style
-// literal is the mockup's string, unchanged.
+// Faithful JSX port of the Metaflow Spec Builder v4 reference. Every style
+// literal is the mockup's string, unchanged. The header wordmark and subtitle
+// read branding.js (generated from branding/branding.json) rather than literals.
 export default function Shell({ V }) {
   return (
     <div style={sx("min-height:100vh;background:var(--bg);color:var(--tx);font:400 14px Inter,system-ui,sans-serif")}>
 
       <header style={sx("position:sticky;top:0;z-index:20;display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;padding:9px 18px;min-height:58px;box-sizing:border-box;min-width:0;background:var(--head);border-bottom:1px solid var(--bd)")}>
         <div style={sx("display:flex;align-items:center;gap:8px;flex:none;min-width:0")}>
-          <img src="/logo.png" alt="hoonartek" className="brand-logo" />
-          <span style={sx("font:700 15px Inter;letter-spacing:-.01em;white-space:nowrap")}>FlowX</span>
-          <span style={sx("font:500 12px Inter;color:var(--dim2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis")}>Spec Builder</span>
+          <img src={branding.logoDark} alt={branding.logoAlt} className="brand-logo brand-logo-dark" />
+          <img src={branding.logoLight} alt={branding.logoAlt} className="brand-logo brand-logo-light" />
+          <span style={sx("font:700 15px Inter;letter-spacing:-.01em;white-space:nowrap")}>{branding.frameworkName}</span>
+          <span style={sx("font:500 12px Inter;color:var(--dim2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis")}>{branding.builderSubtitle}</span>
         </div>
         <div style={sx("display:flex;align-items:center;gap:4px;flex:none;padding:3px;background:var(--seg);border:1px solid var(--bd);border-radius:8px")}>
           {V.flowTabs.map((t, i) => (

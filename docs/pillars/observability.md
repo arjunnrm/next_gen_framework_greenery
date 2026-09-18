@@ -1,6 +1,6 @@
 # :material-chart-timeline-variant: Pillar 4 · Observability
 
-**FlowX measures itself twice: it ships every pipeline event out of the platform as OpenTelemetry, and it keeps a queryable semantic layer inside the platform so the same facts can be asked in SQL, on a dashboard, or in plain English.**
+**Metaflow measures itself twice: it ships every pipeline event out of the platform as OpenTelemetry, and it keeps a queryable semantic layer inside the platform so the same facts can be asked in SQL, on a dashboard, or in plain English.**
 
 !!! abstract "Quick links"
     - Attribute reference: [`observability[]`](../reference/json/observability.md) (every field, type, default and best practice)
@@ -24,7 +24,7 @@
 | AI/BI observability dashboard (10 pages) | `databricks-bi/flowx_observability_dashboard.lvdash.json` | Bundle resource | [17 §5](../17_framework_observability_and_genie.md#5-the-aibi-dashboard) |
 | Genie space | `databricks-genie/flowx_observability.geniespace.json` | Bundle resource | [17 §7](../17_framework_observability_and_genie.md#7-the-genie-space) |
 | Per-group documentation job | `resources/flowx_docs/dataflow_documentation_job.yml` | Bundle resource | [17 §8](../17_framework_observability_and_genie.md#8-the-documentation-generator) |
-| Alerting or paging engine | None shipped. Use Databricks SQL alerts or the OTLP consumer's rules | Not in FlowX | [Heartbeats, thresholds and triage](#heartbeats-thresholds-and-triage) |
+| Alerting or paging engine | None shipped. Use Databricks SQL alerts or the OTLP consumer's rules | Not in Metaflow | [Heartbeats, thresholds and triage](#heartbeats-thresholds-and-triage) |
 
 ## How it works
 
@@ -55,7 +55,7 @@ flowchart LR
 ```
 
 - **Export out** is configured in the spec's root `observability[]` array and upserted into the `observability_config` control table by `onboarding/metadata_upsert.py::upsert_observability_config`. There is no separate observability config file.
-- **Store and query** has no spec attribute at all. Section 5 of `notebooks/01_setup/01_setup_control_tables.py` provisions the schema and views; the join key every FlowX pipeline already writes (`configuration['dataflow.group.id']`) does the rest.
+- **Store and query** has no spec attribute at all. Section 5 of `notebooks/01_setup/01_setup_control_tables.py` provisions the schema and views; the join key every Metaflow pipeline already writes (`configuration['dataflow.group.id']`) does the rest.
 - The two never overlap in output. A `num_output_rows` that left as an OTLP attribute cannot be summed; `v_flow_metrics` can. Cost is only in the second half. See [08 §8](../08_observability_and_telemetry.md#8-export-out-telemetry-vs-store-and-query-observability).
 
 ## Telemetry destinations
@@ -321,7 +321,7 @@ See the [agent skills console page](../console/agent_skills.md) for how these ar
 
 `<catalog>.observability` is a grant boundary. Granting `SELECT` on the schema gives a BI user or Genie the derived facts without exposing the `*_json` and `raw_spec_payload` columns in `<catalog>.config`. Column `COMMENT`s are the semantic model Genie reads; they are load-bearing.
 
-- **Join key, pipelines**: `p.configuration['dataflow.group.id']`, which every FlowX pipeline resource already sets. `v_pipeline_registry` computes it once, filters `IS NOT NULL` and `delete_time IS NULL`, and every other view joins through it.
+- **Join key, pipelines**: `p.configuration['dataflow.group.id']`, which every Metaflow pipeline resource already sets. `v_pipeline_registry` computes it once, filters `IS NOT NULL` and `delete_time IS NULL`, and every other view joins through it.
 - **Join key, jobs**: `system.lakeflow.jobs.tags['dataflow_group_id']` (`attribution = 'tag'`, exact), else a case-insensitive name match (`'name_match'`, heuristic), else `NULL`. Cost is attributed by tag only. Notebook `base_parameters` do not surface in `job_task_run_timeline`, which is why the tag exists. [17 §3.2](../17_framework_observability_and_genie.md#32-jobs-not-free-and-why-a-tag-was-needed)
 - **Event log location is discovered**, not constructed: `system.lakeflow.pipelines.settings` has no `catalog` or `target`, so `01_setup` joins `system.information_schema.tables` on `event_log_<pipeline_id>`. [17 §3.3](../17_framework_observability_and_genie.md#33-event-log-location-is-discovered-not-constructed)
 
@@ -329,7 +329,7 @@ See the [agent skills console page](../console/agent_skills.md) for how these ar
 |---|---|---|---|
 | 1 | `v_dataflow_group_catalog` | one row per group; `has_cdc`, `has_dq`, `feature_summary` | control tables |
 | 2 | `v_flow_inventory` | one row per flow, all three kinds | control tables |
-| 3 | `v_pipeline_registry` | one row per FlowX pipeline | `system.lakeflow.pipelines` + `information_schema` |
+| 3 | `v_pipeline_registry` | one row per Metaflow pipeline | `system.lakeflow.pipelines` + `information_schema` |
 | 4 | `v_pipeline_updates` | one row per update; `is_success`, `is_failure`, `is_retry`, `is_full_refresh`, `duration_minutes` | `pipeline_update_timeline` |
 | 5 | `v_job_runs` | one row per job run with `attribution` and the queue/setup/execution split | `jobs`, `job_run_timeline` |
 | 6 | `v_dataflow_cost` | group × date × workload × SKU; `dbus`, `estimated_cost_usd` at list price | `system.billing.*` |
@@ -351,7 +351,7 @@ See the [agent skills console page](../console/agent_skills.md) for how these ar
 
 ### Dashboard, Genie and AI_FORECAST
 
-**AI/BI dashboard.** `databricks-bi/flowx_observability_dashboard.lvdash.json`, deployed as `flowx_observability_dashboard` ("FlowX Framework Observability") with `dataset_schema: observability`. Ten pages, fifteen datasets:
+**AI/BI dashboard.** `databricks-bi/flowx_observability_dashboard.lvdash.json`, deployed as `flowx_observability_dashboard` ("Metaflow Framework Observability") with `dataset_schema: observability`. Ten pages, fifteen datasets:
 
 | Page | Reads | Answers |
 |---|---|---|
@@ -402,7 +402,7 @@ What exists, exactly:
 - **Health verdict**: `v_group_health_summary.health_status` is `INACTIVE`, `NO_RUNS`, `FAILING` (most recent update failed), `DEGRADED` (any failed update, DQ failed record or recon discrepancy in 30 days) or `HEALTHY`, evaluated in that order.
 - **Triage**: paste a failed `observability_export` error into `diagnose_pipeline_telemetry_failures`; for a failed pipeline update, `v_pipeline_updates` gives the `update_id` and `pipeline_id` to open in the Lakeflow UI.
 
-!!! danger "FlowX ships no alerting or paging engine"
+!!! danger "Metaflow ships no alerting or paging engine"
     Nothing in the framework fires a notification, opens an incident or evaluates a schedule. Alerting is built **on top of** these surfaces: a Databricks SQL alert over a view, or the OTLP consumer's own rules (Dynatrace, Datadog, Splunk, an OTel Collector) over the exported `ResourceLogs`. The views make the first route a five-minute job.
 
 Example Databricks SQL alert over the scorecard. Condition: row count greater than 0.

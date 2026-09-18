@@ -1,4 +1,4 @@
-# FlowX Framework — Agent Skill
+# Metaflow Framework — Agent Skill
 
 **Read this first.** This document orients any LLM-based coding agent (Claude, Databricks
 Genie, or otherwise) to this repository so it can answer questions about the framework and
@@ -6,7 +6,9 @@ generate correct onboarding specs / framework code on the first attempt. It is a
 copy — every section links to the real file that is authoritative. When in doubt, open the
 cited file; do not guess at a function signature or a field name.
 
-> Project brand name: **FlowX**. Repo name: `flowx`. Python package
+> Project brand name: **Metaflow** (vendor: NRM Analytix). The brand is display text only —
+> the repo name, the Python package and the Unity Catalog are all still `flowx` and must stay
+> that way. Repo name: `flowx`. Python package
 > root: `flowx.lakeflow_framework` under `src/flowx/lakeflow_framework/`.
 
 ## Table of contents
@@ -43,7 +45,7 @@ Companion files in this same skill folder:
 
 ## 1. What this framework is
 
-FlowX is a **metadata-driven** Databricks Lakeflow Declarative Pipelines (formerly Delta
+Metaflow is a **metadata-driven** Databricks Lakeflow Declarative Pipelines (formerly Delta
 Live Tables / DLT) framework. Instead of writing a new notebook per data source, you write a
 JSON or YAML **onboarding spec** describing a flow declaratively (source, target, CDC
 strategy, DQ rules, governance tags), submit it once through an onboarding job, and one

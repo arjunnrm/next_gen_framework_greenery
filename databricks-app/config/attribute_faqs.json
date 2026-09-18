@@ -1714,7 +1714,7 @@
       {
         "kind": "format",
         "q": "Can schema_config_path point to a directory instead of a specific file?",
-        "a": "Yes — if it points to a directory, FlowX automatically resolves and loads the most recently modified file in that directory, so you do not need to hardcode a filename that changes over time."
+        "a": "Yes — if it points to a directory, Metaflow automatically resolves and loads the most recently modified file in that directory, so you do not need to hardcode a filename that changes over time."
       },
       {
         "kind": "performance",

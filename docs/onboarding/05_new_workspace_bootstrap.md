@@ -1,9 +1,9 @@
 # 5 · Deploying to a brand-new workspace
 
-A step-by-step runbook for standing FlowX up on a workspace that has **never held this bundle**.
+A step-by-step runbook for standing Metaflow up on a workspace that has **never held this bundle**.
 Follow it top to bottom; every step ends with something you can check.
 
-Deploying to a workspace that is *already* running FlowX is the ordinary
+Deploying to a workspace that is *already* running Metaflow is the ordinary
 [4 · Deploying with DABs](04_deploying.md) loop — come here only for the first time.
 
 !!! tip "The whole runbook in one command"

@@ -59,7 +59,7 @@
 resources:
   jobs:
     flowx_sample_05_encrypted_ingestion_job:
-      name: FlowX Sample 05 - Encrypted ZIP Ingestion via UC Secret Passphrase
+      name: Metaflow Sample 05 - Encrypted ZIP Ingestion via UC Secret Passphrase
 
       tasks:
         # 1/2 -- core pipeline / transformation logic.

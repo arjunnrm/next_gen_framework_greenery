@@ -64,7 +64,7 @@
 resources:
   jobs:
     flowx_sample_03_multi_table_recon_job:
-      name: FlowX Sample 03 - Concurrent Multi-Table Load with In-DAG Reconciliation
+      name: Metaflow Sample 03 - Concurrent Multi-Table Load with In-DAG Reconciliation
 
       tasks:
         # 1/2 -- core pipeline / transformation logic.

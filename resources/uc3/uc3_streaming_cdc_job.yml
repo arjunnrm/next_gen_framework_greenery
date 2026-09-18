@@ -48,7 +48,7 @@
 # section 7, and the repo's standing rule). Unchanged by this split.
 #
 # JOB TAGS STAY. `dataflow_group_id` is the ONLY way a Lakeflow job run is attributed back to
-# its FlowX dataflow group in the system tables (flowx.observability.v_job_runs,
+# its Metaflow dataflow group in the system tables (flowx.observability.v_job_runs,
 # system.billing.usage). No pipeline in this bundle sets tags; the job tag is the join key.
 #
 # NEVER `bundle deploy` while the continuous pipeline is running: a deploy prunes superseded

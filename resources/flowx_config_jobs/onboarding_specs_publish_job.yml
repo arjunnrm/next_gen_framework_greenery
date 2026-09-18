@@ -34,7 +34,7 @@
 resources:
   jobs:
     onboarding_specs_publish_job:
-      name: FlowX Config - Publish Onboarding Specs
+      name: Metaflow Config - Publish Onboarding Specs
 
       description: >-
         Copies the BT use-case onboarding spec JSONs from the bundle's synced workspace files

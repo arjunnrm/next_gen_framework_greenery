@@ -3477,7 +3477,7 @@ External JSON/YAML declaring explicit casts, nullability, UC column comments and
 
 ??? question "Format gotcha · Can schema_config_path point to a directory instead of a specific file?"
 
-    Yes — if it points to a directory, FlowX automatically resolves and loads the most recently modified file in that directory, so you do not need to hardcode a filename that changes over time.
+    Yes — if it points to a directory, Metaflow automatically resolves and loads the most recently modified file in that directory, so you do not need to hardcode a filename that changes over time.
 
 ??? question "Performance impact · Is there a validation cost to using schema_config_path at onboarding time?"
 

@@ -6,7 +6,7 @@ The assertions below fall into four groups:
 
 1. **Structure** -- every view is emitted, in dependency order, with the schema it was asked for.
 2. **The join key** -- ``configuration['dataflow.group.id']`` is the single thing that connects
-   FlowX control metadata to the Databricks system tables. If it regresses, every run, cost and
+   Metaflow control metadata to the Databricks system tables. If it regresses, every run, cost and
    metric figure silently detaches from its dataflow group.
 3. **The bugs that live data actually caught.** Four of these were real defects found by running
    the views against a live workspace, and each one produced a *plausible-looking* wrong answer

@@ -1,5 +1,5 @@
 """
-Registry loader and resolver for FlowX Onboarding App.
+Registry loader and resolver for the Metaflow Onboarding App.
 Loads config/registry/*.json, expands $fragment refs, merges phase mappings,
 and validates registry integrity at startup.
 """

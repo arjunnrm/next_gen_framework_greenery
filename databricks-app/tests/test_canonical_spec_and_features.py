@@ -15,7 +15,7 @@ import yaml
 from fastapi.testclient import TestClient
 import pytest
 
-os.environ["FLOWX_FAKE_DBX"] = "1"
+os.environ["METAFLOW_FAKE_DBX"] = "1"
 
 from server.app import app
 

@@ -1,4 +1,4 @@
-# FlowX Architecture Review — Pillar 5: Observability, DQ & Reconciliation
+# Metaflow Architecture Review — Pillar 5: Observability, DQ & Reconciliation
 
 **Evaluation Area:** Data Quality Architecture, DLT Expectations vs. Quarantine Routing, OpenTelemetry Telemetry Exporter, and Reconciliation Engine  
 **Score:** 8.8 / 10  
@@ -8,7 +8,7 @@
 
 ## 1. Executive Observability & Quality Evaluation
 
-The observability, data quality, and reconciliation subsystems represent the most mature, sophisticated components of the FlowX platform. The architecture features:
+The observability, data quality, and reconciliation subsystems represent the most mature, sophisticated components of the Metaflow platform. The architecture features:
 1. **Dual-Tier Data Quality:** Seamlessly unifies native DLT expectations with a custom dual-target quarantine routing engine that preserves diagnostic violation metadata.
 2. **OpenTelemetry-Native Telemetry Exporter:** A downstream Workflow task that extracts the DLT Event Log, aggregates flow-level throughput/DQ metrics, constructs strict OTel `ResourceLogs` JSON structures, and exports them to OTLP HTTP collectors or UC Volumes.
 3. **Hash-First Reconciliation:** High-throughput 4-way record matching (`MATCHED`, `VALUE_DRIFT`, `MISSING_IN_TARGET`, `MISSING_IN_SOURCE`) using deterministic SHA-256 hashes, duplicate-key convergence via priority ranking, and idempotent self-healing writes.

@@ -1,4 +1,4 @@
-# FlowX Architecture Review — Pillar 1: Architecture & Design Principles
+# Metaflow Architecture Review — Pillar 1: Architecture & Design Principles
 
 **Evaluation Area:** Modular Architecture, Medallion Alignment, Dynamic DAG Generation, Control Plane & Governance Integration  
 **Score:** 8.5 / 10  
@@ -8,7 +8,7 @@
 
 ## 1. Architectural Overview & Design Evaluation
 
-FlowX establishes an extensible, metadata-driven architecture for orchestrating streaming and batch data pipelines on Databricks. It decouples pipeline definition from procedural code by maintaining declarative flow specifications in control tables, dynamically compiling these specifications into a **Lakeflow Declarative Pipelines** DAG at runtime.
+Metaflow establishes an extensible, metadata-driven architecture for orchestrating streaming and batch data pipelines on Databricks. It decouples pipeline definition from procedural code by maintaining declarative flow specifications in control tables, dynamically compiling these specifications into a **Lakeflow Declarative Pipelines** DAG at runtime.
 
 ```
 ┌──────────────────────────────────────────────────────────────────────────────────────────────────┐

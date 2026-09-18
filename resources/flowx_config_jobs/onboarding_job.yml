@@ -29,7 +29,7 @@
 resources:
   jobs:
     onboarding_job:
-      name: FlowX Config Onboarding
+      name: Metaflow Config Onboarding
 
       parameters:
         - name: spec_file_path

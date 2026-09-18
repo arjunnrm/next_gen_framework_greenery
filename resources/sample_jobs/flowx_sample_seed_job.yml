@@ -1,4 +1,4 @@
-# FlowX Sample Suite -- THE common data seed job.
+# Metaflow Sample Suite -- THE common data seed job.
 #
 # ONE job that lands every fixture the six `flowx_sample_*` reference jobs consume. Before
 # this existed, each sample job inlined its own three `seed_iteration<N>` notebook tasks and
@@ -59,7 +59,7 @@
 resources:
   jobs:
     flowx_sample_seed_job:
-      name: FlowX Sample Suite - Common Data Seed (6 samples x 3 iterations)
+      name: Metaflow Sample Suite - Common Data Seed (6 samples x 3 iterations)
 
       parameters:
         - name: catalog

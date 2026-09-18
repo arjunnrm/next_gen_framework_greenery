@@ -1,6 +1,6 @@
 # :material-database-import: Pillar 1 · Ingestion
 
-**One external read per source, per execution mode: FlowX lands files, Zerobus tables and ASN.1 binaries into a Bronze base node exactly once, and every downstream flow reads that node, never the source.**
+**One external read per source, per execution mode: Metaflow lands files, Zerobus tables and ASN.1 binaries into a Bronze base node exactly once, and every downstream flow reads that node, never the source.**
 
 !!! abstract "Quick links"
     - **Attribute reference:** [Ingestion flows](../reference/json/ingestion.md) · [Spec root](../reference/json/root.md) · [CDC / load strategy](../reference/json/ingestion-transformation.md)
@@ -52,8 +52,8 @@ flowchart LR
 - File-lifecycle side effects (`landing_retention_policy`, `source_zip_handling`) therefore run exactly once per update. Two different lifecycle policies on one path are rejected at onboarding and again at plan time.
 - `is_streaming` is decided by `target_type == "streaming_table"`, not by `source_type`. All three readers call `spark.readStream`; a `materialized_view` or `batch_table` target consumes the staged view with `dlt.read`.
 
-!!! info "What FlowX does not do"
-    FlowX has **no catalogue of SaaS or database connectors**. Its sources are files in cloud storage or UC Volumes (via Auto Loader), Delta tables already landed by Zerobus, and ASN.1 binary files. Managed connectors for Salesforce, Workday, SQL Server and similar are **Lakeflow Connect**, a Databricks product outside this framework. Land their output as a Delta table and point a `zerobus` flow at it, or land files and use `autoloader`.
+!!! info "What Metaflow does not do"
+    Metaflow has **no catalogue of SaaS or database connectors**. Its sources are files in cloud storage or UC Volumes (via Auto Loader), Delta tables already landed by Zerobus, and ASN.1 binary files. Managed connectors for Salesforce, Workday, SQL Server and similar are **Lakeflow Connect**, a Databricks product outside this framework. Land their output as a Delta table and point a `zerobus` flow at it, or land files and use `autoloader`.
 
 ## Capabilities
 

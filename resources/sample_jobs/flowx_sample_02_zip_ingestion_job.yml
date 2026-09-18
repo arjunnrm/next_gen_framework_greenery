@@ -49,7 +49,7 @@
 resources:
   jobs:
     flowx_sample_02_zip_ingestion_job:
-      name: FlowX Sample 02 - Glob-Filtered ZIP Ingestion with Quarantine DQ
+      name: Metaflow Sample 02 - Glob-Filtered ZIP Ingestion with Quarantine DQ
 
       tasks:
         # 1/2 -- core pipeline / transformation logic.

@@ -3,7 +3,7 @@ from fastapi.testclient import TestClient
 import pytest
 from server.app import app
 
-os.environ["FLOWX_FAKE_DBX"] = "1"
+os.environ["METAFLOW_FAKE_DBX"] = "1"
 client = TestClient(app)
 
 

@@ -1,4 +1,4 @@
-# 🔄 FlowX — Transformation & CDC Engine
+# 🔄 Metaflow — Transformation & CDC Engine
 
 > **Audience**: Data engineers and analytics engineers building Silver and Gold layer pipelines, Slowly Changing Dimensions, and multi-table joins.
 
@@ -55,7 +55,7 @@ A transformation flow consumes one or more upstream Delta tables or views, appli
 
 ## 2. Complete CDC Load Strategies Guide
 
-FlowX provides 6 built-in load and merge strategies configured via `target_config.cdc_load_strategy`. They fall into two families: `APPEND` and `TRUNCATE_AND_LOAD` need no key and skip the CDC dispatcher entirely; `SCD1`, `SCD2`, `SCD3` and `FULL_SNAPSHOT_CDC` all merge on `primary_keys`.
+Metaflow provides 6 built-in load and merge strategies configured via `target_config.cdc_load_strategy`. They fall into two families: `APPEND` and `TRUNCATE_AND_LOAD` need no key and skip the CDC dispatcher entirely; `SCD1`, `SCD2`, `SCD3` and `FULL_SNAPSHOT_CDC` all merge on `primary_keys`.
 
 ### 2.0 Choosing one
 
@@ -277,7 +277,7 @@ no longer front-loaded by `storage/column_ordering.py`.
 
 ## 4. Hash Column Computation
 
-FlowX injects deterministic **SHA-256** hash columns to drive change detection. These are computed only for CDC-dispatched strategies (`SCD1`/`SCD2`/`SCD3`/`FULL_SNAPSHOT_CDC`) inside `dq/quarantine.py::_apply_hash_columns`, before the clean upstream reaches `dlt.apply_changes`/`apply_changes_from_snapshot`:
+Metaflow injects deterministic **SHA-256** hash columns to drive change detection. These are computed only for CDC-dispatched strategies (`SCD1`/`SCD2`/`SCD3`/`FULL_SNAPSHOT_CDC`) inside `dq/quarantine.py::_apply_hash_columns`, before the clean upstream reaches `dlt.apply_changes`/`apply_changes_from_snapshot`:
 
 | Setting | Generated Column(s) | Description |
 |---|---|---|
@@ -297,7 +297,7 @@ As of v1.3.0 both columns — across ingestion, transformation, and reconciliati
 
 ## 5. Parameter Substitution (`${param}`, `{{catalog}}`, `{{env}}`)
 
-FlowX supports flexible parameter binding across deployment environments:
+Metaflow supports flexible parameter binding across deployment environments:
 
 **The two syntaxes have DIFFERENT lifecycles. Confusing them causes real, silent failures.**
 

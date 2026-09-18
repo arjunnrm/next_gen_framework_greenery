@@ -1,6 +1,6 @@
 {
   "base_url": "/docs/",
-  "external_base_url": "https://docs.internal.example.com/flowx/",
+  "external_base_url": "https://docs.internal.example.com/metaflow/",
   "pages": {
     "attribute_reference": "00_master_reference_index/",
     "platform_architecture": "01_platform_architecture/",

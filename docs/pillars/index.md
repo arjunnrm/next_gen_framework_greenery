@@ -1,6 +1,6 @@
 # The four framework pillars
 
-**Every FlowX capability belongs to one of four pillars, and every pillar is driven by one block of the same onboarding spec.** This page is the map; each pillar page is the deep dive with recipes, validator-correct samples, runbooks and the traps that matter.
+**Every Metaflow capability belongs to one of four pillars, and every pillar is driven by one block of the same onboarding spec.** This page is the map; each pillar page is the deep dive with recipes, validator-correct samples, runbooks and the traps that matter.
 
 <div class="grid cards" markdown>
 

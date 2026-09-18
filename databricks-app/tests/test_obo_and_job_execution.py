@@ -7,7 +7,7 @@ import os
 from unittest.mock import MagicMock, patch
 import pytest
 
-os.environ["FLOWX_FAKE_DBX"] = "1"
+os.environ["METAFLOW_FAKE_DBX"] = "1"
 
 from fastapi.testclient import TestClient
 from server.app import app
@@ -80,7 +80,7 @@ def test_obo_strict_mode_rejects_missing_token(monkeypatch):
     settings = get_app_settings()
     monkeypatch.setattr(settings.auth, "mode", "obo")
     monkeypatch.setattr(settings.auth, "fallback_to_sp", False)
-    monkeypatch.setenv("FLOWX_TEST_OBO_STRICT", "1")
+    monkeypatch.setenv("METAFLOW_TEST_OBO_STRICT", "1")
 
     res = client.get("/api/storage/access")
     assert res.status_code == 403
@@ -103,7 +103,7 @@ def test_obo_strict_mode_accepts_valid_token(monkeypatch):
 def test_obo_workspace_client_passes_auth_type_pat(monkeypatch):
     """Ensure get_workspace_client passes auth_type='pat' when token is provided to avoid oauth vs pat conflict."""
     from server.clients.dbx import get_workspace_client
-    monkeypatch.delenv("FLOWX_FAKE_DBX", raising=False)
+    monkeypatch.delenv("METAFLOW_FAKE_DBX", raising=False)
 
     with patch("server.clients.dbx.WorkspaceClient") as mock_wc:
         get_workspace_client(token="user_token_123", host="https://dbc-test.cloud.databricks.com", user="test_user")

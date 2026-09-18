@@ -17,7 +17,7 @@ from server.core.registry import RegistryManager
 from server.core.templates import load_template_body, scan_templates
 from server.deps import get_app_settings, get_registry_manager, get_request_id, get_user_identity
 from server.errors import AppException
-from server.settings import AppSettings
+from server.settings import ENV_ONBOARDING_JOB_ID, AppSettings
 
 
 router = APIRouter(prefix="/api", tags=["Config"])
@@ -112,7 +112,7 @@ def get_resolved_config(
         onboarding_job_id = settings.actions.get("onboard").job_id
     if not onboarding_job_id:
         import os
-        for env_k in ("FLOWX_ONBOARDING_JOB_ID", "ONBOARDING_JOB_ID", "DATABRICKS_ONBOARDING_JOB_ID", "JOB_ID"):
+        for env_k in (ENV_ONBOARDING_JOB_ID, "ONBOARDING_JOB_ID", "DATABRICKS_ONBOARDING_JOB_ID", "JOB_ID"):
             val = os.environ.get(env_k, "").strip()
             if val and val.isdigit():
                 onboarding_job_id = int(val)

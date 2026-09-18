@@ -1,7 +1,7 @@
 # 🤖 Agent Skills & Prompt Library
 
 > **Audience**: Anyone driving this framework with an LLM agent — platform engineers wiring
-> FlowX tools into an agent stack, and users who want a ready-made, copy-pastable prompt for
+> Metaflow tools into an agent stack, and users who want a ready-made, copy-pastable prompt for
 > a common task instead of composing one from scratch.
 >
 > **Version & maintenance**: describes **v1.6.0** and is hand-maintained against the

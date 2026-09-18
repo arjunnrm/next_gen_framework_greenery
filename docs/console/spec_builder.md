@@ -11,7 +11,7 @@
 ## Layout
 
 <div class="fx-mock" markdown="0">┌──────────────────────────────────────────────────────────────────────────────────────┐
-│ FlowX Onboarding   <span class="fx-tab active">Ingestion</span><span class="fx-tab">Transformation</span><span class="fx-tab">Reconciliation</span><span class="fx-tab">Observability</span>   [Open spec] [Docs ↗] [☾]  │
+│ Metaflow Onboarding <span class="fx-tab active">Ingestion</span><span class="fx-tab">Transformation</span><span class="fx-tab">Reconciliation</span><span class="fx-tab">Observability</span>   [Open spec] [Docs ↗] [☾]  │
 ├───────────────┬──────────────────────────────────────────────┬───────────────────────┤
 │ Access        │  Identity › Source › Reader › Load › Protect │  Preview  JSON|YAML   │
 │  ✔ volume     │                                              │  {                    │

@@ -1,4 +1,4 @@
-# ⚖️ FlowX — Reconciliation & Self-Healing Engine
+# ⚖️ Metaflow — Reconciliation & Self-Healing Engine
 
 > **Audience**: Data quality leads, analytics engineers, and operations teams managing cross-system consistency, automated audit checks, and self-healing data pipelines.
 
@@ -6,7 +6,7 @@
 
 ## 1. Overview of Reconciliation
 
-The FlowX Reconciliation Engine provides automated, hash-first verification between a **source baseline dataset** and one or more **target datasets** (e.g. comparing a Bronze landing table against a transformed Gold dimension).
+The Metaflow Reconciliation Engine provides automated, hash-first verification between a **source baseline dataset** and one or more **target datasets** (e.g. comparing a Bronze landing table against a transformed Gold dimension).
 
 ### Key Features
 - **Hash-First Matching**: Uses deterministic SHA-256 row hashes (`__framework_hash_key` / `__framework_hash_value`, see [`11_hashing_and_determinism.md`](11_hashing_and_determinism.md)) for a single-column join instead of a multi-column `match_keys` join, so a flow with a dozen `compare_columns` costs the same at join time as one with a single column.

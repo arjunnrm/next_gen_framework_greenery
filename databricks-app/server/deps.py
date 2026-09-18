@@ -7,7 +7,11 @@ from fastapi import Header, Request
 from server.clients.dbx import get_workspace_client
 from server.core.registry import RegistryManager
 from server.errors import AppException
-from server.settings import AppSettings, load_settings
+from server.branding_generated import env_var
+from server.settings import ENV_FAKE_DBX, AppSettings, load_settings
+
+# Test-only hook, set solely by tests/test_obo_and_job_execution.py, read solely here.
+ENV_TEST_OBO_STRICT = env_var("TEST_OBO_STRICT")
 
 
 logger = logging.getLogger("flowx_app")
@@ -114,8 +118,8 @@ def get_dbx_client(request: Request) -> Any:
                         "auth_mode": "obo"
                     }
                 )
-            elif os.environ.get("FLOWX_FAKE_DBX") == "1" and not os.environ.get("FLOWX_TEST_OBO_STRICT"):
-                logger.debug("FLOWX_FAKE_DBX active: permitting mock client without OBO token.")
+            elif os.environ.get(ENV_FAKE_DBX) == "1" and not os.environ.get(ENV_TEST_OBO_STRICT):
+                logger.debug(f"{ENV_FAKE_DBX} active: permitting mock client without OBO token.")
             else:
                 logger.warning(
                     f"User '{user}' does not have access: OBO token missing from request headers.",

@@ -30,6 +30,12 @@ from databricks.sdk import WorkspaceClient
 from databricks.sdk.errors import NotFound, ResourceAlreadyExists
 from databricks.sdk.service.workspace import ExportFormat, ImportFormat, Language, ObjectType
 
+from server.branding_generated import env_var
+
+# Imported from the leaf branding module, not from server.settings: deps.py imports this
+# module, so reaching back into settings here would create an import cycle.
+ENV_FAKE_DBX = env_var("FAKE_DBX")
+
 logger = logging.getLogger("flowx_app")
 
 
@@ -221,7 +227,7 @@ class FakeJobsAPI:
         # `class RunNowResult: run_id = run_id` raises NameError — assigning the
         # name inside the class body makes it class-local, so the right-hand load
         # never reaches the enclosing function's `run_id`. That bug made every
-        # job-mode action fail with UPSTREAM_ERROR under FLOWX_FAKE_DBX.
+        # job-mode action fail with UPSTREAM_ERROR under METAFLOW_FAKE_DBX.
         generated_run_id = 100000 + (hash(uuid.uuid4().hex) % 899999)
         self._runs[str(generated_run_id)] = {
             "run_id": generated_run_id,
@@ -329,9 +335,9 @@ def get_workspace_client(
     indistinguishable from working software until someone looks in the Volume and finds
     nothing there.
     """
-    if force_fake or os.environ.get("FLOWX_FAKE_DBX") == "1":
+    if force_fake or os.environ.get(ENV_FAKE_DBX) == "1":
         logger.debug(
-            "Using mock WorkspaceClient (FLOWX_FAKE_DBX=1).",
+            f"Using mock WorkspaceClient ({ENV_FAKE_DBX}=1).",
             extra={"event": "sdk_client_init", "auth_mode": "fake", "user": user or "system"}
         )
         return _fake_client()

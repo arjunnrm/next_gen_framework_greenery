@@ -1,5 +1,5 @@
 """
-E2E tests for FlowX Spec Builder:
+E2E tests for the Metaflow Spec Builder:
   1. All 4 tabs present (Ingestion, Transformation, Reconciliation, Observability)
   2. Canonical attributes matching pipeline_onboarding_template.json
   3. Preloaded template values
@@ -12,8 +12,9 @@ import json
 from fastapi.testclient import TestClient
 import pytest
 
-os.environ["FLOWX_FAKE_DBX"] = "1"
+os.environ["METAFLOW_FAKE_DBX"] = "1"
 
+from conftest import BRAND_NAME  # noqa: E402
 from server.app import app
 
 client = TestClient(app)
@@ -22,7 +23,12 @@ client = TestClient(app)
 def test_spa_loads_with_canonical_schema(frontend_text):
     """Verify the frontend ships all 4 flow tabs, the theme system, and canonical attributes."""
     body = frontend_text
-    assert "FlowX" in body or "FlowX" in body, "Brand title missing"
+    assert BRAND_NAME in body, (
+        f"Brand title missing: the shipped frontend does not carry {BRAND_NAME!r} "
+        "(branding/branding.json framework.display_name). If branding.json was just "
+        "changed, run `npm run build` in databricks-app/web — web/dist/ is git-tracked "
+        "and is what server/app.py serves."
+    )
     assert "data-mfl" in body, "Theme attribute missing"
     # Verify the 4 tabs
     assert "Ingestion" in body, "Ingestion tab missing"

@@ -1,9 +1,9 @@
 ---
 name: flowx-onboarding
-description: Answer questions about, guide, and generate FlowX onboarding specs (the JSON/YAML that drives flowx pipelines) for this repo. Use whenever the task involves an onboarding spec, dataflow_group_id, ingestion_flows, transformation_flows, reconciliation_flows, source_type/target_type/cdc_load_strategy, dq_config, governance_tags, or the FlowX control tables.
+description: Answer questions about, guide, and generate Metaflow onboarding specs (the JSON/YAML that drives flowx pipelines) for this repo. Use whenever the task involves an onboarding spec, dataflow_group_id, ingestion_flows, transformation_flows, reconciliation_flows, source_type/target_type/cdc_load_strategy, dq_config, governance_tags, or the Metaflow control tables.
 ---
 
-# FlowX onboarding specs
+# Metaflow onboarding specs
 
 This skill covers the onboarding spec: the JSON (or YAML) document that declares a
 `dataflow_group_id` and its flows, is validated by `onboarding/spec_validator.py`, upserted into
