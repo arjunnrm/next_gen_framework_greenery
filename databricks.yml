@@ -293,7 +293,9 @@ targets:
 
     variables:
       catalog: metaflow
-      dashboard_warehouse_id: 3942c176e8c4dee8
+      dashboard_warehouse_id: e23cd00a920f210c
+      # Genie spaces cannot be catalog-templated -- see the `genie_space_file` variable above.
+      genie_space_file: ../../databricks-genie/flowx_observability.metaflow.geniespace.json
 
   bt_digital_poc:
     workspace:

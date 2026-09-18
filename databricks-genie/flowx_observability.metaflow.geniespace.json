@@ -1,0 +1,630 @@
+{
+  "version": 2,
+  "data_sources": {
+    "tables": [
+      {
+        "identifier": "metaflow.config.onboarding_audit_log"
+      },
+      {
+        "identifier": "metaflow.config.reconciliation_mismatch_log"
+      },
+      {
+        "identifier": "metaflow.observability.v_dataflow_cost"
+      },
+      {
+        "identifier": "metaflow.observability.v_dataflow_group_catalog"
+      },
+      {
+        "identifier": "metaflow.observability.v_dataflow_lineage"
+      },
+      {
+        "identifier": "metaflow.observability.v_dq_results"
+      },
+      {
+        "identifier": "metaflow.observability.v_flow_inventory"
+      },
+      {
+        "identifier": "metaflow.observability.v_flow_metrics"
+      },
+      {
+        "identifier": "metaflow.observability.v_group_health_summary"
+      },
+      {
+        "identifier": "metaflow.observability.v_job_runs"
+      },
+      {
+        "identifier": "metaflow.observability.v_pipeline_registry"
+      },
+      {
+        "identifier": "metaflow.observability.v_pipeline_updates"
+      },
+      {
+        "identifier": "metaflow.observability.v_reconciliation_health"
+      },
+      {
+        "identifier": "system.billing.list_prices"
+      },
+      {
+        "identifier": "system.billing.usage"
+      }
+    ]
+  },
+  "instructions": {
+    "text_instructions": [
+      {
+        "id": "fde7b0bfa5804cd88bd7c28ddaae8861",
+        "content": [
+          "# What this space is\n",
+          "\n",
+          "You answer questions about FlowX, a metadata-driven data pipeline framework running on\n",
+          "Databricks Lakeflow Declarative Pipelines. FlowX takes a declarative onboarding spec (JSON/YAML)\n",
+          "and generates the pipeline that implements it. The tables here join the framework's own control\n",
+          "metadata to the Databricks system tables, so you can answer both \"what is this pipeline\n",
+          "supposed to do\" and \"how is it actually behaving\".\n",
+          "\n",
+          "# Core vocabulary -- use these words in answers\n",
+          "\n",
+          "* A **dataflow group** (`dataflow_group_id`, e.g. `dfg_uc6_ea_flood_warning`) is the unit of\n",
+          "  onboarding and the unit of orchestration. It is the primary key of this whole domain: nearly\n",
+          "  every question resolves to one or more dataflow groups. Prefix `dfg_` is conventional.\n",
+          "* A **flow** is one step inside a group. There are exactly three kinds:\n",
+          "  - **ingestion** -- reads an external source (cloud files via Autoloader, Zerobus, ASN.1\n",
+          "    binary) and lands it in Bronze.\n",
+          "  - **transformation** -- SQL that builds a Silver or Gold table from tables already in the DAG.\n",
+          "  - **reconciliation** -- compares a source against one or more targets and classifies every\n",
+          "    record as matched, missing in target, missing in source, or value drift.\n",
+          "* A **pipeline update** is one execution of the Lakeflow pipeline that implements a group.\n",
+          "  `update_type` is REFRESH (incremental) or FULL_REFRESH (state rebuilt from scratch).\n",
+          "* **cdc_load_strategy** is how a flow writes: `APPEND`, `SCD_TYPE_1`, `SCD_TYPE_2`,\n",
+          "  `TRUNCATE_AND_LOAD`. Anything other than APPEND carries change-detection semantics.\n",
+          "* **DQ rules** are declarative expectations attached to a flow. Failing records are either\n",
+          "  dropped, or routed to a **quarantine** table (the framework keeps them rather than losing\n",
+          "  them), depending on the rule's action.\n",
+          "\n",
+          "# Which table to use\n",
+          "\n",
+          "* \"How is everything doing\", any scorecard or health question -> `v_group_health_summary`.\n",
+          "  One row per group, already aggregated over 30 days. Prefer it over re-aggregating.\n",
+          "* \"What is group X / what does it do / what features does it use\" ->\n",
+          "  `v_dataflow_group_catalog`, and quote `feature_summary` verbatim. It is written to be read\n",
+          "  aloud. Then use `v_flow_inventory` to list the individual flows.\n",
+          "* Run reliability, duration, retries, failures -> `v_pipeline_updates`.\n",
+          "* Rows processed / throughput / volume -> `v_flow_metrics` (`rows_written`).\n",
+          "* Data-quality rule outcomes -> `v_dq_results`.\n",
+          "* Reconciliation results -> `v_reconciliation_health`; per-record detail ->\n",
+          "  `reconciliation_mismatch_log`.\n",
+          "* Cost, DBUs, spend -> `v_dataflow_cost`.\n",
+          "* What actually read/wrote what -> `v_dataflow_lineage`.\n",
+          "* Job (not pipeline) runs -> `v_job_runs`.\n",
+          "* Who onboarded what, and when -> `onboarding_audit_log`.\n",
+          "\n",
+          "# Rules you must follow\n",
+          "\n",
+          "* **Always report figures per `dataflow_group_id`** unless the user explicitly asks for a\n",
+          "  platform-wide total. A number without the group it belongs to is not useful here.\n",
+          "* **`v_group_health_summary` is already windowed to the last 30 days.** Do not add another date\n",
+          "  filter to it, and do not describe its figures as all-time.\n",
+          "* **Exclude full refreshes when comparing durations**: filter `is_full_refresh = false`. A full\n",
+          "  refresh is legitimately much slower and will look like a regression if you average it in.\n",
+          "* **`is_retry = true` is not throughput.** A high retry count means the pipeline is failing and\n",
+          "  automatically retrying. Never present retries as healthy activity.\n",
+          "* **Cost is an estimate at list price.** When you report `estimated_cost_usd`, say so. It does\n",
+          "  not include negotiated discounts or commitments.\n",
+          "* **Reconciliation: no rows does not mean healthy.** Reconciliation logging is optional\n",
+          "  (`run_log_capture`). If `has_run_history = false`, say that nothing was logged and that this\n",
+          "  may mean it never ran OR that logging is disabled. Never call it clean.\n",
+          "* **Job attribution has two qualities.** In `v_job_runs`, `attribution = 'tag'` is exact;\n",
+          "  `attribution = 'name_match'` is a heuristic from the job name. Say which one you used, and\n",
+          "  treat name_match figures as indicative. A NULL `dataflow_group_id` means the job could not be\n",
+          "  attributed to any group at all.\n",
+          "* **Flow names beginning with an underscore** (e.g. `_uc6_export_telephone_staged`) are\n",
+          "  pipeline-scoped intermediate nodes, not published tables. Exclude them when the user asks\n",
+          "  about \"tables\" or \"outputs\"; include them when they ask about the DAG or internals.\n",
+          "* **`is_active = false` on a flow does not mean it was deleted.** Removing a flow from a spec\n",
+          "  does not deactivate its control row, so an inactive-looking row may still be driving the DAG.\n",
+          "* Percentage columns ending `_pct` are 0-100, not 0-1. Do not multiply them by 100 again.\n",
+          "\n",
+          "# Forecasting spend and capacity\n",
+          "\n",
+          "You can forecast with the built-in ``AI_FORECAST`` table function; two worked examples are\n",
+          "provided. Rules that matter:\n",
+          "\n",
+          "* **Forecast on an HOURLY series, never a daily one.** ``v_dataflow_cost`` aggregates to the\n",
+          "  day, and on a young workspace that is only a handful of points -- too few to fit. Fitting\n",
+          "  AI_FORECAST to three daily points once projected ten *billion* DBUs. Build the series from\n",
+          "  ``system.billing.usage`` with ``date_trunc('HOUR', usage_start_time)`` instead.\n",
+          "* **Always exclude the current, partly-elapsed bucket** with\n",
+          "  ``usage_start_time < date_trunc('HOUR', current_timestamp())``. Including it makes the last\n",
+          "  actual point dip and the forecast start from an artificially low base.\n",
+          "* **Always pass ``'{\"global_floor\": 0}'``.** Cost and run counts cannot be negative, and\n",
+          "  without the floor the lower confidence band goes below zero.\n",
+          "* **Report the confidence band, not just the point forecast**, and say how many hours of\n",
+          "  history the model was fitted on. A wide band means little history, not volatile spend --\n",
+          "  which is a completely different thing for the reader to act on.\n",
+          "* Forecast figures are **list price** and are **projections, not commitments**. Say so.\n",
+          "\n",
+          "# When asked to document or explain a dataflow group\n",
+          "\n",
+          "Produce prose a data engineer who has never seen the group could act on, in this order:\n",
+          "1. **Purpose and scale** -- quote `feature_summary` from `v_dataflow_group_catalog`.\n",
+          "2. **The flows** -- from `v_flow_inventory`, grouped by `flow_kind`, each with its source,\n",
+          "   target table, target type and load strategy.\n",
+          "3. **Data quality** -- which rules exist and their current pass rates, from `v_dq_results`.\n",
+          "4. **Reconciliation** -- what is compared against what, and the current match rate.\n",
+          "5. **Operational behaviour** -- update count, success rate, average and P95 duration, rows\n",
+          "   written, and estimated cost, from `v_group_health_summary`.\n",
+          "6. **Lineage** -- the actual source-to-target edges from `v_dataflow_lineage`.\n",
+          "Use headings and tables. Do not invent anything the tables do not contain; if something is\n",
+          "absent, say it is not configured."
+        ]
+      }
+    ],
+    "example_question_sqls": [
+      {
+        "id": "08edd2137d714477b48ba8de562df6d9",
+        "question": [
+          "Explain what dataflow group dfg_uc6_ea_flood_warning does and what framework features it uses"
+        ],
+        "sql": [
+          "SELECT\n",
+          "  c.dataflow_group_id,\n",
+          "  c.feature_summary,\n",
+          "  c.environment,\n",
+          "  c.ingestion_flow_count,\n",
+          "  c.transformation_flow_count,\n",
+          "  c.reconciliation_flow_count,\n",
+          "  c.source_types,\n",
+          "  c.cdc_load_strategies,\n",
+          "  c.has_cdc,\n",
+          "  c.has_dq,\n",
+          "  c.has_quarantine,\n",
+          "  c.has_reconciliation,\n",
+          "  c.has_governance_tags,\n",
+          "  c.target_tables,\n",
+          "  c.onboarded_by,\n",
+          "  c.last_onboarded_at\n",
+          "FROM metaflow.observability.v_dataflow_group_catalog c\n",
+          "WHERE c.dataflow_group_id = 'dfg_uc6_ea_flood_warning'"
+        ]
+      },
+      {
+        "id": "2e55f8f336a34a77b944b7399451b67e",
+        "question": [
+          "List every flow in a dataflow group with its source, target and load strategy"
+        ],
+        "sql": [
+          "SELECT\n",
+          "  flow_kind,\n",
+          "  flow_id,\n",
+          "  source_description,\n",
+          "  target_table,\n",
+          "  target_type,\n",
+          "  cdc_load_strategy,\n",
+          "  has_dq,\n",
+          "  has_quarantine,\n",
+          "  is_active\n",
+          "FROM metaflow.observability.v_flow_inventory\n",
+          "WHERE dataflow_group_id = 'dfg_uc6_ea_flood_warning'\n",
+          "ORDER BY flow_kind, flow_id"
+        ]
+      },
+      {
+        "id": "2eebb0cfaf214d6e9f47b6a1efbef61b",
+        "question": [
+          "Which dataflow groups are unhealthy and why?"
+        ],
+        "sql": [
+          "SELECT\n",
+          "  dataflow_group_id,\n",
+          "  health_status,\n",
+          "  total_updates,\n",
+          "  failed_updates,\n",
+          "  retry_updates,\n",
+          "  success_rate_pct,\n",
+          "  dq_failed_records,\n",
+          "  recon_discrepancies,\n",
+          "  last_update_state,\n",
+          "  last_update_at\n",
+          "FROM metaflow.observability.v_group_health_summary\n",
+          "WHERE health_status IN ('FAILING', 'DEGRADED')\n",
+          "ORDER BY\n",
+          "  CASE health_status WHEN 'FAILING' THEN 0 ELSE 1 END,\n",
+          "  failed_updates DESC"
+        ]
+      },
+      {
+        "id": "519c7dbfff174e418bb921d39e1460d1",
+        "question": [
+          "Show pipeline run performance over the last 30 days, excluding full refreshes"
+        ],
+        "sql": [
+          "SELECT\n",
+          "  dataflow_group_id,\n",
+          "  pipeline_name,\n",
+          "  COUNT(*)                                    AS updates,\n",
+          "  SUM(CASE WHEN is_success THEN 1 ELSE 0 END) AS succeeded,\n",
+          "  SUM(CASE WHEN is_failure THEN 1 ELSE 0 END) AS failed,\n",
+          "  SUM(CASE WHEN is_retry   THEN 1 ELSE 0 END) AS retries,\n",
+          "  ROUND(AVG(duration_minutes), 2)             AS avg_minutes,\n",
+          "  ROUND(PERCENTILE_APPROX(duration_minutes, 0.95), 2) AS p95_minutes\n",
+          "FROM metaflow.observability.v_pipeline_updates\n",
+          "WHERE started_at >= CURRENT_DATE() - INTERVAL 30 DAYS\n",
+          "  AND is_full_refresh = false\n",
+          "GROUP BY dataflow_group_id, pipeline_name\n",
+          "ORDER BY failed DESC, avg_minutes DESC"
+        ]
+      },
+      {
+        "id": "67515f57784f4896a0550a8d7d1d5d7c",
+        "question": [
+          "Which data quality rules are failing, and on which datasets?"
+        ],
+        "sql": [
+          "SELECT\n",
+          "  dataflow_group_id,\n",
+          "  dataset_name,\n",
+          "  rule_name,\n",
+          "  SUM(failed_records) AS failed_records,\n",
+          "  SUM(passed_records) AS passed_records,\n",
+          "  ROUND(100.0 * SUM(passed_records)\n",
+          "        / NULLIF(SUM(passed_records) + SUM(failed_records), 0), 2) AS pass_rate_pct,\n",
+          "  MAX(event_time) AS last_evaluated\n",
+          "FROM metaflow.observability.v_dq_results\n",
+          "WHERE run_date >= CURRENT_DATE() - INTERVAL 30 DAYS\n",
+          "GROUP BY dataflow_group_id, dataset_name, rule_name\n",
+          "HAVING SUM(failed_records) > 0\n",
+          "ORDER BY failed_records DESC"
+        ]
+      },
+      {
+        "id": "77a3e36a6d944f8ca3d2907c57ac46c9",
+        "question": [
+          "How many rows did each dataflow group process, and what did it cost?"
+        ],
+        "sql": [
+          "SELECT\n",
+          "  h.dataflow_group_id,\n",
+          "  h.total_rows_written,\n",
+          "  h.dbus_30d,\n",
+          "  h.estimated_cost_usd_30d,\n",
+          "  ROUND(h.estimated_cost_usd_30d / NULLIF(h.total_rows_written, 0) * 1000000, 2)\n",
+          "    AS est_usd_per_million_rows\n",
+          "FROM metaflow.observability.v_group_health_summary h\n",
+          "WHERE h.total_rows_written > 0\n",
+          "ORDER BY h.estimated_cost_usd_30d DESC"
+        ]
+      },
+      {
+        "id": "8155a9558634440ba0e8c5fe109eefb9",
+        "question": [
+          "Show reconciliation health: what is not matching?"
+        ],
+        "sql": [
+          "SELECT\n",
+          "  dataflow_group_id,\n",
+          "  reconciliation_id,\n",
+          "  target_id,\n",
+          "  status,\n",
+          "  has_run_history,\n",
+          "  source_record_count,\n",
+          "  target_record_count,\n",
+          "  matched_count,\n",
+          "  missing_in_target_count,\n",
+          "  missing_in_source_count,\n",
+          "  value_drift_count,\n",
+          "  total_discrepancies,\n",
+          "  match_rate_pct,\n",
+          "  run_at\n",
+          "FROM metaflow.observability.v_reconciliation_health\n",
+          "ORDER BY total_discrepancies DESC, run_at DESC"
+        ]
+      },
+      {
+        "id": "8c234ee6bc744bbb954310002780b610",
+        "question": [
+          "What is the actual data lineage for a dataflow group?"
+        ],
+        "sql": [
+          "SELECT\n",
+          "  source_table,\n",
+          "  target_table,\n",
+          "  entity_name,\n",
+          "  edge_count,\n",
+          "  last_seen\n",
+          "FROM metaflow.observability.v_dataflow_lineage\n",
+          "WHERE dataflow_group_id = 'dfg_uc6_ea_flood_warning'\n",
+          "  AND source_table IS NOT NULL\n",
+          "ORDER BY last_seen DESC"
+        ]
+      },
+      {
+        "id": "aae75d36f1f1449d8139ccf013a4b0a6",
+        "question": [
+          "Which flows write the most rows?"
+        ],
+        "sql": [
+          "SELECT\n",
+          "  dataflow_group_id,\n",
+          "  flow_name,\n",
+          "  SUM(rows_written)  AS rows_written,\n",
+          "  SUM(rows_upserted) AS rows_upserted,\n",
+          "  SUM(rows_dropped)  AS rows_dropped_by_dq,\n",
+          "  COUNT(DISTINCT update_id) AS updates\n",
+          "FROM metaflow.observability.v_flow_metrics\n",
+          "WHERE run_date >= CURRENT_DATE() - INTERVAL 30 DAYS\n",
+          "  -- dataset_name is the bare table name, so this excludes only the pipeline-scoped\n",
+          "  -- intermediate nodes (whose own name starts with an underscore), not every\n",
+          "  -- three-part flow_name.\n",
+          "  AND dataset_name NOT LIKE '\\_%'\n",
+          "GROUP BY dataflow_group_id, flow_name\n",
+          "ORDER BY rows_written DESC\n",
+          "LIMIT 25"
+        ]
+      },
+      {
+        "id": "b82639ef867244c2b56f189ca5849482",
+        "question": [
+          "Who onboarded each dataflow group and when?"
+        ],
+        "sql": [
+          "SELECT\n",
+          "  a.dataflow_group_id,\n",
+          "  a.action_type,\n",
+          "  a.onboarded_by,\n",
+          "  a.onboarded_at,\n",
+          "  a.spec_version,\n",
+          "  a.status,\n",
+          "  a.error_message\n",
+          "FROM metaflow.config.onboarding_audit_log a\n",
+          "ORDER BY a.onboarded_at DESC"
+        ]
+      },
+      {
+        "id": "c652d113fd2e4d0fac05572af3023010",
+        "question": [
+          "Forecast our framework spend for the next two days"
+        ],
+        "sql": [
+          "WITH scoped AS (\n",
+          "  SELECT u.usage_start_time, u.usage_quantity, u.sku_name\n",
+          "  FROM system.billing.usage u\n",
+          "  WHERE u.usage_start_time >= current_timestamp() - INTERVAL 14 DAYS\n",
+          "    AND (u.usage_metadata.dlt_pipeline_id IS NOT NULL\n",
+          "         OR u.usage_metadata.job_id IS NOT NULL)\n",
+          "),\n",
+          "prices AS (\n",
+          "  SELECT sku_name, pricing.effective_list.default AS unit_price\n",
+          "  FROM system.billing.list_prices WHERE price_end_time IS NULL\n",
+          "),\n",
+          "actuals AS (\n",
+          "  SELECT date_trunc('HOUR', s.usage_start_time) AS usage_hour,\n",
+          "         SUM(s.usage_quantity * COALESCE(p.unit_price, 0)) AS cost_usd\n",
+          "  FROM scoped s LEFT JOIN prices p ON s.sku_name = p.sku_name\n",
+          "  WHERE s.usage_start_time < date_trunc('HOUR', current_timestamp())\n",
+          "  GROUP BY 1\n",
+          "),\n",
+          "bounds AS (SELECT MAX(usage_hour) AS max_h FROM actuals)\n",
+          "SELECT\n",
+          "  usage_hour,\n",
+          "  ROUND(cost_usd_forecast, 4) AS forecast_cost_usd,\n",
+          "  ROUND(cost_usd_lower, 4)    AS forecast_low_usd,\n",
+          "  ROUND(cost_usd_upper, 4)    AS forecast_high_usd\n",
+          "FROM AI_FORECAST(\n",
+          "  TABLE(actuals),\n",
+          "  horizon    => (SELECT max_h + MAKE_DT_INTERVAL(0, 48, 0, 0) FROM bounds),\n",
+          "  time_col   => 'usage_hour',\n",
+          "  value_col  => 'cost_usd',\n",
+          "  parameters => '{\"global_floor\": 0}'\n",
+          ")\n",
+          "ORDER BY usage_hour"
+        ]
+      },
+      {
+        "id": "da532ed5f3074d928dd601bec11da3ec",
+        "question": [
+          "What is our projected monthly run rate at the current spend trend?"
+        ],
+        "sql": [
+          "WITH scoped AS (\n",
+          "  SELECT u.usage_start_time, u.usage_quantity, u.sku_name\n",
+          "  FROM system.billing.usage u\n",
+          "  WHERE u.usage_start_time >= current_timestamp() - INTERVAL 14 DAYS\n",
+          "    AND (u.usage_metadata.dlt_pipeline_id IS NOT NULL\n",
+          "         OR u.usage_metadata.job_id IS NOT NULL)\n",
+          "),\n",
+          "prices AS (\n",
+          "  SELECT sku_name, pricing.effective_list.default AS unit_price\n",
+          "  FROM system.billing.list_prices WHERE price_end_time IS NULL\n",
+          "),\n",
+          "actuals AS (\n",
+          "  SELECT date_trunc('HOUR', s.usage_start_time) AS usage_hour,\n",
+          "         SUM(s.usage_quantity * COALESCE(p.unit_price, 0)) AS cost_usd\n",
+          "  FROM scoped s LEFT JOIN prices p ON s.sku_name = p.sku_name\n",
+          "  WHERE s.usage_start_time < date_trunc('HOUR', current_timestamp())\n",
+          "  GROUP BY 1\n",
+          "),\n",
+          "bounds AS (SELECT MAX(usage_hour) AS max_h FROM actuals),\n",
+          "fc AS (\n",
+          "  SELECT cost_usd_forecast, cost_usd_lower, cost_usd_upper\n",
+          "  FROM AI_FORECAST(\n",
+          "    TABLE(actuals),\n",
+          "    horizon    => (SELECT max_h + MAKE_DT_INTERVAL(0, 48, 0, 0) FROM bounds),\n",
+          "    time_col   => 'usage_hour',\n",
+          "    value_col  => 'cost_usd',\n",
+          "    parameters => '{\"global_floor\": 0}'\n",
+          "  )\n",
+          ")\n",
+          "SELECT\n",
+          "  (SELECT COUNT(*) FROM actuals)                              AS hours_of_history,\n",
+          "  ROUND((SELECT AVG(cost_usd) FROM actuals), 4)               AS observed_avg_hourly_usd,\n",
+          "  ROUND((SELECT AVG(cost_usd_forecast) FROM fc), 4)           AS forecast_avg_hourly_usd,\n",
+          "  ROUND((SELECT AVG(cost_usd_forecast) FROM fc) * 24 * 30, 2) AS projected_30d_usd,\n",
+          "  ROUND((SELECT AVG(cost_usd_lower)    FROM fc) * 24 * 30, 2) AS projected_30d_low_usd,\n",
+          "  ROUND((SELECT AVG(cost_usd_upper)    FROM fc) * 24 * 30, 2) AS projected_30d_high_usd"
+        ]
+      }
+    ]
+  },
+  "config": {
+    "sample_questions": [
+      {
+        "id": "06daae13d5a34090b6bd8dacab9c9fea",
+        "question": [
+          "Show me the details of every dataflow group and what features they use"
+        ]
+      },
+      {
+        "id": "1f3ea5f6893547a1b0e800cc805d6650",
+        "question": [
+          "Explain what dfg_uc6_ea_flood_warning does, flow by flow"
+        ]
+      },
+      {
+        "id": "2cf61530c1224cee864655f9bd0fd1ba",
+        "question": [
+          "Which dataflow groups are unhealthy, and why?"
+        ]
+      },
+      {
+        "id": "3256ca0a958e4cc5b34a0e9a146998b0",
+        "question": [
+          "Document dfg_uc7_cdr_asn as a design document for a new engineer"
+        ]
+      },
+      {
+        "id": "37f5f8706a604cafa429eca470637dd7",
+        "question": [
+          "Which data quality rules are failing and on which datasets?"
+        ]
+      },
+      {
+        "id": "4a4598c4f6aa40b1b190b5386a4bea45",
+        "question": [
+          "How many rows did each dataflow group process in the last 30 days?"
+        ]
+      },
+      {
+        "id": "699c6ced6ece46c391017139b572d8cb",
+        "question": [
+          "What did each dataflow group cost to run, and which is least efficient per row?"
+        ]
+      },
+      {
+        "id": "7478832aacde4eba8fb2efe12caac216",
+        "question": [
+          "Show reconciliation match rates and anything that is not matching"
+        ]
+      },
+      {
+        "id": "825bac1f63fb4a0f8e9ae26d2efb2e20",
+        "question": [
+          "Which pipeline updates failed, and were they retried?"
+        ]
+      },
+      {
+        "id": "8fa3819ce7934206a70e3b6b5778e18a",
+        "question": [
+          "What is the real lineage from Bronze to Gold for dfg_uc6_ea_flood_warning?"
+        ]
+      },
+      {
+        "id": "8fc7568aa8d5465cbfd2412b3ec4926d",
+        "question": [
+          "Forecast our framework spend for the next two days"
+        ]
+      },
+      {
+        "id": "ee81b8713abb467eaacd96b797a3dab5",
+        "question": [
+          "What is our projected monthly run rate at the current spend trend?"
+        ]
+      }
+    ]
+  },
+  "benchmarks": {
+    "questions": [
+      {
+        "id": "0616d614f65942c5b6a4a45a688f712f",
+        "question": [
+          "How many dataflow groups are there and how many flows do they define in total?"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT\n",
+              "  COUNT(*)                 AS dataflow_groups,\n",
+              "  SUM(total_flow_count)    AS total_flows\n",
+              "FROM metaflow.observability.v_dataflow_group_catalog"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "6d95743297df4625b41b45e5926a5af7",
+        "question": [
+          "What is the pipeline update success rate for each dataflow group?"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT\n",
+              "  dataflow_group_id,\n",
+              "  total_updates,\n",
+              "  successful_updates,\n",
+              "  failed_updates,\n",
+              "  success_rate_pct\n",
+              "FROM metaflow.observability.v_group_health_summary\n",
+              "ORDER BY success_rate_pct ASC"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "bd7fbbae8e1e4c458f5d2d8670f157f8",
+        "question": [
+          "Which dataflow group wrote the most rows in the last 30 days?"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT\n",
+              "  dataflow_group_id,\n",
+              "  SUM(rows_written) AS rows_written\n",
+              "FROM metaflow.observability.v_flow_metrics\n",
+              "WHERE run_date >= CURRENT_DATE() - INTERVAL 30 DAYS\n",
+              "GROUP BY dataflow_group_id\n",
+              "ORDER BY rows_written DESC\n",
+              "LIMIT 1"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "f81e81462a664060997126845a5fa071",
+        "question": [
+          "What framework features does dfg_uc6_ea_flood_warning use?"
+        ],
+        "answer": [
+          {
+            "format": "SQL",
+            "content": [
+              "SELECT\n",
+              "  dataflow_group_id,\n",
+              "  feature_summary,\n",
+              "  has_cdc,\n",
+              "  has_dq,\n",
+              "  has_quarantine,\n",
+              "  has_reconciliation,\n",
+              "  has_governance_tags\n",
+              "FROM metaflow.observability.v_dataflow_group_catalog\n",
+              "WHERE dataflow_group_id = 'dfg_uc6_ea_flood_warning'"
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

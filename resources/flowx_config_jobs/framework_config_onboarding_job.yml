@@ -46,7 +46,7 @@ resources:
         - name: spec_dir
           default: ${workspace.file_path}/archive/old_json
         - name: catalog
-          default: flowx
+          default: ${var.catalog}
         - name: env
           default: ${bundle.target}
         - name: action_type
