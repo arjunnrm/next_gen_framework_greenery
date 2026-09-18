@@ -283,21 +283,21 @@ targets:
       # Genie spaces cannot be catalog-templated -- see the `genie_space_file` variable above.
       genie_space_file: ../../databricks-genie/flowx_observability.bt_digital_poc.geniespace.json
 
-  metaflow_v7:
+  metaflow:
     workspace:
-      host: https://dbc-bc553b65-f05f.cloud.databricks.com/
-      profile: metaflow_v7
+      host: https://dbc-30be7d51-01eb.cloud.databricks.com/
+      profile: metaflow
       # v1.6.0: fixed, shared UC-Volume artifact path -- see the `artifacts` block above for the
       # decision record and the never-deploy-mid-run rule that still applies.
       artifact_path: ${var.wheels_root}/${var.framework_version}
 
     variables:
-      catalog: flowx
+      catalog: metaflow
       dashboard_warehouse_id: 3942c176e8c4dee8
 
   bt_digital_poc:
     workspace:
-      host: https://8259551512366201.1.gcp.databricks.com/
+      host: https://dbc-ff39580e-6a42.cloud.databricks.com/
       profile: bt_digital_poc
       # v1.6.0: fixed, shared UC-Volume artifact path -- see the `artifacts` block above for the
       # decision record and the never-deploy-mid-run rule that still applies.
