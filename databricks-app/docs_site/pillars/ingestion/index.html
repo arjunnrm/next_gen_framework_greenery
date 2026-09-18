@@ -9,7 +9,7 @@
         <meta name="description" content="Metadata-driven ingestion, transformation, reconciliation and observability pipelines on Databricks Lakeflow — platform hub, four framework pillars, console walkthroughs, the master configuration reference and operational runbooks.">
       
       
-        <meta name="author" content="Data Platform Engineering">
+        <meta name="author" content="NRM Analytix">
       
       
       
@@ -27,7 +27,7 @@
     
     
       
-        <title>1 · Ingestion - FlowX</title>
+        <title>1 · Ingestion - Metaflow</title>
       
     
     
@@ -105,10 +105,9 @@
 
 <header class="md-header md-header--shadow md-header--lifted" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href="../.." title="FlowX" class="md-header__button md-logo" aria-label="FlowX" data-md-component="logo">
+    <a href="../.." title="Metaflow" class="md-header__button md-logo" aria-label="Metaflow" data-md-component="logo">
       
-  
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18 11h-3.18C14.4 9.84 13.3 9 12 9s-2.4.84-2.82 2H6c-.33 0-2-.1-2-2V8c0-1.83 1.54-2 2-2h10.18C16.6 7.16 17.7 8 19 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3c-1.3 0-2.4.84-2.82 2H6C4.39 4 2 5.06 2 8v1c0 2.94 2.39 4 4 4h3.18c.42 1.16 1.52 2 2.82 2s2.4-.84 2.82-2H18c.33 0 2 .1 2 2v1c0 1.83-1.54 2-2 2H7.82C7.4 16.84 6.3 16 5 16a3 3 0 0 0-3 3 3 3 0 0 0 3 3c1.3 0 2.4-.84 2.82-2H18c1.61 0 4-1.07 4-4v-1c0-2.93-2.39-4-4-4m1-7a1 1 0 0 1 1 1 1 1 0 0 1-1 1 1 1 0 0 1-1-1 1 1 0 0 1 1-1M5 20a1 1 0 0 1-1-1 1 1 0 0 1 1-1 1 1 0 0 1 1 1 1 1 0 0 1-1 1"/></svg>
+  <img src="../../assets/logo.png" alt="logo">
 
     </a>
     <label class="md-header__button md-icon" for="__drawer">
@@ -119,7 +118,7 @@
       <div class="md-header__ellipsis">
         <div class="md-header__topic">
           <span class="md-ellipsis">
-            FlowX
+            Metaflow
           </span>
         </div>
         <div class="md-header__topic" data-md-component="header-topic">
@@ -495,13 +494,12 @@
 
 <nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href="../.." title="FlowX" class="md-nav__button md-logo" aria-label="FlowX" data-md-component="logo">
+    <a href="../.." title="Metaflow" class="md-nav__button md-logo" aria-label="Metaflow" data-md-component="logo">
       
-  
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18 11h-3.18C14.4 9.84 13.3 9 12 9s-2.4.84-2.82 2H6c-.33 0-2-.1-2-2V8c0-1.83 1.54-2 2-2h10.18C16.6 7.16 17.7 8 19 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3c-1.3 0-2.4.84-2.82 2H6C4.39 4 2 5.06 2 8v1c0 2.94 2.39 4 4 4h3.18c.42 1.16 1.52 2 2.82 2s2.4-.84 2.82-2H18c.33 0 2 .1 2 2v1c0 1.83-1.54 2-2 2H7.82C7.4 16.84 6.3 16 5 16a3 3 0 0 0-3 3 3 3 0 0 0 3 3c1.3 0 2.4-.84 2.82-2H18c1.61 0 4-1.07 4-4v-1c0-2.93-2.39-4-4-4m1-7a1 1 0 0 1 1 1 1 1 0 0 1-1 1 1 1 0 0 1-1-1 1 1 0 0 1 1-1M5 20a1 1 0 0 1-1-1 1 1 0 0 1 1-1 1 1 0 0 1 1 1 1 1 0 0 1-1 1"/></svg>
+  <img src="../../assets/logo.png" alt="logo">
 
     </a>
-    FlowX
+    Metaflow
   </label>
   
     <div class="md-nav__source">
@@ -4745,7 +4743,7 @@
 
 
 <h1 id="pillar-1-ingestion"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 3C8.59 3 5.69 4.07 4.54 5.57l5.25 5.25c.71.11 1.43.18 2.21.18 4.42 0 8-1.79 8-4s-3.58-4-8-4M3.92 7.08 2.5 8.5 5 11H0v2h5l-2.5 2.5 1.42 1.42L8.84 12M20 9c0 2.21-3.58 4-8 4-.66 0-1.3-.05-1.91-.13l-2.47 2.47c1.26.41 2.76.66 4.38.66 4.42 0 8-1.79 8-4m0 2c0 2.21-3.58 4-8 4-2.28 0-4.33-.5-5.79-1.25l-1.68 1.68C5.68 19.93 8.59 21 12 21c4.42 0 8-1.79 8-4"/></svg></span> Pillar 1 · Ingestion<a class="headerlink" href="#pillar-1-ingestion" title="Permanent link">&para;</a></h1>
-<p><strong>One external read per source, per execution mode: FlowX lands files, Zerobus tables and ASN.1 binaries into a Bronze base node exactly once, and every downstream flow reads that node, never the source.</strong></p>
+<p><strong>One external read per source, per execution mode: Metaflow lands files, Zerobus tables and ASN.1 binaries into a Bronze base node exactly once, and every downstream flow reads that node, never the source.</strong></p>
 <div class="admonition abstract">
 <p class="admonition-title">Quick links</p>
 <ul>
@@ -4860,8 +4858,8 @@
 <li><code>is_streaming</code> is decided by <code>target_type == "streaming_table"</code>, not by <code>source_type</code>. All three readers call <code>spark.readStream</code>; a <code>materialized_view</code> or <code>batch_table</code> target consumes the staged view with <code>dlt.read</code>.</li>
 </ul>
 <div class="admonition info">
-<p class="admonition-title">What FlowX does not do</p>
-<p>FlowX has <strong>no catalogue of SaaS or database connectors</strong>. Its sources are files in cloud storage or UC Volumes (via Auto Loader), Delta tables already landed by Zerobus, and ASN.1 binary files. Managed connectors for Salesforce, Workday, SQL Server and similar are <strong>Lakeflow Connect</strong>, a Databricks product outside this framework. Land their output as a Delta table and point a <code>zerobus</code> flow at it, or land files and use <code>autoloader</code>.</p>
+<p class="admonition-title">What Metaflow does not do</p>
+<p>Metaflow has <strong>no catalogue of SaaS or database connectors</strong>. Its sources are files in cloud storage or UC Volumes (via Auto Loader), Delta tables already landed by Zerobus, and ASN.1 binary files. Managed connectors for Salesforce, Workday, SQL Server and similar are <strong>Lakeflow Connect</strong>, a Databricks product outside this framework. Land their output as a Delta table and point a <code>zerobus</code> flow at it, or land files and use <code>autoloader</code>.</p>
 </div>
 <h2 id="capabilities">Capabilities<a class="headerlink" href="#capabilities" title="Permanent link">&para;</a></h2>
 <h3 id="auto-loader-file-ingestion">Auto Loader file ingestion<a class="headerlink" href="#auto-loader-file-ingestion" title="Permanent link">&para;</a></h3>
@@ -5545,7 +5543,7 @@ What is and is not in the read identity: <a href="../../01_platform_architecture
       <div class="md-copyright">
   
     <div class="md-copyright__highlight">
-      FlowX · Data Platform Engineering
+      Metaflow · NRM Analytix
     </div>
   
   

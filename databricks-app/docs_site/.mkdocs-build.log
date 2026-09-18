@@ -1,20 +1,20 @@
 
- \u2502  \u26a0  Warning from the Material for MkDocs team
- \u2502
- \u2502  MkDocs 2.0, the underlying framework of Material for MkDocs,
- \u2502  will introduce backward-incompatible changes, including:
- \u2502
- \u2502  � All plugins will stop working � the plugin system has been removed
- \u2502  � All theme overrides will break � the theming system has been rewritten
- \u2502  � No migration path exists � existing projects cannot be upgraded
- \u2502  � Closed contribution model � community members can't report bugs
- \u2502  � Currently unlicensed � unsuitable for production use
- \u2502
- \u2502  Our full analysis:
- \u2502
- \u2502  https://squidfunk.github.io/mkdocs-material/blog/2026/02/18/mkdocs-2.0/
+ │  ⚠  Warning from the Material for MkDocs team
+ │
+ │  MkDocs 2.0, the underlying framework of Material for MkDocs,
+ │  will introduce backward-incompatible changes, including:
+ │
+ │  × All plugins will stop working – the plugin system has been removed
+ │  × All theme overrides will break – the theming system has been rewritten
+ │  × No migration path exists – existing projects cannot be upgraded
+ │  × Closed contribution model – community members can't report bugs
+ │  × Currently unlicensed – unsuitable for production use
+ │
+ │  Our full analysis:
+ │
+ │  https://squidfunk.github.io/mkdocs-material/blog/2026/02/18/mkdocs-2.0/
 
-INFO    -  [flowx] FLOWX_DOCS_SKIP_REGEN=1: using committed reference pages
+INFO    -  [flowx] regenerated 42 derived pages in 0.6s
 INFO    -  Cleaning site directory
 INFO    -  Building documentation to directory: C:\Databricks\NextGen_Metadata_Framework\site
 INFO    -  An absolute path to '/' is included in the 'nav' configuration, which presumably points to an external resource.
@@ -240,4 +240,4 @@ WARNING -  Doc file 'archive/legacy_docs/54_tc_sec_001.md' contains a link '16_e
 WARNING -  Doc file 'archive/legacy_docs/55_tc_sec_002.md' contains a link '02_cdc_load_strategies.md#comparison-vs-storage-columns_to_check--columns_to_exclude', but the doc 'archive/legacy_docs/02_cdc_load_strategies.md' does not contain an anchor '#comparison-vs-storage-columns_to_check--columns_to_exclude'.
 WARNING -  Doc file 'archive/legacy_docs/55_tc_sec_002.md' contains a link '01_control_metadata_schema.md#4a-hash-keyvalue----a-framework-design-principle', but the doc 'archive/legacy_docs/01_control_metadata_schema.md' does not contain an anchor '#4a-hash-keyvalue----a-framework-design-principle'.
 WARNING -  Doc file 'archive/legacy_docs/60_tc_rec_003.md' contains a link '01_control_metadata_schema.md#4a-hash-keyvalue--a-framework-design-principle', but the doc 'archive/legacy_docs/01_control_metadata_schema.md' does not contain an anchor '#4a-hash-keyvalue--a-framework-design-principle'.
-INFO    -  Documentation built in 15.75 seconds
+INFO    -  Documentation built in 23.28 seconds

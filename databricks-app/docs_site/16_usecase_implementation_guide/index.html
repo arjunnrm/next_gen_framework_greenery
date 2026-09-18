@@ -9,7 +9,7 @@
         <meta name="description" content="Metadata-driven ingestion, transformation, reconciliation and observability pipelines on Databricks Lakeflow — platform hub, four framework pillars, console walkthroughs, the master configuration reference and operational runbooks.">
       
       
-        <meta name="author" content="Data Platform Engineering">
+        <meta name="author" content="NRM Analytix">
       
       
       
@@ -27,7 +27,7 @@
     
     
       
-        <title>Use case implementation guide - FlowX</title>
+        <title>Use case implementation guide - Metaflow</title>
       
     
     
@@ -89,7 +89,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#implementing-a-use-case-on-flowx-end-to-end-guide" class="md-skip">
+        <a href="#implementing-a-use-case-on-metaflow-end-to-end-guide" class="md-skip">
           Skip to content
         </a>
       
@@ -105,10 +105,9 @@
 
 <header class="md-header md-header--shadow md-header--lifted" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href=".." title="FlowX" class="md-header__button md-logo" aria-label="FlowX" data-md-component="logo">
+    <a href=".." title="Metaflow" class="md-header__button md-logo" aria-label="Metaflow" data-md-component="logo">
       
-  
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18 11h-3.18C14.4 9.84 13.3 9 12 9s-2.4.84-2.82 2H6c-.33 0-2-.1-2-2V8c0-1.83 1.54-2 2-2h10.18C16.6 7.16 17.7 8 19 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3c-1.3 0-2.4.84-2.82 2H6C4.39 4 2 5.06 2 8v1c0 2.94 2.39 4 4 4h3.18c.42 1.16 1.52 2 2.82 2s2.4-.84 2.82-2H18c.33 0 2 .1 2 2v1c0 1.83-1.54 2-2 2H7.82C7.4 16.84 6.3 16 5 16a3 3 0 0 0-3 3 3 3 0 0 0 3 3c1.3 0 2.4-.84 2.82-2H18c1.61 0 4-1.07 4-4v-1c0-2.93-2.39-4-4-4m1-7a1 1 0 0 1 1 1 1 1 0 0 1-1 1 1 1 0 0 1-1-1 1 1 0 0 1 1-1M5 20a1 1 0 0 1-1-1 1 1 0 0 1 1-1 1 1 0 0 1 1 1 1 1 0 0 1-1 1"/></svg>
+  <img src="../assets/logo.png" alt="logo">
 
     </a>
     <label class="md-header__button md-icon" for="__drawer">
@@ -119,7 +118,7 @@
       <div class="md-header__ellipsis">
         <div class="md-header__topic">
           <span class="md-ellipsis">
-            FlowX
+            Metaflow
           </span>
         </div>
         <div class="md-header__topic" data-md-component="header-topic">
@@ -495,13 +494,12 @@
 
 <nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href=".." title="FlowX" class="md-nav__button md-logo" aria-label="FlowX" data-md-component="logo">
+    <a href=".." title="Metaflow" class="md-nav__button md-logo" aria-label="Metaflow" data-md-component="logo">
       
-  
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18 11h-3.18C14.4 9.84 13.3 9 12 9s-2.4.84-2.82 2H6c-.33 0-2-.1-2-2V8c0-1.83 1.54-2 2-2h10.18C16.6 7.16 17.7 8 19 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3c-1.3 0-2.4.84-2.82 2H6C4.39 4 2 5.06 2 8v1c0 2.94 2.39 4 4 4h3.18c.42 1.16 1.52 2 2.82 2s2.4-.84 2.82-2H18c.33 0 2 .1 2 2v1c0 1.83-1.54 2-2 2H7.82C7.4 16.84 6.3 16 5 16a3 3 0 0 0-3 3 3 3 0 0 0 3 3c1.3 0 2.4-.84 2.82-2H18c1.61 0 4-1.07 4-4v-1c0-2.93-2.39-4-4-4m1-7a1 1 0 0 1 1 1 1 1 0 0 1-1 1 1 1 0 0 1-1-1 1 1 0 0 1 1-1M5 20a1 1 0 0 1-1-1 1 1 0 0 1 1-1 1 1 0 0 1 1 1 1 1 0 0 1-1 1"/></svg>
+  <img src="../assets/logo.png" alt="logo">
 
     </a>
-    FlowX
+    Metaflow
   </label>
   
     <div class="md-nav__source">
@@ -1051,15 +1049,15 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#1-what-flowx-actually-buys-you" class="md-nav__link">
+  <a href="#1-what-metaflow-actually-buys-you" class="md-nav__link">
     <span class="md-ellipsis">
       
-        1. What FlowX actually buys you
+        1. What Metaflow actually buys you
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="1. What FlowX actually buys you">
+    <nav class="md-nav" aria-label="1. What Metaflow actually buys you">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
@@ -1074,10 +1072,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#12-what-flowx-does-not-do" class="md-nav__link">
+  <a href="#12-what-metaflow-does-not-do" class="md-nav__link">
     <span class="md-ellipsis">
       
-        1.2 What FlowX does not do
+        1.2 What Metaflow does not do
       
     </span>
   </a>
@@ -4510,15 +4508,15 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#1-what-flowx-actually-buys-you" class="md-nav__link">
+  <a href="#1-what-metaflow-actually-buys-you" class="md-nav__link">
     <span class="md-ellipsis">
       
-        1. What FlowX actually buys you
+        1. What Metaflow actually buys you
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="1. What FlowX actually buys you">
+    <nav class="md-nav" aria-label="1. What Metaflow actually buys you">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
@@ -4533,10 +4531,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#12-what-flowx-does-not-do" class="md-nav__link">
+  <a href="#12-what-metaflow-does-not-do" class="md-nav__link">
     <span class="md-ellipsis">
       
-        1.2 What FlowX does not do
+        1.2 What Metaflow does not do
       
     </span>
   </a>
@@ -4828,8 +4826,8 @@
   
 
 
-<h1 id="implementing-a-use-case-on-flowx-end-to-end-guide">Implementing a Use Case on FlowX — End-to-End Guide<a class="headerlink" href="#implementing-a-use-case-on-flowx-end-to-end-guide" title="Permanent link">&para;</a></h1>
-<p><strong>Audience:</strong> a data engineer onboarding a new source system onto Databricks with FlowX.
+<h1 id="implementing-a-use-case-on-metaflow-end-to-end-guide">Implementing a Use Case on Metaflow — End-to-End Guide<a class="headerlink" href="#implementing-a-use-case-on-metaflow-end-to-end-guide" title="Permanent link">&para;</a></h1>
+<p><strong>Audience:</strong> a data engineer onboarding a new source system onto Databricks with Metaflow.
 <strong>Scope:</strong> the whole path from "here is a source system and a governance sheet" to
 "three governed Bronze tables with CDC, reconciliation and observability running on a schedule".</p>
 <p>This guide is written from a <strong>real, completed implementation</strong> — the BT/EE Excalibur CRM
@@ -4844,8 +4842,8 @@ says so, because the failures are the parts worth knowing in advance.</p>
 <li><a href="../13_known_limitations_and_gotchas/"><code>13_known_limitations_and_gotchas.md</code></a></li>
 </ul>
 <hr />
-<h2 id="1-what-flowx-actually-buys-you">1. What FlowX actually buys you<a class="headerlink" href="#1-what-flowx-actually-buys-you" title="Permanent link">&para;</a></h2>
-<p>FlowX is a <strong>metadata-driven ingestion framework</strong>: you declare <em>what</em> you want in an onboarding
+<h2 id="1-what-metaflow-actually-buys-you">1. What Metaflow actually buys you<a class="headerlink" href="#1-what-metaflow-actually-buys-you" title="Permanent link">&para;</a></h2>
+<p>Metaflow is a <strong>metadata-driven ingestion framework</strong>: you declare <em>what</em> you want in an onboarding
 spec (JSON/YAML), and the framework generates and runs the Lakeflow Declarative Pipeline that
 does it. The unit of work is a <strong>dataflow group</strong> — one <code>dataflow_group_id</code> owning a set of
 ingestion, transformation and reconciliation flows, driven by one pipeline.</p>
@@ -4892,13 +4890,13 @@ ingestion, transformation and reconciliation flows, driven by one pipeline.</p>
 </tr>
 </tbody>
 </table>
-<h3 id="12-what-flowx-does-not-do">1.2 What FlowX does <em>not</em> do<a class="headerlink" href="#12-what-flowx-does-not-do" title="Permanent link">&para;</a></h3>
+<h3 id="12-what-metaflow-does-not-do">1.2 What Metaflow does <em>not</em> do<a class="headerlink" href="#12-what-metaflow-does-not-do" title="Permanent link">&para;</a></h3>
 <p>Be clear about the boundary before you start:</p>
 <ul>
 <li><strong>It does not create the catalog.</strong> That is a one-time workspace prerequisite (see §3).</li>
 <li><strong>It does not create schemas or volumes</strong> — it creates <em>tables</em>. Provision schemas/volumes first.</li>
 <li><strong>It does not administer masking or row-filter policies.</strong> It applies <em>tags</em>; a workspace admin
-  binds enforcement to those tags. FlowX never issues <code>SET MASK</code>.</li>
+  binds enforcement to those tags. Metaflow never issues <code>SET MASK</code>.</li>
 <li><strong>It does not fake a source.</strong> If you need a simulated feed for testing, that is your own job
   (UC3 wrote one — legitimately, since "pretend to be a message bus" is not an ingestion feature).</li>
 </ul>
@@ -5550,7 +5548,7 @@ the nine steps. The two most often skipped:</p>
       <div class="md-copyright">
   
     <div class="md-copyright__highlight">
-      FlowX · Data Platform Engineering
+      Metaflow · NRM Analytix
     </div>
   
   

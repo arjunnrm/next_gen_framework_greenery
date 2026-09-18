@@ -9,7 +9,7 @@
         <meta name="description" content="Metadata-driven ingestion, transformation, reconciliation and observability pipelines on Databricks Lakeflow — platform hub, four framework pillars, console walkthroughs, the master configuration reference and operational runbooks.">
       
       
-        <meta name="author" content="Data Platform Engineering">
+        <meta name="author" content="NRM Analytix">
       
       
       
@@ -27,7 +27,7 @@
     
     
       
-        <title>Egress & Lakeflow sinks - FlowX</title>
+        <title>Egress & Lakeflow sinks - Metaflow</title>
       
     
     
@@ -89,7 +89,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#flowx-egress-lakeflow-sinks" class="md-skip">
+        <a href="#metaflow-egress-lakeflow-sinks" class="md-skip">
           Skip to content
         </a>
       
@@ -105,10 +105,9 @@
 
 <header class="md-header md-header--shadow md-header--lifted" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href=".." title="FlowX" class="md-header__button md-logo" aria-label="FlowX" data-md-component="logo">
+    <a href=".." title="Metaflow" class="md-header__button md-logo" aria-label="Metaflow" data-md-component="logo">
       
-  
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18 11h-3.18C14.4 9.84 13.3 9 12 9s-2.4.84-2.82 2H6c-.33 0-2-.1-2-2V8c0-1.83 1.54-2 2-2h10.18C16.6 7.16 17.7 8 19 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3c-1.3 0-2.4.84-2.82 2H6C4.39 4 2 5.06 2 8v1c0 2.94 2.39 4 4 4h3.18c.42 1.16 1.52 2 2.82 2s2.4-.84 2.82-2H18c.33 0 2 .1 2 2v1c0 1.83-1.54 2-2 2H7.82C7.4 16.84 6.3 16 5 16a3 3 0 0 0-3 3 3 3 0 0 0 3 3c1.3 0 2.4-.84 2.82-2H18c1.61 0 4-1.07 4-4v-1c0-2.93-2.39-4-4-4m1-7a1 1 0 0 1 1 1 1 1 0 0 1-1 1 1 1 0 0 1-1-1 1 1 0 0 1 1-1M5 20a1 1 0 0 1-1-1 1 1 0 0 1 1-1 1 1 0 0 1 1 1 1 1 0 0 1-1 1"/></svg>
+  <img src="../assets/logo.png" alt="logo">
 
     </a>
     <label class="md-header__button md-icon" for="__drawer">
@@ -119,7 +118,7 @@
       <div class="md-header__ellipsis">
         <div class="md-header__topic">
           <span class="md-ellipsis">
-            FlowX
+            Metaflow
           </span>
         </div>
         <div class="md-header__topic" data-md-component="header-topic">
@@ -495,13 +494,12 @@
 
 <nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href=".." title="FlowX" class="md-nav__button md-logo" aria-label="FlowX" data-md-component="logo">
+    <a href=".." title="Metaflow" class="md-nav__button md-logo" aria-label="Metaflow" data-md-component="logo">
       
-  
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18 11h-3.18C14.4 9.84 13.3 9 12 9s-2.4.84-2.82 2H6c-.33 0-2-.1-2-2V8c0-1.83 1.54-2 2-2h10.18C16.6 7.16 17.7 8 19 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3c-1.3 0-2.4.84-2.82 2H6C4.39 4 2 5.06 2 8v1c0 2.94 2.39 4 4 4h3.18c.42 1.16 1.52 2 2.82 2s2.4-.84 2.82-2H18c.33 0 2 .1 2 2v1c0 1.83-1.54 2-2 2H7.82C7.4 16.84 6.3 16 5 16a3 3 0 0 0-3 3 3 3 0 0 0 3 3c1.3 0 2.4-.84 2.82-2H18c1.61 0 4-1.07 4-4v-1c0-2.93-2.39-4-4-4m1-7a1 1 0 0 1 1 1 1 1 0 0 1-1 1 1 1 0 0 1-1-1 1 1 0 0 1 1-1M5 20a1 1 0 0 1-1-1 1 1 0 0 1 1-1 1 1 0 0 1 1 1 1 1 0 0 1-1 1"/></svg>
+  <img src="../assets/logo.png" alt="logo">
 
     </a>
-    FlowX
+    Metaflow
   </label>
   
     <div class="md-nav__source">
@@ -4509,13 +4507,13 @@
   
 
 
-<h1 id="flowx-egress-lakeflow-sinks">📤 FlowX — Egress &amp; Lakeflow Sinks<a class="headerlink" href="#flowx-egress-lakeflow-sinks" title="Permanent link">&para;</a></h1>
+<h1 id="metaflow-egress-lakeflow-sinks">📤 Metaflow — Egress &amp; Lakeflow Sinks<a class="headerlink" href="#metaflow-egress-lakeflow-sinks" title="Permanent link">&para;</a></h1>
 <blockquote>
 <p><strong>Audience</strong>: Integration engineers and data architects building external data syndication pipelines to cloud object stores, Kafka clusters, or external partner Volumes.</p>
 </blockquote>
 <hr />
 <h2 id="1-lakeflow-native-in-graph-sink-architecture">1. Lakeflow Native In-Graph Sink Architecture<a class="headerlink" href="#1-lakeflow-native-in-graph-sink-architecture" title="Permanent link">&para;</a></h2>
-<p>In FlowX, egress sinks are <strong>not</strong> separate post-deployment batch jobs or standalone Spark notebooks. Instead, they are registered natively inside the Lakeflow pipeline DAG using:
+<p>In Metaflow, egress sinks are <strong>not</strong> separate post-deployment batch jobs or standalone Spark notebooks. Instead, they are registered natively inside the Lakeflow pipeline DAG using:
 - <code>dlt.create_sink(...)</code>: Defines the external destination target and format.
 - <code>@dlt.append_flow(...)</code>: Streams data from an upstream view or table directly into the sink with transactional checkpointing.</p>
 <div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>┌─────────────────────────────────────────────────────────────┐
@@ -4541,7 +4539,7 @@
 </span></code></pre></div>
 <hr />
 <h2 id="2-sink-format-specifications">2. Sink Format Specifications<a class="headerlink" href="#2-sink-format-specifications" title="Permanent link">&para;</a></h2>
-<p>FlowX supports 3 production sink formats configured via <code>target_config.sink_config.format</code>:</p>
+<p>Metaflow supports 3 production sink formats configured via <code>target_config.sink_config.format</code>:</p>
 <h3 id="21-delta-format-format-delta">2.1 Delta Format (<code>format: "delta"</code>)<a class="headerlink" href="#21-delta-format-format-delta" title="Permanent link">&para;</a></h3>
 <p>Directly exports Delta Lake tables to an external Volume or object storage location.
 <div class="language-json highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="p">{</span>
@@ -4873,7 +4871,7 @@ unconditionally required, so symmetric egress was unreachable from a spec.</p>
       <div class="md-copyright">
   
     <div class="md-copyright__highlight">
-      FlowX · Data Platform Engineering
+      Metaflow · NRM Analytix
     </div>
   
   

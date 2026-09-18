@@ -9,7 +9,7 @@
         <meta name="description" content="Metadata-driven ingestion, transformation, reconciliation and observability pipelines on Databricks Lakeflow — platform hub, four framework pillars, console walkthroughs, the master configuration reference and operational runbooks.">
       
       
-        <meta name="author" content="Data Platform Engineering">
+        <meta name="author" content="NRM Analytix">
       
       
       
@@ -27,7 +27,7 @@
     
     
       
-        <title>4 · Observability - FlowX</title>
+        <title>4 · Observability - Metaflow</title>
       
     
     
@@ -105,10 +105,9 @@
 
 <header class="md-header md-header--shadow md-header--lifted" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href="../.." title="FlowX" class="md-header__button md-logo" aria-label="FlowX" data-md-component="logo">
+    <a href="../.." title="Metaflow" class="md-header__button md-logo" aria-label="Metaflow" data-md-component="logo">
       
-  
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18 11h-3.18C14.4 9.84 13.3 9 12 9s-2.4.84-2.82 2H6c-.33 0-2-.1-2-2V8c0-1.83 1.54-2 2-2h10.18C16.6 7.16 17.7 8 19 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3c-1.3 0-2.4.84-2.82 2H6C4.39 4 2 5.06 2 8v1c0 2.94 2.39 4 4 4h3.18c.42 1.16 1.52 2 2.82 2s2.4-.84 2.82-2H18c.33 0 2 .1 2 2v1c0 1.83-1.54 2-2 2H7.82C7.4 16.84 6.3 16 5 16a3 3 0 0 0-3 3 3 3 0 0 0 3 3c1.3 0 2.4-.84 2.82-2H18c1.61 0 4-1.07 4-4v-1c0-2.93-2.39-4-4-4m1-7a1 1 0 0 1 1 1 1 1 0 0 1-1 1 1 1 0 0 1-1-1 1 1 0 0 1 1-1M5 20a1 1 0 0 1-1-1 1 1 0 0 1 1-1 1 1 0 0 1 1 1 1 1 0 0 1-1 1"/></svg>
+  <img src="../../assets/logo.png" alt="logo">
 
     </a>
     <label class="md-header__button md-icon" for="__drawer">
@@ -119,7 +118,7 @@
       <div class="md-header__ellipsis">
         <div class="md-header__topic">
           <span class="md-ellipsis">
-            FlowX
+            Metaflow
           </span>
         </div>
         <div class="md-header__topic" data-md-component="header-topic">
@@ -495,13 +494,12 @@
 
 <nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href="../.." title="FlowX" class="md-nav__button md-logo" aria-label="FlowX" data-md-component="logo">
+    <a href="../.." title="Metaflow" class="md-nav__button md-logo" aria-label="Metaflow" data-md-component="logo">
       
-  
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18 11h-3.18C14.4 9.84 13.3 9 12 9s-2.4.84-2.82 2H6c-.33 0-2-.1-2-2V8c0-1.83 1.54-2 2-2h10.18C16.6 7.16 17.7 8 19 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3c-1.3 0-2.4.84-2.82 2H6C4.39 4 2 5.06 2 8v1c0 2.94 2.39 4 4 4h3.18c.42 1.16 1.52 2 2.82 2s2.4-.84 2.82-2H18c.33 0 2 .1 2 2v1c0 1.83-1.54 2-2 2H7.82C7.4 16.84 6.3 16 5 16a3 3 0 0 0-3 3 3 3 0 0 0 3 3c1.3 0 2.4-.84 2.82-2H18c1.61 0 4-1.07 4-4v-1c0-2.93-2.39-4-4-4m1-7a1 1 0 0 1 1 1 1 1 0 0 1-1 1 1 1 0 0 1-1-1 1 1 0 0 1 1-1M5 20a1 1 0 0 1-1-1 1 1 0 0 1 1-1 1 1 0 0 1 1 1 1 1 0 0 1-1 1"/></svg>
+  <img src="../../assets/logo.png" alt="logo">
 
     </a>
-    FlowX
+    Metaflow
   </label>
   
     <div class="md-nav__source">
@@ -4789,7 +4787,7 @@
 
 
 <h1 id="pillar-4-observability"><span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m3 14 .5.07L8.07 9.5a1.95 1.95 0 0 1 .52-1.91c.78-.79 2.04-.79 2.82 0 .53.52.7 1.26.52 1.91l2.57 2.57.5-.07c.18 0 .35 0 .5.07l3.57-3.57C19 8.35 19 8.18 19 8a2 2 0 0 1 2-2 2 2 0 0 1 2 2 2 2 0 0 1-2 2c-.18 0-.35 0-.5-.07l-3.57 3.57c.07.15.07.32.07.5a2 2 0 0 1-2 2 2 2 0 0 1-2-2l.07-.5-2.57-2.57c-.32.07-.68.07-1 0L4.93 15.5 5 16a2 2 0 0 1-2 2 2 2 0 0 1-2-2 2 2 0 0 1 2-2"/></svg></span> Pillar 4 · Observability<a class="headerlink" href="#pillar-4-observability" title="Permanent link">&para;</a></h1>
-<p><strong>FlowX measures itself twice: it ships every pipeline event out of the platform as OpenTelemetry, and it keeps a queryable semantic layer inside the platform so the same facts can be asked in SQL, on a dashboard, or in plain English.</strong></p>
+<p><strong>Metaflow measures itself twice: it ships every pipeline event out of the platform as OpenTelemetry, and it keeps a queryable semantic layer inside the platform so the same facts can be asked in SQL, on a dashboard, or in plain English.</strong></p>
 <div class="admonition abstract">
 <p class="admonition-title">Quick links</p>
 <ul>
@@ -4880,7 +4878,7 @@
 <tr>
 <td>Alerting or paging engine</td>
 <td>None shipped. Use Databricks SQL alerts or the OTLP consumer's rules</td>
-<td>Not in FlowX</td>
+<td>Not in Metaflow</td>
 <td><a href="#heartbeats-thresholds-and-triage">Heartbeats, thresholds and triage</a></td>
 </tr>
 </tbody>
@@ -4910,7 +4908,7 @@
   end</code></pre>
 <ul>
 <li><strong>Export out</strong> is configured in the spec's root <code>observability[]</code> array and upserted into the <code>observability_config</code> control table by <code>onboarding/metadata_upsert.py::upsert_observability_config</code>. There is no separate observability config file.</li>
-<li><strong>Store and query</strong> has no spec attribute at all. Section 5 of <code>notebooks/01_setup/01_setup_control_tables.py</code> provisions the schema and views; the join key every FlowX pipeline already writes (<code>configuration['dataflow.group.id']</code>) does the rest.</li>
+<li><strong>Store and query</strong> has no spec attribute at all. Section 5 of <code>notebooks/01_setup/01_setup_control_tables.py</code> provisions the schema and views; the join key every Metaflow pipeline already writes (<code>configuration['dataflow.group.id']</code>) does the rest.</li>
 <li>The two never overlap in output. A <code>num_output_rows</code> that left as an OTLP attribute cannot be summed; <code>v_flow_metrics</code> can. Cost is only in the second half. See <a href="../../08_observability_and_telemetry/#8-export-out-telemetry-vs-store-and-query-observability">08 §8</a>.</li>
 </ul>
 <h2 id="telemetry-destinations">Telemetry destinations<a class="headerlink" href="#telemetry-destinations" title="Permanent link">&para;</a></h2>
@@ -5273,7 +5271,7 @@
 <h3 id="the-semantic-layer-views-and-the-join-key">The semantic layer: views and the join key<a class="headerlink" href="#the-semantic-layer-views-and-the-join-key" title="Permanent link">&para;</a></h3>
 <p><code>&lt;catalog&gt;.observability</code> is a grant boundary. Granting <code>SELECT</code> on the schema gives a BI user or Genie the derived facts without exposing the <code>*_json</code> and <code>raw_spec_payload</code> columns in <code>&lt;catalog&gt;.config</code>. Column <code>COMMENT</code>s are the semantic model Genie reads; they are load-bearing.</p>
 <ul>
-<li><strong>Join key, pipelines</strong>: <code>p.configuration['dataflow.group.id']</code>, which every FlowX pipeline resource already sets. <code>v_pipeline_registry</code> computes it once, filters <code>IS NOT NULL</code> and <code>delete_time IS NULL</code>, and every other view joins through it.</li>
+<li><strong>Join key, pipelines</strong>: <code>p.configuration['dataflow.group.id']</code>, which every Metaflow pipeline resource already sets. <code>v_pipeline_registry</code> computes it once, filters <code>IS NOT NULL</code> and <code>delete_time IS NULL</code>, and every other view joins through it.</li>
 <li><strong>Join key, jobs</strong>: <code>system.lakeflow.jobs.tags['dataflow_group_id']</code> (<code>attribution = 'tag'</code>, exact), else a case-insensitive name match (<code>'name_match'</code>, heuristic), else <code>NULL</code>. Cost is attributed by tag only. Notebook <code>base_parameters</code> do not surface in <code>job_task_run_timeline</code>, which is why the tag exists. <a href="../../17_framework_observability_and_genie/#32-jobs-not-free-and-why-a-tag-was-needed">17 §3.2</a></li>
 <li><strong>Event log location is discovered</strong>, not constructed: <code>system.lakeflow.pipelines.settings</code> has no <code>catalog</code> or <code>target</code>, so <code>01_setup</code> joins <code>system.information_schema.tables</code> on <code>event_log_&lt;pipeline_id&gt;</code>. <a href="../../17_framework_observability_and_genie/#33-event-log-location-is-discovered-not-constructed">17 §3.3</a></li>
 </ul>
@@ -5302,7 +5300,7 @@
 <tr>
 <td>3</td>
 <td><code>v_pipeline_registry</code></td>
-<td>one row per FlowX pipeline</td>
+<td>one row per Metaflow pipeline</td>
 <td><code>system.lakeflow.pipelines</code> + <code>information_schema</code></td>
 </tr>
 <tr>
@@ -5370,7 +5368,7 @@ Full table: <a href="../../17_framework_observability_and_genie/#9-prerequisites
 </ul>
 </details>
 <h3 id="dashboard-genie-and-ai_forecast">Dashboard, Genie and AI_FORECAST<a class="headerlink" href="#dashboard-genie-and-ai_forecast" title="Permanent link">&para;</a></h3>
-<p><strong>AI/BI dashboard.</strong> <code>databricks-bi/flowx_observability_dashboard.lvdash.json</code>, deployed as <code>flowx_observability_dashboard</code> ("FlowX Framework Observability") with <code>dataset_schema: observability</code>. Ten pages, fifteen datasets:</p>
+<p><strong>AI/BI dashboard.</strong> <code>databricks-bi/flowx_observability_dashboard.lvdash.json</code>, deployed as <code>flowx_observability_dashboard</code> ("Metaflow Framework Observability") with <code>dataset_schema: observability</code>. Ten pages, fifteen datasets:</p>
 <table>
 <thead>
 <tr>
@@ -5465,7 +5463,7 @@ Full table: <a href="../../17_framework_observability_and_genie/#9-prerequisites
 <li><strong>Triage</strong>: paste a failed <code>observability_export</code> error into <code>diagnose_pipeline_telemetry_failures</code>; for a failed pipeline update, <code>v_pipeline_updates</code> gives the <code>update_id</code> and <code>pipeline_id</code> to open in the Lakeflow UI.</li>
 </ul>
 <div class="admonition danger">
-<p class="admonition-title">FlowX ships no alerting or paging engine</p>
+<p class="admonition-title">Metaflow ships no alerting or paging engine</p>
 <p>Nothing in the framework fires a notification, opens an incident or evaluates a schedule. Alerting is built <strong>on top of</strong> these surfaces: a Databricks SQL alert over a view, or the OTLP consumer's own rules (Dynatrace, Datadog, Splunk, an OTel Collector) over the exported <code>ResourceLogs</code>. The views make the first route a five-minute job.</p>
 </div>
 <p>Example Databricks SQL alert over the scorecard. Condition: row count greater than 0.</p>
@@ -5685,7 +5683,7 @@ Full table: <a href="../../17_framework_observability_and_genie/#9-prerequisites
       <div class="md-copyright">
   
     <div class="md-copyright__highlight">
-      FlowX · Data Platform Engineering
+      Metaflow · NRM Analytix
     </div>
   
   

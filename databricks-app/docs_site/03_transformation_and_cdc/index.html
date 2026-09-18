@@ -9,7 +9,7 @@
         <meta name="description" content="Metadata-driven ingestion, transformation, reconciliation and observability pipelines on Databricks Lakeflow — platform hub, four framework pillars, console walkthroughs, the master configuration reference and operational runbooks.">
       
       
-        <meta name="author" content="Data Platform Engineering">
+        <meta name="author" content="NRM Analytix">
       
       
       
@@ -27,7 +27,7 @@
     
     
       
-        <title>Transformation & CDC - FlowX</title>
+        <title>Transformation & CDC - Metaflow</title>
       
     
     
@@ -89,7 +89,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#flowx-transformation-cdc-engine" class="md-skip">
+        <a href="#metaflow-transformation-cdc-engine" class="md-skip">
           Skip to content
         </a>
       
@@ -105,10 +105,9 @@
 
 <header class="md-header md-header--shadow md-header--lifted" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href=".." title="FlowX" class="md-header__button md-logo" aria-label="FlowX" data-md-component="logo">
+    <a href=".." title="Metaflow" class="md-header__button md-logo" aria-label="Metaflow" data-md-component="logo">
       
-  
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18 11h-3.18C14.4 9.84 13.3 9 12 9s-2.4.84-2.82 2H6c-.33 0-2-.1-2-2V8c0-1.83 1.54-2 2-2h10.18C16.6 7.16 17.7 8 19 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3c-1.3 0-2.4.84-2.82 2H6C4.39 4 2 5.06 2 8v1c0 2.94 2.39 4 4 4h3.18c.42 1.16 1.52 2 2.82 2s2.4-.84 2.82-2H18c.33 0 2 .1 2 2v1c0 1.83-1.54 2-2 2H7.82C7.4 16.84 6.3 16 5 16a3 3 0 0 0-3 3 3 3 0 0 0 3 3c1.3 0 2.4-.84 2.82-2H18c1.61 0 4-1.07 4-4v-1c0-2.93-2.39-4-4-4m1-7a1 1 0 0 1 1 1 1 1 0 0 1-1 1 1 1 0 0 1-1-1 1 1 0 0 1 1-1M5 20a1 1 0 0 1-1-1 1 1 0 0 1 1-1 1 1 0 0 1 1 1 1 1 0 0 1-1 1"/></svg>
+  <img src="../assets/logo.png" alt="logo">
 
     </a>
     <label class="md-header__button md-icon" for="__drawer">
@@ -119,7 +118,7 @@
       <div class="md-header__ellipsis">
         <div class="md-header__topic">
           <span class="md-ellipsis">
-            FlowX
+            Metaflow
           </span>
         </div>
         <div class="md-header__topic" data-md-component="header-topic">
@@ -495,13 +494,12 @@
 
 <nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href=".." title="FlowX" class="md-nav__button md-logo" aria-label="FlowX" data-md-component="logo">
+    <a href=".." title="Metaflow" class="md-nav__button md-logo" aria-label="Metaflow" data-md-component="logo">
       
-  
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18 11h-3.18C14.4 9.84 13.3 9 12 9s-2.4.84-2.82 2H6c-.33 0-2-.1-2-2V8c0-1.83 1.54-2 2-2h10.18C16.6 7.16 17.7 8 19 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3c-1.3 0-2.4.84-2.82 2H6C4.39 4 2 5.06 2 8v1c0 2.94 2.39 4 4 4h3.18c.42 1.16 1.52 2 2.82 2s2.4-.84 2.82-2H18c.33 0 2 .1 2 2v1c0 1.83-1.54 2-2 2H7.82C7.4 16.84 6.3 16 5 16a3 3 0 0 0-3 3 3 3 0 0 0 3 3c1.3 0 2.4-.84 2.82-2H18c1.61 0 4-1.07 4-4v-1c0-2.93-2.39-4-4-4m1-7a1 1 0 0 1 1 1 1 1 0 0 1-1 1 1 1 0 0 1-1-1 1 1 0 0 1 1-1M5 20a1 1 0 0 1-1-1 1 1 0 0 1 1-1 1 1 0 0 1 1 1 1 1 0 0 1-1 1"/></svg>
+  <img src="../assets/logo.png" alt="logo">
 
     </a>
-    FlowX
+    Metaflow
   </label>
   
     <div class="md-nav__source">
@@ -4775,7 +4773,7 @@
   
 
 
-<h1 id="flowx-transformation-cdc-engine">🔄 FlowX — Transformation &amp; CDC Engine<a class="headerlink" href="#flowx-transformation-cdc-engine" title="Permanent link">&para;</a></h1>
+<h1 id="metaflow-transformation-cdc-engine">🔄 Metaflow — Transformation &amp; CDC Engine<a class="headerlink" href="#metaflow-transformation-cdc-engine" title="Permanent link">&para;</a></h1>
 <blockquote>
 <p><strong>Audience</strong>: Data engineers and analytics engineers building Silver and Gold layer pipelines, Slowly Changing Dimensions, and multi-table joins.</p>
 </blockquote>
@@ -4825,7 +4823,7 @@ physical scan. <code>mark_streaming_references</code> is unchanged and still key
 </blockquote>
 <hr />
 <h2 id="2-complete-cdc-load-strategies-guide">2. Complete CDC Load Strategies Guide<a class="headerlink" href="#2-complete-cdc-load-strategies-guide" title="Permanent link">&para;</a></h2>
-<p>FlowX provides 6 built-in load and merge strategies configured via <code>target_config.cdc_load_strategy</code>. They fall into two families: <code>APPEND</code> and <code>TRUNCATE_AND_LOAD</code> need no key and skip the CDC dispatcher entirely; <code>SCD1</code>, <code>SCD2</code>, <code>SCD3</code> and <code>FULL_SNAPSHOT_CDC</code> all merge on <code>primary_keys</code>.</p>
+<p>Metaflow provides 6 built-in load and merge strategies configured via <code>target_config.cdc_load_strategy</code>. They fall into two families: <code>APPEND</code> and <code>TRUNCATE_AND_LOAD</code> need no key and skip the CDC dispatcher entirely; <code>SCD1</code>, <code>SCD2</code>, <code>SCD3</code> and <code>FULL_SNAPSHOT_CDC</code> all merge on <code>primary_keys</code>.</p>
 <h3 id="20-choosing-one">2.0 Choosing one<a class="headerlink" href="#20-choosing-one" title="Permanent link">&para;</a></h3>
 <p>Three questions, in order. Answer them about the <strong>source</strong>, not the target.</p>
 <table>
@@ -5126,7 +5124,7 @@ no longer front-loaded by <code>storage/column_ordering.py</code>.</p>
 </span></code></pre></div>
 <hr />
 <h2 id="4-hash-column-computation">4. Hash Column Computation<a class="headerlink" href="#4-hash-column-computation" title="Permanent link">&para;</a></h2>
-<p>FlowX injects deterministic <strong>SHA-256</strong> hash columns to drive change detection. These are computed only for CDC-dispatched strategies (<code>SCD1</code>/<code>SCD2</code>/<code>SCD3</code>/<code>FULL_SNAPSHOT_CDC</code>) inside <code>dq/quarantine.py::_apply_hash_columns</code>, before the clean upstream reaches <code>dlt.apply_changes</code>/<code>apply_changes_from_snapshot</code>:</p>
+<p>Metaflow injects deterministic <strong>SHA-256</strong> hash columns to drive change detection. These are computed only for CDC-dispatched strategies (<code>SCD1</code>/<code>SCD2</code>/<code>SCD3</code>/<code>FULL_SNAPSHOT_CDC</code>) inside <code>dq/quarantine.py::_apply_hash_columns</code>, before the clean upstream reaches <code>dlt.apply_changes</code>/<code>apply_changes_from_snapshot</code>:</p>
 <table>
 <thead>
 <tr>
@@ -5152,7 +5150,7 @@ no longer front-loaded by <code>storage/column_ordering.py</code>.</p>
 <p><strong>This is a breaking change</strong> — see <a href="../11_hashing_and_determinism/"><code>docs/11_hashing_and_determinism.md</code></a> for the full construction, the column-ordering rules (which of these sort their inputs and which don't), a reproducible Spark SQL snippet for spot-checking a digest by hand, and the required post-upgrade migration checklist. Do not rely on this section for the construction details — it is a summary, not the canonical reference.</p>
 <hr />
 <h2 id="5-parameter-substitution-param-catalog-env">5. Parameter Substitution (<code>${param}</code>, <code>{{catalog}}</code>, <code>{{env}}</code>)<a class="headerlink" href="#5-parameter-substitution-param-catalog-env" title="Permanent link">&para;</a></h2>
-<p>FlowX supports flexible parameter binding across deployment environments:</p>
+<p>Metaflow supports flexible parameter binding across deployment environments:</p>
 <p><strong>The two syntaxes have DIFFERENT lifecycles. Confusing them causes real, silent failures.</strong></p>
 <table>
 <thead>
@@ -5322,7 +5320,7 @@ and an unresolved path surfaced only as
       <div class="md-copyright">
   
     <div class="md-copyright__highlight">
-      FlowX · Data Platform Engineering
+      Metaflow · NRM Analytix
     </div>
   
   
