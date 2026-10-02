@@ -1,0 +1,102 @@
+{
+  "$schema": "../../../onboarding_templates/onboarding_spec.schema.json",
+  "dataflow_group_id": "soft_delete_test_group",
+  "pipeline_parameters": {
+    "env": "test",
+    "catalog": "main"
+  },
+  "spark_config": {
+    "spark.sql.shuffle.partitions": "4"
+  },
+  "ingestion_flows": [
+    {
+      "dataflow_id": "df_customers_ingest",
+      "source_system": "test_customer_system",
+      "source_database": "test_source_db",
+      "source_table_name": "raw_customers",
+      "source_description": "Test: Customer ingestion with soft-delete feature - demonstrates deletion of obsolete records via external key file",
+      "source_type": "autoloader",
+      "target_catalog": "main",
+      "target_schema": "bronze_test",
+      "target_table": "customers",
+      "target_type": "streaming_table",
+      "source_config": {
+        "path": "/Volumes/main/test/landing/customers/",
+        "format": "csv",
+        "file_pattern": "customers_*.csv",
+        "schema_location": "/Volumes/main/test/_schemas/customers/",
+        "schema_evolution_mode": "addNewColumns",
+        "reader_options": {
+          "header": "true",
+          "inferSchema": "true"
+        },
+        "capture_technical_metadata": true,
+        "column_normalization": {
+          "enabled": true,
+          "case": "lower"
+        }
+      },
+      "target_config": {
+        "cdc_load_strategy": "APPEND",
+        "storage_format": "delta",
+        "partition_columns": [],
+        "liquid_clustering_columns": [
+          "customer_id"
+        ],
+        "table_properties": {
+          "log_retention_duration": "interval 30 days",
+          "deleted_file_retention_duration": "interval 30 days"
+        },
+        "soft_delete_config": {
+          "enabled": true,
+          "key_file_path": "/Volumes/main/test/deletes/customer_deletion_keys.parquet",
+          "primary_keys": [
+            "customer_id"
+          ],
+          "key_file_deleted_indicator_column": "is_marked_deleted"
+        }
+      },
+      "dq_config": {
+        "rules": [
+          {
+            "rule_id": "dq_customer_id_not_null",
+            "expression": "customer_id IS NOT NULL",
+            "action": "drop"
+          },
+          {
+            "rule_id": "dq_email_format",
+            "expression": "email LIKE '%@%.%' OR email IS NULL",
+            "action": "quarantine"
+          }
+        ],
+        "quarantine_table": "customers_quarantine",
+        "record_id_column": "customer_id"
+      },
+      "governance_tags": {
+        "column_tags": [
+          {
+            "column": "email",
+            "tags": {
+              "classification": "pii",
+              "mask": "email"
+            }
+          },
+          {
+            "column": "phone",
+            "tags": {
+              "classification": "pii",
+              "mask": "phone"
+            }
+          }
+        ],
+        "table_tags": {
+          "domain": "customer",
+          "sensitivity": "medium"
+        }
+      }
+    }
+  ],
+  "transformation_flows": [],
+  "reconciliation_flows": [],
+  "observability": []
+}

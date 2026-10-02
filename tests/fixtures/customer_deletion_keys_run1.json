@@ -1,0 +1,42 @@
+[
+  {
+    "customer_id": "CUST001",
+    "is_marked_deleted": false
+  },
+  {
+    "customer_id": "CUST002",
+    "is_marked_deleted": false
+  },
+  {
+    "customer_id": "CUST003",
+    "is_marked_deleted": true
+  },
+  {
+    "customer_id": "CUST004",
+    "is_marked_deleted": false
+  },
+  {
+    "customer_id": "CUST005",
+    "is_marked_deleted": false
+  },
+  {
+    "customer_id": "CUST006",
+    "is_marked_deleted": false
+  },
+  {
+    "customer_id": "CUST007",
+    "is_marked_deleted": true
+  },
+  {
+    "customer_id": "CUST008",
+    "is_marked_deleted": false
+  },
+  {
+    "customer_id": "CUST009",
+    "is_marked_deleted": false
+  },
+  {
+    "customer_id": "CUST010",
+    "is_marked_deleted": false
+  }
+]

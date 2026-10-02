@@ -287,7 +287,11 @@ ALLOWED_TARGET_CONFIG_KEYS = {
     "cdc_operation_mapping", "columns_to_check", "columns_to_exclude",
     "empty_target_if_source_empty", "encrypted_columns", "generate_hash_columns",
     "liquid_clustering_columns", "partition_columns", "primary_keys", "sequence_by_column",
-    "sink_config", "storage_format", "table_properties"
+    "sink_config", "soft_delete_config", "storage_format", "table_properties"
+}
+
+ALLOWED_SOFT_DELETE_CONFIG_KEYS = {
+    "enabled", "key_file_path", "key_file_deleted_indicator_column", "primary_keys"
 }
 
 ALLOWED_DQ_CONFIG_KEYS = {
@@ -1134,6 +1138,42 @@ def _validate_sink_config(sink_config: Any, path_prefix: str, errors: List[str],
                                 check_secret_ref(pgp_encryption.get("sign_passphrase_secret"), f"{pgp_path}.sign_passphrase_secret", errors)
 
 
+def _validate_soft_delete_config(soft_delete_config: Any, path_prefix: str, errors: List[str]) -> None:
+    """Validate ``target_config.soft_delete_config`` -- soft-delete feature configuration.
+
+    Soft-delete is optional; when present and enabled, requires:
+    - key_file_path: path to external key file (Volumes or Delta table)
+    - primary_keys: non-empty list of column names to match
+    - key_file_deleted_indicator_column: column name in key file indicating deletion
+    """
+    if soft_delete_config is None:
+        return
+    if not check_dict(soft_delete_config, path_prefix, errors):
+        return
+
+    enabled = soft_delete_config.get("enabled")
+    if enabled is False:
+        errors.append(
+            f"{path_prefix}.enabled: explicitly setting to false is not necessary -- "
+            "omit the entire soft_delete_config block instead to disable soft-deletes"
+        )
+        return
+
+    if enabled is not None and not isinstance(enabled, bool):
+        errors.append(f"{path_prefix}.enabled: expected true or omitted (defaults to true), got {enabled!r}")
+
+    check_string(soft_delete_config.get("key_file_path"), f"{path_prefix}.key_file_path", errors, required=True)
+    check_list_of_str(soft_delete_config.get("primary_keys"), f"{path_prefix}.primary_keys", errors, required=True)
+    check_string(
+        soft_delete_config.get("key_file_deleted_indicator_column"),
+        f"{path_prefix}.key_file_deleted_indicator_column",
+        errors,
+        required=True,
+    )
+
+    reject_unknown_keys(soft_delete_config, path_prefix, errors, ALLOWED_SOFT_DELETE_CONFIG_KEYS)
+
+
 def _validate_target_config(
     target_config: Any, path_prefix: str, errors: List[str], target_type: Optional[str]
 ) -> Optional[str]:
@@ -1277,6 +1317,8 @@ def _validate_target_config(
 
     if target_type in ("sink", "external_sink"):
         _validate_sink_config(target_config.get("sink_config"), f"{path_prefix}.sink_config", errors, target_type)
+
+    _validate_soft_delete_config(target_config.get("soft_delete_config"), f"{path_prefix}.soft_delete_config", errors)
 
     return cdc_load_strategy if isinstance(cdc_load_strategy, str) else None
 

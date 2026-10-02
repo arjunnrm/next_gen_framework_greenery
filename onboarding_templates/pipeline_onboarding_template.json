@@ -80,7 +80,13 @@
               "secret_key": "pii_encryption_key"
             }
           }
-        ]
+        ],
+        "soft_delete_config": {
+          "enabled": true,
+          "key_file_path": "/Volumes/{{catalog}}/{{env}}/deletes/example_raw_keys.parquet",
+          "primary_keys": ["example_id"],
+          "key_file_deleted_indicator_column": "is_marked_deleted"
+        }
       },
       "dq_config": {
         "rules": [

@@ -910,6 +910,47 @@
         }
       }
     },
+    "softDeleteConfig": {
+      "type": "object",
+      "description": "Optional soft-delete configuration for ingestion flows. When present, applies soft-delete markers (is_deleted = true) to Bronze table rows matching keys in an external key file, on every pipeline run.",
+      "required": [
+        "key_file_path",
+        "primary_keys",
+        "key_file_deleted_indicator_column"
+      ],
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Default true. Omit or set to false; explicitly setting false is redundant (omit the entire soft_delete_config block instead)."
+        },
+        "key_file_path": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Path to external key file containing primary keys marked for deletion. Supports {{catalog}} and {{env}} template substitution. Example: /Volumes/{{catalog}}/{{env}}/deletes/customer_keys.parquet"
+        },
+        "primary_keys": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "minItems": 1,
+          "description": "List of column names that uniquely identify a record. Must match columns in the Bronze table. Supports single keys (e.g., ['customer_id']) and composite keys (e.g., ['org_id', 'customer_id'])."
+        },
+        "key_file_deleted_indicator_column": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Column name in the key file (boolean) that indicates whether a key is marked for deletion. Rows where this column = true are soft-deleted."
+        }
+      },
+      "additionalProperties": false,
+      "patternProperties": {
+        "^_": {
+          "description": "Author comment; ignored by the framework."
+        }
+      }
+    },
     "targetConfig": {
       "type": "object",
       "description": "Shared, field-for-field identical shape between ingestion_flows[] and transformation_flows[]. Every CDC-related field lives directly inside target_config -- there is no separate cdc_config sibling.",
@@ -1006,6 +1047,9 @@
         "capture_technical_metadata": {
           "type": "boolean",
           "description": "Conventionally transformation_flows-only (ingestion carries the equivalent field on source_config instead); not actually restricted by the validator."
+        },
+        "soft_delete_config": {
+          "$ref": "#/$defs/softDeleteConfig"
         },
         "sink_config": {
           "$ref": "#/$defs/sinkConfig"
