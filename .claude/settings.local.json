@@ -5,7 +5,9 @@
       "Bash(grep -E \"\\\\.\\(py|scala|r\\)$\")",
       "Bash(python -m pytest tests/unit/test_soft_delete_processor.py -v --tb=short)",
       "Bash(python -m py_compile tests/unit/test_soft_delete_processor.py src/flowx/lakeflow_framework/soft_delete/processor.py)",
-      "Bash(python soft_delete_sample_data.py)"
+      "Bash(python soft_delete_sample_data.py)",
+      "Bash(grep -E \"test_.*\\\\.py$\")",
+      "Bash(python -m pytest --version)"
     ]
   }
 }

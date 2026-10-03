@@ -141,6 +141,12 @@ from flowx.lakeflow_framework.engine.flow_generators import (  # noqa: E402
     generate_transformation_flow,
     resolve_pipeline_schema,
 )
+from flowx.lakeflow_framework.soft_delete.processor import (  # noqa: E402
+    apply_soft_deletes,
+)
+from flowx.lakeflow_framework.transformation.parameters import (  # noqa: E402
+    substitute_path_parameters,
+)
 from flowx.lakeflow_framework.engine.run_context import resolve_pipeline_run_id  # noqa: E402
 from flowx.lakeflow_framework.engine.source_plane import (  # noqa: E402
     assert_acyclic,
@@ -404,6 +410,62 @@ for _ingestion_row in MD.ingestion_rows:
         pipeline_parameters=PIPELINE_PARAMETERS,
         pipeline_run_id=PIPELINE_RUN_ID,
     )
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ## PHASE 4.5 -- Apply Soft Deletes to Bronze Tables
+# MAGIC
+# MAGIC For each ingestion flow with `soft_delete_config` enabled, read the external key file,
+# MAGIC identify keys marked for deletion, and apply soft-delete markers (is_deleted = true) to
+# MAGIC matching Bronze table rows using Delta MERGE. The feature is optional and metadata-driven:
+# MAGIC flows without `soft_delete_config` skip this phase. Execution is idempotent and automatic
+# MAGIC on every pipeline run.
+# MAGIC
+# MAGIC See `flowx.lakeflow_framework.soft_delete.processor` for implementation details.
+
+# COMMAND ----------
+
+for _ingestion_row in MD.ingestion_rows:
+    if _ingestion_row.target_config_json:
+        _target_config = json.loads(_ingestion_row.target_config_json)
+        _soft_delete_cfg = _target_config.get("soft_delete_config")
+
+        if _soft_delete_cfg:
+            try:
+                _key_file_path = _soft_delete_cfg.get("key_file_path")
+                if _key_file_path:
+                    _key_file_path = substitute_path_parameters(_key_file_path, PIPELINE_PARAMETERS)
+
+                apply_soft_deletes(
+                    spark=spark,
+                    catalog=_ingestion_row.target_catalog,
+                    schema=_ingestion_row.target_schema,
+                    table=_ingestion_row.target_table,
+                    key_file_path=_key_file_path,
+                    primary_keys=_soft_delete_cfg.get("primary_keys", []),
+                    key_file_deleted_indicator_column=_soft_delete_cfg.get("key_file_deleted_indicator_column"),
+                    flow_id=_ingestion_row.dataflow_id,
+                )
+                logger.info(
+                    "Soft-delete processing completed for flow '%s' into table '%s.%s.%s'",
+                    _ingestion_row.dataflow_id,
+                    _ingestion_row.target_catalog,
+                    _ingestion_row.target_schema,
+                    _ingestion_row.target_table,
+                )
+            except Exception as _soft_delete_exc:
+                logger.error(
+                    "Soft-delete processing failed for flow '%s': %s",
+                    _ingestion_row.dataflow_id,
+                    _soft_delete_exc,
+                    exc_info=True,
+                )
+                raise FrameworkConfigError(
+                    f"Soft-delete processing failed for flow '{_ingestion_row.dataflow_id}': {_soft_delete_exc}"
+                ) from _soft_delete_exc
+
+# COMMAND ----------
 
 for _transformation_row in MD.transformation_rows:
     generate_transformation_flow(
